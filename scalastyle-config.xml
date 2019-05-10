@@ -1,0 +1,208 @@
+<scalastyle>
+  <name>Scalastyle standard configuration</name>
+
+  <!-- ================================================================================ -->
+  <!--                               rules we enforce                                   -->
+  <!-- ================================================================================ -->
+
+  <check level="error" class="org.scalastyle.file.FileTabChecker" enabled="true"></check>
+
+  <check level="error" class="org.scalastyle.scalariform.SpacesAfterPlusChecker" enabled="true"></check>
+
+  <check level="error" class="org.scalastyle.scalariform.SpacesBeforePlusChecker" enabled="true"></check>
+
+  <check level="error" class="org.scalastyle.file.WhitespaceEndOfLineChecker" enabled="true"></check>
+
+  <check level="error" class="org.scalastyle.file.FileLineLengthChecker" enabled="true" customId="line.length">
+    <parameters>
+      <parameter name="maxLineLength"><![CDATA[100]]></parameter>
+      <parameter name="tabSize"><![CDATA[2]]></parameter>
+      <parameter name="ignoreImports">true</parameter>
+    </parameters>
+  </check>
+
+  <check level="error" class="org.scalastyle.scalariform.ClassNamesChecker" enabled="true">
+    <parameters><parameter name="regex"><![CDATA[[A-Z][A-Za-z]*]]></parameter></parameters>
+  </check>
+
+  <check level="error" class="org.scalastyle.scalariform.ObjectNamesChecker" enabled="true">
+    <parameters><parameter name="regex"><![CDATA[[A-Z][A-Za-z]*]]></parameter></parameters>
+  </check>
+
+  <check level="error" class="org.scalastyle.scalariform.PackageObjectNamesChecker" enabled="true">
+    <parameters><parameter name="regex"><![CDATA[^[a-z][A-Za-z]*$]]></parameter></parameters>
+  </check>
+
+  <check level="warn" class="org.scalastyle.scalariform.ParameterNumberChecker" enabled="true" customId="parameter.length">
+    <parameters><parameter name="maxParameters"><![CDATA[10]]></parameter></parameters>
+  </check>
+
+  <check level="error" class="org.scalastyle.scalariform.NoFinalizeChecker" enabled="true"></check>
+
+  <check level="error" class="org.scalastyle.scalariform.CovariantEqualsChecker" enabled="true"></check>
+
+  <check level="error" class="org.scalastyle.scalariform.StructuralTypeChecker" enabled="true"></check>
+
+  <check level="error" class="org.scalastyle.scalariform.IfBraceChecker" enabled="true">
+    <parameters>
+      <parameter name="singleLineAllowed"><![CDATA[true]]></parameter>
+      <parameter name="doubleLineAllowed"><![CDATA[true]]></parameter>
+    </parameters>
+  </check>
+
+  <check level="error" class="org.scalastyle.scalariform.PublicMethodsHaveTypeChecker" enabled="true"></check>
+
+  <check level="error" class="org.scalastyle.file.NewLineAtEofChecker" enabled="true"></check>
+
+  <check level="error" class="org.scalastyle.scalariform.SpaceAfterCommentStartChecker" enabled="true"></check>
+
+  <check level="error" class="org.scalastyle.scalariform.EnsureSingleSpaceBeforeTokenChecker" enabled="true">
+   <parameters>
+     <parameter name="tokens">ARROW, EQUALS, ELSE, TRY, CATCH, FINALLY, LARROW, RARROW</parameter>
+   </parameters>
+  </check>
+
+  <check level="error" class="org.scalastyle.scalariform.EnsureSingleSpaceAfterTokenChecker" enabled="true">
+    <parameters>
+     <parameter name="tokens">ARROW, EQUALS, COMMA, COLON, IF, ELSE, DO, WHILE, FOR, MATCH, TRY, CATCH, FINALLY, LARROW, RARROW</parameter>
+    </parameters>
+  </check>
+
+  <!-- ??? usually shouldn't be checked into the code base. -->
+  <check level="error" class="org.scalastyle.scalariform.NotImplementedErrorUsage" enabled="true"></check>
+
+  <!-- As of SPARK-7977 all printlns need to be wrapped in '// scalastyle:off/on println' -->
+  <check customId="println" level="error" class="org.scalastyle.scalariform.TokenChecker" enabled="true">
+    <parameters><parameter name="regex">^println$</parameter></parameters>
+    <customMessage><![CDATA[Are you sure you want to println? If yes, wrap the code block with
+      // scalastyle:off println
+      println(...)
+      // scalastyle:on println]]></customMessage>
+  </check>
+
+  <check customId="runtimeaddshutdownhook" level="error" class="org.scalastyle.file.RegexChecker" enabled="true">
+    <parameters><parameter name="regex">Runtime\.getRuntime\.addShutdownHook</parameter></parameters>
+    <customMessage><![CDATA[
+      Are you sure that you want to use Runtime.getRuntime.addShutdownHook? In most cases, you should use
+      ShutdownHookManager.addShutdownHook instead.
+      If you must use Runtime.getRuntime.addShutdownHook, wrap the code block with
+      // scalastyle:off runtimeaddshutdownhook
+      Runtime.getRuntime.addShutdownHook(...)
+      // scalastyle:on runtimeaddshutdownhook
+    ]]></customMessage>
+  </check>
+
+  <check customId="mutablesynchronizedbuffer" level="error" class="org.scalastyle.file.RegexChecker" enabled="true">
+    <parameters><parameter name="regex">mutable\.SynchronizedBuffer</parameter></parameters>
+    <customMessage><![CDATA[
+      Are you sure that you want to use mutable.SynchronizedBuffer? In most cases, you should use
+      java.util.concurrent.ConcurrentLinkedQueue instead.
+      If you must use mutable.SynchronizedBuffer, wrap the code block with
+      // scalastyle:off mutablesynchronizedbuffer
+      mutable.SynchronizedBuffer[...]
+      // scalastyle:on mutablesynchronizedbuffer
+    ]]></customMessage>
+  </check>
+
+  <check customId="classforname" level="error" class="org.scalastyle.file.RegexChecker" enabled="true">
+    <parameters><parameter name="regex">Class\.forName</parameter></parameters>
+    <customMessage><![CDATA[
+      Are you sure that you want to use Class.forName? In most cases, you should use Utils.classForName instead.
+      If you must use Class.forName, wrap the code block with
+      // scalastyle:off classforname
+      Class.forName(...)
+      // scalastyle:on classforname
+    ]]></customMessage>
+  </check>
+
+  <check customId="javaconversions" level="error" class="org.scalastyle.scalariform.TokenChecker" enabled="true">
+    <parameters><parameter name="regex">JavaConversions</parameter></parameters>
+    <customMessage>Instead of importing implicits in scala.collection.JavaConversions._, import
+    scala.collection.JavaConverters._ and use .asScala / .asJava methods</customMessage>
+  </check>
+
+  <check customId="commonslang2" level="error" class="org.scalastyle.scalariform.TokenChecker" enabled="true">
+    <parameters><parameter name="regex">org\.apache\.commons\.lang\.</parameter></parameters>
+    <customMessage>Use Commons Lang 3 classes (package org.apache.commons.lang3.*) instead
+    of Commons Lang 2 (package org.apache.commons.lang.*)</customMessage>
+  </check>
+
+  <check level="error" class="org.scalastyle.scalariform.DisallowSpaceBeforeTokenChecker" enabled="true">
+    <parameters>
+      <parameter name="tokens">COMMA</parameter>
+    </parameters>
+  </check>
+
+  <!-- SPARK-3854: Single Space between ')' and '{' -->
+  <check customId="SingleSpaceBetweenRParenAndLCurlyBrace" level="error" class="org.scalastyle.file.RegexChecker" enabled="true">
+    <parameters><parameter name="regex">\)\{</parameter></parameters>
+    <customMessage><![CDATA[
+      Single Space between ')' and `{`.
+    ]]></customMessage>
+  </check>
+
+  <check customId="NoScalaDoc" level="error" class="org.scalastyle.file.RegexChecker" enabled="true">
+    <parameters><parameter name="regex">(?m)^(\s*)/[*][*].*$(\r|)\n^\1  [*]</parameter></parameters>
+    <customMessage>Use Javadoc style indentation for multiline comments</customMessage>
+  </check>
+
+  <check level="error" class="org.scalastyle.scalariform.EqualsHashCodeChecker" enabled="true"></check>
+
+  <check customId="OmitBracesInCase" level="error" class="org.scalastyle.file.RegexChecker" enabled="true">
+    <parameters><parameter name="regex">case[^\n>]*=>\s*\{</parameter></parameters>
+    <customMessage>Omit braces in case clauses.</customMessage>
+  </check>
+
+  <check customId="RepeatTestTag" level="error" class="org.scalastyle.file.RegexChecker" enabled="true">
+    <parameters><parameter name="regex">Repeat\([0-9]+\)</parameter></parameters>
+    <customMessage><![CDATA[
+      Are you sure that you want to leave this test tag in?
+    ]]></customMessage>
+  </check>
+
+  <check customId="SetDefaultRepeatLevel" level="error" class="org.scalastyle.file.RegexChecker" enabled="true">
+    <parameters><parameter name="regex">setDefaultRepeatLevel\([0-9]+\)</parameter></parameters>
+    <customMessage><![CDATA[
+      Are you sure that you want to leave this test tag in?
+    ]]></customMessage>
+  </check>
+
+  <check customId="interceptException" level="error" class="org.scalastyle.file.RegexChecker" enabled="true">
+    <parameters><parameter name="regex">intercept\[Exception\]</parameter></parameters>
+    <customMessage><![CDATA[
+      You should intercept a more specific type of Exception. Intercepting a generic Exception can
+      mask other errors in your code or mocks - you may not actually be testing the behavior you
+      expect!
+      If you cannot specify a more specific type of Exception, you should probably change the
+      underlying code to be more specific (maybe add a new exception type and wrap the exceptions
+      you currently throw).
+      If you absolutely must intercept a generic Exception, a) I don't believe you, but b) you can
+      wrap your offending test code with
+      // scalastyle:off interceptException
+      intercept[Exception] {
+        ... terrible things ...
+      }
+      // scalastyle:on interceptException
+    ]]></customMessage>
+  </check>
+
+  <check customId="interceptThrowable" level="error" class="org.scalastyle.file.RegexChecker" enabled="true">
+    <parameters><parameter name="regex">intercept\[Throwable\]</parameter></parameters>
+    <customMessage><![CDATA[
+      You should intercept a more specific type of Throwable. Intercepting a generic Throwable can
+      mask other errors in your code or mocks - you may not actually be testing the behavior you
+      expect!
+      If you cannot specify a more specific type of Throwable, you should probably change the
+      underlying code to be more specific (maybe add a new exception type and wrap the exceptions
+      you currently throw).
+      If you absolutely must intercept a generic Throwable, a) I don't believe you, but b) you can
+      wrap your offending test code with
+      // scalastyle:off interceptThrowable
+      intercept[Throwable] {
+        ... terrible things ...
+      }
+      // scalastyle:on interceptThrowable
+    ]]></customMessage>
+  </check>
+
+</scalastyle>

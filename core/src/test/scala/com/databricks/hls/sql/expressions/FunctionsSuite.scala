@@ -70,6 +70,7 @@ class FunctionsSuite extends SharedSQLContext {
     assert(splits.getAs[Seq[String]](0) == expected)
   }
 
+  // scalastyle:off nonascii.message
   testSplit("simple", "a,b,c", ',', Seq("a", "b", "c"))
   testSplit("only char", ";", ';', Seq("", ""))
   testSplit("empty string", "", '/', Seq(""))
@@ -80,4 +81,5 @@ class FunctionsSuite extends SharedSQLContext {
     Seq("☕\uD83E\uDD51\uD83D\uDCA9")
   )
   testSplit("unicode characters (split)", "☕,☕", ',', Seq("☕", "☕"))
+  // scalastyle:on nonascii.message
 }

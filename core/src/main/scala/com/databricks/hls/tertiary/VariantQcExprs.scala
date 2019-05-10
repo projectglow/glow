@@ -253,7 +253,10 @@ case class HardyWeinberg(genotypes: Expression) extends UnaryExpression with Exp
   }
 
   override def nullSafeEval(input: Any): Any = {
-    VariantQcExprs.hardyWeinberg(input.asInstanceOf[ArrayData], genotypeStructSize, genotypeFieldIndices.head)
+    VariantQcExprs.hardyWeinberg(
+      input.asInstanceOf[ArrayData],
+      genotypeStructSize,
+      genotypeFieldIndices.head)
   }
 }
 
@@ -282,7 +285,10 @@ case class CallStats(genotypes: Expression) extends UnaryExpression with Expects
   }
 
   override def nullSafeEval(input: Any): Any = {
-    VariantQcExprs.callStats(input.asInstanceOf[ArrayData], genotypeStructSize, genotypeFieldIndices.head)
+    VariantQcExprs.callStats(
+      input.asInstanceOf[ArrayData],
+      genotypeStructSize,
+      genotypeFieldIndices.head)
   }
 }
 

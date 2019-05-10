@@ -104,7 +104,8 @@ case class PerSampleSummaryStatistics(
     var i = 0
     while (i < buffer.size) {
       require(buffer(i).sampleId == input(i).sampleId, s"Samples did not match at position $i")
-      buffer(i).momentAggState = MomentAggState.merge(buffer(i).momentAggState, input(i).momentAggState)
+      buffer(i).momentAggState = MomentAggState.merge(buffer(i).momentAggState,
+        input(i).momentAggState)
       i += 1
     }
     buffer
