@@ -1,0 +1,7 @@
+target
+core/target
+project/target
+.idea
+*.swp
+*.swo
+adam.log

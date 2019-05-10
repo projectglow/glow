@@ -1,0 +1,7 @@
+##fileformat=VCFv4.2
+##FORMAT=<ID=GP,Number=G,Type=Float,Description="Genotype call probabilities">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	sample_0	sample_1	sample_2	sample_3
+1	1	RS1;SNP1	A	G	.	.	.	GP	1,0,1	0,1,1	1,0,0	0,1,0
+1	2	RS2,SNP2	A	G	.	.	.	GP	0,1,1,0	1,0,0,1	0,1,0,1	1,0,1,0
+1	3	RS3,SNP3	A	G	.	.	.	GP	1,0,0,1	0,1,0,1	1,0,1,0	0,1,1,0
+1	4	RS4,SNP4	A	G	.	.	.	GP	0,1,0,1	1,0,1,0	0,1,1,0	1,0,0,1
