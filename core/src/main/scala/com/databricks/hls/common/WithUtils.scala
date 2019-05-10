@@ -36,8 +36,9 @@ object WithUtils {
         throw e
     } finally {
       // if we haven't tried to close it in the exception handler, try here.
-      if (!triedToClose)
+      if (!triedToClose) {
         closeable.close()
+      }
     }
   }
 

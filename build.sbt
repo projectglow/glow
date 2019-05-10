@@ -2,13 +2,21 @@ import Dependencies._
 import Tests._
 
 val sparkVersion = "2.4.1"
-val testConcurrency = 2
 
 ThisBuild / scalaVersion     := "2.11.12"
 ThisBuild / version          := "0.1.0-SNAPSHOT"
 ThisBuild / organization     := "com.databricks"
 ThisBuild / organizationName := "DB / RGC"
+ThisBuild / scalastyleConfig := baseDirectory.value / "scalastyle-config.xml"
+
+// Compile Java sources before Scala sources, so Scala code can depend on Java
+// but not vice versa
 Compile / compileOrder := CompileOrder.JavaThenScala
+
+// Test concurrency settings
+// Tests are run serially in one or more forked JVMs. This setup is necessary because the shared
+// Spark session used by many tasks cannot be used concurrently.
+val testConcurrency = 2
 Test / fork := true
 concurrentRestrictions in Global := Seq(
   Tags.limit(Tags.ForkedTestGroup, testConcurrency)
@@ -20,6 +28,8 @@ def groupByHash(tests: Seq[TestDefinition]) = {
     new Group(i.toString, tests, SubProcess(options))
   }.toSeq
 }
+
+Test / testGrouping := groupByHash((definedTests in Test).value)
 
 lazy val core = (project in file("core"))
   .settings(
@@ -49,7 +59,6 @@ lazy val core = (project in file("core"))
       "org.apache.spark" %% "spark-catalyst" % sparkVersion % "test" classifier "tests",
       "org.apache.spark" %% "spark-sql" % sparkVersion % "test" classifier "tests"
     ),
-    testGrouping in Test := groupByHash((definedTests in Test).value)
   )
 
 // Uncomment the following for publishing to Sonatype.
