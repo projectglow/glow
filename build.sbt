@@ -16,7 +16,7 @@ concurrentRestrictions in Global := Seq(
 
 def groupByHash(tests: Seq[TestDefinition]) = {
   tests.groupBy(_.name.hashCode % testConcurrency).map { case (i, tests) =>
-    val options = ForkOptions()
+    val options = ForkOptions().withRunJVMOptions(Vector("-Xmx1024m"))
     new Group(i.toString, tests, SubProcess(options))
   }.toSeq
 }
