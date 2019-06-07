@@ -29,10 +29,15 @@ def groupByHash(tests: Seq[TestDefinition]) = {
   }.toSeq
 }
 
-Test / testGrouping := groupByHash((definedTests in Test).value)
+// testGrouping cannot be set globally using the `Test /` syntax since it's not a pure value
+lazy val commonSettings = Seq(
+  testGrouping in Test := groupByHash((definedTests in Test).value),
+)
+
 
 lazy val core = (project in file("core"))
   .settings(
+    commonSettings,
     name := "spark-genomics",
     libraryDependencies ++= Seq(
       "org.apache.spark" %% "spark-catalyst" % sparkVersion % "provided",
