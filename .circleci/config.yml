@@ -1,0 +1,17 @@
+version: 2.1
+jobs:
+  test:
+    working_directory: ~/mios
+    docker:
+      - image: circleci/openjdk:8
+    steps:
+      - checkout
+      - run:
+          command:
+            sbt test exit
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - test
