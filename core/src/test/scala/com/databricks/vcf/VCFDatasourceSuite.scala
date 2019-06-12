@@ -5,14 +5,13 @@ import java.nio.file.Files
 import htsjdk.variant.vcf.VCFConstants
 import org.apache.commons.io.FileUtils
 import org.apache.hadoop.fs.Path
-import org.apache.spark.{SparkConf, SparkException}
 import org.apache.spark.sql.catalyst.{InternalRow, ScalaReflection}
 import org.apache.spark.sql.execution.datasources.PartitionedFile
 import org.apache.spark.sql.execution.datasources.csv.CSVFileFormat
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Dataset}
-import org.bdgenomics.adam.sql.VariantContext
+import org.apache.spark.{SparkConf, SparkException}
 
 import com.databricks.hls.common.TestUtils._
 import com.databricks.hls.sql.HLSBaseTest
@@ -90,7 +89,8 @@ abstract class BaseVCFDatasourceSuite(val sourceName: String) extends HLSBaseTes
       Seq(
         GenotypeFields(
           None,
-          Some(Genotype(Seq(1, 1), phased = false)),
+          Some(false),
+          Some(Seq(1, 1)),
           Option(84),
           None,
           None,
@@ -144,7 +144,7 @@ abstract class BaseVCFDatasourceSuite(val sourceName: String) extends HLSBaseTes
     }
 
     checkResultsMatch { df =>
-      df.where(expr("size(filter(genotypes, g -> g.genotype.calls[0] = 0)) > 50")).count()
+      df.where(expr("size(filter(genotypes, g -> g.calls[0] = 0)) > 50")).count()
     }
   }
 
@@ -166,26 +166,26 @@ abstract class BaseVCFDatasourceSuite(val sourceName: String) extends HLSBaseTes
 
   test("uncalled genotype") {
     val row = parseVcfContents(makeVcfRow(Seq("AC=2", "GT", "."))).head
-    assert(row.genotypes.head.genotype.get.calls == Seq(-1))
+    assert(row.genotypes.head.calls.get == Seq(-1))
   }
 
   test("split uncalled genotype") {
     val row = parseVcfContents(makeVcfRow(Seq("AC=2", "GT", "./."))).head
-    assert(row.genotypes.head.genotype.get.calls == Seq(-1, -1))
+    assert(row.genotypes.head.calls.get == Seq(-1, -1))
   }
 
   test("phased genotype") {
     val row = parseVcfContents(makeVcfRow(Seq("AC=2", "GT", "0|0"))).head
-    val genotype = row.genotypes.head.genotype.get
-    assert(genotype.calls == Seq(0, 0))
-    assert(genotype.phased)
+    val genotype = row.genotypes.head
+    assert(genotype.calls.get == Seq(0, 0))
+    assert(genotype.phased.get)
   }
 
   test("unphased genotype") {
     val row = parseVcfContents(makeVcfRow(Seq("AC=2", "GT", "0/0"))).head
-    val genotype = row.genotypes.head.genotype.get
-    assert(genotype.calls == Seq(0, 0))
-    assert(!genotype.phased)
+    val genotype = row.genotypes.head
+    assert(genotype.calls.get == Seq(0, 0))
+    assert(!genotype.phased.get)
   }
 
   test("format field flags") {
@@ -241,21 +241,22 @@ abstract class BaseVCFDatasourceSuite(val sourceName: String) extends HLSBaseTes
   test("missing GT format field") {
     val row = parseVcfContents(makeVcfRow(Seq(".", "GL", "."))).head
     val gt = row.genotypes.head
-    assert(gt.genotype.isEmpty)
+    assert(gt.phased.contains(false)) // By default, HTSJDK parses VCs as unphased
+    assert(gt.calls.isEmpty)
   }
 
   test("missing calls are -1 (zero present") {
     val row = parseVcfContents(makeVcfRow(Seq(".", "GT", "./."))).head
-    val gt = row.genotypes.head.genotype.get
-    assert(gt.calls == Seq(-1, -1))
-    assert(!gt.phased)
+    val gt = row.genotypes.head
+    assert(gt.calls.get == Seq(-1, -1))
+    assert(gt.phased.contains(false))
   }
 
   test("missing calls are -1 (only one present)") {
     val row = parseVcfContents(makeVcfRow(Seq(".", "GT", "1|."))).head
-    val gt = row.genotypes.head.genotype.get
-    assert(gt.calls == Seq(1, -1))
-    assert(gt.phased)
+    val gt = row.genotypes.head
+    assert(gt.calls.get == Seq(1, -1))
+    assert(gt.phased.contains(true))
   }
 
   test("set END field") {
@@ -515,5 +516,21 @@ class VCFDatasourceSuite extends BaseVCFDatasourceSuite("com.databricks.vcf") {
 
     assert(vcfFormat.isSplitable(spark, Map.empty, bgzPath))
     assert(csvFormat.isSplitable(spark, Map.empty, bgzPath))
+  }
+
+  test("Tolerate lower-case nan's") {
+    val sess = spark
+    import sess.implicits._
+
+    val vcfRows = spark.read
+      .format("com.databricks.vcf")
+      .option("vcfRowSchema", true)
+      .load(s"$testDataHome/vcf/test_withNanQual.vcf")
+      .as[VCFRow]
+      .collect()
+
+    vcfRows.foreach { vc =>
+      assert(vc.qual.get.isNaN)
+    }
   }
 }

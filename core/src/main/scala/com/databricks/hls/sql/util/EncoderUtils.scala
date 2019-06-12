@@ -4,7 +4,6 @@ import org.apache.spark.sql.Encoders
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.catalyst.expressions.NamedExpression
 import org.apache.spark.sql.types.StructType
-import org.bdgenomics.adam.sql.VariantContext
 
 import com.databricks.vcf.VCFRow
 
@@ -12,8 +11,6 @@ object EncoderUtils {
 
   lazy val vcfRowEncoder: ExpressionEncoder[VCFRow] =
     Encoders.product[VCFRow].asInstanceOf[ExpressionEncoder[VCFRow]]
-  lazy val variantContextEncoder: ExpressionEncoder[VariantContext] =
-    Encoders.product[VariantContext].asInstanceOf[ExpressionEncoder[VariantContext]]
 
   /**
    * Filters out the parts of an encoder that are not contained in the provided schema.

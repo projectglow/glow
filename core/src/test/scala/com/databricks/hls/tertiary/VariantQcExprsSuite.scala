@@ -7,7 +7,7 @@ import org.apache.spark.sql.functions._
 
 import com.databricks.hls.common.TestUtils._
 import com.databricks.hls.sql.HLSBaseTest
-import com.databricks.vcf.{Genotype, GenotypeFields, VCFRow}
+import com.databricks.vcf.{GenotypeFields, VCFRow}
 
 class VariantQcExprsSuite extends HLSBaseTest {
 
@@ -16,9 +16,8 @@ class VariantQcExprsSuite extends HLSBaseTest {
 
   private val targetSite = col("contigName") === 1 && col("start") === 904164
 
-  test("mising") {
+  test("missing") {
     val sess = spark
-    import sess.implicits._
     spark.read
       .format("com.databricks.vcf")
       .option("includeSampleIds", true)
@@ -86,7 +85,8 @@ class VariantQcExprsSuite extends HLSBaseTest {
       calls.map { call =>
         GenotypeFields(
           None,
-          Some(Genotype(call, false)),
+          None,
+          Some(call),
           None,
           None,
           None,
@@ -129,7 +129,7 @@ class VariantQcExprsSuite extends HLSBaseTest {
     import sess.implicits._
     val df = spark.createDataFrame(Seq(rowWithCalls(Seq(Seq(0, 1)))))
     val transformed = df.selectExpr(
-      "transform(genotypes, g -> struct(g.depth as depth, g.genotype as genotype)) as newG"
+      "transform(genotypes, g -> struct(g.depth as depth, g.calls as calls)) as newG"
     )
     val stats = transformed
       .selectExpr("expand_struct(call_summary_stats(newG))")

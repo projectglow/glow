@@ -1,0 +1,14 @@
+##fileformat=VCFv4.1
+##contig=<ID=chr1,length=14640000>
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	NA12878
+chr1	1	.	C	T	NaN	.	.	GT	./.
+chr1	2	.	C	T	nan	.	.	GT	./.
+chr1	3	.	C	T	-nan	.	.	GT	./.
+chr1	4	.	C	T	+nan	.	.	GT	./.
+chr1	5	.	C	T	Nan	.	.	GT	./.
+chr1	6	.	C	T	NAn	.	.	GT	./.
+chr1	7	.	C	T	nAn	.	.	GT	./.
+chr1	8	.	C	T	NAN	.	.	GT	./.
+chr1	9	.	C	T	nAN	.	.	GT	./.
+chr1	10	.	C	T	naN	.	.	GT	./.

@@ -1,19 +1,23 @@
 package com.databricks.vcf
 
+import org.apache.commons.math3.util.CombinatoricsUtils
 import org.apache.spark.sql.Encoders
 import org.apache.spark.sql.catalyst.ScalaReflection
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
-import org.apache.spark.sql.catalyst.expressions.Expression
+import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types._
+
+import com.databricks.bgen.BgenConverterUtils
+import com.databricks.hls.sql.HLSConf
 
 object VariantSchemas {
   // Default fields common to VCF and BGEN
   val contigNameField = StructField("contigName", StringType)
   val startField = StructField("start", LongType)
   val endField = StructField("end", LongType)
-  val namesField = StructField("names", ArrayType(StringType))
   val refAlleleField = StructField("referenceAllele", StringType)
   val alternateAllelesField = StructField("alternateAlleles", ArrayType(StringType))
+  val namesField = StructField("names", ArrayType(StringType))
   val genotypesFieldName = "genotypes"
 
   // Fields that are always present in VCF records
@@ -37,10 +41,13 @@ object VariantSchemas {
     )
   )
 
-  // Possible genotype fields
+  // Possible genotype fields common to VCF and BGEN
   val sampleIdField = StructField("sampleId", StringType)
-  val genotypeField = StructField("genotype", Genotype.schema)
+  val phasedField = StructField("phased", BooleanType)
   val posteriorProbabilitiesField = StructField("posteriorProbabilities", ArrayType(DoubleType))
+
+  // Possible genotype fields for VCF
+  val callsField = StructField("calls", ArrayType(IntegerType))
   val depthField = StructField("depth", IntegerType)
   val genotypeFiltersField = StructField("filters", ArrayType(StringType))
   val phredLikelihoodsField = StructField("phredLikelihoods", ArrayType(IntegerType))
@@ -49,6 +56,9 @@ object VariantSchemas {
   val conditionalQualityField = StructField("conditionalQuality", IntegerType)
   val otherFieldsField = StructField("otherFields", MapType(StringType, StringType))
 
+  // Possible genotype fields for BGEN
+  val ploidyField = StructField("ploidy", IntegerType)
+
   // Genotype fields that are typically present in BGEN records
   val bgenGenotypesField = StructField(
     genotypesFieldName,
@@ -56,6 +66,8 @@ object VariantSchemas {
       StructType(
         Seq(
           sampleIdField,
+          phasedField,
+          ploidyField,
           posteriorProbabilitiesField
         )
       )
@@ -76,20 +88,10 @@ object VariantSchemas {
   )
 }
 
-private[databricks] case class Genotype(calls: Seq[Int], phased: Boolean)
-
-object Genotype {
-  lazy val schema: StructType = StructType(
-    Seq(
-      StructField("calls", ArrayType(IntegerType)),
-      StructField("phased", BooleanType)
-    )
-  )
-}
-
 private[databricks] case class GenotypeFields(
     sampleId: Option[String],
-    genotype: Option[Genotype],
+    phased: Option[Boolean],
+    calls: Option[Seq[Int]],
     depth: Option[Int],
     filters: Option[Seq[String]],
     genotypeLikelihoods: Option[Seq[Double]],
@@ -103,8 +105,7 @@ private[databricks] case class GenotypeFields(
     otherFields: scala.collection.Map[String, String])
 
 private[databricks] object GenotypeFields {
-  val reverseAliases: Map[String, String] = Map(
-    "genotype" -> "GT",
+  val baseReverseAliases: Map[String, String] = Map(
     "depth" -> "DP",
     "filters" -> "FT",
     "genotypeLikelihoods" -> "GL",
@@ -116,7 +117,13 @@ private[databricks] object GenotypeFields {
     "mappingQuality" -> "MQ",
     "alleleDepths" -> "AD"
   )
-  val aliases: Map[String, String] = reverseAliases.map { case (k, v) => (v, k) }
+  val reverseAliases: Map[String, String] = baseReverseAliases ++ Map(
+      "calls" -> "GT",
+      "phased" -> "GT"
+    )
+
+  val aliases: Map[String, Seq[String]] = baseReverseAliases.map { case (k, v) => (v, Seq(k)) } +
+    ("GT" -> Seq("phased", "calls"))
 }
 
 private[databricks] case class VCFRow(
@@ -144,6 +151,8 @@ object VCFRow {
 
 private[databricks] case class BgenGenotype(
     sampleId: Option[String],
+    phased: Option[Boolean],
+    ploidy: Option[Int],
     posteriorProbabilities: Seq[Double])
 
 private[databricks] case class BgenRow(
@@ -154,3 +163,10 @@ private[databricks] case class BgenRow(
     referenceAllele: String,
     alternateAlleles: Seq[String],
     genotypes: Seq[BgenGenotype])
+
+object BgenRow {
+  lazy val schema: StructType = ScalaReflection
+    .schemaFor[BgenRow]
+    .dataType
+    .asInstanceOf[StructType]
+}

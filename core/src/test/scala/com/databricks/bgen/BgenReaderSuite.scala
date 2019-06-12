@@ -1,16 +1,17 @@
 package com.databricks.bgen
 
-import java.io.{BufferedReader, InputStreamReader}
+import java.io.{BufferedReader, FileInputStream, InputStreamReader}
 
 import scala.collection.JavaConverters._
 
 import com.google.common.io.LittleEndianDataInputStream
 import org.apache.hadoop.fs.Path
+import org.apache.spark.SparkException
 import org.apache.spark.sql.catalyst.ScalaReflection
 import org.apache.spark.sql.types.StructType
 
 import com.databricks.hls.sql.HLSBaseTest
-import com.databricks.vcf.BgenRow
+import com.databricks.vcf.{BgenRow, VCFRow}
 
 class BgenReaderSuite extends HLSBaseTest {
 
@@ -35,13 +36,14 @@ class BgenReaderSuite extends HLSBaseTest {
 
     val bgen = iterateFile(bgenPath)
       .sortBy(r => (r.contigName, r.start))
+      .map(r => r.copy(names = r.names.filter(_.nonEmpty).distinct.sorted))
     val vcf = spark.read
       .format("com.databricks.vcf")
       .option("includeSampleIds", true)
       .option("vcfRowSchema", true)
       .load(vcfPath)
       .orderBy("contigName", "start")
-      .as[BgenRow]
+      .as[VCFRow]
       .collect()
       .toSeq
       .map { r =>
@@ -52,14 +54,21 @@ class BgenReaderSuite extends HLSBaseTest {
 
     assert(bgen.size == vcf.size)
     bgen.zip(vcf).foreach {
-      case (r1, r2) =>
-        assert(r1.copy(genotypes = null) == r2.copy(genotypes = null))
-        r1.genotypes.zip(r2.genotypes).foreach {
-          case (g1, g2) =>
+      case (br, vr) =>
+        assert(br.contigName == vr.contigName)
+        assert(br.start == vr.start)
+        assert(br.end == vr.end)
+        assert(br.names == vr.names)
+        assert(br.referenceAllele == vr.referenceAllele)
+        assert(br.alternateAlleles == vr.alternateAlleles)
+        assert(br.genotypes.length == vr.genotypes.length)
+
+        br.genotypes.zip(vr.genotypes).foreach {
+          case (bg, vg) =>
             // Note: QCTools inserts a dummy "NA" sample ID if absent when exporting to VCF
-            assert(g1.sampleId == g2.sampleId || g2.sampleId.get == "NA")
-            g1.posteriorProbabilities.indices.foreach { i =>
-              g1.posteriorProbabilities(i) == g2.posteriorProbabilities(i)
+            assert(bg.sampleId == vg.sampleId || vg.sampleId.get.startsWith("NA"))
+            bg.posteriorProbabilities.indices.foreach { i =>
+              bg.posteriorProbabilities(i) == vg.posteriorProbabilities.get(i)
             }
         }
     }
@@ -314,5 +323,19 @@ class BgenReaderSuite extends HLSBaseTest {
         .as[BgenRow]
         .head
     )
+  }
+
+  test("Skip non-bgen files") {
+    val input = s"$testRoot/example.8bits.*"
+    spark.read.format("com.databricks.bgen").load(input).count() // No error
+
+    // Expect an error because we try to read non-bgen files as bgen
+    intercept[SparkException] {
+      spark.read
+        .format("com.databricks.bgen")
+        .option(BgenFileFormat.IGNORE_EXTENSION_KEY, true)
+        .load(input)
+        .count()
+    }
   }
 }

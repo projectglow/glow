@@ -21,14 +21,12 @@ import org.apache.spark.sql.catalyst.{InternalRow, ScalaReflection}
 import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
 import org.apache.spark.sql.types._
-import org.bdgenomics.adam.converters.DefaultHeaderLines
-import org.bdgenomics.adam.sql.{VariantContext => ADAMVariantContext}
 import org.broadinstitute.hellbender.tools.walkers.genotyper.GenotypeAssignmentMethod
 import org.broadinstitute.hellbender.utils.variant.GATKVariantContextUtils
-import org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec
+import org.seqdoop.hadoop_bam.util.{BGZFEnhancedGzipCodec, DatabricksBGZFOutputStream}
 
 import com.databricks.hls.common.{HLSLogging, WithUtils}
-import com.databricks.hls.sql.util.{HadoopLineIterator, SerializableConfiguration}
+import com.databricks.hls.sql.util.{EncoderUtils, HadoopLineIterator, SerializableConfiguration}
 
 class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HLSLogging {
   var codecFactory: CompressionCodecFactory = _
@@ -47,7 +45,7 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HLS
       path: Path): Boolean = {
     if (codecFactory == null) {
       codecFactory = new CompressionCodecFactory(
-        hadoopConfWithBGZ(sparkSession.sessionState.newHadoopConf())
+        VCFFileFormat.hadoopConfWithBGZ(sparkSession.sessionState.newHadoopConf())
       )
     }
 
@@ -79,7 +77,8 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HLS
 
     options.get("compression").foreach { compressionOption =>
       if (codecFactory == null) {
-        codecFactory = new CompressionCodecFactory(hadoopConfWithBGZ(job.getConfiguration))
+        codecFactory =
+          new CompressionCodecFactory(VCFFileFormat.hadoopConfWithBGZ(job.getConfiguration))
       }
 
       val codec = codecFactory.getCodecByName(compressionOption)
@@ -98,7 +97,8 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HLS
       options: Map[String, String],
       hadoopConf: Configuration): PartitionedFile => Iterator[InternalRow] = {
 
-    val serializableConf = new SerializableConfiguration(hadoopConfWithBGZ(hadoopConf))
+    val serializableConf =
+      new SerializableConfiguration(VCFFileFormat.hadoopConfWithBGZ(hadoopConf))
 
     partitionedFile => {
 
@@ -128,19 +128,6 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HLS
     }
   }
 
-  private def hadoopConfWithBGZ(conf: Configuration): Configuration = {
-    val toReturn = new Configuration(conf)
-    val bgzCodecs = Seq(
-      "org.seqdoop.hadoop_bam.util.BGZFCodec",
-      "org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec"
-    )
-    val codecs = toReturn
-        .get("io.compression.codecs", "")
-        .split(",")
-        .filter(codec => codec.nonEmpty && !bgzCodecs.contains(codec)) ++ bgzCodecs
-    toReturn.set("io.compression.codecs", codecs.mkString(","))
-    toReturn
-  }
 }
 
 object VCFFileFormat {
@@ -169,6 +156,23 @@ object VCFFileFormat {
       (header.asInstanceOf[VCFHeader], vcfCodec)
     }
   }
+
+  /**
+   * Adds BGZF support to an existing Hadoop conf.
+   */
+  def hadoopConfWithBGZ(conf: Configuration): Configuration = {
+    val toReturn = new Configuration(conf)
+    val bgzCodecs = Seq(
+      "com.databricks.hls.sql.util.BGZFCodec",
+      "org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec"
+    )
+    val codecs = toReturn
+        .get("io.compression.codecs", "")
+        .split(",")
+        .filter(codec => codec.nonEmpty && !bgzCodecs.contains(codec)) ++ bgzCodecs
+    toReturn.set("io.compression.codecs", codecs.mkString(","))
+    toReturn
+  }
 }
 
 case class VariantContextWrapper(vc: VariantContext, splitFromMultiallelic: Boolean)
@@ -177,7 +181,7 @@ private object VCFIteratorDelegate {
   def makeDelegate(
       options: Map[String, String],
       lineReader: Iterator[Text],
-      codec: VCFCodec): Iterator[VariantContextWrapper] = {
+      codec: VCFCodec): AbstractVCFIterator = {
     if (options.get("splitToBiallelic").exists(_.toBoolean)) {
       new BiallelicVCFIterator(lineReader, codec)
     } else {
@@ -186,15 +190,28 @@ private object VCFIteratorDelegate {
   }
 }
 
+private[vcf] abstract class AbstractVCFIterator(codec: VCFCodec)
+    extends Iterator[VariantContextWrapper] {
+
+  def parseLine(line: String): VariantContext = {
+    try {
+      codec.decode(line)
+    } catch {
+      // The HTSJDK does not parse nan, only NaN
+      case _: NumberFormatException => codec.decode(line.replaceAll("[nN][aA][nN]", "NaN"))
+    }
+  }
+}
+
 private[vcf] class VCFIterator(lineReader: Iterator[Text], codec: VCFCodec)
-    extends Iterator[VariantContextWrapper]
+    extends AbstractVCFIterator(codec)
     with HLSLogging {
 
   private var nextVC: VariantContext = _
 
   override def hasNext: Boolean = {
     while (lineReader.hasNext && nextVC == null) {
-      nextVC = codec.decode(lineReader.next.toString)
+      nextVC = parseLine(lineReader.next.toString)
     }
 
     nextVC != null
@@ -211,7 +228,7 @@ private[vcf] class VCFIterator(lineReader: Iterator[Text], codec: VCFCodec)
 }
 
 private[vcf] class BiallelicVCFIterator(lineReader: Iterator[Text], codec: VCFCodec)
-    extends Iterator[VariantContextWrapper]
+    extends AbstractVCFIterator(codec)
     with HLSLogging {
 
   private var isSplit: Boolean = false
@@ -219,7 +236,8 @@ private[vcf] class BiallelicVCFIterator(lineReader: Iterator[Text], codec: VCFCo
 
   override def hasNext: Boolean = {
     while (lineReader.hasNext && !nextVCs.hasNext) {
-      val vc = codec.decode(lineReader.next.toString)
+      val vc = parseLine(lineReader.next.toString)
+
       // The codec returns null if it can't parse the line (i.e., if we're still in the header)
       if (vc != null) {
         val htsjdkVcList = GATKVariantContextUtils.splitVariantContextToBiallelics(
@@ -349,24 +367,24 @@ private[vcf] object SchemaDelegate {
   }
 }
 
-private[vcf] class VCFOutputWriterFactory(options: Map[String, String])
+private[databricks] class VCFOutputWriterFactory(options: Map[String, String])
     extends OutputWriterFactory {
 
-  val adamSchema = ScalaReflection.schemaFor[ADAMVariantContext].dataType.asInstanceOf[StructType]
-  val validationStringency = VCFOptionParser.getValidationStringency(options)
+  private val validationStringency = VCFOptionParser.getValidationStringency(options)
+
+  def getRowConverter(dataSchema: StructType): InternalRowToHtsjdkConverter = {
+    val lines = VCFFileWriter.getHeaderLines(VCFRowHeaderLines.allHeaderLines, options)
+    DefaultInternalRowToHtsjdkConverter(dataSchema, lines, validationStringency)
+  }
 
   override def newInstance(
       path: String,
       dataSchema: StructType,
       context: TaskAttemptContext): OutputWriter = {
-    val rowConverter = if (dataSchema.fieldNames.sameElements(adamSchema.fieldNames)) {
-      val lines = VCFFileWriter.getHeaderLines(DefaultHeaderLines.allHeaderLines, options)
-      AdamToHtsjdkConverter(lines, validationStringency)
-    } else {
-      val lines = VCFFileWriter.getHeaderLines(VCFRowHeaderLines.allHeaderLines, options)
-      VCFRowToHtsjdkConverter(dataSchema, lines, validationStringency)
-    }
-    new VCFFileWriter(path, context, rowConverter)
+    val outputStream = CodecStreams.createOutputStream(context, new Path(path))
+    DatabricksBGZFOutputStream.setWriteEmptyBlockOnClose(outputStream, true)
+
+    new VCFFileWriter(outputStream, getRowConverter(dataSchema), writeHeader = true)
   }
 
   override def getFileExtension(context: TaskAttemptContext): String = {
@@ -374,7 +392,7 @@ private[vcf] class VCFOutputWriterFactory(options: Map[String, String])
   }
 }
 
-private[vcf] object VCFOptionParser {
+private[databricks] object VCFOptionParser {
   def getValidationStringency(options: Map[String, String]): ValidationStringency = {
     val stringency = options.getOrElse("validationStringency", "SILENT").toUpperCase
     ValidationStringency.valueOf(stringency)

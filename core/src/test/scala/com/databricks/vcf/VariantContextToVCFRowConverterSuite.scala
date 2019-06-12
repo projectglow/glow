@@ -26,7 +26,7 @@ class VariantContextToVCFRowConverterSuite extends VCFConverterBaseTest {
     val sess = spark
     import sess.implicits._
 
-    val header = VCFMetadataLoader.readVcfHeader(sparkContext, vcf)
+    val header = VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, vcf)
     val converter = new VariantContextToVCFRowConverter(header)
 
     val sparkVcfRowList = spark.read
@@ -98,7 +98,7 @@ class VariantContextToVCFRowConverterSuite extends VCFConverterBaseTest {
     val convertedVcWithDefaultGt = defaultVcfRow.copy(
       end = 1,
       referenceAllele = "A",
-      genotypes = Seq(defaultGenotypeFields.copy(genotype = None))
+      genotypes = Seq(defaultGenotypeFields.copy(phased = Some(false)))
     )
     assert(vcfRow == convertedVcWithDefaultGt)
   }
@@ -166,7 +166,8 @@ class VariantContextToVCFRowConverterSuite extends VCFConverterBaseTest {
 
     val convertedGt1 = GenotypeFields(
       sampleId = Some("sample1"),
-      genotype = Some(Genotype(Seq(0, 1), true)),
+      phased = Some(true),
+      calls = Some(Seq(0, 1)),
       depth = Some(4),
       filters = Some(Seq("gtFilter1", "gtFilter2")),
       genotypeLikelihoods = None,
@@ -181,7 +182,8 @@ class VariantContextToVCFRowConverterSuite extends VCFConverterBaseTest {
     )
     val convertedGt2 = defaultGenotypeFields.copy(
       sampleId = Some("sample2"),
-      genotype = Some(Genotype(Seq(2, -1), false))
+      phased = Some(false),
+      calls = Some(Seq(2, -1))
     )
     val convertedVc = VCFRow(
       contigName = "contigName",

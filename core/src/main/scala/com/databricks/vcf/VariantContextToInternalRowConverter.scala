@@ -63,7 +63,7 @@ class VariantContextToInternalRowConverter(
           val gConverter = makeGenotypeConverter(gSchema)
           (vc: VariantContext, row: InternalRow, i: Int) => {
             val alleleMap = buildAlleleMap(vc)
-            val output = new Array[InternalRow](vc.getGenotypes.size())
+            val output = new Array[Any](vc.getGenotypes.size())
             var j = 0
             while (j < output.length) {
               output(j) = gConverter((alleleMap, vc.getGenotype(j)))
@@ -87,8 +87,10 @@ class VariantContextToInternalRowConverter(
       gSchema: StructType): RowConverter[(JMap[Allele, Int], HTSJDKGenotype)] = {
     val fns = gSchema.map { field =>
       val fn: RowConverter.Updater[(JMap[Allele, Int], HTSJDKGenotype)] = field match {
-        case f if structFieldsEqualExceptNullability(f, genotypeField) =>
-          (el, r, i) => updateGT(el._2, el._1, r, i)
+        case f if structFieldsEqualExceptNullability(f, phasedField) =>
+          (el, r, i) => updateGTPhased(el._2, r, i)
+        case f if structFieldsEqualExceptNullability(f, callsField) =>
+          (el, r, i) => updateGTCalls(el._2, el._1, r, i)
         case f if structFieldsEqualExceptNullability(f, sampleIdField) =>
           (el, r, i) => updateSampleId(el._2, r, i)
         case f if structFieldsEqualExceptNullability(f, depthField) =>
@@ -158,9 +160,9 @@ class VariantContextToInternalRowConverter(
   }
 
   private def updateNames(vc: VariantContext, row: InternalRow, idx: Int): Unit = {
-    val ids: Array[UTF8String] = if (vc.hasID) {
+    val ids: Array[Any] = if (vc.hasID) {
       val splits = vc.getID.split(VCFConstants.ID_FIELD_SEPARATOR)
-      val arr = new Array[UTF8String](splits.length)
+      val arr = new Array[Any](splits.length)
       var i = 0
       while (i < splits.length) {
         arr(i) = UTF8String.fromString(splits(i))
@@ -168,7 +170,7 @@ class VariantContextToInternalRowConverter(
       }
       arr
     } else {
-      Array.empty[UTF8String]
+      Array.empty[Any]
     }
     row.update(idx, new GenericArrayData(ids))
   }
@@ -178,7 +180,7 @@ class VariantContextToInternalRowConverter(
   }
 
   private def updateAltAlleles(vc: VariantContext, row: InternalRow, idx: Int): Unit = {
-    val altList = new Array[UTF8String](vc.getAlternateAlleles.size)
+    val altList = new Array[Any](vc.getAlternateAlleles.size)
     var i = 0
     while (i < altList.length) {
       altList(i) = UTF8String.fromString(vc.getAlternateAllele(i).getDisplayString)
@@ -194,10 +196,10 @@ class VariantContextToInternalRowConverter(
   }
 
   private def updateFilters(vc: VariantContext, row: InternalRow, idx: Int): Unit = {
-    val filters: Array[UTF8String] = if (vc.filtersWereApplied() && vc.getFilters.isEmpty) {
+    val filters: Array[Any] = if (vc.filtersWereApplied() && vc.getFilters.isEmpty) {
       Array(UTF8String.fromString(VCFConstants.PASSES_FILTERS_v4))
     } else if (vc.filtersWereApplied()) {
-      val arr = new Array[UTF8String](vc.getFilters.size)
+      val arr = new Array[Any](vc.getFilters.size)
       var i = 0
       val it = vc.getFilters.iterator()
       while (it.hasNext) {
@@ -256,7 +258,7 @@ class VariantContextToInternalRowConverter(
           if (vc.hasAttribute(realName)) true: java.lang.Boolean else null
         case ArrayType(StringType, _) =>
           val strings = vc.getAttributeAsStringList(realName, "")
-          val arr = new Array[UTF8String](strings.size)
+          val arr = new Array[Any](strings.size)
           var i = 0
           while (i < strings.size) {
             arr(i) = UTF8String.fromString(strings.get(i))
@@ -285,7 +287,13 @@ class VariantContextToInternalRowConverter(
     }
   }
 
-  private def updateGT(
+  private def updateGTPhased(g: HTSJDKGenotype, row: InternalRow, offset: Int): Unit = {
+    tryWithWarning("GT", FieldTypes.FORMAT) {
+      row.setBoolean(offset, g.isPhased)
+    }
+  }
+
+  private def updateGTCalls(
       g: HTSJDKGenotype,
       alleleMap: JMap[Allele, Int],
       row: InternalRow,
@@ -295,15 +303,15 @@ class VariantContextToInternalRowConverter(
 
     tryWithWarning("GT", FieldTypes.FORMAT) {
       if (numAlleles > 0) {
-        val callSeq = new mutable.ArraySeq[Int](numAlleles)
+        val callArray = new Array[Any](numAlleles)
         var alleleIdx = 0
         while (alleleIdx < numAlleles) {
           val allele = alleleList.get(alleleIdx)
           val call = alleleMap.getOrDefault(allele, -1)
-          callSeq.update(alleleIdx, call)
+          callArray(alleleIdx) = call
           alleleIdx += 1
         }
-        row.update(offset, new GenericInternalRow(Array(new GenericArrayData(callSeq), g.isPhased)))
+        row.update(offset, new GenericArrayData(callArray))
       }
     }
   }
@@ -320,7 +328,7 @@ class VariantContextToInternalRowConverter(
     tryWithWarning("FT", FieldTypes.FORMAT) {
       if (g.isFiltered) {
         val split = g.getFilters.split(VCFConstants.FILTER_CODE_SEPARATOR)
-        val arr = new Array[UTF8String](split.length)
+        val arr = new Array[Any](split.length)
         var i = 0
         while (i < arr.length) {
           arr(i) = UTF8String.fromString(split(i))
@@ -340,9 +348,10 @@ class VariantContextToInternalRowConverter(
   }
 
   private def updateAD(g: HTSJDKGenotype, row: InternalRow, idx: Int): Unit = {
-    tryWithWarning("AD", FieldTypes.FORMAT) {}
-    if (g.hasAD) {
-      row.update(idx, new GenericArrayData(g.getAD))
+    tryWithWarning("AD", FieldTypes.FORMAT) {
+      if (g.hasAD) {
+        row.update(idx, new GenericArrayData(g.getAD))
+      }
     }
   }
 
@@ -434,10 +443,10 @@ class VariantContextToInternalRowConverter(
     case s: String => converter(s)
   }
 
-  private def string2list[T <: AnyRef: ClassTag](converter: String => T)(s: String): Seq[T] = {
+  private def string2list[T <: AnyRef: ClassTag](converter: String => T)(s: String): Array[Any] = {
     val split = s.split(VCFConstants.INFO_FIELD_ARRAY_SEPARATOR_CHAR)
     var i = 0
-    val out = mutable.ArrayBuffer[T]()
+    val out = mutable.ArrayBuffer[Any]()
     while (i < split.length) {
       val converted = string2any(converter)(split(i))
       if (converted != null) {
@@ -445,7 +454,7 @@ class VariantContextToInternalRowConverter(
       }
       i += 1
     }
-    out
+    out.toArray
   }
 
   private def obj2any[T <: AnyRef: ClassTag](converter: String => T)(obj: Object): T = obj match {
@@ -456,14 +465,14 @@ class VariantContextToInternalRowConverter(
   }
 
   private def obj2array[T <: AnyRef: ClassTag, R <: AnyVal](
-      converter: String => T)(obj: Object, primitiveConverter: Option[R => T] = None): Seq[T] =
+      converter: String => T)(obj: Object, primitiveConverter: Option[R => T] = None): Array[Any] =
     obj match {
       case null => null
       case VCFConstants.MISSING_VALUE_v4 => null
-      case arr: Array[T] => arr
+      case arr: Array[T] => arr.asInstanceOf[Array[Any]]
       case arr: Array[R] if primitiveConverter.isDefined => arr.map(primitiveConverter.get)
       case l: JList[T] =>
-        val arr = new Array[T](l.size)
+        val arr = new Array[Any](l.size)
         var i = 0
         while (i < arr.length) {
           arr(i) = l.get(i)

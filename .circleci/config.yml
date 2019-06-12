@@ -1,7 +1,7 @@
 version: 2.1
 jobs:
   test:
-    working_directory: ~/mios
+    working_directory: ~/spark-genomics
     docker:
       - image: circleci/openjdk:8
     steps:

@@ -1,19 +1,23 @@
 package com.databricks.hls.tertiary
 
+import java.nio.ByteBuffer
+
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
-import com.twitter.chill.Kryo
+import org.apache.spark.SparkEnv
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
 import org.apache.spark.sql.catalyst.expressions._
-import org.apache.spark.sql.catalyst.expressions.aggregate.{ImperativeAggregate, TypedImperativeAggregate}
+import org.apache.spark.sql.catalyst.expressions.aggregate.{
+  ImperativeAggregate,
+  TypedImperativeAggregate
+}
 import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, ArrayData, GenericArrayData}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
 import com.databricks.hls.common.HLSLogging
-import com.databricks.hls.tertiary.util.KryoUtils
 import com.databricks.vcf.VariantSchemas
 
 /**
@@ -28,14 +32,14 @@ case class CallSummaryStats(
     altAlleles: Expression,
     mutableAggBufferOffset: Int = 0,
     inputAggBufferOffset: Int = 0)
-  extends TypedImperativeAggregate[mutable.ArrayBuffer[SampleCallStats]]
-  with ExpectsGenotypeFields
-  with HLSLogging {
+    extends TypedImperativeAggregate[mutable.ArrayBuffer[SampleCallStats]]
+    with ExpectsGenotypeFields
+    with HLSLogging {
 
   override def genotypesExpr: Expression = genotypes
 
   override def genotypeFieldsRequired: Seq[StructField] = {
-    Seq(VariantSchemas.genotypeField, VariantSchemas.sampleIdField)
+    Seq(VariantSchemas.callsField, VariantSchemas.sampleIdField)
   }
   override def children: Seq[Expression] = Seq(genotypes, refAllele, altAlleles)
   override def nullable: Boolean = false
@@ -90,12 +94,20 @@ case class CallSummaryStats(
       i += 1
     }
 
-    checkBufferSize(buffer, genotypesArr)
     var j = 0
     while (j < genotypesArr.numElements()) {
-      val stats = buffer(j)
-      val calls = genotypesArr
+      val struct = genotypesArr
         .getStruct(j, genotypeStructSize)
+
+      // Make sure the buffer has an entry for this sample
+      if (j >= buffer.size) {
+        val sampleId = struct
+          .getUTF8String(genotypeFieldIndices(1))
+        buffer.append(SampleCallStats(sampleId.toString))
+      }
+
+      val stats = buffer(j)
+      val calls = struct
         .getStruct(genotypeFieldIndices.head, 2)
         .getArray(0)
       var k = 0
@@ -157,8 +169,10 @@ case class CallSummaryStats(
       return buffer
     }
 
-    require(buffer.size == input.size,
-      s"Aggregation buffers have different lengths. ${(buffer.size, input.size)}")
+    require(
+      buffer.size == input.size,
+      s"Aggregation buffers have different lengths. ${(buffer.size, input.size)}"
+    )
     var i = 0
     while (i < buffer.size) {
       buffer(i) = SampleCallStats.merge(buffer(i), input(i))
@@ -176,25 +190,11 @@ case class CallSummaryStats(
   }
 
   override def serialize(buffer: ArrayBuffer[SampleCallStats]): Array[Byte] = {
-    val kryo = new Kryo()
-    kryo.register(classOf[SampleCallStats])
-    kryo.register(classOf[ArrayBuffer[SampleCallStats]])
-    KryoUtils.toByteArray(kryo, buffer)
+    SparkEnv.get.serializer.newInstance().serialize(buffer).array()
   }
 
   override def deserialize(storageFormat: Array[Byte]): ArrayBuffer[SampleCallStats] = {
-    val kryo = new Kryo()
-    kryo.register(classOf[SampleCallStats])
-    kryo.register(classOf[ArrayBuffer[SampleCallStats]])
-    KryoUtils.fromByteArray(kryo, storageFormat, classOf[ArrayBuffer[SampleCallStats]])
-  }
-
-  private def checkBufferSize(stats: ArrayBuffer[SampleCallStats], genotypes: ArrayData): Unit = {
-    while (stats.size < genotypes.numElements()) {
-      val sampleId = genotypes.getStruct(stats.size, genotypeStructSize)
-        .getUTF8String(genotypeFieldIndices(1))
-      stats.append(SampleCallStats(sampleId.toString))
-    }
+    SparkEnv.get.serializer.newInstance().deserialize(ByteBuffer.wrap(storageFormat))
   }
 }
 
@@ -215,23 +215,26 @@ case class SampleCallStats(
     this(null)
   }
 
-  def toInternalRow: InternalRow = new GenericInternalRow(Array[Any](
-    nCalled.toDouble / (nCalled + nUncalled),
-    nCalled,
-    nUncalled,
-    nHomRef,
-    nHet,
-    nHomVar,
-    nTransition + nTransversion,
-    nInsertion,
-    nDeletion,
-    nTransition,
-    nTransversion,
-    nSpanningDeletion,
-    nTransition.toDouble / nTransversion,
-    nInsertion.toDouble / nDeletion,
-    nHet.toDouble / nHomVar
-  ))
+  def toInternalRow: InternalRow =
+    new GenericInternalRow(
+      Array[Any](
+        nCalled.toDouble / (nCalled + nUncalled),
+        nCalled,
+        nUncalled,
+        nHomRef,
+        nHet,
+        nHomVar,
+        nTransition + nTransversion,
+        nInsertion,
+        nDeletion,
+        nTransition,
+        nTransversion,
+        nSpanningDeletion,
+        nTransition.toDouble / nTransversion,
+        nInsertion.toDouble / nDeletion,
+        nHet.toDouble / nHomVar
+      )
+    )
 }
 
 object SampleCallStats extends HLSLogging {
@@ -251,23 +254,23 @@ object SampleCallStats extends HLSLogging {
     out
   }
 
-  val outputSchema = StructType(Seq(
-    StructField("callRate", DoubleType),
-    StructField("nCalled", LongType),
-    StructField("nUncalled", LongType),
-    StructField("nHomRef", LongType),
-    StructField("nHet", LongType),
-    StructField("nHomVar", LongType),
-    StructField("nSnp", LongType),
-    StructField("nInsertion", LongType),
-    StructField("nDeletion", LongType),
-    StructField("nTransition", LongType),
-    StructField("nTransversion", LongType),
-    StructField("nSpanningDeletion", LongType),
-    StructField("rTiTv", DoubleType),
-    StructField("rInsertionDeletion", DoubleType),
-    StructField("rHetHomVar", DoubleType)
-  ))
+  val outputSchema = StructType(
+    Seq(
+      StructField("callRate", DoubleType),
+      StructField("nCalled", LongType),
+      StructField("nUncalled", LongType),
+      StructField("nHomRef", LongType),
+      StructField("nHet", LongType),
+      StructField("nHomVar", LongType),
+      StructField("nSnp", LongType),
+      StructField("nInsertion", LongType),
+      StructField("nDeletion", LongType),
+      StructField("nTransition", LongType),
+      StructField("nTransversion", LongType),
+      StructField("nSpanningDeletion", LongType),
+      StructField("rTiTv", DoubleType),
+      StructField("rInsertionDeletion", DoubleType),
+      StructField("rHetHomVar", DoubleType)
+    )
+  )
 }
-
-

@@ -7,10 +7,9 @@ import htsjdk.samtools.ValidationStringency
 import htsjdk.variant.variantcontext._
 import htsjdk.variant.vcf.{VCFConstants, VCFHeader}
 import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
-import org.apache.spark.sql.catalyst.{InternalRow, ScalaReflection}
+import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.ArrayData
-import org.apache.spark.sql.types.{ArrayType, StringType, StructField, StructType}
-import org.apache.spark.unsafe.types.UTF8String
+import org.apache.spark.sql.types.{ArrayType, StructField, StructType}
 
 import com.databricks.hls.common.{HLSLogging, HasStringency}
 
@@ -32,6 +31,7 @@ class InternalRowToVariantContextConverter(
     extends HLSLogging
     with HasStringency {
   import VariantSchemas._
+  import ConverterUtils._
 
   private val alleles = scala.collection.mutable.ArrayBuffer[Allele]()
   private val genotypeSchema = rowSchema
@@ -45,7 +45,7 @@ class InternalRowToVariantContextConverter(
       val headerLine = vcfHeader.getInfoHeaderLine(f.name.stripPrefix("INFO_"))
       if (headerLine == null) {
         provideWarning(s"Column ${f.name} does not have a matching VCF header line")
-      } else if (f.dataType != VCFSchemaInferer.typeForHeader(headerLine)) {
+      } else if (!VCFSchemaInferer.typesForHeader(headerLine).contains(f.dataType)) {
         provideWarning(
           s"Column ${f.name} has a VCF header line with the same ID, but " +
           s"the types are not compatible. " +
@@ -63,7 +63,7 @@ class InternalRowToVariantContextConverter(
             s"Genotype field ${f.name} does not have a matching VCF header " +
             s"line"
           )
-        } else if (f.dataType != VCFSchemaInferer.typeForHeader(headerLine)) {
+        } else if (!VCFSchemaInferer.typesForHeader(headerLine).contains(f.dataType)) {
           provideWarning(
             s"Genotype field ${f.name} has a VCF header line with the " +
             s"same ID, but the types are not compatible. " +
@@ -142,7 +142,8 @@ class InternalRowToVariantContextConverter(
     val fns = gSchema.map { field =>
       val fn: (GenotypeBuilder, InternalRow, Int) => GenotypeBuilder = field match {
         case f if structFieldsEqualExceptNullability(f, sampleIdField) => updateSampleId
-        case f if structFieldsEqualExceptNullability(f, genotypeField) => updateGT
+        case f if structFieldsEqualExceptNullability(f, phasedField) => updateGTPhased
+        case f if structFieldsEqualExceptNullability(f, callsField) => updateGTCalls
         case f if structFieldsEqualExceptNullability(f, depthField) => updateDP
         case f if structFieldsEqualExceptNullability(f, genotypeFiltersField) => updateGTFilters
         case f if structFieldsEqualExceptNullability(f, genotypeLikelihoodsField) => updateGL
@@ -293,13 +294,21 @@ class InternalRowToVariantContextConverter(
     genotype.name(row.getString(offset))
   }
 
-  private def updateGT(
+  private def updateGTPhased(
       genotype: GenotypeBuilder,
       row: InternalRow,
       offset: Int): GenotypeBuilder = {
-    val struct = row.getStruct(offset, Genotype.schema.length)
-    val calls = struct
-      .getArray(0)
+    val phased = row.getBoolean(offset)
+    genotype.phased(phased)
+    genotype
+  }
+
+  private def updateGTCalls(
+      genotype: GenotypeBuilder,
+      row: InternalRow,
+      offset: Int): GenotypeBuilder = {
+    val calls = row
+      .getArray(offset)
       .toIntArray()
       .map { idx =>
         if (idx == -1) {
@@ -310,8 +319,6 @@ class InternalRowToVariantContextConverter(
         }
       }
       .toSeq
-    val phased = struct.getBoolean(1)
-    genotype.phased(phased)
     genotype.alleles(calls.asJava)
     genotype
   }
@@ -415,9 +422,5 @@ class InternalRowToVariantContextConverter(
     } else {
       base
     }
-  }
-
-  private def arrayDataToStringList(array: ArrayData): Seq[String] = {
-    array.toObjectArray(StringType).map(_.asInstanceOf[UTF8String].toString)
   }
 }
