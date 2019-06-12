@@ -45,22 +45,26 @@ case class MomentAggState(
   def update(element: Float): Unit = update(element.toDouble)
 
   def toInternalRow: InternalRow = {
-    new GenericInternalRow(Array(
-      if (count > 0) mean else null,
-      if (count > 0) Math.sqrt(m2 / (count - 1)) else null,
-      if (count > 0) min else null,
-      if (count > 0) max else null
-    ))
+    new GenericInternalRow(
+      Array(
+        if (count > 0) mean else null,
+        if (count > 0) Math.sqrt(m2 / (count - 1)) else null,
+        if (count > 0) min else null,
+        if (count > 0) max else null
+      )
+    )
   }
 }
 
 object MomentAggState extends HLSLogging {
-  val schema = StructType(Seq(
-    StructField("mean", DoubleType),
-    StructField("stdDev", DoubleType),
-    StructField("min", DoubleType),
-    StructField("max", DoubleType)
-  ))
+  val schema = StructType(
+    Seq(
+      StructField("mean", DoubleType),
+      StructField("stdDev", DoubleType),
+      StructField("min", DoubleType),
+      StructField("max", DoubleType)
+    )
+  )
 
   def merge(s1: MomentAggState, s2: MomentAggState): MomentAggState = {
     if (s1.count == 0) {

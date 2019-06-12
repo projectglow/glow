@@ -16,7 +16,7 @@ Compile / compileOrder := CompileOrder.JavaThenScala
 // Test concurrency settings
 // Tests are run serially in one or more forked JVMs. This setup is necessary because the shared
 // Spark session used by many tasks cannot be used concurrently.
-val testConcurrency = 2
+val testConcurrency = 1
 Test / fork := true
 concurrentRestrictions in Global := Seq(
   Tags.limit(Tags.ForkedTestGroup, testConcurrency)
@@ -46,8 +46,6 @@ lazy val core = (project in file("core"))
       "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
       "com.github.samtools" % "htsjdk" % "2.16.1",
       "org.seqdoop" % "hadoop-bam" % "7.9.1",
-      "org.bdgenomics.adam" %% "adam-core-spark2" % "0.26.0",
-      "org.bdgenomics.adam" %% "adam-apis-spark2" % "0.26.0",
       "log4j" % "log4j" % "1.2.17",
       "org.slf4j" % "slf4j-api" % "1.7.16",
       "org.slf4j" % "slf4j-log4j12" % "1.7.16",
@@ -62,7 +60,8 @@ lazy val core = (project in file("core"))
       "org.mockito" % "mockito-all" % "1.9.5" % "test",
       "org.apache.spark" %% "spark-core" % sparkVersion % "test" classifier "tests",
       "org.apache.spark" %% "spark-catalyst" % sparkVersion % "test" classifier "tests",
-      "org.apache.spark" %% "spark-sql" % sparkVersion % "test" classifier "tests"
+      "org.apache.spark" %% "spark-sql" % sparkVersion % "test" classifier "tests",
+      "org.bdgenomics.adam" %% "adam-apis-spark2" % "0.26.0" % "test",
     ),
   )
 

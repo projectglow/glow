@@ -1,10 +1,15 @@
 package com.databricks.hls.tertiary
 
+import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
-import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCode}
-import org.apache.spark.sql.catalyst.expressions.{Expression, UnaryExpression}
+import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, CodegenFallback, ExprCode}
+import org.apache.spark.sql.catalyst.expressions.{
+  Expression,
+  ImplicitCastInputTypes,
+  UnaryExpression
+}
 import org.apache.spark.sql.catalyst.util.{ArrayData, GenericArrayData}
-import org.apache.spark.sql.types.{ArrayType, DataType, IntegerType, StructField}
+import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
 import com.databricks.vcf.VariantSchemas
@@ -16,14 +21,13 @@ import com.databricks.vcf.VariantSchemas
  * The functions are exposed to the user as Catalyst expressions.
  */
 object VariantUtilExprs {
-  def genotypeStates(genotypes: ArrayData, genotypesSize: Int, genotypeIdx: Int): ArrayData = {
+  def genotypeStates(genotypes: ArrayData, genotypesSize: Int, genotypesIdx: Int): ArrayData = {
     val output = new Array[Int](genotypes.numElements())
     var i = 0
     while (i < output.length) {
       val calls = genotypes
         .getStruct(i, genotypesSize)
-        .getStruct(genotypeIdx, 2)
-        .getArray(0)
+        .getArray(genotypesIdx)
       var sum = 0
       var j = 0
       while (j < calls.numElements() && sum >= 0) {
@@ -60,7 +64,7 @@ object VariantUtilExprs {
     nMismatches == 1
   }
 
-  def isTransition(refAllele: UTF8String, altAllele: UTF8String): Boolean = {
+  def containsTransition(refAllele: UTF8String, altAllele: UTF8String): Boolean = {
     var i = 0
     val refBytes = refAllele.getBytes
     val altBytes = altAllele.getBytes
@@ -79,7 +83,7 @@ object VariantUtilExprs {
     false
   }
 
-  def isTransversion(refAllele: UTF8String, altAllele: UTF8String): Boolean = {
+  def containsTransversion(refAllele: UTF8String, altAllele: UTF8String): Boolean = {
     var i = 0
     val refBytes = refAllele.getBytes
     val altBytes = altAllele.getBytes
@@ -104,21 +108,21 @@ object VariantUtilExprs {
 
   def isInsertion(refAllele: UTF8String, altAllele: UTF8String): Boolean = {
     refAllele.numChars() < altAllele.numChars() && altAllele.numChars() >= 2 &&
-      refAllele.substring(0, 1) == altAllele.substring(0, 1) &&
-      altAllele.endsWith(refAllele.substring(1, refAllele.numChars()))
+    refAllele.substring(0, 1) == altAllele.substring(0, 1) &&
+    altAllele.endsWith(refAllele.substring(1, refAllele.numChars()))
   }
 
   def isDeletion(refAllele: UTF8String, altAllele: UTF8String): Boolean = {
     refAllele.numChars() > altAllele.numChars() && refAllele.numChars() >= 2 &&
-      refAllele.substring(0, 1) == altAllele.substring(0, 1) &&
-      refAllele.endsWith(altAllele.substring(1, altAllele.numChars()))
+    refAllele.substring(0, 1) == altAllele.substring(0, 1) &&
+    refAllele.endsWith(altAllele.substring(1, altAllele.numChars()))
   }
 
   private val star = UTF8String.fromString("*")
   def variantType(refAllele: UTF8String, altAllele: UTF8String): VariantType = {
-    if (isSnp(refAllele, altAllele) && isTransition(refAllele, altAllele)) {
+    if (isSnp(refAllele, altAllele) && containsTransition(refAllele, altAllele)) {
       VariantType.Transition
-    } else if (isSnp(refAllele, altAllele) && isTransversion(refAllele, altAllele)) {
+    } else if (isSnp(refAllele, altAllele) && containsTransversion(refAllele, altAllele)) {
       VariantType.Transversion
     } else if (altAllele == star) {
       VariantType.SpanningDeletion
@@ -148,13 +152,12 @@ object VariantType {
  * are missing.
  */
 case class GenotypeStates(genotypes: Expression)
-  extends UnaryExpression
-  with ExpectsGenotypeFields {
-
+    extends UnaryExpression
+    with ExpectsGenotypeFields {
 
   override def genotypesExpr: Expression = genotypes
 
-  override def genotypeFieldsRequired: Seq[StructField] = Seq(VariantSchemas.genotypeField)
+  override def genotypeFieldsRequired: Seq[StructField] = Seq(VariantSchemas.callsField)
 
   override def child: Expression = genotypes
 
@@ -164,7 +167,7 @@ case class GenotypeStates(genotypes: Expression)
     val fn = "com.databricks.hls.tertiary.VariantUtilExprs.genotypeStates"
     nullSafeCodeGen(ctx, ev, calls => {
       s"""
-         |${ev.value} = $fn($calls, ${genotypeStructSize}, ${genotypeFieldIndices.head});
+         |${ev.value} = $fn($calls, $genotypeStructSize, ${genotypeFieldIndices.head});
        """.stripMargin
     })
   }
@@ -175,5 +178,149 @@ case class GenotypeStates(genotypes: Expression)
       genotypeStructSize,
       genotypeFieldIndices.head
     )
+  }
+}
+
+/**
+ * Converts an array of probabilities (most likely the genotype probabilities from a BGEN file)
+ * into hard calls. The input probabilities are assumed to be diploid.
+ *
+ * If the input probabilities are phased, each haplotype is called separately by finding the maximum
+ * probability greater than the threshold (0.9 by default, a la plink). If no probability is
+ * greater than the threshold, the call is -1 (missing).
+ *
+ * If the input probabilities are unphased, the probabilities refer to the complete genotype. In
+ * this case, we find the maximum probability greater than the threshold and then convert that
+ * value to a genotype call.
+ *
+ * If any of the required parameters (probabilities, numAlts, phased) are null, the expression
+ * returns null.
+ *
+ * @param probabilities The probabilities to convert to hard calls. The algorithm does not check
+ *                      that they sum to 1. If the probabilities are unphased, they are assumed
+ *                      to correspond to the genotypes in colex order, which is standard for both
+ *                      BGEN and VCF files.
+ * @param numAlts The number of alternate alleles at this site.
+ * @param phased Whether the probabilities are phased (per haplotype) or unphased (whole genotype).
+ * @param threshold Calls are only generated if at least one probability is above this threshold.
+ */
+case class HardCalls(
+    probabilities: Expression,
+    numAlts: Expression,
+    phased: Expression,
+    threshold: Option[Expression])
+    extends CodegenFallback
+    with ImplicitCastInputTypes {
+  override def children: Seq[Expression] = Seq(probabilities, numAlts, phased) ++ threshold
+  override def inputTypes = {
+    Seq(ArrayType(DoubleType), IntegerType, BooleanType) ++ threshold.map(_ => DecimalType)
+  }
+  override def checkInputDataTypes(): TypeCheckResult = {
+    super.checkInputDataTypes()
+    threshold match {
+      case Some(expr) if !expr.foldable =>
+        TypeCheckResult.TypeCheckFailure("Threshold must be a constant value")
+      case _ => TypeCheckResult.TypeCheckSuccess
+    }
+  }
+  override def dataType: DataType = ArrayType(IntegerType)
+  override def nullable: Boolean = probabilities.nullable || numAlts.nullable || phased.nullable
+  private lazy val threshold0 = threshold
+    .map { expr =>
+      expr.eval().asInstanceOf[Decimal].toDouble
+    }
+    .getOrElse(0.9)
+
+  override def eval(input: InternalRow): Any = {
+    val _probArr = probabilities.eval(input)
+    val _numAlts = numAlts.eval(input)
+    val _phased0 = phased.eval(input)
+    if (_probArr == null || _numAlts == null || _phased0 == null) {
+      return null
+    }
+
+    val probArr = _probArr.asInstanceOf[ArrayData]
+    val numAlleles = _numAlts.asInstanceOf[Int] + 1
+    val phased0 = _phased0.asInstanceOf[Boolean]
+
+    // calls is an `Array[Any]` instead of `Array[Int]` because it's cheaper to convert
+    // the former to Spark's array data format
+    // phased case
+    val calls: Array[Any] = if (phased0) {
+      val out = new Array[Any](2) // 2 because we assume diploid
+      var i = 0
+      while (i < 2) {
+        var j = 0
+        var max = 0d
+        var call = -1
+        while (j < numAlleles) {
+          val probability = probArr.getDouble(i * numAlleles + j)
+          if (probability >= threshold0 && probability > max) {
+            max = probability
+            call = j
+          }
+          j += 1
+        }
+        out(i) = call
+        i += 1
+      }
+      out
+    } else { // unphased case
+      var i = 0
+      var maxProb = 0d
+      var maxIdx = -1
+      while (i < probArr.numElements()) {
+        val el = probArr.getDouble(i)
+        if (el >= threshold0 && el > maxProb) {
+          maxIdx = i
+          maxProb = el
+        }
+        i += 1
+      }
+      callsFromIdx(maxIdx)
+    }
+
+    new GenericArrayData(calls)
+  }
+
+  /**
+   * Converts the index of the maximum probability in an unphased probability array into diploid
+   * genotype calls. Since the probabilities correspond to genotypes enumerated in colex order,
+   * we can think of this function as mapping the index to a specific genotype in an infinite
+   * sequence of possible diploid genotypes.
+   *
+   * 00
+   * 01
+   * 11
+   * 02
+   * 12
+   * 22
+   * 03
+   * 13
+   * 23
+   * 33
+   * ..
+   *
+   * In the general ploidy case, this mapping is the combinatorial number system with replacement.
+   * In the diploid case, the higher numbered call is equivalent to the index of the greatest
+   * triangle number less than `maxIdx`. The lower number call is then the difference between that
+   * triangle number and the `maxIdx`.
+   */
+  private def callsFromIdx(maxIdx: Int): Array[Any] = {
+    if (maxIdx == -1) {
+      return Array(-1, -1)
+    }
+
+    val calls = new Array[Any](2) // 2 because we assume diploid
+    var sum = 0
+    var i = 0
+    while (sum + i + 1 <= maxIdx) {
+      i += 1
+      sum += i
+    }
+
+    calls(0) = i
+    calls(1) = maxIdx - sum
+    calls
   }
 }

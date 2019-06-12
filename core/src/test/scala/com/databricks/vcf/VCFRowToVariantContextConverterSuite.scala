@@ -34,7 +34,7 @@ class VCFRowToVariantContextConverterSuite extends VCFConverterBaseTest {
     val sess = spark
     import sess.implicits._
 
-    val header = VCFMetadataLoader.readVcfHeader(sparkContext, vcf)
+    val header = VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, vcf)
     val converter = new VCFRowToVariantContextConverter(header)
 
     val sparkVcfRowList = spark.read
@@ -98,12 +98,10 @@ class VCFRowToVariantContextConverterSuite extends VCFConverterBaseTest {
   }
 
   test("Set VCF row") {
-    val genotype1 = Genotype(calls = Seq(-1, 0), phased = true)
-    val genotype2 = Genotype(calls = Seq(1, 2), phased = false)
-
     val genotypeFields1: GenotypeFields = GenotypeFields(
       sampleId = Some("sample1"),
-      genotype = Some(genotype1),
+      phased = Some(true),
+      calls = Some(Seq(-1, 0)),
       depth = Some(3),
       filters = Some(Seq("gtFilter1", "gtFilter2")),
       genotypeLikelihoods = Some(Seq(0.11, 0.12, 0.13, 0.14, 0.15, 0.16)),
@@ -117,7 +115,11 @@ class VCFRowToVariantContextConverterSuite extends VCFConverterBaseTest {
       otherFields = Map("GT_KEY" -> "val")
     )
     val genotypeFields2 =
-      defaultGenotypeFields.copy(sampleId = Some("sample2"), genotype = Some(genotype2))
+      defaultGenotypeFields.copy(
+        sampleId = Some("sample2"),
+        phased = Some(false),
+        calls = Some(Seq(1, 2))
+      )
 
     val setVcfRow = VCFRow(
       contigName = "contigName",
@@ -216,10 +218,7 @@ class VCFRowToVariantContextConverterSuite extends VCFConverterBaseTest {
   }
 
   test("No GT field") {
-    val genotypeField = defaultGenotypeFields.copy(genotype = None)
-    val setVcfRow = vcfRow.copy(genotypes = Seq(genotypeField))
-
-    val vc = defaultConverter.convert(setVcfRow)
+    val vc = defaultConverter.convert(vcfRow)
 
     val gtSeq = vc.getGenotypesOrderedByName.asScala.toSeq
     assert(gtSeq.head.getAlleles.isEmpty)
@@ -230,8 +229,7 @@ class VCFRowToVariantContextConverterSuite extends VCFConverterBaseTest {
   }
 
   test("Throws ArrayIndexOutOfBoundsException with allele index out of range") {
-    val genotypeField =
-      defaultGenotypeFields.copy(genotype = Some(defaultGenotype.copy(calls = Seq(3))))
+    val genotypeField = defaultGenotypeFields.copy(calls = Some(Seq(3)))
     val setVcfRow = vcfRow.copy(genotypes = Seq(genotypeField))
 
     assertThrows[IndexOutOfBoundsException](defaultConverter.convert(setVcfRow))

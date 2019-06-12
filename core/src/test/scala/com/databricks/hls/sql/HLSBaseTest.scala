@@ -29,7 +29,7 @@ abstract class HLSBaseTest
 
   override protected def createSparkSession = {
     val session = super.createSparkSession
-    SqlExtensionProvider.registerFunctions(session)
+    SqlExtensionProvider.register(session)
     SparkSession.setActiveSession(session)
     session
   }

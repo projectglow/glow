@@ -1,25 +1,7 @@
 package com.databricks.vcf
 
-import java.util.{HashMap => JHashMap, List => JList, Map => JMap}
-
-import scala.collection.JavaConverters._
-import scala.collection.mutable
-import scala.reflect.ClassTag
-import scala.util.control.NonFatal
-
-import htsjdk.samtools.ValidationStringency
-import htsjdk.variant.variantcontext.{Allele, VariantContext, Genotype => HTSJDKGenotype}
 import htsjdk.variant.vcf._
-import org.apache.spark.sql.catalyst.expressions.{
-  GenericInternalRow,
-  SpecificInternalRow,
-  UnsafeProjection,
-  UnsafeRow
-}
-import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, ArrayData, GenericArrayData}
-import org.apache.spark.sql.catalyst.{InternalRow, ScalaReflection}
 import org.apache.spark.sql.types._
-import org.apache.spark.unsafe.types.UTF8String
 
 import com.databricks.hls.common.HLSLogging
 
@@ -44,7 +26,7 @@ object VCFSchemaInferer extends HLSLogging {
     val withInfoFields = if (flattenInfoFields) {
       validatedInfoHeaders.foldLeft(VariantSchemas.vcfBaseSchema) {
         case (schema, line) =>
-          val field = StructField("INFO_" + line.getID, typeForHeader(line))
+          val field = StructField("INFO_" + line.getID, typesForHeader(line).head)
           schema.add(field)
       }
     } else {
@@ -56,15 +38,22 @@ object VCFSchemaInferer extends HLSLogging {
       genotypeStruct = genotypeStruct.add(VariantSchemas.sampleIdField)
     }
     validatedFormatHeaders.foreach { line =>
-      val field = StructField(line.getID, typeForHeader(line))
-      val name = GenotypeFields.aliases.getOrElse(field.name, field.name)
-      genotypeStruct = genotypeStruct.add(field.copy(name = name))
+      val names = GenotypeFields.aliases.getOrElse(line.getID, Seq(line.getID))
+      val types = typesForHeader(line)
+      require(
+        names.size == types.size,
+        "Must have same number of header line struct names and types"
+      )
+      names.zip(types).foreach {
+        case (n, t) =>
+          genotypeStruct = genotypeStruct.add(StructField(n, t))
+      }
     }
 
     withInfoFields.add(StructField("genotypes", ArrayType(genotypeStruct)))
   }
 
-  def typeForHeader(line: VCFCompoundHeaderLine): DataType = {
+  def typesForHeader(line: VCFCompoundHeaderLine): Seq[DataType] = {
     if (particularSchemas.contains(line.getID)) {
       return particularSchemas(line.getID)
     }
@@ -78,9 +67,9 @@ object VCFSchemaInferer extends HLSLogging {
     }
 
     if (line.isFixedCount && line.getCount <= 1) {
-      primitiveType
+      Seq(primitiveType)
     } else {
-      ArrayType(primitiveType)
+      Seq(ArrayType(primitiveType))
     }
   }
 
@@ -104,7 +93,7 @@ object VCFSchemaInferer extends HLSLogging {
   }
 
   // Fields for which the schema cannot be inferred from the VCF header
-  private val particularSchemas: Map[String, StructType] = Map(
-    "GT" -> Genotype.schema
+  private val particularSchemas: Map[String, Seq[DataType]] = Map(
+    "GT" -> Seq(VariantSchemas.phasedField.dataType, VariantSchemas.callsField.dataType)
   )
 }

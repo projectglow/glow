@@ -1,18 +1,22 @@
 package com.databricks.hls.tertiary
 
+import java.nio.ByteBuffer
+
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
-import com.esotericsoftware.kryo.Kryo
+import org.apache.spark.SparkEnv
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.{Expression, GenericInternalRow}
-import org.apache.spark.sql.catalyst.expressions.aggregate.{ImperativeAggregate, TypedImperativeAggregate}
+import org.apache.spark.sql.catalyst.expressions.Expression
+import org.apache.spark.sql.catalyst.expressions.aggregate.{
+  ImperativeAggregate,
+  TypedImperativeAggregate
+}
 import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, ArrayData, GenericArrayData}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
 import com.databricks.hls.common.HLSLogging
-import com.databricks.hls.tertiary.util.KryoUtils
 import com.databricks.vcf.VariantSchemas
 
 case class SampleSummaryStatsState(var sampleId: String, var momentAggState: MomentAggState) {
@@ -31,9 +35,9 @@ case class PerSampleSummaryStatistics(
     field: StructField,
     mutableAggBufferOffset: Int = 0,
     inputAggBufferOffset: Int = 0)
-  extends TypedImperativeAggregate[mutable.ArrayBuffer[SampleSummaryStatsState]]
-  with ExpectsGenotypeFields
-  with HLSLogging {
+    extends TypedImperativeAggregate[mutable.ArrayBuffer[SampleSummaryStatsState]]
+    with ExpectsGenotypeFields
+    with HLSLogging {
 
   override def children: Seq[Expression] = Seq(genotypes)
   override def nullable: Boolean = false
@@ -54,18 +58,22 @@ case class PerSampleSummaryStatistics(
 
   private lazy val updateStateFn: (MomentAggState, InternalRow) => Unit = {
     field.dataType match {
-      case FloatType => (state, genotype) => {
-        state.update(genotype.getFloat(genotypeFieldIndices(1)))
-      }
-      case DoubleType => (state, genotype) => {
-        state.update(genotype.getDouble(genotypeFieldIndices(1)))
-      }
-      case IntegerType => (state, genotype) => {
-        state.update(genotype.getInt(genotypeFieldIndices(1)))
-      }
-      case LongType => (state, genotype) => {
-        state.update(genotype.getLong(genotypeFieldIndices(1)))
-      }
+      case FloatType =>
+        (state, genotype) => {
+          state.update(genotype.getFloat(genotypeFieldIndices(1)))
+        }
+      case DoubleType =>
+        (state, genotype) => {
+          state.update(genotype.getDouble(genotypeFieldIndices(1)))
+        }
+      case IntegerType =>
+        (state, genotype) => {
+          state.update(genotype.getInt(genotypeFieldIndices(1)))
+        }
+      case LongType =>
+        (state, genotype) => {
+          state.update(genotype.getLong(genotypeFieldIndices(1)))
+        }
     }
   }
 
@@ -73,14 +81,18 @@ case class PerSampleSummaryStatistics(
       buffer: ArrayBuffer[SampleSummaryStatsState],
       input: InternalRow): ArrayBuffer[SampleSummaryStatsState] = {
     val genotypesArray = genotypes.eval(input).asInstanceOf[ArrayData]
-    while (buffer.size < genotypesArray.numElements()) {
-      val sampleId = genotypesArray.getStruct(buffer.size, genotypeStructSize)
-          .getString(genotypeFieldIndices.head)
-      buffer.append(SampleSummaryStatsState(sampleId, MomentAggState()))
-    }
 
     var i = 0
-    while (i < buffer.size) {
+    while (i < genotypesArray.numElements()) {
+
+      // Make sure the buffer has an entry for this sample
+      if (i >= buffer.size) {
+        val sampleId = genotypesArray
+          .getStruct(buffer.size, genotypeStructSize)
+          .getString(genotypeFieldIndices.head)
+        buffer.append(SampleSummaryStatsState(sampleId, MomentAggState()))
+      }
+
       val struct = genotypesArray.getStruct(i, genotypeStructSize)
       if (!struct.isNullAt(genotypeFieldIndices(1))) {
         updateStateFn(buffer(i).momentAggState, genotypesArray.getStruct(i, genotypeStructSize))
@@ -99,13 +111,15 @@ case class PerSampleSummaryStatistics(
       return buffer
     }
 
-    require(buffer.size == input.size,
-      s"Agg buffers have different lengths (${buffer.size}, ${input.size})")
+    require(
+      buffer.size == input.size,
+      s"Agg buffers have different lengths (${buffer.size}, ${input.size})"
+    )
     var i = 0
     while (i < buffer.size) {
       require(buffer(i).sampleId == input(i).sampleId, s"Samples did not match at position $i")
-      buffer(i).momentAggState = MomentAggState.merge(buffer(i).momentAggState,
-        input(i).momentAggState)
+      buffer(i).momentAggState =
+        MomentAggState.merge(buffer(i).momentAggState, input(i).momentAggState)
       i += 1
     }
     buffer
@@ -120,16 +134,10 @@ case class PerSampleSummaryStatistics(
   }
 
   override def serialize(buffer: ArrayBuffer[SampleSummaryStatsState]): Array[Byte] = {
-    val kryo = new Kryo()
-    kryo.register(classOf[SampleSummaryStatsState])
-    kryo.register(classOf[ArrayBuffer[SampleSummaryStatsState]])
-    KryoUtils.toByteArray(kryo, buffer)
+    SparkEnv.get.serializer.newInstance().serialize(buffer).array()
   }
 
   override def deserialize(storageFormat: Array[Byte]): ArrayBuffer[SampleSummaryStatsState] = {
-    val kryo = new Kryo()
-    kryo.register(classOf[SampleSummaryStatsState])
-    kryo.register(classOf[ArrayBuffer[SampleSummaryStatsState]])
-    KryoUtils.fromByteArray(kryo, storageFormat, classOf[ArrayBuffer[SampleSummaryStatsState]])
+    SparkEnv.get.serializer.newInstance().deserialize(ByteBuffer.wrap(storageFormat))
   }
 }

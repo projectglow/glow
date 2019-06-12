@@ -9,11 +9,13 @@
 package com.databricks.hls.sql.expressions
 
 import org.apache.spark.sql.Row
-import org.apache.spark.sql.functions.{collect_list, col, expr}
+import org.apache.spark.sql.functions.{col, collect_list, expr}
 import org.apache.spark.sql.hls.dsl.expressions._
 import org.apache.spark.sql.test.SharedSQLContext
 
-class FunctionsSuite extends SharedSQLContext {
+import com.databricks.hls.sql.HLSBaseTest
+
+class FunctionsSuite extends HLSBaseTest {
 
   test("generate bin id") {
     val sqlContext = spark.sqlContext

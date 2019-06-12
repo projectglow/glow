@@ -2,6 +2,9 @@ package com.databricks.vcf
 
 import htsjdk.variant.variantcontext.GenotypeLikelihoods
 import htsjdk.variant.vcf.VCFConstants
+import org.apache.spark.sql.catalyst.util.ArrayData
+import org.apache.spark.sql.types.StringType
+import org.apache.spark.unsafe.types.UTF8String
 
 private[databricks] object ConverterUtils {
 
@@ -65,5 +68,9 @@ private[databricks] object ConverterUtils {
     } else {
       None
     }
+  }
+
+  def arrayDataToStringList(array: ArrayData): Seq[String] = {
+    array.toObjectArray(StringType).map(_.asInstanceOf[UTF8String].toString)
   }
 }

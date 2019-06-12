@@ -62,8 +62,7 @@ object VariantQcExprs extends HLSLogging {
    * returned directly to the user.
    *
    * @param genotypes an array of structs with the schema defined in [[CallStats.requiredSchema]]
-   * @param genotypesIdx the position of the genotype struct (with calls and phasing info) within
-   *                     the element struct of the genotypes array
+   * @param genotypesIdx the position of the calls within the element struct of the genotypes array
    */
   def callStatsBase(
       genotypes: ArrayData,
@@ -80,8 +79,7 @@ object VariantQcExprs extends HLSLogging {
     while (i < genotypes.numElements()) {
       val calls = genotypes
         .getStruct(i, genotypesSize)
-        .getStruct(genotypesIdx, 2)
-        .getArray(0)
+        .getArray(genotypesIdx)
         .toIntArray()
       var isHet = false
       var isUncalled = false
@@ -231,15 +229,17 @@ object VariantQcExprs extends HLSLogging {
 }
 
 case class HardyWeinberg(genotypes: Expression) extends UnaryExpression with ExpectsGenotypeFields {
-  override def dataType: DataType = StructType(Seq(
-    StructField("hetFreqHwe", DoubleType),
-    StructField("pValueHwe", DoubleType)
-  ))
+  override def dataType: DataType =
+    StructType(
+      Seq(
+        StructField("hetFreqHwe", DoubleType),
+        StructField("pValueHwe", DoubleType)
+      )
+    )
 
   override def genotypesExpr: Expression = genotypes
 
-  override def genotypeFieldsRequired: Seq[StructField] = Seq(VariantSchemas.genotypeField)
-
+  override def genotypeFieldsRequired: Seq[StructField] = Seq(VariantSchemas.callsField)
 
   override def child: Expression = genotypes
 
@@ -256,7 +256,8 @@ case class HardyWeinberg(genotypes: Expression) extends UnaryExpression with Exp
     VariantQcExprs.hardyWeinberg(
       input.asInstanceOf[ArrayData],
       genotypeStructSize,
-      genotypeFieldIndices.head)
+      genotypeFieldIndices.head
+    )
   }
 }
 
@@ -271,7 +272,7 @@ case class CallStats(genotypes: Expression) extends UnaryExpression with Expects
 
   override def genotypesExpr: Expression = genotypes
 
-  override def genotypeFieldsRequired: Seq[StructField] = Seq(VariantSchemas.genotypeField)
+  override def genotypeFieldsRequired: Seq[StructField] = Seq(VariantSchemas.callsField)
 
   override def child: Expression = genotypes
 
@@ -288,7 +289,8 @@ case class CallStats(genotypes: Expression) extends UnaryExpression with Expects
     VariantQcExprs.callStats(
       input.asInstanceOf[ArrayData],
       genotypeStructSize,
-      genotypeFieldIndices.head)
+      genotypeFieldIndices.head
+    )
   }
 }
 
@@ -306,19 +308,7 @@ case class CallStatsStruct(
 object CallStats {
   lazy val schema: DataType = ScalaReflection.schemaFor[CallStatsStruct].dataType
 
-  lazy val requiredSchema: StructType = StructType(
-    Seq(
-      StructField(
-        "genotype",
-        StructType(
-          Seq(
-            StructField("calls", ArrayType(IntegerType)),
-            StructField("phased", BooleanType)
-          )
-        )
-      )
-    )
-  )
+  lazy val requiredSchema: StructType = StructType(Seq(VariantSchemas.callsField))
 }
 
 case class ArrayStatsSummary(array: Expression) extends UnaryExpression with ExpectsInputTypes {

@@ -81,18 +81,18 @@ private[databricks] class BgenFileIterator(
 
     val rawGenotypeStream = new DataInputStream(new ByteArrayInputStream(uncompressedBytes))
     val genotypeStream = new io.LittleEndianDataInputStream(rawGenotypeStream)
-    val probabilities = readGenotypes(nAlleles, genotypeStream)
+    val genotypes = readGenotypes(nAlleles, genotypeStream)
 
     BgenRow(
       contigName,
       start,
       start + alleles.head.length,
-      Seq(rsid, variantId).filter(_.nonEmpty).distinct.sorted,
+      Seq(variantId, rsid),
       alleles.head,
       alleles.tail,
-      probabilities.zipWithIndex.map {
-        case (prob, idx) =>
-          BgenGenotype(metadata.sampleIds.map(ids => ids(idx)), prob)
+      genotypes.zipWithIndex.map {
+        case (gt, idx) =>
+          gt.copy(sampleId = metadata.sampleIds.map(ids => ids(idx)))
       }
     )
   }
@@ -115,7 +115,7 @@ private[databricks] class BgenFileIterator(
 
   private def readGenotypes(
       nAllelesFromVariant: Int,
-      genotypeStream: LittleEndianDataInputStream): Seq[Seq[Double]] = {
+      genotypeStream: LittleEndianDataInputStream): Seq[BgenGenotype] = {
     val nSamples = genotypeStream.readInt()
     val nAlleles = genotypeStream.readUnsignedShort()
     if (nAlleles != nAllelesFromVariant) {
@@ -126,7 +126,7 @@ private[databricks] class BgenFileIterator(
     }
     val minPloidy = genotypeStream.readUnsignedByte()
     val maxPloidy = genotypeStream.readUnsignedByte()
-    val ploidyBySample = (1 to nSamples).map { _ =>
+    val ploidyWithMissingnessBySample = (1 to nSamples).map { _ =>
       genotypeStream.readUnsignedByte()
     }
 
@@ -134,14 +134,26 @@ private[databricks] class BgenFileIterator(
     val phased = phasedByte == 1
     val bitsPerProbability = genotypeStream.readUnsignedByte()
 
-    if (phased) {
-      readPhasedProbabilties(genotypeStream, nAlleles, ploidyBySample, bitsPerProbability)
-        .map(_.toSeq)
-        .toSeq
+    val ploidyBySample = ploidyWithMissingnessBySample.map(_ & 63)
+    val probabilities = if (phased) {
+      readPhasedProbabilties(
+        genotypeStream,
+        nAlleles,
+        ploidyWithMissingnessBySample,
+        bitsPerProbability
+      )
     } else {
-      readUnphasedProbabilities(genotypeStream, nAlleles, ploidyBySample, bitsPerProbability)
-        .map(_.toSeq)
-        .toSeq
+      readUnphasedProbabilities(
+        genotypeStream,
+        nAlleles,
+        ploidyWithMissingnessBySample,
+        bitsPerProbability
+      )
+    }
+
+    ploidyBySample.zip(probabilities).map {
+      case (ploidy, prob) =>
+        BgenGenotype(None, Some(phased), Some(ploidy), prob)
     }
   }
 
@@ -302,7 +314,10 @@ private[databricks] class BgenHeaderReader(stream: LittleEndianDataInputStream) 
     val nSamples = Integer.toUnsignedLong(stream.readInt())
     val magicNumber = (1 to 4).map(n => stream.readByte())
 
-    require(magicNumber == Seq('b', 'g', 'e', 'n') || magicNumber == Seq(0, 0, 0, 0))
+    require(
+      magicNumber == Seq('b', 'g', 'e', 'n') || magicNumber == Seq(0, 0, 0, 0),
+      s"Magic bytes were neither 'b', 'g', 'e', 'n' nor 0, 0, 0, 0 ($magicNumber)"
+    )
 
     val freeData = new Array[Byte](headerLength.toInt - 20)
     stream.readFully(freeData)

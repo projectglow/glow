@@ -43,7 +43,9 @@ class BgenFileFormat extends FileFormat with DataSourceRegister with Serializabl
       job: Job,
       options: Map[String, String],
       dataSchema: StructType): OutputWriterFactory = {
-    throw new UnsupportedOperationException("BGEN data source does not support writing")
+    throw new UnsupportedOperationException(
+      "BGEN data source does not support writing sharded BGENs; use com.databricks.bigbgen."
+    )
   }
 
   override def isSplitable(
@@ -62,13 +64,14 @@ class BgenFileFormat extends FileFormat with DataSourceRegister with Serializabl
       options: Map[String, String],
       hadoopConf: Configuration): PartitionedFile => Iterator[InternalRow] = {
     val serializableConf = new SerializableConfiguration(hadoopConf)
-    val useIndex = options.get("useBgenIndex").forall(_.toBoolean)
+    val useIndex = options.get(BgenFileFormat.USE_INDEX_KEY).forall(_.toBoolean)
+    val ignoreExtension = options.get(BgenFileFormat.IGNORE_EXTENSION_KEY).exists(_.toBoolean)
     val sampleIdsOpt = getSampleIds(options, hadoopConf)
 
     file => {
       val path = new Path(file.filePath)
       val hadoopFs = path.getFileSystem(serializableConf.value)
-      nextVariantIndex(hadoopFs, file, useIndex) match {
+      nextVariantIndex(hadoopFs, file, useIndex, ignoreExtension) match {
         case None =>
           Iterator.empty
         case Some(pos) =>
@@ -85,7 +88,7 @@ class BgenFileFormat extends FileFormat with DataSourceRegister with Serializabl
           val header = new BgenHeaderReader(littleEndianStream).readHeader(sampleIdsOpt)
           val startPos = Math.max(pos, header.firstVariantOffset)
           stream.seek(startPos)
-          val rowConverter = new BgenRowConverter(requiredSchema)
+          val rowConverter = new BgenRowToInternalRowConverter(requiredSchema)
 
           val iter = new BgenFileIterator(
             header,
@@ -112,7 +115,13 @@ class BgenFileFormat extends FileFormat with DataSourceRegister with Serializabl
   private def nextVariantIndex(
       hadoopFs: FileSystem,
       file: PartitionedFile,
-      useIndex: Boolean): Option[Long] = {
+      useIndex: Boolean,
+      ignoreExtension: Boolean): Option[Long] = {
+
+    if (!file.filePath.endsWith(".bgen") && !ignoreExtension) {
+      return None
+    }
+
     val indexFile = new Path(file.filePath + BgenFileFormat.INDEX_SUFFIX)
     if (hadoopFs.exists(indexFile) && useIndex) {
       logger.info(s"Found index file ${indexFile} for BGEN file ${file.filePath}")
@@ -209,4 +218,6 @@ object BgenFileFormat {
       |WHERE file_start_position > :pos
     """.stripMargin
   val idxLock = Striped.lock(100)
+  val IGNORE_EXTENSION_KEY = "ignoreExtension"
+  val USE_INDEX_KEY = "useBgenIndex"
 }

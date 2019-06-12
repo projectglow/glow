@@ -1,2 +1,4 @@
 com.databricks.bgen.BgenFileFormat
 com.databricks.vcf.VCFFileFormat
+com.databricks.bgen.BigBgenDatasource
+com.databricks.vcf.BigVCFDatasource
