@@ -5,9 +5,8 @@ import scala.reflect.runtime.universe._
 import org.bdgenomics.adam.util.PhredUtils
 
 import com.databricks.hls.common.TestUtils._
-import com.databricks.hls.sql.HLSBaseTest
 
-trait VCFConverterBaseTest extends HLSBaseTest {
+trait VCFConverterBaseTest {
 
   final lazy val defaultContigName = ""
   final lazy val defaultStart = 0L
@@ -78,7 +77,6 @@ trait VCFConverterBaseTest extends HLSBaseTest {
         )
       } catch {
         case t: Throwable =>
-          logger.warn("%s did not match.".format(field))
           throw t
       }
     }
@@ -102,7 +100,6 @@ trait VCFConverterBaseTest extends HLSBaseTest {
         )
       } catch {
         case t: Throwable =>
-          logger.warn("%s did not match.".format(field))
           throw t
       }
     }
@@ -116,7 +113,6 @@ trait VCFConverterBaseTest extends HLSBaseTest {
       }
     } catch {
       case t: Throwable =>
-        logger.warn("%s did not match.".format(field))
         throw t
     }
   }
@@ -129,7 +125,6 @@ trait VCFConverterBaseTest extends HLSBaseTest {
       }
     } catch {
       case t: Throwable =>
-        logger.warn("%s did not match.".format(field))
         throw t
     }
   }
@@ -152,7 +147,6 @@ trait VCFConverterBaseTest extends HLSBaseTest {
       }
     } catch {
       case t: Throwable =>
-        logger.warn("%s did not match.".format(field))
         throw t
     }
   }

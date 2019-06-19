@@ -1,14 +1,9 @@
 package com.databricks.vcf
 
-import org.apache.commons.math3.util.CombinatoricsUtils
 import org.apache.spark.sql.Encoders
 import org.apache.spark.sql.catalyst.ScalaReflection
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
-import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types._
-
-import com.databricks.bgen.BgenConverterUtils
-import com.databricks.hls.sql.HLSConf
 
 object VariantSchemas {
   // Default fields common to VCF and BGEN

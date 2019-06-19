@@ -5,7 +5,6 @@ import java.nio.file.{Files, Path, Paths}
 import java.util.stream.Collectors
 
 import scala.collection.JavaConverters._
-
 import com.google.common.io.ByteStreams
 import htsjdk.samtools.ValidationStringency
 import htsjdk.samtools.util.{BlockCompressedInputStream, BlockCompressedStreamConstants}
@@ -14,10 +13,10 @@ import htsjdk.variant.vcf.{VCFHeader, VCFHeaderLine}
 import org.apache.spark.sql.{DataFrame, Dataset}
 import org.apache.spark.{SparkConf, SparkException}
 import org.bdgenomics.adam.rdd.ADAMContext._
-
 import com.databricks.hls.common.WithUtils
+import com.databricks.hls.sql.HLSBaseTest
 
-abstract class VCFFileWriterSuite extends VCFConverterBaseTest {
+abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest {
 
   lazy val NA12878 = s"$testDataHome/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf"
   lazy val TGP = s"$testDataHome/1000genomes-phase3-1row.vcf"

@@ -5,15 +5,14 @@ import java.lang.{Double => JDouble, Integer => JInteger}
 import java.util.{ArrayList => JArrayList, HashSet => JHashSet}
 
 import scala.collection.JavaConverters._
-
 import htsjdk.samtools.ValidationStringency
 import org.bdgenomics.adam.rdd.VCFMetadataLoader
 import htsjdk.variant.variantcontext.{Allele, GenotypeBuilder, VariantContextBuilder}
 import htsjdk.variant.vcf.{VCFFileReader, VCFHeader}
-
 import com.databricks.hls.common.TestUtils._
+import com.databricks.hls.sql.HLSBaseTest
 
-class VariantContextToVCFRowConverterSuite extends VCFConverterBaseTest {
+class VariantContextToVCFRowConverterSuite extends HLSBaseTest with VCFConverterBaseTest {
 
   lazy val NA12878 = s"$testDataHome/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf"
   lazy val TGP = s"$testDataHome/1000genomes-phase3-1row.vcf"
