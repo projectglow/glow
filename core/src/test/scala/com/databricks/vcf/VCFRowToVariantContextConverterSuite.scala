@@ -4,16 +4,15 @@ import java.io.File
 import java.nio.file.Files
 
 import scala.collection.JavaConverters._
-
 import htsjdk.samtools.ValidationStringency
 import htsjdk.variant.variantcontext.GenotypeLikelihoods
 import htsjdk.variant.vcf.{VCFFileReader, VCFHeader}
 import org.apache.commons.io.FileUtils
 import org.bdgenomics.adam.rdd.VCFMetadataLoader
-
 import com.databricks.hls.common.TestUtils._
+import com.databricks.hls.sql.HLSBaseTest
 
-class VCFRowToVariantContextConverterSuite extends VCFConverterBaseTest {
+class VCFRowToVariantContextConverterSuite extends HLSBaseTest with VCFConverterBaseTest {
 
   lazy val NA12878 = s"$testDataHome/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf"
   lazy val TGP = s"$testDataHome/1000genomes-phase3-1row.vcf"
