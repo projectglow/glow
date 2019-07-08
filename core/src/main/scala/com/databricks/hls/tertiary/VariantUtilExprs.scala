@@ -212,7 +212,7 @@ case class HardCalls(
     extends CodegenFallback
     with ImplicitCastInputTypes {
   override def children: Seq[Expression] = Seq(probabilities, numAlts, phased) ++ threshold
-  override def inputTypes = {
+  override def inputTypes = { // scalastyle:ignore
     Seq(ArrayType(DoubleType), IntegerType, BooleanType) ++ threshold.map(_ => DecimalType)
   }
   override def checkInputDataTypes(): TypeCheckResult = {

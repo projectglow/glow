@@ -29,11 +29,17 @@ def groupByHash(tests: Seq[TestDefinition]) = {
   }.toSeq
 }
 
+lazy val mainScalastyle = taskKey[Unit]("mainScalastyle")
+lazy val testScalastyle = taskKey[Unit]("testScalastyle")
+
 // testGrouping cannot be set globally using the `Test /` syntax since it's not a pure value
 lazy val commonSettings = Seq(
+  mainScalastyle := scalastyle.in(Compile).toTask("").value,
+  testScalastyle := scalastyle.in(Test).toTask("").value,
   testGrouping in Test := groupByHash((definedTests in Test).value),
+  test in Test := ((test in Test) dependsOn mainScalastyle).value,
+  test in Test := ((test in Test) dependsOn testScalastyle).value
 )
-
 
 lazy val core = (project in file("core"))
   .settings(
