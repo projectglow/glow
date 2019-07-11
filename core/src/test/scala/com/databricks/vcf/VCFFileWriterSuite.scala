@@ -196,7 +196,7 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
 
     val vcRdd = sc.loadVcf(tempFile)
     assert(headerLines.subsetOf(vcRdd.headerLines.toSet)) // ADAM mixes in supported header lines
-    assert(vcRdd.samples.map(_.getId) == Seq("sample1", "NA12878"))
+    assert(vcRdd.samples.map(_.getSampleId) == Seq("sample1", "NA12878"))
   }
 
   test("Corrupted header lines are not written") {

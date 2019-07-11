@@ -67,7 +67,8 @@ lazy val core = (project in file("core"))
       "org.apache.spark" %% "spark-core" % sparkVersion % "test" classifier "tests",
       "org.apache.spark" %% "spark-catalyst" % sparkVersion % "test" classifier "tests",
       "org.apache.spark" %% "spark-sql" % sparkVersion % "test" classifier "tests",
-      "org.bdgenomics.adam" %% "adam-apis-spark2" % "0.26.0" % "test",
+      "org.bdgenomics.adam" %% "adam-apis-spark2" % "0.25.0" % "test",
+      "org.bdgenomics.bdg-formats" % "bdg-formats" % "0.11.3" % "test",
     ),
   )
 
