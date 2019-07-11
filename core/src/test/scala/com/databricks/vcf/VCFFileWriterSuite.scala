@@ -10,7 +10,7 @@ import htsjdk.samtools.ValidationStringency
 import htsjdk.samtools.util.{BlockCompressedInputStream, BlockCompressedStreamConstants}
 import htsjdk.variant.variantcontext.writer.VCFHeaderWriter
 import htsjdk.variant.vcf.{VCFHeader, VCFHeaderLine}
-import org.apache.spark.sql.{DataFrame, Dataset}
+import org.apache.spark.sql.DataFrame
 import org.apache.spark.{SparkConf, SparkException}
 import org.bdgenomics.adam.rdd.ADAMContext._
 import com.databricks.hls.common.WithUtils
@@ -43,14 +43,7 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
       schemaOption: (String, String),
       partitions: Option[Int] = None): (DataFrame, DataFrame) = {
 
-    val sess = spark
-
     val tempFile = createTempVcf.toString
-    val originalHeaderLines = scala.io.Source
-      .fromFile(vcf)
-      .getLines()
-      .takeWhile(_.startsWith("#"))
-      .mkString("\n")
 
     val ds = spark.read
       .format(readSourceName)
@@ -60,10 +53,22 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
 
     val repartitioned = partitions.map(p => ds.repartition(p)).getOrElse(ds)
 
-    repartitioned.write
-      .option("overrideHeaderLines", originalHeaderLines)
-      .format(writeSourceName)
-      .save(tempFile)
+    if (readSampleIds) {
+      val originalHeader = scala.io.Source
+        .fromFile(vcf)
+        .getLines()
+        .takeWhile(_.startsWith("#"))
+        .mkString("\n")
+
+      repartitioned.write
+        .option("header", originalHeader)
+        .format(writeSourceName)
+        .save(tempFile)
+    } else {
+      repartitioned.write
+        .format(writeSourceName)
+        .save(tempFile)
+    }
 
     val rewrittenDs = spark.read
       .format(readSourceName)
@@ -93,7 +98,7 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
     }
   }
 
-  test("Use VCF parser without samples IDs") {
+  test("Use VCF parser without sample IDs") {
     val sess = spark
     import sess.implicits._
     val (ds, rewrittenDs) = writeAndRereadWithDBParser(
@@ -171,7 +176,7 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
     )
   }
 
-  test("Extra header lines") {
+  test("Provided header") {
     val sc = spark.sparkContext
     val sess = spark
 
@@ -179,21 +184,22 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
 
     val headerLine1 = new VCFHeaderLine("fakeHeaderKey", "fakeHeaderValue")
     val headerLine2 = new VCFHeaderLine("secondFakeHeaderKey", "secondFakeHeaderValue")
-    val extraHeaderLines = Set(headerLine1, headerLine2)
-    val extraHeader = new VCFHeader(extraHeaderLines.asJava)
+    val headerLines = Set(headerLine1, headerLine2)
+    val extraHeader = new VCFHeader(headerLines.asJava, Seq("sample1", "NA12878").asJava)
     sess.read
       .format(readSourceName)
       .load(NA12878)
       .write
       .format(writeSourceName)
-      .option("extraHeaderLines", VCFHeaderWriter.writeHeaderAsString(extraHeader))
+      .option("header", VCFHeaderWriter.writeHeaderAsString(extraHeader))
       .save(tempFile)
 
     val vcRdd = sc.loadVcf(tempFile)
-    assert(extraHeaderLines.subsetOf(vcRdd.headerLines.toSet))
+    assert(headerLines.subsetOf(vcRdd.headerLines.toSet)) // ADAM mixes in supported header lines
+    assert(vcRdd.samples.map(_.getId) == Seq("sample1", "NA12878"))
   }
 
-  test("Corrupted extra header lines are not written") {
+  test("Corrupted header lines are not written") {
     val sc = spark.sparkContext
     val sess = spark
 
@@ -207,7 +213,7 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
       .load(NA12878)
       .write
       .format(writeSourceName)
-      .option("extraHeaderLines", extraHeaderStr.substring(0, extraHeaderStr.length - 10))
+      .option("header", extraHeaderStr.substring(0, extraHeaderStr.length - 10))
       .save(tempFile)
 
     val vcRdd = sc.loadVcf(tempFile)
@@ -215,8 +221,6 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
   }
 
   gridTest("Strict validation stringency")(schemaOptions) { schema =>
-    val sess = spark
-
     val tempFile = createTempVcf.toString
 
     val ds = spark.read
