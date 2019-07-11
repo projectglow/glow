@@ -26,7 +26,7 @@ import org.broadinstitute.hellbender.utils.variant.GATKVariantContextUtils
 import org.seqdoop.hadoop_bam.util.{BGZFEnhancedGzipCodec, DatabricksBGZFOutputStream}
 
 import com.databricks.hls.common.{HLSLogging, WithUtils}
-import com.databricks.hls.sql.util.{EncoderUtils, HadoopLineIterator, SerializableConfiguration}
+import com.databricks.hls.sql.util.{HadoopLineIterator, SerializableConfiguration}
 
 class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HLSLogging {
   var codecFactory: CompressionCodecFactory = _
@@ -75,7 +75,7 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HLS
       options: Map[String, String],
       dataSchema: StructType): OutputWriterFactory = {
 
-    options.get("compression").foreach { compressionOption =>
+    options.get(VCFOption.COMPRESSION).foreach { compressionOption =>
       if (codecFactory == null) {
         codecFactory =
           new CompressionCodecFactory(VCFFileFormat.hadoopConfWithBGZ(job.getConfiguration))
@@ -182,7 +182,7 @@ private object VCFIteratorDelegate {
       options: Map[String, String],
       lineReader: Iterator[Text],
       codec: VCFCodec): AbstractVCFIterator = {
-    if (options.get("splitToBiallelic").exists(_.toBoolean)) {
+    if (options.get(VCFOption.SPLIT_TO_BIALLELIC).exists(_.toBoolean)) {
       new BiallelicVCFIterator(lineReader, codec)
     } else {
       new VCFIterator(lineReader, codec)
@@ -277,10 +277,10 @@ private[vcf] object SchemaDelegate {
 
   def makeDelegate(options: Map[String, String]): SchemaDelegate = {
     val stringency = VCFOptionParser.getValidationStringency(options)
-    val includeSampleId = options.get("includeSampleIds").exists(_.toBoolean)
-    if (options.get("vcfRowSchema").exists(_.toBoolean)) {
+    val includeSampleId = options.get(VCFOption.INCLUDE_SAMPLE_IDS).exists(_.toBoolean)
+    if (options.get(VCFOption.VCF_ROW_SCHEMA).exists(_.toBoolean)) {
       new VCFRowSchemaDelegate(stringency, includeSampleId)
-    } else if (options.get("flattenInfoFields").exists(_.toBoolean)) {
+    } else if (options.get(VCFOption.FLATTEN_INFO_FIELDS).exists(_.toBoolean)) {
       new FlattenedInfoDelegate(includeSampleId, stringency)
     } else {
       new NormalDelegate(includeSampleId, stringency)
@@ -373,8 +373,18 @@ private[databricks] class VCFOutputWriterFactory(options: Map[String, String])
   private val validationStringency = VCFOptionParser.getValidationStringency(options)
 
   def getRowConverter(dataSchema: StructType): InternalRowToHtsjdkConverter = {
-    val lines = VCFFileWriter.getHeaderLines(VCFRowHeaderLines.allHeaderLines, options)
-    DefaultInternalRowToHtsjdkConverter(dataSchema, lines, validationStringency)
+    val (headerLineSet, providedSampleList) = if (options.contains(VCFOption.HEADER)) {
+      val providedHeader = VCFFileWriter.parseHeaderFromString(options(VCFOption.HEADER))
+      (providedHeader.getMetaDataInInputOrder, Some(providedHeader.getGenotypeSamples))
+    } else {
+      (VCFRowHeaderLines.allHeaderLines.toSet.asJava, None)
+    }
+    DefaultInternalRowToHtsjdkConverter(
+      dataSchema,
+      headerLineSet,
+      providedSampleList,
+      validationStringency
+    )
   }
 
   override def newInstance(
@@ -394,7 +404,22 @@ private[databricks] class VCFOutputWriterFactory(options: Map[String, String])
 
 private[databricks] object VCFOptionParser {
   def getValidationStringency(options: Map[String, String]): ValidationStringency = {
-    val stringency = options.getOrElse("validationStringency", "SILENT").toUpperCase
+    val stringency = options.getOrElse(VCFOption.VALIDATION_STRINGENCY, "SILENT").toUpperCase
     ValidationStringency.valueOf(stringency)
   }
+}
+
+private[databricks] object VCFOption {
+  // Reader-only options
+  val FLATTEN_INFO_FIELDS = "flattenInfoFields"
+  val INCLUDE_SAMPLE_IDS = "includeSampleIds"
+  val SPLIT_TO_BIALLELIC = "splitToBiallelic"
+  val VCF_ROW_SCHEMA = "vcfRowSchema"
+
+  // Writer-only options
+  val COMPRESSION = "compression"
+  val HEADER = "header"
+
+  // Reader and writer options
+  val VALIDATION_STRINGENCY = "validationStringency"
 }

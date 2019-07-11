@@ -1,6 +1,7 @@
 package com.databricks.vcf
 
 import java.io.{OutputStream, StringReader}
+import java.util.{List => JList, Set => JSet}
 
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
@@ -17,45 +18,6 @@ import org.apache.spark.sql.types.StructType
 import com.databricks.hls.common.HLSLogging
 
 object VCFFileWriter extends HLSLogging {
-
-  /**
-   * Parses header lines (written by VCFWriter) passed in as an option and, if necessary,
-   * merges them with the provided default header lines.
-   *
-   * If the user provides an entire header with the `overrideHeaderLines` key, then we just return
-   * those lines.
-   *
-   * If the user provides extra lines with `extraHeaderLines`, we return those lines along with the
-   * defaults.
-   *
-   * If both options are provided, it's an error.
-   *
-   * If neither option is provided, we return the default header lines.
-   */
-  def getHeaderLines(
-      defaultLines: Seq[VCFHeaderLine],
-      options: Map[String, String]): Seq[VCFHeaderLine] = {
-    val header = options.get("overrideHeaderLines")
-    val extraLines = options.get("extraHeaderLines")
-    require(
-      header.isEmpty || extraLines.isEmpty,
-      s"Cannot provide both override and extra " +
-      s"header lines."
-    )
-
-    if (header.isDefined) {
-      parseHeaderLinesFromString(header.get)
-    } else if (extraLines.isDefined) {
-      parseHeaderLinesFromString(extraLines.get) ++ defaultLines
-    } else {
-      defaultLines
-    }
-  }
-
-  def parseHeaderLinesFromString(s: String): Seq[VCFHeaderLine] = {
-    val header = parseHeaderFromString(s)
-    header.getMetaDataInInputOrder.asScala.toSeq
-  }
 
   def parseHeaderFromString(s: String): VCFHeader = {
     val stringReader = new StringReader(s)
@@ -95,16 +57,15 @@ class VCFFileWriter(
   private var headerHasBeenSet = false
 
   private def shouldWriteHeader: Boolean = writeHeader && !headerHasBeenSet
-  private def headerLines: java.util.Set[VCFHeaderLine] = {
-    rowConverter.getHeaderLines.toSet.asJava
-  }
 
-  // Write header with the samples from the first variant context
-  // If any sample names are missing, replace them with a default.
+  // Write header with sample IDs. This can be provided via the header option or inferred from
+  // the first variant context. If any sample names are missing, replaces them with a default.
   private def maybeWriteHeaderWithSampleNames(vc: HtsjdkVariantContext): Unit = {
     if (!headerHasBeenSet) {
-      val header = if (vc.getSampleNamesOrderedByName.asScala.exists(_.isEmpty)) {
-        if (vc.hasGenotypes) {
+      val header = if (rowConverter.hasSampleList) {
+        rowConverter.getHeader
+      } else if (vc.getSampleNamesOrderedByName.asScala.exists(_.isEmpty)) {
+        val sampleNames = if (vc.hasGenotypes) {
           logger.warn(
             "Missing sample names. Assuming the sample genotypes are consistently " +
             "ordered and using default sample names."
@@ -120,9 +81,12 @@ class VCFFileWriter(
           }
         }
         usedDefaultSampleNames = true
-        new VCFHeader(headerLines, newSampleNames.asJava)
+        new VCFHeader(rowConverter.getHeader.getMetaDataInInputOrder, newSampleNames.asJava)
       } else {
-        new VCFHeader(headerLines, vc.getSampleNamesOrderedByName)
+        new VCFHeader(
+          rowConverter.getHeader.getMetaDataInInputOrder,
+          vc.getSampleNamesOrderedByName
+        )
       }
 
       if (shouldWriteHeader) {
@@ -139,8 +103,7 @@ class VCFFileWriter(
   private def maybeWriteHeaderForEmptyFile(): Unit = {
     if (shouldWriteHeader) {
       logger.info(s"Writing header for empty file")
-      val header = new VCFHeader(headerLines)
-      writer.writeHeader(header)
+      writer.writeHeader(rowConverter.getHeader)
       headerHasBeenSet = true
     }
   }
@@ -178,30 +141,41 @@ class VCFFileWriter(
 }
 
 /**
- * Converter from an internal row (following either the VCFRow or ADAM VariantContext schema) to
- * an HTSJDK VariantContext. Includes header lines corresponding to the fields parsed out in the
- * schema for conversion purposes, as well as extra header lines passed in as options.
+ * Converter from an internal row to an HTSJDK VariantContext.
+ * Also contains information about the header used to construct the converter. In particular,
+ * it specifies the header lines and whether the samples were provided. Note that having no samples
+ * is different from missing sample information, although the header used to construct the converter
+ * does not distinguish between these cases.
  */
 abstract class InternalRowToHtsjdkConverter {
-  def getHeaderLines: Seq[VCFHeaderLine]
+  def getHeader: VCFHeader
+  def hasSampleList: Boolean
   def convert(row: InternalRow): Option[HtsjdkVariantContext]
 }
 
 case class DefaultInternalRowToHtsjdkConverter(
     dataSchema: StructType,
-    headerLines: Seq[VCFHeaderLine],
+    headerLineSet: JSet[VCFHeaderLine],
+    providedSampleList: Option[JList[String]],
     validationStringency: ValidationStringency)
     extends InternalRowToHtsjdkConverter {
 
+  val header: VCFHeader = providedSampleList.map(new VCFHeader(headerLineSet, _))
+    .getOrElse(new VCFHeader(headerLineSet))
+
   val converter = new InternalRowToVariantContextConverter(
     dataSchema,
-    new VCFHeader(getHeaderLines.toSet.asJava),
+    header,
     validationStringency
   )
   converter.validate()
 
-  override def getHeaderLines: Seq[VCFHeaderLine] = {
-    headerLines
+  override def getHeader: VCFHeader = {
+    header
+  }
+
+  override def hasSampleList: Boolean = {
+    providedSampleList.isDefined
   }
 
   override def convert(row: InternalRow): Option[HtsjdkVariantContext] = {
