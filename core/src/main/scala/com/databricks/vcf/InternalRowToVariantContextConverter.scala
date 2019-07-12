@@ -37,8 +37,11 @@ class InternalRowToVariantContextConverter(
   private val genotypeSchema = rowSchema
     .find(_.name == "genotypes")
     .map(_.dataType.asInstanceOf[ArrayType].elementType.asInstanceOf[StructType])
-  val infoKeysParsedWithoutHeader = scala.collection.mutable.HashSet.empty[String]
-  val formatKeysParsedWithoutHeader = scala.collection.mutable.HashSet.empty[String]
+  private val infoKeysParsedWithoutHeader = scala.collection.mutable.HashSet.empty[String]
+  private val formatKeysParsedWithoutHeader = scala.collection.mutable.HashSet.empty[String]
+
+  // Genotype field names that are expected to not have headers
+  private val genotypeFieldsWithoutHeaders = Set("sampleId", "otherFields")
 
   def validate(): Unit = {
     rowSchema.filter(_.name.startsWith("INFO_")).foreach { f =>
@@ -55,7 +58,7 @@ class InternalRowToVariantContextConverter(
     }
 
     genotypeSchema.foreach { schema =>
-      schema.filter(_.name != "GT").foreach { f =>
+      schema.filter(f => !genotypeFieldsWithoutHeaders.contains(f.name)).foreach { f =>
         val realName = GenotypeFields.reverseAliases.getOrElse(f.name, f.name)
         val headerLine = vcfHeader.getFormatHeaderLine(realName)
         if (headerLine == null) {
