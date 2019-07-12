@@ -32,6 +32,12 @@ abstract class BaseVCFDatasourceSuite(val sourceName: String) extends HLSBaseTes
     (Seq("1", "1", "id", "C", "T,GT", "1", ".") ++ strSeq).mkString("\t")
   }
 
+  test("default schema") {
+    val df = spark.read.format(sourceName).load(testVcf)
+    assert(df.schema.exists(_.name.startsWith("INFO_")))
+    assert(df.where(expr("size(filter(genotypes, g -> g.sampleId is null)) > 0")).count() == 0)
+  }
+
   test("parse VCF") {
     val datasource = spark.read.format(sourceName).load(testVcf)
     datasource.count()
@@ -40,6 +46,7 @@ abstract class BaseVCFDatasourceSuite(val sourceName: String) extends HLSBaseTes
   test("no sample ids") {
     val schema = spark.read
       .format(sourceName)
+      .option("includeSampleIds", false)
       .load(testVcf)
       .withColumn("g", expr("genotypes[0]"))
       .selectExpr("g.*")
@@ -51,7 +58,6 @@ abstract class BaseVCFDatasourceSuite(val sourceName: String) extends HLSBaseTes
   test("with sample ids") {
     val datasource = spark.read
       .format(sourceName)
-      .option("includeSampleIds", true)
       .load(testVcf)
     val size = datasource.count()
     assert(datasource.where("genotypes[0].sampleId = 'NA12878'").count() == size)
@@ -88,7 +94,7 @@ abstract class BaseVCFDatasourceSuite(val sourceName: String) extends HLSBaseTes
       ),
       Seq(
         GenotypeFields(
-          None,
+          Some("NA12878"),
           Some(false),
           Some(Seq(1, 1)),
           Option(84),
@@ -472,7 +478,7 @@ class VCFDatasourceSuite extends BaseVCFDatasourceSuite("com.databricks.vcf") {
     spark.read
       .format("com.databricks.vcf")
       .load(testVcf)
-      .show()
+      .collect() // Should not get an error
   }
 
   test("infer non standard format fields") {
@@ -502,7 +508,7 @@ class VCFDatasourceSuite extends BaseVCFDatasourceSuite("com.databricks.vcf") {
       .schema(ScalaReflection.schemaFor[WeirdSchema].dataType.asInstanceOf[StructType])
       .format("com.databricks.vcf")
       .load(testVcf)
-      .show() // No error expected
+      .collect() // No error expected
   }
 
   test("add BGZ codec when reading VCF") {

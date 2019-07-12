@@ -6,7 +6,7 @@ import scala.collection.JavaConverters._
 
 import htsjdk.samtools.ValidationStringency
 import htsjdk.samtools.util.BlockCompressedInputStream
-import htsjdk.tribble.readers.{AsciiLineReader, AsciiLineReaderIterator}
+import htsjdk.tribble.readers.{AsciiLineReader, AsciiLineReaderIterator, PositionalBufferedStream}
 import htsjdk.variant.variantcontext.VariantContext
 import htsjdk.variant.vcf._
 import org.apache.hadoop.conf.Configuration
@@ -146,7 +146,7 @@ object VCFFileFormat {
         val decompressor = CodecPool.getDecompressor(compressionCodec)
         compressionCodec.createInputStream(is, decompressor)
       } else {
-        is
+        new PositionalBufferedStream(is)
       }
 
       val vcfCodec = new VCFCodec()
@@ -277,10 +277,10 @@ private[vcf] object SchemaDelegate {
 
   def makeDelegate(options: Map[String, String]): SchemaDelegate = {
     val stringency = VCFOptionParser.getValidationStringency(options)
-    val includeSampleId = options.get(VCFOption.INCLUDE_SAMPLE_IDS).exists(_.toBoolean)
+    val includeSampleId = options.get(VCFOption.INCLUDE_SAMPLE_IDS).forall(_.toBoolean)
     if (options.get(VCFOption.VCF_ROW_SCHEMA).exists(_.toBoolean)) {
       new VCFRowSchemaDelegate(stringency, includeSampleId)
-    } else if (options.get(VCFOption.FLATTEN_INFO_FIELDS).exists(_.toBoolean)) {
+    } else if (options.get(VCFOption.FLATTEN_INFO_FIELDS).forall(_.toBoolean)) {
       new FlattenedInfoDelegate(includeSampleId, stringency)
     } else {
       new NormalDelegate(includeSampleId, stringency)
