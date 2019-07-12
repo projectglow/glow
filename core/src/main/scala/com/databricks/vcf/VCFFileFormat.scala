@@ -3,9 +3,8 @@ package com.databricks.vcf
 import java.io.BufferedInputStream
 
 import scala.collection.JavaConverters._
-
 import htsjdk.samtools.ValidationStringency
-import htsjdk.samtools.util.BlockCompressedInputStream
+import htsjdk.samtools.util.{BlockCompressedInputStream, OverlapDetector}
 import htsjdk.tribble.readers.{AsciiLineReader, AsciiLineReaderIterator, PositionalBufferedStream}
 import htsjdk.variant.variantcontext.VariantContext
 import htsjdk.variant.vcf._
@@ -23,10 +22,12 @@ import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
 import org.apache.spark.sql.types._
 import org.broadinstitute.hellbender.tools.walkers.genotyper.GenotypeAssignmentMethod
 import org.broadinstitute.hellbender.utils.variant.GATKVariantContextUtils
+import org.broadinstitute.hellbender.utils.SimpleInterval
 import org.seqdoop.hadoop_bam.util.{BGZFEnhancedGzipCodec, DatabricksBGZFOutputStream}
-
 import com.databricks.hls.common.{HLSLogging, WithUtils}
 import com.databricks.hls.sql.util.{HadoopLineIterator, SerializableConfiguration}
+import com.google.common.util.concurrent.Striped
+
 
 class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HLSLogging {
   var codecFactory: CompressionCodecFactory = _
@@ -52,11 +53,7 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HLS
     codecFactory.getCodec(path) match {
       case null => true
       case _: BGZFEnhancedGzipCodec =>
-        val fs = path.getFileSystem(sparkSession.sparkContext.hadoopConfiguration)
-        WithUtils.withCloseable(fs.open(path)) { is =>
-          val buffered = new BufferedInputStream(is)
-          BlockCompressedInputStream.isValidFile(buffered)
-        }
+        VCFFileFormat.isValidBGZ(path, sparkSession.sparkContext.hadoopConfiguration)
       case c => c.isInstanceOf[SplittableCompressionCodec]
     }
   }
@@ -97,8 +94,20 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HLS
       options: Map[String, String],
       hadoopConf: Configuration): PartitionedFile => Iterator[InternalRow] = {
 
-    val serializableConf =
-      new SerializableConfiguration(VCFFileFormat.hadoopConfWithBGZ(hadoopConf))
+    val serializableConf = new SerializableConfiguration(
+      VCFFileFormat.hadoopConfWithBGZ(hadoopConf)
+    )
+
+    val useFilterParser = options.get(VCFOption.USE_FILTER_PARSER).forall(_.toBoolean)
+    val useIndex = options.get(VCFOption.USE_TABIX_INDEX).forall(_.toBoolean)
+
+    /* Make a filtered interval by parsing the filters
+     Filters are parsed even if useTabixIndex is disabled because the parser can help with
+     variant skipping in the VCF iterator if there is no overlap with the filteredInterval,
+     improving the performance benefiting from lazy loading of genotypes */
+
+    val filteredSimpleInterval = TabixIndexHelper.makeFilteredInterval(filters, useFilterParser,
+      useIndex)
 
     partitionedFile => {
 
@@ -107,25 +116,46 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HLS
       // past the boundaries of the partitions; it will throw/return when done reading the header.
       val path = new Path(partitionedFile.filePath)
       val (header, codec) = VCFFileFormat.createVCFCodec(path, serializableConf.value)
+      val hadoopFs = path.getFileSystem(serializableConf.value)
 
-      val reader = new HadoopLineIterator(
-        partitionedFile.filePath,
-        partitionedFile.start,
-        partitionedFile.length,
-        None,
-        serializableConf.value
+      // Get the file offset=(startPos,endPos) that must be read from this partitionedFile.
+      // Currently only one offset is generated for each partitionedFile.
+      val offset = TabixIndexHelper.filteredVariantBlockRange(
+        hadoopFs,
+        partitionedFile,
+        serializableConf.value,
+        useIndex,
+        filteredSimpleInterval
       )
 
-      Option(TaskContext.get()).foreach { taskContext =>
-        taskContext.addTaskCompletionListener[Unit] { _ =>
-          reader.close()
-        }
-      }
+      offset match {
+        case None =>
+          // Filter parser has detected that the filter conditions yield an empty set of results.
+          Iterator.empty
+        case Some((startPos, endPos)) =>
+          // Modify the start and end of reader according to the offset provided by
+          // tabixIndexHelper.filteredVariantBlockRange
+          val reader = new HadoopLineIterator(
+            partitionedFile.filePath,
+            startPos,
+            (endPos - startPos),
+            None,
+            serializableConf.value
+          )
 
-      SchemaDelegate
-        .makeDelegate(options)
-        .toRows(header, requiredSchema, VCFIteratorDelegate.makeDelegate(options, reader, codec))
+          Option(TaskContext.get()).foreach { taskContext =>
+            taskContext.addTaskCompletionListener[Unit] { _ =>
+              reader.close()
+            }
+          }
+
+          SchemaDelegate
+            .makeDelegate(options)
+            .toRows(header, requiredSchema, VCFIteratorDelegate.makeDelegate(options, reader,
+              codec, filteredSimpleInterval.get))
+      }
     }
+
   }
 
 }
@@ -173,6 +203,21 @@ object VCFFileFormat {
     toReturn.set("io.compression.codecs", codecs.mkString(","))
     toReturn
   }
+
+  val idxLock = Striped.lock(100)
+  val INDEX_SUFFIX = ".tbi"
+
+  /** Checks whether the file is a valid bgzipped file
+   * Used by filteredVariantBlockRange to abandon use of tabix if the file is not bgzipped.
+   */
+  def isValidBGZ(path: Path, conf: Configuration): Boolean = {
+    val fs = path.getFileSystem(conf)
+    WithUtils.withCloseable(fs.open(path)) { is =>
+      val buffered = new BufferedInputStream(is)
+      BlockCompressedInputStream.isValidFile(buffered)
+    }
+  }
+
 }
 
 case class VariantContextWrapper(vc: VariantContext, splitFromMultiallelic: Boolean)
@@ -181,17 +226,18 @@ private object VCFIteratorDelegate {
   def makeDelegate(
       options: Map[String, String],
       lineReader: Iterator[Text],
-      codec: VCFCodec): AbstractVCFIterator = {
+      codec: VCFCodec,
+      filteredSimpleInterval: SimpleInterval): AbstractVCFIterator = {
     if (options.get(VCFOption.SPLIT_TO_BIALLELIC).exists(_.toBoolean)) {
-      new BiallelicVCFIterator(lineReader, codec)
+      new SplitVCFIterator(new VCFIterator(lineReader, codec, filteredSimpleInterval))
     } else {
-      new VCFIterator(lineReader, codec)
+      new VCFIterator(lineReader, codec, filteredSimpleInterval)
     }
   }
 }
 
-private[vcf] abstract class AbstractVCFIterator(codec: VCFCodec)
-    extends Iterator[VariantContextWrapper] {
+private[vcf] abstract class AbstractVCFIterator(codec: VCFCodec) extends
+  Iterator[VariantContextWrapper] {
 
   def parseLine(line: String): VariantContext = {
     try {
@@ -203,17 +249,27 @@ private[vcf] abstract class AbstractVCFIterator(codec: VCFCodec)
   }
 }
 
-private[vcf] class VCFIterator(lineReader: Iterator[Text], codec: VCFCodec)
-    extends AbstractVCFIterator(codec)
-    with HLSLogging {
+private[vcf] class VCFIterator(lineReader: Iterator[Text], codec: VCFCodec,
+    filteredSimpleInterval: SimpleInterval) extends AbstractVCFIterator(codec) with HLSLogging {
+  // filteredSimpleInterval is the SimpleInterval containing the contig and interval generated by
+  // the filter parser to be checked for overlap by overlap detector.
 
-  private var nextVC: VariantContext = _
+  private var nextVC: VariantContext = _ // nextVC always holds the nextVC to be passed by the
+  // iterator.
+  // Initialize overlapDetector if needed
+  private val overlapDetector: OverlapDetector[SimpleInterval] = if (!filteredSimpleInterval
+    .getContig
+    .isEmpty) {
+    OverlapDetector.create(scala.collection.immutable.List[SimpleInterval]
+      (filteredSimpleInterval).asJava)
+  } else {
+    null
+  }
+
+  // Initialize
+  nextVC = findNextVC()
 
   override def hasNext: Boolean = {
-    while (lineReader.hasNext && nextVC == null) {
-      nextVC = parseLine(lineReader.next.toString)
-    }
-
     nextVC != null
   }
 
@@ -221,44 +277,93 @@ private[vcf] class VCFIterator(lineReader: Iterator[Text], codec: VCFCodec)
     if (nextVC == null) {
       throw new NoSuchElementException("Called next on empty iterator")
     }
-    val ret = nextVC
-    nextVC = null
-    VariantContextWrapper(ret, false)
+    val retVC = nextVC
+    nextVC = findNextVC()
+    VariantContextWrapper(retVC, false)
   }
+
+  /** Finds next VC that satisfies the filteredInterval. As genotype data is lazily loaded, this
+   * dramatically improves the loading when filtering.
+   */
+  private def findNextVC(): VariantContext = {
+
+    var nextFilteredVC: VariantContext = null
+
+    while (lineReader.hasNext && nextFilteredVC == null) {
+      val nextUnfilteredVC = parseLine(lineReader.next.toString)
+      if (nextUnfilteredVC != null && overlaps(nextUnfilteredVC)) {
+        nextFilteredVC = nextUnfilteredVC
+      }
+    }
+    nextFilteredVC
+  }
+
+  private def overlaps(vc: VariantContext): Boolean = {
+
+    if (filteredSimpleInterval.getContig.isEmpty) {
+      // Empty contig means that the filter parser is not being used due to multiple contigs
+      // being queried or filter parser being disabled by the user.
+      true
+    } else {
+      val vcInterval = new SimpleInterval(vc.getContig, vc.getStart, vc.getEnd)
+      overlapDetector.overlapsAny(vcInterval)
+    }
+  }
+
+  def getCodec: VCFCodec = codec
+
 }
 
-private[vcf] class BiallelicVCFIterator(lineReader: Iterator[Text], codec: VCFCodec)
-    extends AbstractVCFIterator(codec)
-    with HLSLogging {
+
+private[vcf] class SplitVCFIterator(baseIterator: VCFIterator) extends
+  AbstractVCFIterator(baseIterator.getCodec) with HLSLogging {
 
   private var isSplit: Boolean = false
+  private var nextVC: VariantContext = _ // nextVC always holds the nextVC to be passed by the
+// iterator.
   private var nextVCs: Iterator[VariantContext] = Iterator.empty
 
-  override def hasNext: Boolean = {
-    while (lineReader.hasNext && !nextVCs.hasNext) {
-      val vc = parseLine(lineReader.next.toString)
+  // Initialize
+  nextVC = findNextBiallelicVC()
 
-      // The codec returns null if it can't parse the line (i.e., if we're still in the header)
-      if (vc != null) {
-        val htsjdkVcList = GATKVariantContextUtils.splitVariantContextToBiallelics(
-          vc,
+  override def hasNext: Boolean = {
+    nextVC != null
+  }
+
+  override def next(): VariantContextWrapper = {
+    if (nextVC == null) {
+      throw new NoSuchElementException("Called next on empty iterator")
+    }
+    val (retVC, retSplit) = (nextVC, isSplit)
+    nextVC = findNextBiallelicVC()
+    VariantContextWrapper(retVC, retSplit)
+  }
+
+  /**
+   * Finds next biallelic VC using base Iterator
+   */
+  private def findNextBiallelicVC(): VariantContext = {
+
+    var nextBiallelicVC: VariantContext = null
+
+    if (nextVCs.hasNext) {
+      nextBiallelicVC = nextVCs.next()
+    } else if (!baseIterator.hasNext) {
+      nextBiallelicVC = null
+    } else {
+      nextBiallelicVC = baseIterator.next().vc
+      val htsjdkVcList =
+        GATKVariantContextUtils.splitVariantContextToBiallelics(
+          nextBiallelicVC,
           /* trimLeft */ true,
           GenotypeAssignmentMethod.BEST_MATCH_TO_ORIGINAL,
           /* keepOriginalChrCounts */ false
         )
-        isSplit = htsjdkVcList.size() > 1
-        nextVCs = htsjdkVcList.asScala.toIterator
-      }
+      isSplit = htsjdkVcList.size() > 1
+      nextVCs = htsjdkVcList.asScala.toIterator
+      nextBiallelicVC = nextVCs.next()
     }
-
-    nextVCs.hasNext
-  }
-
-  override def next(): VariantContextWrapper = {
-    if (!nextVCs.hasNext) {
-      throw new NoSuchElementException("Called next on empty iterator")
-    }
-    VariantContextWrapper(nextVCs.next, isSplit)
+    nextBiallelicVC
   }
 }
 
@@ -329,16 +434,14 @@ private[vcf] object SchemaDelegate {
   }
 
   private class NormalDelegate(includeSampleIds: Boolean, stringency: ValidationStringency)
-      extends SchemaDelegate {
+    extends SchemaDelegate {
     override def schema(sparkSession: SparkSession, files: Seq[FileStatus]): StructType = {
       val (infoHeaders, formatHeaders) = readHeaders(sparkSession, files)
       VCFSchemaInferer.inferSchema(includeSampleIds, false, infoHeaders, formatHeaders)
     }
 
-    override def toRows(
-        header: VCFHeader,
-        requiredSchema: StructType,
-        iterator: Iterator[VariantContextWrapper]): Iterator[InternalRow] = {
+    override def toRows(header: VCFHeader, requiredSchema: StructType,
+                        iterator: Iterator[VariantContextWrapper]): Iterator[InternalRow] = {
       val converter = new VariantContextToInternalRowConverter(header, requiredSchema, stringency)
       iterator.map { vc =>
         converter.convertRow(vc.vc, vc.splitFromMultiallelic)
@@ -346,18 +449,16 @@ private[vcf] object SchemaDelegate {
     }
   }
 
-  private class FlattenedInfoDelegate(includeSampleIds: Boolean, stringency: ValidationStringency)
-      extends SchemaDelegate {
+  private class FlattenedInfoDelegate(includeSampleIds: Boolean,
+                                      stringency: ValidationStringency) extends SchemaDelegate {
 
     override def schema(sparkSession: SparkSession, files: Seq[FileStatus]): StructType = {
       val (infoHeaders, formatHeaders) = readHeaders(sparkSession, files)
       VCFSchemaInferer.inferSchema(includeSampleIds, true, infoHeaders, formatHeaders)
     }
 
-    override def toRows(
-        header: VCFHeader,
-        requiredSchema: StructType,
-        iterator: Iterator[VariantContextWrapper]): Iterator[InternalRow] = {
+    override def toRows(header: VCFHeader, requiredSchema: StructType,
+                        iterator: Iterator[VariantContextWrapper]): Iterator[InternalRow] = {
 
       val converter = new VariantContextToInternalRowConverter(header, requiredSchema, stringency)
       iterator.map { vc =>
@@ -365,10 +466,11 @@ private[vcf] object SchemaDelegate {
       }
     }
   }
+
 }
 
-private[databricks] class VCFOutputWriterFactory(options: Map[String, String])
-    extends OutputWriterFactory {
+private[databricks] class VCFOutputWriterFactory(options: Map[String, String]) extends
+  OutputWriterFactory {
 
   private val validationStringency = VCFOptionParser.getValidationStringency(options)
 
@@ -387,10 +489,8 @@ private[databricks] class VCFOutputWriterFactory(options: Map[String, String])
     )
   }
 
-  override def newInstance(
-      path: String,
-      dataSchema: StructType,
-      context: TaskAttemptContext): OutputWriter = {
+  override def newInstance(path: String, dataSchema: StructType, context: TaskAttemptContext)
+  : OutputWriter = {
     val outputStream = CodecStreams.createOutputStream(context, new Path(path))
     DatabricksBGZFOutputStream.setWriteEmptyBlockOnClose(outputStream, true)
 
@@ -415,6 +515,8 @@ private[databricks] object VCFOption {
   val INCLUDE_SAMPLE_IDS = "includeSampleIds"
   val SPLIT_TO_BIALLELIC = "splitToBiallelic"
   val VCF_ROW_SCHEMA = "vcfRowSchema"
+  val USE_TABIX_INDEX = "useTabixIndex"
+  val USE_FILTER_PARSER = "useFilterParser"
 
   // Writer-only options
   val COMPRESSION = "compression"
