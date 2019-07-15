@@ -1,6 +1,6 @@
 package com.databricks.hls.sql
 
-import org.apache.spark.SparkConf
+import org.apache.spark.{DebugFilesystem, SparkConf}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.test.SharedSparkSession
 import org.scalatest.{FunSuite, Tag}
@@ -39,5 +39,10 @@ abstract class HLSBaseTest
     for (param <- params) {
       test(testNamePrefix + s" ($param)", testTags: _*)(testFun(param))
     }
+  }
+
+  override def afterEach(): Unit = {
+    DebugFilesystem.clearOpenStreams()
+    super.afterEach()
   }
 }

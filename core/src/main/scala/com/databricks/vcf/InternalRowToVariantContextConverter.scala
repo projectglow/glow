@@ -29,7 +29,8 @@ class InternalRowToVariantContextConverter(
     vcfHeader: VCFHeader,
     val stringency: ValidationStringency)
     extends HLSLogging
-    with HasStringency {
+    with HasStringency
+    with Serializable {
   import VariantSchemas._
   import ConverterUtils._
 
@@ -44,8 +45,8 @@ class InternalRowToVariantContextConverter(
   private val genotypeFieldsWithoutHeaders = Set("sampleId", "otherFields")
 
   def validate(): Unit = {
-    rowSchema.filter(_.name.startsWith("INFO_")).foreach { f =>
-      val headerLine = vcfHeader.getInfoHeaderLine(f.name.stripPrefix("INFO_"))
+    rowSchema.filter(_.name.startsWith(infoFieldPrefix)).foreach { f =>
+      val headerLine = vcfHeader.getInfoHeaderLine(f.name.stripPrefix(infoFieldPrefix))
       if (headerLine == null) {
         provideWarning(s"Column ${f.name} does not have a matching VCF header line")
       } else if (!VCFSchemaInferer.typesForHeader(headerLine).contains(f.dataType)) {
@@ -286,7 +287,7 @@ class InternalRowToVariantContextConverter(
       vc: VariantContextBuilder,
       row: InternalRow,
       offset: Int): VariantContextBuilder = {
-    val realName = field.name.stripPrefix("INFO_")
+    val realName = field.name.stripPrefix(infoFieldPrefix)
     vc.attribute(realName, fieldToString(field, row, offset))
   }
 

@@ -35,7 +35,8 @@ class VariantContextToInternalRowConverter(
     val stringency: ValidationStringency,
     writeSampleIds: Boolean = true)
     extends HLSLogging
-    with HasStringency {
+    with HasStringency
+    with Serializable {
 
   import VariantSchemas._
 
