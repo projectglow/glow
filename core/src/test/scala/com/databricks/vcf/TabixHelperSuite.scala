@@ -17,7 +17,8 @@ class TabixHelperSuite extends HLSBaseTest with HLSLogging {
   lazy val testNoTbiVcf = s"$tabixTestVcf/NA12878_21_10002403NoTbi.vcf.gz"
 
   override def sparkConf: SparkConf = {
-    super.sparkConf
+    super
+      .sparkConf
       .set("spark.hadoop.io.compression.codecs", "org.seqdoop.hadoop_bam.util.BGZFCodec")
   }
 
@@ -26,8 +27,9 @@ class TabixHelperSuite extends HLSBaseTest with HLSLogging {
   }
 
   def printFilterInterval(filterInterval: FilterInterval): Unit = {
-    filterInterval.getSimpleInterval.foreach(i =>
-      logger.debug(s"${i.getContig}, ${i.getStart}, ${i.getEnd}"))
+    filterInterval
+      .getSimpleInterval
+      .foreach(i => logger.debug(s"${i.getContig}, ${i.getStart}, ${i.getEnd}"))
   }
 
   def printParsedFilterResult(parsedFilterResult: ParsedFilterResult): Unit = {
@@ -41,8 +43,7 @@ class TabixHelperSuite extends HLSBaseTest with HLSLogging {
       case (Some(i), Some(j)) =>
         if (i.getContig == "") {
           i.getContig == j.getContig
-        }
-        else {
+        } else {
           i.getContig == j.getContig && i.getStart == j.getStart && i.getEnd == j.getEnd
         }
       case (None, _) => j.isEmpty
@@ -52,7 +53,7 @@ class TabixHelperSuite extends HLSBaseTest with HLSLogging {
 
   def isSameParsedFilterResult(i: ParsedFilterResult, j: ParsedFilterResult): Boolean = {
     i.contig.isSame(j.contig) &&
-      i.startInterval.isSame(j.startInterval) && i.endInterval.isSame(j.endInterval)
+    i.startInterval.isSame(j.startInterval) && i.endInterval.isSame(j.endInterval)
   }
 
   /** *********************************************************
@@ -68,8 +69,9 @@ class TabixHelperSuite extends HLSBaseTest with HLSLogging {
       xe: Long): Unit = {
     val actual = getSmallestQueryInterval(new FilterInterval(ss, se), new FilterInterval(es, ee))
     val expected = new FilterInterval(xs, xe)
-    actual.getSimpleInterval.foreach(i => logger.debug(s"${i.getContig}, ${i.getStart}, ${i
-      .getEnd}"))
+    actual
+      .getSimpleInterval
+      .foreach(i => logger.debug(s"${i.getContig}, ${i.getStart}, ${i.getEnd}"))
     printFilterInterval(actual)
     printFilterInterval(expected)
     assert(actual.isSame(expected))
@@ -121,7 +123,9 @@ class TabixHelperSuite extends HLSBaseTest with HLSLogging {
       es: Long,
       ee: Long): Unit = {
     val actual = parseFilter(filters)
-    val expected = ParsedFilterResult(new FilterContig(contigName), new FilterInterval(ss, se),
+    val expected = ParsedFilterResult(
+      new FilterContig(contigName),
+      new FilterInterval(ss, se),
       new FilterInterval(es, ee))
     printParsedFilterResult(actual)
     printParsedFilterResult(expected)
@@ -601,7 +605,8 @@ class TabixHelperSuite extends HLSBaseTest with HLSLogging {
    */
   test("useFilterParser = false while useTabixIndex = true") {
     try {
-      val dfWithTabix = spark.read
+      val dfWithTabix = spark
+        .read
         .format(sourceName)
         .option("useTabixIndex", true)
         .option("useFilterParser", false)
@@ -620,7 +625,8 @@ class TabixHelperSuite extends HLSBaseTest with HLSLogging {
    * Tests to ensure invalid BGZ and absence of tbi does not cause errors
    */
   test("invalid BGZ") {
-    val df = spark.read
+    val df = spark
+      .read
       .format(sourceName)
       .load(testVcf)
       .filter("contigName= '20' and start < 10004770 and end > 10004775")
@@ -630,7 +636,8 @@ class TabixHelperSuite extends HLSBaseTest with HLSLogging {
   }
 
   test("No index file found") {
-    val df = spark.read
+    val df = spark
+      .read
       .format(sourceName)
       .load(testNoTbiVcf)
       .filter("contigName= '21' and start = 10002435")
@@ -649,7 +656,8 @@ class TabixHelperSuite extends HLSBaseTest with HLSLogging {
     val sess = spark
     import sess.implicits._
 
-    val dfFT = spark.read
+    val dfFT = spark
+      .read
       .format(sourceName)
       .option("splitToBiallelic", splitToBiallelic)
       .option("vcfRowSchema", true)
@@ -658,7 +666,8 @@ class TabixHelperSuite extends HLSBaseTest with HLSLogging {
     dfFT.show()
     val withFT = dfFT.orderBy("contigName", "start").as[VCFRow].collect().toSeq
 
-    val dfFN = spark.read
+    val dfFN = spark
+      .read
       .format(sourceName)
       .option("splitToBiallelic", splitToBiallelic)
       .option("useTabixIndex", false)
@@ -668,7 +677,8 @@ class TabixHelperSuite extends HLSBaseTest with HLSLogging {
     dfFN.show()
     val withFN = dfFN.orderBy("contigName", "start").as[VCFRow].collect().toSeq
 
-    val dfNN = spark.read
+    val dfNN = spark
+      .read
       .format(sourceName)
       .option("splitToBiallelic", splitToBiallelic)
       .option("useTabixIndex", false)
@@ -688,7 +698,9 @@ class TabixHelperSuite extends HLSBaseTest with HLSLogging {
           assert(ft.contigName == nn.contigName && fn.contigName == nn.contigName)
           assert(ft.start == nn.start && fn.start == nn.start)
       }
-    } else assert(false)
+    } else {
+      assert(false)
+    }
   }
 
   def testParserAndTabix(fileName: String, condition: String): Unit = {
@@ -711,17 +723,25 @@ class TabixHelperSuite extends HLSBaseTest with HLSLogging {
     testParserAndTabix(testBigVcf, "contigName= '20' and start < 10004768 and end >= 10004779")
 
     testParserAndTabix(testBigVcf, "contigName= '20' and start > 10001433 and end < 10001445")
-    testParserAndTabix(testBigVcf, "contigName = '20' and ((start>10004223 and end <10004500) or " +
+    testParserAndTabix(
+      testBigVcf,
+      "contigName = '20' and ((start>10004223 and end <10004500) or " +
       "(start > 10003500 and end < 10004000))")
 
-    testParserAndTabix(testBigVcf, "contigName= '20' and ((start>10004223 and end <10004500) or " +
+    testParserAndTabix(
+      testBigVcf,
+      "contigName= '20' and ((start>10004223 and end <10004500) or " +
       "(start > 10003500 and end < 10004000) or (end= 10004725))")
     testParserAndTabix(testBigVcf, "contigName= '20' and (start=10000211 or end=10003817)")
-    testParserAndTabix(testBigVcf, "contigName= '20' and ((start>10004223 and end <10004500) or " +
+    testParserAndTabix(
+      testBigVcf,
+      "contigName= '20' and ((start>10004223 and end <10004500) or " +
       "(start > 10003500 and end < 10004000)) and contigName='20'")
 
     // FilterParser unsupported logical operators must be handled correctly as well.
-    testParserAndTabix(testBigVcf, "contigName= '20' and (not(start>10004223 and end <10004500) " +
+    testParserAndTabix(
+      testBigVcf,
+      "contigName= '20' and (not(start>10004223 and end <10004500) " +
       "or not(start > 10003500 and end < 10004000))")
   }
 

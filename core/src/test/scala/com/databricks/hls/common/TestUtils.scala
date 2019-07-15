@@ -38,10 +38,10 @@ object TestUtils {
   }
 
   case class CompareDoubleRightSide(
-    fun: (Double, Double, Double) => Boolean,
-    y: Double,
-    eps: Double,
-    method: String)
+      fun: (Double, Double, Double) => Boolean,
+      y: Double,
+      eps: Double,
+      method: String)
 
   /**
    * Implicit class for comparing two double values using relative tolerance or absolute tolerance.
@@ -101,4 +101,3 @@ object TestUtils {
   }
 
 }
-

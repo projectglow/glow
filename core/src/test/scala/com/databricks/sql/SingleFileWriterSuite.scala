@@ -11,13 +11,9 @@ class SingleFileWriterSuite extends HLSBaseTest {
   test("uses service loader") {
     val outDir = Files.createTempDirectory("writer")
     assert(DummyFileUploader.counter == 0)
-    SingleFileWriter.write(
-      sparkContext.emptyRDD[Array[Byte]],
-      outDir.resolve("monkey").toString)
+    SingleFileWriter.write(sparkContext.emptyRDD[Array[Byte]], outDir.resolve("monkey").toString)
     assert(DummyFileUploader.counter == 1)
-    SingleFileWriter.write(
-      sparkContext.emptyRDD[Array[Byte]],
-      outDir.resolve("orangutan").toString)
+    SingleFileWriter.write(sparkContext.emptyRDD[Array[Byte]], outDir.resolve("orangutan").toString)
     assert(DummyFileUploader.counter == 1)
   }
 }

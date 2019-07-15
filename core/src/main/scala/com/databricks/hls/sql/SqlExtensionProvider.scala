@@ -95,7 +95,6 @@ object SqlExtensionProvider {
       exprs => GenotypeStates(exprs.head)
     )
 
-
     functionRegistry.registerFunction(
       FunctionIdentifier("add_struct_fields"),
       exprs => AddStructFields(exprs.head, exprs.tail)

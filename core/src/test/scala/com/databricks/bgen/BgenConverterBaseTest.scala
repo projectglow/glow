@@ -30,7 +30,9 @@ trait BgenConverterBaseTest extends HLSBaseTest {
     trueRow.genotypes.zip(testRow.genotypes).foreach {
       case (oGt, nGt) =>
         assert(
-          oGt.sampleId == nGt.sampleId || (oGt.sampleId.isEmpty && nGt.sampleId.get
+          oGt.sampleId == nGt.sampleId || (oGt.sampleId.isEmpty && nGt
+            .sampleId
+            .get
             .startsWith("NA"))
         )
         if (oGt.posteriorProbabilities.nonEmpty || nGt.posteriorProbabilities.nonEmpty) {

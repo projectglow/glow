@@ -17,7 +17,8 @@ class SampleQcExprsSuite extends HLSBaseTest {
 
   test("high level test") {
     import sess.implicits._
-    val df = spark.read
+    val df = spark
+      .read
       .format("com.databricks.vcf")
       .option("includeSampleIds", true)
       .load(na12878)
@@ -70,7 +71,8 @@ class SampleQcExprsSuite extends HLSBaseTest {
   }
 
   private def readVcf(path: String): DataFrame = {
-    spark.read
+    spark
+      .read
       .format("com.databricks.vcf")
       .option("includeSampleIds", true)
       .load(path)

@@ -45,7 +45,8 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
 
     val tempFile = createTempVcf.toString
 
-    val ds = spark.read
+    val ds = spark
+      .read
       .format(readSourceName)
       .option("includeSampleIds", readSampleIds)
       .option(schemaOption._1, schemaOption._2)
@@ -54,23 +55,28 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
     val repartitioned = partitions.map(p => ds.repartition(p)).getOrElse(ds)
 
     if (readSampleIds) {
-      val originalHeader = scala.io.Source
+      val originalHeader = scala
+        .io
+        .Source
         .fromFile(vcf)
         .getLines()
         .takeWhile(_.startsWith("#"))
         .mkString("\n")
 
-      repartitioned.write
+      repartitioned
+        .write
         .option("header", originalHeader)
         .format(writeSourceName)
         .save(tempFile)
     } else {
-      repartitioned.write
+      repartitioned
+        .write
         .format(writeSourceName)
         .save(tempFile)
     }
 
-    val rewrittenDs = spark.read
+    val rewrittenDs = spark
+      .read
       .format(readSourceName)
       .option("includeSampleIds", rereadSampleIds)
       .option(schemaOption._1, schemaOption._2)
@@ -162,7 +168,8 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
 
     val tempFile = createTempVcf.toString
 
-    val ds = spark.read
+    val ds = spark
+      .read
       .format(readSourceName)
       .option("includeSampleIds", true)
       .option("vcfRowSchema", true)
@@ -186,7 +193,8 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
     val headerLine2 = new VCFHeaderLine("secondFakeHeaderKey", "secondFakeHeaderValue")
     val headerLines = Set(headerLine1, headerLine2)
     val extraHeader = new VCFHeader(headerLines.asJava, Seq("sample1", "NA12878").asJava)
-    sess.read
+    sess
+      .read
       .format(readSourceName)
       .load(NA12878)
       .write
@@ -208,7 +216,8 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
     val headerLine = new VCFHeaderLine("fakeHeaderKey", "fakeHeaderValue")
     val extraHeader = new VCFHeader(Set(headerLine).asJava)
     val extraHeaderStr = VCFHeaderWriter.writeHeaderAsString(extraHeader)
-    sess.read
+    sess
+      .read
       .format(readSourceName)
       .load(NA12878)
       .write
@@ -223,7 +232,8 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
   gridTest("Strict validation stringency")(schemaOptions) { schema =>
     val tempFile = createTempVcf.toString
 
-    val ds = spark.read
+    val ds = spark
+      .read
       .format(readSourceName)
       .option("includeSampleIds", true)
       .option(schema._1, schema._2)
@@ -287,13 +297,15 @@ class MultiFileVCFWriterSuite extends VCFFileWriterSuite {
 
     val tempFile = createTempVcf.toString
 
-    spark.sparkContext
+    spark
+      .sparkContext
       .emptyRDD[VCFRow]
       .toDS
       .write
       .format(writeSourceName)
       .save(tempFile)
-    val rewrittenDs = spark.read
+    val rewrittenDs = spark
+      .read
       .format(readSourceName)
       .option("vcfRowSchema", true)
       .load(tempFile)
@@ -305,7 +317,8 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite {
   override def writeSourceName: String = "com.databricks.bigvcf"
 
   test("Check BGZF") {
-    val df = spark.read
+    val df = spark
+      .read
       .format(readSourceName)
       .load(NA12878)
       .repartition(100) // Force multiple partitions

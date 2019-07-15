@@ -47,7 +47,8 @@ class VCFFileWriter(
     with HLSLogging {
 
   private val writer = {
-    new VariantContextWriterBuilder().clearOptions
+    new VariantContextWriterBuilder()
+      .clearOptions
       .setOption(Options.ALLOW_MISSING_FIELDS_IN_HEADER)
       .setOutputStream(outputStream)
       .build
@@ -160,7 +161,8 @@ case class DefaultInternalRowToHtsjdkConverter(
     validationStringency: ValidationStringency)
     extends InternalRowToHtsjdkConverter {
 
-  val header: VCFHeader = providedSampleList.map(new VCFHeader(headerLineSet, _))
+  val header: VCFHeader = providedSampleList
+    .map(new VCFHeader(headerLineSet, _))
     .getOrElse(new VCFHeader(headerLineSet))
 
   val converter = new InternalRowToVariantContextConverter(

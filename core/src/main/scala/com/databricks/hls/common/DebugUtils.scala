@@ -17,14 +17,18 @@ object DebugUtils {
    * development since some method invocations could have side effects.
    */
   def dumpObject(o: Object, exclusions: Set[String]): String = {
-    val methods = o.getClass.getDeclaredMethods
+    val methods = o
+      .getClass
+      .getDeclaredMethods
       .filter(
         m =>
           Modifier.isPublic(m.getModifiers) && m.getParameterCount == 0 &&
           !exclusions.contains(m.getName)
       )
       .map(m => s"\t${m.getName}: ${m.invoke(o)}")
-    val fields = o.getClass.getFields
+    val fields = o
+      .getClass
+      .getFields
       .filter(f => Modifier.isPublic(f.getModifiers) && !exclusions.contains(f.getName))
       .map(f => s"\t${f.getName}: ${f.get(o)}")
     val allProps = methods ++ fields

@@ -14,7 +14,8 @@ abstract class HLSBaseTest
     with HLSTestData {
 
   override protected def sparkConf: SparkConf = {
-    super.sparkConf
+    super
+      .sparkConf
       .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
       .set("spark.driver.maxResultSize", "0")
       .set("spark.kryo.registrator", "org.broadinstitute.hellbender.engine.spark.GATKRegistrator")

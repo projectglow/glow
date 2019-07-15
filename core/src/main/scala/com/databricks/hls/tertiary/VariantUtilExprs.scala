@@ -3,11 +3,7 @@ package com.databricks.hls.tertiary
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, CodegenFallback, ExprCode}
-import org.apache.spark.sql.catalyst.expressions.{
-  Expression,
-  ImplicitCastInputTypes,
-  UnaryExpression
-}
+import org.apache.spark.sql.catalyst.expressions.{Expression, ImplicitCastInputTypes, UnaryExpression}
 import org.apache.spark.sql.catalyst.util.{ArrayData, GenericArrayData}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
@@ -225,11 +221,9 @@ case class HardCalls(
   }
   override def dataType: DataType = ArrayType(IntegerType)
   override def nullable: Boolean = probabilities.nullable || numAlts.nullable || phased.nullable
-  private lazy val threshold0 = threshold
-    .map { expr =>
-      expr.eval().asInstanceOf[Decimal].toDouble
-    }
-    .getOrElse(0.9)
+  private lazy val threshold0 = threshold.map { expr =>
+    expr.eval().asInstanceOf[Decimal].toDouble
+  }.getOrElse(0.9)
 
   override def eval(input: InternalRow): Any = {
     val _probArr = probabilities.eval(input)

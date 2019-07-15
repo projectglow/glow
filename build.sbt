@@ -38,7 +38,8 @@ lazy val commonSettings = Seq(
   testScalastyle := scalastyle.in(Test).toTask("").value,
   testGrouping in Test := groupByHash((definedTests in Test).value),
   test in Test := ((test in Test) dependsOn mainScalastyle).value,
-  test in Test := ((test in Test) dependsOn testScalastyle).value
+  test in Test := ((test in Test) dependsOn testScalastyle).value,
+  test in Test := ((test in Test) dependsOn scalafmtCheckAll).value
 )
 
 lazy val core = (project in file("core"))

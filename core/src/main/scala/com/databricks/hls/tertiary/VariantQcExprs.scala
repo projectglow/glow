@@ -2,19 +2,7 @@ package com.databricks.hls.tertiary
 
 import org.apache.spark.sql.catalyst.analysis.UnresolvedExtractValue
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCode}
-import org.apache.spark.sql.catalyst.expressions.{
-  ArrayTransform,
-  Cast,
-  CreateNamedStruct,
-  ExpectsInputTypes,
-  Expression,
-  GenericInternalRow,
-  LambdaFunction,
-  Literal,
-  NamedLambdaVariable,
-  UnaryExpression,
-  UnresolvedNamedLambdaVariable
-}
+import org.apache.spark.sql.catalyst.expressions.{ArrayTransform, Cast, CreateNamedStruct, ExpectsInputTypes, Expression, GenericInternalRow, LambdaFunction, Literal, NamedLambdaVariable, UnaryExpression, UnresolvedNamedLambdaVariable}
 import org.apache.spark.sql.catalyst.util.{ArrayData, GenericArrayData}
 import org.apache.spark.sql.catalyst.{InternalRow, ScalaReflection}
 import org.apache.spark.sql.types._

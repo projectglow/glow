@@ -7,11 +7,7 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable
 
 import htsjdk.samtools.ValidationStringency
-import htsjdk.variant.variantcontext.{
-  Allele,
-  Genotype => HtsjdkGenotype,
-  VariantContext => HtsjdkVariantContext
-}
+import htsjdk.variant.variantcontext.{Allele, Genotype => HtsjdkGenotype, VariantContext => HtsjdkVariantContext}
 import htsjdk.variant.vcf.{VCFConstants, VCFHeader}
 import org.apache.spark.sql.catalyst.util.ArrayData
 
