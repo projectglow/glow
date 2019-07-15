@@ -20,7 +20,8 @@ class FunctionsSuite extends HLSBaseTest {
   test("generate bin id") {
     val sqlContext = spark.sqlContext
     import sqlContext.implicits._
-    val ds = spark.sparkContext
+    val ds = spark
+      .sparkContext
       .parallelize(
         Seq(
           (0L, 5L),

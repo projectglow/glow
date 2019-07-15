@@ -3,13 +3,7 @@ package org.apache.spark.sql.databricks.hls.tertiary // Visibility hack
 import org.apache.spark.sql.AnalysisException
 import org.apache.spark.sql.catalyst.analysis
 import org.apache.spark.sql.catalyst.analysis.{Star, TypeCheckResult}
-import org.apache.spark.sql.catalyst.expressions.{
-  Alias,
-  Expression,
-  GetStructField,
-  NamedExpression,
-  Unevaluable
-}
+import org.apache.spark.sql.catalyst.expressions.{Alias, Expression, GetStructField, NamedExpression, Unevaluable}
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.types.{DataType, StructType}
 

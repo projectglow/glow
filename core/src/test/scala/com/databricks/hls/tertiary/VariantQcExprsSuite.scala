@@ -18,7 +18,8 @@ class VariantQcExprsSuite extends HLSBaseTest {
 
   test("missing") {
     val sess = spark
-    spark.read
+    spark
+      .read
       .format("com.databricks.vcf")
       .option("includeSampleIds", true)
       .load(testVcf)
@@ -31,7 +32,8 @@ class VariantQcExprsSuite extends HLSBaseTest {
   // Golden values are pulled from Hail
   test("hardy weinberg") {
     import sess.implicits._
-    val hw = spark.read
+    val hw = spark
+      .read
       .format("com.databricks.vcf")
       .load(testVcf)
       .filter(targetSite)
@@ -53,7 +55,8 @@ class VariantQcExprsSuite extends HLSBaseTest {
   // Golden values are pulled from Hail
   test("call stats") {
     import sess.implicits._
-    val stats = spark.read
+    val stats = spark
+      .read
       .format("com.databricks.vcf")
       .load(testVcf)
       .selectExpr("contigName", "start", "expand_struct(call_summary_stats(genotypes))")
@@ -199,7 +202,8 @@ class VariantQcExprsSuite extends HLSBaseTest {
   // Golden values are pulled from Hail
   test("dp stats") {
     import sess.implicits._
-    val stats = spark.read
+    val stats = spark
+      .read
       .format("com.databricks.vcf")
       .load(testVcf)
       .filter(targetSite)
@@ -215,7 +219,8 @@ class VariantQcExprsSuite extends HLSBaseTest {
   // Golden values are pulled from Hail
   test("gq stats") {
     import sess.implicits._
-    val stats = spark.read
+    val stats = spark
+      .read
       .format("com.databricks.vcf")
       .load(testVcf)
       .filter(targetSite)
@@ -230,7 +235,8 @@ class VariantQcExprsSuite extends HLSBaseTest {
 
   test("write to parquet") {
     val tmpFile = s"/tmp/${Random.alphanumeric.take(10).mkString}"
-    spark.read
+    spark
+      .read
       .format("com.databricks.vcf")
       .load(testVcf)
       .withColumn("stats", expr("call_summary_stats(genotypes)"))

@@ -15,7 +15,8 @@ trait ExpectsGenotypeFields extends Expression {
   protected def genotypeFieldsRequired: Seq[StructField]
 
   protected lazy val genotypeFieldIndices: Seq[Int] = {
-    val gStruct = genotypesExpr.dataType
+    val gStruct = genotypesExpr
+      .dataType
       .asInstanceOf[ArrayType]
       .elementType
       .asInstanceOf[StructType]
@@ -25,7 +26,8 @@ trait ExpectsGenotypeFields extends Expression {
   }
 
   protected lazy val genotypeStructSize: Int = {
-    val gStruct = genotypesExpr.dataType
+    val gStruct = genotypesExpr
+      .dataType
       .asInstanceOf[ArrayType]
       .elementType
       .asInstanceOf[StructType]

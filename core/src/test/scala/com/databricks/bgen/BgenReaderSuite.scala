@@ -37,7 +37,8 @@ class BgenReaderSuite extends HLSBaseTest {
     val bgen = iterateFile(bgenPath)
       .sortBy(r => (r.contigName, r.start))
       .map(r => r.copy(names = r.names.filter(_.nonEmpty).distinct.sorted))
-    val vcf = spark.read
+    val vcf = spark
+      .read
       .format("com.databricks.vcf")
       .option("includeSampleIds", true)
       .option("vcfRowSchema", true)
@@ -152,7 +153,8 @@ class BgenReaderSuite extends HLSBaseTest {
     val sess = spark
     import sess.implicits._
     val path = s"$testRoot/example.16bits.bgen"
-    val fromSpark = spark.read
+    val fromSpark = spark
+      .read
       .format("com.databricks.bgen")
       .load(path)
       .orderBy("contigName", "start")
@@ -167,7 +169,8 @@ class BgenReaderSuite extends HLSBaseTest {
 
   test("read with spark (no index)") {
     val path = s"$testRoot/example.16bits.noindex.bgen"
-    val fromSpark = spark.read
+    val fromSpark = spark
+      .read
       .format("com.databricks.bgen")
       .load(path)
       .orderBy("contigName", "start")
@@ -181,7 +184,8 @@ class BgenReaderSuite extends HLSBaseTest {
     import sess.implicits._
 
     val path = s"$testRoot/example.16bits.bgen"
-    val allele = spark.read
+    val allele = spark
+      .read
       .format("com.databricks.bgen")
       .load(path)
       .orderBy("start")
@@ -195,7 +199,8 @@ class BgenReaderSuite extends HLSBaseTest {
   case class WeirdSchema(animal: String)
   test("be permissive if schema includes fields that can't be derived from VCF") {
     val path = s"$testRoot/example.16bits.noindex.bgen"
-    spark.read
+    spark
+      .read
       .schema(ScalaReflection.schemaFor[WeirdSchema].dataType.asInstanceOf[StructType])
       .format("com.databricks.bgen")
       .load(path)
@@ -207,7 +212,8 @@ class BgenReaderSuite extends HLSBaseTest {
     import sess.implicits._
 
     val basePath = s"$testRoot/example.16bits.oxford"
-    val ds = spark.read
+    val ds = spark
+      .read
       .format("com.databricks.bgen")
       .load(s"$basePath.bgen")
       .as[BgenRow]
@@ -221,7 +227,8 @@ class BgenReaderSuite extends HLSBaseTest {
     import sess.implicits._
 
     val basePath = s"$testRoot/example.16bits.oxford"
-    val ds = spark.read
+    val ds = spark
+      .read
       .option("sampleFilePath", s"$basePath.sample")
       .option("sampleIdColumn", "ID_2")
       .format("com.databricks.bgen")
@@ -238,7 +245,8 @@ class BgenReaderSuite extends HLSBaseTest {
     import sess.implicits._
 
     val basePath = s"$testRoot/example.16bits.oxford"
-    val ds = spark.read
+    val ds = spark
+      .read
       .option("sampleFilePath", s"$basePath.sample")
       .format("com.databricks.bgen")
       .load(s"$basePath.bgen")
@@ -255,7 +263,8 @@ class BgenReaderSuite extends HLSBaseTest {
 
     val basePath = s"$testRoot/example.16bits.oxford"
     assertThrows[IllegalArgumentException](
-      spark.read
+      spark
+        .read
         .option("sampleFilePath", s"$basePath.corrupted.sample")
         .format("com.databricks.bgen")
         .load(s"$basePath.bgen")
@@ -269,7 +278,8 @@ class BgenReaderSuite extends HLSBaseTest {
     import sess.implicits._
 
     val path = s"$testRoot/example.16bits.bgen"
-    val ds = spark.read
+    val ds = spark
+      .read
       .option("sampleFilePath", s"$testRoot/example.fake.sample")
       .format("com.databricks.bgen")
       .load(path)
@@ -285,7 +295,8 @@ class BgenReaderSuite extends HLSBaseTest {
 
     val basePath = s"$testRoot/example.16bits.oxford"
     assertThrows[IllegalArgumentException](
-      spark.read
+      spark
+        .read
         .option("sampleFilePath", s"$basePath.sample")
         .option("sampleIdColumn", "FAKE")
         .format("com.databricks.bgen")
@@ -299,7 +310,8 @@ class BgenReaderSuite extends HLSBaseTest {
     val sess = spark
     import sess.implicits._
 
-    val ds = spark.read
+    val ds = spark
+      .read
       .option("sampleFilePath", s"$testRoot/example.sample")
       .option("sampleIdColumn", "ID_1")
       .format("com.databricks.bgen")
@@ -316,7 +328,8 @@ class BgenReaderSuite extends HLSBaseTest {
     import sess.implicits._
 
     assertThrows[IllegalArgumentException](
-      spark.read
+      spark
+        .read
         .option("sampleFilePath", s"$testRoot/example.sample")
         .format("com.databricks.bgen")
         .load(s"$testRoot/example.16bits.oxford.bgen")
@@ -331,7 +344,8 @@ class BgenReaderSuite extends HLSBaseTest {
 
     // Expect an error because we try to read non-bgen files as bgen
     intercept[SparkException] {
-      spark.read
+      spark
+        .read
         .format("com.databricks.bgen")
         .option(BgenFileFormat.IGNORE_EXTENSION_KEY, true)
         .load(input)

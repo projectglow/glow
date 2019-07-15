@@ -20,7 +20,8 @@ class BgenWriterSuite extends BgenConverterBaseTest {
     val newBgenFile = newBgenDir.resolve("temp.bgen").toString
 
     val origDs = spark.read.format("com.databricks.bgen").load(testBgen).as[BgenRow]
-    origDs.write
+    origDs
+      .write
       .option("bitsPerProbability", bitsPerProb)
       .format("com.databricks.bigbgen")
       .save(newBgenFile)
@@ -56,7 +57,8 @@ class BgenWriterSuite extends BgenConverterBaseTest {
     val newBgenDir = Files.createTempDirectory("bgen")
     val newBgenFile = newBgenDir.resolve("temp.bgen").toString
 
-    val origDs = spark.read
+    val origDs = spark
+      .read
       .format("com.databricks.bgen")
       .load(testBgen)
       .as[BgenRow]
@@ -64,11 +66,13 @@ class BgenWriterSuite extends BgenConverterBaseTest {
         br.copy(names = Seq(variantId, rsid).flatten)
       }
 
-    origDs.write
+    origDs
+      .write
       .format("com.databricks.bigbgen")
       .save(newBgenFile)
 
-    spark.read
+    spark
+      .read
       .format("com.databricks.bgen")
       .load(newBgenFile)
       .as[BgenRow]
@@ -91,12 +95,14 @@ class BgenWriterSuite extends BgenConverterBaseTest {
     val newBgenFile = newBgenDir.resolve("temp.bgen").toString
 
     val bgenDs = spark.read.format("com.databricks.bgen").load(testBgen).as[BgenRow]
-    val origVcfDs = spark.read
+    val origVcfDs = spark
+      .read
       .format("com.databricks.vcf")
       .option("includeSampleIds", true)
       .load(testVcf)
 
-    val writer = origVcfDs.write
+    val writer = origVcfDs
+      .write
       .option("bitsPerProbability", bitsPerProb)
       .format("com.databricks.bigbgen")
 
@@ -206,13 +212,15 @@ class BgenWriterSuite extends BgenConverterBaseTest {
     val newBgenDir = Files.createTempDirectory("bgen")
     val newBgenFile = newBgenDir.resolve("temp.bgen").toString
 
-    spark.sparkContext
+    spark
+      .sparkContext
       .emptyRDD[BgenRow]
       .toDS
       .write
       .format("com.databricks.bigbgen")
       .save(newBgenFile)
-    val rewrittenDs = spark.read
+    val rewrittenDs = spark
+      .read
       .format("com.databricks.bgen")
       .load(newBgenFile)
     assert(rewrittenDs.collect.isEmpty)
@@ -242,10 +250,13 @@ class BgenWriterSuite extends BgenConverterBaseTest {
     val newBgenFile = newBgenDir.resolve("temp.bgen").toString
 
     val noGtRow = BgenRow("chr1", 10, 11, Nil, "A", Seq("T"), Nil)
-    Seq(noGtRow).toDS.write
+    Seq(noGtRow)
+      .toDS
+      .write
       .format("com.databricks.bigbgen")
       .save(newBgenFile)
-    val rewrittenDs = spark.read
+    val rewrittenDs = spark
+      .read
       .format("com.databricks.bgen")
       .load(newBgenFile)
       .as[BgenRow]

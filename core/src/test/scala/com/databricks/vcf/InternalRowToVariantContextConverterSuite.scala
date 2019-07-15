@@ -15,13 +15,12 @@ class InternalRowToVariantContextConverterSuite extends HLSBaseTest {
   private val optionsSeq = Seq(
     Map("flattenInfoFields" -> "true", "includeSampleIds" -> "true"),
     Map("flattenInfoFields" -> "true", "includeSampleIds" -> "false"),
-    Map("flattenInfoFields" -> "false", "includeSampleIds" -> "false"))
+    Map("flattenInfoFields" -> "false", "includeSampleIds" -> "false")
+  )
 
   gridTest("common schema options pass strict validation")(optionsSeq) { options =>
     val df = spark.read.format("com.databricks.vcf").options(options).load(NA12878)
-    new InternalRowToVariantContextConverter(
-      df.schema,
-      header,
-      ValidationStringency.STRICT).validate()
+    new InternalRowToVariantContextConverter(df.schema, header, ValidationStringency.STRICT)
+      .validate()
   }
 }

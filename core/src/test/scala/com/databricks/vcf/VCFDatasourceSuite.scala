@@ -24,7 +24,8 @@ abstract class BaseVCFDatasourceSuite(val sourceName: String) extends HLSBaseTes
   lazy val stringInfoFieldsVcf = s"$testDataHome/test.chr17.vcf"
 
   override def sparkConf: SparkConf = {
-    super.sparkConf
+    super
+      .sparkConf
       .set("spark.hadoop.io.compression.codecs", "org.seqdoop.hadoop_bam.util.BGZFCodec")
   }
 
@@ -44,7 +45,8 @@ abstract class BaseVCFDatasourceSuite(val sourceName: String) extends HLSBaseTes
   }
 
   test("no sample ids") {
-    val schema = spark.read
+    val schema = spark
+      .read
       .format(sourceName)
       .option("includeSampleIds", false)
       .load(testVcf)
@@ -56,7 +58,8 @@ abstract class BaseVCFDatasourceSuite(val sourceName: String) extends HLSBaseTes
   }
 
   test("with sample ids") {
-    val datasource = spark.read
+    val datasource = spark
+      .read
       .format(sourceName)
       .load(testVcf)
     val size = datasource.count()
@@ -66,7 +69,8 @@ abstract class BaseVCFDatasourceSuite(val sourceName: String) extends HLSBaseTes
   test("check parsed row") {
     val sess = spark
     import sess.implicits._
-    val datasource = spark.read
+    val datasource = spark
+      .read
       .format(sourceName)
       .option("vcfRowSchema", true)
       .load(testVcf)
@@ -129,11 +133,13 @@ abstract class BaseVCFDatasourceSuite(val sourceName: String) extends HLSBaseTes
     import sess.implicits._
 
     def checkResultsMatch(f: DataFrame => Long): Unit = {
-      val withPushdown = spark.read
+      val withPushdown = spark
+        .read
         .format(sourceName)
         .option("enablePredicatePushdown", true)
         .load(testVcf)
-      val withoutPushdown = spark.read
+      val withoutPushdown = spark
+        .read
         .format(sourceName)
         .option("enablePredicatePushdown", false)
         .load(testVcf)
@@ -163,7 +169,8 @@ abstract class BaseVCFDatasourceSuite(val sourceName: String) extends HLSBaseTes
       s"##fileformat=VCFv4.2\n" +
       s"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t$samples\n"
     FileUtils.writeStringToFile(file.toFile, headers + row)
-    spark.read
+    spark
+      .read
       .format(sourceName)
       .option("vcfRowSchema", true)
       .load(file.toString)
@@ -273,7 +280,10 @@ abstract class BaseVCFDatasourceSuite(val sourceName: String) extends HLSBaseTes
   private def compareRows(r1: VCFRow, r2: VCFRow): Unit = {
     assert(r1.copy(qual = None) == r2.copy(qual = None))
     assert(r1.qual.isDefined == r2.qual.isDefined)
-    for (q1 <- r1.qual; q2 <- r2.qual) {
+    for {
+      q1 <- r1.qual
+      q2 <- r2.qual
+    } {
       assert(q1 ~== q2 relTol 0.2)
     }
   }
@@ -303,7 +313,8 @@ class VCFDatasourceSuite extends BaseVCFDatasourceSuite("com.databricks.vcf") {
     val sess = spark
     import sess.implicits._
 
-    val ds = spark.read
+    val ds = spark
+      .read
       .format(sourceName)
       .option("splitToBiallelic", true)
       .option("vcfRowSchema", true)
@@ -330,7 +341,8 @@ class VCFDatasourceSuite extends BaseVCFDatasourceSuite("com.databricks.vcf") {
         """.stripMargin
     FileUtils.writeStringToFile(file.toFile, headers + row)
 
-    val ds = spark.read
+    val ds = spark
+      .read
       .format(sourceName)
       .option("validationStringency", "strict")
       .option("flattenInfoFields", true)
@@ -340,7 +352,8 @@ class VCFDatasourceSuite extends BaseVCFDatasourceSuite("com.databricks.vcf") {
 
   test("invalid validation stringency") {
     assertThrows[IllegalArgumentException] {
-      spark.read
+      spark
+        .read
         .format(sourceName)
         .option("validationStringency", "fakeStringency")
         .load(testVcf)
@@ -358,7 +371,8 @@ class VCFDatasourceSuite extends BaseVCFDatasourceSuite("com.databricks.vcf") {
       s"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t$samples\n"
     val rowStr = headers + row
     FileUtils.writeStringToFile(file.toFile, rowStr)
-    spark.read
+    spark
+      .read
       .format(sourceName)
       .load(file.toString)
   }
@@ -367,7 +381,8 @@ class VCFDatasourceSuite extends BaseVCFDatasourceSuite("com.databricks.vcf") {
     val sess = spark
     import sess.implicits._
 
-    val ds = spark.read
+    val ds = spark
+      .read
       .format(sourceName)
       .option("flattenInfoFields", true)
       .load(testVcf)
@@ -395,7 +410,8 @@ class VCFDatasourceSuite extends BaseVCFDatasourceSuite("com.databricks.vcf") {
   }
 
   test("flattened INFO fields schema does not include END key") {
-    val schema = spark.read
+    val schema = spark
+      .read
       .format(sourceName)
       .option("flattenInfoFields", true)
       .load(tgpVcf)
@@ -404,7 +420,8 @@ class VCFDatasourceSuite extends BaseVCFDatasourceSuite("com.databricks.vcf") {
   }
 
   test("flattened INFO fields schema merged for multiple files") {
-    val schema = spark.read
+    val schema = spark
+      .read
       .format(sourceName)
       .option("flattenInfoFields", true)
       .load(testVcf, tgpVcf)
@@ -418,7 +435,8 @@ class VCFDatasourceSuite extends BaseVCFDatasourceSuite("com.databricks.vcf") {
     val sess = spark
     import sess.implicits._
 
-    val dpDf = spark.read
+    val dpDf = spark
+      .read
       .format(sourceName)
       .option("flattenInfoFields", true)
       .load(testVcf)
@@ -431,7 +449,8 @@ class VCFDatasourceSuite extends BaseVCFDatasourceSuite("com.databricks.vcf") {
     val sess = spark
     import sess.implicits._
 
-    val platformNamesDf = spark.read
+    val platformNamesDf = spark
+      .read
       .format(sourceName)
       .option("flattenInfoFields", true)
       .load(stringInfoFieldsVcf)
@@ -466,7 +485,8 @@ class VCFDatasourceSuite extends BaseVCFDatasourceSuite("com.databricks.vcf") {
   }
 
   test("misnumbered fields") {
-    val rows = spark.read
+    val rows = spark
+      .read
       .format("com.databricks.vcf")
       .load(s"$testDataHome/vcf/misnumbered_info.vcf")
       .rdd
@@ -475,7 +495,8 @@ class VCFDatasourceSuite extends BaseVCFDatasourceSuite("com.databricks.vcf") {
   }
 
   test("multiple rows") {
-    spark.read
+    spark
+      .read
       .format("com.databricks.vcf")
       .load(testVcf)
       .collect() // Should not get an error
@@ -504,7 +525,8 @@ class VCFDatasourceSuite extends BaseVCFDatasourceSuite("com.databricks.vcf") {
 
   case class WeirdSchema(animal: String)
   test("be permissive if schema includes fields that can't be derived from VCF") {
-    spark.read
+    spark
+      .read
       .schema(ScalaReflection.schemaFor[WeirdSchema].dataType.asInstanceOf[StructType])
       .format("com.databricks.vcf")
       .load(testVcf)
@@ -528,7 +550,8 @@ class VCFDatasourceSuite extends BaseVCFDatasourceSuite("com.databricks.vcf") {
     val sess = spark
     import sess.implicits._
 
-    val vcfRows = spark.read
+    val vcfRows = spark
+      .read
       .format("com.databricks.vcf")
       .option("vcfRowSchema", true)
       .load(s"$testDataHome/vcf/test_withNanQual.vcf")

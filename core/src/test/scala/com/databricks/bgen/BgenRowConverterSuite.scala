@@ -14,7 +14,8 @@ class BgenRowConverterSuite extends BgenConverterBaseTest {
     import sess.implicits._
 
     val bgenDs = spark.read.format("com.databricks.bgen").load(testBgen).as[BgenRow]
-    val vcfDs = spark.read
+    val vcfDs = spark
+      .read
       .format("com.databricks.vcf")
       .option("includeSampleIds", true)
       .load(testVcf)

@@ -48,7 +48,6 @@ trait VCFConverterBaseTest {
 
   final lazy val defaultAlleles = Seq(defaultReferenceAllele) ++ defaultAlternateAlleles
 
-
   final lazy val defaultAlternateAllele = None
   final lazy val defaultAlleleIdx = None
   final lazy val defaultNonRefAlleleIdx = None
@@ -151,11 +150,9 @@ trait VCFConverterBaseTest {
     }
   }
 
-
   protected def getClassFields[T: TypeTag]: Seq[String] = {
-    typeOf[T].members.sorted
-      .collect {
-        case m: MethodSymbol if m.isParamAccessor => m.name.toString
-      }
+    typeOf[T].members.sorted.collect {
+      case m: MethodSymbol if m.isParamAccessor => m.name.toString
+    }
   }
 }

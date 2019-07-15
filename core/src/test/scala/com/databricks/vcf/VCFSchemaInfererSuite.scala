@@ -1,11 +1,6 @@
 package com.databricks.vcf
 
-import htsjdk.variant.vcf.{
-  VCFFormatHeaderLine,
-  VCFHeaderLineCount,
-  VCFHeaderLineType,
-  VCFInfoHeaderLine
-}
+import htsjdk.variant.vcf.{VCFFormatHeaderLine, VCFHeaderLineCount, VCFHeaderLineType, VCFInfoHeaderLine}
 import org.apache.spark.sql.types._
 
 import com.databricks.hls.sql.HLSBaseTest

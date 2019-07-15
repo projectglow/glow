@@ -15,7 +15,6 @@ import com.databricks.hls.common.HLSLogging
 import com.databricks.hls.common.WithUtils
 import com.google.common.annotations.VisibleForTesting
 
-
 /** An extended Contig class used by filter parser that keeps an Option(contigName)
  * updated under And and Or operations and provides other required functionalities
  */
@@ -24,13 +23,14 @@ class FilterContig(contigName: String) {
 
   def actionAnd(other: FilterContig): FilterContig = {
     (contig, other.getContigName) match {
-      case (Some(i), Some(j)) => contig = if (i == j || j.isEmpty) {
-        Option(i)
-      } else if (i.isEmpty) {
-        Option(j)
-      } else {
-        None
-      }
+      case (Some(i), Some(j)) =>
+        contig = if (i == j || j.isEmpty) {
+          Option(i)
+        } else if (i.isEmpty) {
+          Option(j)
+        } else {
+          None
+        }
       case (_, None) => contig = None
       case (None, _) =>
     }
@@ -69,8 +69,9 @@ class FilterContig(contigName: String) {
  */
 class FilterInterval(start: Long, end: Long) {
 
-  if (start > Int.MaxValue.toLong || start <= 0 || end > Int.MaxValue.toLong || end <= 0) throw
-    new IllegalArgumentException
+  if (start > Int.MaxValue.toLong || start <= 0 || end > Int.MaxValue.toLong || end <= 0) {
+    throw new IllegalArgumentException
+  }
 
   private var interval: Option[SimpleInterval] = try {
     Option(new SimpleInterval("", start.toInt, end.toInt))
@@ -114,8 +115,8 @@ class FilterInterval(start: Long, end: Long) {
 
   def isSame(other: FilterInterval): Boolean = {
     (interval, other.getSimpleInterval) match {
-      case (Some(i), Some(j)) => i.getContig == j.getContig && i.getStart == j.getStart && i
-        .getEnd == j.getEnd
+      case (Some(i), Some(j)) =>
+        i.getContig == j.getContig && i.getStart == j.getStart && i.getEnd == j.getEnd
       case (None, _) => other.isEmpty
       case (_, None) => interval.isEmpty
     }
@@ -123,8 +124,10 @@ class FilterInterval(start: Long, end: Long) {
 
 }
 
-case class ParsedFilterResult(contig: FilterContig, startInterval: FilterInterval,
-                              endInterval: FilterInterval)
+case class ParsedFilterResult(
+    contig: FilterContig,
+    startInterval: FilterInterval,
+    endInterval: FilterInterval)
 
 /** Contains filter parsing tools and other tools used to apply tabix index */
 object TabixIndexHelper extends HLSLogging {
@@ -204,9 +207,9 @@ object TabixIndexHelper extends HLSLogging {
           val parsedLeft = parseFilter(Seq(left))
           val parsedRight = parseFilter(Seq(right))
 
-          val orInterval = getSmallestQueryInterval(parsedLeft.startInterval, parsedLeft
-            .endInterval).actionOr(getSmallestQueryInterval(parsedRight.startInterval,
-            parsedRight.endInterval))
+          val orInterval =
+            getSmallestQueryInterval(parsedLeft.startInterval, parsedLeft.endInterval).actionOr(
+              getSmallestQueryInterval(parsedRight.startInterval, parsedRight.endInterval))
 
           contig.actionAnd(parsedLeft.contig.actionOr(parsedRight.contig))
           startInterval.actionAnd(orInterval)
@@ -297,8 +300,10 @@ object TabixIndexHelper extends HLSLogging {
     }
 
     if (!paramsOK) {
-      ParsedFilterResult(new FilterContig(""), new FilterInterval(1, Int.MaxValue), new
-          FilterInterval(1, Int.MaxValue))
+      ParsedFilterResult(
+        new FilterContig(""),
+        new FilterInterval(1, Int.MaxValue),
+        new FilterInterval(1, Int.MaxValue))
     } else {
       ParsedFilterResult(contig, startInterval, endInterval)
     }
@@ -372,14 +377,16 @@ object TabixIndexHelper extends HLSLogging {
    *        None: if filter results in a null set of records;
    *        Contig is empty if filtering is skipped due to multiple contigs or unsupported elements.
    */
-  def makeFilteredInterval(filters: Seq[Filter],
+  def makeFilteredInterval(
+      filters: Seq[Filter],
       useFilterParser: Boolean,
       useIndex: Boolean): Option[SimpleInterval] = {
 
     if (useFilterParser) {
       val parsedFilterResult = parseFilter(filters)
-      (parsedFilterResult.contig.getContigName, getSmallestQueryInterval(parsedFilterResult
-        .startInterval, parsedFilterResult.endInterval).getSimpleInterval) match {
+      (
+        parsedFilterResult.contig.getContigName,
+        getSmallestQueryInterval(parsedFilterResult.startInterval, parsedFilterResult.endInterval).getSimpleInterval) match {
         case (Some(c), Some(i)) => Option(new SimpleInterval(c, i.getStart, i.getEnd))
         case _ => None
       }
@@ -420,7 +427,7 @@ object TabixIndexHelper extends HLSLogging {
           logger
             .info(
               "More than one chromosome or chromosome number not provided " +
-                "in the filter... will not use tabix index..."
+              "in the filter... will not use tabix index..."
             )
           Some((file.start, file.start + file.length))
         } else if (!hadoopFs.exists(indexFile)) {
@@ -431,8 +438,10 @@ object TabixIndexHelper extends HLSLogging {
           val localIdxPath = downloadTabixIfNecessary(hadoopFs, indexFile)
           val localIdxFile = new File(localIdxPath)
           val tabixIdx = new TabixIndex(localIdxFile)
-          val offsetList = tabixIdx.getBlocks(interval.getContig, interval.getStart, interval
-            .getEnd).asScala.toList
+          val offsetList = tabixIdx
+            .getBlocks(interval.getContig, interval.getStart, interval.getEnd)
+            .asScala
+            .toList
 
           if (offsetList.isEmpty) {
             None

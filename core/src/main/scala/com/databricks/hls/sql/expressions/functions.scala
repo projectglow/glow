@@ -12,14 +12,7 @@ import java.util
 
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, CodegenFallback, ExprCode}
-import org.apache.spark.sql.catalyst.expressions.{
-  BinaryExpression,
-  ExpectsInputTypes,
-  Expression,
-  Generator,
-  GenericInternalRow,
-  UnaryExpression
-}
+import org.apache.spark.sql.catalyst.expressions.{BinaryExpression, ExpectsInputTypes, Expression, Generator, GenericInternalRow, UnaryExpression}
 import org.apache.spark.sql.catalyst.util.GenericArrayData
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
