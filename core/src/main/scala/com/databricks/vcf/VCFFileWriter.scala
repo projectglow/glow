@@ -7,10 +7,10 @@ import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 
 import htsjdk.samtools.ValidationStringency
-import htsjdk.tribble.readers.{LineIteratorImpl, SynchronousLineReader}
 import htsjdk.variant.variantcontext.writer.{Options, VariantContextWriterBuilder}
 import htsjdk.variant.variantcontext.{GenotypeBuilder, VariantContextBuilder, VariantContext => HtsjdkVariantContext}
 import htsjdk.variant.vcf._
+import org.apache.commons.io.IOUtils
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.datasources.OutputWriter
 import org.apache.spark.sql.types.StructType
@@ -21,8 +21,7 @@ object VCFFileWriter extends HLSLogging {
 
   def parseHeaderFromString(s: String): VCFHeader = {
     val stringReader = new StringReader(s)
-    val lineReader = new SynchronousLineReader(stringReader)
-    val lineIterator = new LineIteratorImpl(lineReader)
+    val lineIterator = new LineIteratorImpl(IOUtils.lineIterator(stringReader).asScala)
     val codec = new VCFCodec()
     try {
       codec.readActualHeader(lineIterator).asInstanceOf[VCFHeader]

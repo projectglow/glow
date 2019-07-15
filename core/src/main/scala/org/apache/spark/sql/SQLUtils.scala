@@ -1,6 +1,7 @@
 package org.apache.spark.sql
 
 import org.apache.spark.ml.linalg.{VectorUDT, Vectors}
+import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCode}
 import org.apache.spark.sql.catalyst.expressions.{Expression, ImplicitCastInputTypes, UnaryExpression}
@@ -10,6 +11,16 @@ import org.apache.spark.sql.types._
 object SQLUtils {
   def structFieldsEqualExceptNullability(f1: StructField, f2: StructField): Boolean = {
     f1.name == f2.name && f1.dataType.asNullable == f2.dataType.asNullable
+  }
+
+  /** Visibility hack to create DataFrames from internal rows */
+  def createDataFrame(
+      sess: SparkSession,
+      catalystRows: RDD[InternalRow],
+      schema: StructType,
+      isStreaming: Boolean = false): DataFrame = {
+
+    sess.internalCreateDataFrame(catalystRows, schema, isStreaming)
   }
 }
 
