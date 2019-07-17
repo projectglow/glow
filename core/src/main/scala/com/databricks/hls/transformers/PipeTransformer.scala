@@ -1,6 +1,7 @@
 package com.databricks.hls.transformers
 
 import java.io.{Closeable, InputStream, OutputStream}
+import java.util.ServiceLoader
 
 import scala.collection.JavaConverters._
 
@@ -14,65 +15,82 @@ import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.unsafe.types.UTF8String
 
 import com.databricks.hls.DataFrameTransformer
-import com.databricks.vcf._
+import com.databricks.hls.common.Named
 
-object PipeTransformer extends DataFrameTransformer {
+class PipeTransformer extends DataFrameTransformer {
   override def name: String = "pipe"
 
   override def transform(df: DataFrame, options: Map[String, String]): DataFrame = {
-    new PipeTransformer(df, options).transform()
+    new PipeTransformerImpl(df, options).transform()
   }
 
+  // Implementation is in an inner class to avoid passing options to private methods
+  private class PipeTransformerImpl(df: DataFrame, options: Map[String, String]) {
+    import PipeTransformer._
+
+    private def getInputFormatter: InputFormatter = {
+      val inputFormatterStr = options.get(INPUT_FORMATTER_KEY)
+      inputFormatterStr
+        .flatMap(lookupInputFormatterFactory)
+        .getOrElse {
+          throw new IllegalArgumentException(
+            s"Could not find an input formatter for $inputFormatterStr")
+        }
+        .makeInputFormatter(df, options)
+    }
+
+    private def getOutputFormatter: OutputFormatter = {
+      val outputFormatterStr = options.get(OUTPUT_FORMATTER_KEY)
+      outputFormatterStr
+        .flatMap(lookupOutputFormatterFactory)
+        .getOrElse {
+          throw new IllegalArgumentException(
+            s"Could not find an output formatter for $outputFormatterStr")
+        }
+        .makeOutputFormatter(options)
+    }
+
+    private def getCmd: Seq[String] = {
+      val mapper = new ObjectMapper()
+      mapper.registerModule(DefaultScalaModule)
+      val str =
+        options.getOrElse(CMD_KEY, throw new IllegalArgumentException("Must specify a command"))
+      mapper.readValue(str, classOf[Seq[String]])
+    }
+
+    def transform(): DataFrame = {
+      val inputFormatter = getInputFormatter
+      val outputFormatter = getOutputFormatter
+      val cmd = getCmd
+      val env = options.collect {
+        case (k, v) if k.startsWith(ENV_PREFIX) =>
+          (k.stripPrefix(ENV_PREFIX), v)
+      }
+      Piper.pipe(inputFormatter, outputFormatter, cmd, env, df)
+    }
+  }
+}
+
+object PipeTransformer {
   private val CMD_KEY = "cmd"
   private val INPUT_FORMATTER_KEY = "inputFormatter"
   private val OUTPUT_FORMATTER_KEY = "outputFormatter"
   private val ENV_PREFIX = "env_"
-}
 
-class PipeTransformer(df: DataFrame, options: Map[String, String]) {
-  import PipeTransformer._
-
-  private def getInputFormatter: InputFormatter = {
-    options.get(INPUT_FORMATTER_KEY) match {
-      case Some("vcf") =>
-        val header = VCFInputFormatter.parseHeader(options, df)
-        new VCFInputFormatter(header, df.schema)
-      case Some(format) =>
-        throw new IllegalArgumentException(s"Invalid inputFormatter '$format'")
-      case None =>
-        throw new IllegalArgumentException("Must specify an inputFormatter with pipe transformer")
+  private def lookupInputFormatterFactory(name: String): Option[InputFormatterFactory] =
+    synchronized {
+      inputFormatterLoader.reload()
+      inputFormatterLoader.iterator().asScala.find(_.name == name)
     }
-  }
 
-  private def getOutputFormatter: OutputFormatter = {
-    options.get(OUTPUT_FORMATTER_KEY) match {
-      case Some("vcf") => new VCFOutputFormatter()
-      case Some("text") => new UTF8TextOutputFormatter()
-      case Some(format) =>
-        throw new IllegalArgumentException(s"Invalid outputFormatter '$format'")
-      case None =>
-        throw new IllegalArgumentException("Must specify an outputFormatter with pipe transformer")
+  private def lookupOutputFormatterFactory(name: String): Option[OutputFormatterFactory] =
+    synchronized {
+      outputFormatterLoader.reload()
+      outputFormatterLoader.iterator().asScala.find(_.name == name)
     }
-  }
 
-  private def getCmd: Seq[String] = {
-    val mapper = new ObjectMapper()
-    mapper.registerModule(DefaultScalaModule)
-    val str =
-      options.getOrElse(CMD_KEY, throw new IllegalArgumentException("Must specify a command"))
-    mapper.readValue(str, classOf[Seq[String]])
-  }
-
-  def transform(): DataFrame = {
-    val inputFormatter = getInputFormatter
-    val outputFormatter = getOutputFormatter
-    val cmd = getCmd
-    val env = options.collect {
-      case (k, v) if k.startsWith(ENV_PREFIX) =>
-        (k.stripPrefix(ENV_PREFIX), v)
-    }
-    Piper.pipe(inputFormatter, outputFormatter, cmd, env, df)
-  }
+  private lazy val inputFormatterLoader = ServiceLoader.load(classOf[InputFormatterFactory])
+  private lazy val outputFormatterLoader = ServiceLoader.load(classOf[OutputFormatterFactory])
 }
 
 trait InputFormatter extends Serializable with Closeable {
@@ -101,6 +119,10 @@ trait InputFormatter extends Serializable with Closeable {
   def close(): Unit
 }
 
+trait InputFormatterFactory extends Named {
+  def makeInputFormatter(df: DataFrame, options: Map[String, String]): InputFormatter
+}
+
 trait OutputFormatter extends Serializable {
 
   /**
@@ -122,6 +144,10 @@ trait OutputFormatter extends Serializable {
   def makeIterator(schema: StructType, stream: InputStream): Iterator[InternalRow]
 }
 
+trait OutputFormatterFactory extends Named {
+  def makeOutputFormatter(options: Map[String, String]): OutputFormatter
+}
+
 /**
  * A simple output formatter that returns each line of output as a String field.
  */
@@ -136,5 +162,13 @@ class UTF8TextOutputFormatter() extends OutputFormatter {
     IOUtils.lineIterator(stream, "UTF-8").asScala.map { s =>
       new GenericInternalRow(Array(UTF8String.fromString(s)): Array[Any])
     }
+  }
+}
+
+class UTF8TextOutputFormatterFactory extends OutputFormatterFactory {
+  override def name: String = "text"
+
+  override def makeOutputFormatter(options: Map[String, String]): OutputFormatter = {
+    new UTF8TextOutputFormatter
   }
 }

@@ -1,12 +1,11 @@
 package com.databricks.vcf
 
-import java.io.{InputStream, OutputStream, PrintWriter}
+import java.io.{OutputStream, PrintWriter}
 import java.net.{URI, URISyntaxException}
 
 import scala.collection.JavaConverters._
 
 import htsjdk.samtools.ValidationStringency
-import htsjdk.tribble.readers.{AsciiLineReader, AsciiLineReaderIterator}
 import htsjdk.variant.variantcontext.writer.{Options, VariantContextWriter, VariantContextWriterBuilder}
 import htsjdk.variant.vcf._
 import org.apache.commons.io.IOUtils
@@ -16,7 +15,7 @@ import org.apache.spark.sql.types.StructType
 import org.bdgenomics.adam.rdd.VCFMetadataLoader
 
 import com.databricks.hls.common.HLSLogging
-import com.databricks.hls.transformers.{InputFormatter, OutputFormatter}
+import com.databricks.hls.transformers.{InputFormatter, InputFormatterFactory}
 
 /**
  * An input formatter that writes rows as VCF records.
@@ -126,52 +125,11 @@ object VCFInputFormatter extends HLSLogging {
   }
 }
 
-class VCFOutputFormatter extends OutputFormatter with HLSLogging {
-  override def makeIterator(schema: StructType, stream: InputStream): Iterator[InternalRow] = {
-    val codec = new VCFCodec
-    val lineIterator = new AsciiLineReaderIterator(AsciiLineReader.from(stream))
-    val header = codec.readActualHeader(lineIterator).asInstanceOf[VCFHeader]
-    val schemaFromHeader = VCFSchemaInferer.inferSchema(true, true, header)
-    require(
-      schemaFromHeader == schema,
-      s"Data schema did not match provided schema. " +
-      s"Data schema: $schemaFromHeader Provided schema: $schema")
-    val converter =
-      new VariantContextToInternalRowConverter(header, schema, ValidationStringency.LENIENT)
+class VCFInputFormatterFactory extends InputFormatterFactory {
+  override def name: String = "vcf"
 
-    new Iterator[InternalRow] {
-      private var nextRecord: InternalRow = null
-      private def readNextVc(): Unit = {
-        while (nextRecord == null && lineIterator.hasNext) {
-          val decoded = codec.decode(lineIterator.next())
-          if (decoded != null) {
-            nextRecord = converter.convertRow(decoded, isSplit = false)
-          }
-        }
-      }
-
-      override def hasNext: Boolean = {
-        readNextVc()
-        nextRecord != null
-      }
-
-      override def next(): InternalRow = {
-        readNextVc()
-        if (nextRecord != null) {
-          val ret = nextRecord
-          nextRecord = null
-          ret
-        } else {
-          throw new NoSuchElementException("Iterator is empty")
-        }
-      }
-    }
-  }
-
-  override def outputSchema(stream: InputStream): StructType = {
-    val codec = new VCFCodec
-    val lineIterator = new AsciiLineReaderIterator(AsciiLineReader.from(stream))
-    val header = codec.readActualHeader(lineIterator).asInstanceOf[VCFHeader]
-    VCFSchemaInferer.inferSchema(true, true, header)
+  override def makeInputFormatter(df: DataFrame, options: Map[String, String]): InputFormatter = {
+    val header = VCFInputFormatter.parseHeader(options, df)
+    new VCFInputFormatter(header, df.schema)
   }
 }

@@ -1,9 +1,13 @@
 package com.databricks.hls
 
+import java.util.ServiceLoader
+
+import scala.collection.JavaConverters._
+
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.catalyst.util.CaseInsensitiveMap
 
-import com.databricks.hls.transformers.PipeTransformer
+import com.databricks.hls.common.Named
 
 /**
  * The entry point for all language specific functionality, meaning methods that cannot be expressed
@@ -24,8 +28,8 @@ object SparkGenomics {
    * @return The transformed DataFrame
    */
   def transform(operationName: String, df: DataFrame, options: Map[String, String]): DataFrame = {
-    allTransformers.find(_.name == operationName) match {
-      case Some(transformerFactory) => transformerFactory.transform(df, CaseInsensitiveMap(options))
+    lookupTransformer(operationName) match {
+      case Some(transformer) => transformer.transform(df, CaseInsensitiveMap(options))
       case None =>
         throw new IllegalArgumentException(s"No transformer with name $operationName")
     }
@@ -35,11 +39,15 @@ object SparkGenomics {
     transform(operationName, df, options.toMap)
   }
 
-  // TODO: Should be able to load transformers dynamically
-  private val allTransformers: Seq[DataFrameTransformer] = Seq(PipeTransformer)
+  private def lookupTransformer(name: String): Option[DataFrameTransformer] = synchronized {
+    transformerLoader.reload()
+    transformerLoader.iterator().asScala.find(_.name == name)
+  }
+
+  private val transformerLoader = ServiceLoader
+    .load(classOf[DataFrameTransformer])
 }
 
-trait DataFrameTransformer {
-  def name: String
+trait DataFrameTransformer extends Named {
   def transform(df: DataFrame, options: Map[String, String]): DataFrame
 }

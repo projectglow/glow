@@ -1,6 +1,5 @@
 package com.databricks.sql
 
-import java.io.ByteArrayOutputStream
 import java.net.URI
 import java.util.ServiceLoader
 
