@@ -13,6 +13,10 @@ object SQLUtils {
     f1.name == f2.name && f1.dataType.asNullable == f2.dataType.asNullable
   }
 
+  def dataTypesEqualExceptNullability(dt1: DataType, dt2: DataType): Boolean = {
+    dt1.asNullable == dt2.asNullable
+  }
+
   /** Visibility hack to create DataFrames from internal rows */
   def createDataFrame(
       sess: SparkSession,
