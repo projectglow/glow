@@ -6,6 +6,7 @@ import scala.util.control.NonFatal
 import htsjdk.samtools.ValidationStringency
 import htsjdk.variant.variantcontext._
 import htsjdk.variant.vcf.{VCFConstants, VCFHeader}
+import org.apache.spark.sql.SQLUtils
 import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.ArrayData
@@ -49,7 +50,9 @@ class InternalRowToVariantContextConverter(
       val headerLine = vcfHeader.getInfoHeaderLine(f.name.stripPrefix(infoFieldPrefix))
       if (headerLine == null) {
         provideWarning(s"Column ${f.name} does not have a matching VCF header line")
-      } else if (!VCFSchemaInferer.typesForHeader(headerLine).contains(f.dataType)) {
+      } else if (!VCFSchemaInferer
+          .typesForHeader(headerLine)
+          .exists(t => SQLUtils.dataTypesEqualExceptNullability(t, f.dataType))) {
         provideWarning(
           s"Column ${f.name} has a VCF header line with the same ID, but " +
           s"the types are not compatible. " +
@@ -67,7 +70,9 @@ class InternalRowToVariantContextConverter(
             s"Genotype field ${f.name} does not have a matching VCF header " +
             s"line"
           )
-        } else if (!VCFSchemaInferer.typesForHeader(headerLine).contains(f.dataType)) {
+        } else if (!VCFSchemaInferer
+            .typesForHeader(headerLine)
+            .exists(t => SQLUtils.dataTypesEqualExceptNullability(t, f.dataType))) {
           provideWarning(
             s"Genotype field ${f.name} has a VCF header line with the " +
             s"same ID, but the types are not compatible. " +
