@@ -3,6 +3,8 @@ package com.databricks.hls.sql
 import org.apache.spark.{DebugFilesystem, SparkConf}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.test.SharedSparkSession
+import org.scalatest.concurrent.{AbstractPatienceConfiguration, Eventually}
+import org.scalatest.time.{Milliseconds, Seconds, Span}
 import org.scalatest.{FunSuite, Tag}
 
 import com.databricks.hls.common.HLSLogging
@@ -11,7 +13,8 @@ abstract class HLSBaseTest
     extends FunSuite
     with SharedSparkSession
     with HLSLogging
-    with HLSTestData {
+    with HLSTestData
+    with JenkinsTestPatience {
 
   override protected def sparkConf: SparkConf = {
     super
@@ -45,4 +48,25 @@ abstract class HLSBaseTest
     DebugFilesystem.clearOpenStreams()
     super.afterEach()
   }
+}
+
+/**
+ * Unit-test patience config to use with unit tests that use scala test's eventually and other
+ * asynchronous checks. This will override the default timeout and check interval so they are
+ * more likely to pass in highly loaded CI environments.
+ *
+ */
+trait JenkinsTestPatience extends AbstractPatienceConfiguration with Eventually {
+
+  /**
+   * The total timeout to wait for `eventually` blocks to succeed
+   */
+  final override implicit val patienceConfig: PatienceConfig =
+    if (sys.env.get("JENKINS_HOST").nonEmpty) {
+      // increase the timeout on jenkins where parallelizing causes things to be very slow
+      PatienceConfig(Span(10, Seconds), Span(50, Milliseconds))
+    } else {
+      // use the default timeout on local machines so failures don't hang for a long time
+      PatienceConfig(Span(5, Seconds), Span(15, Milliseconds))
+    }
 }
