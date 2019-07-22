@@ -1,6 +1,6 @@
 package com.databricks.hls.transformers
 
-import java.io.{Closeable, InputStream, OutputStream}
+import java.io.{Closeable, InputStream, OutputStream, PrintWriter}
 import java.util.ServiceLoader
 
 import scala.collection.JavaConverters._
@@ -12,6 +12,7 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
+import org.apache.spark.sql.SQLUtils.dataTypesEqualExceptNullability
 import org.apache.spark.unsafe.types.UTF8String
 
 import com.databricks.hls.DataFrameTransformer
@@ -146,6 +147,42 @@ trait OutputFormatter extends Serializable {
 
 trait OutputFormatterFactory extends Named {
   def makeOutputFormatter(options: Map[String, String]): OutputFormatter
+}
+
+/**
+ * A simple input formatter that writes each row as a string.
+ */
+class UTF8TextInputFormatter() extends InputFormatter {
+
+  private var writer: PrintWriter = _
+
+  override def init(stream: OutputStream): Unit = {
+    writer = new PrintWriter(stream)
+  }
+
+  override def write(record: InternalRow): Unit = {
+    if (!record.isNullAt(0)) {
+      writer.println(record.getUTF8String(0)) // scalastyle:ignore
+    }
+  }
+
+  override def writeDummyDataset(): Unit = {}
+
+  override def close(): Unit = {
+    writer.close()
+  }
+}
+
+class UTF8TextInputFormatterFactory extends InputFormatterFactory {
+  override def name: String = "text"
+
+  override def makeInputFormatter(df: DataFrame, options: Map[String, String]): InputFormatter = {
+    require(df.schema.length == 1, "Input dataframe must have one column,")
+    require(
+      dataTypesEqualExceptNullability(df.schema.head.dataType, StringType),
+      "Input dataframe must have one string column.")
+    new UTF8TextInputFormatter
+  }
 }
 
 /**

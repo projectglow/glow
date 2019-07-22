@@ -9,6 +9,7 @@ import scala.io.Source
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SQLUtils}
+import org.apache.spark.TaskContext
 
 import com.databricks.hls.common.{HLSLogging, WithUtils}
 
@@ -39,7 +40,7 @@ private[databricks] object Piper extends HLSLogging {
             formatter.writeDummyDataset()
           }
         }
-        val helper = new ProcessHelper(cmd, env, writeFn)
+        val helper = new ProcessHelper(cmd, env, writeFn, TaskContext.get)
         val ret = outputformatter.outputSchema(helper.startProcess())
         helper.waitForProcess()
         ret
@@ -57,11 +58,13 @@ private[databricks] object Piper extends HLSLogging {
 private[databricks] class ProcessHelper(
     cmd: Seq[String],
     environment: Map[String, String],
-    inputFn: OutputStream => Unit)
+    inputFn: OutputStream => Unit,
+    context: TaskContext)
     extends HLSLogging {
 
   private val childThreadException = new AtomicReference[Throwable](null)
   private var process: Process = _
+
   def startProcess(): InputStream = {
 
     val pb = new ProcessBuilder(cmd.asJava)
@@ -71,6 +74,7 @@ private[databricks] class ProcessHelper(
 
     new Thread(s"${ProcessHelper.STDIN_WRITER_THREAD_PREFIX} for $cmd") {
       override def run(): Unit = {
+        SQLUtils.setTaskContext(context)
         try {
           inputFn(process.getOutputStream)
         } catch {
@@ -132,7 +136,7 @@ class PipeIterator(
     outputSchema: StructType)
     extends Iterator[InternalRow] {
 
-  private val processHelper = new ProcessHelper(cmd, environment, writeInput)
+  private val processHelper = new ProcessHelper(cmd, environment, writeInput, TaskContext.get)
   private val inputStream = processHelper.startProcess()
   private val baseIterator = outputFormatter.makeIterator(outputSchema, inputStream)
 

@@ -15,6 +15,9 @@ class VCFOutputFormatter extends OutputFormatter with HLSLogging {
   override def makeIterator(schema: StructType, stream: InputStream): Iterator[InternalRow] = {
     val codec = new VCFCodec
     val lineIterator = new AsciiLineReaderIterator(AsciiLineReader.from(stream))
+    if (!lineIterator.hasNext) {
+      return Iterator.empty
+    }
     val header = codec.readActualHeader(lineIterator).asInstanceOf[VCFHeader]
     val schemaFromHeader = VCFSchemaInferer.inferSchema(true, true, header)
     require(
@@ -56,6 +59,9 @@ class VCFOutputFormatter extends OutputFormatter with HLSLogging {
   override def outputSchema(stream: InputStream): StructType = {
     val codec = new VCFCodec
     val lineIterator = new AsciiLineReaderIterator(AsciiLineReader.from(stream))
+    if (!lineIterator.hasNext) {
+      throw new IllegalStateException("Output VCF schema cannot be determined without a header.")
+    }
     val header = codec.readActualHeader(lineIterator).asInstanceOf[VCFHeader]
     VCFSchemaInferer.inferSchema(true, true, header)
   }
