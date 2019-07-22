@@ -1,5 +1,6 @@
 package org.apache.spark.sql
 
+import org.apache.spark.TaskContext
 import org.apache.spark.ml.linalg.{VectorUDT, Vectors}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
@@ -25,6 +26,11 @@ object SQLUtils {
       isStreaming: Boolean = false): DataFrame = {
 
     sess.internalCreateDataFrame(catalystRows, schema, isStreaming)
+  }
+
+  /** Visibility shim to set the task context */
+  def setTaskContext(context: TaskContext): Unit = {
+    TaskContext.setTaskContext(context)
   }
 }
 

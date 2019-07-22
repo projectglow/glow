@@ -86,7 +86,16 @@ class VCFInputFormatter(baseHeader: VCFHeader, schema: StructType)
   }
 
   override def close(): Unit = {
-    logger.info(s"Closing VCF input formatter")
+    logger.info("Closing VCF input formatter")
+    if (writer == null) {
+      logger.info("Writing VCF header for empty file")
+      writer = new VariantContextWriterBuilder()
+        .clearOptions()
+        .setOutputStream(stream)
+        .setOption(Options.ALLOW_MISSING_FIELDS_IN_HEADER)
+        .build
+      writer.writeHeader(baseHeader)
+    }
     IOUtils.closeQuietly(writer)
   }
 }

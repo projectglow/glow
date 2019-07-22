@@ -10,7 +10,7 @@ package com.databricks.vcf
 
 import scala.collection.JavaConverters._
 
-import org.apache.spark.SparkException
+import org.apache.spark.{SparkException, TaskContext}
 import org.apache.spark.sql.DataFrame
 
 import com.databricks.hls.SparkGenomics
@@ -179,5 +179,51 @@ class VCFPiperSuite extends HLSBaseTest {
           .keySet
           .exists(_.getName.startsWith(ProcessHelper.STDERR_READER_THREAD_PREFIX)))
     }
+  }
+
+  test("empty text partitions read to vcf") {
+    val df = spark.read.text(na12878).limit(0).repartition(2)
+    val options = Map(
+      "inputFormatter" -> "text",
+      "outputFormatter" -> "vcf",
+      "vcfHeader" -> "infer",
+      "cmd" -> s"""["cat", "-"]""")
+    assertThrows[SparkException](SparkGenomics.transform("pipe", df, options))
+  }
+
+  test("empty vcf partitions write header") {
+    val df = readVcf(na12878).limit(0).repartition(1)
+    val options = Map(
+      "inputFormatter" -> "vcf",
+      "outputFormatter" -> "text",
+      "vcfHeader" -> na12878,
+      "cmd" -> s"""["cat", "-"]""")
+    val output = SparkGenomics.transform("pipe", df, options)
+    assert(output.count() == 28)
+  }
+
+  test("task context is defined in each thread") {
+    val sess = spark
+    import sess.implicits._
+
+    val input = spark
+      .read
+      .format("com.databricks.vcf")
+      .option("includeSampleIds", "true")
+      .option("vcfRowSchema", "true")
+      .load(na12878)
+      .as[VCFRow]
+    val df = input.map { el =>
+      require(TaskContext.get != null)
+      el
+    }.toDF
+
+    val options = Map(
+      "inputFormatter" -> "vcf",
+      "outputFormatter" -> "vcf",
+      "vcfHeader" -> na12878,
+      "cmd" -> s"""["cat", "-"]""")
+    val output = SparkGenomics.transform("pipe", df, options)
+    assert(output.count() == 4)
   }
 }
