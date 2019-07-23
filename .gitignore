@@ -5,3 +5,4 @@ project/target
 *.swp
 *.swo
 adam.log
+**/__pycache__

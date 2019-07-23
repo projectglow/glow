@@ -1,11 +1,12 @@
-import Dependencies._
 import Tests._
+import scala.sys.process._
 
-val sparkVersion = "2.4.1"
+val sparkVersion = "2.4.3"
+val scalaMajorMinor = "2.11"
 
-ThisBuild / scalaVersion     := "2.11.12"
-ThisBuild / version          := "0.1.0-SNAPSHOT"
-ThisBuild / organization     := "com.databricks"
+ThisBuild / scalaVersion := s"$scalaMajorMinor.12"
+ThisBuild / version := "0.1.0-SNAPSHOT"
+ThisBuild / organization := "com.databricks"
 ThisBuild / organizationName := "DB / RGC"
 ThisBuild / scalastyleConfig := baseDirectory.value / "scalastyle-config.xml"
 
@@ -23,15 +24,18 @@ concurrentRestrictions in Global := Seq(
 )
 
 def groupByHash(tests: Seq[TestDefinition]) = {
-  tests.groupBy(_.name.hashCode % testConcurrency).map { case (i, tests) =>
-    val options = ForkOptions().withRunJVMOptions(Vector("-Xmx1024m"))
-    new Group(i.toString, tests, SubProcess(options))
-  }.toSeq
+  tests
+    .groupBy(_.name.hashCode % testConcurrency)
+    .map {
+      case (i, tests) =>
+        val options = ForkOptions().withRunJVMOptions(Vector("-Xmx1024m"))
+        new Group(i.toString, tests, SubProcess(options))
+    }
+    .toSeq
 }
 
 lazy val mainScalastyle = taskKey[Unit]("mainScalastyle")
 lazy val testScalastyle = taskKey[Unit]("testScalastyle")
-
 // testGrouping cannot be set globally using the `Test /` syntax since it's not a pure value
 lazy val commonSettings = Seq(
   mainScalastyle := scalastyle.in(Compile).toTask("").value,
@@ -39,7 +43,16 @@ lazy val commonSettings = Seq(
   testGrouping in Test := groupByHash((definedTests in Test).value),
   test in Test := ((test in Test) dependsOn mainScalastyle).value,
   test in Test := ((test in Test) dependsOn testScalastyle).value,
-  test in Test := ((test in Test) dependsOn scalafmtCheckAll).value
+  test in Test := ((test in Test) dependsOn scalafmtCheckAll).value,
+  test in assembly := {},
+  assemblyMergeStrategy in assembly := {
+    // Assembly jar is not executable
+    case p if p.toLowerCase.contains("manifest.mf") =>
+      MergeStrategy.discard
+    case _ =>
+      // Be permissive for other files
+      MergeStrategy.first
+  }
 )
 
 lazy val core = (project in file("core"))
@@ -59,9 +72,14 @@ lazy val core = (project in file("core"))
       "org.slf4j" % "slf4j-log4j12" % "1.7.16",
       "org.jdbi" % "jdbi" % "2.63.1",
       "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
-      // Exclude xgboost-predictor since it's not in maven central
-      "org.broadinstitute" % "gatk" % "4.0.11.0" exclude("biz.k11i", "xgboost-predictor"),
-
+      // Exclude extraneous GATK dependencies
+      ("org.broadinstitute" % "gatk" % "4.0.11.0")
+        .exclude("biz.k11i", "xgboost-predictor")
+        .exclude("com.google.cloud.bigdataoss", "gcs-connector")
+        .exclude("com.intel", "genomicsdb")
+        .exclude("org.apache.spark", s"spark-mllib_$scalaMajorMinor")
+        .exclude("org.bdgenomics.adam", s"adam-core-spark2_$scalaMajorMinor")
+        .exclude("com.google.cloud", "google-cloud-nio"),
       // Test dependencies
       "org.scalatest" %% "scalatest" % "3.0.3" % "test",
       "org.scalacheck" %% "scalacheck" % "1.12.5" % "test",
@@ -70,8 +88,31 @@ lazy val core = (project in file("core"))
       "org.apache.spark" %% "spark-catalyst" % sparkVersion % "test" classifier "tests",
       "org.apache.spark" %% "spark-sql" % sparkVersion % "test" classifier "tests",
       "org.bdgenomics.adam" %% "adam-apis-spark2" % "0.25.0" % "test",
-      "org.bdgenomics.bdg-formats" % "bdg-formats" % "0.11.3" % "test",
+      "org.bdgenomics.bdg-formats" % "bdg-formats" % "0.11.3" % "test"
     ),
+    // Fix versions of libraries that are depended on multiple times
+    dependencyOverrides ++= Seq(
+      "org.apache.hadoop" % "hadoop-client" % "2.7.3",
+      "io.netty" % "netty" % "3.9.9.Final",
+      "io.netty" % "netty-all" % "4.1.17.Final")
+  )
+
+lazy val python = (project in file("python"))
+  .dependsOn(core % "test->test")
+  .settings(
+    unmanagedSourceDirectories in Compile := {
+      Seq(baseDirectory.value / "spark_genomics")
+    },
+    test in Test := {
+      // Pass the test classpath to pyspark so that we run the same bits as the Scala tests
+      val classpath = (fullClasspath in Test).value.files.map(_.getCanonicalPath).mkString(":")
+      val ret = Process(
+        Seq("pytest", "python"),
+        None,
+        "SPARK_CLASSPATH" -> classpath,
+        "SPARK_HOME" -> (ThisBuild / baseDirectory).value.absolutePath).!
+      require(ret == 0, "Python tests failed")
+    }
   )
 
 // Uncomment the following for publishing to Sonatype.

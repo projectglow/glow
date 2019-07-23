@@ -1,0 +1,8 @@
+name: spark-genomics
+dependencies:
+  - python=3.7
+  - pytest
+  - pip
+  - pip:
+    - pyspark==2.4.2
+    - typeguard==2.4.1

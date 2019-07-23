@@ -114,7 +114,7 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HLS
       // will throw an error for a malformed header. We therefore allow the header reader to read
       // past the boundaries of the partitions; it will throw/return when done reading the header.
       val path = new Path(partitionedFile.filePath)
-      val (header, codec) = VCFFileFormat.createVCFCodec(path, serializableConf.value)
+      val (header, codec) = VCFFileFormat.createVCFCodec(path.toString, serializableConf.value)
       val hadoopFs = path.getFileSystem(serializableConf.value)
 
       // Get the file offset=(startPos,endPos) that must be read from this partitionedFile.
@@ -169,10 +169,11 @@ object VCFFileFormat {
    *
    * The logic to parse the header is adapted from [[org.seqdoop.hadoop_bam.VCFRecordReader]].
    */
-  def createVCFCodec(path: Path, conf: Configuration): (VCFHeader, VCFCodec) = {
-    val fs = path.getFileSystem(conf)
-    WithUtils.withCloseable(fs.open(path)) { is =>
-      val compressionCodec = new CompressionCodecFactory(conf).getCodec(path)
+  def createVCFCodec(path: String, conf: Configuration): (VCFHeader, VCFCodec) = {
+    val hPath = new Path(path)
+    val fs = hPath.getFileSystem(conf)
+    WithUtils.withCloseable(fs.open(hPath)) { is =>
+      val compressionCodec = new CompressionCodecFactory(conf).getCodec(hPath)
       val wrappedStream = if (compressionCodec != null) {
         val decompressor = CodecPool.getDecompressor(compressionCodec)
         compressionCodec.createInputStream(is, decompressor)
@@ -405,9 +406,9 @@ private[vcf] object SchemaDelegate {
 
     spark
       .sparkContext
-      .parallelize(files)
-      .map { file =>
-        val (header, _) = VCFFileFormat.createVCFCodec(file.getPath, serializableConf.value)
+      .parallelize(files.map(_.getPath.toString))
+      .map { path =>
+        val (header, _) = VCFFileFormat.createVCFCodec(path, serializableConf.value)
 
         (header.getInfoHeaderLines.asScala.toSeq, header.getFormatHeaderLines.asScala.toSeq)
       }
