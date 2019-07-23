@@ -1,19 +1,16 @@
 package com.databricks.hls.transformers
 
-import java.io.{Closeable, InputStream, OutputStream, PrintWriter}
-import java.util.ServiceLoader
-
 import scala.collection.JavaConverters._
+
+import java.io.{Closeable, InputStream, OutputStream}
+import java.util.ServiceLoader
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
-import org.apache.commons.io.IOUtils
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
-import org.apache.spark.sql.types.{StringType, StructField, StructType}
-import org.apache.spark.sql.SQLUtils.dataTypesEqualExceptNullability
-import org.apache.spark.unsafe.types.UTF8String
+import org.apache.spark.sql.catalyst.util.CaseInsensitiveMap
+import org.apache.spark.sql.types.StructType
 
 import com.databricks.hls.DataFrameTransformer
 import com.databricks.hls.common.Named
@@ -31,24 +28,34 @@ class PipeTransformer extends DataFrameTransformer {
 
     private def getInputFormatter: InputFormatter = {
       val inputFormatterStr = options.get(INPUT_FORMATTER_KEY)
+      val inputFormatterOptions = options.collect {
+        case (k, v) if k.startsWith(INPUT_FORMATTER_PREFIX) =>
+          (k.stripPrefix(INPUT_FORMATTER_PREFIX), v)
+      }
+
       inputFormatterStr
         .flatMap(lookupInputFormatterFactory)
         .getOrElse {
           throw new IllegalArgumentException(
             s"Could not find an input formatter for $inputFormatterStr")
         }
-        .makeInputFormatter(df, options)
+        .makeInputFormatter(df, CaseInsensitiveMap(inputFormatterOptions))
     }
 
     private def getOutputFormatter: OutputFormatter = {
       val outputFormatterStr = options.get(OUTPUT_FORMATTER_KEY)
+      val outputFormatterOptions = options.collect {
+        case (k, v) if k.startsWith(OUTPUT_FORMATTER_PREFIX) =>
+          (k.stripPrefix(OUTPUT_FORMATTER_PREFIX), v)
+      }
+
       outputFormatterStr
         .flatMap(lookupOutputFormatterFactory)
         .getOrElse {
           throw new IllegalArgumentException(
             s"Could not find an output formatter for $outputFormatterStr")
         }
-        .makeOutputFormatter(options)
+        .makeOutputFormatter(CaseInsensitiveMap(outputFormatterOptions))
     }
 
     private def getCmd: Seq[String] = {
@@ -77,6 +84,8 @@ object PipeTransformer {
   private val INPUT_FORMATTER_KEY = "inputFormatter"
   private val OUTPUT_FORMATTER_KEY = "outputFormatter"
   private val ENV_PREFIX = "env_"
+  private val INPUT_FORMATTER_PREFIX = "in_"
+  private val OUTPUT_FORMATTER_PREFIX = "out_"
 
   private def lookupInputFormatterFactory(name: String): Option[InputFormatterFactory] =
     synchronized {
@@ -147,65 +156,4 @@ trait OutputFormatter extends Serializable {
 
 trait OutputFormatterFactory extends Named {
   def makeOutputFormatter(options: Map[String, String]): OutputFormatter
-}
-
-/**
- * A simple input formatter that writes each row as a string.
- */
-class UTF8TextInputFormatter() extends InputFormatter {
-
-  private var writer: PrintWriter = _
-
-  override def init(stream: OutputStream): Unit = {
-    writer = new PrintWriter(stream)
-  }
-
-  override def write(record: InternalRow): Unit = {
-    if (!record.isNullAt(0)) {
-      writer.println(record.getUTF8String(0)) // scalastyle:ignore
-    }
-  }
-
-  override def writeDummyDataset(): Unit = {}
-
-  override def close(): Unit = {
-    writer.close()
-  }
-}
-
-class UTF8TextInputFormatterFactory extends InputFormatterFactory {
-  override def name: String = "text"
-
-  override def makeInputFormatter(df: DataFrame, options: Map[String, String]): InputFormatter = {
-    require(df.schema.length == 1, "Input dataframe must have one column,")
-    require(
-      dataTypesEqualExceptNullability(df.schema.head.dataType, StringType),
-      "Input dataframe must have one string column.")
-    new UTF8TextInputFormatter
-  }
-}
-
-/**
- * A simple output formatter that returns each line of output as a String field.
- */
-class UTF8TextOutputFormatter() extends OutputFormatter {
-  override def outputSchema(stream: InputStream): StructType =
-    StructType(
-      Seq(
-        StructField("text", StringType)
-      ))
-
-  override def makeIterator(schema: StructType, stream: InputStream): Iterator[InternalRow] = {
-    IOUtils.lineIterator(stream, "UTF-8").asScala.map { s =>
-      new GenericInternalRow(Array(UTF8String.fromString(s)): Array[Any])
-    }
-  }
-}
-
-class UTF8TextOutputFormatterFactory extends OutputFormatterFactory {
-  override def name: String = "text"
-
-  override def makeOutputFormatter(options: Map[String, String]): OutputFormatter = {
-    new UTF8TextOutputFormatter
-  }
 }

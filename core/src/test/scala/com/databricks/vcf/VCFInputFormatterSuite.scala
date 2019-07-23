@@ -1,16 +1,10 @@
 package com.databricks.vcf
 
-import java.io.ByteArrayInputStream
-import java.nio.charset.Charset
-
 import scala.collection.JavaConverters._
 
-import htsjdk.samtools.seekablestream.ByteArraySeekableStream
-import htsjdk.variant.utils.VCFHeaderReader
 import htsjdk.variant.vcf.{VCFCompoundHeaderLine, VCFHeader, VCFHeaderLine}
 import org.apache.spark.sql.DataFrame
 import org.bdgenomics.adam.rdd.VCFMetadataLoader
-import org.seqdoop.hadoop_bam.util.WrapSeekable
 
 import com.databricks.hls.sql.HLSBaseTest
 
