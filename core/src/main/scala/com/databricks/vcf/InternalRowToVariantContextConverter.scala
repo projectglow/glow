@@ -2,32 +2,30 @@ package com.databricks.vcf
 
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
-
 import htsjdk.samtools.ValidationStringency
 import htsjdk.variant.variantcontext._
-import htsjdk.variant.vcf.{VCFConstants, VCFHeader}
+import htsjdk.variant.vcf.{VCFConstants, VCFHeader, VCFHeaderLine}
 import org.apache.spark.sql.SQLUtils
 import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.sql.types.{ArrayType, StructField, StructType}
-
 import com.databricks.hls.common.{HLSLogging, HasStringency}
 
 /**
  * Converts internal rows with the provided schema into HTSJDK variant context.
  *
- * @param rowSchema The schema of the rows that will be converted by this instance. The schema
- *                  must match the provided rows exactly.
- * @param vcfHeader A VCF header used for validation. The header is only used to provide warnings
- *                  or validation errors if the fields in the data either don't exist in the header
- *                  or have incompatible types. These warnings/errors can be useful if downstream
- *                  calculations depend on certain fields being present.
- * @param stringency How seriously to treat validation errors vs the VCF header.
+ * @param rowSchema     The schema of the rows that will be converted by this instance. The schema
+ *                      must match the provided rows exactly.
+ * @param headerLineSet VCF header lines used for validation. The header is only used to provide
+ *                      warnings or validation errors if the fields in the data either don't exist
+ *                      in the header or have incompatible types. These warnings/errors can be
+ *                      useful if downstream calculations depend on certain fields being present.
+ * @param stringency    How seriously to treat validation errors vs the VCF header.
  */
 class InternalRowToVariantContextConverter(
     rowSchema: StructType,
-    vcfHeader: VCFHeader,
+    headerLineSet: Set[VCFHeaderLine],
     val stringency: ValidationStringency)
     extends HLSLogging
     with HasStringency
@@ -45,9 +43,13 @@ class InternalRowToVariantContextConverter(
   // Genotype field names that are expected to not have headers
   private val genotypeFieldsWithoutHeaders = Set("sampleId", "otherFields")
 
+  // Sample-free VCF header
+  val vcfHeader: VCFHeader = new VCFHeader(headerLineSet.asJava)
+
   def validate(): Unit = {
     rowSchema.filter(_.name.startsWith(infoFieldPrefix)).foreach { f =>
-      val headerLine = vcfHeader.getInfoHeaderLine(f.name.stripPrefix(infoFieldPrefix))
+      val headerLine =
+        vcfHeader.getInfoHeaderLine(f.name.stripPrefix(infoFieldPrefix))
       if (headerLine == null) {
         provideWarning(s"Column ${f.name} does not have a matching VCF header line")
       } else if (!VCFSchemaInferer

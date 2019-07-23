@@ -3,7 +3,6 @@ package com.databricks.vcf
 import scala.collection.JavaConverters._
 
 import htsjdk.samtools.ValidationStringency
-import htsjdk.variant.vcf.VCFHeader
 import org.apache.spark.sql.types.{ArrayType, DataType, MapType, StructType}
 import org.bdgenomics.adam.rdd.VCFMetadataLoader
 
@@ -12,6 +11,7 @@ import com.databricks.hls.sql.HLSBaseTest
 class InternalRowToVariantContextConverterSuite extends HLSBaseTest {
   lazy val NA12878 = s"$testDataHome/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf"
   lazy val header = VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, NA12878)
+  lazy val headerLines = header.getMetaDataInInputOrder.asScala.toSet
 
   private val optionsSeq = Seq(
     Map("flattenInfoFields" -> "true", "includeSampleIds" -> "true"),
@@ -23,12 +23,12 @@ class InternalRowToVariantContextConverterSuite extends HLSBaseTest {
     val df = spark.read.format("com.databricks.vcf").options(options).load(NA12878)
     new InternalRowToVariantContextConverter(
       toggleNullability(df.schema, true),
-      header,
+      headerLines,
       ValidationStringency.STRICT).validate()
 
     new InternalRowToVariantContextConverter(
       toggleNullability(df.schema, false),
-      header,
+      headerLines,
       ValidationStringency.STRICT).validate()
   }
 

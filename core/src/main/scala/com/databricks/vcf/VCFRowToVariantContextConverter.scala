@@ -1,5 +1,7 @@
 package com.databricks.vcf
 
+import scala.collection.JavaConverters._
+
 import htsjdk.samtools.ValidationStringency
 import htsjdk.variant.variantcontext.{VariantContext => HtsjdkVariantContext}
 import htsjdk.variant.vcf.VCFHeader
@@ -16,7 +18,10 @@ class VCFRowToVariantContextConverter(
   // Encoders are not thread safe, so make a copy here
   private val vcfRowEncoder = VCFRow.encoder.copy()
   private val internalRowConverter =
-    new InternalRowToVariantContextConverter(VCFRow.schema, vcfHeader, stringency)
+    new InternalRowToVariantContextConverter(
+      VCFRow.schema,
+      vcfHeader.getMetaDataInInputOrder.asScala.toSet,
+      stringency)
 
   def convert(vcfRow: VCFRow): HtsjdkVariantContext = {
     internalRowConverter

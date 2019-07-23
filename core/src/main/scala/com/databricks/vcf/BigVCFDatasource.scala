@@ -9,7 +9,6 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.sources.DataSourceRegister
 import org.seqdoop.hadoop_bam.util.DatabricksBGZFOutputStream
 
-import com.databricks.hls.common.HLSLogging
 import com.databricks.hls.sql.util.SerializableConfiguration
 import com.databricks.sql.BigFileDatasource
 
@@ -30,9 +29,10 @@ object BigVCFDatasource {
       VCFFileFormat.hadoopConfWithBGZ(data.sparkSession.sparkContext.hadoopConfiguration)
     )
     val writerFactory = new VCFOutputWriterFactory(options)
-    data.queryExecution.toRdd.mapPartitionsWithIndex {
+    rdd.mapPartitionsWithIndex {
       case (idx, it) =>
-        val codec = new CompressionCodecFactory(serializableConf.value)
+        val conf = serializableConf.value
+        val codec = new CompressionCodecFactory(conf)
         val baos = new ByteArrayOutputStream()
         val outputStream = Option(codec.getCodec(new Path(BigFileDatasource.checkPath(options))))
           .map(_.createOutputStream(baos))
@@ -42,8 +42,7 @@ object BigVCFDatasource {
         DatabricksBGZFOutputStream.setWriteEmptyBlockOnClose(outputStream, idx == nParts - 1)
 
         // Write the header if this is the first partition
-        val writer =
-          new VCFFileWriter(outputStream, writerFactory.getRowConverter(dSchema), idx == 0)
+        val writer = new VCFFileWriter(options, dSchema, conf, outputStream, idx == 0)
 
         it.foreach { row =>
           writer.write(row)

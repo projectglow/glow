@@ -1,6 +1,6 @@
 package com.databricks.vcf
 
-import java.io.BufferedInputStream
+import java.io.{BufferedInputStream, File}
 import java.nio.file.{Files, Path, Paths}
 import java.util.stream.Collectors
 
@@ -9,12 +9,15 @@ import com.google.common.io.ByteStreams
 import htsjdk.samtools.ValidationStringency
 import htsjdk.samtools.util.{BlockCompressedInputStream, BlockCompressedStreamConstants}
 import htsjdk.variant.variantcontext.writer.VCFHeaderWriter
-import htsjdk.variant.vcf.{VCFHeader, VCFHeaderLine}
+import htsjdk.variant.vcf.{VCFCompoundHeaderLine, VCFHeader, VCFHeaderLine}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.{SparkConf, SparkException}
 import org.bdgenomics.adam.rdd.ADAMContext._
+import org.bdgenomics.adam.rdd.variant.VariantContextRDD
 import com.databricks.hls.common.WithUtils
 import com.databricks.hls.sql.HLSBaseTest
+import org.apache.spark.sql.types.StructType
+import org.bdgenomics.adam.rdd.VCFMetadataLoader
 
 abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest {
 
@@ -65,7 +68,7 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
 
       repartitioned
         .write
-        .option("header", originalHeader)
+        .option("vcfHeader", originalHeader)
         .format(writeSourceName)
         .save(tempFile)
     } else {
@@ -108,7 +111,7 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
     val sess = spark
     import sess.implicits._
     val (ds, rewrittenDs) = writeAndRereadWithDBParser(
-      NA12878,
+      TGP,
       readSampleIds = false,
       schemaOption = ("vcfRowSchema", "true")
     )
@@ -162,6 +165,24 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
     }
   }
 
+  test("Empty DF and missing sample IDs") {
+    val tempFile = createTempVcf.toString
+
+    val ds = spark
+      .read
+      .format(readSourceName)
+      .option("includeSampleIds", false)
+      .load(NA12878)
+      .limit(0)
+
+    // No VCF rows and missing samples
+    assertThrows[SparkException](
+      ds.write
+        .format(writeSourceName)
+        .save(tempFile)
+    )
+  }
+
   test("Invalid validation stringency") {
     val sess = spark
     import sess.implicits._
@@ -175,36 +196,12 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
       .option("vcfRowSchema", true)
       .load(NA12878)
       .as[VCFRow]
-    assertThrows[IllegalArgumentException](
+    assertThrows[SparkException](
       ds.write
         .format(writeSourceName)
         .option("validationStringency", "fakeStringency")
         .save(tempFile)
     )
-  }
-
-  test("Provided header") {
-    val sc = spark.sparkContext
-    val sess = spark
-
-    val tempFile = createTempVcf.toString
-
-    val headerLine1 = new VCFHeaderLine("fakeHeaderKey", "fakeHeaderValue")
-    val headerLine2 = new VCFHeaderLine("secondFakeHeaderKey", "secondFakeHeaderValue")
-    val headerLines = Set(headerLine1, headerLine2)
-    val extraHeader = new VCFHeader(headerLines.asJava, Seq("sample1", "NA12878").asJava)
-    sess
-      .read
-      .format(readSourceName)
-      .load(NA12878)
-      .write
-      .format(writeSourceName)
-      .option("header", VCFHeaderWriter.writeHeaderAsString(extraHeader))
-      .save(tempFile)
-
-    val vcRdd = sc.loadVcf(tempFile)
-    assert(headerLines.subsetOf(vcRdd.headerLines.toSet)) // ADAM mixes in supported header lines
-    assert(vcRdd.samples.map(_.getSampleId) == Seq("sample1", "NA12878"))
   }
 
   test("Corrupted header lines are not written") {
@@ -222,7 +219,7 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
       .load(NA12878)
       .write
       .format(writeSourceName)
-      .option("header", extraHeaderStr.substring(0, extraHeaderStr.length - 10))
+      .option("vcfHeader", extraHeaderStr.substring(0, extraHeaderStr.length - 10))
       .save(tempFile)
 
     val vcRdd = sc.loadVcf(tempFile)
@@ -276,6 +273,7 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
         .write
         .mode("overwrite")
         .option("validationStringency", stringency.toString)
+        .option("vcfHeader", NA12878)
         .format("com.databricks.vcf")
         .save(Files.createTempDirectory("vcf").resolve("vcf").toString)
     }
@@ -285,6 +283,66 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
     intercept[SparkException] {
       parseRow(ValidationStringency.STRICT)
     }
+  }
+
+  def writeVcfHeader(df: DataFrame, vcfHeaderOpt: Option[String]): VCFHeader = {
+    val tempFileStr = createTempVcf.toString
+
+    if (vcfHeaderOpt.isDefined) {
+      df.write
+        .format(writeSourceName)
+        .option("vcfHeader", vcfHeaderOpt.get)
+        .save(tempFileStr)
+    } else {
+      df.write
+        .format(writeSourceName)
+        .save(tempFileStr)
+    }
+
+    val tempFile = new File(tempFileStr)
+    val fileToRead = if (tempFile.isDirectory) {
+      tempFile.listFiles().filter(_.getName.endsWith(".vcf")).head.getAbsolutePath
+    } else {
+      tempFileStr
+    }
+    VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, fileToRead)
+  }
+
+  private def getSchemaLines(header: VCFHeader): Set[VCFCompoundHeaderLine] = {
+    header.getInfoHeaderLines.asScala.toSet ++ header.getFormatHeaderLines.asScala.toSet
+  }
+
+  test("Provided header") {
+    val headerLine1 = new VCFHeaderLine("fakeHeaderKey", "fakeHeaderValue")
+    val headerLine2 = new VCFHeaderLine("secondFakeHeaderKey", "secondFakeHeaderValue")
+    val headerLines = Set(headerLine1, headerLine2)
+    val extraHeader = new VCFHeader(headerLines.asJava, Seq("sample1", "NA12878").asJava)
+    val vcfHeader = VCFHeaderWriter.writeHeaderAsString(extraHeader)
+    val writtenHeader =
+      writeVcfHeader(spark.read.format(readSourceName).load(NA12878), Some(vcfHeader))
+
+    assert(headerLines.subsetOf(writtenHeader.getMetaDataInInputOrder.asScala))
+    assert(writtenHeader.getGenotypeSamples.asScala == Seq("sample1", "NA12878"))
+  }
+
+  test("If not specified, default header") {
+    val writtenHeader = writeVcfHeader(spark.read.format(readSourceName).load(NA12878), None)
+    assert(VCFRowHeaderLines.allHeaderLines.toSet == getSchemaLines(writtenHeader))
+  }
+
+  test("Path header") {
+    val writtenHeader = writeVcfHeader(spark.read.format(readSourceName).load(NA12878), Some(TGP))
+    val tgpHeader = VCFMetadataLoader.readVcfHeader(spark.sparkContext.hadoopConfiguration, TGP)
+    assert(tgpHeader.getMetaDataInInputOrder == writtenHeader.getMetaDataInInputOrder)
+    assert(tgpHeader.getGenotypeSamples == writtenHeader.getGenotypeSamples)
+  }
+
+  test("Infer header") {
+    val df = spark.read.format(readSourceName).load(NA12878)
+    val writtenHeader = writeVcfHeader(df, Some("infer"))
+    val oldHeader = VCFMetadataLoader.readVcfHeader(spark.sparkContext.hadoopConfiguration, NA12878)
+    assert(getSchemaLines(writtenHeader) == VCFSchemaInferer.headerLinesFromSchema(df.schema).toSet)
+    assert(oldHeader.getMetaDataInInputOrder != writtenHeader.getMetaDataInInputOrder)
   }
 }
 
@@ -302,6 +360,7 @@ class MultiFileVCFWriterSuite extends VCFFileWriterSuite {
       .emptyRDD[VCFRow]
       .toDS
       .write
+      .option("vcfHeader", NA12878)
       .format(writeSourceName)
       .save(tempFile)
     val rewrittenDs = spark
@@ -342,5 +401,75 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite {
       // Empty gzip block is at end of file
       assert(bytes.endsWith(BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK))
     }
+  }
+}
+
+class VCFWriterUtilsSuite extends HLSBaseTest {
+  val vcf = s"$testDataHome/NA12878_21_10002403.vcf"
+  lazy val schema = spark.read.format("com.databricks.vcf").load(vcf).schema
+
+  private def getHeaderNoSamples(
+      options: Map[String, String],
+      defaultOpt: Option[String],
+      schema: StructType): VCFHeader = {
+    val (headerLines, _) = VCFFileWriter.parseHeaderLinesAndSamples(
+      options,
+      defaultOpt,
+      schema,
+      spark.sparkContext.hadoopConfiguration)
+    new VCFHeader(headerLines.asJava)
+  }
+
+  private def getSchemaLines(header: VCFHeader): Set[VCFCompoundHeaderLine] = {
+    header.getInfoHeaderLines.asScala.toSet ++ header.getFormatHeaderLines.asScala.toSet
+  }
+
+  private def getAllLines(header: VCFHeader): Set[VCFHeaderLine] = {
+    header.getContigLines.asScala.toSet ++
+    header.getFilterLines.asScala.toSet ++
+    header.getFormatHeaderLines.asScala.toSet ++
+    header.getInfoHeaderLines.asScala.toSet ++
+    header.getOtherHeaderLines.asScala.toSet
+  }
+
+  test("default header") {
+    val header = getHeaderNoSamples(Map("vcfHeader" -> "default"), None, schema)
+    assert(getSchemaLines(header) == VCFRowHeaderLines.allHeaderLines.toSet)
+  }
+
+  test("fall back") {
+    val header = getHeaderNoSamples(Map.empty, Some("default"), schema)
+    assert(getSchemaLines(header) == VCFRowHeaderLines.allHeaderLines.toSet)
+  }
+
+  test("infer header") {
+    val header = getHeaderNoSamples(Map("vcfHeader" -> "infer"), None, schema)
+    assert(getSchemaLines(header) == VCFSchemaInferer.headerLinesFromSchema(schema).toSet)
+    assert(
+      getAllLines(header) !=
+      getAllLines(VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, vcf)))
+  }
+
+  test("use header path") {
+    val header = getHeaderNoSamples(Map("vcfHeader" -> vcf), None, schema)
+    assert(
+      getAllLines(header) ==
+      getAllLines(VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, vcf)))
+  }
+
+  test("use literal header") {
+    val contents =
+      """
+        |##fileformat=VCFv4.2
+        |##FORMAT=<ID=PL,Number=G,Type=Integer,Description="">
+        |##contig=<ID=monkey,length=42>
+        |##source=DatabricksIsCool
+        |""".stripMargin.trim + // write CHROM line by itself to preserve tabs
+      "\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tNA12878\n"
+
+    val header = getHeaderNoSamples(Map("vcfHeader" -> contents), None, schema)
+    val parsed = VCFFileWriter.parseHeaderFromString(contents)
+    assert(getAllLines(header).nonEmpty)
+    assert(getAllLines(header) == getAllLines(parsed))
   }
 }
