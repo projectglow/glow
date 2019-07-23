@@ -36,7 +36,7 @@ class VCFPiperSuite extends HLSBaseTest {
     val options = Map(
       "inputFormatter" -> "vcf",
       "outputFormatter" -> "vcf",
-      "vcfHeader" -> "infer",
+      "in_vcfHeader" -> "infer",
       "cmd" -> s"""["$script"]""")
     val outputDf = SparkGenomics.transform("pipe", inputDf, options)
 
@@ -86,7 +86,7 @@ class VCFPiperSuite extends HLSBaseTest {
   }
 
   private val baseTextOptions =
-    Map("inputFormatter" -> "vcf", "outputFormatter" -> "text", "vcfHeader" -> "infer")
+    Map("inputFormatter" -> "vcf", "outputFormatter" -> "text", "in_vcfHeader" -> "infer")
   test("environment variables") {
     import sess.implicits._
 
@@ -186,7 +186,7 @@ class VCFPiperSuite extends HLSBaseTest {
     val options = Map(
       "inputFormatter" -> "text",
       "outputFormatter" -> "vcf",
-      "vcfHeader" -> "infer",
+      "in_vcfHeader" -> "infer",
       "cmd" -> s"""["cat", "-"]""")
     assertThrows[SparkException](SparkGenomics.transform("pipe", df, options))
   }
@@ -196,7 +196,7 @@ class VCFPiperSuite extends HLSBaseTest {
     val options = Map(
       "inputFormatter" -> "vcf",
       "outputFormatter" -> "text",
-      "vcfHeader" -> na12878,
+      "in_vcfHeader" -> na12878,
       "cmd" -> s"""["cat", "-"]""")
     val output = SparkGenomics.transform("pipe", df, options)
     assert(output.count() == 28)
@@ -221,7 +221,7 @@ class VCFPiperSuite extends HLSBaseTest {
     val options = Map(
       "inputFormatter" -> "vcf",
       "outputFormatter" -> "vcf",
-      "vcfHeader" -> na12878,
+      "in_vcfHeader" -> na12878,
       "cmd" -> s"""["cat", "-"]""")
     val output = SparkGenomics.transform("pipe", df, options)
     assert(output.count() == 4)
