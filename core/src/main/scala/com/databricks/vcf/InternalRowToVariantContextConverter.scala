@@ -40,6 +40,9 @@ class InternalRowToVariantContextConverter(
   private val infoKeysParsedWithoutHeader = scala.collection.mutable.HashSet.empty[String]
   private val formatKeysParsedWithoutHeader = scala.collection.mutable.HashSet.empty[String]
 
+  private val vcFieldsToIgnore =
+    Set(VariantSchemas.splitFromMultiAllelicField.name, VariantSchemas.genotypesFieldName)
+
   // Genotype field names that are expected to not have headers
   private val genotypeFieldsWithoutHeaders = Set("sampleId", "otherFields")
 
@@ -100,9 +103,8 @@ class InternalRowToVariantContextConverter(
         case f if structFieldsEqualExceptNullability(f, attributesField) => updateAttributes
         case f if f.name.startsWith(infoFieldPrefix) =>
           (vc, row, i) => updateInfoField(f, vc, row, i)
-        case f if f.name == genotypesFieldName =>
-          // Explicitly do nothing for now since we need to wait until we parse alleles to parse
-          // genotypes
+        case f if vcFieldsToIgnore.contains(f.name) =>
+          // Explicitly do nothing for fields that are added by our VCF reader
           (vc, _, _) => vc
         case f =>
           logger.info(

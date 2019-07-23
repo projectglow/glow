@@ -16,7 +16,8 @@ class InternalRowToVariantContextConverterSuite extends HLSBaseTest {
   private val optionsSeq = Seq(
     Map("flattenInfoFields" -> "true", "includeSampleIds" -> "true"),
     Map("flattenInfoFields" -> "true", "includeSampleIds" -> "false"),
-    Map("flattenInfoFields" -> "false", "includeSampleIds" -> "false")
+    Map("flattenInfoFields" -> "false", "includeSampleIds" -> "false"),
+    Map("splitToBiallelic" -> "true", "includeSampleIds" -> "true")
   )
 
   gridTest("common schema options pass strict validation")(optionsSeq) { options =>
