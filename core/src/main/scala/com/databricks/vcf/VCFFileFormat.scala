@@ -484,31 +484,18 @@ private[vcf] object SchemaDelegate {
 private[databricks] class VCFOutputWriterFactory(options: Map[String, String])
     extends OutputWriterFactory {
 
-  private val validationStringency = VCFOptionParser.getValidationStringency(options)
-
-  def getRowConverter(dataSchema: StructType): InternalRowToHtsjdkConverter = {
-    val (headerLineSet, providedSampleList) = if (options.contains(VCFOption.HEADER)) {
-      val providedHeader = VCFFileWriter.parseHeaderFromString(options(VCFOption.HEADER))
-      (providedHeader.getMetaDataInInputOrder, Some(providedHeader.getGenotypeSamples))
-    } else {
-      (VCFRowHeaderLines.allHeaderLines.toSet.asJava, None)
-    }
-    DefaultInternalRowToHtsjdkConverter(
-      dataSchema,
-      headerLineSet,
-      providedSampleList,
-      validationStringency
-    )
-  }
-
   override def newInstance(
       path: String,
       dataSchema: StructType,
       context: TaskAttemptContext): OutputWriter = {
     val outputStream = CodecStreams.createOutputStream(context, new Path(path))
     DatabricksBGZFOutputStream.setWriteEmptyBlockOnClose(outputStream, true)
-
-    new VCFFileWriter(outputStream, getRowConverter(dataSchema), writeHeader = true)
+    new VCFFileWriter(
+      options,
+      dataSchema,
+      context.getConfiguration,
+      outputStream,
+      writeHeader = true)
   }
 
   override def getFileExtension(context: TaskAttemptContext): String = {

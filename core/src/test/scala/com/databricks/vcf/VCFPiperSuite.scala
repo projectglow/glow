@@ -21,6 +21,7 @@ import com.databricks.hls.transformers.ProcessHelper
 class VCFPiperSuite extends HLSBaseTest {
   lazy val sess = spark
   private val na12878 = s"$testDataHome/NA12878_21_10002403.vcf"
+  private val TGP = s"$testDataHome/1000genomes-phase3-1row.vcf"
 
   private def readVcf(vcf: String): DataFrame = {
     spark
@@ -108,9 +109,18 @@ class VCFPiperSuite extends HLSBaseTest {
     val df = readVcf(na12878).limit(0).repartition(8)
     assert(df.count == 0)
 
-    val options = baseTextOptions ++ Map("cmd" -> """["wc", "-l"]""")
+    val options = baseTextOptions ++ Map("cmd" -> """["wc", "-l"]""", "in_vcfHeader" -> na12878)
     val output = SparkGenomics.transform("pipe", df, options)
     assert(output.count() == 8)
+  }
+
+  test("empty partition and missing samples") {
+    val df = readVcf(na12878).limit(0).repartition(8)
+    assert(df.count == 0)
+
+    val options = baseTextOptions ++ Map("cmd" -> """["wc", "-l"]""")
+    val output = SparkGenomics.transform("pipe", df, options)
+    assertThrows[SparkException](output.count)
   }
 
   test("stdin and stderr threads are cleaned up for successful commands") {
@@ -224,4 +234,41 @@ class VCFPiperSuite extends HLSBaseTest {
     val output = SparkGenomics.transform("pipe", df, options)
     assert(output.count() == 4)
   }
+
+  test("missing sample names") {
+    val sess = spark
+    import sess.implicits._
+
+    val inputDf = spark
+      .read
+      .option("includeSampleIds", "false")
+      .option("vcfRowSchema", "true")
+      .format("com.databricks.vcf")
+      .load(TGP)
+
+    val options = Map(
+      "inputFormatter" -> "vcf",
+      "outputFormatter" -> "vcf",
+      "in_vcfHeader" -> "infer",
+      "cmd" -> s"""["cat", "-"]""")
+    val outputDf = SparkGenomics.transform("pipe", inputDf.toDF, options)
+
+    inputDf.as[SimpleVcfRow].collect.zip(outputDf.as[SimpleVcfRow].collect).foreach {
+      case (vc1, vc2) =>
+        var missingSampleIdx = 0
+        val gtsWithSampleIds = vc1.genotypes.map { gt =>
+          missingSampleIdx += 1
+          gt.copy(sampleId = Some(s"sample_$missingSampleIdx"))
+        }
+        val vc1WithSampleIds = vc1.copy(genotypes = gtsWithSampleIds)
+        assert(vc1WithSampleIds.equals(vc2), s"VC1 $vc1WithSampleIds VC2 $vc2")
+    }
+  }
 }
+
+case class SimpleVcfRow(contigName: String, start: Long, genotypes: Seq[SimpleGenotype])
+
+case class SimpleGenotype(
+    sampleId: Option[String],
+    phased: Option[Boolean],
+    calls: Option[Seq[Int]])
