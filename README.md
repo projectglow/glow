@@ -27,3 +27,10 @@ To test or testOnly in remote debug mode with IntelliJ IDEA set the remote debug
 val options = ForkOptions().withRunJVMOptions(Vector("-Xmx1024m")).withRunJVMOptions(Vector("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"))
 ```
 
+To run Python tests, you must install and activate the conda environment in
+`python/environment.yml`. You can then run tests from sbt:
+```
+python/test
+```
+
+These tests will run with the same Spark classpath as the Scala tests.

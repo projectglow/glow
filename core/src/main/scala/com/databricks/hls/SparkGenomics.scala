@@ -39,6 +39,13 @@ object SparkGenomics {
     transform(operationName, df, options.toMap)
   }
 
+  def transform(
+      operationName: String,
+      df: DataFrame,
+      options: java.util.Map[String, String]): DataFrame = {
+    transform(operationName, df, options.asScala.toMap)
+  }
+
   private def lookupTransformer(name: String): Option[DataFrameTransformer] = synchronized {
     transformerLoader.reload()
     transformerLoader.iterator().asScala.find(_.name == name)

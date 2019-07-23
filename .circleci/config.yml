@@ -5,10 +5,36 @@ jobs:
     docker:
       - image: circleci/openjdk:8
     steps:
+
+      - restore_cache:
+          keys:
+            - conda-deps-v1-{{ .Branch }}
+
       - checkout
+
       - run:
-          command:
+          name: install dependencies
+          command: |
+            if [ ! -d "/home/circleci/conda" ]; then
+              wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+              /bin/bash Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/conda
+              export PATH=$HOME/conda/bin:$PATH
+              conda env create -f python/environment.yml
+            else
+              echo "Conda already installed"
+            fi
+
+      - run:
+          name: run tests
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/spark-genomics/bin:$PATH
             sbt test exit
+
+      - save_cache:
+          paths:
+            - /home/circleci/conda
+          key: conda-deps-v1-{{ .Branch }}
 
 workflows:
   version: 2

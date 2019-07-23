@@ -26,8 +26,6 @@ class VCFPiperSuite extends HLSBaseTest {
     spark
       .read
       .format("com.databricks.vcf")
-      .option("includeSampleIds", "true")
-      .option("flattenInfoFields", "true")
       .load(vcf)
   }
 
