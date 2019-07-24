@@ -1,6 +1,6 @@
 import pytest
 from pyspark.sql.utils import IllegalArgumentException
-from spark_genomics import sg
+import spark_genomics as sg
 
 
 def test_transform(spark):
