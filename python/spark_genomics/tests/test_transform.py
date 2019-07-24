@@ -7,7 +7,7 @@ def test_transform(spark):
     df = spark.read.format("com.databricks.vcf")\
         .load("test-data/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf")
     converted = sg.transform("pipe", df, inputFormatter="vcf", outputFormatter="vcf",
-                             cmd='["cat"]', vcfHeader="infer")
+                             cmd='["cat"]', in_vcfHeader="infer")
     assert converted.count() == 1075
 
 
@@ -25,7 +25,7 @@ def test_arg_map(spark):
         "inputFormatter": "vcf",
         "outputFormatter": "vcf",
         "cmd": '["cat"]',
-        "vcfHeader": "infer"
+        "in_vcfHeader": "infer"
     }
     converted = sg.transform("pipe", df, args)
     assert converted.count() == 1075
