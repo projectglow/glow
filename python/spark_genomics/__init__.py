@@ -1,1 +1,1 @@
-from spark_genomics import sg
+from spark_genomics.sg import *
