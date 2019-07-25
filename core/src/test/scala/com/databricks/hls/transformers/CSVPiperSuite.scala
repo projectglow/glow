@@ -8,9 +8,11 @@
  */
 package com.databricks.hls.transformers
 
+import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.types.{StringType, StructField}
+
 import com.databricks.hls.SparkGenomics
 import com.databricks.hls.sql.HLSBaseTest
-import org.apache.spark.sql.DataFrame
 
 class CSVPiperSuite extends HLSBaseTest {
   private val saige = s"$testDataHome/saige_output.txt"
@@ -78,11 +80,8 @@ class CSVPiperSuite extends HLSBaseTest {
   test("No rows with header") {
     val inputDf =
       spark.read.option("delimiter", " ").option("header", "true").csv(saige).limit(0)
-    val outputDf =
-      pipeCsv(inputDf, s"""["cat", "-"]""", Some(" "), Some(" "), Some(true), Some(true))
-
-    assert(outputDf.schema == inputDf.schema)
-    assert(outputDf.count == 0)
+    assertThrows[IllegalArgumentException](
+      pipeCsv(inputDf, s"""["cat", "-"]""", Some(" "), Some(" "), Some(true), Some(true)))
   }
 
   test("Default options: comma delimiter and no header") {
@@ -105,9 +104,29 @@ class CSVPiperSuite extends HLSBaseTest {
   test("No rows and no header") {
     val inputDf =
       spark.read.option("delimiter", ",").option("header", "false").csv(csv).limit(0)
-    val outputDf = pipeCsv(inputDf, s"""["cat", "-"]""", None, None, None, None)
+    assertThrows[IllegalArgumentException](
+      pipeCsv(inputDf, s"""["cat", "-"]""", None, None, None, None))
+  }
 
-    assert(outputDf.schema == inputDf.schema)
-    assert(outputDf.count == 0)
+  test("VCF to CSV") {
+    val na12878 = s"$testDataHome/NA12878_21_10002403.vcf"
+    val input =
+      spark.read.format("com.databricks.vcf").load(na12878)
+    val options = Map(
+      "inputFormatter" -> "vcf",
+      "outputFormatter" -> "csv",
+      "in_vcfHeader" -> na12878,
+      "out_header" -> "true",
+      "out_delimiter" -> " ",
+      "cmd" -> s"""["$testDataHome/vcf/scripts/gwas.sh"]"""
+    )
+    val outputDf = SparkGenomics.transform("pipe", input, options)
+    assert(
+      outputDf.schema.fields.toSeq == Seq(
+        StructField("CHR", StringType, nullable = true),
+        StructField("POS", StringType, nullable = true),
+        StructField("pValue", StringType, nullable = true)))
+    assert(outputDf.count == input.count)
+    assert(outputDf.filter("pValue = 0.5").count == outputDf.count)
   }
 }

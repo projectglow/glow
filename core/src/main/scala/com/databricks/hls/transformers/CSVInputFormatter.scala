@@ -21,11 +21,6 @@ class CSVInputFormatter(schema: StructType, parsedOptions: CSVOptions) extends I
     univocityGenerator.write(record)
   }
 
-  override def writeDummyDataset(): Unit = {
-    // Writes the header at least once (if header flag is set, twice)
-    univocityGenerator.write(InternalRow.fromSeq(schema.fieldNames))
-  }
-
   override def close(): Unit = {
     writer.close()
     univocityGenerator.close()

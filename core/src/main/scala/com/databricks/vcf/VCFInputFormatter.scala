@@ -1,12 +1,11 @@
 package com.databricks.vcf
 
 import scala.collection.JavaConverters._
-import java.io.{OutputStream, PrintWriter}
+import java.io.OutputStream
 
-import htsjdk.variant.variantcontext.writer.{Options, VariantContextWriterBuilder}
-import org.apache.commons.io.IOUtils
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.catalyst.InternalRow
+
 import com.databricks.hls.common.HLSLogging
 import com.databricks.hls.transformers.{InputFormatter, InputFormatterFactory}
 
@@ -37,24 +36,6 @@ class VCFInputFormatter(
       val vc = vcOpt.get
       writer.write(vc)
     }
-  }
-
-  override def writeDummyDataset(): Unit = {
-    val header = converter.vcfHeader
-
-    // Sample-free VCF record with all info and format fields missing
-    val dummyVcfLine = Seq("21", "10002403", ".", "G", "A", "19.81").mkString("\t")
-    val writer = new VariantContextWriterBuilder()
-      .clearOptions()
-      .setOutputStream(stream)
-      .setOption(Options.ALLOW_MISSING_FIELDS_IN_HEADER)
-      .build
-    writer.writeHeader(header)
-    // checkError flushes the writer without closing the underlying stream
-    writer.checkError()
-
-    val printWriter = new PrintWriter(stream)
-    printWriter.println(dummyVcfLine) // scalastyle:ignore
   }
 
   override def close(): Unit = {

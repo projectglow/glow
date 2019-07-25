@@ -12,7 +12,10 @@ import com.databricks.hls.sql.HLSBaseTest
 
 class PipeTransformerSuite extends HLSBaseTest {
   test("read input and output formatters from service loader") {
-    val df = spark.emptyDataFrame.repartition(1)
+    val sess = spark
+    import sess.implicits._
+
+    val df = Seq("dolphin").toDF.repartition(1)
     val options =
       Map("inputFormatter" -> "dummy_in", "outputFormatter" -> "dummy_out", "cmd" -> """["cat"]""")
     val output = new PipeTransformer().transform(df, options)
@@ -33,8 +36,6 @@ class DummyInputFormatterFactory() extends InputFormatterFactory {
 
 class DummyInputFormatter() extends InputFormatter {
   override def close(): Unit = ()
-
-  override def writeDummyDataset(): Unit = ()
 
   override def write(record: InternalRow): Unit = ()
 
