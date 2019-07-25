@@ -119,13 +119,6 @@ trait InputFormatter extends Serializable with Closeable {
    */
   def write(record: InternalRow): Unit
 
-  /**
-   * Write a dummy dataset to the subprocess's stdout stream. This method is used for schema
-   * inference -- the output formatter must be able to determine the output schema from the
-   * subprocess's output for this dataset.
-   */
-  def writeDummyDataset(): Unit
-
   def close(): Unit
 }
 
@@ -137,7 +130,7 @@ trait OutputFormatter extends Serializable {
 
   /**
    * Determine the output schema based on the subprocess's stdout stream in response to the
-   * input formatter's dummy dataset.
+   * input formatter's single-row dataset.
    *
    * @param stream The subprocess's stdout stream
    */

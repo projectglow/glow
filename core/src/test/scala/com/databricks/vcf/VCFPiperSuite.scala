@@ -106,8 +106,8 @@ class VCFPiperSuite extends HLSBaseTest {
   }
 
   test("empty partition") {
-    val df = readVcf(na12878).limit(0).repartition(8)
-    assert(df.count == 0)
+    val df = readVcf(na12878).repartition(8)
+    assert(df.count == 4)
 
     val options = baseTextOptions ++ Map("cmd" -> """["wc", "-l"]""", "in_vcfHeader" -> na12878)
     val output = SparkGenomics.transform("pipe", df, options)
@@ -115,8 +115,8 @@ class VCFPiperSuite extends HLSBaseTest {
   }
 
   test("empty partition and missing samples") {
-    val df = readVcf(na12878).limit(0).repartition(8)
-    assert(df.count == 0)
+    val df = readVcf(na12878).repartition(8)
+    assert(df.count == 4)
 
     val options = baseTextOptions ++ Map("cmd" -> """["wc", "-l"]""")
     val output = SparkGenomics.transform("pipe", df, options)
@@ -165,7 +165,7 @@ class VCFPiperSuite extends HLSBaseTest {
   }
 
   test("command fails") {
-    val df = readVcf(na12878).limit(0).repartition(8)
+    val df = readVcf(na12878).repartition(8)
     val options = baseTextOptions ++ Map("cmd" -> """["bash", "-c", "exit 1"]""")
     val ex = intercept[SparkException] {
       SparkGenomics.transform("pipe", df, options).count()
@@ -189,25 +189,14 @@ class VCFPiperSuite extends HLSBaseTest {
     }
   }
 
-  test("empty text partitions read to vcf") {
-    val df = spark.read.text(na12878).limit(0).repartition(2)
-    val options = Map(
-      "inputFormatter" -> "text",
-      "outputFormatter" -> "vcf",
-      "in_vcfHeader" -> "infer",
-      "cmd" -> s"""["cat", "-"]""")
-    assertThrows[SparkException](SparkGenomics.transform("pipe", df, options))
-  }
-
-  test("empty vcf partitions write header") {
-    val df = readVcf(na12878).limit(0).repartition(1)
+  test("empty vcf") {
+    val df = readVcf(na12878).limit(0)
     val options = Map(
       "inputFormatter" -> "vcf",
       "outputFormatter" -> "text",
       "in_vcfHeader" -> na12878,
       "cmd" -> s"""["cat", "-"]""")
-    val output = SparkGenomics.transform("pipe", df, options)
-    assert(output.count() == 28)
+    assertThrows[IllegalArgumentException](SparkGenomics.transform("pipe", df, options))
   }
 
   test("task context is defined in each thread") {

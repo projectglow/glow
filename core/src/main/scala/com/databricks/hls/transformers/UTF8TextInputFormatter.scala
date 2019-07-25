@@ -24,8 +24,6 @@ class UTF8TextInputFormatter() extends InputFormatter {
     }
   }
 
-  override def writeDummyDataset(): Unit = {}
-
   override def close(): Unit = {
     writer.close()
   }

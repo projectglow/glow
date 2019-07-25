@@ -5,11 +5,11 @@ import java.util.concurrent.atomic.AtomicReference
 
 import scala.collection.JavaConverters._
 import scala.io.Source
-
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SQLUtils}
 import org.apache.spark.TaskContext
+import org.apache.spark.sql.catalyst.encoders.RowEncoder
 
 import com.databricks.hls.common.{HLSLogging, WithUtils}
 
@@ -20,6 +20,7 @@ import com.databricks.hls.common.{HLSLogging, WithUtils}
  * - Use the input and output formatters to return a DataFrame
  */
 private[databricks] object Piper extends HLSLogging {
+  // Pipes a single row of the input DataFrame to get the output schema before piping all of it.
   def pipe(
       informatter: InputFormatter,
       outputformatter: OutputFormatter,
@@ -29,6 +30,12 @@ private[databricks] object Piper extends HLSLogging {
 
     logger.info(s"Beginning pipe with cmd $cmd")
 
+    val encoder = RowEncoder.apply(df.schema)
+    val singleRow = encoder.toRow(
+      df.take(1)
+        .headOption
+        .getOrElse(throw new IllegalArgumentException("Can't pipe empty DataFrame.")))
+
     val spark = df.sparkSession
     val outputSchema = spark
       .range(1)
@@ -37,7 +44,7 @@ private[databricks] object Piper extends HLSLogging {
         val writeFn: OutputStream => Unit = os => {
           WithUtils.withCloseable(informatter) { formatter =>
             formatter.init(os)
-            formatter.writeDummyDataset()
+            formatter.write(singleRow)
           }
         }
         val helper = new ProcessHelper(cmd, env, writeFn, TaskContext.get)
