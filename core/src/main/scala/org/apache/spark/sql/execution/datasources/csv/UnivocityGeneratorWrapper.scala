@@ -43,36 +43,44 @@ object UnivocityParserUtils {
   }
 }
 
-// Shim for protected function makeSafeHeader
-object DummyCsvDataSource extends CSVDataSource {
-  override def isSplitable: Boolean = {
-    throw new UnsupportedOperationException("Dummy CSV data source")
-  }
-
-  override def readFile(
-      conf: Configuration,
-      file: PartitionedFile,
-      parser: UnivocityParser,
-      requiredSchema: StructType,
-      // Actual schema of data in the csv file
-      dataSchema: StructType,
-      caseSensitive: Boolean,
-      columnPruning: Boolean): Iterator[InternalRow] = {
-    throw new UnsupportedOperationException("Dummy CSV data source")
-  }
-
-  override def infer(
-      sparkSession: SparkSession,
-      inputPaths: Seq[FileStatus],
-      parsedOptions: CSVOptions): StructType = {
-    throw new UnsupportedOperationException("Dummy CSV data source")
-  }
-
-  def makeSafeHeaderShim(
+// Inline of protected function makeSafeHeader
+object CSVDataSourceUtils {
+  def makeSafeHeader(
       row: Array[String],
       caseSensitive: Boolean,
       options: CSVOptions): Array[String] = {
-    makeSafeHeader(row, caseSensitive, options)
+    if (options.headerFlag) {
+      val duplicates = {
+        val headerNames = row
+          .filter(_ != null)
+          .map(name => if (caseSensitive) name else name.toLowerCase)
+        headerNames.diff(headerNames.distinct).distinct
+      }
+
+      row.zipWithIndex.map {
+        case (value, index) =>
+          if (value == null || value.isEmpty || value == options.nullValue) {
+            // When there are empty strings or the values set in `nullValue`, put the
+            // index as the suffix.
+            s"_c$index"
+          } else if (!caseSensitive && duplicates.contains(value.toLowerCase)) {
+            // When there are case-insensitive duplicates, put the index as the suffix.
+            s"$value$index"
+          } else if (duplicates.contains(value)) {
+            // When there are duplicates, put the index as the suffix.
+            s"$value$index"
+          } else {
+            value
+          }
+      }
+    } else {
+      row.zipWithIndex.map {
+        case (_, index) =>
+          // Uses default column names, "_c#" where # is its position of fields
+          // when header option is disabled.
+          s"_c$index"
+      }
+    }
   }
 }
 

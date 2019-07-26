@@ -7,7 +7,7 @@ import java.io.InputStream
 import com.univocity.parsers.csv.CsvParser
 import org.apache.commons.io.IOUtils
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.execution.datasources.csv.{CSVDataSource, CSVOptions, CSVUtils, DummyCsvDataSource, UnivocityParser, UnivocityParserUtils}
+import org.apache.spark.sql.execution.datasources.csv.{CSVDataSource, CSVDataSourceUtils, CSVOptions, CSVUtils, UnivocityParser, UnivocityParserUtils}
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 
@@ -24,7 +24,7 @@ class CSVOutputFormatter(parsedOptions: CSVOptions) extends OutputFormatter {
     }
     val caseSensitive = SQLConf.get.caseSensitiveAnalysis
     val header =
-      DummyCsvDataSource.makeSafeHeaderShim(tokenizedRows.next, caseSensitive, parsedOptions)
+      CSVDataSourceUtils.makeSafeHeader(tokenizedRows.next, caseSensitive, parsedOptions)
     val fields = header.map { fieldName =>
       StructField(fieldName, StringType, nullable = true)
     }
