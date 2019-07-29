@@ -64,7 +64,7 @@ lazy val core = (project in file("core"))
       "org.apache.spark" %% "spark-core" % sparkVersion % "provided",
       "org.apache.spark" %% "spark-mllib" % sparkVersion % "provided",
       "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
-      "com.github.samtools" % "htsjdk" % "2.16.1",
+      "com.github.samtools" % "htsjdk" % "2.20.0",
       "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.9.9",
       "org.seqdoop" % "hadoop-bam" % "7.9.1",
       "log4j" % "log4j" % "1.2.17",

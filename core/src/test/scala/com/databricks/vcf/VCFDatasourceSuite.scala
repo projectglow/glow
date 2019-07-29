@@ -277,6 +277,15 @@ abstract class BaseVCFDatasourceSuite(val sourceName: String) extends HLSBaseTes
     assert(row.end == 200)
   }
 
+  test("read VCFv4.3") {
+    val input = spark
+      .read
+      .format("com.databricks.vcf")
+      .load(s"$testDataHome/vcf/VCFv4.3.vcf")
+
+    assert(input.count == 5)
+  }
+
   private def compareRows(r1: VCFRow, r2: VCFRow): Unit = {
     assert(r1.copy(qual = None) == r2.copy(qual = None))
     assert(r1.qual.isDefined == r2.qual.isDefined)
