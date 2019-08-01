@@ -1,7 +1,10 @@
 package com.databricks.vcf
 
+import java.util.{ArrayList => JArrayList}
+
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
+
 import htsjdk.samtools.ValidationStringency
 import htsjdk.variant.variantcontext._
 import htsjdk.variant.vcf.{VCFConstants, VCFHeader, VCFHeaderLine}
@@ -90,8 +93,12 @@ class InternalRowToVariantContextConverter(
   }
 
   private lazy val converter: InternalRow => Option[VariantContext] = {
-    val fns = rowSchema.map { field =>
-      val fn: (VariantContextBuilder, InternalRow, Int) => VariantContextBuilder = field match {
+    val vcFields = rowSchema.fields
+    val fns =
+      new Array[(VariantContextBuilder, InternalRow, Int) => VariantContextBuilder](vcFields.length)
+    var idx = 0
+    while (idx < vcFields.length) {
+      fns(idx) = vcFields(idx) match {
         case f if structFieldsEqualExceptNullability(f, contigNameField) => updateContigName
         case f if structFieldsEqualExceptNullability(f, startField) => updateStart
         case f if structFieldsEqualExceptNullability(f, endField) => updateEnd
@@ -113,8 +120,8 @@ class InternalRowToVariantContextConverter(
           )
           (vc, _, _) => vc
       }
-      fn
-    }.toArray
+      idx += 1
+    }
 
     val genotypeIdx = rowSchema.indexWhere(_.name == genotypesFieldName)
     val genotypeBuilder = if (genotypeIdx > -1) {
@@ -152,8 +159,11 @@ class InternalRowToVariantContextConverter(
   }
 
   private def makeGenotypeConverter(gSchema: StructType): ArrayData => GenotypesContext = {
-    val fns = gSchema.map { field =>
-      val fn: (GenotypeBuilder, InternalRow, Int) => GenotypeBuilder = field match {
+    val gtFields = gSchema.fields
+    val fns = new Array[(GenotypeBuilder, InternalRow, Int) => GenotypeBuilder](gtFields.length)
+    var idx = 0
+    while (idx < gtFields.length) {
+      fns(idx) = gtFields(idx) match {
         case f if structFieldsEqualExceptNullability(f, sampleIdField) => updateSampleId
         case f if structFieldsEqualExceptNullability(f, phasedField) => updateGTPhased
         case f if structFieldsEqualExceptNullability(f, callsField) => updateGTCalls
@@ -166,7 +176,7 @@ class InternalRowToVariantContextConverter(
         case f if structFieldsEqualExceptNullability(f, otherFieldsField) => updateOtherFields
         case f => (gb, row, i) => updateFormatField(f, gb, row, i)
       }
-      fn
+      idx += 1
     }
 
     array => {
@@ -175,7 +185,7 @@ class InternalRowToVariantContextConverter(
       while (i < array.numElements()) {
         var j = 0
         val builder = new GenotypeBuilder("")
-        val row = array.getStruct(i, gSchema.length)
+        val row = array.getStruct(i, gtFields.length)
         while (j < fns.length) {
           if (!row.isNullAt(j)) {
             fns(j)(builder, row, j)
@@ -323,16 +333,20 @@ class InternalRowToVariantContextConverter(
     val calls = row
       .getArray(offset)
       .toIntArray()
-      .map { idx =>
-        if (idx == -1) {
-          Allele.NO_CALL
-        } else {
-          // Will throw out of bounds exception if there's no allele
-          alleles(idx)
-        }
+    val gtAlleles = new JArrayList[Allele](calls.length)
+    var callIdx = 0
+    while (callIdx < calls.length) {
+      val alleleIdx = calls(callIdx)
+      val allele = if (alleleIdx == -1) {
+        Allele.NO_CALL
+      } else {
+        // Will throw out of bounds exception if there's no allele
+        alleles(alleleIdx)
       }
-      .toSeq
-    genotype.alleles(calls.asJava)
+      gtAlleles.add(allele)
+      callIdx += 1
+    }
+    genotype.alleles(gtAlleles)
     genotype
   }
 
