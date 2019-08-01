@@ -1,8 +1,7 @@
 package org.apache.spark.sql.execution.datasources.csv
 
-import java.io.{InputStream, Writer}
+import java.io.Writer
 
-import com.univocity.parsers.csv.CsvParser
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.FileStatus
 import org.apache.spark.SparkException
@@ -20,12 +19,6 @@ class UnivocityGeneratorWrapper(schema: StructType, writer: Writer, options: CSV
 
 // Shim for package-private companion object UnivocityParser
 object UnivocityParserUtils {
-  def tokenizeStream(
-      inputStream: InputStream,
-      shouldDropHeader: Boolean,
-      tokenizer: CsvParser): Iterator[Array[String]] = {
-    UnivocityParser.tokenizeStream(inputStream, shouldDropHeader, tokenizer)
-  }
 
   // Inline of parseIterator from Spark 2.4 to avoid signature incompatibilities
   def parseIterator(

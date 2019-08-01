@@ -6,3 +6,4 @@ project/target
 *.swo
 adam.log
 **/__pycache__
+*.pyc

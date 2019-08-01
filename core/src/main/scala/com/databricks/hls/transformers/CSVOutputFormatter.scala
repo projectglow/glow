@@ -2,51 +2,69 @@ package com.databricks.hls.transformers
 
 import scala.collection.JavaConverters._
 
-import java.io.InputStream
+import java.io.{BufferedInputStream, IOException}
 
 import com.univocity.parsers.csv.CsvParser
 import org.apache.commons.io.IOUtils
-import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.execution.datasources.csv.{CSVDataSource, CSVDataSourceUtils, CSVOptions, CSVUtils, UnivocityParser, UnivocityParserUtils}
+import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
+import org.apache.spark.sql.execution.datasources.csv.{CSVDataSourceUtils, CSVOptions, UnivocityParser, UnivocityParserUtils}
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
+import org.apache.spark.unsafe.types.UTF8String
 
 class CSVOutputFormatter(parsedOptions: CSVOptions) extends OutputFormatter {
 
-  // Does not automatically infer schema types
-  override def outputSchema(stream: InputStream): StructType = {
-    val tokenizedRows = UnivocityParserUtils.tokenizeStream(
-      stream,
-      shouldDropHeader = false,
-      new CsvParser(parsedOptions.asParserSettings))
-    if (!tokenizedRows.hasNext) {
-      throw new IllegalStateException("CSV needs header to infer schema.")
-    }
-    val caseSensitive = SQLConf.get.caseSensitiveAnalysis
+  private def getFirstRecord(stream: BufferedInputStream): Option[Array[String]] = {
+    val tokenizer = new CsvParser(parsedOptions.asParserSettings)
+    tokenizer.beginParsing(stream)
+    Option(tokenizer.parseNext())
+  }
+
+  private def getSchema(record: Array[String]): StructType = {
     val header =
-      CSVDataSourceUtils.makeSafeHeader(tokenizedRows.next, caseSensitive, parsedOptions)
+      CSVDataSourceUtils.makeSafeHeader(record, SQLConf.get.caseSensitiveAnalysis, parsedOptions)
     val fields = header.map { fieldName =>
       StructField(fieldName, StringType, nullable = true)
     }
     StructType(fields)
   }
 
-  override def makeIterator(schema: StructType, stream: InputStream): Iterator[InternalRow] = {
-    val univocityParser = new UnivocityParser(schema, schema, parsedOptions)
-    val lines = IOUtils.lineIterator(stream, "UTF-8").asScala
+  /**
+   * Reads the first record to infer the schema, then jumps back to the beginning of the stream to
+   * parse the entire stream.
+   */
+  override def makeIterator(stream: BufferedInputStream): Iterator[Any] = {
+    // Mark the beginning of the stream to return here after schema inference.
+    // Up to 1KB can be read before this mark becomes invalid; in this case the bytes between the
+    // marked position and the current position may be lost from the buffered array.
+    stream.mark(1000)
 
-    if (univocityParser.options.headerFlag) {
-      CSVUtils.extractHeader(lines, univocityParser.options).foreach { header =>
-        val columnNames = univocityParser.tokenizer.parseLine(header)
-        CSVDataSource.checkHeaderColumnNames(
-          schema,
-          columnNames,
-          "NO_FILE",
-          univocityParser.options.enforceSchema,
-          SQLConf.get.caseSensitiveAnalysis)
-      }
+    val firstRecordOpt = getFirstRecord(stream)
+    if (firstRecordOpt.isEmpty) {
+      return Iterator.empty
     }
-    UnivocityParserUtils.parseIterator(lines, univocityParser, schema)
+
+    val firstRecord = firstRecordOpt.get
+    val schema = getSchema(firstRecord)
+    val univocityParser = new UnivocityParser(schema, schema, parsedOptions)
+
+    val parsedIter = try {
+      // Don't throw away the first record; return to the marked beginning of the stream.
+      stream.reset()
+      val lines = IOUtils.lineIterator(stream, "UTF-8").asScala.toSeq
+      UnivocityParserUtils.parseIterator(lines.toIterator, univocityParser, schema)
+    } catch {
+      case _: IOException =>
+        // Stream may have been closed by the CsvParser if there is only one row
+        Iterator(
+          new GenericInternalRow(firstRecord.map(UTF8String.fromString).asInstanceOf[Array[Any]]))
+    }
+    val parsedIterWithoutHeader = if (parsedOptions.headerFlag) {
+      parsedIter.drop(1)
+    } else {
+      parsedIter
+    }
+    Iterator(schema) ++ parsedIterWithoutHeader
   }
 }
 

@@ -1,17 +1,17 @@
 package com.databricks.hls.transformers
 
+import scala.collection.JavaConverters._
+import scala.io.Source
+
 import java.io._
 import java.util.concurrent.atomic.AtomicReference
 
-import scala.collection.JavaConverters._
-import scala.io.Source
+import org.apache.spark.sql.{DataFrame, SQLUtils}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
-import org.apache.spark.sql.{DataFrame, SQLUtils}
 import org.apache.spark.TaskContext
-import org.apache.spark.sql.catalyst.encoders.RowEncoder
 
-import com.databricks.hls.common.{HLSLogging, WithUtils}
+import com.databricks.hls.common.HLSLogging
 
 /**
  * Based on Spark's PipedRDD with the following modifications:
@@ -30,35 +30,39 @@ private[databricks] object Piper extends HLSLogging {
 
     logger.info(s"Beginning pipe with cmd $cmd")
 
-    val encoder = RowEncoder.apply(df.schema)
-    val singleRow = encoder.toRow(
-      df.take(1)
-        .headOption
-        .getOrElse(throw new IllegalArgumentException("Can't pipe empty DataFrame.")))
-
-    val spark = df.sparkSession
-    val outputSchema = spark
-      .range(1)
-      .rdd
-      .map { _ =>
-        val writeFn: OutputStream => Unit = os => {
-          WithUtils.withCloseable(informatter) { formatter =>
-            formatter.init(os)
-            formatter.write(singleRow)
-          }
-        }
-        val helper = new ProcessHelper(cmd, env, writeFn, TaskContext.get)
-        val ret = outputformatter.outputSchema(helper.startProcess())
-        helper.waitForProcess()
-        ret
+    // Each partition consists of an iterator with the schema, followed by [[InternalRow]]s with the
+    // schema
+    val schemaInternalRowRDD = df
+      .queryExecution
+      .toRdd
+      .mapPartitions { it =>
+        new PipeIterator(cmd, env, it, informatter, outputformatter)
       }
-      .first()
+      .cache()
 
-    val mapped = df.queryExecution.toRdd.mapPartitions { it =>
-      new PipeIterator(cmd, env, it, informatter, outputformatter, outputSchema)
+    val schemaSeq = schemaInternalRowRDD.mapPartitions { it =>
+      if (it.hasNext) {
+        Iterator(it.next.asInstanceOf[StructType])
+      } else {
+        Iterator.empty
+      }
+    }.collect.distinct
+
+    if (schemaSeq.length != 1) {
+      throw new IllegalStateException(
+        s"Cannot infer schema: saw ${schemaSeq.length} distinct schemas.")
     }
 
-    SQLUtils.createDataFrame(df.sparkSession, mapped, outputSchema)
+    val schema = schemaSeq.head
+    val internalRowRDD = schemaInternalRowRDD.mapPartitions { it =>
+      it.drop(1).asInstanceOf[Iterator[InternalRow]]
+    }
+
+    val output =
+      SQLUtils.internalCreateDataFrame(df.sparkSession, internalRowRDD, schema, isStreaming = false)
+
+    schemaInternalRowRDD.unpersist()
+    output
   }
 }
 
@@ -72,7 +76,7 @@ private[databricks] class ProcessHelper(
   private val childThreadException = new AtomicReference[Throwable](null)
   private var process: Process = _
 
-  def startProcess(): InputStream = {
+  def startProcess(): BufferedInputStream = {
 
     val pb = new ProcessBuilder(cmd.asJava)
     val pbEnv = pb.environment()
@@ -82,12 +86,13 @@ private[databricks] class ProcessHelper(
     new Thread(s"${ProcessHelper.STDIN_WRITER_THREAD_PREFIX} for $cmd") {
       override def run(): Unit = {
         SQLUtils.setTaskContext(context)
+        val out = process.getOutputStream
         try {
-          inputFn(process.getOutputStream)
+          inputFn(out)
         } catch {
           case t: Throwable => childThreadException.set(t)
         } finally {
-          process.getOutputStream.close()
+          out.close()
         }
       }
     }.start()
@@ -110,7 +115,7 @@ private[databricks] class ProcessHelper(
       }
     }.start()
 
-    process.getInputStream
+    new BufferedInputStream(process.getInputStream)
   }
 
   def waitForProcess(): Int = {
@@ -130,8 +135,8 @@ private[databricks] class ProcessHelper(
 }
 
 object ProcessHelper {
-  val STDIN_WRITER_THREAD_PREFIX = "stdin writer for"
-  val STDERR_READER_THREAD_PREFIX = "stderr reader for"
+  val STDIN_WRITER_THREAD_PREFIX = "stdin writer"
+  val STDERR_READER_THREAD_PREFIX = "stderr reader"
 }
 
 class PipeIterator(
@@ -139,13 +144,12 @@ class PipeIterator(
     environment: Map[String, String],
     input: Iterator[InternalRow],
     inputFormatter: InputFormatter,
-    outputFormatter: OutputFormatter,
-    outputSchema: StructType)
-    extends Iterator[InternalRow] {
+    outputFormatter: OutputFormatter)
+    extends Iterator[Any] {
 
   private val processHelper = new ProcessHelper(cmd, environment, writeInput, TaskContext.get)
   private val inputStream = processHelper.startProcess()
-  private val baseIterator = outputFormatter.makeIterator(outputSchema, inputStream)
+  private val baseIterator = outputFormatter.makeIterator(inputStream)
 
   private def writeInput(stream: OutputStream): Unit = {
     try {
@@ -170,5 +174,5 @@ class PipeIterator(
     result
   }
 
-  override def next(): InternalRow = baseIterator.next()
+  override def next(): Any = baseIterator.next()
 }
