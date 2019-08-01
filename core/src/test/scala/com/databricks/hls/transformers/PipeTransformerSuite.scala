@@ -1,12 +1,13 @@
 package com.databricks.hls.transformers
 
-import java.io.{InputStream, OutputStream}
+import java.io.{BufferedInputStream, OutputStream}
 
-import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
+import org.apache.spark.sql.{DataFrame, Row}
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.unsafe.types.UTF8String
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.encoders.RowEncoder
+import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 
 import com.databricks.hls.sql.HLSBaseTest
 
@@ -51,11 +52,10 @@ class DummyOutputFormatterFactory() extends OutputFormatterFactory {
 }
 
 class DummyOutputFormatter() extends OutputFormatter {
-  override def makeIterator(schema: StructType, stream: InputStream): Iterator[InternalRow] = {
-    Seq(new GenericInternalRow(Array[Any](UTF8String.fromString("monkey")))).iterator
-  }
-
-  override def outputSchema(stream: InputStream): StructType = {
-    StructType(Seq(StructField("animal", StringType)))
+  override def makeIterator(stream: BufferedInputStream): Iterator[Any] = {
+    val schema = StructType(Seq(StructField("animal", StringType)))
+    val internalRow = new GenericInternalRow(
+      Array(UTF8String.fromString("monkey")).asInstanceOf[Array[Any]])
+    Iterator(schema, internalRow)
   }
 }

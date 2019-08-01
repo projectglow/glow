@@ -1,8 +1,7 @@
 package com.databricks.hls.transformers
 
 import scala.collection.JavaConverters._
-
-import java.io.{Closeable, InputStream, OutputStream}
+import java.io.{BufferedInputStream, Closeable, OutputStream}
 import java.util.ServiceLoader
 
 import com.fasterxml.jackson.databind.ObjectMapper
@@ -10,8 +9,6 @@ import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.CaseInsensitiveMap
-import org.apache.spark.sql.types.StructType
-
 import com.databricks.hls.DataFrameTransformer
 import com.databricks.hls.common.Named
 
@@ -129,22 +126,13 @@ trait InputFormatterFactory extends Named {
 trait OutputFormatter extends Serializable {
 
   /**
-   * Determine the output schema based on the subprocess's stdout stream in response to the
-   * input formatter's single-row dataset.
-   *
-   * @param stream The subprocess's stdout stream
-   */
-  def outputSchema(stream: InputStream): StructType
-
-  /**
    * Construct an iterator of output rows from the subprocess's stdout stream in response to the
-   * real data. The schema of each row must match the `schema`.
-   * @param schema The output schema, as determined by this formatter's `outputSchema` method. All
-   *               rows returned by the iterator must match this schema.
-   * @param stream The subprocess's stdout stream
-   * @return An iterator of [[InternalRow]]s with schema `schema`
+   * real data. We use a buffered stream to allow for header inference that may require reading
+   * the same record multiple times.
+   * @param stream The buffered subprocess's stdout stream
+   * @return An iterator consisting of the schema followed by [[InternalRow]]s with the schema
    */
-  def makeIterator(schema: StructType, stream: InputStream): Iterator[InternalRow]
+  def makeIterator(stream: BufferedInputStream): Iterator[Any]
 }
 
 trait OutputFormatterFactory extends Named {

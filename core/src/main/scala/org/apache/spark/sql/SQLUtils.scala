@@ -19,11 +19,11 @@ object SQLUtils {
   }
 
   /** Visibility hack to create DataFrames from internal rows */
-  def createDataFrame(
+  def internalCreateDataFrame(
       sess: SparkSession,
       catalystRows: RDD[InternalRow],
       schema: StructType,
-      isStreaming: Boolean = false): DataFrame = {
+      isStreaming: Boolean): DataFrame = {
 
     sess.internalCreateDataFrame(catalystRows, schema, isStreaming)
   }

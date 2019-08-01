@@ -84,12 +84,12 @@ class VCFPiperSuite extends HLSBaseTest {
     assert(outputDf.isEmpty)
   }
 
-  private val baseTextOptions =
-    Map("inputFormatter" -> "vcf", "outputFormatter" -> "text", "in_vcfHeader" -> "infer")
+  private val baseTextOptions = Map("inputFormatter" -> "vcf", "outputFormatter" -> "text")
   test("environment variables") {
     import sess.implicits._
 
     val options = baseTextOptions ++ Map(
+        "in_vcfHeader" -> "infer",
         "cmd" -> """["printenv"]""",
         "ENV_animal" -> "monkey",
         "env_a" -> "b",
@@ -118,9 +118,8 @@ class VCFPiperSuite extends HLSBaseTest {
     val df = readVcf(na12878).repartition(8)
     assert(df.count == 4)
 
-    val options = baseTextOptions ++ Map("cmd" -> """["wc", "-l"]""")
-    val output = SparkGenomics.transform("pipe", df, options)
-    assertThrows[SparkException](output.count)
+    val options = baseTextOptions ++ Map("cmd" -> """["wc", "-l"]""", "in_vcfHeader" -> "infer")
+    assertThrows[SparkException](SparkGenomics.transform("pipe", df, options))
   }
 
   test("stdin and stderr threads are cleaned up for successful commands") {
@@ -166,7 +165,10 @@ class VCFPiperSuite extends HLSBaseTest {
 
   test("command fails") {
     val df = readVcf(na12878).repartition(8)
-    val options = baseTextOptions ++ Map("cmd" -> """["bash", "-c", "exit 1"]""")
+    val options = baseTextOptions ++ Map(
+        "in_vcfHeader" -> na12878,
+        "cmd" -> """["bash", "-c", "exit 1"]""")
+
     val ex = intercept[SparkException] {
       SparkGenomics.transform("pipe", df, options).count()
     }
@@ -189,14 +191,15 @@ class VCFPiperSuite extends HLSBaseTest {
     }
   }
 
-  test("empty vcf") {
+  test("header only") {
     val df = readVcf(na12878).limit(0)
     val options = Map(
       "inputFormatter" -> "vcf",
       "outputFormatter" -> "text",
       "in_vcfHeader" -> na12878,
       "cmd" -> s"""["cat", "-"]""")
-    assertThrows[IllegalArgumentException](SparkGenomics.transform("pipe", df, options))
+    val output = SparkGenomics.transform("pipe", df, options)
+    assert(output.count == 28)
   }
 
   test("task context is defined in each thread") {
