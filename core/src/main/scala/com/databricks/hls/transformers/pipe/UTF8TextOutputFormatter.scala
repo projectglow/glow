@@ -1,4 +1,4 @@
-package com.databricks.hls.transformers
+package com.databricks.hls.transformers.pipe
 
 import scala.collection.JavaConverters._
 

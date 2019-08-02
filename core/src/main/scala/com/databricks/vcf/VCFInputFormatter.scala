@@ -1,13 +1,14 @@
 package com.databricks.vcf
 
-import scala.collection.JavaConverters._
 import java.io.OutputStream
+
+import scala.collection.JavaConverters._
 
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.catalyst.InternalRow
 
 import com.databricks.hls.common.HLSLogging
-import com.databricks.hls.transformers.{InputFormatter, InputFormatterFactory}
+import com.databricks.hls.transformers.pipe.{InputFormatter, InputFormatterFactory}
 
 /**
  * An input formatter that writes rows as VCF records.

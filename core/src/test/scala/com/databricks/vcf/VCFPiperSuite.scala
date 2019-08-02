@@ -16,7 +16,7 @@ import org.apache.spark.sql.DataFrame
 import com.databricks.hls.SparkGenomics
 import com.databricks.hls.common.TestUtils._
 import com.databricks.hls.sql.HLSBaseTest
-import com.databricks.hls.transformers.ProcessHelper
+import com.databricks.hls.transformers.pipe.ProcessHelper
 
 class VCFPiperSuite extends HLSBaseTest {
   lazy val sess = spark

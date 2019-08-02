@@ -8,7 +8,7 @@ import htsjdk.variant.vcf.{VCFCodec, VCFHeader}
 import org.apache.spark.sql.catalyst.InternalRow
 
 import com.databricks.hls.common.HLSLogging
-import com.databricks.hls.transformers.{OutputFormatter, OutputFormatterFactory}
+import com.databricks.hls.transformers.pipe.{OutputFormatter, OutputFormatterFactory}
 
 class VCFOutputFormatter extends OutputFormatter with HLSLogging {
   override def makeIterator(stream: BufferedInputStream): Iterator[Any] = {

@@ -4,6 +4,8 @@ import com.databricks.hls.sql.HLSBaseTest
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 
+import com.databricks.hls.transformers.pipe.PipeTransformer
+
 class TextPiperSuite extends HLSBaseTest {
   def pipeText(df: DataFrame): DataFrame = {
     val options =
