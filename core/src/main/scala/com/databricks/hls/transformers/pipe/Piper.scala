@@ -1,15 +1,15 @@
-package com.databricks.hls.transformers
-
-import scala.collection.JavaConverters._
-import scala.io.Source
+package com.databricks.hls.transformers.pipe
 
 import java.io._
 import java.util.concurrent.atomic.AtomicReference
 
-import org.apache.spark.sql.{DataFrame, SQLUtils}
+import scala.collection.JavaConverters._
+import scala.io.Source
+
+import org.apache.spark.TaskContext
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
-import org.apache.spark.TaskContext
+import org.apache.spark.sql.{DataFrame, SQLUtils}
 
 import com.databricks.hls.common.HLSLogging
 

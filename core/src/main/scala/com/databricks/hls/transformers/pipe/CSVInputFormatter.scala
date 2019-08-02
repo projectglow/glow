@@ -1,20 +1,23 @@
-package com.databricks.hls.transformers
+package com.databricks.hls.transformers.pipe
 
 import java.io.{OutputStream, PrintWriter}
 
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.execution.datasources.csv.{CSVOptions, UnivocityGeneratorWrapper}
+import org.apache.spark.sql.execution.datasources.csv.{CSVOptions, SGUnivocityGenerator}
 import org.apache.spark.sql.types.StructType
 
 class CSVInputFormatter(schema: StructType, parsedOptions: CSVOptions) extends InputFormatter {
 
   private var writer: PrintWriter = _
-  private var univocityGenerator: UnivocityGeneratorWrapper = _
+  private var univocityGenerator: SGUnivocityGenerator = _
 
   override def init(stream: OutputStream): Unit = {
     writer = new PrintWriter(stream)
-    univocityGenerator = new UnivocityGeneratorWrapper(schema, writer, parsedOptions)
+    univocityGenerator = new SGUnivocityGenerator(schema, writer, parsedOptions)
+    if (parsedOptions.headerFlag) {
+      univocityGenerator.writeHeaders()
+    }
   }
 
   override def write(record: InternalRow): Unit = {

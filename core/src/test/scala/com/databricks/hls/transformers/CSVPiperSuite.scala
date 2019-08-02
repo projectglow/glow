@@ -61,7 +61,7 @@ class CSVPiperSuite extends HLSBaseTest {
   test("Delimiter and header") {
     val inputDf = spark.read.option("delimiter", " ").option("header", "true").csv(saige)
     val outputDf =
-      pipeCsv(inputDf, s"""["sed", "s/:/ /g"]""", Some(":"), Some(" "), Some(true), Some(true))
+      pipeCsv(inputDf, """["sed", "s/:/ /g"]""", Some(":"), Some(" "), Some(true), Some(true))
     assert(outputDf.schema == inputDf.schema)
     assert(
       outputDf.orderBy("CHR", "POS").collect.toSeq == inputDf.orderBy("CHR", "POS").collect.toSeq)
@@ -90,8 +90,10 @@ class CSVPiperSuite extends HLSBaseTest {
   test("No rows with header") {
     val inputDf =
       spark.read.option("delimiter", " ").option("header", "true").csv(saige).limit(0)
-    assertThrows[IllegalStateException](
-      pipeCsv(inputDf, s"""["cat", "-"]""", Some(" "), Some(" "), Some(true), Some(true)))
+    val outputDf =
+      pipeCsv(inputDf, s"""["cat", "-"]""", Some(" "), Some(" "), Some(true), Some(true))
+    assert(outputDf.schema == inputDf.schema)
+    assert(outputDf.isEmpty)
   }
 
   test("Default options: comma delimiter and no header") {

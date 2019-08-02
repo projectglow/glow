@@ -10,6 +10,7 @@ import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 
 import com.databricks.hls.sql.HLSBaseTest
+import com.databricks.hls.transformers.pipe.{InputFormatter, InputFormatterFactory, OutputFormatter, OutputFormatterFactory, PipeTransformer}
 
 class PipeTransformerSuite extends HLSBaseTest {
   test("read input and output formatters from service loader") {

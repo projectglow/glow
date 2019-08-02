@@ -1,1 +1,1 @@
-com.databricks.hls.transformers.PipeTransformer
+com.databricks.hls.transformers.pipe.PipeTransformer

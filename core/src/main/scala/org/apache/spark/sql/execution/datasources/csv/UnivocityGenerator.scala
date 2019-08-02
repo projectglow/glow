@@ -2,20 +2,74 @@ package org.apache.spark.sql.execution.datasources.csv
 
 import java.io.Writer
 
-import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.FileStatus
+import com.univocity.parsers.csv.CsvWriter
 import org.apache.spark.SparkException
-import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
-import org.apache.spark.sql.catalyst.util.{BadRecordException, DropMalformedMode, FailFastMode, ParseMode, PermissiveMode}
-import org.apache.spark.sql.execution.datasources.PartitionedFile
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.catalyst.util._
+import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
-// Shim for package-private class UnivocityGenerator
-class UnivocityGeneratorWrapper(schema: StructType, writer: Writer, options: CSVOptions)
-    extends UnivocityGenerator(schema: StructType, writer: Writer, options: CSVOptions) {}
+/**
+ * Inlined version of [[UnivocityGenerator]] to handle compatibility between Spark distributions.
+ */
+class SGUnivocityGenerator(schema: StructType, writer: Writer, options: CSVOptions) {
+  private val writerSettings = options.asWriterSettings
+  writerSettings.setHeaders(schema.fieldNames: _*)
+  private val gen = new CsvWriter(writer, writerSettings)
+
+  // A `ValueConverter` is responsible for converting a value of an `InternalRow` to `String`.
+  // When the value is null, this converter should not be called.
+  private type ValueConverter = (InternalRow, Int) => String
+
+  // `ValueConverter`s for all values in the fields of the schema
+  private val valueConverters: Array[ValueConverter] =
+    schema.map(_.dataType).map(makeConverter).toArray
+
+  private def makeConverter(dataType: DataType): ValueConverter = dataType match {
+    case DateType =>
+      (row: InternalRow, ordinal: Int) =>
+        options.dateFormat.format(DateTimeUtils.toJavaDate(row.getInt(ordinal)))
+
+    case TimestampType =>
+      (row: InternalRow, ordinal: Int) =>
+        options.timestampFormat.format(DateTimeUtils.toJavaTimestamp(row.getLong(ordinal)))
+
+    case udt: UserDefinedType[_] => makeConverter(udt.sqlType)
+
+    case dt: DataType =>
+      (row: InternalRow, ordinal: Int) => row.get(ordinal, dt).toString
+  }
+
+  private def convertRow(row: InternalRow): Seq[String] = {
+    var i = 0
+    val values = new Array[String](row.numFields)
+    while (i < row.numFields) {
+      if (!row.isNullAt(i)) {
+        values(i) = valueConverters(i).apply(row, i)
+      } else {
+        values(i) = options.nullValue
+      }
+      i += 1
+    }
+    values
+  }
+
+  def writeHeaders(): Unit = {
+    gen.writeHeaders()
+  }
+
+  /**
+   * Writes a single InternalRow to CSV using Univocity.
+   */
+  def write(row: InternalRow): Unit = {
+    gen.writeRow(convertRow(row): _*)
+  }
+
+  def close(): Unit = gen.close()
+
+  def flush(): Unit = gen.flush()
+}
 
 // Shim for package-private companion object UnivocityParser
 object UnivocityParserUtils {

@@ -1,14 +1,16 @@
-package com.databricks.hls.transformers
+package com.databricks.hls.transformers.pipe
 
-import scala.collection.JavaConverters._
 import java.io.{BufferedInputStream, Closeable, OutputStream}
 import java.util.ServiceLoader
+
+import scala.collection.JavaConverters._
 
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.CaseInsensitiveMap
+
 import com.databricks.hls.DataFrameTransformer
 import com.databricks.hls.common.Named
 

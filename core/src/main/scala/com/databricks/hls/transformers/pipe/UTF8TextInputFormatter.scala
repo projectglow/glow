@@ -1,11 +1,11 @@
-package com.databricks.hls.transformers
+package com.databricks.hls.transformers.pipe
 
 import java.io.{OutputStream, PrintWriter}
 
 import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.SQLUtils.dataTypesEqualExceptNullability
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StringType
-import org.apache.spark.sql.SQLUtils.dataTypesEqualExceptNullability
 
 /**
  * A simple input formatter that writes each row as a string.

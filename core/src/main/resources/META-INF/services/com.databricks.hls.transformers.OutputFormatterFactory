@@ -1,3 +1,0 @@
-com.databricks.hls.transformers.CSVOutputFormatterFactory
-com.databricks.hls.transformers.UTF8TextOutputFormatterFactory
-com.databricks.vcf.VCFOutputFormatterFactory

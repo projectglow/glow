@@ -1,8 +1,8 @@
-package com.databricks.hls.transformers
-
-import scala.collection.JavaConverters._
+package com.databricks.hls.transformers.pipe
 
 import java.io.{BufferedInputStream, IOException}
+
+import scala.collection.JavaConverters._
 
 import com.univocity.parsers.csv.CsvParser
 import org.apache.commons.io.IOUtils
