@@ -13,7 +13,6 @@ import htsjdk.variant.vcf.{VCFCompoundHeaderLine, VCFHeader, VCFHeaderLine}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.{SparkConf, SparkException}
 import org.bdgenomics.adam.rdd.ADAMContext._
-import org.bdgenomics.adam.rdd.variant.VariantContextRDD
 import com.databricks.hls.common.WithUtils
 import com.databricks.hls.sql.HLSBaseTest
 import org.apache.spark.sql.types.StructType
