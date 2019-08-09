@@ -81,7 +81,7 @@ private[databricks] class BgenFileIterator(
 
     val rawGenotypeStream = new DataInputStream(new ByteArrayInputStream(uncompressedBytes))
     val genotypeStream = new io.LittleEndianDataInputStream(rawGenotypeStream)
-    val genotypes = readGenotypes(nAlleles, genotypeStream)
+    val genotypes = readGenotypes(nAlleles, genotypeStream, metadata.sampleIds)
 
     BgenRow(
       contigName,
@@ -90,10 +90,7 @@ private[databricks] class BgenFileIterator(
       Seq(variantId, rsid),
       alleles.head,
       alleles.tail,
-      genotypes.zipWithIndex.map {
-        case (gt, idx) =>
-          gt.copy(sampleId = metadata.sampleIds.map(ids => ids(idx)))
-      }
+      genotypes
     )
   }
 
@@ -115,7 +112,8 @@ private[databricks] class BgenFileIterator(
 
   private def readGenotypes(
       nAllelesFromVariant: Int,
-      genotypeStream: LittleEndianDataInputStream): Seq[BgenGenotype] = {
+      genotypeStream: LittleEndianDataInputStream,
+      sampleIds: Option[Array[String]]): Seq[BgenGenotype] = {
     val nSamples = genotypeStream.readInt()
     val nAlleles = genotypeStream.readUnsignedShort()
     if (nAlleles != nAllelesFromVariant) {
@@ -126,34 +124,33 @@ private[databricks] class BgenFileIterator(
     }
     val minPloidy = genotypeStream.readUnsignedByte()
     val maxPloidy = genotypeStream.readUnsignedByte()
-    val ploidyWithMissingnessBySample = (1 to nSamples).map { _ =>
-      genotypeStream.readUnsignedByte()
+    val ploidyWithMissingnessBySample = new Array[Int](nSamples)
+    var i = 0
+    while (i < nSamples) {
+      ploidyWithMissingnessBySample(i) = genotypeStream.readUnsignedByte()
+      i += 1
     }
 
     val phasedByte = genotypeStream.readUnsignedByte()
     val phased = phasedByte == 1
     val bitsPerProbability = genotypeStream.readUnsignedByte()
 
-    val ploidyBySample = ploidyWithMissingnessBySample.map(_ & 63)
-    val probabilities = if (phased) {
-      readPhasedProbabilties(
+    if (phased) {
+      readPhasedGenotypes(
         genotypeStream,
         nAlleles,
         ploidyWithMissingnessBySample,
-        bitsPerProbability
+        bitsPerProbability,
+        sampleIds
       )
     } else {
-      readUnphasedProbabilities(
+      readUnphasedGenotypes(
         genotypeStream,
         nAlleles,
         ploidyWithMissingnessBySample,
-        bitsPerProbability
+        bitsPerProbability,
+        sampleIds
       )
-    }
-
-    ploidyBySample.zip(probabilities).map {
-      case (ploidy, prob) =>
-        BgenGenotype(None, Some(phased), Some(ploidy), prob)
     }
   }
 
@@ -169,12 +166,13 @@ private[databricks] class BgenFileIterator(
    * the others
    * @return An array of probabilities for each sample
    */
-  private def readPhasedProbabilties(
+  private def readPhasedGenotypes(
       probStream: DataInput,
       nAlleles: Int,
       ploidyBySample: Seq[Int],
-      bitsPerProbability: Int): Array[Array[Double]] = {
-    val output = new Array[Array[Double]](ploidyBySample.size)
+      bitsPerProbability: Int,
+      sampleIds: Option[Array[String]]): Array[BgenGenotype] = {
+    val output = new Array[BgenGenotype](ploidyBySample.size)
     val divisor = (1 << bitsPerProbability) - 1
     var i = 0
     var j = 0
@@ -185,7 +183,7 @@ private[databricks] class BgenFileIterator(
       val ploidyWithMissingness = ploidyBySample(i)
       val ploidy = ploidyWithMissingness & 63
       val numValues = ploidy * nAlleles
-      output(i) = new Array[Double](if (ploidyWithMissingness > 63) 0 else numValues)
+      val probabilityBuffer = new Array[Double](if (ploidyWithMissingness > 63) 0 else numValues)
 
       while (j < ploidy) {
         k = 0
@@ -193,14 +191,17 @@ private[databricks] class BgenFileIterator(
         while (k < nAlleles - 1) {
           val nextInt = readProbability(probStream, bitsPerProbability)
           sum += nextInt
-          writeProbability(nextInt, divisor, j * nAlleles + k, output(i))
+          writeProbability(nextInt, divisor, j * nAlleles + k, probabilityBuffer)
 
           k += 1
         }
-        writeProbability(divisor - sum, divisor, j * nAlleles + k, output(i))
+        writeProbability(divisor - sum, divisor, j * nAlleles + k, probabilityBuffer)
 
         j += 1
       }
+
+      val sampleId = if (sampleIds.isDefined) Option(sampleIds.get(i)) else None
+      output(i) = BgenGenotype(sampleId, Option(true), Option(ploidy), probabilityBuffer)
 
       i += 1
     }
@@ -219,12 +220,13 @@ private[databricks] class BgenFileIterator(
    * the others
    * @return An array of probabilities for each sample
    */
-  private def readUnphasedProbabilities(
+  private def readUnphasedGenotypes(
       probStream: DataInput,
       nAlleles: Int,
       ploidyBySample: Seq[Int],
-      bitsPerProbability: Int): Array[Array[Double]] = {
-    val output = new Array[Array[Double]](ploidyBySample.size)
+      bitsPerProbability: Int,
+      sampleIds: Option[Array[String]]): Array[BgenGenotype] = {
+    val output = new Array[BgenGenotype](ploidyBySample.size)
     val divisor = (1L << bitsPerProbability) - 1
     var i = 0
     while (i < ploidyBySample.length) {
@@ -233,16 +235,18 @@ private[databricks] class BgenFileIterator(
       val ploidyWithMissingness = ploidyBySample(i)
       val ploidy = ploidyWithMissingness & 63
       val nCombs = CombinatoricsUtils.binomialCoefficient(ploidy + nAlleles - 1, ploidy).toInt
-      output(i) = new Array[Double](if (ploidyWithMissingness > 63) 0 else nCombs)
+      val probabilityBuffer = new Array[Double](if (ploidyWithMissingness > 63) 0 else nCombs)
 
       var sum = 0L
       while (j < nCombs - 1) {
         val nextInt = readProbability(probStream, bitsPerProbability)
         sum += nextInt
-        writeProbability(nextInt, divisor, j, output(i))
+        writeProbability(nextInt, divisor, j, probabilityBuffer)
         j += 1
       }
-      writeProbability(divisor - sum, divisor, j, output(i))
+      writeProbability(divisor - sum, divisor, j, probabilityBuffer)
+      val sampleId = if (sampleIds.isDefined) Option(sampleIds.get(i)) else None
+      output(i) = BgenGenotype(sampleId, Option(false), Option(ploidy), probabilityBuffer)
 
       i += 1
     }
@@ -360,7 +364,7 @@ private[databricks] class BgenHeaderReader(stream: LittleEndianDataInputStream) 
 
     base.copy(sampleIds = Option((1 to numSamples.toInt).map { _ =>
       BgenFileIterator.readUTF8String(stream)
-    }))
+    }.toArray))
   }
 
   private def addSampleIdsFromFile(sampleIds: Seq[String], base: BgenMetadata): BgenMetadata = {
@@ -373,7 +377,7 @@ private[databricks] class BgenHeaderReader(stream: LittleEndianDataInputStream) 
       )
     }
 
-    base.copy(sampleIds = Some(sampleIds))
+    base.copy(sampleIds = Some(sampleIds.toArray))
   }
 }
 
@@ -383,7 +387,7 @@ private[databricks] case class BgenMetadata(
     nVariantBlocks: Long,
     layoutType: Int,
     compressionType: SNPBlockCompression,
-    sampleIds: Option[Seq[String]])
+    sampleIds: Option[Array[String]])
 
 sealed trait SNPBlockCompression
 case object Zlib extends SNPBlockCompression
