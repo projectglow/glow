@@ -384,9 +384,14 @@ object TabixIndexHelper extends HLSLogging {
 
     if (useFilterParser) {
       val parsedFilterResult = parseFilter(filters)
+
       (
         parsedFilterResult.contig.getContigName,
-        getSmallestQueryInterval(parsedFilterResult.startInterval, parsedFilterResult.endInterval).getSimpleInterval) match {
+        getSmallestQueryInterval(
+          parsedFilterResult.startInterval,
+          parsedFilterResult.endInterval
+        ).getSimpleInterval
+      ) match {
         case (Some(c), Some(i)) => Option(new SimpleInterval(c, i.getStart, i.getEnd))
         case _ => None
       }
@@ -408,8 +413,10 @@ object TabixIndexHelper extends HLSLogging {
       hadoopFs: FileSystem,
       file: PartitionedFile,
       conf: Configuration,
+      hasFilter: Boolean, // true if user did specify a filter
       useIndex: Boolean,
-      filteredSimpleInterval: Option[SimpleInterval]
+      filteredSimpleInterval: Option[SimpleInterval] // see description for makeFilteredInterval
+      // for what filteredSimpleInterval is
   ): Option[(Long, Long)] = {
 
     val path = new Path(file.filePath)
@@ -417,7 +424,9 @@ object TabixIndexHelper extends HLSLogging {
 
     filteredSimpleInterval match {
       case Some(interval) =>
-        if (!useIndex) {
+        if (!hasFilter) {
+          Some((file.start, file.start + file.length))
+        } else if (!useIndex) {
           logger.info("Tabix index use disabled by the user...")
           Some((file.start, file.start + file.length))
         } else if (!VCFFileFormat.isValidBGZ(path, conf)) {
