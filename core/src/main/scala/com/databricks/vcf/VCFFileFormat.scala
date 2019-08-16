@@ -123,6 +123,7 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HLS
         hadoopFs,
         partitionedFile,
         serializableConf.value,
+        !filters.isEmpty,
         useIndex,
         filteredSimpleInterval
       )

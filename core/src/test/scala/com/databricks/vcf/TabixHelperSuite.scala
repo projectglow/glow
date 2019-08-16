@@ -2,6 +2,7 @@ package com.databricks.vcf
 
 import com.databricks.hls.common.HLSLogging
 import org.apache.spark.SparkConf
+import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.sources._
 import com.databricks.vcf.TabixIndexHelper._
 import com.databricks.hls.sql.HLSBaseTest
@@ -56,7 +57,7 @@ class TabixHelperSuite extends HLSBaseTest with HLSLogging {
     i.startInterval.isSame(j.startInterval) && i.endInterval.isSame(j.endInterval)
   }
 
-  /** *********************************************************
+  /**
    * Tests to ensure getSmallestQueryInterval produces the correct interval given different
    * start and end interval situations
    */
@@ -111,7 +112,7 @@ class TabixHelperSuite extends HLSBaseTest with HLSLogging {
     testGetSmallestQueryInterval(2000, 4000, 2, 1, 2, 1)
   }
 
-  /** ********************************************************
+  /**
    * Tests to ensure parseFilter returns the correct ParsedFilterResult given different
    * filter situations.
    */
@@ -400,7 +401,7 @@ class TabixHelperSuite extends HLSBaseTest with HLSLogging {
     )
   }
 
-  /** **********************************************************
+  /**
    * Tests to ensure makeFilteredInterval returns the correct Option[SimpleInterval]
    * given different filter situations
    */
@@ -599,10 +600,7 @@ class TabixHelperSuite extends HLSBaseTest with HLSLogging {
     )
   }
 
-  /** **********************************************************
-   * Tests to ensure simultaneously setting useTabixIndex to true and useFilterParser
-   * to false results in an exception.
-   */
+  // Tests to ensure simultaneously setting useTabixIndex to true and useFilterParser to false results in an exception.
   test("useFilterParser = false while useTabixIndex = true") {
     try {
       val dfWithTabix = spark
@@ -613,7 +611,7 @@ class TabixHelperSuite extends HLSBaseTest with HLSLogging {
         .load(testBigVcf)
         .filter("contigName= '20' and start < 10004770 and end > 10004775")
 
-      dfWithTabix.show()
+      dfWithTabix.rdd.count()
       assert(false)
     } catch {
       case e: IllegalArgumentException => assert(true)
@@ -621,9 +619,46 @@ class TabixHelperSuite extends HLSBaseTest with HLSLogging {
     }
   }
 
-  /** **********************************************************
-   * Tests to ensure invalid BGZ and absence of tbi does not cause errors
-   */
+  // Test to ensure no filter does not cause errors
+  test("no filter") {
+
+    val sess = spark
+    import sess.implicits._
+
+    val dfEmptyFilter = spark
+      .read
+      .format(sourceName)
+      .option("vcfRowSchema", true)
+      .load(testVcf)
+      .filter("contigName >= 20 ")
+
+    dfEmptyFilter.rdd.count()
+
+    val withEmptyFilter = dfEmptyFilter.orderBy("contigName", "start").as[VCFRow].collect().toSeq
+
+    val dfNoFilter = spark
+      .read
+      .format(sourceName)
+      .option("vcfRowSchema", true)
+      .load(testVcf)
+
+    dfNoFilter.rdd.count()
+
+    val withNoFilter = dfNoFilter.orderBy("contigName", "start").as[VCFRow].collect().toSeq
+
+    if (dfEmptyFilter.count() == dfNoFilter.count()) {
+      withEmptyFilter.zip(withNoFilter).foreach {
+        case (ef, nf) =>
+          assert(ef.contigName == nf.contigName)
+          assert(ef.start == nf.start)
+      }
+    } else {
+      fail()
+    }
+
+  }
+
+  // Tests to ensure invalid BGZ and absence of tbi does not cause errors
   test("invalid BGZ") {
     val df = spark
       .read
@@ -631,7 +666,7 @@ class TabixHelperSuite extends HLSBaseTest with HLSLogging {
       .load(testVcf)
       .filter("contigName= '20' and start < 10004770 and end > 10004775")
 
-    df.show()
+    df.rdd.count()
 
   }
 
@@ -641,12 +676,12 @@ class TabixHelperSuite extends HLSBaseTest with HLSLogging {
       .format(sourceName)
       .load(testNoTbiVcf)
       .filter("contigName= '21' and start = 10002435")
-    df.show()
+    df.rdd.count()
   }
 
-  /** **********************************************************
-   * Tests that the varaints returned for different filter statements are the same in
-   * the three folloing cases:
+  /**
+   * Tests that the variants returned for different filter statements are the same in
+   * the three following cases:
    * 1. Filter parser and Tabix index are both used.
    * 2. Filter parser is used but tabix index is not.
    * 3. Neither is used.
@@ -663,7 +698,7 @@ class TabixHelperSuite extends HLSBaseTest with HLSLogging {
       .option("vcfRowSchema", true)
       .load(fileName)
       .filter(condition)
-    dfFT.show()
+    dfFT.rdd.count()
     val withFT = dfFT.orderBy("contigName", "start").as[VCFRow].collect().toSeq
 
     val dfFN = spark
@@ -674,7 +709,7 @@ class TabixHelperSuite extends HLSBaseTest with HLSLogging {
       .option("vcfRowSchema", true)
       .load(fileName)
       .filter(condition)
-    dfFN.show()
+    dfFN.rdd.count()
     val withFN = dfFN.orderBy("contigName", "start").as[VCFRow].collect().toSeq
 
     val dfNN = spark
@@ -686,10 +721,10 @@ class TabixHelperSuite extends HLSBaseTest with HLSLogging {
       .option("vcfRowSchema", true)
       .load(fileName)
       .filter(condition)
-    dfNN.show()
+    dfNN.rdd.count()
     val withNN = dfNN.orderBy("contigName", "start").as[VCFRow].collect().toSeq
 
-    if (dfNN.count == dfFT.count && dfNN.count == dfFN.count) {
+    if (dfNN.count() == dfFT.count() && dfNN.count() == dfFN.count()) {
       withFT.zip(withFN).zip(withNN).foreach {
         case ((ft, fn), nn) =>
           logger.debug(s"${ft.contigName}, ${ft.start}")
@@ -699,7 +734,7 @@ class TabixHelperSuite extends HLSBaseTest with HLSLogging {
           assert(ft.start == nn.start && fn.start == nn.start)
       }
     } else {
-      assert(false)
+      fail()
     }
   }
 
