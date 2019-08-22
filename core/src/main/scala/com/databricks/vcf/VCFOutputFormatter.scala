@@ -1,6 +1,6 @@
 package com.databricks.vcf
 
-import java.io.BufferedInputStream
+import java.io.InputStream
 
 import htsjdk.samtools.ValidationStringency
 import htsjdk.tribble.readers.{AsciiLineReader, AsciiLineReaderIterator}
@@ -11,7 +11,7 @@ import com.databricks.hls.common.HLSLogging
 import com.databricks.hls.transformers.pipe.{OutputFormatter, OutputFormatterFactory}
 
 class VCFOutputFormatter extends OutputFormatter with HLSLogging {
-  override def makeIterator(stream: BufferedInputStream): Iterator[Any] = {
+  override def makeIterator(stream: InputStream): Iterator[Any] = {
     val codec = new VCFCodec
     val lineIterator = new AsciiLineReaderIterator(AsciiLineReader.from(stream))
     if (!lineIterator.hasNext) {

@@ -171,4 +171,13 @@ class CSVPiperSuite extends HLSBaseTest {
     assert(outputDf.count == 2)
     assert(outputDf.filter("pValue = 0.5").count == outputDf.count)
   }
+
+  test("Big file") {
+    val inputDf = spark.read.text(s"$testDataHome/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf")
+    val outputDf = SparkGenomics.transform(
+      "pipe",
+      inputDf,
+      Map("inputFormatter" -> "text", "outputFormatter" -> "csv", "cmd" -> """["cat", "-"]"""))
+    assert(outputDf.count() == 1103)
+  }
 }
