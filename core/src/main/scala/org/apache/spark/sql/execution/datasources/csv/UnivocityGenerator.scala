@@ -75,12 +75,11 @@ class SGUnivocityGenerator(schema: StructType, writer: Writer, options: CSVOptio
 object UnivocityParserUtils {
 
   // Inline of parseIterator from Spark 2.4 to avoid signature incompatibilities
+  // Accepts pre-filtered lines (using CSVUtils.filterCommentAndEmpty)
   def parseIterator(
-      lines: Iterator[String],
+      filteredLines: Iterator[String],
       parser: UnivocityParser,
       schema: StructType): Iterator[InternalRow] = {
-    val options = parser.options
-    val filteredLines = CSVUtils.filterCommentAndEmpty(lines, options)
     val safeParser = new MinimalFailureSafeParser[String](
       input => Seq(parser.parse(input)),
       parser.options.parseMode,

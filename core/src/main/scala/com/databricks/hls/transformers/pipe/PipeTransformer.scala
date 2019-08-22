@@ -1,6 +1,6 @@
 package com.databricks.hls.transformers.pipe
 
-import java.io.{BufferedInputStream, Closeable, OutputStream}
+import java.io.{Closeable, InputStream, OutputStream}
 import java.util.ServiceLoader
 
 import scala.collection.JavaConverters._
@@ -129,12 +129,11 @@ trait OutputFormatter extends Serializable {
 
   /**
    * Construct an iterator of output rows from the subprocess's stdout stream in response to the
-   * real data. We use a buffered stream to allow for header inference that may require reading
-   * the same record multiple times.
+   * real data.
    * @param stream The buffered subprocess's stdout stream
    * @return An iterator consisting of the schema followed by [[InternalRow]]s with the schema
    */
-  def makeIterator(stream: BufferedInputStream): Iterator[Any]
+  def makeIterator(stream: InputStream): Iterator[Any]
 }
 
 trait OutputFormatterFactory extends Named {
