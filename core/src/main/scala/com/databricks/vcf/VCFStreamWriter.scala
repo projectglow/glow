@@ -1,7 +1,6 @@
 package com.databricks.vcf
 
 import scala.collection.JavaConverters._
-
 import java.io.{Closeable, OutputStream}
 
 import htsjdk.variant.variantcontext.{GenotypeBuilder, VariantContext, VariantContextBuilder}
@@ -46,6 +45,7 @@ class VCFStreamWriter(
     .clearOptions()
     .setOutputStream(stream)
     .setOption(Options.ALLOW_MISSING_FIELDS_IN_HEADER)
+    .setOption(Options.WRITE_FULL_FORMAT_FIELD)
     .build
 
   def write(vc: VariantContext): Unit = {
@@ -58,7 +58,20 @@ class VCFStreamWriter(
       }
       headerHasBeenSetOrWritten = true
     }
-    writer.add(maybeReplaceDefaultSampleIds(vc))
+
+    val maybeReplacedVC = maybeReplaceDefaultSampleIds(vc)
+    val vcBuilder = new VariantContextBuilder(maybeReplacedVC)
+    val iterator = maybeReplacedVC.getAttributes().entrySet().iterator()
+    while (iterator.hasNext) { // parse to string, then write,
+      // otherwise the write messes up double precisions
+      val entry = iterator.next()
+      vcBuilder.attribute(
+        entry.getKey,
+        VariantContextToVCFRowConverter.parseObjectAsString(entry.getValue))
+    }
+
+    writer.add(vcBuilder.make)
+
   }
 
   override def close(): Unit = {

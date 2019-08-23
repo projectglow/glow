@@ -1,0 +1,42 @@
+##fileformat=VCFv4.2	
+##FILTER=<ID=PASS,Description="All filters passed">	
+##ALT=<ID=NON_REF,Description="Represents any possible alternative allele at this location">	
+##FORMAT=<ID=AD,Number=R,Type=Integer,Description="Allelic depths for the ref and alt alleles in the order listed">	
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">	
+##INFO=<ID=AC,Number=A,Type=Integer,Description="Allele count in genotypes, for each ALT allele, in the same order as listed">	
+##INFO=<ID=AF,Number=A,Type=Float,Description="Allele Frequency, for each ALT allele, in the same order as listed">	
+##INFO=<ID=AN,Number=1,Type=Integer,Description="Total number of alleles in called genotypes">	
+##contig=<ID=chr20,length=64444167,assembly=Homo_sapiens_assembly38.20.21.fasta>	
+##contig=<ID=chr21,length=46709983,assembly=Homo_sapiens_assembly38.20.21.fasta>	
+##contig=<ID=chr20_GL383577v2_alt,length=128386,assembly=Homo_sapiens_assembly38.20.21.fasta>	
+##contig=<ID=chr20_KI270869v1_alt,length=118774,assembly=Homo_sapiens_assembly38.20.21.fasta>	
+##contig=<ID=chr20_KI270871v1_alt,length=58661,assembly=Homo_sapiens_assembly38.20.21.fasta>	
+##contig=<ID=chr20_KI270870v1_alt,length=183433,assembly=Homo_sapiens_assembly38.20.21.fasta>	
+##contig=<ID=chr21_GL383578v2_alt,length=63917,assembly=Homo_sapiens_assembly38.20.21.fasta>	
+##contig=<ID=chr21_KI270874v1_alt,length=166743,assembly=Homo_sapiens_assembly38.20.21.fasta>	
+##contig=<ID=chr21_KI270873v1_alt,length=143900,assembly=Homo_sapiens_assembly38.20.21.fasta>	
+##contig=<ID=chr21_GL383579v2_alt,length=201197,assembly=Homo_sapiens_assembly38.20.21.fasta>	
+##contig=<ID=chr21_GL383580v2_alt,length=74653,assembly=Homo_sapiens_assembly38.20.21.fasta>	
+##contig=<ID=chr21_GL383581v2_alt,length=116689,assembly=Homo_sapiens_assembly38.20.21.fasta>	
+##contig=<ID=chr21_KI270872v1_alt,length=82692,assembly=Homo_sapiens_assembly38.20.21.fasta>	
+##reference=Homo_sapiens_assembly38.20.21	
+##bcftools_normVersion=1.9-210-gf1f261b+htslib-1.9-271-g6738132	
+##bcftools_normCommand=norm -f Homo_sapiens_assembly38.20.21.fasta test_left_align_hg38.vcf; Date=Thu Jul 18 17:06:06 2019	
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	CHMI_CHMI3_WGS2	CHMI_CHMI3_WGS3	
+chr20	269	.	A	ATTTGAGATCTTCCCTCTTTTCTAATATAAACACATAAAGCTCTGTTTCCTTCTAGGTAACTGG	30	.	AC=1;AF=1;AN=4	GT	1/1	1/1	
+chr20	1192	.	CAAA	C	30	.	AC=1;AF=0.25;AN=2	GT	0/1	./.	
+chr20	2003	.	A	C	30	.	AC=2;AF=0.5;AN=2	GT	1/1	./.	
+chr20	2804	.	T	TT,C	30	.	AC=1,1;AF=0.25,0.25;AN=4	GT	0/1	0/2	
+chr20	3606	.	AGT	A	30	.	AC=2;AF=0.5;AN=2	GT	1/1	./.	
+chr20	4406	.	CGG	C	30	.	AC=2;AF=0.5;AN=2	GT	1/1	./.	
+chr20	5207	.	T	TC,C	30	.	AC=2,1;AF=0.5,0.25;AN=4	GT	0/1	1/2	
+chr20	5999	.	CGAAAA	C	30	.	AC=2;AF=0.5;AN=2	GT	1/1	./.	
+chr20	6480	.	A	ACCAAGATGGGTGGAATGGCCAGTTAACCACTGGGAGAGCATCCGGACAGACGTTTCGCCAAGATGGGTGGAATGGCCAGTTAACCACTGGGAGAGCATCCGGACAGACGTTTCGCCAAGATGGGTGGAATGGCCAGTTAACCACTGGGAGAGCATCCGGACAGACGTTTCGCCAAGATGGGTGGAATGGCCAGTTAACCACTGGGAGAGCATCCGGACAGACGTTTCGCCAAGATGGGTGGAATGGCCAGTTAACCACTGGGAGAGCATCCGGACAGACGTTTCGCCAAGATGGGTGGAATGGCCAGTTAACCACTGGGAGAGCATCCGGACAGACGTTTCG	30	.	AC=2;AF=0.5;AN=2	GT	1/1	./.	
+chr20	7228	.	TGGCTTCTTTCTTTGCTAGTAGAAATGATACACCTACGAGAGGAGGACAGGAAGTCTCACGGCTTCTTTCTTTGCTAGTAGAAATGATACACCTACGAGAGGAGGACAGGAAGTCTCACGGCTTCTTTCTTTGCTAGTAGAAATGATACACCTACGAGAGGAGGACAGGAAGTCTCACGGCTTCTTTCTTTGCTAGTAGAAATGATACACCTACGAGAGGAGGACAGGAAGTCTCACGGCTTCTTTCTTTGCTAGTAGAAATGATACACCTACGAGAGGAGGACAGGAAGTCTCAC	T	30	.	AC=2;AF=0.5;AN=2	GT	1/1	./.	
+chr21	395	.	A	ATGTGTG	30	.	AC=2;AF=0.5;AN=2	GT	1/1	./.	
+chr21	1196	.	A	ATT	30	.	AC=2;AF=0.5;AN=2	GT	1/1	./.	
+chr21	1987	.	GGAA	G	30	.	AC=1;AF=0.25;AN=2	GT	0/1	./.	
+chr21	2804	.	T	TGC	30	.	AC=1;AF=0.25;AN=2	GT	0/1	./.	
+chr21	4394	.	CAA	C	30	.	AC=2;AF=0.5;AN=2	GT	1/1	./.
+chr21	3605	.	A	G	30	.	AC=2;AF=0.5;AN=2	GT	1/1	./.
+chr21	5018	.	CTCCCTTCCCTTCCCTTCCCTTCCCTTCCCTTCCCTTCCCTTCCCT	C	30	.	AC=3;AF=0.75;AN=4	GT	1/1	0/1	

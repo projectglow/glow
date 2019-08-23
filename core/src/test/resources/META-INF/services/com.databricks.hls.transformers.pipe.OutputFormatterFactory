@@ -1,1 +1,1 @@
-com.databricks.hls.transformers.DummyOutputFormatterFactory
+com.databricks.hls.transformers.pipe.DummyOutputFormatterFactory

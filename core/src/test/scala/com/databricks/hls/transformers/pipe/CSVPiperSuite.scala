@@ -6,13 +6,12 @@
  * License, Version 2.0, a copy of which you may obtain at
  * http://www.apache.org/licenses/LICENSE-2.0
  */
-package com.databricks.hls.transformers
-
-import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.types.{StringType, StructField}
+package com.databricks.hls.transformers.pipe
 
 import com.databricks.hls.SparkGenomics
 import com.databricks.hls.sql.HLSBaseTest
+import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.types.{StringType, StructField}
 
 class CSVPiperSuite extends HLSBaseTest {
   private val saige = s"$testDataHome/saige_output.txt"
