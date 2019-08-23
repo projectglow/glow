@@ -28,7 +28,8 @@ def groupByHash(tests: Seq[TestDefinition]) = {
     .groupBy(_.name.hashCode % testConcurrency)
     .map {
       case (i, tests) =>
-        val options = ForkOptions().withRunJVMOptions(Vector("-Xmx1024m"))
+        val options = ForkOptions()
+          .withRunJVMOptions(Vector("-Xmx1024m"))
         new Group(i.toString, tests, SubProcess(options))
     }
     .toSeq
@@ -52,7 +53,8 @@ lazy val commonSettings = Seq(
     case _ =>
       // Be permissive for other files
       MergeStrategy.first
-  }
+  },
+  scalacOptions += "-target:jvm-1.8"
 )
 
 lazy val core = (project in file("core"))
@@ -94,26 +96,33 @@ lazy val core = (project in file("core"))
     dependencyOverrides ++= Seq(
       "org.apache.hadoop" % "hadoop-client" % "2.7.3",
       "io.netty" % "netty" % "3.9.9.Final",
-      "io.netty" % "netty-all" % "4.1.17.Final")
+      "io.netty" % "netty-all" % "4.1.17.Final"
+    )
   )
 
-lazy val python = (project in file("python"))
-  .dependsOn(core % "test->test")
-  .settings(
-    unmanagedSourceDirectories in Compile := {
-      Seq(baseDirectory.value / "spark_genomics")
-    },
-    test in Test := {
-      // Pass the test classpath to pyspark so that we run the same bits as the Scala tests
-      val classpath = (fullClasspath in Test).value.files.map(_.getCanonicalPath).mkString(":")
-      val ret = Process(
-        Seq("pytest", "python"),
-        None,
-        "SPARK_CLASSPATH" -> classpath,
-        "SPARK_HOME" -> (ThisBuild / baseDirectory).value.absolutePath).!
-      require(ret == 0, "Python tests failed")
-    }
-  )
+lazy val python =
+  (project in file("python"))
+    .dependsOn(core % "test->test")
+    .settings(
+      unmanagedSourceDirectories in Compile := {
+        Seq(baseDirectory.value / "spark_genomics")
+      },
+      test in Test := {
+        // Pass the test classpath to pyspark so that we run the same bits as the Scala tests
+        val classpath = (fullClasspath in Test)
+          .value
+          .files
+          .map(_.getCanonicalPath)
+          .mkString(":")
+        val ret = Process(
+          Seq("pytest", "python"),
+          None,
+          "SPARK_CLASSPATH" -> classpath,
+          "SPARK_HOME" -> (ThisBuild / baseDirectory).value.absolutePath
+        ).!
+        require(ret == 0, "Python tests failed")
+      }
+    )
 
 // Uncomment the following for publishing to Sonatype.
 // See https://www.scala-sbt.org/1.x/docs/Using-Sonatype.html for more detail.

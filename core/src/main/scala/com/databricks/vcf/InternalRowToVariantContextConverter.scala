@@ -307,7 +307,15 @@ class InternalRowToVariantContextConverter(
       row: InternalRow,
       offset: Int): VariantContextBuilder = {
     val realName = field.name.stripPrefix(infoFieldPrefix)
-    vc.attribute(realName, fieldToString(field, row, offset))
+
+    // We generate the info fields in the vc with the same type they have in InternalRow for
+    // correct reciprocal conversion between vc and InternalRow using
+    // InternalRowToVariantContextConverter and VariantContextToInternalRowConverter. When using
+    // in writing to file these fields are converted to strings in VCFStreamWriter.
+    vc.attribute(realName, field.dataType match {
+      case dt: ArrayType => row.getArray(offset).toObjectArray(dt.elementType)
+      case dt => row.get(offset, dt)
+    })
   }
 
   private def updateSampleId(
