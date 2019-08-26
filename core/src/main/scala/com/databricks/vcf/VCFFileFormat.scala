@@ -446,7 +446,7 @@ private[vcf] object SchemaDelegate {
       extends SchemaDelegate {
     override def schema(sparkSession: SparkSession, files: Seq[FileStatus]): StructType = {
       val (infoHeaders, formatHeaders) = readHeaders(sparkSession, files)
-      VCFSchemaInferer.inferSchema(includeSampleIds, false, infoHeaders, formatHeaders)
+      VCFSchemaInferrer.inferSchema(includeSampleIds, false, infoHeaders, formatHeaders)
     }
 
     override def toRows(
@@ -465,7 +465,7 @@ private[vcf] object SchemaDelegate {
 
     override def schema(sparkSession: SparkSession, files: Seq[FileStatus]): StructType = {
       val (infoHeaders, formatHeaders) = readHeaders(sparkSession, files)
-      VCFSchemaInferer.inferSchema(includeSampleIds, true, infoHeaders, formatHeaders)
+      VCFSchemaInferrer.inferSchema(includeSampleIds, true, infoHeaders, formatHeaders)
     }
 
     override def toRows(

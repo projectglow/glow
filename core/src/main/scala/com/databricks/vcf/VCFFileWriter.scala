@@ -59,7 +59,7 @@ object VCFFileWriter extends HLSLogging {
     options.getOrElse(VCF_HEADER_KEY, defaultHeader.get) match {
       case INFER_HEADER =>
         logger.info("Inferring header for VCF writer")
-        (VCFSchemaInferer.headerLinesFromSchema(schema).toSet, None)
+        (VCFSchemaInferrer.headerLinesFromSchema(schema).toSet, None)
       case DEFAULT_HEADER =>
         logger.info("Using default header lines for VCF writer")
         (VCFRowHeaderLines.allHeaderLines.toSet, None)

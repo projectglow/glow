@@ -18,7 +18,7 @@ class VCFOutputFormatter extends OutputFormatter with HLSLogging {
       return Iterator.empty
     }
     val header = codec.readActualHeader(lineIterator).asInstanceOf[VCFHeader]
-    val schema = VCFSchemaInferer.inferSchema(true, true, header)
+    val schema = VCFSchemaInferrer.inferSchema(true, true, header)
     val converter =
       new VariantContextToInternalRowConverter(header, schema, ValidationStringency.LENIENT)
 

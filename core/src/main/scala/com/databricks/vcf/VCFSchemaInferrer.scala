@@ -11,7 +11,7 @@ import com.databricks.hls.common.HLSLogging
 /**
  * Infers the schema of a VCF file from its headers.
  */
-object VCFSchemaInferer extends HLSLogging {
+object VCFSchemaInferrer extends HLSLogging {
 
   /**
    * @param includeSampleIds If true, a sampleId column will be added to the genotype fields

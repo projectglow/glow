@@ -7,19 +7,19 @@ import com.databricks.hls.sql.HLSBaseTest
 
 class VCFSchemaInfererSuite extends HLSBaseTest {
   test("includes base fields") {
-    val schema = VCFSchemaInferer.inferSchema(false, false, Seq.empty, Seq.empty)
+    val schema = VCFSchemaInferrer.inferSchema(false, false, Seq.empty, Seq.empty)
     VariantSchemas.vcfBaseSchema.foreach { field =>
       assert(schema.contains(field))
     }
   }
 
   test("includes attributes field if not flattening info fields") {
-    val schema = VCFSchemaInferer.inferSchema(false, false, Seq.empty, Seq.empty)
+    val schema = VCFSchemaInferrer.inferSchema(false, false, Seq.empty, Seq.empty)
     assert(schema.exists(_.name == "attributes"))
   }
 
   gridTest("sampleId field")(Seq(true, false)) { includeSampleIds =>
-    val schema = VCFSchemaInferer.inferSchema(includeSampleIds, false, Seq.empty, Seq.empty)
+    val schema = VCFSchemaInferrer.inferSchema(includeSampleIds, false, Seq.empty, Seq.empty)
     val genotypesField = schema
       .find(_.name == "genotypes")
       .get
@@ -53,7 +53,7 @@ class VCFSchemaInfererSuite extends HLSBaseTest {
       case Some(t) => new VCFInfoHeaderLine("field", t, field.vcfType, "")
       case None => new VCFInfoHeaderLine("field", 1, field.vcfType, "")
     }
-    val schema = VCFSchemaInferer.inferSchema(false, true, Seq(infoHeader), Seq.empty)
+    val schema = VCFSchemaInferrer.inferSchema(false, true, Seq(infoHeader), Seq.empty)
     val sqlField = schema.find(_.name == "INFO_field").get
     assert(sqlField.dataType == field.sqlType)
   }
@@ -63,7 +63,7 @@ class VCFSchemaInfererSuite extends HLSBaseTest {
       case Some(t) => new VCFFormatHeaderLine("field", t, field.vcfType, "")
       case None => new VCFFormatHeaderLine("field", 1, field.vcfType, "")
     }
-    val schema = VCFSchemaInferer.inferSchema(false, false, Seq.empty, Seq(formatHeader))
+    val schema = VCFSchemaInferrer.inferSchema(false, false, Seq.empty, Seq(formatHeader))
     val genotypeSchema = schema
       .find(_.name == "genotypes")
       .get
@@ -78,7 +78,7 @@ class VCFSchemaInfererSuite extends HLSBaseTest {
     val field1 = new VCFInfoHeaderLine("f1", 1, VCFHeaderLineType.Integer, "monkey")
     val field2 = new VCFInfoHeaderLine("f1", 1, VCFHeaderLineType.Float, "monkey")
     intercept[IllegalArgumentException] {
-      VCFSchemaInferer.inferSchema(false, false, Seq(field1, field2), Seq.empty)
+      VCFSchemaInferrer.inferSchema(false, false, Seq(field1, field2), Seq.empty)
     }
   }
 
@@ -118,25 +118,25 @@ class VCFSchemaInfererSuite extends HLSBaseTest {
   )
 
   gridTest("to and from schema")(cases) { tc =>
-    val schema = VCFSchemaInferer.inferSchema(true, true, tc.infoHeaderLines, tc.formatHeaderLines)
-    val lines = VCFSchemaInferer.headerLinesFromSchema(schema)
+    val schema = VCFSchemaInferrer.inferSchema(true, true, tc.infoHeaderLines, tc.formatHeaderLines)
+    val lines = VCFSchemaInferrer.headerLinesFromSchema(schema)
     val allInputLines: Seq[VCFHeaderLine] = tc.formatHeaderLines ++ tc.infoHeaderLines
     assert(lines.toSet == allInputLines.toSet)
   }
 
   test("include count metadata (non-integer)") {
     val line = new VCFInfoHeaderLine("a", VCFHeaderLineCount.A, VCFHeaderLineType.Integer, "")
-    val schema = VCFSchemaInferer.inferSchema(true, true, Seq(line), Seq.empty)
+    val schema = VCFSchemaInferrer.inferSchema(true, true, Seq(line), Seq.empty)
     assert(schema.exists { f =>
-      f.name == "INFO_a" && f.metadata.getString(VCFSchemaInferer.VCF_HEADER_COUNT_KEY) == "A"
+      f.name == "INFO_a" && f.metadata.getString(VCFSchemaInferrer.VCF_HEADER_COUNT_KEY) == "A"
     })
   }
 
   test("include count metadata (integer") {
     val line = new VCFInfoHeaderLine("a", 102, VCFHeaderLineType.Integer, "")
-    val schema = VCFSchemaInferer.inferSchema(true, true, Seq(line), Seq.empty)
+    val schema = VCFSchemaInferrer.inferSchema(true, true, Seq(line), Seq.empty)
     assert(schema.exists { f =>
-      f.name == "INFO_a" && f.metadata.getString(VCFSchemaInferer.VCF_HEADER_COUNT_KEY) == "102"
+      f.name == "INFO_a" && f.metadata.getString(VCFSchemaInferrer.VCF_HEADER_COUNT_KEY) == "102"
     })
   }
 
@@ -151,7 +151,7 @@ class VCFSchemaInfererSuite extends HLSBaseTest {
       new VCFInfoHeaderLine("b", 0, VCFHeaderLineType.Flag, ""),
       new VCFInfoHeaderLine("c", VCFHeaderLineCount.UNBOUNDED, VCFHeaderLineType.Integer, "")
     )
-    assert(VCFSchemaInferer.headerLinesFromSchema(schema) == expected)
+    assert(VCFSchemaInferrer.headerLinesFromSchema(schema) == expected)
   }
 
   test("don't include sample ids or otherFields") {
@@ -165,7 +165,7 @@ class VCFSchemaInfererSuite extends HLSBaseTest {
                 StructField("sampleId", StringType),
                 StructField("otherFields", MapType(StringType, StringType))
               ))))))
-    assert(VCFSchemaInferer.headerLinesFromSchema(schema).isEmpty)
+    assert(VCFSchemaInferrer.headerLinesFromSchema(schema).isEmpty)
   }
 
   test("don't return same key multiple times") {
@@ -180,6 +180,6 @@ class VCFSchemaInfererSuite extends HLSBaseTest {
                 StructField("phased", BooleanType)
               ))))))
     val expected = Seq(new VCFFormatHeaderLine("GT", 1, VCFHeaderLineType.String, ""))
-    assert(VCFSchemaInferer.headerLinesFromSchema(schema) == expected)
+    assert(VCFSchemaInferrer.headerLinesFromSchema(schema) == expected)
   }
 }

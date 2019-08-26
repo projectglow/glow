@@ -340,7 +340,8 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
     val df = spark.read.format(readSourceName).load(NA12878)
     val writtenHeader = writeVcfHeader(df, Some("infer"))
     val oldHeader = VCFMetadataLoader.readVcfHeader(spark.sparkContext.hadoopConfiguration, NA12878)
-    assert(getSchemaLines(writtenHeader) == VCFSchemaInferer.headerLinesFromSchema(df.schema).toSet)
+    assert(
+      getSchemaLines(writtenHeader) == VCFSchemaInferrer.headerLinesFromSchema(df.schema).toSet)
     assert(oldHeader.getMetaDataInInputOrder != writtenHeader.getMetaDataInInputOrder)
   }
 }
@@ -443,7 +444,7 @@ class VCFWriterUtilsSuite extends HLSBaseTest {
 
   test("infer header") {
     val header = getHeaderNoSamples(Map("vcfHeader" -> "infer"), None, schema)
-    assert(getSchemaLines(header) == VCFSchemaInferer.headerLinesFromSchema(schema).toSet)
+    assert(getSchemaLines(header) == VCFSchemaInferrer.headerLinesFromSchema(schema).toSet)
     assert(
       getAllLines(header) !=
       getAllLines(VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, vcf)))

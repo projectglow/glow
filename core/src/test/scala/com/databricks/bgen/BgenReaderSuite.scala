@@ -8,10 +8,10 @@ import com.google.common.io.LittleEndianDataInputStream
 import org.apache.hadoop.fs.Path
 import org.apache.spark.SparkException
 import org.apache.spark.sql.catalyst.ScalaReflection
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types.{ArrayType, StructType}
 
 import com.databricks.hls.sql.HLSBaseTest
-import com.databricks.vcf.{BgenRow, VCFRow}
+import com.databricks.vcf.{BgenRow, VCFRow, VariantSchemas}
 
 class BgenReaderSuite extends HLSBaseTest {
 
@@ -204,22 +204,8 @@ class BgenReaderSuite extends HLSBaseTest {
       .schema(ScalaReflection.schemaFor[WeirdSchema].dataType.asInstanceOf[StructType])
       .format("com.databricks.bgen")
       .load(path)
-      .show() // No error expected
-  }
-
-  test("No sample IDs if no .sample file is provided") {
-    val sess = spark
-    import sess.implicits._
-
-    val basePath = s"$testRoot/example.16bits.oxford"
-    val ds = spark
-      .read
-      .format("com.databricks.bgen")
-      .load(s"$basePath.bgen")
-      .as[BgenRow]
-      .head
-
-    assert(ds.genotypes.forall(_.sampleId.isEmpty))
+      .rdd
+      .count() // No error expected
   }
 
   test("Sample IDs present if .sample file is provided") {
@@ -351,5 +337,43 @@ class BgenReaderSuite extends HLSBaseTest {
         .load(input)
         .count()
     }
+  }
+
+  private def hasSampleIdField(schema: StructType): Boolean = {
+    schema
+      .find(_.name == VariantSchemas.genotypesFieldName)
+      .get
+      .dataType
+      .asInstanceOf[ArrayType]
+      .elementType
+      .asInstanceOf[StructType]
+      .exists(_.name == VariantSchemas.sampleIdField.name)
+  }
+
+  test("schema does not include sample id field if there are no ids") {
+    val df = spark
+      .read
+      .format("com.databricks.bgen")
+      .load(s"$testRoot/example.16bits.nosampleids.bgen")
+
+    assert(!hasSampleIdField(df.schema))
+  }
+
+  test("schema includes sample id if at least one file has ids") {
+    val df = spark
+      .read
+      .format("com.databricks.bgen")
+      .load(s"$testRoot/example.16bits*.bgen")
+    assert(hasSampleIdField(df.schema))
+  }
+
+  test("schema includes sample id if sample id file is provided") {
+    val df = spark
+      .read
+      .option("sampleFilePath", s"$testRoot/example.16bits.oxford.sample")
+      .option("sampleIdColumn", "ID_2")
+      .format("com.databricks.bgen")
+      .load(s"$testRoot/example.16bits.nosampleids.bgen")
+    assert(hasSampleIdField(df.schema))
   }
 }
