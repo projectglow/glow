@@ -55,12 +55,12 @@ object VariantSchemas {
   val ploidyField = StructField("ploidy", IntegerType)
 
   // Genotype fields that are typically present in BGEN records
-  val bgenGenotypesField = StructField(
+  def bgenGenotypesField(hasSampleIds: Boolean): StructField = StructField(
     genotypesFieldName,
     ArrayType(
       StructType(
+        (if (hasSampleIds) Seq(sampleIdField) else Seq.empty) ++
         Seq(
-          sampleIdField,
           phasedField,
           ploidyField,
           posteriorProbabilitiesField
@@ -70,7 +70,7 @@ object VariantSchemas {
   )
 
   // All fields that are typically present in BGEN records
-  val bgenDefaultSchema = StructType(
+  def bgenDefaultSchema(hasSampleIds: Boolean): StructType = StructType(
     Seq(
       contigNameField,
       startField,
@@ -78,7 +78,7 @@ object VariantSchemas {
       namesField,
       refAlleleField,
       alternateAllelesField,
-      bgenGenotypesField
+      bgenGenotypesField(hasSampleIds)
     )
   )
 }

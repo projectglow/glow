@@ -25,17 +25,13 @@ import com.databricks.vcf.VariantSchemas
 
 class BgenFileFormat extends FileFormat with DataSourceRegister with Serializable with HLSLogging {
 
-  val SAMPLE_FILE_PATH_OPTION_KEY = "sampleFilePath"
-  val SAMPLE_ID_COLUMN_OPTION_KEY = "sampleIdColumn"
-  val SAMPLE_ID_COLUMN_OPTION_DEFAULT_VALUE = "ID_2"
-
   override def shortName(): String = "com.databricks.bgen"
 
   override def inferSchema(
       sparkSession: SparkSession,
       options: Map[String, String],
       files: Seq[FileStatus]): Option[StructType] = {
-    Some(VariantSchemas.bgenDefaultSchema)
+    Option(BgenSchemaInferrer.inferSchema(sparkSession, files, options))
   }
 
   override def prepareWrite(
@@ -66,7 +62,7 @@ class BgenFileFormat extends FileFormat with DataSourceRegister with Serializabl
     val serializableConf = new SerializableConfiguration(hadoopConf)
     val useIndex = options.get(BgenFileFormat.USE_INDEX_KEY).forall(_.toBoolean)
     val ignoreExtension = options.get(BgenFileFormat.IGNORE_EXTENSION_KEY).exists(_.toBoolean)
-    val sampleIdsOpt = getSampleIds(options, hadoopConf)
+    val sampleIdsOpt = BgenFileFormat.getSampleIds(options, hadoopConf)
 
     file => {
       val path = new Path(file.filePath)
@@ -118,7 +114,7 @@ class BgenFileFormat extends FileFormat with DataSourceRegister with Serializabl
       useIndex: Boolean,
       ignoreExtension: Boolean): Option[Long] = {
 
-    if (!file.filePath.endsWith(".bgen") && !ignoreExtension) {
+    if (!file.filePath.endsWith(BgenFileFormat.BGEN_SUFFIX) && !ignoreExtension) {
       return None
     }
 
@@ -152,6 +148,22 @@ class BgenFileFormat extends FileFormat with DataSourceRegister with Serializabl
 
     localPath
   }
+}
+
+object BgenFileFormat {
+  val BGEN_SUFFIX = ".bgen"
+  val INDEX_SUFFIX = ".bgi"
+  val NEXT_IDX_QUERY =
+    """
+      |SELECT MIN(file_start_position) from Variant
+      |WHERE file_start_position > :pos
+    """.stripMargin
+  val idxLock = Striped.lock(100)
+  val IGNORE_EXTENSION_KEY = "ignoreExtension"
+  val USE_INDEX_KEY = "useBgenIndex"
+  val SAMPLE_FILE_PATH_OPTION_KEY = "sampleFilePath"
+  val SAMPLE_ID_COLUMN_OPTION_KEY = "sampleIdColumn"
+  val SAMPLE_ID_COLUMN_OPTION_DEFAULT_VALUE = "ID_2"
 
   /**
    * Given a path to an Oxford-style .sample file exists (option: sampleFilePath), reads the sample
@@ -161,9 +173,7 @@ class BgenFileFormat extends FileFormat with DataSourceRegister with Serializabl
    * a sample ID), an IllegalArgumentException is thrown.
    * If no path is given, None is returned; if a valid path is given, Some list is returned.
    */
-  private def getSampleIds(
-      options: Map[String, String],
-      hadoopConf: Configuration): Option[Seq[String]] = {
+  def getSampleIds(options: Map[String, String], hadoopConf: Configuration): Option[Seq[String]] = {
 
     val samplePathOpt = options.get(SAMPLE_FILE_PATH_OPTION_KEY)
 
@@ -208,16 +218,4 @@ class BgenFileFormat extends FileFormat with DataSourceRegister with Serializabl
       Some(sampleIds)
     }
   }
-}
-
-object BgenFileFormat {
-  val INDEX_SUFFIX = ".bgi"
-  val NEXT_IDX_QUERY =
-    """
-      |SELECT MIN(file_start_position) from Variant
-      |WHERE file_start_position > :pos
-    """.stripMargin
-  val idxLock = Striped.lock(100)
-  val IGNORE_EXTENSION_KEY = "ignoreExtension"
-  val USE_INDEX_KEY = "useBgenIndex"
 }

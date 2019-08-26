@@ -58,7 +58,7 @@ class InternalRowToVariantContextConverter(
         vcfHeader.getInfoHeaderLine(f.name.stripPrefix(infoFieldPrefix))
       if (headerLine == null) {
         provideWarning(s"Column ${f.name} does not have a matching VCF header line")
-      } else if (!VCFSchemaInferer
+      } else if (!VCFSchemaInferrer
           .typesForHeader(headerLine)
           .exists(t => SQLUtils.dataTypesEqualExceptNullability(t, f.dataType))) {
         provideWarning(
@@ -78,7 +78,7 @@ class InternalRowToVariantContextConverter(
             s"Genotype field ${f.name} does not have a matching VCF header " +
             s"line"
           )
-        } else if (!VCFSchemaInferer
+        } else if (!VCFSchemaInferrer
             .typesForHeader(headerLine)
             .exists(t => SQLUtils.dataTypesEqualExceptNullability(t, f.dataType))) {
           provideWarning(

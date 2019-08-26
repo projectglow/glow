@@ -8,7 +8,7 @@ import org.apache.commons.io.FileUtils
 import org.apache.spark.SparkException
 
 import com.databricks.hls.common.TestUtils._
-import com.databricks.vcf.BgenRow
+import com.databricks.vcf.{BgenRow, VariantSchemas}
 
 class BgenWriterSuite extends BgenConverterBaseTest {
 
@@ -19,7 +19,8 @@ class BgenWriterSuite extends BgenConverterBaseTest {
     val newBgenDir = Files.createTempDirectory("bgen")
     val newBgenFile = newBgenDir.resolve("temp.bgen").toString
 
-    val origDs = spark.read.format("com.databricks.bgen").load(testBgen).as[BgenRow]
+    val origDs =
+      spark.read.format("com.databricks.bgen").schema(BgenRow.schema).load(testBgen).as[BgenRow]
     origDs
       .write
       .option("bitsPerProbability", bitsPerProb)
@@ -27,7 +28,8 @@ class BgenWriterSuite extends BgenConverterBaseTest {
       .save(newBgenFile)
 
     // Check that rows in new file are approximately equal
-    val newDs = spark.read.format("com.databricks.bgen").load(newBgenFile).as[BgenRow]
+    val newDs =
+      spark.read.format("com.databricks.bgen").schema(BgenRow.schema).load(newBgenFile).as[BgenRow]
     origDs
       .sort("contigName", "start")
       .collect
@@ -94,7 +96,12 @@ class BgenWriterSuite extends BgenConverterBaseTest {
     val newBgenDir = Files.createTempDirectory("bgen")
     val newBgenFile = newBgenDir.resolve("temp.bgen").toString
 
-    val bgenDs = spark.read.format("com.databricks.bgen").load(testBgen).as[BgenRow]
+    val bgenDs = spark
+      .read
+      .format("com.databricks.bgen")
+      .schema(BgenRow.schema)
+      .load(testBgen)
+      .as[BgenRow]
     val origVcfDs = spark
       .read
       .format("com.databricks.vcf")
@@ -113,7 +120,12 @@ class BgenWriterSuite extends BgenConverterBaseTest {
     }
     writerWithDefaultPhasing.save(newBgenFile)
 
-    val vcfDs = spark.read.format("com.databricks.bgen").load(newBgenFile).as[BgenRow]
+    val vcfDs = spark
+      .read
+      .format("com.databricks.bgen")
+      .schema(BgenRow.schema)
+      .load(newBgenFile)
+      .as[BgenRow]
 
     bgenDs
       .sort("contigName", "start")
@@ -258,6 +270,7 @@ class BgenWriterSuite extends BgenConverterBaseTest {
     val rewrittenDs = spark
       .read
       .format("com.databricks.bgen")
+      .schema(BgenRow.schema)
       .load(newBgenFile)
       .as[BgenRow]
     assert(rewrittenDs.collect.head.genotypes.isEmpty)
