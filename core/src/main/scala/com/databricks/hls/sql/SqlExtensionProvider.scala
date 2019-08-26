@@ -139,5 +139,10 @@ object SqlExtensionProvider {
       FunctionIdentifier("vector_to_array"),
       exprs => VectorToArray(exprs.head)
     )
+
+    functionRegistry.registerFunction(
+      FunctionIdentifier("linear_regression_gwas"),
+      exprs => LinearRegressionExpr(exprs(0), exprs(1), exprs(2))
+    )
   }
 }
