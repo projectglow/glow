@@ -4,11 +4,11 @@ import org.apache.spark.sql.DataFrame
 
 import com.databricks.hls.sql.HLSBaseTest
 
-class SparkGenomicsSuite extends HLSBaseTest {
+class DBGenomicsSuite extends HLSBaseTest {
   test("uses service provider") {
     val sess = spark
     import sess.implicits._
-    val output = SparkGenomics.transform("dummy", spark.emptyDataFrame, Map.empty[String, String])
+    val output = DBGenomics.transform("dummy", spark.emptyDataFrame, Map.empty[String, String])
     assert(output.count() == 1)
     assert(output.as[String].head() == "monkey")
   }

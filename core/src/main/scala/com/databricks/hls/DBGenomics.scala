@@ -16,7 +16,7 @@ import com.databricks.hls.common.Named
  * We should expose as little functionality as is necessary through this object and should prefer
  * generic methods with stringly-typed arguments to reduce language-specific maintenance burden.
  */
-object SparkGenomics {
+object DBGenomics {
 
   /**
    * Apply a named transformation to a DataFrame of genomic data. All parameters apart from the

@@ -22,7 +22,7 @@ def transform(operation: str, df: DataFrame, arg_map: Dict[str, str]=None,
     :return: The transformed DataFrame
     """
     sc = SparkContext.getOrCreate(0)
-    transform_fn = SparkContext._jvm.com.databricks.hls.SparkGenomics.transform
+    transform_fn = SparkContext._jvm.com.databricks.hls.DBGenomics.transform
     args = arg_map if arg_map is not None else kwargs
     output_jdf = transform_fn(operation, df._jdf, args)
     return DataFrame(output_jdf, SQLContext.getOrCreate(sc))
