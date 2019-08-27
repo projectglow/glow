@@ -13,7 +13,7 @@ import scala.collection.JavaConverters._
 import org.apache.spark.{SparkException, TaskContext}
 import org.apache.spark.sql.DataFrame
 
-import com.databricks.hls.SparkGenomics
+import com.databricks.hls.DBGenomics
 import com.databricks.hls.common.TestUtils._
 import com.databricks.hls.sql.HLSBaseTest
 import com.databricks.hls.transformers.pipe.ProcessHelper
@@ -37,7 +37,7 @@ class VCFPiperSuite extends HLSBaseTest {
       "outputFormatter" -> "vcf",
       "in_vcfHeader" -> "infer",
       "cmd" -> s"""["$script"]""")
-    val outputDf = SparkGenomics.transform("pipe", inputDf, options)
+    val outputDf = DBGenomics.transform("pipe", inputDf, options)
 
     (inputDf, outputDf)
   }
@@ -95,7 +95,7 @@ class VCFPiperSuite extends HLSBaseTest {
         "env_a" -> "b",
         "eNv_C" -> "D")
     val df = readVcf(na12878)
-    val output = SparkGenomics
+    val output = DBGenomics
       .transform("pipe", df, options)
       .as[String]
       .collect()
@@ -110,7 +110,7 @@ class VCFPiperSuite extends HLSBaseTest {
     assert(df.count == 4)
 
     val options = baseTextOptions ++ Map("cmd" -> """["wc", "-l"]""", "in_vcfHeader" -> na12878)
-    val output = SparkGenomics.transform("pipe", df, options)
+    val output = DBGenomics.transform("pipe", df, options)
     assert(output.count() == 8)
   }
 
@@ -119,7 +119,7 @@ class VCFPiperSuite extends HLSBaseTest {
     assert(df.count == 4)
 
     val options = baseTextOptions ++ Map("cmd" -> """["wc", "-l"]""", "in_vcfHeader" -> "infer")
-    assertThrows[SparkException](SparkGenomics.transform("pipe", df, options))
+    assertThrows[SparkException](DBGenomics.transform("pipe", df, options))
   }
 
   test("stdin and stderr threads are cleaned up for successful commands") {
@@ -170,7 +170,7 @@ class VCFPiperSuite extends HLSBaseTest {
         "cmd" -> """["bash", "-c", "exit 1"]""")
 
     val ex = intercept[SparkException] {
-      SparkGenomics.transform("pipe", df, options).count()
+      DBGenomics.transform("pipe", df, options).count()
     }
     assert(ex.getMessage.contains("Subprocess exited with status 1"))
 
@@ -198,7 +198,7 @@ class VCFPiperSuite extends HLSBaseTest {
       "outputFormatter" -> "text",
       "in_vcfHeader" -> na12878,
       "cmd" -> s"""["cat", "-"]""")
-    val output = SparkGenomics.transform("pipe", df, options)
+    val output = DBGenomics.transform("pipe", df, options)
     assert(output.count == 28)
   }
 
@@ -223,7 +223,7 @@ class VCFPiperSuite extends HLSBaseTest {
       "outputFormatter" -> "vcf",
       "in_vcfHeader" -> na12878,
       "cmd" -> s"""["cat", "-"]""")
-    val output = SparkGenomics.transform("pipe", df, options)
+    val output = DBGenomics.transform("pipe", df, options)
     assert(output.count() == 4)
   }
 
@@ -243,7 +243,7 @@ class VCFPiperSuite extends HLSBaseTest {
       "outputFormatter" -> "vcf",
       "in_vcfHeader" -> "infer",
       "cmd" -> s"""["cat", "-"]""")
-    val outputDf = SparkGenomics.transform("pipe", inputDf.toDF, options)
+    val outputDf = DBGenomics.transform("pipe", inputDf.toDF, options)
 
     inputDf.as[SimpleVcfRow].collect.zip(outputDf.as[SimpleVcfRow].collect).foreach {
       case (vc1, vc2) =>

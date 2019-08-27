@@ -1,9 +1,10 @@
 package com.databricks.hls.transformers.normalizevariants
 
-import com.databricks.hls.SparkGenomics
 import com.databricks.hls.common.HLSLogging
 import com.databricks.hls.sql.HLSBaseTest
 import org.apache.spark.SparkConf
+
+import com.databricks.hls.DBGenomics
 
 class NormalizeVariantsTransformerSuite extends HLSBaseTest with HLSLogging {
 
@@ -107,7 +108,7 @@ class NormalizeVariantsTransformerSuite extends HLSBaseTest with HLSLogging {
       .format(sourceName)
       .load(originalVCFFileName)
 
-    val dfNormalized = SparkGenomics
+    val dfNormalized = DBGenomics
       .transform(
         "normalizevariants",
         dfOriginal,

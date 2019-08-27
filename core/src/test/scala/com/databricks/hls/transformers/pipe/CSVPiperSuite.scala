@@ -8,7 +8,7 @@
  */
 package com.databricks.hls.transformers.pipe
 
-import com.databricks.hls.SparkGenomics
+import com.databricks.hls.DBGenomics
 import com.databricks.hls.sql.HLSBaseTest
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.{StringType, StructField}
@@ -51,7 +51,7 @@ class CSVPiperSuite extends HLSBaseTest {
       Map.empty
     }
 
-    SparkGenomics.transform(
+    DBGenomics.transform(
       "pipe",
       inputDf,
       baseOptions ++ inputDelimiterOption ++ outputDelimiterOption ++ inputHeaderOption ++ outputHeaderOption)
@@ -140,7 +140,7 @@ class CSVPiperSuite extends HLSBaseTest {
       "out_delimiter" -> " ",
       "cmd" -> s"""["$testDataHome/vcf/scripts/gwas.sh"]"""
     )
-    val outputDf = SparkGenomics.transform("pipe", input, options)
+    val outputDf = DBGenomics.transform("pipe", input, options)
     assert(
       outputDf.schema.fields.toSeq == Seq(
         StructField("CHR", StringType, nullable = true),
@@ -162,7 +162,7 @@ class CSVPiperSuite extends HLSBaseTest {
       "out_delimiter" -> " ",
       "cmd" -> s"""["python", "$testDataHome/vcf/scripts/gwas-region.py", "$testDataHome/vcf/scripts/group_file.txt"]"""
     )
-    val outputDf = SparkGenomics.transform("pipe", input, options)
+    val outputDf = DBGenomics.transform("pipe", input, options)
     assert(
       outputDf.schema.fields.toSeq == Seq(
         StructField("Gene", StringType, nullable = true),
@@ -173,7 +173,7 @@ class CSVPiperSuite extends HLSBaseTest {
 
   test("Big file") {
     val inputDf = spark.read.text(s"$testDataHome/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf")
-    val outputDf = SparkGenomics.transform(
+    val outputDf = DBGenomics.transform(
       "pipe",
       inputDf,
       Map("inputFormatter" -> "text", "outputFormatter" -> "csv", "cmd" -> """["cat", "-"]"""))
