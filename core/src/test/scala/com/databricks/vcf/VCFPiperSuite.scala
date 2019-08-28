@@ -12,6 +12,7 @@ import scala.collection.JavaConverters._
 
 import org.apache.spark.{SparkException, TaskContext}
 import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.types.{ArrayType, StructType}
 
 import com.databricks.hls.DBGenomics
 import com.databricks.hls.common.TestUtils._
@@ -27,6 +28,7 @@ class VCFPiperSuite extends HLSBaseTest {
     spark
       .read
       .format("com.databricks.vcf")
+      .option("flattenInfoFields", true)
       .load(vcf)
   }
 
