@@ -5,7 +5,7 @@ import org.apache.spark.sql.types._
 
 import com.databricks.hls.sql.HLSBaseTest
 
-class VCFSchemaInfererSuite extends HLSBaseTest {
+class VCFSchemaInferrerSuite extends HLSBaseTest {
   test("includes base fields") {
     val schema = VCFSchemaInferrer.inferSchema(false, false, Seq.empty, Seq.empty)
     VariantSchemas.vcfBaseSchema.foreach { field =>
@@ -33,35 +33,50 @@ class VCFSchemaInfererSuite extends HLSBaseTest {
   case class VCFField(
       vcfType: VCFHeaderLineType,
       vcfCount: Option[VCFHeaderLineCount], // None implies count=1
-      sqlType: DataType)
+      sqlType: DataType,
+      description: String)
 
   private val infoFields = Seq(
-    VCFField(VCFHeaderLineType.Character, None, StringType),
-    VCFField(VCFHeaderLineType.String, None, StringType),
-    VCFField(VCFHeaderLineType.Integer, None, IntegerType),
-    VCFField(VCFHeaderLineType.Float, None, DoubleType),
+    VCFField(VCFHeaderLineType.Character, None, StringType, "descriptionOne"),
+    VCFField(VCFHeaderLineType.String, None, StringType, "descriptionTwo"),
+    VCFField(VCFHeaderLineType.Integer, None, IntegerType, "descriptionThree"),
+    VCFField(VCFHeaderLineType.Float, None, DoubleType, "descriptionFour"),
     // Note: FLAG fields usually have count 0, but for this test it doesn't matter
-    VCFField(VCFHeaderLineType.Flag, None, BooleanType),
-    VCFField(VCFHeaderLineType.String, Option(VCFHeaderLineCount.G), ArrayType(StringType)),
-    VCFField(VCFHeaderLineType.Integer, Option(VCFHeaderLineCount.G), ArrayType(IntegerType)),
-    VCFField(VCFHeaderLineType.Float, Option(VCFHeaderLineCount.G), ArrayType(DoubleType))
+    VCFField(VCFHeaderLineType.Flag, None, BooleanType, "descriptionFive"),
+    VCFField(
+      VCFHeaderLineType.String,
+      Option(VCFHeaderLineCount.G),
+      ArrayType(StringType),
+      "descriptionSix"),
+    VCFField(
+      VCFHeaderLineType.Integer,
+      Option(VCFHeaderLineCount.G),
+      ArrayType(IntegerType),
+      "descriptionSeven"),
+    VCFField(
+      VCFHeaderLineType.Float,
+      Option(VCFHeaderLineCount.G),
+      ArrayType(DoubleType),
+      "descriptionEight")
   )
   private val formatFields = infoFields.filter(_.vcfType != VCFHeaderLineType.Flag)
 
   gridTest("flatten info field")(infoFields) { field =>
     val infoHeader = field.vcfCount match {
-      case Some(t) => new VCFInfoHeaderLine("field", t, field.vcfType, "")
-      case None => new VCFInfoHeaderLine("field", 1, field.vcfType, "")
+      case Some(t) => new VCFInfoHeaderLine("field", t, field.vcfType, field.description)
+      case None => new VCFInfoHeaderLine("field", 1, field.vcfType, field.description)
     }
     val schema = VCFSchemaInferrer.inferSchema(false, true, Seq(infoHeader), Seq.empty)
     val sqlField = schema.find(_.name == "INFO_field").get
     assert(sqlField.dataType == field.sqlType)
+    assert(sqlField.metadata.contains("vcf_header_description"))
+    assert(sqlField.metadata.getString("vcf_header_description") == field.description)
   }
 
   gridTest("infer format fields")(formatFields) { field =>
     val formatHeader = field.vcfCount match {
-      case Some(t) => new VCFFormatHeaderLine("field", t, field.vcfType, "")
-      case None => new VCFFormatHeaderLine("field", 1, field.vcfType, "")
+      case Some(t) => new VCFFormatHeaderLine("field", t, field.vcfType, field.description)
+      case None => new VCFFormatHeaderLine("field", 1, field.vcfType, field.description)
     }
     val schema = VCFSchemaInferrer.inferSchema(false, false, Seq.empty, Seq(formatHeader))
     val genotypeSchema = schema
@@ -71,7 +86,10 @@ class VCFSchemaInfererSuite extends HLSBaseTest {
       .asInstanceOf[ArrayType]
       .elementType
       .asInstanceOf[StructType]
-    assert(genotypeSchema.find(_.name == "field").get.dataType == field.sqlType)
+    val sqlField = genotypeSchema.find(_.name == "field").get
+    assert(sqlField.dataType == field.sqlType)
+    assert(sqlField.metadata.contains("vcf_header_description"))
+    assert(sqlField.metadata.getString("vcf_header_description") == field.description)
   }
 
   test("validate headers") {
@@ -179,7 +197,7 @@ class VCFSchemaInfererSuite extends HLSBaseTest {
                 StructField("calls", ArrayType(IntegerType)),
                 StructField("phased", BooleanType)
               ))))))
-    val expected = Seq(new VCFFormatHeaderLine("GT", 1, VCFHeaderLineType.String, ""))
+    val expected = Seq(new VCFFormatHeaderLine("GT", 1, VCFHeaderLineType.String, "Genotype"))
     assert(VCFSchemaInferrer.headerLinesFromSchema(schema) == expected)
   }
 }

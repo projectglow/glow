@@ -20,7 +20,6 @@ import com.databricks.hls.common.HLSLogging
 object VCFFileWriter extends HLSLogging {
 
   val VCF_HEADER_KEY = "vcfHeader"
-  private val DEFAULT_HEADER = "default"
   private val INFER_HEADER = "infer"
 
   def parseHeaderFromString(s: String): VCFHeader = {
@@ -60,9 +59,6 @@ object VCFFileWriter extends HLSLogging {
       case INFER_HEADER =>
         logger.info("Inferring header for VCF writer")
         (VCFSchemaInferrer.headerLinesFromSchema(schema).toSet, None)
-      case DEFAULT_HEADER =>
-        logger.info("Using default header lines for VCF writer")
-        (VCFRowHeaderLines.allHeaderLines.toSet, None)
       case content if isCustomHeader(content) =>
         logger.info("Using provided string as VCF header")
         val header = VCFFileWriter.parseHeaderFromString(content)
@@ -92,8 +88,9 @@ class VCFFileWriter(
     extends OutputWriter
     with HLSLogging {
 
+  private val DEFAULT_VCF_WRITER_HEADER = "infer"
   private val (headerLineSet, providedSampleIds) =
-    VCFFileWriter.parseHeaderLinesAndSamples(options, Some("default"), schema, conf)
+    VCFFileWriter.parseHeaderLinesAndSamples(options, Some(DEFAULT_VCF_WRITER_HEADER), schema, conf)
   private val converter = new InternalRowToVariantContextConverter(
     schema,
     headerLineSet,

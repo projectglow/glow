@@ -225,16 +225,16 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
     assert(!vcRdd.headerLines.contains(headerLine))
   }
 
-  gridTest("Strict validation stringency")(schemaOptions) { schema =>
+  test("Strict validation stringency") {
     val tempFile = createTempVcf.toString
 
     val ds = spark
       .read
       .format(readSourceName)
       .option("includeSampleIds", true)
-      .option(schema._1, schema._2)
+      .option("flattenInfoFields", false)
       .load(NA12878)
-    // Contains INFO and FORMAT keys (eg. INFO AC) not included in default VCFHeader
+    // Contains INFO and FORMAT keys (eg. INFO AC) that can't be inferred from attributes map
     assertThrows[SparkException](
       ds.write.format(writeSourceName).option("validationStringency", "strict").save(tempFile)
     )
@@ -324,11 +324,6 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
     assert(writtenHeader.getGenotypeSamples.asScala == Seq("sample1", "NA12878"))
   }
 
-  test("If not specified, default header") {
-    val writtenHeader = writeVcfHeader(spark.read.format(readSourceName).load(NA12878), None)
-    assert(VCFRowHeaderLines.allHeaderLines.toSet == getSchemaLines(writtenHeader))
-  }
-
   test("Path header") {
     val writtenHeader = writeVcfHeader(spark.read.format(readSourceName).load(NA12878), Some(TGP))
     val tgpHeader = VCFMetadataLoader.readVcfHeader(spark.sparkContext.hadoopConfiguration, TGP)
@@ -342,7 +337,7 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
     val oldHeader = VCFMetadataLoader.readVcfHeader(spark.sparkContext.hadoopConfiguration, NA12878)
     assert(
       getSchemaLines(writtenHeader) == VCFSchemaInferrer.headerLinesFromSchema(df.schema).toSet)
-    assert(oldHeader.getMetaDataInInputOrder != writtenHeader.getMetaDataInInputOrder)
+    assert(getSchemaLines(writtenHeader) == getSchemaLines(oldHeader)) // Includes descriptions
   }
 }
 
@@ -432,22 +427,18 @@ class VCFWriterUtilsSuite extends HLSBaseTest {
     header.getOtherHeaderLines.asScala.toSet
   }
 
-  test("default header") {
-    val header = getHeaderNoSamples(Map("vcfHeader" -> "default"), None, schema)
-    assert(getSchemaLines(header) == VCFRowHeaderLines.allHeaderLines.toSet)
-  }
-
   test("fall back") {
-    val header = getHeaderNoSamples(Map.empty, Some("default"), schema)
-    assert(getSchemaLines(header) == VCFRowHeaderLines.allHeaderLines.toSet)
+    val oldHeader = VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, vcf)
+    val header = getHeaderNoSamples(Map.empty, Some("infer"), schema)
+    assert(getSchemaLines(header) == VCFSchemaInferrer.headerLinesFromSchema(schema).toSet)
+    assert(getSchemaLines(header) == getSchemaLines(oldHeader))
   }
 
   test("infer header") {
+    val oldHeader = VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, vcf)
     val header = getHeaderNoSamples(Map("vcfHeader" -> "infer"), None, schema)
     assert(getSchemaLines(header) == VCFSchemaInferrer.headerLinesFromSchema(schema).toSet)
-    assert(
-      getAllLines(header) !=
-      getAllLines(VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, vcf)))
+    assert(getSchemaLines(header) == getSchemaLines(oldHeader))
   }
 
   test("use header path") {

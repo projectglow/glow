@@ -91,7 +91,8 @@ object VCFSchemaInferrer extends HLSLogging {
       val name = field.name.stripPrefix(VariantSchemas.infoFieldPrefix)
       val vcfType = vcfDataType(field.dataType)
       val (countType, count) = vcfHeaderLineCount(field)
-      makeHeaderLine(name, vcfType, countType, count, isFormat = false)
+      val description = vcfHeaderLineDescription(field)
+      makeHeaderLine(name, vcfType, countType, count, description, isFormat = false)
     }
 
     val formatLines = if (schema.exists(_.name == VariantSchemas.genotypesFieldName)) {
@@ -113,7 +114,8 @@ object VCFSchemaInferrer extends HLSLogging {
           val name = GenotypeFields.reverseAliases.getOrElse(field.name, field.name)
           val vcfType = vcfDataType(field.dataType)
           val (countType, count) = vcfHeaderLineCount(field)
-          Some(makeHeaderLine(name, vcfType, countType, count, isFormat = true))
+          val description = vcfHeaderLineDescription(field)
+          Some(makeHeaderLine(name, vcfType, countType, count, description, isFormat = true))
       }.distinct
     } else {
       Seq.empty
@@ -143,9 +145,8 @@ object VCFSchemaInferrer extends HLSLogging {
   }
 
   private def getSpecialHeaderLine(fieldName: String): Option[VCFHeaderLine] = {
-    val gtLine = new VCFFormatHeaderLine("GT", 1, VCFHeaderLineType.String, "")
     if (Set(VariantSchemas.callsField.name, VariantSchemas.phasedField.name).contains(fieldName)) {
-      Some(gtLine)
+      Some(VCFRowHeaderLines.genotype)
     } else {
       None
     }
@@ -181,13 +182,24 @@ object VCFSchemaInferrer extends HLSLogging {
     }
   }
 
+  private def vcfHeaderLineDescription(field: StructField): String = {
+    if (field.metadata.contains(VCF_HEADER_DESCRIPTION_KEY)) {
+      field.metadata.getString(VCF_HEADER_DESCRIPTION_KEY)
+    } else {
+      ""
+    }
+  }
+
   private def metadataForLine(line: VCFCompoundHeaderLine): Metadata = {
     val numberStr: String = if (line.getCountType == VCFHeaderLineCount.INTEGER) {
       line.getCount.toString
     } else {
       line.getCountType.name()
     }
-    new MetadataBuilder().putString(VCF_HEADER_COUNT_KEY, numberStr).build()
+    new MetadataBuilder()
+      .putString(VCF_HEADER_COUNT_KEY, numberStr)
+      .putString(VCF_HEADER_DESCRIPTION_KEY, line.getDescription)
+      .build()
   }
 
   private def makeHeaderLine(
@@ -195,15 +207,16 @@ object VCFSchemaInferrer extends HLSLogging {
       vcfType: VCFHeaderLineType,
       countType: VCFHeaderLineCount,
       count: Option[Int],
+      description: String,
       isFormat: Boolean): VCFCompoundHeaderLine = (countType, isFormat) match {
     case (VCFHeaderLineCount.INTEGER, true) =>
-      new VCFFormatHeaderLine(name, count.get, vcfType, "")
+      new VCFFormatHeaderLine(name, count.get, vcfType, description)
     case (VCFHeaderLineCount.INTEGER, false) =>
-      new VCFInfoHeaderLine(name, count.get, vcfType, "")
+      new VCFInfoHeaderLine(name, count.get, vcfType, description)
     case (cntType, true) =>
-      new VCFFormatHeaderLine(name, cntType, vcfType, "")
+      new VCFFormatHeaderLine(name, cntType, vcfType, description)
     case (cntType, false) =>
-      new VCFInfoHeaderLine(name, cntType, vcfType, "")
+      new VCFInfoHeaderLine(name, cntType, vcfType, description)
   }
 
   /**
@@ -232,4 +245,5 @@ object VCFSchemaInferrer extends HLSLogging {
 
   // Public constants
   val VCF_HEADER_COUNT_KEY = "vcf_header_count"
+  val VCF_HEADER_DESCRIPTION_KEY = "vcf_header_description"
 }
