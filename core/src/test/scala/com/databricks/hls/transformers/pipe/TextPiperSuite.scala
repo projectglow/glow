@@ -1,8 +1,12 @@
 package com.databricks.hls.transformers.pipe
 
-import com.databricks.hls.sql.HLSBaseTest
+import scala.collection.JavaConverters._
+
+import org.apache.spark.SparkException
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
+
+import com.databricks.hls.sql.HLSBaseTest
 
 class TextPiperSuite extends HLSBaseTest {
   def pipeText(df: DataFrame): DataFrame = {
@@ -45,5 +49,38 @@ class TextPiperSuite extends HLSBaseTest {
     val output = pipeText(df)
     assert(output.count() == 2)
     assert(output.filter("text = 'hello'").count == 2)
+  }
+
+  test("command fails") {
+    val sess = spark
+    import sess.implicits._
+
+    val df = Seq("hello", "world").toDF()
+    val options =
+      Map(
+        "inputFormatter" -> "text",
+        "outputFormatter" -> "text",
+        "cmd" -> """["bash", "-c", "exit 1"]""")
+
+    val ex = intercept[SparkException] {
+      new PipeTransformer().transform(df, options)
+    }
+    assert(ex.getMessage.contains("Subprocess exited with status 1"))
+
+    // threads should still be cleaned up
+    eventually {
+      assert(
+        !Thread
+          .getAllStackTraces
+          .asScala
+          .keySet
+          .exists(_.getName.startsWith(ProcessHelper.STDIN_WRITER_THREAD_PREFIX)))
+      assert(
+        !Thread
+          .getAllStackTraces
+          .asScala
+          .keySet
+          .exists(_.getName.startsWith(ProcessHelper.STDERR_READER_THREAD_PREFIX)))
+    }
   }
 }

@@ -12,7 +12,6 @@ import scala.collection.JavaConverters._
 
 import org.apache.spark.{SparkException, TaskContext}
 import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.types.{ArrayType, StructType}
 
 import com.databricks.hls.DBGenomics
 import com.databricks.hls.common.TestUtils._
@@ -147,34 +146,6 @@ class VCFPiperSuite extends HLSBaseTest {
       pipeScript(na12878, "totallyfakecommandthatdoesntexist")
     }
     assert(ex.getMessage.contains("No such file or directory"))
-
-    // threads should still be cleaned up
-    eventually {
-      assert(
-        !Thread
-          .getAllStackTraces
-          .asScala
-          .keySet
-          .exists(_.getName.startsWith(ProcessHelper.STDIN_WRITER_THREAD_PREFIX)))
-      assert(
-        !Thread
-          .getAllStackTraces
-          .asScala
-          .keySet
-          .exists(_.getName.startsWith(ProcessHelper.STDERR_READER_THREAD_PREFIX)))
-    }
-  }
-
-  test("command fails") {
-    val df = readVcf(na12878).repartition(8)
-    val options = baseTextOptions ++ Map(
-        "in_vcfHeader" -> na12878,
-        "cmd" -> """["bash", "-c", "exit 1"]""")
-
-    val ex = intercept[SparkException] {
-      DBGenomics.transform("pipe", df, options).count()
-    }
-    assert(ex.getMessage.contains("Subprocess exited with status 1"))
 
     // threads should still be cleaned up
     eventually {
