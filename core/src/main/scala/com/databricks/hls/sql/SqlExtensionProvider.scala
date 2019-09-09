@@ -14,7 +14,7 @@ import org.apache.spark.sql.catalyst.analysis.{FunctionRegistry, UnresolvedExtra
 import org.apache.spark.sql.catalyst.expressions.CreateNamedStruct
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.rules.Rule
-import org.apache.spark.sql.databricks.hls.tertiary.{AddStructFields, ExpandStruct}
+import org.apache.spark.sql.databricks.hls.tertiary.{AddStructFields, ExpandStruct, ExplodeMatrix}
 import org.apache.spark.sql.internal.SQLConf
 
 import com.databricks.hls.sql.optimizer.HLSReplaceExpressionsRule
@@ -143,6 +143,11 @@ object SqlExtensionProvider {
     functionRegistry.registerFunction(
       FunctionIdentifier("linear_regression_gwas"),
       exprs => LinearRegressionExpr(exprs(0), exprs(1), exprs(2))
+    )
+
+    functionRegistry.registerFunction(
+      FunctionIdentifier("explode_matrix"),
+      exprs => ExplodeMatrix(exprs.head)
     )
   }
 }

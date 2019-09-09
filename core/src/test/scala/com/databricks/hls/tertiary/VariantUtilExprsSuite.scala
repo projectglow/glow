@@ -1,6 +1,6 @@
 package com.databricks.hls.tertiary
 
-import org.apache.spark.ml.linalg.{DenseVector, SparseVector, Vector}
+import org.apache.spark.ml.linalg.{DenseMatrix, DenseVector, SparseMatrix, SparseVector, Vector}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{IntegerType, StringType, StructType}
@@ -256,6 +256,34 @@ class VariantUtilExprsSuite extends HLSBaseTest {
       case (d1, d2) =>
         assert(d1 == d2 || (d1.isNaN && d2.isNaN))
     }
+  }
+
+  private val baseMatrix = new DenseMatrix(4, 3, (1 to 12).map(_.toDouble).toArray)
+  private val matrices = Seq(
+    ("dense col major", baseMatrix.toDenseColMajor),
+    ("dense row major", baseMatrix.toDenseRowMajor),
+    ("sparse col major", baseMatrix.toSparseColMajor),
+    ("sparse row major", baseMatrix.toSparseRowMajor)
+  )
+  gridTest("explode matrix")(matrices) {
+    case (_, matrix) =>
+      import sess.implicits._
+      val exploded = spark
+        .createDataFrame(Seq(Tuple1(matrix)))
+        .selectExpr("explode_matrix(_1)")
+        .as[Seq[Double]]
+        .collect()
+      val expected = Seq(
+        Seq(1, 5, 9),
+        Seq(2, 6, 10),
+        Seq(3, 7, 11),
+        Seq(4, 8, 12)
+      )
+      assert(exploded.toSeq == expected)
+  }
+
+  test("explode matrix (null)") {
+    assert(spark.sql("select explode_matrix(null)").count() == 0)
   }
 }
 
