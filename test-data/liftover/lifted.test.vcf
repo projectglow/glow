@@ -1,0 +1,48 @@
+##fileformat=VCFv4.2
+##FILTER=<ID=PASS,Description="All filters passed">
+##ALT=<ID=NON_REF,Description="Represents any possible alternative allele at this location">
+##FILTER=<ID=LowQual,Description="Low quality">
+##FORMAT=<ID=AD,Number=R,Type=Integer,Description="Allelic depths for the ref and alt alleles in the order listed">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Approximate read depth (reads with MQ=255 or with bad mates are filtered)">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=MIN_DP,Number=1,Type=Integer,Description="Minimum DP observed within the GVCF block">
+##FORMAT=<ID=PGT,Number=1,Type=String,Description="Physical phasing haplotype information, describing how the alternate alleles are phased in relation to one another">
+##FORMAT=<ID=PID,Number=1,Type=String,Description="Physical phasing ID information, where each unique ID within a given sample (but not across samples) connects records within a phasing group">
+##FORMAT=<ID=PL,Number=G,Type=Integer,Description="Normalized, Phred-scaled likelihoods for genotypes as defined in the VCF specification">
+##FORMAT=<ID=SB,Number=4,Type=Integer,Description="Per-sample component statistics which comprise the Fisher's Exact Test to detect strand bias.">
+##INFO=<ID=BaseQRankSum,Number=1,Type=Float,Description="Z-score from Wilcoxon rank sum test of Alt Vs. Ref base qualities">
+##INFO=<ID=ClippingRankSum,Number=1,Type=Float,Description="Z-score From Wilcoxon rank sum test of Alt vs. Ref number of hard clipped bases">
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Approximate read depth; some reads may have been filtered">
+##INFO=<ID=DS,Number=0,Type=Flag,Description="Were any of the samples downsampled?">
+##INFO=<ID=END,Number=1,Type=Integer,Description="Stop position of the interval">
+##INFO=<ID=ExcessHet,Number=1,Type=Float,Description="Phred-scaled p-value for exact test of excess heterozygosity">
+##INFO=<ID=HaplotypeScore,Number=1,Type=Float,Description="Consistency of the site with at most two segregating haplotypes">
+##INFO=<ID=InbreedingCoeff,Number=1,Type=Float,Description="Inbreeding coefficient as estimated from the genotype likelihoods per-sample when compared against the Hardy-Weinberg expectation">
+##INFO=<ID=MLEAC,Number=A,Type=Integer,Description="Maximum likelihood expectation (MLE) for the allele counts (not necessarily the same as the AC), for each ALT allele, in the same order as listed">
+##INFO=<ID=MLEAF,Number=A,Type=Float,Description="Maximum likelihood expectation (MLE) for the allele frequency (not necessarily the same as the AF), for each ALT allele, in the same order as listed">
+##INFO=<ID=MQ,Number=1,Type=Float,Description="RMS Mapping Quality">
+##INFO=<ID=MQRankSum,Number=1,Type=Float,Description="Z-score From Wilcoxon rank sum test of Alt vs. Ref read mapping qualities">
+##INFO=<ID=RAW_MQ,Number=1,Type=Float,Description="Raw data for RMS Mapping Quality">
+##INFO=<ID=ReadPosRankSum,Number=1,Type=Float,Description="Z-score from Wilcoxon rank sum test of Alt vs. Ref read position bias">
+##contig=<ID=chr20,length=64444167,assembly=Homo_sapiens_assembly38.20.21.fasta>
+##contig=<ID=chr20_GL383577v2_alt,length=128386,assembly=Homo_sapiens_assembly38.20.21.fasta>
+##contig=<ID=chr20_KI270869v1_alt,length=118774,assembly=Homo_sapiens_assembly38.20.21.fasta>
+##contig=<ID=chr20_KI270870v1_alt,length=183433,assembly=Homo_sapiens_assembly38.20.21.fasta>
+##contig=<ID=chr20_KI270871v1_alt,length=58661,assembly=Homo_sapiens_assembly38.20.21.fasta>
+##contig=<ID=chr21,length=46709983,assembly=Homo_sapiens_assembly38.20.21.fasta>
+##contig=<ID=chr21_GL383578v2_alt,length=63917,assembly=Homo_sapiens_assembly38.20.21.fasta>
+##contig=<ID=chr21_GL383579v2_alt,length=201197,assembly=Homo_sapiens_assembly38.20.21.fasta>
+##contig=<ID=chr21_GL383580v2_alt,length=74653,assembly=Homo_sapiens_assembly38.20.21.fasta>
+##contig=<ID=chr21_GL383581v2_alt,length=116689,assembly=Homo_sapiens_assembly38.20.21.fasta>
+##contig=<ID=chr21_KI270872v1_alt,length=82692,assembly=Homo_sapiens_assembly38.20.21.fasta>
+##contig=<ID=chr21_KI270873v1_alt,length=143900,assembly=Homo_sapiens_assembly38.20.21.fasta>
+##contig=<ID=chr21_KI270874v1_alt,length=166743,assembly=Homo_sapiens_assembly38.20.21.fasta>
+##liftOverProgram=CrossMap(https://sourceforge.net/projects/crossmap/)
+##liftOverFile=test-data/liftover/hg38ToHg19.over.chain.gz
+##new_reference_genome=/Users/karen.feng/Downloads/Homo_sapiens_assembly38.20.21.fasta
+##liftOverTime=September06,2019
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	HG00096	HG00268	NA19625
+chr20	18190715	.	C	<NON_REF>	.	.	.	GT:GQ:MIN_DP:PL:DP	0/0:52:29:0,52,899:29	0/0:70:28:0,70,864:28	0/0:0:12:0,0,278:12
+chr20	18190716	.	A	<NON_REF>	.	.	.	GT:GQ:MIN_DP:PL:DP	0/0:66:28:0,66,990:28	0/0:72:25:0,72,759:28	0/0:24:9:0,24,360:11
+chr20	18190717	.	T	<NON_REF>	.	.	.	GT:GQ:MIN_DP:PL:DP	0/0:14:28:0,14,714:28	0/0:72:25:0,72,759:28	0/0:24:9:0,24,360:11
