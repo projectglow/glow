@@ -6,12 +6,10 @@ import htsjdk.variant.vcf._
 import org.apache.commons.lang3.math.NumberUtils
 import org.apache.spark.sql.types._
 
-import com.databricks.hls.common.HLSLogging
-
 /**
  * Infers the schema of a VCF file from its headers.
  */
-object VCFSchemaInferrer extends HLSLogging {
+object VCFSchemaInferrer {
 
   /**
    * @param includeSampleIds If true, a sampleId column will be added to the genotype fields
