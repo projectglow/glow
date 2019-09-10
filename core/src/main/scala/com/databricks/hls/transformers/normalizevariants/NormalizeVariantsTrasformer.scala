@@ -1,7 +1,7 @@
 package com.databricks.hls.transformers.normalizevariants
 
 import com.databricks.hls.DataFrameTransformer
-import com.databricks.hls.common.HLSLogging
+import com.databricks.hls.common.logging._
 import com.databricks.vcf._
 import htsjdk.samtools.ValidationStringency
 import org.apache.spark.sql.DataFrame
@@ -21,7 +21,8 @@ import org.apache.spark.sql.DataFrame
  * A path to reference genome containing .fasta, .fasta.fai, and .dict files must be provided
  * through the referenceGenomePath option.
  */
-class NormalizeVariantsTransformer extends DataFrameTransformer with HLSLogging {
+class NormalizeVariantsTransformer extends DataFrameTransformer with HLSUsageLogging {
+
   override def name: String = "normalizevariants"
 
   override def transform(df: DataFrame, options: Map[String, String]): DataFrame = {
@@ -34,6 +35,14 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HLSLogging 
     options.get(MODE_KEY) match {
 
       case Some(MODE_SPLIT) =>
+        // record variantnormalizer event along with its mode
+        recordHlsUsage(
+          HlsMetricDefinitions.EVENT_HLS_USAGE,
+          Map(
+            HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_NORMALIZE_VARIANTS,
+            HlsTagDefinitions.TAG_HLS_NORMALIZE_VARIANTS_MODE -> MODE_SPLIT
+          )
+        )
         VariantNormalizer.normalize(
           df,
           None,
@@ -43,6 +52,14 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HLSLogging 
         )
 
       case Some(MODE_SPLIT_NORMALIZE) =>
+        // record variantnormalizer event along with its mode
+        recordHlsUsage(
+          HlsMetricDefinitions.EVENT_HLS_USAGE,
+          Map(
+            HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_NORMALIZE_VARIANTS,
+            HlsTagDefinitions.TAG_HLS_NORMALIZE_VARIANTS_MODE -> MODE_SPLIT_NORMALIZE
+          )
+        )
         VariantNormalizer.normalize(
           df,
           options.get(REFERENCE_GENOME_PATH),
@@ -52,6 +69,14 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HLSLogging 
         )
 
       case Some(MODE_NORMALIZE) | None =>
+        // record variantnormalizer event along with its mode
+        recordHlsUsage(
+          HlsMetricDefinitions.EVENT_HLS_USAGE,
+          Map(
+            HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_NORMALIZE_VARIANTS,
+            HlsTagDefinitions.TAG_HLS_NORMALIZE_VARIANTS_MODE -> MODE_NORMALIZE
+          )
+        )
         VariantNormalizer.normalize(
           df,
           options.get(REFERENCE_GENOME_PATH),
@@ -63,15 +88,14 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HLSLogging 
       case _ =>
         throw new IllegalArgumentException("Invalid mode option!")
     }
-
   }
 }
 
-object NormalizeVariantsTransformer {
+private[databricks] object NormalizeVariantsTransformer {
   private val MODE_KEY = "mode"
-  private val MODE_NORMALIZE = "normalize"
-  private val MODE_SPLIT_NORMALIZE = "splitandnormalize"
-  private val MODE_SPLIT = "split"
+  val MODE_NORMALIZE = "normalize"
+  val MODE_SPLIT_NORMALIZE = "splitandnormalize"
+  val MODE_SPLIT = "split"
   private val REFERENCE_GENOME_PATH = "referenceGenomePath"
 
 }

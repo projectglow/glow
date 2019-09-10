@@ -4,17 +4,16 @@ import java.io.{Closeable, InputStream, OutputStream}
 import java.util.ServiceLoader
 
 import scala.collection.JavaConverters._
-
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.CaseInsensitiveMap
-
 import com.databricks.hls.DataFrameTransformer
 import com.databricks.hls.common.Named
+import com.databricks.hls.common.logging._
 
-class PipeTransformer extends DataFrameTransformer {
+class PipeTransformer extends DataFrameTransformer with HLSUsageLogging {
   override def name: String = "pipe"
 
   override def transform(df: DataFrame, options: Map[String, String]): DataFrame = {
@@ -23,6 +22,7 @@ class PipeTransformer extends DataFrameTransformer {
 
   // Implementation is in an inner class to avoid passing options to private methods
   private class PipeTransformerImpl(df: DataFrame, options: Map[String, String]) {
+
     import PipeTransformer._
 
     private def getInputFormatter: InputFormatter = {
@@ -66,16 +66,36 @@ class PipeTransformer extends DataFrameTransformer {
     }
 
     def transform(): DataFrame = {
+      val cmd = getCmd
+
+      // record the pipe event along with tools of interest which maybe called using it.
+      // TODO: More tools to be added
+      var cmdString = ""
+      if (cmd.mkString.toLowerCase.contains("plink")) cmdString += HlsTagValues.PIPE_CMD_PLINK + ","
+      if (cmd.mkString.toLowerCase.contains("saige")) cmdString += HlsTagValues.PIPE_CMD_SAIGE + ","
+      if (!cmdString.isEmpty) cmdString = cmdString.dropRight(1)
+      recordHlsUsage(
+        HlsMetricDefinitions.EVENT_HLS_USAGE,
+        Map(
+          HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_PIPE
+        ) ++
+        Map(
+          HlsTagDefinitions.TAG_HLS_PIPE_CMD -> cmdString
+        )
+      )
+
       val inputFormatter = getInputFormatter
       val outputFormatter = getOutputFormatter
-      val cmd = getCmd
       val env = options.collect {
         case (k, v) if k.startsWith(ENV_PREFIX) =>
           (k.stripPrefix(ENV_PREFIX), v)
       }
+
       Piper.pipe(inputFormatter, outputFormatter, cmd, env, df)
+
     }
   }
+
 }
 
 object PipeTransformer {

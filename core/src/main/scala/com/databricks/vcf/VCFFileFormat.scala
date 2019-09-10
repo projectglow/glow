@@ -2,6 +2,8 @@ package com.databricks.vcf
 
 import java.io.BufferedInputStream
 
+import com.databricks.hls.common.logging._
+
 import scala.collection.JavaConverters._
 import htsjdk.samtools.ValidationStringency
 import htsjdk.samtools.util.{BlockCompressedInputStream, OverlapDetector}
@@ -28,7 +30,7 @@ import com.databricks.hls.common.{HLSLogging, WithUtils}
 import com.databricks.hls.sql.util.{HadoopLineIterator, SerializableConfiguration}
 import com.google.common.util.concurrent.Striped
 
-class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HLSLogging {
+class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HLSUsageLogging {
   var codecFactory: CompressionCodecFactory = _
 
   override def shortName(): String = "com.databricks.vcf"
@@ -81,6 +83,15 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HLS
       CompressionCodecs.setCodecConfiguration(job.getConfiguration, codec.getClass.getName)
     }
 
+    // record vcfWrite event in the log along with its compression coded
+    recordHlsUsage(
+      HlsMetricDefinitions.EVENT_HLS_USAGE,
+      Map(
+        HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_VCF_WRITE,
+        HlsTagDefinitions.TAG_HLS_VCF_WRITE_COMPRESSION ->
+        options.get(VCFOption.COMPRESSION).toString
+      )
+    )
     new VCFOutputWriterFactory(options)
   }
 
@@ -92,6 +103,33 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HLS
       filters: Seq[Filter],
       options: Map[String, String],
       hadoopConf: Configuration): PartitionedFile => Iterator[InternalRow] = {
+
+    // record vcfRead event in the log along with the options
+    var optionsString = ""
+    if (options.get(VCFOption.FLATTEN_INFO_FIELDS).forall(_.toBoolean)) {
+      optionsString += VCFOption.FLATTEN_INFO_FIELDS + ","
+    }
+    if (options.get(VCFOption.INCLUDE_SAMPLE_IDS).forall(_.toBoolean)) {
+      optionsString += VCFOption.INCLUDE_SAMPLE_IDS + ","
+    }
+    if (options.get(VCFOption.SPLIT_TO_BIALLELIC).forall(_.toBoolean)) {
+      optionsString += VCFOption.SPLIT_TO_BIALLELIC + ","
+    }
+    if (!options.get(VCFOption.USE_TABIX_INDEX).forall(_.toBoolean)) {
+      optionsString += HlsTagValues.VCF_READ_DONT_USE_TABIX_INDEX
+    }
+    if (!options.get(VCFOption.USE_FILTER_PARSER).forall(_.toBoolean)) {
+      optionsString += HlsTagValues.VCF_READ_DONT_USE_FILTER_PARSER
+    }
+    if (!optionsString.isEmpty) optionsString = optionsString.dropRight(1)
+
+    recordHlsUsage(
+      HlsMetricDefinitions.EVENT_HLS_USAGE,
+      Map(
+        HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_VCF_READ,
+        HlsTagDefinitions.TAG_HLS_VCF_READ_OPTIONS -> optionsString
+      )
+    )
 
     val serializableConf = new SerializableConfiguration(
       VCFFileFormat.hadoopConfWithBGZ(hadoopConf)
@@ -328,7 +366,7 @@ private[vcf] class SplitVCFIterator(baseIterator: VCFIterator)
 
   private var isSplit: Boolean = false
   private var nextVC: VariantContext = _ // nextVC always holds the nextVC to be passed by the
-// iterator.
+  // iterator.
   private var nextVCs: Iterator[VariantContext] = Iterator.empty
 
   // Initialize
@@ -377,6 +415,7 @@ private[vcf] class SplitVCFIterator(baseIterator: VCFIterator)
 
 private[vcf] sealed trait SchemaDelegate {
   def schema(sparkSession: SparkSession, files: Seq[FileStatus]): StructType
+
   def toRows(
       header: VCFHeader,
       requiredSchema: StructType,
@@ -522,7 +561,6 @@ private[databricks] object VCFOption {
 
   // Writer-only options
   val COMPRESSION = "compression"
-  val HEADER = "header"
 
   // Reader and writer options
   val VALIDATION_STRINGENCY = "validationStringency"
