@@ -149,5 +149,10 @@ object SqlExtensionProvider {
       FunctionIdentifier("explode_matrix"),
       exprs => ExplodeMatrix(exprs.head)
     )
+
+    functionRegistry.registerFunction(
+      FunctionIdentifier("lift_over"),
+      exprs => LiftOverExpr(exprs(0), exprs(1), exprs(2), exprs(3), exprs.lift(4))
+    )
   }
 }

@@ -1,0 +1,8 @@
+Chain file hg38ToHg19.over.chain.gz is from UCSC
+    http://hgdownload.cse.ucsc.edu/goldenPath/hg38/liftOver/hg38ToHg19.over.chain.gz
+Example lifted VCF is generated with CrossMap
+    http://crossmap.sourceforge.net/
+Reference genome CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf is from
+    https://github.com/broadinstitute/gatk/tree/master/src/test/resources/large
+Example lifted BED is generated with UCSC liftOver web UI
+    https://genome.ucsc.edu/cgi-bin/hgLiftOver
