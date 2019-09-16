@@ -8,6 +8,7 @@ import org.apache.spark.unsafe.types.UTF8String
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 
+import com.databricks.hls.DBGenomics
 import com.databricks.hls.sql.HLSBaseTest
 
 class PipeTransformerSuite extends HLSBaseTest {
@@ -23,6 +24,22 @@ class PipeTransformerSuite extends HLSBaseTest {
     assert(output.schema.length == 1)
     assert(output.schema.exists(f => f.name == "animal" && f.dataType == StringType))
     assert(output.where("animal = 'monkey'").count() == 1)
+  }
+
+  test("cleanup") {
+    sparkContext.getPersistentRDDs.values.foreach(_.unpersist(true))
+    val sess = spark
+    import sess.implicits._
+    val df = Seq("dolphin").toDF.repartition(1)
+    df.rdd.cache()
+    val options =
+      Map("inputFormatter" -> "dummy_in", "outputFormatter" -> "dummy_out", "cmd" -> """["cat"]""")
+    new PipeTransformer().transform(df, options)
+    assert(sparkContext.getPersistentRDDs.size == 2)
+    DBGenomics.transform("pipecleanup", df, Map.empty[String, String])
+    eventually {
+      assert(sparkContext.getPersistentRDDs.size == 1) // Should cleanup the RDD cached by piping
+    }
   }
 }
 

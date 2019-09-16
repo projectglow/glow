@@ -62,6 +62,7 @@ class VCFPiperSuite extends HLSBaseTest {
     assert(sampleSeq == Seq("NA12878"))
 
     // Flattens INFO fields
+
     val sorSeq = df.select("INFO_SOR").as[Double].collect
     assert(sorSeq.min ~== 0.551 relTol 0.2)
   }

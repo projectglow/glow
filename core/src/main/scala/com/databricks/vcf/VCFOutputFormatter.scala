@@ -6,6 +6,8 @@ import htsjdk.samtools.ValidationStringency
 import htsjdk.tribble.readers.{AsciiLineReader, AsciiLineReaderIterator}
 import htsjdk.variant.vcf.{VCFCodec, VCFHeader}
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.UnsafeProjection
+import org.apache.spark.sql.catalyst.expressions.codegen.GenerateMutableProjection
 
 import com.databricks.hls.common.HLSLogging
 import com.databricks.hls.transformers.pipe.{OutputFormatter, OutputFormatterFactory}
@@ -23,12 +25,13 @@ class VCFOutputFormatter extends OutputFormatter with HLSLogging {
       new VariantContextToInternalRowConverter(header, schema, ValidationStringency.LENIENT)
 
     val internalRowIter: Iterator[InternalRow] = new Iterator[InternalRow] {
+      private val projection = UnsafeProjection.create(schema)
       private var nextRecord: InternalRow = null
       private def readNextVc(): Unit = {
         while (nextRecord == null && lineIterator.hasNext) {
           val decoded = codec.decode(lineIterator.next())
           if (decoded != null) {
-            nextRecord = converter.convertRow(decoded, isSplit = false)
+            nextRecord = converter.convertRow(decoded, isSplit = false).copy()
           }
         }
       }

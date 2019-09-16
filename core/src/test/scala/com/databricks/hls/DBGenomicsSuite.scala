@@ -12,6 +12,14 @@ class DBGenomicsSuite extends HLSBaseTest {
     assert(output.count() == 1)
     assert(output.as[String].head() == "monkey")
   }
+
+  test("transformer names are case insensitive") {
+    val sess = spark
+    import sess.implicits._
+    val output = DBGenomics.transform("DuMmY", spark.emptyDataFrame, Map.empty[String, String])
+    assert(output.count() == 1)
+    assert(output.as[String].head() == "monkey")
+  }
 }
 
 class DummyTransformer extends DataFrameTransformer {

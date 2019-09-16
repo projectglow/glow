@@ -51,7 +51,7 @@ class CSVOutputFormatter(parsedOptions: CSVOptions) extends OutputFormatter {
       parsedIter
     }
 
-    Iterator(schema) ++ parsedIterWithoutHeader
+    Iterator(schema) ++ parsedIterWithoutHeader.map(_.copy)
   }
 }
 
