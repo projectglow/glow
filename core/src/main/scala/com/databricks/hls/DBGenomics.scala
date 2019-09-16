@@ -48,7 +48,7 @@ object DBGenomics {
 
   private def lookupTransformer(name: String): Option[DataFrameTransformer] = synchronized {
     transformerLoader.reload()
-    transformerLoader.iterator().asScala.find(_.name == name)
+    transformerLoader.iterator().asScala.find(_.name.toLowerCase == name.toLowerCase)
   }
 
   private val transformerLoader = ServiceLoader

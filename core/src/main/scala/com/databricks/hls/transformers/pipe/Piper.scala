@@ -4,9 +4,11 @@ import java.io._
 import java.util.concurrent.atomic.AtomicReference
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable
 import scala.io.Source
 
 import org.apache.spark.TaskContext
+import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SQLUtils}
@@ -20,6 +22,13 @@ import com.databricks.hls.common.HLSLogging
  * - Use the input and output formatters to return a DataFrame
  */
 private[databricks] object Piper extends HLSLogging {
+  private val cachedRdds = mutable.ListBuffer[RDD[_]]()
+
+  def clearCache(): Unit = cachedRdds.synchronized {
+    cachedRdds.foreach(_.unpersist())
+    cachedRdds.clear()
+  }
+
   // Pipes a single row of the input DataFrame to get the output schema before piping all of it.
   def pipe(
       informatter: InputFormatter,
@@ -40,6 +49,10 @@ private[databricks] object Piper extends HLSLogging {
       }
       .cache()
 
+    cachedRdds.synchronized {
+      cachedRdds.append(schemaInternalRowRDD)
+    }
+
     val schemaSeq = schemaInternalRowRDD.mapPartitions { it =>
       if (it.hasNext) {
         Iterator(it.next.asInstanceOf[StructType])
@@ -58,11 +71,7 @@ private[databricks] object Piper extends HLSLogging {
       it.drop(1).asInstanceOf[Iterator[InternalRow]]
     }
 
-    val output =
-      SQLUtils.internalCreateDataFrame(df.sparkSession, internalRowRDD, schema, isStreaming = false)
-
-    schemaInternalRowRDD.unpersist()
-    output
+    SQLUtils.internalCreateDataFrame(df.sparkSession, internalRowRDD, schema, isStreaming = false)
   }
 }
 

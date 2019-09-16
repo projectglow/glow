@@ -1,2 +1,3 @@
 com.databricks.hls.transformers.normalizevariants.NormalizeVariantsTransformer
 com.databricks.hls.transformers.pipe.PipeTransformer
+com.databricks.hls.transformers.pipe.CleanupPipeTransormer
