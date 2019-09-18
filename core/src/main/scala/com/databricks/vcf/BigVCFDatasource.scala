@@ -2,13 +2,13 @@ package com.databricks.vcf
 
 import java.io.ByteArrayOutputStream
 
+import com.databricks.hls.common.logging._
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress.CompressionCodecFactory
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.sources.DataSourceRegister
 import org.seqdoop.hadoop_bam.util.DatabricksBGZFOutputStream
-
 import com.databricks.hls.sql.util.SerializableConfiguration
 import com.databricks.sql.BigFileDatasource
 
@@ -20,8 +20,9 @@ class BigVCFDatasource extends BigFileDatasource with DataSourceRegister {
     BigVCFDatasource.serializeDataFrame(options, data)
 }
 
-object BigVCFDatasource {
+object BigVCFDatasource extends HLSUsageLogging {
   def serializeDataFrame(options: Map[String, String], data: DataFrame): RDD[Array[Byte]] = {
+
     val dSchema = data.schema
     val rdd = data.queryExecution.toRdd
     val nParts = rdd.getNumPartitions
@@ -49,6 +50,15 @@ object BigVCFDatasource {
         }
 
         writer.close()
+
+        // record bigVcfWrite event in the log
+        recordHlsUsage(
+          HlsMetricDefinitions.EVENT_HLS_USAGE,
+          Map(
+            HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_BIGVCF_WRITE
+          )
+        )
+
         Iterator(baos.toByteArray)
     }
   }

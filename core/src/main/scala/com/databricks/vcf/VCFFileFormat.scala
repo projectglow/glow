@@ -28,6 +28,7 @@ import org.broadinstitute.hellbender.utils.SimpleInterval
 import org.seqdoop.hadoop_bam.util.{BGZFEnhancedGzipCodec, DatabricksBGZFOutputStream}
 import com.databricks.hls.common.{HLSLogging, WithUtils}
 import com.databricks.hls.sql.util.{HadoopLineIterator, SerializableConfiguration}
+import com.databricks.vcf
 import com.google.common.util.concurrent.Striped
 
 class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HLSUsageLogging {
@@ -84,13 +85,15 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HLS
     }
 
     // record vcfWrite event in the log along with its compression coded
+    val logOptions = Map(
+      VCFOption.COMPRESSION -> options.get(VCFOption.COMPRESSION).getOrElse("None")
+    )
     recordHlsUsage(
       HlsMetricDefinitions.EVENT_HLS_USAGE,
       Map(
-        HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_VCF_WRITE,
-        HlsTagDefinitions.TAG_HLS_VCF_WRITE_COMPRESSION ->
-        options.get(VCFOption.COMPRESSION).toString
-      )
+        HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_VCF_WRITE
+      ),
+      blob = hlsJsonBuilder(logOptions)
     )
     new VCFOutputWriterFactory(options)
   }
@@ -104,39 +107,32 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HLS
       options: Map[String, String],
       hadoopConf: Configuration): PartitionedFile => Iterator[InternalRow] = {
 
+    val useFilterParser = options.get(VCFOption.USE_FILTER_PARSER).forall(_.toBoolean)
+    val useIndex = options.get(VCFOption.USE_TABIX_INDEX).forall(_.toBoolean)
+
     // record vcfRead event in the log along with the options
-    var optionsString = ""
-    if (options.get(VCFOption.FLATTEN_INFO_FIELDS).forall(_.toBoolean)) {
-      optionsString += VCFOption.FLATTEN_INFO_FIELDS + ","
-    }
-    if (options.get(VCFOption.INCLUDE_SAMPLE_IDS).forall(_.toBoolean)) {
-      optionsString += VCFOption.INCLUDE_SAMPLE_IDS + ","
-    }
-    if (options.get(VCFOption.SPLIT_TO_BIALLELIC).forall(_.toBoolean)) {
-      optionsString += VCFOption.SPLIT_TO_BIALLELIC + ","
-    }
-    if (!options.get(VCFOption.USE_TABIX_INDEX).forall(_.toBoolean)) {
-      optionsString += HlsTagValues.VCF_READ_DONT_USE_TABIX_INDEX
-    }
-    if (!options.get(VCFOption.USE_FILTER_PARSER).forall(_.toBoolean)) {
-      optionsString += HlsTagValues.VCF_READ_DONT_USE_FILTER_PARSER
-    }
-    if (!optionsString.isEmpty) optionsString = optionsString.dropRight(1)
+
+    val logOptions = Map(
+      VCFOption.FLATTEN_INFO_FIELDS -> options
+        .get(VCFOption.FLATTEN_INFO_FIELDS)
+        .forall(_.toBoolean),
+      VCFOption.INCLUDE_SAMPLE_IDS -> options.get(VCFOption.INCLUDE_SAMPLE_IDS).forall(_.toBoolean),
+      VCFOption.SPLIT_TO_BIALLELIC -> options.get(VCFOption.SPLIT_TO_BIALLELIC).exists(_.toBoolean),
+      VCFOption.USE_FILTER_PARSER -> useFilterParser,
+      VCFOption.USE_TABIX_INDEX -> useIndex
+    )
 
     recordHlsUsage(
       HlsMetricDefinitions.EVENT_HLS_USAGE,
       Map(
-        HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_VCF_READ,
-        HlsTagDefinitions.TAG_HLS_VCF_READ_OPTIONS -> optionsString
-      )
+        HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_VCF_READ
+      ),
+      blob = hlsJsonBuilder(logOptions)
     )
 
     val serializableConf = new SerializableConfiguration(
       VCFFileFormat.hadoopConfWithBGZ(hadoopConf)
     )
-
-    val useFilterParser = options.get(VCFOption.USE_FILTER_PARSER).forall(_.toBoolean)
-    val useIndex = options.get(VCFOption.USE_TABIX_INDEX).forall(_.toBoolean)
 
     /* Make a filtered interval by parsing the filters
      Filters are parsed even if useTabixIndex is disabled because the parser can help with
@@ -258,7 +254,6 @@ object VCFFileFormat {
       BlockCompressedInputStream.isValidFile(buffered)
     }
   }
-
 }
 
 case class VariantContextWrapper(vc: VariantContext, splitFromMultiallelic: Boolean)

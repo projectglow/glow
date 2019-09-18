@@ -36,13 +36,8 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HLSUsageLog
 
       case Some(MODE_SPLIT) =>
         // record variantnormalizer event along with its mode
-        recordHlsUsage(
-          HlsMetricDefinitions.EVENT_HLS_USAGE,
-          Map(
-            HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_NORMALIZE_VARIANTS,
-            HlsTagDefinitions.TAG_HLS_NORMALIZE_VARIANTS_MODE -> MODE_SPLIT
-          )
-        )
+        logNormalizeVariants(MODE_SPLIT)
+
         VariantNormalizer.normalize(
           df,
           None,
@@ -53,13 +48,8 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HLSUsageLog
 
       case Some(MODE_SPLIT_NORMALIZE) =>
         // record variantnormalizer event along with its mode
-        recordHlsUsage(
-          HlsMetricDefinitions.EVENT_HLS_USAGE,
-          Map(
-            HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_NORMALIZE_VARIANTS,
-            HlsTagDefinitions.TAG_HLS_NORMALIZE_VARIANTS_MODE -> MODE_SPLIT_NORMALIZE
-          )
-        )
+        logNormalizeVariants(MODE_SPLIT_NORMALIZE)
+
         VariantNormalizer.normalize(
           df,
           options.get(REFERENCE_GENOME_PATH),
@@ -70,13 +60,8 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HLSUsageLog
 
       case Some(MODE_NORMALIZE) | None =>
         // record variantnormalizer event along with its mode
-        recordHlsUsage(
-          HlsMetricDefinitions.EVENT_HLS_USAGE,
-          Map(
-            HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_NORMALIZE_VARIANTS,
-            HlsTagDefinitions.TAG_HLS_NORMALIZE_VARIANTS_MODE -> MODE_NORMALIZE
-          )
-        )
+        logNormalizeVariants(MODE_NORMALIZE)
+
         VariantNormalizer.normalize(
           df,
           options.get(REFERENCE_GENOME_PATH),
@@ -91,11 +76,21 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HLSUsageLog
   }
 }
 
-private[databricks] object NormalizeVariantsTransformer {
+private[databricks] object NormalizeVariantsTransformer extends HLSUsageLogging {
   private val MODE_KEY = "mode"
   val MODE_NORMALIZE = "normalize"
   val MODE_SPLIT_NORMALIZE = "splitandnormalize"
   val MODE_SPLIT = "split"
   private val REFERENCE_GENOME_PATH = "referenceGenomePath"
 
+  def logNormalizeVariants(mode: String): Unit = {
+    val logOptions = Map(MODE_KEY -> mode)
+    recordHlsUsage(
+      HlsMetricDefinitions.EVENT_HLS_USAGE,
+      Map(
+        HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_NORMALIZE_VARIANTS
+      ),
+      blob = hlsJsonBuilder(logOptions)
+    )
+  }
 }

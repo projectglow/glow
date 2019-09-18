@@ -66,22 +66,38 @@ class PipeTransformer extends DataFrameTransformer with HLSUsageLogging {
     }
 
     def transform(): DataFrame = {
+
+      val pipeToolSet = Array(
+        "saige",
+        "plink",
+        "bcftools",
+        "samtools",
+        "grep",
+        "cat"
+      )
+
       val cmd = getCmd
 
       // record the pipe event along with tools of interest which maybe called using it.
       // TODO: More tools to be added
-      var cmdString = ""
-      if (cmd.mkString.toLowerCase.contains("plink")) cmdString += HlsTagValues.PIPE_CMD_PLINK + ","
-      if (cmd.mkString.toLowerCase.contains("saige")) cmdString += HlsTagValues.PIPE_CMD_SAIGE + ","
-      if (!cmdString.isEmpty) cmdString = cmdString.dropRight(1)
+      val toolInPipe = Map(
+        HlsBlobKeys.PIPE_CMD_TOOL ->
+        pipeToolSet.foldLeft(Array[String]())(
+          (a, b: String) =>
+            if (cmd.exists(_.toLowerCase.contains(b))) {
+              a :+ b
+            } else {
+              a
+            }
+        )
+      )
+
       recordHlsUsage(
         HlsMetricDefinitions.EVENT_HLS_USAGE,
         Map(
           HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_PIPE
-        ) ++
-        Map(
-          HlsTagDefinitions.TAG_HLS_PIPE_CMD -> cmdString
-        )
+        ),
+        blob = hlsJsonBuilder(toolInPipe)
       )
 
       val inputFormatter = getInputFormatter
