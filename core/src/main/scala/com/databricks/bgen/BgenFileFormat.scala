@@ -3,8 +3,9 @@ package com.databricks.bgen
 import java.io.{BufferedReader, File, InputStreamReader}
 import java.nio.file.Paths
 
-import scala.collection.JavaConverters._
+import com.databricks.hls.common.logging._
 
+import scala.collection.JavaConverters._
 import com.google.common.io.LittleEndianDataInputStream
 import com.google.common.util.concurrent.Striped
 import org.apache.hadoop.conf.Configuration
@@ -18,7 +19,6 @@ import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
 import org.apache.spark.sql.types.StructType
 import org.skife.jdbi.v2.DBI
 import org.skife.jdbi.v2.util.LongMapper
-
 import com.databricks.hls.common.{HLSLogging, WithUtils}
 import com.databricks.hls.sql.util.SerializableConfiguration
 import com.databricks.vcf.VariantSchemas
@@ -59,10 +59,15 @@ class BgenFileFormat extends FileFormat with DataSourceRegister with Serializabl
       filters: Seq[Filter],
       options: Map[String, String],
       hadoopConf: Configuration): PartitionedFile => Iterator[InternalRow] = {
-    val serializableConf = new SerializableConfiguration(hadoopConf)
+
     val useIndex = options.get(BgenFileFormat.USE_INDEX_KEY).forall(_.toBoolean)
     val ignoreExtension = options.get(BgenFileFormat.IGNORE_EXTENSION_KEY).exists(_.toBoolean)
     val sampleIdsOpt = BgenFileFormat.getSampleIds(options, hadoopConf)
+
+    // record bgenRead event in the log along with the option
+    BgenFileFormat.logBgenRead(options)
+
+    val serializableConf = new SerializableConfiguration(hadoopConf)
 
     file => {
       val path = new Path(file.filePath)
@@ -150,7 +155,7 @@ class BgenFileFormat extends FileFormat with DataSourceRegister with Serializabl
   }
 }
 
-object BgenFileFormat {
+object BgenFileFormat extends HLSUsageLogging {
   val BGEN_SUFFIX = ".bgen"
   val INDEX_SUFFIX = ".bgi"
   val NEXT_IDX_QUERY =
@@ -217,5 +222,19 @@ object BgenFileFormat {
 
       Some(sampleIds)
     }
+  }
+
+  def logBgenRead(options: Map[String, String]): Unit = {
+
+    val logOptions = Map(
+      USE_INDEX_KEY -> options.get(BgenFileFormat.USE_INDEX_KEY).forall(_.toBoolean)
+    )
+    recordHlsUsage(
+      HlsMetricDefinitions.EVENT_HLS_USAGE,
+      Map(
+        HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_BGEN_READ
+      ),
+      blob = hlsJsonBuilder(logOptions)
+    )
   }
 }

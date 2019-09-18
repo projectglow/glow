@@ -2,21 +2,22 @@ package com.databricks.bgen
 
 import java.io.ByteArrayOutputStream
 
+import com.databricks.hls.common.logging._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.sources.DataSourceRegister
-
 import com.databricks.sql.BigFileDatasource
 
-class BigBgenDatasource extends BigFileDatasource with DataSourceRegister {
+class BigBgenDatasource extends BigFileDatasource with DataSourceRegister with HLSUsageLogging {
 
   override def shortName(): String = "com.databricks.bigbgen"
 
   override def serializeDataFrame(options: Map[String, String], data: DataFrame): RDD[Array[Byte]] =
     BigBgenDatasource.serializeDataFrame(options, data)
+
 }
 
-object BigBgenDatasource {
+object BigBgenDatasource extends HLSUsageLogging {
 
   val BITS_PER_PROB_KEY = "bitsPerProbability"
   val BITS_PER_PROB_DEFAULT_VALUE = "16"
@@ -38,6 +39,21 @@ object BigBgenDatasource {
     val maxPloidy = options.getOrElse(MAX_PLOIDY_KEY, MAX_PLOIDY_VALUE).toInt
     val defaultPloidy = options.getOrElse(DEFAULT_PLOIDY_KEY, DEFAULT_PLOIDY_VALUE).toInt
     val defaultPhasing = options.getOrElse(DEFAULT_PHASING_KEY, DEFAULT_PHASING_VALUE).toBoolean
+
+    // record bgenWrite event in the log
+    val logOptions = Map(
+      BITS_PER_PROB_KEY -> bitsPerProb,
+      MAX_PLOIDY_KEY -> maxPloidy,
+      DEFAULT_PLOIDY_KEY -> defaultPloidy,
+      DEFAULT_PHASING_KEY -> defaultPhasing
+    )
+    recordHlsUsage(
+      HlsMetricDefinitions.EVENT_HLS_USAGE,
+      Map(
+        HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_BGEN_WRITE
+      ),
+      blob = hlsJsonBuilder(logOptions)
+    )
 
     data.queryExecution.toRdd.mapPartitionsWithIndex {
       case (idx, it) =>
