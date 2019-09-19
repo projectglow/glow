@@ -8,22 +8,24 @@ class DBGenomicsSuite extends HLSBaseTest {
   test("uses service provider") {
     val sess = spark
     import sess.implicits._
-    val output = DBGenomics.transform("dummy", spark.emptyDataFrame, Map.empty[String, String])
+    val output =
+      DBGenomics.transform("dummy_transformer", spark.emptyDataFrame, Map.empty[String, String])
     assert(output.count() == 1)
     assert(output.as[String].head() == "monkey")
   }
 
-  test("transformer names are case insensitive") {
+  test("transformer names are converted to snake case") {
     val sess = spark
     import sess.implicits._
-    val output = DBGenomics.transform("DuMmY", spark.emptyDataFrame, Map.empty[String, String])
+    val output =
+      DBGenomics.transform("dummyTransformer", spark.emptyDataFrame, Map.empty[String, String])
     assert(output.count() == 1)
     assert(output.as[String].head() == "monkey")
   }
 }
 
 class DummyTransformer extends DataFrameTransformer {
-  override def name: String = "dummy"
+  override def name: String = "dummy_transformer"
 
   override def transform(df: DataFrame, options: Map[String, String]): DataFrame = {
     df.sparkSession.createDataFrame(Seq(StringWrapper("monkey")))

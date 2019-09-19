@@ -36,7 +36,7 @@ class PipeTransformerSuite extends HLSBaseTest {
       Map("inputFormatter" -> "dummy_in", "outputFormatter" -> "dummy_out", "cmd" -> """["cat"]""")
     new PipeTransformer().transform(df, options)
     assert(sparkContext.getPersistentRDDs.size == 2)
-    DBGenomics.transform("pipecleanup", df, Map.empty[String, String])
+    DBGenomics.transform("pipe_cleanup", df, Map.empty[String, String])
     eventually {
       assert(sparkContext.getPersistentRDDs.size == 1) // Should cleanup the RDD cached by piping
     }

@@ -5,9 +5,9 @@ import java.util.ServiceLoader
 import scala.collection.JavaConverters._
 
 import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.catalyst.util.CaseInsensitiveMap
 
 import com.databricks.hls.common.Named
+import com.databricks.hls.transformers.util.{SnakeCaseMap, StringUtils}
 
 /**
  * The entry point for all language specific functionality, meaning methods that cannot be expressed
@@ -29,7 +29,7 @@ object DBGenomics {
    */
   def transform(operationName: String, df: DataFrame, options: Map[String, String]): DataFrame = {
     lookupTransformer(operationName) match {
-      case Some(transformer) => transformer.transform(df, CaseInsensitiveMap(options))
+      case Some(transformer) => transformer.transform(df, new SnakeCaseMap(options))
       case None =>
         throw new IllegalArgumentException(s"No transformer with name $operationName")
     }
@@ -48,7 +48,10 @@ object DBGenomics {
 
   private def lookupTransformer(name: String): Option[DataFrameTransformer] = synchronized {
     transformerLoader.reload()
-    transformerLoader.iterator().asScala.find(_.name.toLowerCase == name.toLowerCase)
+    transformerLoader
+      .iterator()
+      .asScala
+      .find(n => StringUtils.toSnakeCase(n.name) == StringUtils.toSnakeCase(name))
   }
 
   private val transformerLoader = ServiceLoader
