@@ -16,6 +16,7 @@ case class LinearRegressionExpr(
     extends TernaryExpression
     with CodegenFallback
     with ImplicitCastInputTypes {
+
   private val matrixUDT = new MatrixUDT()
 
   override def dataType: DataType =

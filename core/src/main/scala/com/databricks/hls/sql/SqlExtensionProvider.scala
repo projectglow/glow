@@ -154,5 +154,10 @@ object SqlExtensionProvider {
       FunctionIdentifier("lift_over"),
       exprs => LiftOverExpr(exprs(0), exprs(1), exprs(2), exprs(3), exprs.lift(4))
     )
+
+    functionRegistry.registerFunction(
+      FunctionIdentifier("logistic_regression_gwas"),
+      exprs => LogisticRegressionExpr(exprs(0), exprs(1), exprs(2), exprs(3))
+    )
   }
 }
