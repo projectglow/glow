@@ -11,11 +11,7 @@ import org.apache.spark.sql.functions._
 
 import com.databricks.hls.common.TestUtils._
 import com.databricks.hls.sql.HLSBaseTest
-
-case class RegressionRow(
-    genotypes: Array[Double],
-    phenotypes: Array[Double],
-    covariates: DenseMatrix)
+import com.databricks.hls.tertiary.RegressionTestUtils._
 
 class LinearRegressionSuite extends HLSBaseTest {
 
@@ -31,7 +27,7 @@ class LinearRegressionSuite extends HLSBaseTest {
       phenotypes: Array[Double],
       covariates: Array[Array[Double]]): RegressionStats = {
 
-    val covariateQR = ComputeQR.computeQR(twoDArrayToMatrix(covariates))
+    val covariateQR = ComputeQR.computeQR(twoDArrayToSparkMatrix(covariates))
     LinearRegressionGwas.runRegression(genotypes.clone(), phenotypes.clone(), covariateQR)
   }
 
@@ -83,16 +79,6 @@ class LinearRegressionSuite extends HLSBaseTest {
     RegressionStats(beta, genoSE, pvalue)
   }
 
-  private def twoDArrayToMatrix(input: Array[Array[Double]]): DenseMatrix = {
-    val vector = input(0).indices.flatMap(i => input.map(_(i))).toArray
-    new DenseMatrix(input.length, input.head.length, vector)
-  }
-
-  case class TestData(
-      genotypes: Seq[Seq[Double]],
-      phenotypes: Seq[Double],
-      covariates: Seq[Array[Double]])
-
   private def generateTestData(
       nSamples: Int,
       nVariants: Int,
@@ -127,7 +113,7 @@ class LinearRegressionSuite extends HLSBaseTest {
     ret
   }
 
-  private def compareRegresionStats(s1: RegressionStats, s2: RegressionStats): Unit = {
+  private def compareRegressionStats(s1: RegressionStats, s2: RegressionStats): Unit = {
     assert(s1.beta ~== s2.beta relTol 0.02)
     assert(s1.standardError ~== s2.standardError relTol 0.02)
     assert(s1.pValue ~== s2.pValue relTol 0.02)
@@ -147,7 +133,7 @@ class LinearRegressionSuite extends HLSBaseTest {
           RegressionRow(
             g.toArray,
             testData.phenotypes.toArray,
-            twoDArrayToMatrix(testData.covariates.toArray))
+            twoDArrayToSparkMatrix(testData.covariates.toArray))
         }
         // Add id to preserve sorting
         spark
@@ -161,7 +147,7 @@ class LinearRegressionSuite extends HLSBaseTest {
           .collect()
           .toSeq
       } else {
-        val gwasContext = ComputeQR.computeQR(twoDArrayToMatrix(testData.covariates.toArray))
+        val gwasContext = ComputeQR.computeQR(twoDArrayToSparkMatrix(testData.covariates.toArray))
         testData.genotypes.map { g =>
           LinearRegressionGwas.runRegression(g.toArray, testData.phenotypes.toArray, gwasContext)
         }
@@ -169,7 +155,7 @@ class LinearRegressionSuite extends HLSBaseTest {
     }
 
     apacheResults.zip(ourResults).map {
-      case (ols, db) => compareRegresionStats(ols, db)
+      case (ols, db) => compareRegressionStats(ols, db)
     }
   }
 
@@ -242,7 +228,7 @@ class LinearRegressionSuite extends HLSBaseTest {
 
   test("against R glm") {
     val golden = RegressionStats(3.932d, 0.4155d, 1.49e-12)
-    compareRegresionStats(
+    compareRegressionStats(
       golden,
       runRegression(cars.genotypes.head.toArray, cars.phenotypes.toArray, cars.covariates.toArray))
   }
@@ -250,7 +236,7 @@ class LinearRegressionSuite extends HLSBaseTest {
   // Sanity test to make sure that our OLS baseline is correct
   test("against R glm (Apache OLS)") {
     val golden = RegressionStats(3.932d, 0.4155d, 1.49e-12)
-    compareRegresionStats(
+    compareRegressionStats(
       golden,
       olsBaseline(cars.genotypes.head.toArray, cars.phenotypes.toArray, cars.covariates.toArray))
   }
