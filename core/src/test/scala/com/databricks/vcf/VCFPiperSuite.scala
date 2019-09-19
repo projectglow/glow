@@ -93,9 +93,10 @@ class VCFPiperSuite extends HLSBaseTest {
     val options = baseTextOptions ++ Map(
         "in_vcfHeader" -> "infer",
         "cmd" -> """["printenv"]""",
-        "ENV_animal" -> "monkey",
+        "env_animal" -> "monkey",
         "env_a" -> "b",
-        "eNv_C" -> "D")
+        "env_c" -> "D",
+        "envE" -> "F")
     val df = readVcf(na12878)
     val output = DBGenomics
       .transform("pipe", df, options)
@@ -105,6 +106,7 @@ class VCFPiperSuite extends HLSBaseTest {
     assert(output.contains("animal=monkey"))
     assert(output.contains("a=b"))
     assert(output.contains("c=D"))
+    assert(output.contains("e=F"))
   }
 
   test("empty partition") {

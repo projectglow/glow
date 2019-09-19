@@ -6,6 +6,8 @@ import com.databricks.vcf._
 import htsjdk.samtools.ValidationStringency
 import org.apache.spark.sql.DataFrame
 
+import com.databricks.hls.transformers.util.StringUtils
+
 /**
  * Implements DataFrameTransformer to transform the input DataFrame of varaints to an output
  * DataFrame of normalized variants (normalization is as defined in bcftools norm); Optionally
@@ -23,7 +25,7 @@ import org.apache.spark.sql.DataFrame
  */
 class NormalizeVariantsTransformer extends DataFrameTransformer with HLSUsageLogging {
 
-  override def name: String = "normalizevariants"
+  override def name: String = "normalize_variants"
 
   override def transform(df: DataFrame, options: Map[String, String]): DataFrame = {
 
@@ -32,7 +34,7 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HLSUsageLog
     val validationStringency: ValidationStringency = VCFOptionParser
       .getValidationStringency(options)
 
-    options.get(MODE_KEY) match {
+    options.get(MODE_KEY).map(StringUtils.toSnakeCase) match {
 
       case Some(MODE_SPLIT) =>
         // record variantnormalizer event along with its mode
@@ -79,9 +81,9 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HLSUsageLog
 private[databricks] object NormalizeVariantsTransformer extends HLSUsageLogging {
   private val MODE_KEY = "mode"
   val MODE_NORMALIZE = "normalize"
-  val MODE_SPLIT_NORMALIZE = "splitandnormalize"
+  val MODE_SPLIT_NORMALIZE = "split_and_normalize"
   val MODE_SPLIT = "split"
-  private val REFERENCE_GENOME_PATH = "referenceGenomePath"
+  private val REFERENCE_GENOME_PATH = "reference_genome_path"
 
   def logNormalizeVariants(mode: String): Unit = {
     val logOptions = Map(MODE_KEY -> mode)

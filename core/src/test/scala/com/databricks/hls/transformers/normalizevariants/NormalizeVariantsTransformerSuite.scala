@@ -110,7 +110,7 @@ class NormalizeVariantsTransformerSuite extends HLSBaseTest with HLSLogging {
 
     val dfNormalized = DBGenomics
       .transform(
-        "normalizevariants",
+        "normalize_variants",
         dfOriginal,
         options
       )
@@ -201,25 +201,25 @@ class NormalizeVariantsTransformerSuite extends HLSBaseTest with HLSLogging {
       vtTestVcfBiallelic,
       vtTestVcfBiallelicExpectedNormalized,
       Option(vtTestReference),
-      Option("splitandnormalize"))
+      Option("splitAndNormalize"))
 
     testNormalizedvsExpected(
       vtTestVcfMultiAllelic,
       vtTestVcfMultiAllelicExpectedSplitNormalized,
       Option(vtTestReference),
-      Option("splitandnormalize"))
+      Option("splitAndNormalize"))
 
     testNormalizedvsExpected(
       gatkTestVcf,
       gatkTestVcfExpectedSplitNormalized,
       Option(gatkTestReference),
-      Option("splitandnormalize"))
+      Option("splitAndNormalize"))
 
     testNormalizedvsExpected(
       gatkTestVcfSymbolic,
       gatkTestVcfSymbolicExpectedSplitNormalized,
       Option(gatkTestReference),
-      Option("splitandnormalize"))
+      Option("splitAndNormalize"))
 
   }
 

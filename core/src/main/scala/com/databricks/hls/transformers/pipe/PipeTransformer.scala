@@ -4,14 +4,16 @@ import java.io.{Closeable, InputStream, OutputStream}
 import java.util.ServiceLoader
 
 import scala.collection.JavaConverters._
+
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.util.CaseInsensitiveMap
+
 import com.databricks.hls.DataFrameTransformer
 import com.databricks.hls.common.Named
 import com.databricks.hls.common.logging._
+import com.databricks.hls.transformers.util.SnakeCaseMap
 
 class PipeTransformer extends DataFrameTransformer with HLSUsageLogging {
   override def name: String = "pipe"
@@ -38,7 +40,7 @@ class PipeTransformer extends DataFrameTransformer with HLSUsageLogging {
           throw new IllegalArgumentException(
             s"Could not find an input formatter for $inputFormatterStr")
         }
-        .makeInputFormatter(df, CaseInsensitiveMap(inputFormatterOptions))
+        .makeInputFormatter(df, new SnakeCaseMap(inputFormatterOptions))
     }
 
     private def getOutputFormatter: OutputFormatter = {
@@ -54,7 +56,7 @@ class PipeTransformer extends DataFrameTransformer with HLSUsageLogging {
           throw new IllegalArgumentException(
             s"Could not find an output formatter for $outputFormatterStr")
         }
-        .makeOutputFormatter(CaseInsensitiveMap(outputFormatterOptions))
+        .makeOutputFormatter(new SnakeCaseMap(outputFormatterOptions))
     }
 
     private def getCmd: Seq[String] = {
