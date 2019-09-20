@@ -31,7 +31,7 @@ import com.databricks.hls.sql.util.{HadoopLineIterator, SerializableConfiguratio
 import com.databricks.vcf
 import com.google.common.util.concurrent.Striped
 
-class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HLSUsageLogging {
+class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HlsUsageLogging {
   var codecFactory: CompressionCodecFactory = _
 
   override def shortName(): String = "com.databricks.vcf"

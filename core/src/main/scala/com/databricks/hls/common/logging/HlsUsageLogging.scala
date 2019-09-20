@@ -5,15 +5,39 @@ import com.google.gson.Gson
 import scala.collection.JavaConverters._
 
 /**
- * These are objects/case classes/traits to log HLS events.
+ * These are trait/objects/case classes to log hls events.
  */
+trait HlsUsageLogging extends HLSLogging {
+
+  protected def recordHlsUsage(
+      metric: MetricDefinition,
+      tags: Map[TagDefinition, String] = Map.empty,
+      blob: String = null): Unit = {
+
+    logger.info(
+      s"${metric.name}:[${{
+        if (blob == null) {
+          tags.values
+        } else {
+          tags.values ++ Iterable(blob)
+        }
+      }.mkString(",")}]"
+    )
+  }
+
+  protected def hlsJsonBuilder(options: Map[String, Any]): String = {
+    { new Gson }.toJson(options.asJava)
+  }
+
+}
+
 case class MetricDefinition(name: String, description: String)
 
 case class TagDefinition(name: String, description: String)
 
 object HlsMetricDefinitions {
   val EVENT_HLS_USAGE = MetricDefinition(
-    "hlsUsageEvent",
+    "hlsUsage",
     description = "Umbrella event for event tracking of HLS services"
   )
 }
@@ -43,28 +67,4 @@ object HlsTagValues {
 
 object HlsBlobKeys {
   val PIPE_CMD_TOOL = "pipeCmdTool"
-}
-
-trait HLSUsageLogging extends HLSLogging {
-
-  protected def recordHlsUsage(
-      metric: MetricDefinition,
-      tags: Map[TagDefinition, String] = Map.empty,
-      blob: String = null): Unit = {
-
-    logger.info(
-      s"${metric.name}:[${{
-        if (blob == null) {
-          tags.values
-        } else {
-          tags.values ++ Iterable(blob)
-        }
-      }.mkString(",")}]"
-    )
-  }
-
-  protected def hlsJsonBuilder(options: Map[String, Any]): String = {
-    { new Gson }.toJson(options.asJava)
-  }
-
 }

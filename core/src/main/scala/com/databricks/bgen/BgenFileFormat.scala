@@ -155,7 +155,7 @@ class BgenFileFormat extends FileFormat with DataSourceRegister with Serializabl
   }
 }
 
-object BgenFileFormat extends HLSUsageLogging {
+object BgenFileFormat extends HlsUsageLogging {
   val BGEN_SUFFIX = ".bgen"
   val INDEX_SUFFIX = ".bgi"
   val NEXT_IDX_QUERY =
