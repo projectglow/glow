@@ -8,7 +8,7 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.sources.DataSourceRegister
 import com.databricks.sql.BigFileDatasource
 
-class BigBgenDatasource extends BigFileDatasource with DataSourceRegister with HLSUsageLogging {
+class BigBgenDatasource extends BigFileDatasource with DataSourceRegister with HlsUsageLogging {
 
   override def shortName(): String = "com.databricks.bigbgen"
 
@@ -17,7 +17,7 @@ class BigBgenDatasource extends BigFileDatasource with DataSourceRegister with H
 
 }
 
-object BigBgenDatasource extends HLSUsageLogging {
+object BigBgenDatasource extends HlsUsageLogging {
 
   val BITS_PER_PROB_KEY = "bitsPerProbability"
   val BITS_PER_PROB_DEFAULT_VALUE = "16"

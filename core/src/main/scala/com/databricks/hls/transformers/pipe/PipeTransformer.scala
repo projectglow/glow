@@ -15,7 +15,7 @@ import com.databricks.hls.common.Named
 import com.databricks.hls.common.logging._
 import com.databricks.hls.transformers.util.SnakeCaseMap
 
-class PipeTransformer extends DataFrameTransformer with HLSUsageLogging {
+class PipeTransformer extends DataFrameTransformer with HlsUsageLogging {
   override def name: String = "pipe"
 
   override def transform(df: DataFrame, options: Map[String, String]): DataFrame = {

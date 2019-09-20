@@ -23,7 +23,7 @@ import com.databricks.hls.transformers.util.StringUtils
  * A path to reference genome containing .fasta, .fasta.fai, and .dict files must be provided
  * through the referenceGenomePath option.
  */
-class NormalizeVariantsTransformer extends DataFrameTransformer with HLSUsageLogging {
+class NormalizeVariantsTransformer extends DataFrameTransformer with HlsUsageLogging {
 
   override def name: String = "normalize_variants"
 
@@ -78,7 +78,7 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HLSUsageLog
   }
 }
 
-private[databricks] object NormalizeVariantsTransformer extends HLSUsageLogging {
+private[databricks] object NormalizeVariantsTransformer extends HlsUsageLogging {
   private val MODE_KEY = "mode"
   val MODE_NORMALIZE = "normalize"
   val MODE_SPLIT_NORMALIZE = "split_and_normalize"
