@@ -28,6 +28,7 @@ abstract class HLSBaseTest
         "spark.hadoop.io.compression.codecs",
         "org.seqdoop.hadoop_bam.util.BGZFCodec,org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec"
       )
+
   }
 
   override protected def createSparkSession = {

@@ -1,0 +1,14 @@
+##fileformat=VCFv4.1
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+chr1	537	.	TTT	T	.	PASS	.
+chr1	537	.	T	TTT	.	PASS	.
+chr1	527	.	ACGT	A	.	PASS	.
+chr1	527	.	A	ACGT	.	PASS	.
+chr1	540	.	G	GTT	.	PASS	.
+chr1	541	.	A	ACGT	.	PASS	.
+chr1	529	.	GTT	ACGT	.	PASS	.
+chr1	527	.	ACGT	ATT	.	PASS	.
+chr1	511	.	T	TAG	.	PASS	.
+chr1	540	.	G	GA	.	PASS	.
+chr1	540	.	G	GG	.	PASS	.
+chr1	536	.	TTTT	TTTTG	.	PASS	.

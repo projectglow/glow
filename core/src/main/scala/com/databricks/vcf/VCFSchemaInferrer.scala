@@ -11,6 +11,13 @@ import org.apache.spark.sql.types._
  */
 object VCFSchemaInferrer {
 
+  def getInfoFieldStruct(headerLine: VCFInfoHeaderLine): StructField = {
+    StructField(
+      VariantSchemas.infoFieldPrefix + headerLine.getID,
+      typesForHeader(headerLine).head,
+      metadata = metadataForLine(headerLine))
+  }
+
   /**
    * @param includeSampleIds If true, a sampleId column will be added to the genotype fields
    * @param flattenInfoFields If true, each INFO field will be promoted to a column. If false,
@@ -27,10 +34,7 @@ object VCFSchemaInferrer {
     val withInfoFields = if (flattenInfoFields) {
       validatedInfoHeaders.foldLeft(VariantSchemas.vcfBaseSchema) {
         case (schema, line) =>
-          val field = StructField(
-            VariantSchemas.infoFieldPrefix + line.getID,
-            typesForHeader(line).head,
-            metadata = metadataForLine(line))
+          val field = getInfoFieldStruct(line)
           schema.add(field)
       }
     } else {
@@ -222,7 +226,7 @@ object VCFSchemaInferrer {
    * but different type or count).
    * @return A seq of unique headers
    */
-  private def validateHeaders(headers: Seq[VCFCompoundHeaderLine]): Seq[VCFCompoundHeaderLine] = {
+  private def validateHeaders[A <: VCFCompoundHeaderLine](headers: Seq[A]): Seq[A] = {
     headers
       .groupBy(line => line.getID)
       .map {

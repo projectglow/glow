@@ -12,7 +12,6 @@ import htsjdk.variant.variantcontext.{Allele, VariantContext, Genotype => HTSJDK
 import htsjdk.variant.vcf.{VCFConstants, VCFHeader}
 import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, GenericArrayData}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
@@ -43,7 +42,7 @@ class VariantContextToInternalRowConverter(
   private val infoKeysParsedWithoutHeader = mutable.HashSet.empty[String]
   private val formatKeysParsedWithoutHeader = mutable.HashSet.empty[String]
 
-  private def makeConverter(forSplit: Boolean): VariantContext => InternalRow = {
+  private def makeConverter(forSplit: Boolean) = {
     val fns = schema.map { field =>
       val fn: RowConverter.Updater[VariantContext] = field match {
         case f if structFieldsEqualExceptNullability(f, contigNameField) => updateContigName
@@ -123,6 +122,14 @@ class VariantContextToInternalRowConverter(
       splitConverter(vc)
     } else {
       nonSplitConverter(vc)
+    }
+  }
+
+  def convertRow(vc: VariantContext, priorRow: InternalRow, isSplit: Boolean): InternalRow = {
+    if (isSplit) {
+      splitConverter(vc, priorRow)
+    } else {
+      nonSplitConverter(vc, priorRow)
     }
   }
 
@@ -245,8 +252,10 @@ class VariantContextToInternalRowConverter(
       field: StructField,
       row: InternalRow,
       idx: Int): Unit = {
+
     val realName = field.name.stripPrefix(VariantSchemas.infoFieldPrefix)
     if (!vc.hasAttribute(realName)) {
+      row.setNullAt(idx)
       return
     }
 
@@ -255,8 +264,7 @@ class VariantContextToInternalRowConverter(
         case StringType => UTF8String.fromString(vc.getAttributeAsString(realName, ""))
         case IntegerType => vc.getAttributeAsInt(realName, 0)
         case DoubleType => vc.getAttributeAsDouble(realName, 0)
-        case BooleanType =>
-          if (vc.hasAttribute(realName)) true: java.lang.Boolean else null
+        case BooleanType => true: java.lang.Boolean
         case ArrayType(StringType, _) =>
           val strings = vc.getAttributeAsStringList(realName, "")
           val arr = new Array[Any](strings.size)

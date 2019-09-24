@@ -46,13 +46,8 @@ object SqlExtensionProvider {
     )
 
     functionRegistry.registerFunction(
-      FunctionIdentifier("hardy_weinberg"),
-      exprs => HardyWeinberg(exprs.head)
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("call_summary_stats"),
-      exprs => CallStats(exprs.head)
+      FunctionIdentifier("add_struct_fields"),
+      exprs => AddStructFields(exprs.head, exprs.tail)
     )
 
     functionRegistry.registerFunction(
@@ -61,68 +56,8 @@ object SqlExtensionProvider {
     )
 
     functionRegistry.registerFunction(
-      FunctionIdentifier("dp_summary_stats"),
-      exprs => ArrayStatsSummary.makeDpStats(exprs.head)
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("gq_summary_stats"),
-      exprs => ArrayStatsSummary.makeGqStats(exprs.head)
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("expand_struct"),
-      exprs => ExpandStruct(exprs.head)
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("sample_call_summary_stats"),
-      exprs => CallSummaryStats(exprs(0), exprs(1), exprs(2))
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("sample_dp_summary_stats"),
-      exprs => PerSampleSummaryStatistics(exprs.head, VariantSchemas.depthField)
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("sample_gq_summary_stats"),
-      exprs => PerSampleSummaryStatistics(exprs.head, VariantSchemas.conditionalQualityField)
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("genotype_states"),
-      exprs => GenotypeStates(exprs.head)
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("add_struct_fields"),
-      exprs => AddStructFields(exprs.head, exprs.tail)
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("sample_call_summary_stats"),
-      exprs => CallSummaryStats(exprs(0), exprs(1), exprs(2))
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("sample_dp_summary_stats"),
-      exprs => PerSampleSummaryStatistics(exprs.head, VariantSchemas.depthField)
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("sample_gq_summary_stats"),
-      exprs => PerSampleSummaryStatistics(exprs.head, VariantSchemas.conditionalQualityField)
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("genotype_states"),
-      exprs => GenotypeStates(exprs.head)
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("hard_calls"),
-      exprs => HardCalls(exprs(0), exprs(1), exprs(2), exprs.lift(3))
+      FunctionIdentifier("array_to_dense_vector"),
+      exprs => ArrayToDenseVector(exprs.head)
     )
 
     functionRegistry.registerFunction(
@@ -131,18 +66,18 @@ object SqlExtensionProvider {
     )
 
     functionRegistry.registerFunction(
-      FunctionIdentifier("array_to_dense_vector"),
-      exprs => ArrayToDenseVector(exprs.head)
+      FunctionIdentifier("call_summary_stats"),
+      exprs => CallStats(exprs.head)
     )
 
     functionRegistry.registerFunction(
-      FunctionIdentifier("vector_to_array"),
-      exprs => VectorToArray(exprs.head)
+      FunctionIdentifier("dp_summary_stats"),
+      exprs => ArrayStatsSummary.makeDpStats(exprs.head)
     )
 
     functionRegistry.registerFunction(
-      FunctionIdentifier("linear_regression_gwas"),
-      exprs => LinearRegressionExpr(exprs(0), exprs(1), exprs(2))
+      FunctionIdentifier("expand_struct"),
+      exprs => ExpandStruct(exprs.head)
     )
 
     functionRegistry.registerFunction(
@@ -151,13 +86,58 @@ object SqlExtensionProvider {
     )
 
     functionRegistry.registerFunction(
-      FunctionIdentifier("lift_over"),
-      exprs => LiftOverExpr(exprs(0), exprs(1), exprs(2), exprs(3), exprs.lift(4))
+      FunctionIdentifier("genotype_states"),
+      exprs => GenotypeStates(exprs.head)
+    )
+
+    functionRegistry.registerFunction(
+      FunctionIdentifier("gq_summary_stats"),
+      exprs => ArrayStatsSummary.makeGqStats(exprs.head)
+    )
+
+    functionRegistry.registerFunction(
+      FunctionIdentifier("hard_calls"),
+      exprs => HardCalls(exprs(0), exprs(1), exprs(2), exprs.lift(3))
+    )
+
+    functionRegistry.registerFunction(
+      FunctionIdentifier("hardy_weinberg"),
+      exprs => HardyWeinberg(exprs.head)
+    )
+
+    functionRegistry.registerFunction(
+      FunctionIdentifier("lift_over_coordinates"),
+      exprs => LiftOverCoordinatesExpr(exprs(0), exprs(1), exprs(2), exprs(3), exprs.lift(4))
+    )
+
+    functionRegistry.registerFunction(
+      FunctionIdentifier("linear_regression_gwas"),
+      exprs => LinearRegressionExpr(exprs(0), exprs(1), exprs(2))
     )
 
     functionRegistry.registerFunction(
       FunctionIdentifier("logistic_regression_gwas"),
       exprs => LogisticRegressionExpr(exprs(0), exprs(1), exprs(2), exprs(3))
+    )
+
+    functionRegistry.registerFunction(
+      FunctionIdentifier("sample_call_summary_stats"),
+      exprs => CallSummaryStats(exprs(0), exprs(1), exprs(2))
+    )
+
+    functionRegistry.registerFunction(
+      FunctionIdentifier("sample_dp_summary_stats"),
+      exprs => PerSampleSummaryStatistics(exprs.head, VariantSchemas.depthField)
+    )
+
+    functionRegistry.registerFunction(
+      FunctionIdentifier("sample_gq_summary_stats"),
+      exprs => PerSampleSummaryStatistics(exprs.head, VariantSchemas.conditionalQualityField)
+    )
+
+    functionRegistry.registerFunction(
+      FunctionIdentifier("vector_to_array"),
+      exprs => VectorToArray(exprs.head)
     )
   }
 }
