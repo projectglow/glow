@@ -1,0 +1,15 @@
+##fileformat=VCFv4.1
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+chr1	1	.	C	A	.	PASS	.
+chr1	61	.	CAAA	CAA	.	PASS	.
+chr1	537	.	AAAA	AAA	.	PASS	.
+chr1	540	.	A	T	.	PASS	.
+chr1	538	.	AAAA	AAA	.	PASS	.
+chr1	541	.	A	T	.	PASS	.
+chr1	1040	.	A	T	.	PASS	.
+chr1	1037	.	AAAA	AAA	.	PASS	.
+chr1	1038	.	AAAA	AAA	.	PASS	.
+chr1	1045	.	AAAA	AAA	.	PASS	.
+chr1	1045	.	A	T	.	PASS	.
+chr1	1046	.	AAAA	AAA	.	PASS	.
+chr1	1046	.	A	T	.	PASS	.

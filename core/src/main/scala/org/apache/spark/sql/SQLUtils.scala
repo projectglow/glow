@@ -10,6 +10,20 @@ import org.apache.spark.sql.catalyst.util.{ArrayData, GenericArrayData}
 import org.apache.spark.sql.types._
 
 object SQLUtils {
+  def verifyHasFields(schema: StructType, fields: Seq[StructField]): Unit = {
+    fields.foreach { field =>
+      val candidateFields = schema.fields.filter(_.name == field.name)
+      if (candidateFields.length != 1) {
+        throw new IllegalArgumentException(
+          s"Schema must have exactly one field called ${field.name}. Current schema is $schema")
+      }
+      val schemaField = candidateFields.head
+      if (!SQLUtils.structFieldsEqualExceptNullability(schemaField, field)) {
+        throw new IllegalArgumentException(s"Schema must have a field $field")
+      }
+    }
+  }
+
   def structFieldsEqualExceptNullability(f1: StructField, f2: StructField): Boolean = {
     f1.name == f2.name && f1.dataType.asNullable == f2.dataType.asNullable
   }
