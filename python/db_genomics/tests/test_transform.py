@@ -6,8 +6,8 @@ import db_genomics as sg
 def test_transform(spark):
     df = spark.read.format("vcf")\
         .load("test-data/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf")
-    converted = sg.transform("pipe", df, inputFormatter="vcf", outputFormatter="vcf",
-                             cmd='["cat"]', in_vcfHeader="infer")
+    converted = sg.transform("pipe", df, input_formatter="vcf", output_formatter="vcf",
+                             cmd='["cat"]', in_vcf_header="infer")
     assert converted.count() == 1075
 
 

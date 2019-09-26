@@ -8,17 +8,17 @@ jobs:
 
       - restore_cache:
           keys:
-            - conda-deps-v1-{{ .Branch }}
+            - conda-deps-v1-{{ checksum "python/environment.yml" }}
 
       - checkout
 
       - run:
           name: install dependencies
           command: |
+            export PATH=$HOME/conda/bin:$PATH
             if [ ! -d "/home/circleci/conda" ]; then
               wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
               /bin/bash Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/conda
-              export PATH=$HOME/conda/bin:$PATH
               conda env create -f python/environment.yml
             else
               echo "Conda already installed"
@@ -34,7 +34,7 @@ jobs:
       - save_cache:
           paths:
             - /home/circleci/conda
-          key: conda-deps-v1-{{ .Branch }}
+          key: conda-deps-v1-{{ checksum "python/environment.yml" }}
 
 workflows:
   version: 2
