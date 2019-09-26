@@ -1,16 +1,16 @@
 package com.databricks.vcf
 
-import com.databricks.hls.common.HLSLogging
 import org.apache.spark.SparkConf
-import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.sources._
-import com.databricks.vcf.TabixIndexHelper._
-import com.databricks.hls.sql.HLSBaseTest
 import org.broadinstitute.hellbender.utils.SimpleInterval
+
+import com.databricks.hls.common.HLSLogging
+import com.databricks.hls.sql.HLSBaseTest
+import com.databricks.vcf.TabixIndexHelper._
 
 class TabixHelperSuite extends HLSBaseTest with HLSLogging {
 
-  lazy val sourceName: String = "com.databricks.vcf"
+  lazy val sourceName: String = "vcf"
   lazy val tabixTestVcf: String = s"$testDataHome/tabix-test-vcf"
   lazy val testVcf = s"$testDataHome/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf"
   lazy val testBigVcf = s"$tabixTestVcf/1000G.phase3.broad.withGenotypes.chr20.10100000.vcf.gz"

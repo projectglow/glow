@@ -57,7 +57,7 @@ class LiftOverCoordinatesExprSuite extends HLSBaseTest {
   private def readVcf(vcfFile: String): DataFrame = {
     spark
       .read
-      .format("com.databricks.vcf")
+      .format("vcf")
       .load(vcfFile)
       .select("contigName", "start", "end")
   }

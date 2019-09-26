@@ -2,23 +2,26 @@ package com.databricks.vcf
 
 import java.io.ByteArrayOutputStream
 
-import com.databricks.hls.common.logging._
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress.CompressionCodecFactory
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.sources.DataSourceRegister
 import org.seqdoop.hadoop_bam.util.DatabricksBGZFOutputStream
+
+import com.databricks.hls.common.logging._
 import com.databricks.hls.sql.util.SerializableConfiguration
-import com.databricks.sql.BigFileDatasource
+import com.databricks.sql.{BigFileDatasource, ComDatabricksDataSource}
 
 class BigVCFDatasource extends BigFileDatasource with DataSourceRegister {
 
-  override def shortName(): String = "com.databricks.bigvcf"
+  override def shortName(): String = "bigvcf"
 
   override def serializeDataFrame(options: Map[String, String], data: DataFrame): RDD[Array[Byte]] =
     BigVCFDatasource.serializeDataFrame(options, data)
 }
+
+class ComDatabricksBigVCFDatasource extends BigVCFDatasource with ComDatabricksDataSource
 
 object BigVCFDatasource extends HlsUsageLogging {
   def serializeDataFrame(options: Map[String, String], data: DataFrame): RDD[Array[Byte]] = {

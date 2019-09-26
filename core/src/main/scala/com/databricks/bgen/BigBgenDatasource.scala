@@ -2,20 +2,23 @@ package com.databricks.bgen
 
 import java.io.ByteArrayOutputStream
 
-import com.databricks.hls.common.logging._
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.sources.DataSourceRegister
-import com.databricks.sql.BigFileDatasource
+
+import com.databricks.hls.common.logging._
+import com.databricks.sql.{BigFileDatasource, ComDatabricksDataSource}
 
 class BigBgenDatasource extends BigFileDatasource with DataSourceRegister with HlsUsageLogging {
 
-  override def shortName(): String = "com.databricks.bigbgen"
+  override def shortName(): String = "bigbgen"
 
   override def serializeDataFrame(options: Map[String, String], data: DataFrame): RDD[Array[Byte]] =
     BigBgenDatasource.serializeDataFrame(options, data)
 
 }
+
+class ComDatabricksBigBgenDatasource extends BigBgenDatasource with ComDatabricksDataSource
 
 object BigBgenDatasource extends HlsUsageLogging {
 

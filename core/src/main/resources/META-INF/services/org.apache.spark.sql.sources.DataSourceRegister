@@ -1,4 +1,11 @@
+# Standard file formats
 com.databricks.bgen.BgenFileFormat
-com.databricks.vcf.VCFFileFormat
 com.databricks.bgen.BigBgenDatasource
 com.databricks.vcf.BigVCFDatasource
+com.databricks.vcf.VCFFileFormat
+
+# Legacy file formats
+com.databricks.bgen.ComDatabricksBgenFileFormat
+com.databricks.bgen.ComDatabricksBigBgenDatasource
+com.databricks.vcf.ComDatabricksBigVCFDatasource
+com.databricks.vcf.ComDatabricksVCFFileFormat

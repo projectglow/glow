@@ -26,7 +26,7 @@ class VCFPiperSuite extends HLSBaseTest {
   private def readVcf(vcf: String): DataFrame = {
     spark
       .read
-      .format("com.databricks.vcf")
+      .format("vcf")
       .option("flattenInfoFields", true)
       .load(vcf)
   }
@@ -184,7 +184,7 @@ class VCFPiperSuite extends HLSBaseTest {
 
     val input = spark
       .read
-      .format("com.databricks.vcf")
+      .format("vcf")
       .option("includeSampleIds", "true")
       .option("vcfRowSchema", "true")
       .load(na12878)
@@ -211,7 +211,7 @@ class VCFPiperSuite extends HLSBaseTest {
       .read
       .option("includeSampleIds", "false")
       .option("vcfRowSchema", "true")
-      .format("com.databricks.vcf")
+      .format("vcf")
       .load(TGP)
 
     val options = Map(

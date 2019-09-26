@@ -15,6 +15,7 @@ import com.databricks.vcf.{BgenRow, VCFRow, VariantSchemas}
 
 class BgenReaderSuite extends HLSBaseTest {
 
+  val sourceName = "bgen"
   private val testRoot = s"$testDataHome/bgen"
 
   private def iterateFile(path: String): Seq[BgenRow] = {
@@ -39,7 +40,7 @@ class BgenReaderSuite extends HLSBaseTest {
       .map(r => r.copy(names = r.names.filter(_.nonEmpty).distinct.sorted))
     val vcf = spark
       .read
-      .format("com.databricks.vcf")
+      .format("vcf")
       .option("includeSampleIds", true)
       .option("vcfRowSchema", true)
       .load(vcfPath)
@@ -155,7 +156,7 @@ class BgenReaderSuite extends HLSBaseTest {
     val path = s"$testRoot/example.16bits.bgen"
     val fromSpark = spark
       .read
-      .format("com.databricks.bgen")
+      .format(sourceName)
       .load(path)
       .orderBy("contigName", "start")
       .as[BgenRow]
@@ -171,7 +172,7 @@ class BgenReaderSuite extends HLSBaseTest {
     val path = s"$testRoot/example.16bits.noindex.bgen"
     val fromSpark = spark
       .read
-      .format("com.databricks.bgen")
+      .format(sourceName)
       .load(path)
       .orderBy("contigName", "start")
       .collect()
@@ -186,7 +187,7 @@ class BgenReaderSuite extends HLSBaseTest {
     val path = s"$testRoot/example.16bits.bgen"
     val allele = spark
       .read
-      .format("com.databricks.bgen")
+      .format(sourceName)
       .load(path)
       .orderBy("start")
       .select("referenceAllele")
@@ -202,7 +203,7 @@ class BgenReaderSuite extends HLSBaseTest {
     spark
       .read
       .schema(ScalaReflection.schemaFor[WeirdSchema].dataType.asInstanceOf[StructType])
-      .format("com.databricks.bgen")
+      .format(sourceName)
       .load(path)
       .rdd
       .count() // No error expected
@@ -217,7 +218,7 @@ class BgenReaderSuite extends HLSBaseTest {
       .read
       .option("sampleFilePath", s"$basePath.sample")
       .option("sampleIdColumn", "ID_2")
-      .format("com.databricks.bgen")
+      .format(sourceName)
       .load(s"$basePath.bgen")
       .as[BgenRow]
       .head
@@ -234,7 +235,7 @@ class BgenReaderSuite extends HLSBaseTest {
     val ds = spark
       .read
       .option("sampleFilePath", s"$basePath.sample")
-      .format("com.databricks.bgen")
+      .format(sourceName)
       .load(s"$basePath.bgen")
       .as[BgenRow]
       .head
@@ -252,7 +253,7 @@ class BgenReaderSuite extends HLSBaseTest {
       spark
         .read
         .option("sampleFilePath", s"$basePath.corrupted.sample")
-        .format("com.databricks.bgen")
+        .format(sourceName)
         .load(s"$basePath.bgen")
         .as[BgenRow]
         .head
@@ -267,7 +268,7 @@ class BgenReaderSuite extends HLSBaseTest {
     val ds = spark
       .read
       .option("sampleFilePath", s"$testRoot/example.fake.sample")
-      .format("com.databricks.bgen")
+      .format(sourceName)
       .load(path)
       .as[BgenRow]
       .head
@@ -285,7 +286,7 @@ class BgenReaderSuite extends HLSBaseTest {
         .read
         .option("sampleFilePath", s"$basePath.sample")
         .option("sampleIdColumn", "FAKE")
-        .format("com.databricks.bgen")
+        .format(sourceName)
         .load(s"$basePath.bgen")
         .as[BgenRow]
         .head
@@ -300,7 +301,7 @@ class BgenReaderSuite extends HLSBaseTest {
       .read
       .option("sampleFilePath", s"$testRoot/example.sample")
       .option("sampleIdColumn", "ID_1")
-      .format("com.databricks.bgen")
+      .format(sourceName)
       .load(s"$testRoot/example.16bits.oxford.bgen")
       .as[BgenRow]
       .head
@@ -317,7 +318,7 @@ class BgenReaderSuite extends HLSBaseTest {
       spark
         .read
         .option("sampleFilePath", s"$testRoot/example.sample")
-        .format("com.databricks.bgen")
+        .format(sourceName)
         .load(s"$testRoot/example.16bits.oxford.bgen")
         .as[BgenRow]
         .head
@@ -326,13 +327,13 @@ class BgenReaderSuite extends HLSBaseTest {
 
   test("Skip non-bgen files") {
     val input = s"$testRoot/example.8bits.*"
-    spark.read.format("com.databricks.bgen").load(input).count() // No error
+    spark.read.format(sourceName).load(input).count() // No error
 
     // Expect an error because we try to read non-bgen files as bgen
     intercept[SparkException] {
       spark
         .read
-        .format("com.databricks.bgen")
+        .format(sourceName)
         .option(BgenFileFormat.IGNORE_EXTENSION_KEY, true)
         .load(input)
         .count()
@@ -353,7 +354,7 @@ class BgenReaderSuite extends HLSBaseTest {
   test("schema does not include sample id field if there are no ids") {
     val df = spark
       .read
-      .format("com.databricks.bgen")
+      .format(sourceName)
       .load(s"$testRoot/example.16bits.nosampleids.bgen")
 
     assert(!hasSampleIdField(df.schema))
@@ -362,7 +363,7 @@ class BgenReaderSuite extends HLSBaseTest {
   test("schema includes sample id if at least one file has ids") {
     val df = spark
       .read
-      .format("com.databricks.bgen")
+      .format(sourceName)
       .load(s"$testRoot/example.16bits*.bgen")
     assert(hasSampleIdField(df.schema))
   }
@@ -372,7 +373,7 @@ class BgenReaderSuite extends HLSBaseTest {
       .read
       .option("sampleFilePath", s"$testRoot/example.16bits.oxford.sample")
       .option("sampleIdColumn", "ID_2")
-      .format("com.databricks.bgen")
+      .format(sourceName)
       .load(s"$testRoot/example.16bits.nosampleids.bgen")
     assert(hasSampleIdField(df.schema))
   }
