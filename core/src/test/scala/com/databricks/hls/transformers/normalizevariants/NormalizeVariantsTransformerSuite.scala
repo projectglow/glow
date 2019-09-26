@@ -1,14 +1,14 @@
 package com.databricks.hls.transformers.normalizevariants
 
-import com.databricks.hls.common.HLSLogging
-import com.databricks.hls.sql.HLSBaseTest
 import org.apache.spark.SparkConf
 
 import com.databricks.hls.DBGenomics
+import com.databricks.hls.common.HLSLogging
+import com.databricks.hls.sql.HLSBaseTest
 
 class NormalizeVariantsTransformerSuite extends HLSBaseTest with HLSLogging {
 
-  lazy val sourceName: String = "com.databricks.vcf"
+  lazy val sourceName: String = "vcf"
   lazy val testFolder: String = s"$testDataHome/variantnormalizer-test"
 
   // gatk test file (multiallelic)

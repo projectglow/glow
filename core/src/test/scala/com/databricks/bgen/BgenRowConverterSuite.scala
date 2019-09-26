@@ -4,7 +4,10 @@ import org.apache.spark.sql.catalyst.encoders.RowEncoder
 
 import com.databricks.vcf.{BgenGenotype, BgenRow}
 
-class BgenRowConverterSuite extends BgenConverterBaseTest {
+class BaseBgenRowConverterSuite extends BgenConverterBaseTest {
+
+  val sourceName = "bgen"
+
   def compareVcfToBgen(
       testBgen: String,
       testVcf: String,
@@ -15,13 +18,13 @@ class BgenRowConverterSuite extends BgenConverterBaseTest {
 
     val bgenDs = spark
       .read
-      .format("com.databricks.bgen")
+      .format(sourceName)
       .schema(BgenRow.schema)
       .load(testBgen)
       .as[BgenRow]
     val vcfDs = spark
       .read
-      .format("com.databricks.vcf")
+      .format("vcf")
       .option("includeSampleIds", true)
       .load(testVcf)
 
@@ -53,7 +56,9 @@ class BgenRowConverterSuite extends BgenConverterBaseTest {
   test("phased") {
     compareVcfToBgen(s"$testRoot/phased.16bits.bgen", s"$testRoot/phased.16bits.vcf", 16, true)
   }
+}
 
+class BgenRowConverterUtils extends BgenConverterBaseTest {
   def inferPhasingOrPloidy(
       alternateAlleles: Seq[String],
       numPosteriorProbabilities: Int,

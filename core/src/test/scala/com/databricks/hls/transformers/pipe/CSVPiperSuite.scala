@@ -131,7 +131,7 @@ class CSVPiperSuite extends HLSBaseTest {
   test("GWAS") {
     val na12878 = s"$testDataHome/NA12878_21_10002403.vcf"
     val input =
-      spark.read.format("com.databricks.vcf").load(na12878)
+      spark.read.format("vcf").load(na12878)
     val options = Map(
       "inputFormatter" -> "vcf",
       "outputFormatter" -> "csv",
@@ -153,7 +153,7 @@ class CSVPiperSuite extends HLSBaseTest {
   test("Gene-based GWAS") {
     val na12878 = s"$testDataHome/NA12878_21_10002403.vcf"
     val input =
-      spark.read.format("com.databricks.vcf").load(na12878)
+      spark.read.format("vcf").load(na12878)
     val options = Map(
       "inputFormatter" -> "vcf",
       "outputFormatter" -> "csv",

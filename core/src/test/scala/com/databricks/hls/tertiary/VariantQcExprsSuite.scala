@@ -20,7 +20,7 @@ class VariantQcExprsSuite extends HLSBaseTest {
     val sess = spark
     spark
       .read
-      .format("com.databricks.vcf")
+      .format("vcf")
       .option("includeSampleIds", true)
       .load(testVcf)
       .filter(targetSite)
@@ -34,7 +34,7 @@ class VariantQcExprsSuite extends HLSBaseTest {
     import sess.implicits._
     val hw = spark
       .read
-      .format("com.databricks.vcf")
+      .format("vcf")
       .load(testVcf)
       .filter(targetSite)
       .selectExpr("expand_struct(hardy_weinberg(genotypes))")
@@ -57,7 +57,7 @@ class VariantQcExprsSuite extends HLSBaseTest {
     import sess.implicits._
     val stats = spark
       .read
-      .format("com.databricks.vcf")
+      .format("vcf")
       .load(testVcf)
       .selectExpr("contigName", "start", "expand_struct(call_summary_stats(genotypes))")
       .filter(targetSite)
@@ -204,7 +204,7 @@ class VariantQcExprsSuite extends HLSBaseTest {
     import sess.implicits._
     val stats = spark
       .read
-      .format("com.databricks.vcf")
+      .format("vcf")
       .load(testVcf)
       .filter(targetSite)
       .selectExpr("expand_struct(dp_summary_stats(genotypes))")
@@ -221,7 +221,7 @@ class VariantQcExprsSuite extends HLSBaseTest {
     import sess.implicits._
     val stats = spark
       .read
-      .format("com.databricks.vcf")
+      .format("vcf")
       .load(testVcf)
       .filter(targetSite)
       .selectExpr("expand_struct(gq_summary_stats(genotypes))")
@@ -237,7 +237,7 @@ class VariantQcExprsSuite extends HLSBaseTest {
     val tmpFile = s"/tmp/${Random.alphanumeric.take(10).mkString}"
     spark
       .read
-      .format("com.databricks.vcf")
+      .format("vcf")
       .load(testVcf)
       .withColumn("stats", expr("call_summary_stats(genotypes)"))
       .withColumn("hw", expr("hardy_weinberg(genotypes)"))

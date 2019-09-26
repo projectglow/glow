@@ -91,7 +91,7 @@ class LiftOverVariantsTransformerSuite extends HLSBaseTest with VCFConverterBase
   private def readVcf(vcfFile: String): DataFrame = {
     spark
       .read
-      .format("com.databricks.vcf")
+      .format("vcf")
       .load(vcfFile)
   }
 
@@ -151,7 +151,7 @@ class LiftOverVariantsTransformerSuite extends HLSBaseTest with VCFConverterBase
       val inputDf =
         spark
           .read
-          .format("com.databricks.vcf")
+          .format("vcf")
           .schema(
             new StructType(requiredBaseSchema
               .fields

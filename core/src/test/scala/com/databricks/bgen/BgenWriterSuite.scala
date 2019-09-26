@@ -12,6 +12,8 @@ import com.databricks.vcf.{BgenRow, VariantSchemas}
 
 class BgenWriterSuite extends BgenConverterBaseTest {
 
+  val sourceName = "bigbgen"
+
   def roundTrip(testBgen: String, bitsPerProb: Int) {
     val sess = spark
     import sess.implicits._
@@ -20,16 +22,16 @@ class BgenWriterSuite extends BgenConverterBaseTest {
     val newBgenFile = newBgenDir.resolve("temp.bgen").toString
 
     val origDs =
-      spark.read.format("com.databricks.bgen").schema(BgenRow.schema).load(testBgen).as[BgenRow]
+      spark.read.format("bgen").schema(BgenRow.schema).load(testBgen).as[BgenRow]
     origDs
       .write
       .option("bitsPerProbability", bitsPerProb)
-      .format("com.databricks.bigbgen")
+      .format(sourceName)
       .save(newBgenFile)
 
     // Check that rows in new file are approximately equal
     val newDs =
-      spark.read.format("com.databricks.bgen").schema(BgenRow.schema).load(newBgenFile).as[BgenRow]
+      spark.read.format("bgen").schema(BgenRow.schema).load(newBgenFile).as[BgenRow]
     origDs
       .sort("contigName", "start")
       .collect
@@ -61,7 +63,7 @@ class BgenWriterSuite extends BgenConverterBaseTest {
 
     val origDs = spark
       .read
-      .format("com.databricks.bgen")
+      .format("bgen")
       .load(testBgen)
       .as[BgenRow]
       .map { br =>
@@ -70,12 +72,12 @@ class BgenWriterSuite extends BgenConverterBaseTest {
 
     origDs
       .write
-      .format("com.databricks.bigbgen")
+      .format(sourceName)
       .save(newBgenFile)
 
     spark
       .read
-      .format("com.databricks.bgen")
+      .format("bgen")
       .load(newBgenFile)
       .as[BgenRow]
       .collect
@@ -98,20 +100,20 @@ class BgenWriterSuite extends BgenConverterBaseTest {
 
     val bgenDs = spark
       .read
-      .format("com.databricks.bgen")
+      .format("bgen")
       .schema(BgenRow.schema)
       .load(testBgen)
       .as[BgenRow]
     val origVcfDs = spark
       .read
-      .format("com.databricks.vcf")
+      .format("vcf")
       .option("includeSampleIds", true)
       .load(testVcf)
 
     val writer = origVcfDs
       .write
       .option("bitsPerProbability", bitsPerProb)
-      .format("com.databricks.bigbgen")
+      .format(sourceName)
 
     val writerWithDefaultPhasing = if (defaultPhasing.isDefined) {
       writer.option("defaultInferredPhasing", defaultPhasing.get)
@@ -122,7 +124,7 @@ class BgenWriterSuite extends BgenConverterBaseTest {
 
     val vcfDs = spark
       .read
-      .format("com.databricks.bgen")
+      .format("bgen")
       .schema(BgenRow.schema)
       .load(newBgenFile)
       .as[BgenRow]
@@ -178,7 +180,7 @@ class BgenWriterSuite extends BgenConverterBaseTest {
         .toDF()
         .write
         .option("bitsPerProbability", 2)
-        .format("com.databricks.bigbgen")
+        .format(sourceName)
         .save(Files.createTempDirectory("bgen").resolve("out.bgen").toString)
     )
   }
@@ -229,11 +231,11 @@ class BgenWriterSuite extends BgenConverterBaseTest {
       .emptyRDD[BgenRow]
       .toDS
       .write
-      .format("com.databricks.bigbgen")
+      .format(sourceName)
       .save(newBgenFile)
     val rewrittenDs = spark
       .read
-      .format("com.databricks.bgen")
+      .format("bgen")
       .load(newBgenFile)
     assert(rewrittenDs.collect.isEmpty)
   }
@@ -265,11 +267,11 @@ class BgenWriterSuite extends BgenConverterBaseTest {
     Seq(noGtRow)
       .toDS
       .write
-      .format("com.databricks.bigbgen")
+      .format("bigbgen")
       .save(newBgenFile)
     val rewrittenDs = spark
       .read
-      .format("com.databricks.bgen")
+      .format("bgen")
       .schema(BgenRow.schema)
       .load(newBgenFile)
       .as[BgenRow]

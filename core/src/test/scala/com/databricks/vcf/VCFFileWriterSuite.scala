@@ -18,18 +18,16 @@ import com.databricks.hls.sql.HLSBaseTest
 import org.apache.spark.sql.types.StructType
 import org.bdgenomics.adam.rdd.VCFMetadataLoader
 
-abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest {
+class VCFFileWriterSuite(val sourceName: String) extends HLSBaseTest with VCFConverterBaseTest {
 
   lazy val NA12878 = s"$testDataHome/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf"
   lazy val TGP = s"$testDataHome/1000genomes-phase3-1row.vcf"
-  val readSourceName = "com.databricks.vcf"
+  val readSourceName = "vcf"
 
   override def sparkConf: SparkConf = {
     // Verify that tests correctly set BGZF codecs
     super.sparkConf.set("spark.hadoop.io.compression.codecs", "")
   }
-
-  protected def writeSourceName: String
 
   protected def createTempVcf: Path = {
     val tempDir = Files.createTempDirectory("test-vcf-dir")
@@ -68,12 +66,12 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
       repartitioned
         .write
         .option("vcfHeader", originalHeader)
-        .format(writeSourceName)
+        .format(sourceName)
         .save(tempFile)
     } else {
       repartitioned
         .write
-        .format(writeSourceName)
+        .format(sourceName)
         .save(tempFile)
     }
 
@@ -177,7 +175,7 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
     // No VCF rows and missing samples
     assertThrows[SparkException](
       ds.write
-        .format(writeSourceName)
+        .format(sourceName)
         .save(tempFile)
     )
   }
@@ -197,7 +195,7 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
       .as[VCFRow]
     assertThrows[SparkException](
       ds.write
-        .format(writeSourceName)
+        .format(sourceName)
         .option("validationStringency", "fakeStringency")
         .save(tempFile)
     )
@@ -217,7 +215,7 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
       .format(readSourceName)
       .load(NA12878)
       .write
-      .format(writeSourceName)
+      .format(sourceName)
       .option("vcfHeader", extraHeaderStr.substring(0, extraHeaderStr.length - 10))
       .save(tempFile)
 
@@ -236,7 +234,7 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
       .load(NA12878)
     // Contains INFO and FORMAT keys (eg. INFO AC) that can't be inferred from attributes map
     assertThrows[SparkException](
-      ds.write.format(writeSourceName).option("validationStringency", "strict").save(tempFile)
+      ds.write.format(sourceName).option("validationStringency", "strict").save(tempFile)
     )
   }
 
@@ -248,7 +246,7 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
         val ds = spark.read.format(readSourceName).option("vcfRowSchema", true).load(TGP)
         val outpath = tempFilePath.toString + extension
         ds.write
-          .format(writeSourceName)
+          .format(sourceName)
           .option("compression", codecName)
           .save(outpath)
 
@@ -273,7 +271,7 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
         .mode("overwrite")
         .option("validationStringency", stringency.toString)
         .option("vcfHeader", NA12878)
-        .format("com.databricks.vcf")
+        .format(sourceName)
         .save(Files.createTempDirectory("vcf").resolve("vcf").toString)
     }
 
@@ -289,12 +287,12 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
 
     if (vcfHeaderOpt.isDefined) {
       df.write
-        .format(writeSourceName)
+        .format(sourceName)
         .option("vcfHeader", vcfHeaderOpt.get)
         .save(tempFileStr)
     } else {
       df.write
-        .format(writeSourceName)
+        .format(sourceName)
         .save(tempFileStr)
     }
 
@@ -341,9 +339,7 @@ abstract class VCFFileWriterSuite extends HLSBaseTest with VCFConverterBaseTest 
   }
 }
 
-class MultiFileVCFWriterSuite extends VCFFileWriterSuite {
-  override def writeSourceName: String = "com.databricks.vcf"
-
+class MultiFileVCFWriterSuite extends VCFFileWriterSuite("vcf") {
   test("Empty file") {
     val sess = spark
     import sess.implicits._
@@ -356,7 +352,7 @@ class MultiFileVCFWriterSuite extends VCFFileWriterSuite {
       .toDS
       .write
       .option("vcfHeader", NA12878)
-      .format(writeSourceName)
+      .format(sourceName)
       .save(tempFile)
     val rewrittenDs = spark
       .read
@@ -367,9 +363,7 @@ class MultiFileVCFWriterSuite extends VCFFileWriterSuite {
   }
 }
 
-class SingleFileVCFWriterSuite extends VCFFileWriterSuite {
-  override def writeSourceName: String = "com.databricks.bigvcf"
-
+class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
   test("Check BGZF") {
     val df = spark
       .read
@@ -378,7 +372,7 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite {
       .repartition(100) // Force multiple partitions
 
     val outPath = createTempVcf.toString + ".bgz"
-    df.write.format(writeSourceName).save(outPath)
+    df.write.format(sourceName).save(outPath)
 
     val path = new org.apache.hadoop.fs.Path(outPath)
     val fs = path.getFileSystem(spark.sparkContext.hadoopConfiguration)
@@ -401,7 +395,7 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite {
 
 class VCFWriterUtilsSuite extends HLSBaseTest {
   val vcf = s"$testDataHome/NA12878_21_10002403.vcf"
-  lazy val schema = spark.read.format("com.databricks.vcf").load(vcf).schema
+  lazy val schema = spark.read.format("vcf").load(vcf).schema
 
   private def getHeaderNoSamples(
       options: Map[String, String],

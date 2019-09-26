@@ -1,10 +1,10 @@
 package com.databricks.vcf
 
+import scala.collection.JavaConverters._
+
 import java.io.BufferedInputStream
 
-import com.databricks.hls.common.logging._
-
-import scala.collection.JavaConverters._
+import com.google.common.util.concurrent.Striped
 import htsjdk.samtools.ValidationStringency
 import htsjdk.samtools.util.{BlockCompressedInputStream, OverlapDetector}
 import htsjdk.tribble.readers.{AsciiLineReader, AsciiLineReaderIterator, PositionalBufferedStream}
@@ -26,15 +26,16 @@ import org.broadinstitute.hellbender.tools.walkers.genotyper.GenotypeAssignmentM
 import org.broadinstitute.hellbender.utils.variant.GATKVariantContextUtils
 import org.broadinstitute.hellbender.utils.SimpleInterval
 import org.seqdoop.hadoop_bam.util.{BGZFEnhancedGzipCodec, DatabricksBGZFOutputStream}
+
 import com.databricks.hls.common.{HLSLogging, WithUtils}
+import com.databricks.hls.common.logging._
 import com.databricks.hls.sql.util.{HadoopLineIterator, SerializableConfiguration}
-import com.databricks.vcf
-import com.google.common.util.concurrent.Striped
+import com.databricks.sql.ComDatabricksDataSource
 
 class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HlsUsageLogging {
   var codecFactory: CompressionCodecFactory = _
 
-  override def shortName(): String = "com.databricks.vcf"
+  override def shortName(): String = "vcf"
 
   /**
    * This is very similar to [[TextBasedFileFormat.isSplitable()]], but with additional check
@@ -195,6 +196,8 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
   }
 
 }
+
+class ComDatabricksVCFFileFormat extends VCFFileFormat with ComDatabricksDataSource
 
 object VCFFileFormat {
 

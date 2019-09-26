@@ -1,11 +1,10 @@
 package com.databricks.bgen
 
+import scala.collection.JavaConverters._
+
 import java.io.{BufferedReader, File, InputStreamReader}
 import java.nio.file.Paths
 
-import com.databricks.hls.common.logging._
-
-import scala.collection.JavaConverters._
 import com.google.common.io.LittleEndianDataInputStream
 import com.google.common.util.concurrent.Striped
 import org.apache.hadoop.conf.Configuration
@@ -19,13 +18,15 @@ import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
 import org.apache.spark.sql.types.StructType
 import org.skife.jdbi.v2.DBI
 import org.skife.jdbi.v2.util.LongMapper
+
+import com.databricks.hls.common.logging._
 import com.databricks.hls.common.{HLSLogging, WithUtils}
 import com.databricks.hls.sql.util.SerializableConfiguration
-import com.databricks.vcf.VariantSchemas
+import com.databricks.sql.ComDatabricksDataSource
 
 class BgenFileFormat extends FileFormat with DataSourceRegister with Serializable with HLSLogging {
 
-  override def shortName(): String = "com.databricks.bgen"
+  override def shortName(): String = "bgen"
 
   override def inferSchema(
       sparkSession: SparkSession,
@@ -40,7 +41,7 @@ class BgenFileFormat extends FileFormat with DataSourceRegister with Serializabl
       options: Map[String, String],
       dataSchema: StructType): OutputWriterFactory = {
     throw new UnsupportedOperationException(
-      "BGEN data source does not support writing sharded BGENs; use com.databricks.bigbgen."
+      "BGEN data source does not support writing sharded BGENs; use bigbgen."
     )
   }
 
@@ -154,6 +155,8 @@ class BgenFileFormat extends FileFormat with DataSourceRegister with Serializabl
     localPath
   }
 }
+
+class ComDatabricksBgenFileFormat extends BgenFileFormat with ComDatabricksDataSource
 
 object BgenFileFormat extends HlsUsageLogging {
   val BGEN_SUFFIX = ".bgen"

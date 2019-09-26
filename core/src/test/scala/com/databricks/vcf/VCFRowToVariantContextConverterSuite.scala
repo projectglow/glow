@@ -1,14 +1,16 @@
 package com.databricks.vcf
 
+import scala.collection.JavaConverters._
+
 import java.io.File
 import java.nio.file.Files
 
-import scala.collection.JavaConverters._
 import htsjdk.samtools.ValidationStringency
 import htsjdk.variant.variantcontext.GenotypeLikelihoods
 import htsjdk.variant.vcf.{VCFFileReader, VCFHeader}
 import org.apache.commons.io.FileUtils
 import org.bdgenomics.adam.rdd.VCFMetadataLoader
+
 import com.databricks.hls.common.TestUtils._
 import com.databricks.hls.sql.HLSBaseTest
 
@@ -38,7 +40,7 @@ class VCFRowToVariantContextConverterSuite extends HLSBaseTest with VCFConverter
 
     val sparkVcfRowList = spark
       .read
-      .format("com.databricks.vcf")
+      .format("vcf")
       .option("includeSampleIds", true)
       .option("vcfRowSchema", true)
       .load(vcf)

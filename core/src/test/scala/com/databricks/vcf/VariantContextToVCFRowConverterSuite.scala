@@ -30,7 +30,7 @@ class VariantContextToVCFRowConverterSuite extends HLSBaseTest with VCFConverter
 
     val sparkVcfRowList = spark
       .read
-      .format("com.databricks.vcf")
+      .format("vcf")
       .option("includeSampleIds", true)
       .option("vcfRowSchema", true)
       .load(vcf)

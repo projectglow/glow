@@ -16,7 +16,9 @@ import org.apache.spark.{SparkConf, SparkException}
 import com.databricks.hls.common.TestUtils._
 import com.databricks.hls.sql.HLSBaseTest
 
-abstract class BaseVCFDatasourceSuite(val sourceName: String) extends HLSBaseTest {
+class VCFDatasourceSuite extends HLSBaseTest {
+
+  val sourceName = "vcf"
 
   lazy val testVcf = s"$testDataHome/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf"
   lazy val multiAllelicVcf = s"$testDataHome/combined.chr20_18210071_18210093.g.vcf"
@@ -280,44 +282,12 @@ abstract class BaseVCFDatasourceSuite(val sourceName: String) extends HLSBaseTes
   test("read VCFv4.3") {
     val input = spark
       .read
-      .format("com.databricks.vcf")
+      .format(sourceName)
       .load(s"$testDataHome/vcf/VCFv4.3.vcf")
 
     assert(input.count == 5)
   }
 
-  private def compareRows(r1: VCFRow, r2: VCFRow): Unit = {
-    assert(r1.copy(qual = None) == r2.copy(qual = None))
-    assert(r1.qual.isDefined == r2.qual.isDefined)
-    for {
-      q1 <- r1.qual
-      q2 <- r2.qual
-    } {
-      assert(q1 ~== q2 relTol 0.2)
-    }
-  }
-}
-
-// For testing only: schema based on CEUTrio VCF header
-private case class INFOFields(
-    INFO_AC: Seq[Option[Int]],
-    INFO_AF: Seq[Option[Double]],
-    INFO_AN: Option[Int],
-    INFO_BaseQRankSum: Option[Double],
-    INFO_DP: Option[Int],
-    INFO_DS: Option[Boolean],
-    INFO_ExcessHet: Option[Double],
-    INFO_FS: Option[Double],
-    INFO_InbreedingCoeff: Option[Double],
-    INFO_MLEAC: Seq[Option[Int]],
-    INFO_MLEAF: Seq[Option[Double]],
-    INFO_MQ: Option[Double],
-    INFO_MQRankSum: Option[Double],
-    INFO_QD: Option[Double],
-    INFO_ReadPosRankSum: Option[Double],
-    INFO_SOR: Option[Double])
-
-class VCFDatasourceSuite extends BaseVCFDatasourceSuite("com.databricks.vcf") {
   test("split to biallelic variant contexts") {
     val sess = spark
     import sess.implicits._
@@ -496,7 +466,7 @@ class VCFDatasourceSuite extends BaseVCFDatasourceSuite("com.databricks.vcf") {
   test("misnumbered fields") {
     val rows = spark
       .read
-      .format("com.databricks.vcf")
+      .format(sourceName)
       .load(s"$testDataHome/vcf/misnumbered_info.vcf")
       .rdd
       .count()
@@ -506,7 +476,7 @@ class VCFDatasourceSuite extends BaseVCFDatasourceSuite("com.databricks.vcf") {
   test("multiple rows") {
     spark
       .read
-      .format("com.databricks.vcf")
+      .format(sourceName)
       .load(testVcf)
       .collect() // Should not get an error
   }
@@ -516,8 +486,8 @@ class VCFDatasourceSuite extends BaseVCFDatasourceSuite("com.databricks.vcf") {
     import sess.implicits._
 
     val headerLines = s"""##FORMAT=<ID=MONKEY,Number=1,Type=String,Description="">
-      |##FORMAT=<ID=NUMBERS,Number=5,Type=Float,Description="">
-      |""".stripMargin
+                         |##FORMAT=<ID=NUMBERS,Number=5,Type=Float,Description="">
+                         |""".stripMargin
     val rowStr = makeVcfRow(Seq(".", "MONKEY:NUMBERS", "banana:1,2,3"))
     val value = parseDF(rowStr, extraHeaderLines = headerLines)
       .selectExpr("genotypes[0].MONKEY")
@@ -537,7 +507,7 @@ class VCFDatasourceSuite extends BaseVCFDatasourceSuite("com.databricks.vcf") {
     spark
       .read
       .schema(ScalaReflection.schemaFor[WeirdSchema].dataType.asInstanceOf[StructType])
-      .format("com.databricks.vcf")
+      .format(sourceName)
       .load(testVcf)
       .collect() // No error expected
   }
@@ -561,7 +531,7 @@ class VCFDatasourceSuite extends BaseVCFDatasourceSuite("com.databricks.vcf") {
 
     val vcfRows = spark
       .read
-      .format("com.databricks.vcf")
+      .format(sourceName)
       .option("vcfRowSchema", true)
       .load(s"$testDataHome/vcf/test_withNanQual.vcf")
       .as[VCFRow]
@@ -571,4 +541,34 @@ class VCFDatasourceSuite extends BaseVCFDatasourceSuite("com.databricks.vcf") {
       assert(vc.qual.get.isNaN)
     }
   }
+
+  private def compareRows(r1: VCFRow, r2: VCFRow): Unit = {
+    assert(r1.copy(qual = None) == r2.copy(qual = None))
+    assert(r1.qual.isDefined == r2.qual.isDefined)
+    for {
+      q1 <- r1.qual
+      q2 <- r2.qual
+    } {
+      assert(q1 ~== q2 relTol 0.2)
+    }
+  }
 }
+
+// For testing only: schema based on CEUTrio VCF header
+private case class INFOFields(
+    INFO_AC: Seq[Option[Int]],
+    INFO_AF: Seq[Option[Double]],
+    INFO_AN: Option[Int],
+    INFO_BaseQRankSum: Option[Double],
+    INFO_DP: Option[Int],
+    INFO_DS: Option[Boolean],
+    INFO_ExcessHet: Option[Double],
+    INFO_FS: Option[Double],
+    INFO_InbreedingCoeff: Option[Double],
+    INFO_MLEAC: Seq[Option[Int]],
+    INFO_MLEAF: Seq[Option[Double]],
+    INFO_MQ: Option[Double],
+    INFO_MQRankSum: Option[Double],
+    INFO_QD: Option[Double],
+    INFO_ReadPosRankSum: Option[Double],
+    INFO_SOR: Option[Double])
