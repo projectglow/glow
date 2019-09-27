@@ -4,7 +4,7 @@ import org.apache.spark.sql.catalyst.encoders.RowEncoder
 
 import com.databricks.vcf.{BgenGenotype, BgenRow}
 
-class BaseBgenRowConverterSuite extends BgenConverterBaseTest {
+class BgenRowConverterSuite extends BgenConverterBaseTest {
 
   val sourceName = "bgen"
 
@@ -56,9 +56,7 @@ class BaseBgenRowConverterSuite extends BgenConverterBaseTest {
   test("phased") {
     compareVcfToBgen(s"$testRoot/phased.16bits.bgen", s"$testRoot/phased.16bits.vcf", 16, true)
   }
-}
 
-class BgenRowConverterUtils extends BgenConverterBaseTest {
   def inferPhasingOrPloidy(
       alternateAlleles: Seq[String],
       numPosteriorProbabilities: Int,
