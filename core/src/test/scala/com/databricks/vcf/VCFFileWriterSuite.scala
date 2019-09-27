@@ -18,7 +18,9 @@ import com.databricks.hls.sql.HLSBaseTest
 import org.apache.spark.sql.types.StructType
 import org.bdgenomics.adam.rdd.VCFMetadataLoader
 
-class VCFFileWriterSuite(val sourceName: String) extends HLSBaseTest with VCFConverterBaseTest {
+abstract class VCFFileWriterSuite(val sourceName: String)
+    extends HLSBaseTest
+    with VCFConverterBaseTest {
 
   lazy val NA12878 = s"$testDataHome/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf"
   lazy val TGP = s"$testDataHome/1000genomes-phase3-1row.vcf"
