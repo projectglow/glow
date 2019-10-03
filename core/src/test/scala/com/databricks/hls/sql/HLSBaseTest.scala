@@ -19,7 +19,6 @@ abstract class HLSBaseTest
   override protected def sparkConf: SparkConf = {
     super
       .sparkConf
-      .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
       .set("spark.driver.maxResultSize", "0")
       .set("spark.kryo.registrator", "org.broadinstitute.hellbender.engine.spark.GATKRegistrator")
       .set("spark.kryoserializer.buffer.max", "2047m")

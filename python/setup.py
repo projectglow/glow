@@ -9,15 +9,15 @@ setup(
         'pytest',
         'typeguard==2.5.0',
     ],
-    zip_safe=False,
     author='Glow Project',
-    description='Glow: Genomics on Apache Spark SQL',
-    long_description=open('README.rst').read(),
+    description='Glow: Genomics on Apache Spark',
+    long_description=open('../README.rst').read(),
+    long_description_content_type='text/x-rst',
     license='Apache License 2.0',
     classifiers=[
         'Intended Audience :: Developers',
         'Programming Language :: Python :: 3.6',
     ],
     keywords=['databricks'],
-    url='https://glow-genomics.org/'
+    url='https://github.com/databricks/spark-genomics'
 )

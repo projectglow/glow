@@ -40,7 +40,9 @@ If you use IntelliJ, you'll want to set up `scalafmt on save`_.
 
 .. _scalafmt on save: https://scalameta.org/scalafmt/docs/installation.html
 
-To test or testOnly in remote debug mode with IntelliJ IDEA set the remote debug configuration in IntelliJ to 'Attach to remote JVM' mode and a specific port number (here the default port number 5005 is used) and then modify the definition of ``options`` in ``groupByHash`` function in ``build.sbt`` to:
+To ``test`` or ``testOnly`` in remote debug mode with IntelliJ IDEA set the remote debug configuration in IntelliJ to
+'Attach to remote JVM' mode and a specific port number (here the default port number 5005 is used) and then modify the
+definition of ``options`` in ``groupByHash`` function in ``build.sbt`` to:
 
 .. code-block:: scala
 
@@ -49,7 +51,7 @@ To test or testOnly in remote debug mode with IntelliJ IDEA set the remote debug
 
 
 To run Python tests, you must install and activate the conda environment in
-``python/environment.yml``. You can then run tests from sbt:
+``python/environment.yml``. You can then run tests from ``sbt``:
 
 .. code-block:: sh
 
