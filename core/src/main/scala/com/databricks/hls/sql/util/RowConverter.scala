@@ -1,8 +1,7 @@
 package com.databricks.hls.sql.util
 
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.codegen.GenerateSafeProjection
-import org.apache.spark.sql.catalyst.expressions.{BoundReference, SpecificInternalRow}
+import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 import org.apache.spark.sql.types.StructType
 
 /**
@@ -10,26 +9,12 @@ import org.apache.spark.sql.types.StructType
  *
  * @param schema The schema to which we're converting
  * @param fieldConverters Converters for each field in the schema
- * @param copy Whether to copy the buffer row before returning it. Empirically, this seems
- *             necessary when the rows are part of an array and unnecessary otherwise.
  * @tparam T
  */
-class RowConverter[T](
-    schema: StructType,
-    fieldConverters: Array[RowConverter.Updater[T]],
-    copy: Boolean = false)
-    extends Function1[T, InternalRow]
-    with Function2[T, InternalRow, InternalRow] {
-
-  private val nullRow = new SpecificInternalRow(schema)
-  private val exprs = schema
-    .map(_.dataType)
-    .zipWithIndex
-    .map(x => BoundReference(x._2, x._1, true))
-  private val projection = GenerateSafeProjection.generate(exprs)
+class RowConverter[T](schema: StructType, fieldConverters: Array[RowConverter.Updater[T]]) {
 
   def apply(record: T): InternalRow = {
-    nullRow.values.indices.foreach(nullRow.setNullAt)
+    val nullRow = new GenericInternalRow(schema.length)
     apply(record, nullRow)
   }
 
@@ -40,11 +25,8 @@ class RowConverter[T](
       fieldConverters(i)(record, priorRow, i)
       i += 1
     }
-    if (copy) {
-      projection(priorRow).copy()
-    } else {
-      projection(priorRow)
-    }
+
+    priorRow
   }
 }
 
