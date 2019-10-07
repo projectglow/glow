@@ -1,4 +1,4 @@
-name: spark-genomics
+name: glow
 dependencies:
   - python=3.7
   - pytest
