@@ -5,8 +5,8 @@ val sparkVersion = "2.4.3"
 val scalaMajorMinor = "2.11"
 
 ThisBuild / scalaVersion := s"$scalaMajorMinor.12"
-ThisBuild / version := "0.1.1"
-ThisBuild / organization := "com.databricks"
+ThisBuild / version := "0.1.0"
+ThisBuild / organization := "projectglow"
 ThisBuild / organizationName := "DB / RGC"
 ThisBuild / scalastyleConfig := baseDirectory.value / "scalastyle-config.xml"
 ThisBuild / publish / skip := true
@@ -122,7 +122,7 @@ lazy val dependencies = Seq(
 lazy val core = (project in file("core"))
   .settings(
     commonSettings,
-    name := "spark-genomics",
+    name := "glow",
     publish / skip := false,
     libraryDependencies ++= dependencies,
     // Fix versions of libraries that are depended on multiple times
@@ -163,11 +163,11 @@ lazy val python =
 ThisBuild / description := "Glow: Genomics on Apache Spark"
 ThisBuild / licenses := List(
   "Apache-2.0" -> new URL("http://www.apache.org/licenses/LICENSE-2.0.txt"))
-ThisBuild / homepage := Some(url("https://github.com/databricks/spark-genomics"))
+ThisBuild / homepage := Some(url("https://github.com/projectglow/glow"))
 ThisBuild / scmInfo := Some(
   ScmInfo(
-    url("https://github.com/databricks/spark-genomics"),
-    "scm:git@github.com:databricks/spark-genomics.git"
+    url("https://github.com/projectglow/glow"),
+    "scm:git@github.com:projectglow/glow.git"
   )
 )
 ThisBuild / pomIncludeRepository := { _ =>

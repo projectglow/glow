@@ -22,6 +22,7 @@ docs/build
 # Editor files
 *.swp
 *.swo
+*.iml
 .idea
 
 # ADAM logs
