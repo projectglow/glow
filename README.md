@@ -1,4 +1,4 @@
-[![CircleCI](https://circleci.com/gh/databricks/spark-genomics.svg?style=svg&circle-token=31dc0fb939711565583c10d783f424ad2fb81e38)](https://circleci.com/gh/databricks/spark-genomics)
+[![CircleCI](https://circleci.com/gh/projectglow/glow.svg?style=svg&circle-token=7511f70b2c810a18e88b5c537b0410e82db8617d)](https://circleci.com/gh/projectglow/glow)
 
 # Building and Testing
 This project is built using sbt: https://www.scala-sbt.org/1.0/docs/Setup.html
