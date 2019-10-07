@@ -19,5 +19,5 @@ setup(
         'Programming Language :: Python :: 3.6',
     ],
     keywords=['databricks'],
-    url='https://github.com/databricks/spark-genomics'
+    url='https://github.com/projectglow/glow'
 )
