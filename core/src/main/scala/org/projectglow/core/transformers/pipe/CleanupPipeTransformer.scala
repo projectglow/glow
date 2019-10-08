@@ -1,6 +1,7 @@
 package org.projectglow.core.transformers.pipe
 
 import org.apache.spark.sql.DataFrame
+
 import org.projectglow.core.DataFrameTransformer
 
 class CleanupPipeTransformer extends DataFrameTransformer {

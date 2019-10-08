@@ -4,6 +4,7 @@ import java.nio.file.Paths
 
 import htsjdk.variant.variantcontext.Allele
 import org.broadinstitute.hellbender.engine.ReferenceDataSource
+
 import org.projectglow.core.common.HLSLogging
 import org.projectglow.core.sql.HLSBaseTest
 import org.projectglow.core.transformers.normalizevariants.VariantNormalizer._

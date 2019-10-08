@@ -10,6 +10,7 @@ package org.projectglow.core.transformers.pipe
 
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.{StringType, StructField}
+
 import org.projectglow.core.Glow
 import org.projectglow.core.sql.HLSBaseTest
 

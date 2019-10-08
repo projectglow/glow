@@ -7,10 +7,11 @@ import org.apache.hadoop.io.compress.CompressionCodecFactory
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.sources.DataSourceRegister
+import org.seqdoop.hadoop_bam.util.DatabricksBGZFOutputStream
+
 import org.projectglow.core.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
 import org.projectglow.core.sql.BigFileDatasource
 import org.projectglow.core.sql.util.{ComDatabricksDataSource, SerializableConfiguration}
-import org.seqdoop.hadoop_bam.util.DatabricksBGZFOutputStream
 
 class BigVCFDatasource extends BigFileDatasource with DataSourceRegister {
 

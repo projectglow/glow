@@ -2,6 +2,7 @@ package org.projectglow.core.transformers.normalizevariants
 
 import htsjdk.samtools.ValidationStringency
 import org.apache.spark.sql.DataFrame
+
 import org.projectglow.core.DataFrameTransformer
 import org.projectglow.core.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
 import org.projectglow.core.transformers.util.StringUtils

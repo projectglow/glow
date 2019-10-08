@@ -6,6 +6,7 @@ import scala.collection.JavaConverters._
 
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.catalyst.InternalRow
+
 import org.projectglow.core.common.HLSLogging
 import org.projectglow.core.transformers.pipe.{InputFormatter, InputFormatterFactory}
 

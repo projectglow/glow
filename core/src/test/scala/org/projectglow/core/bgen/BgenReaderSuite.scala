@@ -9,6 +9,7 @@ import org.apache.hadoop.fs.Path
 import org.apache.spark.SparkException
 import org.apache.spark.sql.catalyst.ScalaReflection
 import org.apache.spark.sql.types.{ArrayType, StructType}
+
 import org.projectglow.core.common.{BgenRow, VCFRow, VariantSchemas}
 import org.projectglow.core.sql.HLSBaseTest
 

@@ -2,6 +2,7 @@ package org.projectglow.core.sql.util
 
 import org.apache.commons.math3.distribution.AbstractIntegerDistribution
 import org.apache.commons.math3.random.RandomGenerator
+
 import org.projectglow.core.common.HailUtils._
 
 /** Implementation pulled from Hail */

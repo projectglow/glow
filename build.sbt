@@ -1,5 +1,6 @@
-import Tests._
 import scala.sys.process._
+
+import sbt.Tests._
 
 val sparkVersion = "2.4.3"
 val scalaMajorMinor = "2.11"

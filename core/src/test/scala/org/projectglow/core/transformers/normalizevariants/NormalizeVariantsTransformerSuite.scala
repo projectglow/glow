@@ -1,6 +1,7 @@
 package org.projectglow.core.transformers.normalizevariants
 
 import org.apache.spark.SparkConf
+
 import org.projectglow.core.Glow
 import org.projectglow.core.common.HLSLogging
 import org.projectglow.core.sql.HLSBaseTest

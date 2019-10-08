@@ -12,6 +12,7 @@ import org.apache.spark.sql.catalyst.expressions.aggregate.{ImperativeAggregate,
 import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, ArrayData, GenericArrayData}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
+
 import org.projectglow.core.common.{HLSLogging, VariantSchemas}
 import org.projectglow.core.sql.util.ExpectsGenotypeFields
 

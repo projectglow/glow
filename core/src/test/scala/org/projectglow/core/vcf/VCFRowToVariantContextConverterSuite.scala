@@ -10,6 +10,7 @@ import htsjdk.variant.variantcontext.GenotypeLikelihoods
 import htsjdk.variant.vcf.{VCFFileReader, VCFHeader}
 import org.apache.commons.io.FileUtils
 import org.bdgenomics.adam.rdd.VCFMetadataLoader
+
 import org.projectglow.core.common.{GenotypeFields, VCFRow}
 import org.projectglow.core.sql.HLSBaseTest
 

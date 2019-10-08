@@ -5,6 +5,7 @@ import java.nio.file.Files
 
 import com.google.common.io.LittleEndianDataInputStream
 import org.apache.spark.SparkException
+
 import org.projectglow.core.common.BgenRow
 
 class BgenWriterSuite extends BgenConverterBaseTest {

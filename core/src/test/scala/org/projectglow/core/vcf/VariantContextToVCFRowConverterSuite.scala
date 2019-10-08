@@ -10,6 +10,7 @@ import htsjdk.samtools.ValidationStringency
 import htsjdk.variant.variantcontext.{Allele, GenotypeBuilder, VariantContextBuilder}
 import htsjdk.variant.vcf.{VCFFileReader, VCFHeader}
 import org.bdgenomics.adam.rdd.VCFMetadataLoader
+
 import org.projectglow.core.common.{GenotypeFields, VCFRow}
 import org.projectglow.core.sql.HLSBaseTest
 

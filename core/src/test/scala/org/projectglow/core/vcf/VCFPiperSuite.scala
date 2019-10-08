@@ -12,6 +12,7 @@ import scala.collection.JavaConverters._
 
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.{SparkException, TaskContext}
+
 import org.projectglow.core.Glow
 import org.projectglow.core.common.VCFRow
 import org.projectglow.core.sql.HLSBaseTest

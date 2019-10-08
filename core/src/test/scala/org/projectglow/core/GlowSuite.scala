@@ -1,6 +1,7 @@
 package org.projectglow.core
 
 import org.apache.spark.sql.DataFrame
+
 import org.projectglow.core.sql.HLSBaseTest
 
 class GlowSuite extends HLSBaseTest {

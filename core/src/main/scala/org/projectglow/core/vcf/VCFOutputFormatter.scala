@@ -7,6 +7,7 @@ import htsjdk.tribble.readers.{AsciiLineReader, AsciiLineReaderIterator}
 import htsjdk.variant.vcf.{VCFCodec, VCFHeader}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.UnsafeProjection
+
 import org.projectglow.core.common.HLSLogging
 import org.projectglow.core.transformers.pipe.{OutputFormatter, OutputFormatterFactory}
 

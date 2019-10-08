@@ -5,6 +5,7 @@ import scala.collection.JavaConverters._
 import org.apache.spark.SparkException
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
+
 import org.projectglow.core.sql.HLSBaseTest
 
 class TextPiperSuite extends HLSBaseTest {

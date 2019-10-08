@@ -17,12 +17,13 @@ import org.apache.spark.sql.catalyst.expressions.{BoundReference, Literal, Mutab
 import org.apache.spark.sql.types.{BooleanType, StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, SQLUtils}
 import org.apache.spark.unsafe.types.UTF8String
+import picard.util.LiftoverUtils
+import picard.vcf.LiftoverVcf
+
 import org.projectglow.core.DataFrameTransformer
 import org.projectglow.core.common.{HLSLogging, VariantSchemas}
 import org.projectglow.core.sql.expressions.LiftOverCoordinatesExpr
 import org.projectglow.core.vcf.{InternalRowToVariantContextConverter, VCFSchemaInferrer, VariantContextToInternalRowConverter}
-import picard.util.LiftoverUtils
-import picard.vcf.LiftoverVcf
 
 /**
  * Performs lift over from a variant on the reference sequence to a query sequence. Similar to

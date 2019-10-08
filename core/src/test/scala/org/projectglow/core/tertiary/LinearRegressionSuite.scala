@@ -8,6 +8,7 @@ import org.apache.commons.math3.linear.SingularMatrixException
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
 import org.apache.spark.ml.linalg.DenseMatrix
 import org.apache.spark.sql.functions._
+
 import org.projectglow.core.sql.HLSBaseTest
 import org.projectglow.core.sql.expressions.{ComputeQR, LinearRegressionGwas, RegressionStats}
 import org.projectglow.core.tertiary.RegressionTestUtils._

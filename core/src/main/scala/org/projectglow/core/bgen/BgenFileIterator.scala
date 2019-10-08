@@ -8,6 +8,7 @@ import com.google.common.io
 import com.google.common.io.LittleEndianDataInputStream
 import org.apache.commons.math3.util.CombinatoricsUtils
 import org.apache.hadoop.fs.FSDataInputStream
+
 import org.projectglow.core.common.{BgenGenotype, BgenRow, HLSLogging, VCFRow}
 
 /**

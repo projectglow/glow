@@ -4,6 +4,7 @@ import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.sql.types.{ArrayType, StructType}
+
 import org.projectglow.core.common.ConverterUtils._
 import org.projectglow.core.common.{BgenGenotype, BgenRow, HLSLogging, VariantSchemas}
 

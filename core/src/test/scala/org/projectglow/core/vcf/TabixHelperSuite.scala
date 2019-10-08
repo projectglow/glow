@@ -3,6 +3,7 @@ package org.projectglow.core.vcf
 import org.apache.spark.SparkConf
 import org.apache.spark.sql.sources._
 import org.broadinstitute.hellbender.utils.SimpleInterval
+
 import org.projectglow.core.common.{HLSLogging, VCFRow}
 import org.projectglow.core.sql.HLSBaseTest
 import org.projectglow.core.vcf.TabixIndexHelper._

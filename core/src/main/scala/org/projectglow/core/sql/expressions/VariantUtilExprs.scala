@@ -7,6 +7,7 @@ import org.apache.spark.sql.catalyst.expressions.{Expression, ImplicitCastInputT
 import org.apache.spark.sql.catalyst.util.{ArrayData, GenericArrayData}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
+
 import org.projectglow.core.common.VariantSchemas
 import org.projectglow.core.sql.util.ExpectsGenotypeFields
 

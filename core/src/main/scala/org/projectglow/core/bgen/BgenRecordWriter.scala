@@ -9,6 +9,7 @@ import com.google.common.io.{CountingOutputStream, LittleEndianDataOutputStream}
 import org.apache.commons.math3.util.CombinatoricsUtils
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
+
 import org.projectglow.core.common.{BgenRow, HLSLogging}
 
 /**

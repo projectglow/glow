@@ -9,6 +9,7 @@ import htsjdk.variant.variantcontext.{Allele, GenotypeBuilder, VariantContextBui
 import htsjdk.variant.vcf.{VCFCodec, VCFHeader, VCFHeaderLine}
 import org.apache.commons.io.IOUtils
 import org.bdgenomics.adam.rdd.VCFMetadataLoader
+
 import org.projectglow.core.sql.HLSBaseTest
 
 class VCFStreamWriterSuite extends HLSBaseTest {

@@ -5,6 +5,7 @@ import scala.collection.JavaConverters._
 import htsjdk.samtools.ValidationStringency
 import org.apache.spark.sql.types.{ArrayType, DataType, MapType, StructType}
 import org.bdgenomics.adam.rdd.VCFMetadataLoader
+
 import org.projectglow.core.sql.HLSBaseTest
 
 class InternalRowToVariantContextConverterSuite extends HLSBaseTest {

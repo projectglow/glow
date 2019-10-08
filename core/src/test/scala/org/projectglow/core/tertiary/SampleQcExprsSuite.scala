@@ -1,6 +1,7 @@
 package org.projectglow.core.tertiary
 
 import org.apache.spark.sql.{DataFrame, Row}
+
 import org.projectglow.core.common.VCFRow
 import org.projectglow.core.sql.HLSBaseTest
 

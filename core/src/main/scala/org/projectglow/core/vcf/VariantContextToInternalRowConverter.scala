@@ -15,6 +15,7 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, GenericArrayData}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
+
 import org.projectglow.core.common.{GenotypeFields, HLSLogging, HasStringency, VariantSchemas}
 import org.projectglow.core.sql.util.RowConverter
 

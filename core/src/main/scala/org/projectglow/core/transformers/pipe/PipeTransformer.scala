@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.catalyst.InternalRow
+
 import org.projectglow.core.DataFrameTransformer
 import org.projectglow.core.common.Named
 import org.projectglow.core.common.logging._

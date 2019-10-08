@@ -16,6 +16,7 @@ import org.apache.spark.sql.types.StructType
 import org.apache.spark.{SparkConf, SparkException}
 import org.bdgenomics.adam.rdd.ADAMContext._
 import org.bdgenomics.adam.rdd.VCFMetadataLoader
+
 import org.projectglow.core.common.{VCFRow, WithUtils}
 import org.projectglow.core.sql.HLSBaseTest
 

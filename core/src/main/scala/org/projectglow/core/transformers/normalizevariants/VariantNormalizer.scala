@@ -15,6 +15,7 @@ import org.broadinstitute.hellbender.engine.{ReferenceContext, ReferenceDataSour
 import org.broadinstitute.hellbender.tools.walkers.genotyper.GenotypeAssignmentMethod
 import org.broadinstitute.hellbender.utils.SimpleInterval
 import org.broadinstitute.hellbender.utils.variant.GATKVariantContextUtils
+
 import org.projectglow.core.common.HLSLogging
 import org.projectglow.core.vcf.{InternalRowToVariantContextConverter, VCFFileWriter, VariantContextToInternalRowConverter}
 

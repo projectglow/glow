@@ -25,10 +25,11 @@ import org.apache.spark.sql.types._
 import org.broadinstitute.hellbender.tools.walkers.genotyper.GenotypeAssignmentMethod
 import org.broadinstitute.hellbender.utils.SimpleInterval
 import org.broadinstitute.hellbender.utils.variant.GATKVariantContextUtils
+import org.seqdoop.hadoop_bam.util.{BGZFEnhancedGzipCodec, DatabricksBGZFOutputStream}
+
 import org.projectglow.core.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
 import org.projectglow.core.common.{HLSLogging, VCFRow, WithUtils}
 import org.projectglow.core.sql.util.{ComDatabricksDataSource, HadoopLineIterator, SerializableConfiguration}
-import org.seqdoop.hadoop_bam.util.{BGZFEnhancedGzipCodec, DatabricksBGZFOutputStream}
 
 class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HlsUsageLogging {
   var codecFactory: CompressionCodecFactory = _

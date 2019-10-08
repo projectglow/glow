@@ -5,6 +5,7 @@ import scala.collection.JavaConverters._
 import htsjdk.variant.vcf._
 import org.apache.commons.lang3.math.NumberUtils
 import org.apache.spark.sql.types._
+
 import org.projectglow.core.common.{GenotypeFields, VariantSchemas}
 
 /**

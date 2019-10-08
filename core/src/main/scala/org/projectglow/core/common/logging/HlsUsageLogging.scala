@@ -3,6 +3,7 @@ package org.projectglow.core.common.logging
 import scala.collection.JavaConverters._
 
 import com.google.gson.Gson
+
 import org.projectglow.core.common.HLSLogging
 
 /**

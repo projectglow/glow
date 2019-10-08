@@ -16,11 +16,12 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.datasources.{FileFormat, OutputWriterFactory, PartitionedFile}
 import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
 import org.apache.spark.sql.types.StructType
+import org.skife.jdbi.v2.DBI
+import org.skife.jdbi.v2.util.LongMapper
+
 import org.projectglow.core.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
 import org.projectglow.core.common.{HLSLogging, WithUtils}
 import org.projectglow.core.sql.util.{ComDatabricksDataSource, SerializableConfiguration}
-import org.skife.jdbi.v2.DBI
-import org.skife.jdbi.v2.util.LongMapper
 
 class BgenFileFormat extends FileFormat with DataSourceRegister with Serializable with HLSLogging {
 

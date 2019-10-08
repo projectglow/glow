@@ -5,6 +5,7 @@ import scala.collection.JavaConverters._
 import htsjdk.samtools.ValidationStringency
 import htsjdk.variant.variantcontext.{VariantContext => HtsjdkVariantContext}
 import htsjdk.variant.vcf.VCFHeader
+
 import org.projectglow.core.common.VCFRow
 
 /**

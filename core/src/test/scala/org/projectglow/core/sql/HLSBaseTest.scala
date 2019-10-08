@@ -3,10 +3,11 @@ package org.projectglow.core.sql
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.test.SharedSparkSession
 import org.apache.spark.{DebugFilesystem, SparkConf}
-import org.projectglow.core.common.{HLSLogging, TestUtils}
 import org.scalatest.concurrent.{AbstractPatienceConfiguration, Eventually}
 import org.scalatest.time.{Milliseconds, Seconds, Span}
 import org.scalatest.{FunSuite, Tag}
+
+import org.projectglow.core.common.{HLSLogging, TestUtils}
 
 abstract class HLSBaseTest
     extends FunSuite

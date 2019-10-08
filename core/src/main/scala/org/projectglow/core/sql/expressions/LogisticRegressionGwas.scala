@@ -9,6 +9,7 @@ import org.apache.spark.sql.Encoders
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.sql.types.StructType
+
 import org.projectglow.core.common.HLSLogging
 
 /**

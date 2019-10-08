@@ -7,6 +7,7 @@ import scala.collection.mutable
 import htsjdk.samtools.ValidationStringency
 import htsjdk.variant.variantcontext.{VariantContext => HtsjdkVariantContext}
 import htsjdk.variant.vcf.{VCFConstants, VCFHeader}
+
 import org.projectglow.core.common.{HLSLogging, VCFRow}
 
 // HTSJDK VariantContext -> VCFRow

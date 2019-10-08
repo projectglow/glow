@@ -5,6 +5,7 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{IntegerType, StringType, StructType}
 import org.apache.spark.unsafe.types.UTF8String
+
 import org.projectglow.core.sql.HLSBaseTest
 import org.projectglow.core.sql.expressions.{VariantType, VariantUtilExprs}
 

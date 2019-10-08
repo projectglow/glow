@@ -13,6 +13,7 @@ import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.sql.types.{ArrayType, StructField, StructType}
+
 import org.projectglow.core.common.{GenotypeFields, HLSLogging, HasStringency, VariantSchemas}
 
 /**

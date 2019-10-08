@@ -2,6 +2,7 @@ package org.projectglow.core.vcf
 
 import htsjdk.variant.vcf._
 import org.apache.spark.sql.types._
+
 import org.projectglow.core.common.VariantSchemas
 import org.projectglow.core.sql.HLSBaseTest
 

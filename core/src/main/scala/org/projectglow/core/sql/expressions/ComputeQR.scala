@@ -3,6 +3,7 @@ package org.projectglow.core.sql.expressions
 import com.github.fommil.netlib.LAPACK
 import org.apache.spark.ml.linalg.DenseMatrix
 import org.netlib.util.intW
+
 import org.projectglow.core.common.HLSLogging
 
 /**

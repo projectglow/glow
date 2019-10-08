@@ -15,6 +15,7 @@ import org.apache.spark.sql.catalyst.expressions.CreateNamedStruct
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.internal.SQLConf
+
 import org.projectglow.core.common.VariantSchemas
 import org.projectglow.core.sql.expressions._
 import org.projectglow.core.sql.optimizer.HLSReplaceExpressionsRule

@@ -6,6 +6,7 @@ import org.apache.spark.sql.catalyst.expressions.{ArrayTransform, Cast, CreateNa
 import org.apache.spark.sql.catalyst.util.{ArrayData, GenericArrayData}
 import org.apache.spark.sql.catalyst.{InternalRow, ScalaReflection}
 import org.apache.spark.sql.types._
+
 import org.projectglow.core.common.{HLSLogging, VCFRow, VariantSchemas}
 import org.projectglow.core.sql.util.{ExpectsGenotypeFields, LeveneHaldane}
 

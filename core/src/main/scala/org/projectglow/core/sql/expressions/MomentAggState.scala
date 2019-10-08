@@ -3,6 +3,7 @@ package org.projectglow.core.sql.expressions
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 import org.apache.spark.sql.types.{DoubleType, StructField, StructType}
+
 import org.projectglow.core.common.HLSLogging
 
 /**

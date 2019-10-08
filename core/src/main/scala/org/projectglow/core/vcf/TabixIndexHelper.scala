@@ -12,6 +12,7 @@ import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.sources.{Filter, _}
 import org.broadinstitute.hellbender.utils.SimpleInterval
+
 import org.projectglow.core.common.{HLSLogging, WithUtils}
 
 /** An extended Contig class used by filter parser that keeps an Option(contigName)

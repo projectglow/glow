@@ -3,6 +3,7 @@ package org.projectglow.core.vcf
 import scala.reflect.runtime.universe._
 
 import org.bdgenomics.adam.util.PhredUtils
+
 import org.projectglow.core.common.{GenotypeFields, TestUtils, VCFRow}
 
 trait VCFConverterBaseTest extends TestUtils {
