@@ -77,7 +77,7 @@ class BgenRowConverter(schema: StructType) extends HLSLogging {
       }
       fn
     }
-    new RowConverter[BgenGenotype](gSchema, functions.toArray, copy = true)
+    new RowConverter[BgenGenotype](gSchema, functions.toArray)
   }
 
   def convertRow(bgenRow: BgenRow): InternalRow = converter(bgenRow)

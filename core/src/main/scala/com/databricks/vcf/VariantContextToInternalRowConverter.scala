@@ -111,7 +111,7 @@ class VariantContextToInternalRowConverter(
       }
       fn
     }
-    new RowConverter[(JMap[Allele, Int], HTSJDKGenotype)](gSchema, fns.toArray, copy = true)
+    new RowConverter[(JMap[Allele, Int], HTSJDKGenotype)](gSchema, fns.toArray)
   }
 
   private val splitConverter = makeConverter(true)
