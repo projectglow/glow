@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='glowpy',
-    version='1.0.2',
+    version='1.0.3',
     packages=['db_genomics'],
     # install_requires=[
     #     'typeguard==2.5.0',
@@ -16,6 +16,5 @@ setup(
         'Intended Audience :: Developers',
         'Programming Language :: Python :: 3.6',
     ],
-    keywords=['databricks'],
     url='https://github.com/projectglow/glow'
 )
