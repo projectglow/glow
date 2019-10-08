@@ -1,15 +1,16 @@
 package org.projectglow.core.vcf
 
-import scala.collection.JavaConverters._
 import java.io.File
 import java.nio.file.Files
+
+import scala.collection.JavaConverters._
 
 import htsjdk.samtools.ValidationStringency
 import htsjdk.variant.variantcontext.GenotypeLikelihoods
 import htsjdk.variant.vcf.{VCFFileReader, VCFHeader}
 import org.apache.commons.io.FileUtils
 import org.bdgenomics.adam.rdd.VCFMetadataLoader
-import org.projectglow.core.common.TestUtils._
+import org.projectglow.core.common.{GenotypeFields, VCFRow}
 import org.projectglow.core.sql.HLSBaseTest
 
 class VCFRowToVariantContextConverterSuite extends HLSBaseTest with VCFConverterBaseTest {

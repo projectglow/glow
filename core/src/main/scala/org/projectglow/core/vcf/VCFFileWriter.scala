@@ -6,12 +6,12 @@ import java.net.{URI, URISyntaxException}
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 
+import com.google.common.annotations.VisibleForTesting
 import htsjdk.variant.vcf._
 import org.apache.commons.io.IOUtils
+import org.apache.hadoop.conf.Configuration
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.datasources.OutputWriter
-import com.google.common.annotations.VisibleForTesting
-import org.apache.hadoop.conf.Configuration
 import org.apache.spark.sql.types.StructType
 import org.bdgenomics.adam.rdd.VCFMetadataLoader
 import org.projectglow.core.common.HLSLogging
@@ -45,7 +45,7 @@ object VCFFileWriter extends HLSLogging {
    * If reading a VCF header from a string or a file, the sample IDs are returned.
    */
   @VisibleForTesting
-  private[databricks] def parseHeaderLinesAndSamples(
+  private[projectglow] def parseHeaderLinesAndSamples(
       options: Map[String, String],
       defaultHeader: Option[String],
       schema: StructType,

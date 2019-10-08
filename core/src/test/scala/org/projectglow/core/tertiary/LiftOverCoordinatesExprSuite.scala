@@ -1,9 +1,9 @@
 package org.projectglow.core.tertiary
 
+import org.apache.spark.SparkException
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.expr
 import org.apache.spark.sql.types.{LongType, StringType, StructType}
-import org.apache.spark.SparkException
 import org.projectglow.core.sql.HLSBaseTest
 
 class LiftOverCoordinatesExprSuite extends HLSBaseTest {

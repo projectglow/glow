@@ -1,8 +1,9 @@
 package org.projectglow.core.transformers
 
+import java.io.File
+
 import scala.collection.JavaConverters._
 import scala.collection.mutable
-import java.io.File
 
 import htsjdk.samtools.ValidationStringency
 import htsjdk.samtools.liftover.LiftOver
@@ -10,25 +11,18 @@ import htsjdk.samtools.reference.{ReferenceSequence, ReferenceSequenceFileFactor
 import htsjdk.samtools.util.Interval
 import htsjdk.variant.variantcontext.VariantContext
 import htsjdk.variant.vcf._
-import org.apache.spark.sql.{DataFrame, SQLUtils}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.codegen.GenerateMutableProjection
 import org.apache.spark.sql.catalyst.expressions.{BoundReference, Literal, MutableProjection}
 import org.apache.spark.sql.types.{BooleanType, StringType, StructField, StructType}
+import org.apache.spark.sql.{DataFrame, SQLUtils}
 import org.apache.spark.unsafe.types.UTF8String
-import org.projectglow.DataFrameTransformer
-import org.projectglow.common.HLSLogging
 import org.projectglow.core.DataFrameTransformer
-import org.projectglow.core.common.HLSLogging
+import org.projectglow.core.common.{HLSLogging, VariantSchemas}
 import org.projectglow.core.sql.expressions.LiftOverCoordinatesExpr
-import org.projectglow.core.vcf.{InternalRowToVariantContextConverter, VCFSchemaInferrer, VariantContextToInternalRowConverter, VariantSchemas}
-import org.projectglow.vcf.{InternalRowToVariantContextConverter, VCFSchemaInferrer, VariantContextToInternalRowConverter, VariantSchemas}
+import org.projectglow.core.vcf.{InternalRowToVariantContextConverter, VCFSchemaInferrer, VariantContextToInternalRowConverter}
 import picard.util.LiftoverUtils
 import picard.vcf.LiftoverVcf
-
-import com.databricks.hls.DataFrameTransformer
-import com.databricks.hls.common.HLSLogging
-import com.databricks.vcf.{InternalRowToVariantContextConverter, VCFSchemaInferrer, VariantContextToInternalRowConverter, VariantSchemas}
 
 /**
  * Performs lift over from a variant on the reference sequence to a query sequence. Similar to

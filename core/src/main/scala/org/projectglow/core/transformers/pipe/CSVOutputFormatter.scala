@@ -6,7 +6,7 @@ import scala.collection.JavaConverters._
 
 import com.univocity.parsers.csv.CsvParser
 import org.apache.commons.io.IOUtils
-import org.apache.spark.sql.execution.datasources.csv.{CSVDataSourceUtils, CSVOptions, CSVUtils, UnivocityParser, UnivocityParserUtils}
+import org.apache.spark.sql.execution.datasources.csv._
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 

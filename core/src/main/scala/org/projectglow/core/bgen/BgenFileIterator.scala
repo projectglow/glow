@@ -8,11 +8,7 @@ import com.google.common.io
 import com.google.common.io.LittleEndianDataInputStream
 import org.apache.commons.math3.util.CombinatoricsUtils
 import org.apache.hadoop.fs.FSDataInputStream
-import org.projectglow.core.common.HLSLogging
-import org.projectglow.core.vcf.{BgenRow, VCFRow}
-import org.projectglow.vcf.{BgenGenotype, BgenRow, VCFRow}
-
-import com.databricks.vcf.{BgenGenotype, BgenRow, VCFRow}
+import org.projectglow.core.common.{BgenGenotype, BgenRow, HLSLogging, VCFRow}
 
 /**
  * Parses variant records of a BGEN file into the [[VCFRow]] schema. The iterator assumes that the
@@ -37,7 +33,7 @@ import com.databricks.vcf.{BgenGenotype, BgenRow, VCFRow}
  * @param maxPos The maximum stream position from which variant blocks can be read. `hasNext` will
  *               return `false` once we've reached this position.
  */
-private[databricks] class BgenFileIterator(
+private[projectglow] class BgenFileIterator(
     metadata: BgenMetadata,
     stream: LittleEndianDataInputStream,
     underlyingStream: FSDataInputStream,
@@ -289,7 +285,7 @@ private[databricks] class BgenFileIterator(
   }
 }
 
-private[databricks] object BgenFileIterator {
+private[projectglow] object BgenFileIterator {
 
   /**
    * Utility function to read a UTF8 string from a data stream. Included in the companion object
@@ -311,7 +307,8 @@ private[databricks] object BgenFileIterator {
  * Read a BGEN header from a data stream. Performs basic validation on the header parameters
  * according to what the reader currently supports.
  */
-private[databricks] class BgenHeaderReader(stream: LittleEndianDataInputStream) extends HLSLogging {
+private[projectglow] class BgenHeaderReader(stream: LittleEndianDataInputStream)
+    extends HLSLogging {
 
   def readHeader(sampleIdsOpt: Option[Seq[String]] = None): BgenMetadata = {
     val variantOffset = Integer.toUnsignedLong(stream.readInt()) + 4
@@ -383,7 +380,7 @@ private[databricks] class BgenHeaderReader(stream: LittleEndianDataInputStream) 
   }
 }
 
-private[databricks] case class BgenMetadata(
+private[projectglow] case class BgenMetadata(
     firstVariantOffset: Long,
     nSamples: Long,
     nVariantBlocks: Long,

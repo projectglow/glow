@@ -3,7 +3,7 @@ package org.projectglow.core.sql.util
 import java.io.OutputStream
 
 import org.apache.hadoop.io.compress.{CompressionOutputStream, Compressor}
-import org.seqdoop.hadoop_bam.util.{BGZFCodec => HBBGZFCodec, DatabricksBGZFOutputStream}
+import org.seqdoop.hadoop_bam.util.{DatabricksBGZFOutputStream, BGZFCodec => HBBGZFCodec}
 
 /**
  * A copy of Hadoop-BAM's BGZF codec that returns a Databricks BGZF output stream.

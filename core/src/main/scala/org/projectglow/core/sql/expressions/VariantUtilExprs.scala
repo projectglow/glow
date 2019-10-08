@@ -7,9 +7,8 @@ import org.apache.spark.sql.catalyst.expressions.{Expression, ImplicitCastInputT
 import org.apache.spark.sql.catalyst.util.{ArrayData, GenericArrayData}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
+import org.projectglow.core.common.VariantSchemas
 import org.projectglow.core.sql.util.ExpectsGenotypeFields
-import org.projectglow.core.vcf.VariantSchemas
-import org.projectglow.vcf.VariantSchemas
 
 /**
  * Implementations of utility functions for transforming variant representations. These
@@ -161,7 +160,7 @@ case class GenotypeStates(genotypes: Expression)
   override def dataType: DataType = ArrayType(IntegerType)
 
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    val fn = "com.databricks.hls.tertiary.VariantUtilExprs.genotypeStates"
+    val fn = "org.projectglow.core.sql.expressions.VariantUtilExprs.genotypeStates"
     nullSafeCodeGen(ctx, ev, calls => {
       s"""
          |${ev.value} = $fn($calls, $genotypeStructSize, ${genotypeFieldIndices.head});

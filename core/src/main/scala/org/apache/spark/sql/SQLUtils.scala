@@ -1,12 +1,9 @@
 package org.apache.spark.sql
 
 import org.apache.spark.TaskContext
-import org.apache.spark.ml.linalg.{MatrixUDT, VectorUDT, Vectors}
+import org.apache.spark.ml.linalg.{MatrixUDT, VectorUDT}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCode}
-import org.apache.spark.sql.catalyst.expressions.{Expression, ImplicitCastInputTypes, UnaryExpression}
-import org.apache.spark.sql.catalyst.util.{ArrayData, GenericArrayData}
 import org.apache.spark.sql.types._
 
 object SQLUtils {

@@ -4,15 +4,10 @@ import org.apache.spark.SparkException
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.monotonically_increasing_id
 import org.apache.spark.sql.types.{LongType, StringType, StructType}
-import org.projectglow.DBGenomics
 import org.projectglow.core.Glow
 import org.projectglow.core.sql.HLSBaseTest
 import org.projectglow.core.vcf.VCFConverterBaseTest
-import org.projectglow.sql.HLSBaseTest
 import picard.vcf.LiftoverVcf
-
-import com.databricks.hls.DBGenomics
-import com.databricks.vcf.VCFConverterBaseTest
 
 class LiftOverVariantsTransformerSuite extends HLSBaseTest with VCFConverterBaseTest {
   val picardTestDataHome = s"$testDataHome/liftover/picard"

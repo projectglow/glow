@@ -12,10 +12,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SQLUtils}
-import org.projectglow.common.HLSLogging
 import org.projectglow.core.common.HLSLogging
-
-import com.databricks.hls.common.HLSLogging
 
 /**
  * Based on Spark's PipedRDD with the following modifications:
@@ -23,7 +20,7 @@ import com.databricks.hls.common.HLSLogging
  * - Use the input and output formatters to determine output schema
  * - Use the input and output formatters to return a DataFrame
  */
-private[databricks] object Piper extends HLSLogging {
+private[projectglow] object Piper extends HLSLogging {
   private val cachedRdds = mutable.ListBuffer[RDD[_]]()
 
   def clearCache(): Unit = cachedRdds.synchronized {
@@ -77,7 +74,7 @@ private[databricks] object Piper extends HLSLogging {
   }
 }
 
-private[databricks] class ProcessHelper(
+private[projectglow] class ProcessHelper(
     cmd: Seq[String],
     environment: Map[String, String],
     inputFn: OutputStream => Unit,

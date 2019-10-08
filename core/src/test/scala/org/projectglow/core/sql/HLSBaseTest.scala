@@ -1,21 +1,19 @@
 package org.projectglow.core.sql
 
-import org.apache.spark.{DebugFilesystem, SparkConf}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.test.SharedSparkSession
-import org.projectglow.common.HLSLogging
-import org.projectglow.core.common.HLSLogging
+import org.apache.spark.{DebugFilesystem, SparkConf}
+import org.projectglow.core.common.{HLSLogging, TestUtils}
 import org.scalatest.concurrent.{AbstractPatienceConfiguration, Eventually}
 import org.scalatest.time.{Milliseconds, Seconds, Span}
 import org.scalatest.{FunSuite, Tag}
-
-import com.databricks.hls.common.HLSLogging
 
 abstract class HLSBaseTest
     extends FunSuite
     with SharedSparkSession
     with HLSLogging
     with HLSTestData
+    with TestUtils
     with JenkinsTestPatience {
 
   override protected def sparkConf: SparkConf = {

@@ -4,13 +4,8 @@ import java.io.{File, FileInputStream}
 import java.nio.file.Files
 
 import com.google.common.io.LittleEndianDataInputStream
-import org.apache.commons.io.FileUtils
 import org.apache.spark.SparkException
-import org.projectglow.core.vcf.BgenRow
-import org.projectglow.vcf.BgenRow
-
-import com.databricks.hls.common.TestUtils._
-import com.databricks.vcf.{BgenRow, VariantSchemas}
+import org.projectglow.core.common.BgenRow
 
 class BgenWriterSuite extends BgenConverterBaseTest {
 

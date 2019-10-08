@@ -1,14 +1,12 @@
 package org.projectglow.core.tertiary
 
-import org.apache.spark.ml.linalg.{DenseMatrix, DenseVector, SparseMatrix, SparseVector, Vector}
+import org.apache.spark.ml.linalg.{DenseMatrix, DenseVector, SparseVector, Vector}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{IntegerType, StringType, StructType}
 import org.apache.spark.unsafe.types.UTF8String
 import org.projectglow.core.sql.HLSBaseTest
 import org.projectglow.core.sql.expressions.{VariantType, VariantUtilExprs}
-import org.projectglow.sql.expressions.{VariantType, VariantUtilExprs}
-import org.projectglow.sql.{HLSBaseTest, VariantType}
 
 class VariantUtilExprsSuite extends HLSBaseTest {
   case class SimpleGenotypeFields(calls: Seq[Int])

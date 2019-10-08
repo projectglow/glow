@@ -2,15 +2,11 @@ package org.projectglow.core.transformers.normalizevariants
 
 import java.nio.file.Paths
 
-import com.databricks.hls.common.HLSLogging
-import com.databricks.hls.sql.HLSBaseTest
-import com.databricks.hls.transformers.normalizevariants.VariantNormalizer._
 import htsjdk.variant.variantcontext.Allele
 import org.broadinstitute.hellbender.engine.ReferenceDataSource
-import org.projectglow.common.HLSLogging
 import org.projectglow.core.common.HLSLogging
 import org.projectglow.core.sql.HLSBaseTest
-import org.projectglow.sql.HLSBaseTest
+import org.projectglow.core.transformers.normalizevariants.VariantNormalizer._
 
 class VariantNormalizerSuite extends HLSBaseTest with HLSLogging {
 

@@ -4,10 +4,7 @@ import org.apache.spark.sql.Encoders
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.catalyst.expressions.NamedExpression
 import org.apache.spark.sql.types.StructType
-import org.projectglow.core.vcf.VCFRow
-import org.projectglow.vcf.VCFRow
-
-import com.databricks.vcf.VCFRow
+import org.projectglow.core.common.VCFRow
 
 object EncoderUtils {
 

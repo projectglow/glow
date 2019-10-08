@@ -6,7 +6,6 @@ import org.apache.commons.math3.util.FastMath
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.ArrayData
 import org.netlib.util.{doubleW, intW}
-import org.projectglow.common.HLSLogging
 import org.projectglow.core.common.HLSLogging
 
 case class RegressionStats(beta: Double, standardError: Double, pValue: Double)

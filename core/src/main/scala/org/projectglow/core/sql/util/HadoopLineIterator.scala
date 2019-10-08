@@ -10,10 +10,7 @@ import org.apache.hadoop.mapreduce._
 import org.apache.hadoop.mapreduce.lib.input.{FileSplit, LineRecordReader}
 import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl
 import org.apache.spark.sql.execution.datasources.RecordReaderIterator
-import org.projectglow.common.HLSLogging
 import org.projectglow.core.common.HLSLogging
-
-import com.databricks.hls.common.HLSLogging
 
 /**
  * Identical to [[org.apache.spark.sql.execution.datasources.HadoopFileLinesReader]], but

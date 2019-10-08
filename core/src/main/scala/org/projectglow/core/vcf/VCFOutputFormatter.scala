@@ -7,14 +7,8 @@ import htsjdk.tribble.readers.{AsciiLineReader, AsciiLineReaderIterator}
 import htsjdk.variant.vcf.{VCFCodec, VCFHeader}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.UnsafeProjection
-import org.apache.spark.sql.catalyst.expressions.codegen.GenerateMutableProjection
-import org.projectglow.common.HLSLogging
 import org.projectglow.core.common.HLSLogging
 import org.projectglow.core.transformers.pipe.{OutputFormatter, OutputFormatterFactory}
-import org.projectglow.transformers.pipe.{OutputFormatter, OutputFormatterFactory}
-
-import com.databricks.hls.common.HLSLogging
-import com.databricks.hls.transformers.pipe.{OutputFormatter, OutputFormatterFactory}
 
 class VCFOutputFormatter extends OutputFormatter with HLSLogging {
   override def makeIterator(stream: InputStream): Iterator[Any] = {

@@ -7,10 +7,10 @@ import java.util.{ArrayList => JArrayList, HashSet => JHashSet}
 import scala.collection.JavaConverters._
 
 import htsjdk.samtools.ValidationStringency
-import org.bdgenomics.adam.rdd.VCFMetadataLoader
 import htsjdk.variant.variantcontext.{Allele, GenotypeBuilder, VariantContextBuilder}
 import htsjdk.variant.vcf.{VCFFileReader, VCFHeader}
-import org.projectglow.core.common.TestUtils._
+import org.bdgenomics.adam.rdd.VCFMetadataLoader
+import org.projectglow.core.common.{GenotypeFields, VCFRow}
 import org.projectglow.core.sql.HLSBaseTest
 
 class VariantContextToVCFRowConverterSuite extends HLSBaseTest with VCFConverterBaseTest {

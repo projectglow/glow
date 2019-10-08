@@ -1,8 +1,8 @@
 package org.projectglow.core.transformers.pipe
 
-import scala.collection.JavaConverters._
-
 import java.io.InputStream
+
+import scala.collection.JavaConverters._
 
 import org.apache.commons.io.IOUtils
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow

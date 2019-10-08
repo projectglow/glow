@@ -1,14 +1,8 @@
 package org.projectglow.core.tertiary
 
 import org.apache.spark.sql.{DataFrame, Row}
+import org.projectglow.core.common.VCFRow
 import org.projectglow.core.sql.HLSBaseTest
-import org.projectglow.core.vcf.VCFRow
-import org.projectglow.sql.HLSBaseTest
-import org.projectglow.vcf.VCFRow
-
-import com.databricks.hls.common.TestUtils._
-import com.databricks.hls.sql.HLSBaseTest
-import com.databricks.vcf.VCFRow
 
 class SampleQcExprsSuite extends HLSBaseTest {
   lazy val testVcf = s"$testDataHome/1000G.phase3.broad.withGenotypes.chr20.10100000.vcf"

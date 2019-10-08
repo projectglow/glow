@@ -4,11 +4,8 @@ import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.sql.types.{ArrayType, StructType}
-import org.projectglow.core.common.HLSLogging
-import org.projectglow.core.vcf.{BgenRow, VariantSchemas}
-import org.projectglow.vcf.{BgenGenotype, BgenRow, VariantSchemas}
-
-import com.databricks.vcf.{BgenGenotype, BgenRow, ConverterUtils, VariantSchemas}
+import org.projectglow.core.common.ConverterUtils._
+import org.projectglow.core.common.{BgenGenotype, BgenRow, HLSLogging, VariantSchemas}
 
 /**
  * Converts internal rows to BGEN rows. Includes logic to infer phasing and ploidy if missing (eg.
@@ -37,8 +34,7 @@ class InternalRowToBgenRowConverter(
     defaultPloidy: Int,
     defaultPhasing: Boolean)
     extends HLSLogging {
-  import org.projectglow.core.vcf.VariantSchemas._
-  import org.projectglow.vcf.ConverterUtils._
+  import org.projectglow.core.common.VariantSchemas._
 
   private val genotypeSchema = rowSchema
     .find(_.name == "genotypes")

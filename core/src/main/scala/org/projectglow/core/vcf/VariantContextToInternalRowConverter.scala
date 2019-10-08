@@ -15,13 +15,8 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, GenericArrayData}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
-import org.projectglow.common.{HLSLogging, HasStringency}
-import org.projectglow.core.common.{HLSLogging, HasStringency}
+import org.projectglow.core.common.{GenotypeFields, HLSLogging, HasStringency, VariantSchemas}
 import org.projectglow.core.sql.util.RowConverter
-import org.projectglow.sql.util.RowConverter
-
-import com.databricks.hls.common.{HLSLogging, HasStringency}
-import com.databricks.hls.sql.util.RowConverter
 
 /**
  * Converts an HTSJDK variant context into a SparkSQL row with the provided schema.
@@ -41,7 +36,7 @@ class VariantContextToInternalRowConverter(
     with HasStringency
     with Serializable {
 
-  import VariantSchemas._
+  import org.projectglow.core.common.VariantSchemas._
 
   private val infoKeysParsedWithoutHeader = mutable.HashSet.empty[String]
   private val formatKeysParsedWithoutHeader = mutable.HashSet.empty[String]

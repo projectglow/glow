@@ -5,7 +5,7 @@ import java.util.{HashMap => JHashMap}
 import org.apache.commons.math3.util.CombinatoricsUtils
 
 // Tools for calculating ploidy or number of genotypes for unphased posterior probabilities
-private[databricks] object BgenConverterUtils {
+private[projectglow] object BgenConverterUtils {
   var ploidyMap = new JHashMap[(Int, Int), Int] // (numGenotypes, numAlleles) to ploidy
   var genotypesMap = new JHashMap[(Int, Int), Int] // (ploidy, numAlleles) to numGenotypes
 

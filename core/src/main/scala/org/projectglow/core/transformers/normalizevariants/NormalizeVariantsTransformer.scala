@@ -1,19 +1,11 @@
 package org.projectglow.core.transformers.normalizevariants
 
-import com.databricks.hls.DataFrameTransformer
-import com.databricks.hls.common.logging._
-import com.databricks.vcf._
 import htsjdk.samtools.ValidationStringency
 import org.apache.spark.sql.DataFrame
-import org.projectglow.DataFrameTransformer
-import org.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
 import org.projectglow.core.DataFrameTransformer
 import org.projectglow.core.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
 import org.projectglow.core.transformers.util.StringUtils
-import org.projectglow.transformers.util.StringUtils
-import org.projectglow.vcf.VCFOptionParser
-
-import com.databricks.hls.transformers.util.StringUtils
+import org.projectglow.core.vcf.VCFOptionParser
 
 /**
  * Implements DataFrameTransformer to transform the input DataFrame of varaints to an output
@@ -85,7 +77,7 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HlsUsageLog
   }
 }
 
-private[databricks] object NormalizeVariantsTransformer extends HlsUsageLogging {
+private[projectglow] object NormalizeVariantsTransformer extends HlsUsageLogging {
   private val MODE_KEY = "mode"
   val MODE_NORMALIZE = "normalize"
   val MODE_SPLIT_NORMALIZE = "split_and_normalize"

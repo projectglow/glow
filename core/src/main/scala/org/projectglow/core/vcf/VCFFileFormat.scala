@@ -1,7 +1,8 @@
 package org.projectglow.core.vcf
 
-import scala.collection.JavaConverters._
 import java.io.BufferedInputStream
+
+import scala.collection.JavaConverters._
 
 import com.google.common.util.concurrent.Striped
 import htsjdk.samtools.ValidationStringency
@@ -22,20 +23,12 @@ import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
 import org.apache.spark.sql.types._
 import org.broadinstitute.hellbender.tools.walkers.genotyper.GenotypeAssignmentMethod
-import org.broadinstitute.hellbender.utils.variant.GATKVariantContextUtils
 import org.broadinstitute.hellbender.utils.SimpleInterval
-import org.projectglow.common.{HLSLogging, WithUtils}
-import org.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
-import org.projectglow.core.common.{HLSLogging, WithUtils}
+import org.broadinstitute.hellbender.utils.variant.GATKVariantContextUtils
 import org.projectglow.core.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
+import org.projectglow.core.common.{HLSLogging, VCFRow, WithUtils}
 import org.projectglow.core.sql.util.{ComDatabricksDataSource, HadoopLineIterator, SerializableConfiguration}
-import org.projectglow.sql.util.{ComDatabricksDataSource, HadoopLineIterator, SerializableConfiguration}
 import org.seqdoop.hadoop_bam.util.{BGZFEnhancedGzipCodec, DatabricksBGZFOutputStream}
-
-import com.databricks.hls.common.{HLSLogging, WithUtils}
-import com.databricks.hls.common.logging._
-import com.databricks.hls.sql.util.{HadoopLineIterator, SerializableConfiguration}
-import com.databricks.sql.ComDatabricksDataSource
 
 class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HlsUsageLogging {
   var codecFactory: CompressionCodecFactory = _
@@ -238,7 +231,7 @@ object VCFFileFormat {
   def hadoopConfWithBGZ(conf: Configuration): Configuration = {
     val toReturn = new Configuration(conf)
     val bgzCodecs = Seq(
-      "com.databricks.hls.sql.util.BGZFCodec",
+      "org.projectglow.core.sql.util.BGZFCodec",
       "org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec"
     )
     val codecs = toReturn
@@ -524,7 +517,7 @@ private[vcf] object SchemaDelegate {
 
 }
 
-private[databricks] class VCFOutputWriterFactory(options: Map[String, String])
+private[projectglow] class VCFOutputWriterFactory(options: Map[String, String])
     extends OutputWriterFactory {
 
   override def newInstance(
@@ -546,14 +539,14 @@ private[databricks] class VCFOutputWriterFactory(options: Map[String, String])
   }
 }
 
-private[databricks] object VCFOptionParser {
+private[projectglow] object VCFOptionParser {
   def getValidationStringency(options: Map[String, String]): ValidationStringency = {
     val stringency = options.getOrElse(VCFOption.VALIDATION_STRINGENCY, "SILENT").toUpperCase
     ValidationStringency.valueOf(stringency)
   }
 }
 
-private[databricks] object VCFOption {
+private[projectglow] object VCFOption {
   // Reader-only options
   val FLATTEN_INFO_FIELDS = "flattenInfoFields"
   val INCLUDE_SAMPLE_IDS = "includeSampleIds"

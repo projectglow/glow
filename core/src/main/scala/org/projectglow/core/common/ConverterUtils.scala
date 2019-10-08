@@ -1,4 +1,4 @@
-package org.projectglow.core.vcf
+package org.projectglow.core.common
 
 import htsjdk.variant.variantcontext.GenotypeLikelihoods
 import htsjdk.variant.vcf.VCFConstants
@@ -6,7 +6,7 @@ import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.sql.types.StringType
 import org.apache.spark.unsafe.types.UTF8String
 
-private[databricks] object ConverterUtils {
+private[projectglow] object ConverterUtils {
 
   // Parses the attribute in a map as a comma-separated sequence.
   def getFieldAsSeq(map: scala.collection.Map[String, String], attr: String): Seq[String] = {

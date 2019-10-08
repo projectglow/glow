@@ -2,7 +2,7 @@ package org.projectglow.core.common
 
 import org.scalatest.exceptions.TestFailedException
 
-object TestUtils {
+trait TestUtils {
 
   val ABS_TOL_MSG = " using absolute tolerance"
   val REL_TOL_MSG = " using relative tolerance"

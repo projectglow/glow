@@ -5,17 +5,13 @@ import java.nio.file.Paths
 
 import scala.collection.JavaConverters._
 
+import com.google.common.annotations.VisibleForTesting
 import htsjdk.tribble.index.tabix._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.spark.sql.execution.datasources._
-import org.apache.spark.sql.sources.Filter
-import org.apache.spark.sql.sources._
+import org.apache.spark.sql.sources.{Filter, _}
 import org.broadinstitute.hellbender.utils.SimpleInterval
-
-import com.databricks.hls.common.WithUtils
-import com.google.common.annotations.VisibleForTesting
-import org.projectglow.common.WithUtils
 import org.projectglow.core.common.{HLSLogging, WithUtils}
 
 /** An extended Contig class used by filter parser that keeps an Option(contigName)

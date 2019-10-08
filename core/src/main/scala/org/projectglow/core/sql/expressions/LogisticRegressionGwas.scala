@@ -35,7 +35,7 @@ object LogisticRegressionGwas extends HLSLogging {
   val zScore: Double = new NormalDistribution().inverseCumulativeProbability(.975) // Two-sided 95% confidence
 
   @VisibleForTesting
-  private[databricks] def newtonIterations(
+  private[projectglow] def newtonIterations(
       X: DenseMatrix[Double],
       y: DenseVector[Double],
       nullFitOpt: Option[NewtonArguments],

@@ -12,11 +12,8 @@ import org.apache.spark.sql.catalyst.expressions.aggregate.{ImperativeAggregate,
 import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, ArrayData, GenericArrayData}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
-import org.projectglow.common.HLSLogging
-import org.projectglow.core.common.HLSLogging
+import org.projectglow.core.common.{HLSLogging, VariantSchemas}
 import org.projectglow.core.sql.util.ExpectsGenotypeFields
-import org.projectglow.core.vcf.VariantSchemas
-import org.projectglow.vcf.VariantSchemas
 
 case class SampleSummaryStatsState(var sampleId: String, var momentAggState: MomentAggState) {
   def this() = this(null, null) // need 0-arg constructor for serialization

@@ -14,19 +14,10 @@ import org.apache.spark.sql.catalyst.analysis.{FunctionRegistry, UnresolvedExtra
 import org.apache.spark.sql.catalyst.expressions.CreateNamedStruct
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.rules.Rule
-import org.apache.spark.sql.databricks.hls.tertiary.{AddStructFields, ExpandStruct, ExplodeMatrix}
 import org.apache.spark.sql.internal.SQLConf
-import org.projectglow.core.sql.expressions.{AddStructFields, ArrayStatsSummary, ArrayToDenseVector, ArrayToSparseVector, CallStats, CallSummaryStats, ExpandStruct, ExplodeMatrix, GenotypeStates, HardCalls, HardyWeinberg, LiftOverCoordinatesExpr, LinearRegressionExpr, LogisticRegressionExpr, PerSampleSummaryStatistics, VectorToArray}
+import org.projectglow.core.common.VariantSchemas
+import org.projectglow.core.sql.expressions._
 import org.projectglow.core.sql.optimizer.HLSReplaceExpressionsRule
-import org.projectglow.core.vcf.VariantSchemas
-import org.projectglow.sql.expressions.{AddStructFields, ArrayStatsSummary, ArrayToDenseVector, ArrayToSparseVector, CallStats, CallSummaryStats, ExpandStruct, ExplodeMatrix, GenotypeStates, HardCalls, HardyWeinberg, LiftOverCoordinatesExpr, LinearRegressionExpr, LogisticRegressionExpr, PerSampleSummaryStatistics, VectorToArray}
-import org.projectglow.sql.optimizer.HLSReplaceExpressionsRule
-import org.projectglow.tertiary.HardCalls
-import org.projectglow.vcf.VariantSchemas
-
-import com.databricks.hls.sql.optimizer.HLSReplaceExpressionsRule
-import com.databricks.hls.tertiary._
-import com.databricks.vcf.VariantSchemas
 
 object SqlExtensionProvider {
 

@@ -1,8 +1,9 @@
 package org.projectglow.core.bgen
 
-import scala.collection.JavaConverters._
 import java.io.{BufferedReader, File, InputStreamReader}
 import java.nio.file.Paths
+
+import scala.collection.JavaConverters._
 
 import com.google.common.io.LittleEndianDataInputStream
 import com.google.common.util.concurrent.Striped
@@ -15,18 +16,11 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.datasources.{FileFormat, OutputWriterFactory, PartitionedFile}
 import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
 import org.apache.spark.sql.types.StructType
-import org.projectglow.common.{HLSLogging, WithUtils}
-import org.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues}
-import org.projectglow.core.common.{HLSLogging, WithUtils}
 import org.projectglow.core.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
+import org.projectglow.core.common.{HLSLogging, WithUtils}
 import org.projectglow.core.sql.util.{ComDatabricksDataSource, SerializableConfiguration}
-import org.projectglow.sql.util.{ComDatabricksDataSource, SerializableConfiguration}
 import org.skife.jdbi.v2.DBI
 import org.skife.jdbi.v2.util.LongMapper
-
-import com.databricks.hls.common.logging._
-import com.databricks.hls.common.{HLSLogging, WithUtils}
-import com.databricks.sql.ComDatabricksDataSource
 
 class BgenFileFormat extends FileFormat with DataSourceRegister with Serializable with HLSLogging {
 

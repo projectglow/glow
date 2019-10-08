@@ -1,10 +1,11 @@
 package org.projectglow.core.vcf
 
-import scala.collection.JavaConverters._
 import java.io.{Closeable, OutputStream}
 
-import htsjdk.variant.variantcontext.{GenotypeBuilder, VariantContext, VariantContextBuilder}
+import scala.collection.JavaConverters._
+
 import htsjdk.variant.variantcontext.writer.{Options, VariantContextWriter, VariantContextWriterBuilder}
+import htsjdk.variant.variantcontext.{GenotypeBuilder, VariantContext, VariantContextBuilder}
 import htsjdk.variant.vcf.{VCFHeader, VCFHeaderLine}
 
 /**

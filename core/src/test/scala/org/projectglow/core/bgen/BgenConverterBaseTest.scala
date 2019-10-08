@@ -1,13 +1,7 @@
 package org.projectglow.core.bgen
 
+import org.projectglow.core.common.BgenRow
 import org.projectglow.core.sql.HLSBaseTest
-import org.projectglow.core.vcf.BgenRow
-import org.projectglow.sql.HLSBaseTest
-import org.projectglow.vcf.BgenRow
-
-import com.databricks.hls.common.TestUtils._
-import com.databricks.hls.sql.HLSBaseTest
-import com.databricks.vcf.BgenRow
 
 trait BgenConverterBaseTest extends HLSBaseTest {
 

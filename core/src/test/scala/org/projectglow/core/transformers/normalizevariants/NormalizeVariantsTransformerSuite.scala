@@ -1,16 +1,9 @@
 package org.projectglow.core.transformers.normalizevariants
 
 import org.apache.spark.SparkConf
-import org.projectglow.DBGenomics
-import org.projectglow.common.HLSLogging
 import org.projectglow.core.Glow
 import org.projectglow.core.common.HLSLogging
 import org.projectglow.core.sql.HLSBaseTest
-import org.projectglow.sql.HLSBaseTest
-
-import com.databricks.hls.DBGenomics
-import com.databricks.hls.common.HLSLogging
-import com.databricks.hls.sql.HLSBaseTest
 
 class NormalizeVariantsTransformerSuite extends HLSBaseTest with HLSLogging {
 

@@ -3,17 +3,12 @@ package org.projectglow.core.transformers.pipe
 import java.io.{InputStream, OutputStream}
 
 import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.types.{StringType, StructField, StructType}
-import org.apache.spark.unsafe.types.UTF8String
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
-import org.projectglow.DBGenomics
+import org.apache.spark.sql.types.{StringType, StructField, StructType}
+import org.apache.spark.unsafe.types.UTF8String
 import org.projectglow.core.Glow
 import org.projectglow.core.sql.HLSBaseTest
-import org.projectglow.sql.HLSBaseTest
-
-import com.databricks.hls.DBGenomics
-import com.databricks.hls.sql.HLSBaseTest
 
 class PipeTransformerSuite extends HLSBaseTest {
   test("read input and output formatters from service loader") {

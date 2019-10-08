@@ -1,6 +1,6 @@
 package org.projectglow.core.bgen
 
-import java.io.{BufferedReader, FileInputStream, InputStreamReader}
+import java.io.{BufferedReader, InputStreamReader}
 
 import scala.collection.JavaConverters._
 
@@ -9,13 +9,8 @@ import org.apache.hadoop.fs.Path
 import org.apache.spark.SparkException
 import org.apache.spark.sql.catalyst.ScalaReflection
 import org.apache.spark.sql.types.{ArrayType, StructType}
+import org.projectglow.core.common.{BgenRow, VCFRow, VariantSchemas}
 import org.projectglow.core.sql.HLSBaseTest
-import org.projectglow.core.vcf.{BgenRow, VCFRow, VariantSchemas}
-import org.projectglow.sql.HLSBaseTest
-import org.projectglow.vcf.{BgenRow, VCFRow, VariantSchemas}
-
-import com.databricks.hls.sql.HLSBaseTest
-import com.databricks.vcf.{BgenRow, VCFRow, VariantSchemas}
 
 class BgenReaderSuite extends HLSBaseTest {
 

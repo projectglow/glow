@@ -8,9 +8,6 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.catalyst.InternalRow
 import org.projectglow.core.common.HLSLogging
 import org.projectglow.core.transformers.pipe.{InputFormatter, InputFormatterFactory}
-import org.projectglow.transformers.pipe.{InputFormatter, InputFormatterFactory}
-
-import com.databricks.hls.transformers.pipe.{InputFormatter, InputFormatterFactory}
 
 /**
  * An input formatter that writes rows as VCF records.

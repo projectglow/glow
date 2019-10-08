@@ -104,11 +104,16 @@ case class ArrayToSparseVector(child: Expression)
   override def nullSafeEval(input: Any): Any = ArrayToSparseVector.fromDoubleArray(input)
 
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    nullSafeCodeGen(ctx, ev, c => {
-      s"""
-         |${ev.value} = org.apache.spark.sql.ArrayToSparseVector.fromDoubleArray($c);
+    nullSafeCodeGen(
+      ctx,
+      ev,
+      c => {
+        s"""
+         |${ev.value} = 
+         |org.projectglow.core.sql.expressions.ArrayToSparseVector.fromDoubleArray($c);
        """.stripMargin
-    })
+      }
+    )
   }
 }
 
@@ -130,11 +135,16 @@ case class ArrayToDenseVector(child: Expression)
   override def nullSafeEval(input: Any): Any = ArrayToDenseVector.fromDoubleArray(input)
 
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    nullSafeCodeGen(ctx, ev, c => {
-      s"""
-         |${ev.value} = org.apache.spark.sql.ArrayToDenseVector.fromDoubleArray($c);
+    nullSafeCodeGen(
+      ctx,
+      ev,
+      c => {
+        s"""
+         |${ev.value} = 
+         |org.projectglow.core.sql.expressions.ArrayToDenseVector.fromDoubleArray($c);
        """.stripMargin
-    })
+      }
+    )
   }
 }
 
@@ -154,7 +164,8 @@ case class VectorToArray(child: Expression) extends UnaryExpression with Implici
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
     nullSafeCodeGen(ctx, ev, c => {
       s"""
-         |${ev.value} = org.apache.spark.sql.VectorToArray.toDoubleArray($c);
+         |${ev.value} = 
+         |org.projectglow.core.sql.expressions.VectorToArray.toDoubleArray($c);
        """.stripMargin
     })
   }

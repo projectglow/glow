@@ -12,17 +12,12 @@ import htsjdk.samtools.util.{BlockCompressedInputStream, BlockCompressedStreamCo
 import htsjdk.variant.variantcontext.writer.VCFHeaderWriter
 import htsjdk.variant.vcf.{VCFCompoundHeaderLine, VCFHeader, VCFHeaderLine}
 import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.types.StructType
 import org.apache.spark.{SparkConf, SparkException}
 import org.bdgenomics.adam.rdd.ADAMContext._
-
-import com.databricks.hls.common.WithUtils
-import com.databricks.hls.sql.HLSBaseTest
-import org.apache.spark.sql.types.StructType
 import org.bdgenomics.adam.rdd.VCFMetadataLoader
-import org.projectglow.common.WithUtils
-import org.projectglow.core.common.WithUtils
+import org.projectglow.core.common.{VCFRow, WithUtils}
 import org.projectglow.core.sql.HLSBaseTest
-import org.projectglow.sql.HLSBaseTest
 
 abstract class VCFFileWriterSuite(val sourceName: String)
     extends HLSBaseTest

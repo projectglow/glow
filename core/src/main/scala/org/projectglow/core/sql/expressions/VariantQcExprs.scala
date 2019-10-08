@@ -6,11 +6,8 @@ import org.apache.spark.sql.catalyst.expressions.{ArrayTransform, Cast, CreateNa
 import org.apache.spark.sql.catalyst.util.{ArrayData, GenericArrayData}
 import org.apache.spark.sql.catalyst.{InternalRow, ScalaReflection}
 import org.apache.spark.sql.types._
-import org.projectglow.common.HLSLogging
-import org.projectglow.core.common.HLSLogging
-import org.projectglow.core.sql.util.ExpectsGenotypeFields
-import org.projectglow.core.vcf.{VCFRow, VariantSchemas}
-import org.projectglow.vcf.{VCFRow, VariantSchemas}
+import org.projectglow.core.common.{HLSLogging, VCFRow, VariantSchemas}
+import org.projectglow.core.sql.util.{ExpectsGenotypeFields, LeveneHaldane}
 
 /**
  * Contains implementations of QC functions. These implementations are called during both
@@ -24,7 +21,7 @@ object VariantQcExprs extends HLSLogging {
    * Performs a two-sided test of the Hardy-Weinberg equilibrium. Returns the expected het frequency
    * as well as the associated p value.
    * @param genotypes an array of structs with the schema required by [[CallStats]]
-   * @param genotypesIdx the position of the genotype struct (with calls and phasing info) within
+   * @param genotypeIdx the position of the genotype struct (with calls and phasing info) within
    *                     the element struct of the genotypes array
    * @return a row with the schema of [[HardyWeinbergStruct]]
    */
@@ -234,7 +231,7 @@ case class HardyWeinberg(genotypes: Expression) extends UnaryExpression with Exp
   override def child: Expression = genotypes
 
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    val fn = "com.databricks.hls.tertiary.VariantQcExprs.hardyWeinberg"
+    val fn = "org.projectglow.core.sql.expressions.VariantQcExprs.hardyWeinberg"
     nullSafeCodeGen(ctx, ev, calls => {
       s"""
          |${ev.value} = $fn($calls, $genotypeStructSize, ${genotypeFieldIndices.head});
@@ -267,7 +264,7 @@ case class CallStats(genotypes: Expression) extends UnaryExpression with Expects
   override def child: Expression = genotypes
 
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    val fn = "com.databricks.hls.tertiary.VariantQcExprs.callStats"
+    val fn = "org.projectglow.core.sql.expressions.VariantQcExprs.callStats"
     nullSafeCodeGen(ctx, ev, calls => {
       s"""
          |${ev.value} = $fn($calls, $genotypeStructSize, ${genotypeFieldIndices.head});
@@ -311,7 +308,7 @@ case class ArrayStatsSummary(array: Expression) extends UnaryExpression with Exp
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
     nullSafeCodeGen(ctx, ev, c => {
       s"""
-         |${ev.value} = com.databricks.hls.tertiary.VariantQcExprs.arraySummaryStats($c);
+         |${ev.value} = org.projectglow.core.sql.expressions.VariantQcExprs.arraySummaryStats($c);
        """.stripMargin
     })
   }

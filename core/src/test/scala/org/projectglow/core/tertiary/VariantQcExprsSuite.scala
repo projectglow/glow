@@ -4,15 +4,9 @@ import scala.util.Random
 
 import org.apache.spark.sql.AnalysisException
 import org.apache.spark.sql.functions._
+import org.projectglow.core.common.{GenotypeFields, VCFRow}
 import org.projectglow.core.sql.HLSBaseTest
 import org.projectglow.core.vcf
-import org.projectglow.core.vcf.VCFRow
-import org.projectglow.sql.HLSBaseTest
-import org.projectglow.vcf.{GenotypeFields, VCFRow}
-
-import com.databricks.hls.common.TestUtils._
-import com.databricks.hls.sql.HLSBaseTest
-import com.databricks.vcf.{GenotypeFields, VCFRow}
 
 class VariantQcExprsSuite extends HLSBaseTest {
 
@@ -80,7 +74,7 @@ class VariantQcExprsSuite extends HLSBaseTest {
   }
 
   private def rowWithCalls(calls: Seq[Seq[Int]]): VCFRow = {
-    vcf.VCFRow(
+    VCFRow(
       "monkey",
       1,
       2,

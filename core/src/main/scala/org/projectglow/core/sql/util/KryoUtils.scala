@@ -2,8 +2,6 @@ package org.projectglow.core.sql.util
 
 import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 
-import scala.reflect.ClassTag
-
 import com.esotericsoftware.kryo.Kryo
 import com.esotericsoftware.kryo.io.{Input, Output}
 

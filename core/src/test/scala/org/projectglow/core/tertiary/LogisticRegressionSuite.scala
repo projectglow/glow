@@ -1,15 +1,12 @@
 package org.projectglow.core.tertiary
 
 import breeze.linalg.DenseVector
-import org.apache.spark.sql.functions.{expr, monotonically_increasing_id}
 import org.apache.spark.sql.Encoders
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
-import org.projectglow.common.TestUtils._
-import RegressionTestUtils._
+import org.apache.spark.sql.functions.{expr, monotonically_increasing_id}
 import org.projectglow.core.sql.HLSBaseTest
 import org.projectglow.core.sql.expressions.{LikelihoodRatioTestStats, LogisticRegressionGwas, NewtonResult}
-import org.projectglow.sql.expressions.{LikelihoodRatioTestStats, LogisticRegressionGwas, NewtonResult}
-import org.projectglow.sql.{HLSBaseTest, LikelihoodRatioTestStats, NewtonResult}
+import org.projectglow.core.tertiary.RegressionTestUtils._
 
 class LogisticRegressionSuite extends HLSBaseTest {
 

@@ -13,10 +13,7 @@ import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.sql.types.{ArrayType, StructField, StructType}
-import org.projectglow.common.{HLSLogging, HasStringency}
-import org.projectglow.core.common.{HLSLogging, HasStringency}
-
-import com.databricks.hls.common.{HLSLogging, HasStringency}
+import org.projectglow.core.common.{GenotypeFields, HLSLogging, HasStringency, VariantSchemas}
 
 /**
  * Converts internal rows with the provided schema into HTSJDK variant context.
@@ -36,8 +33,8 @@ class InternalRowToVariantContextConverter(
     extends HLSLogging
     with HasStringency
     with Serializable {
-  import VariantSchemas._
-  import ConverterUtils._
+  import org.projectglow.core.common.ConverterUtils._
+  import org.projectglow.core.common.VariantSchemas._
 
   private val alleles = scala.collection.mutable.ArrayBuffer[Allele]()
   private val genotypeSchema = rowSchema

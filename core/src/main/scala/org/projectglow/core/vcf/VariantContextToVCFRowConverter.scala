@@ -1,20 +1,17 @@
 package org.projectglow.core.vcf
 
 import java.lang.{Boolean => JBoolean, Iterable => JIterable}
-import java.util.{HashMap => JHashMap, Map => JMap}
 
-import scala.collection.JavaConverters._
 import scala.collection.mutable
 
 import htsjdk.samtools.ValidationStringency
-import htsjdk.variant.variantcontext.{Allele, Genotype => HtsjdkGenotype, VariantContext => HtsjdkVariantContext}
+import htsjdk.variant.variantcontext.{VariantContext => HtsjdkVariantContext}
 import htsjdk.variant.vcf.{VCFConstants, VCFHeader}
-import org.apache.spark.sql.catalyst.util.ArrayData
-import org.projectglow.core.common.HLSLogging
+import org.projectglow.core.common.{HLSLogging, VCFRow}
 
 // HTSJDK VariantContext -> VCFRow
 // Based on the HTSJDK classes VCFEncoder and CommonInfo
-private[databricks] object VariantContextToVCFRowConverter {
+private[projectglow] object VariantContextToVCFRowConverter {
 
   def parseObjectAsString(obj: Object): String = {
     obj match {
@@ -47,7 +44,7 @@ private[databricks] object VariantContextToVCFRowConverter {
 }
 
 // HTSJDK VariantContext -> VCFRow
-private[databricks] class VariantContextToVCFRowConverter(
+private[projectglow] class VariantContextToVCFRowConverter(
     vcfHeader: VCFHeader,
     stringency: ValidationStringency = ValidationStringency.LENIENT,
     includeSampleIds: Boolean = true)

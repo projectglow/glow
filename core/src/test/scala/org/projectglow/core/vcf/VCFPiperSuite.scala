@@ -10,19 +10,12 @@ package org.projectglow.core.vcf
 
 import scala.collection.JavaConverters._
 
-import org.apache.spark.{SparkException, TaskContext}
 import org.apache.spark.sql.DataFrame
-import org.projectglow.DBGenomics
+import org.apache.spark.{SparkException, TaskContext}
 import org.projectglow.core.Glow
+import org.projectglow.core.common.VCFRow
 import org.projectglow.core.sql.HLSBaseTest
 import org.projectglow.core.transformers.pipe.ProcessHelper
-import org.projectglow.sql.HLSBaseTest
-import org.projectglow.transformers.pipe.ProcessHelper
-
-import com.databricks.hls.DBGenomics
-import com.databricks.hls.common.TestUtils._
-import com.databricks.hls.sql.HLSBaseTest
-import com.databricks.hls.transformers.pipe.ProcessHelper
 
 class VCFPiperSuite extends HLSBaseTest {
   lazy val sess = spark

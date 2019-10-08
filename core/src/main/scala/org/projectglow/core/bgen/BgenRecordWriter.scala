@@ -2,17 +2,14 @@ package org.projectglow.core.bgen
 
 import java.io.{BufferedOutputStream, ByteArrayOutputStream, DataOutput, OutputStream}
 import java.nio.charset.StandardCharsets
-import java.util.{Comparator, Arrays => JArrays, HashMap => JHashMap}
 import java.util.zip.{Deflater, DeflaterOutputStream}
+import java.util.{Comparator, Arrays => JArrays, HashMap => JHashMap}
 
 import com.google.common.io.{CountingOutputStream, LittleEndianDataOutputStream}
 import org.apache.commons.math3.util.CombinatoricsUtils
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
-import org.projectglow.core.common.HLSLogging
-import org.projectglow.vcf.BgenRow
-
-import com.databricks.vcf.BgenRow
+import org.projectglow.core.common.{BgenRow, HLSLogging}
 
 /**
  * Writes BGEN records.

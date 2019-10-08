@@ -8,14 +8,10 @@
  */
 package org.projectglow.core.transformers.pipe
 
-import com.databricks.hls.DBGenomics
-import com.databricks.hls.sql.HLSBaseTest
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.{StringType, StructField}
-import org.projectglow.DBGenomics
 import org.projectglow.core.Glow
 import org.projectglow.core.sql.HLSBaseTest
-import org.projectglow.sql.HLSBaseTest
 
 class CSVPiperSuite extends HLSBaseTest {
   private val saige = s"$testDataHome/saige_output.txt"

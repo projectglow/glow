@@ -2,18 +2,11 @@ package org.projectglow.core.bgen
 
 import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 import org.apache.spark.sql.catalyst.util.GenericArrayData
 import org.apache.spark.sql.types.{ArrayType, StructType}
 import org.apache.spark.unsafe.types.UTF8String
-import org.projectglow.common.HLSLogging
-import org.projectglow.core.common.HLSLogging
+import org.projectglow.core.common.{BgenGenotype, BgenRow, HLSLogging, VariantSchemas}
 import org.projectglow.core.sql.util.RowConverter
-import org.projectglow.core.vcf.{BgenRow, VariantSchemas}
-import org.projectglow.vcf.{BgenGenotype, BgenRow, VariantSchemas}
-
-import com.databricks.hls.common.HLSLogging
-import com.databricks.vcf.{BgenGenotype, BgenRow, VariantSchemas}
 
 /**
  * Converts [[BgenRow]]s into [[InternalRow]] with a given required schema. During construction,
@@ -21,7 +14,7 @@ import com.databricks.vcf.{BgenGenotype, BgenRow, VariantSchemas}
  * schema cannot be derived from a BGEN record.
  */
 class BgenRowToInternalRowConverter(schema: StructType) extends HLSLogging {
-  import org.projectglow.core.vcf.VariantSchemas._
+  import org.projectglow.core.common.VariantSchemas._
   private val converter = {
     val fns = schema.map { field =>
       val fn: RowConverter.Updater[BgenRow] = field match {

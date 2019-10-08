@@ -4,27 +4,21 @@ import java.io.File
 import java.nio.file.Paths
 
 import scala.collection.JavaConverters._
+import scala.math.min
 
-import com.databricks.hls.common.HLSLogging
-import com.databricks.vcf.{InternalRowToVariantContextConverter, VCFFileWriter, VariantContextToInternalRowConverter}
 import com.google.common.annotations.VisibleForTesting
 import htsjdk.samtools.ValidationStringency
 import htsjdk.variant.variantcontext._
 import htsjdk.variant.vcf.VCFHeader
 import org.apache.spark.sql.{DataFrame, SQLUtils}
-import org.apache.spark.sql.functions.lit
 import org.broadinstitute.hellbender.engine.{ReferenceContext, ReferenceDataSource}
 import org.broadinstitute.hellbender.tools.walkers.genotyper.GenotypeAssignmentMethod
 import org.broadinstitute.hellbender.utils.SimpleInterval
 import org.broadinstitute.hellbender.utils.variant.GATKVariantContextUtils
-import scala.math.min
-
-import org.projectglow.common.HLSLogging
 import org.projectglow.core.common.HLSLogging
 import org.projectglow.core.vcf.{InternalRowToVariantContextConverter, VCFFileWriter, VariantContextToInternalRowConverter}
-import org.projectglow.vcf.{InternalRowToVariantContextConverter, VCFFileWriter, VariantContextToInternalRowConverter}
 
-private[databricks] object VariantNormalizer extends HLSLogging {
+private[projectglow] object VariantNormalizer extends HLSLogging {
 
   /**
    * Normalizes the input DataFrame of variants and outputs them as a Dataframe; Optionally

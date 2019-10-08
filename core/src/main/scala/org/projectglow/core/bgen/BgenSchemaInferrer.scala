@@ -1,19 +1,11 @@
 package org.projectglow.core.bgen
 
 import com.google.common.io.LittleEndianDataInputStream
-import org.apache.hadoop.fs.{FileStatus, Path}
+import org.apache.hadoop.fs.FileStatus
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.StructType
-import org.projectglow.common.WithUtils
-import org.projectglow.core.common.WithUtils
+import org.projectglow.core.common.{VariantSchemas, WithUtils}
 import org.projectglow.core.sql.util.SerializableConfiguration
-import org.projectglow.core.vcf.VariantSchemas
-import org.projectglow.sql.util.SerializableConfiguration
-import org.projectglow.vcf.VariantSchemas
-
-import com.databricks.hls.common.WithUtils
-import com.databricks.hls.sql.util.SerializableConfiguration
-import com.databricks.vcf.VariantSchemas
 
 /**
  * Infers the schema of a set of BGEN files from the user-provided options and the header of each

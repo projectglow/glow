@@ -71,7 +71,7 @@ trait BigFileUploader {
   def upload(bytes: RDD[Array[Byte]], path: String): Unit
 }
 
-private[databricks] object SingleFileWriter extends HLSLogging {
+private[projectglow] object SingleFileWriter extends HLSLogging {
 
   lazy val uploaders: Seq[BigFileUploader] = ServiceLoader
     .load(classOf[BigFileUploader])

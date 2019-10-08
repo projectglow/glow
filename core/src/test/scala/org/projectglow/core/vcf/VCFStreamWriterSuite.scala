@@ -1,13 +1,14 @@
 package org.projectglow.core.vcf
 
-import scala.collection.JavaConverters._
 import java.io.{ByteArrayOutputStream, StringReader}
 
-import org.apache.commons.io.IOUtils
-import org.bdgenomics.adam.rdd.VCFMetadataLoader
+import scala.collection.JavaConverters._
+
 import htsjdk.tribble.TribbleException.InvalidHeader
 import htsjdk.variant.variantcontext.{Allele, GenotypeBuilder, VariantContextBuilder}
 import htsjdk.variant.vcf.{VCFCodec, VCFHeader, VCFHeaderLine}
+import org.apache.commons.io.IOUtils
+import org.bdgenomics.adam.rdd.VCFMetadataLoader
 import org.projectglow.core.sql.HLSBaseTest
 
 class VCFStreamWriterSuite extends HLSBaseTest {

@@ -1,6 +1,6 @@
-package org.projectglow.core.vcf
+package org.projectglow.core.common
 
-import org.apache.spark.sql.{Encoders, SQLUtils}
+import org.apache.spark.sql.Encoders
 import org.apache.spark.sql.catalyst.ScalaReflection
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.types._
@@ -83,7 +83,7 @@ object VariantSchemas {
   )
 }
 
-private[databricks] case class GenotypeFields(
+private[projectglow] case class GenotypeFields(
     sampleId: Option[String],
     phased: Option[Boolean],
     calls: Option[Seq[Int]],
@@ -99,7 +99,7 @@ private[databricks] case class GenotypeFields(
     alleleDepths: Option[Seq[Int]],
     otherFields: scala.collection.Map[String, String])
 
-private[databricks] object GenotypeFields {
+private[projectglow] object GenotypeFields {
   val baseReverseAliases: Map[String, String] = Map(
     "depth" -> "DP",
     "filters" -> "FT",
@@ -121,7 +121,7 @@ private[databricks] object GenotypeFields {
     ("GT" -> Seq("phased", "calls"))
 }
 
-private[databricks] case class VCFRow(
+private[projectglow] case class VCFRow(
     contigName: String,
     start: Long,
     end: Long,
@@ -144,13 +144,13 @@ object VCFRow {
     .asInstanceOf[ExpressionEncoder[VCFRow]]
 }
 
-private[databricks] case class BgenGenotype(
+private[projectglow] case class BgenGenotype(
     sampleId: Option[String],
     phased: Option[Boolean],
     ploidy: Option[Int],
     posteriorProbabilities: Seq[Double])
 
-private[databricks] case class BgenRow(
+private[projectglow] case class BgenRow(
     contigName: String,
     start: Long,
     end: Long,

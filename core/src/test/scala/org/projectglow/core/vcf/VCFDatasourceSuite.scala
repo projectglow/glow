@@ -12,7 +12,7 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Dataset}
 import org.apache.spark.{SparkConf, SparkException}
-import org.projectglow.core.common.TestUtils._
+import org.projectglow.core.common.{GenotypeFields, VCFRow}
 import org.projectglow.core.sql.HLSBaseTest
 
 class VCFDatasourceSuite extends HLSBaseTest {

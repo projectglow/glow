@@ -3,10 +3,9 @@ package org.projectglow.core.vcf
 import scala.reflect.runtime.universe._
 
 import org.bdgenomics.adam.util.PhredUtils
+import org.projectglow.core.common.{GenotypeFields, TestUtils, VCFRow}
 
-import org.projectglow.core.common.TestUtils._
-
-trait VCFConverterBaseTest {
+trait VCFConverterBaseTest extends TestUtils {
 
   final lazy val defaultContigName = ""
   final lazy val defaultStart = 0L
