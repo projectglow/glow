@@ -1,7 +1,7 @@
 package org.apache.spark.sql
 
 import org.apache.spark.TaskContext
-import org.apache.spark.ml.linalg.{VectorUDT, Vectors}
+import org.apache.spark.ml.linalg.{MatrixUDT, VectorUDT, Vectors}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCode}
@@ -46,76 +46,18 @@ object SQLUtils {
   def setTaskContext(context: TaskContext): Unit = {
     TaskContext.setTaskContext(context)
   }
-}
 
-case class ArrayToSparseVector(child: Expression)
-    extends UnaryExpression
-    with ImplicitCastInputTypes {
-
-  override def inputTypes: Seq[AbstractDataType] = Seq(ArrayType(DoubleType))
-  override def dataType: DataType = ArrayToSparseVector.vectorType
-  override def nullSafeEval(input: Any): Any = ArrayToSparseVector.fromDoubleArray(input)
-
-  override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    nullSafeCodeGen(ctx, ev, c => {
-      s"""
-         |${ev.value} = org.apache.spark.sql.ArrayToSparseVector.fromDoubleArray($c);
-       """.stripMargin
-    })
+  def newMatrixUDT(): MatrixUDT = {
+    new MatrixUDT()
   }
-}
 
-object ArrayToSparseVector {
-  lazy val vectorType: VectorUDT = new VectorUDT()
-
-  def fromDoubleArray(input: Any): InternalRow = {
-    val vector = Vectors.dense(input.asInstanceOf[ArrayData].toDoubleArray())
-    vectorType.serialize(vector.toSparse)
+  def newVectorUDT(): VectorUDT = {
+    new VectorUDT()
   }
-}
 
-case class ArrayToDenseVector(child: Expression)
-    extends UnaryExpression
-    with ImplicitCastInputTypes {
-
-  override def inputTypes: Seq[AbstractDataType] = Seq(ArrayType(DoubleType))
-  override def dataType: DataType = ArrayToDenseVector.vectorType
-  override def nullSafeEval(input: Any): Any = ArrayToDenseVector.fromDoubleArray(input)
-
-  override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    nullSafeCodeGen(ctx, ev, c => {
-      s"""
-         |${ev.value} = org.apache.spark.sql.ArrayToDenseVector.fromDoubleArray($c);
-       """.stripMargin
-    })
+  def newAnalysisException(msg: String): AnalysisException = {
+    new AnalysisException(msg)
   }
-}
 
-object ArrayToDenseVector {
-  lazy val vectorType: VectorUDT = new VectorUDT()
-
-  def fromDoubleArray(input: Any): InternalRow = {
-    val vector = Vectors.dense(input.asInstanceOf[ArrayData].toDoubleArray())
-    vectorType.serialize(vector)
-  }
-}
-
-case class VectorToArray(child: Expression) extends UnaryExpression with ImplicitCastInputTypes {
-  override def inputTypes: Seq[AbstractDataType] = Seq(VectorToArray.vectorType)
-  override def dataType: DataType = ArrayType(DoubleType)
-  override def nullSafeEval(input: Any): Any = VectorToArray.toDoubleArray(input)
-  override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    nullSafeCodeGen(ctx, ev, c => {
-      s"""
-         |${ev.value} = org.apache.spark.sql.VectorToArray.toDoubleArray($c);
-       """.stripMargin
-    })
-  }
-}
-
-object VectorToArray {
-  lazy val vectorType: VectorUDT = new VectorUDT()
-  def toDoubleArray(input: Any): ArrayData = {
-    new GenericArrayData(vectorType.deserialize(input).toArray)
-  }
+  type ADT = AbstractDataType
 }

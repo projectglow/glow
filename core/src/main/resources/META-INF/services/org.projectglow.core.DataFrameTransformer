@@ -1,0 +1,4 @@
+org.projectglow.core.transformers.LiftOverVariantsTransformer
+org.projectglow.core.transformers.normalizevariants.NormalizeVariantsTransformer
+org.projectglow.core.transformers.pipe.PipeTransformer
+org.projectglow.core.transformers.pipe.CleanupPipeTransformer
