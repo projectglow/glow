@@ -1,14 +1,12 @@
 from setuptools import setup
 
 setup(
-    name='pyglow',
-    version='1.0.0',
+    name='glowpy',
+    version='1.0.2',
     packages=['db_genomics'],
-    install_requires=[
-        'pyspark==2.4.2',
-        'pytest',
-        'typeguard==2.5.0',
-    ],
+    # install_requires=[
+    #     'typeguard==2.5.0',
+    # ],
     author='Glow Project',
     description='Glow: Genomics on Apache Spark',
     long_description=open('../README.rst').read(),
