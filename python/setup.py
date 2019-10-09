@@ -4,9 +4,9 @@ setup(
     name='glowpy',
     version='1.0.3',
     packages=['db_genomics'],
-    # install_requires=[
-    #     'typeguard==2.5.0',
-    # ],
+    install_requires=[
+        'typeguard==2.5.0',
+    ],
     author='Glow Project',
     description='Glow: Genomics on Apache Spark',
     long_description=open('../README.rst').read(),
@@ -14,7 +14,7 @@ setup(
     license='Apache License 2.0',
     classifiers=[
         'Intended Audience :: Developers',
-        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
     ],
     url='https://github.com/projectglow/glow'
 )
