@@ -1,11 +1,11 @@
 # Standard file formats
-org.projectglow.core.bgen.BgenFileFormat
-org.projectglow.core.bgen.BigBgenDatasource
-org.projectglow.core.vcf.BigVCFDatasource
-org.projectglow.core.vcf.VCFFileFormat
+org.projectglow.bgen.BgenFileFormat
+org.projectglow.bgen.BigBgenDatasource
+org.projectglow.vcf.BigVCFDatasource
+org.projectglow.vcf.VCFFileFormat
 
 # Legacy file formats
-org.projectglow.core.bgen.ComDatabricksBgenFileFormat
-org.projectglow.core.bgen.ComDatabricksBigBgenDatasource
-org.projectglow.core.vcf.ComDatabricksBigVCFDatasource
-org.projectglow.core.vcf.ComDatabricksVCFFileFormat
+org.projectglow.bgen.ComDatabricksBgenFileFormat
+org.projectglow.bgen.ComDatabricksBigBgenDatasource
+org.projectglow.vcf.ComDatabricksBigVCFDatasource
+org.projectglow.vcf.ComDatabricksVCFFileFormat

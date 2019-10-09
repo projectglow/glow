@@ -1,0 +1,3 @@
+org.projectglow.transformers.pipe.CSVInputFormatterFactory
+org.projectglow.transformers.pipe.UTF8TextInputFormatterFactory
+org.projectglow.vcf.VCFInputFormatterFactory
