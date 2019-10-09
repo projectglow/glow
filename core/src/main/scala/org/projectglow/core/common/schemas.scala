@@ -121,7 +121,7 @@ private[projectglow] object GenotypeFields {
     ("GT" -> Seq("phased", "calls"))
 }
 
-private[projectglow] case class VCFRow(
+case class VCFRow(
     contigName: String,
     start: Long,
     end: Long,

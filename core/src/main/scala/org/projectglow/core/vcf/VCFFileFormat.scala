@@ -547,7 +547,7 @@ private[projectglow] object VCFOptionParser {
   }
 }
 
-private[projectglow] object VCFOption {
+object VCFOption {
   // Reader-only options
   val FLATTEN_INFO_FIELDS = "flattenInfoFields"
   val INCLUDE_SAMPLE_IDS = "includeSampleIds"
