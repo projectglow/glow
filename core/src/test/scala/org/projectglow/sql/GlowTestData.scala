@@ -2,7 +2,7 @@ package org.projectglow.sql
 
 import java.nio.file.Paths
 
-trait HLSTestData {
+trait GlowTestData {
   final lazy val testDataHome = Paths
     .get(
       sys.props.getOrElse("test.dir", ""),

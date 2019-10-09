@@ -11,10 +11,10 @@ import org.apache.spark.sql.functions._
 
 import org.projectglow.sql.expressions.{ComputeQR, LinearRegressionGwas, RegressionStats}
 import RegressionTestUtils._
-import org.projectglow.sql.HLSBaseTest
+import org.projectglow.sql.GlowBaseTest
 import org.projectglow.sql.expressions.{ComputeQR, LinearRegressionGwas, RegressionStats}
 
-class LinearRegressionSuite extends HLSBaseTest {
+class LinearRegressionSuite extends GlowBaseTest {
 
   private lazy val sess = spark
   private lazy val random = {

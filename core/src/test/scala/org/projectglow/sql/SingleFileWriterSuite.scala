@@ -5,7 +5,7 @@ import java.nio.file.Files
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.rdd.RDD
 
-class SingleFileWriterSuite extends HLSBaseTest {
+class SingleFileWriterSuite extends GlowBaseTest {
   test("uses service loader") {
     val outDir = Files.createTempDirectory("writer")
     assert(DummyFileUploader.counter == 0)

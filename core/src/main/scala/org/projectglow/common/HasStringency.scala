@@ -2,7 +2,7 @@ package org.projectglow.common
 
 import htsjdk.samtools.ValidationStringency
 
-trait HasStringency extends HLSLogging {
+trait HasStringency extends GlowLogging {
   def stringency: ValidationStringency
   protected def provideWarning(warning: String): Unit = {
     if (stringency == ValidationStringency.STRICT) {

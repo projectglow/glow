@@ -14,8 +14,8 @@ import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, ArrayData, Generic
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
-import org.projectglow.common.{HLSLogging, VariantSchemas}
-import org.projectglow.common.{HLSLogging, VariantSchemas}
+import org.projectglow.common.{GlowLogging, VariantSchemas}
+import org.projectglow.common.{GlowLogging, VariantSchemas}
 import org.projectglow.sql.util.ExpectsGenotypeFields
 
 /**
@@ -32,7 +32,7 @@ case class CallSummaryStats(
     inputAggBufferOffset: Int = 0)
     extends TypedImperativeAggregate[mutable.ArrayBuffer[SampleCallStats]]
     with ExpectsGenotypeFields
-    with HLSLogging {
+    with GlowLogging {
 
   override def genotypesExpr: Expression = genotypes
 
@@ -235,7 +235,7 @@ case class SampleCallStats(
     )
 }
 
-object SampleCallStats extends HLSLogging {
+object SampleCallStats extends GlowLogging {
   def merge(s1: SampleCallStats, s2: SampleCallStats): SampleCallStats = {
     require(s1.sampleId == s2.sampleId, s"${s1.sampleId}, ${s2.sampleId}")
     val out = new SampleCallStats(s1.sampleId)

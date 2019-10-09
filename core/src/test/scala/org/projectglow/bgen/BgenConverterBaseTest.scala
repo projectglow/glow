@@ -2,10 +2,10 @@ package org.projectglow.bgen
 
 import org.projectglow.common.BgenRow
 import org.projectglow.common.BgenRow
-import org.projectglow.sql.HLSBaseTest
-import org.projectglow.sql.HLSBaseTest
+import org.projectglow.sql.GlowBaseTest
+import org.projectglow.sql.GlowBaseTest
 
-trait BgenConverterBaseTest extends HLSBaseTest {
+trait BgenConverterBaseTest extends GlowBaseTest {
 
   val testRoot = s"$testDataHome/bgen"
 

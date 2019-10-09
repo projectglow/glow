@@ -5,9 +5,9 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.expr
 import org.apache.spark.sql.types.{LongType, StringType, StructType}
 
-import org.projectglow.sql.HLSBaseTest
+import org.projectglow.sql.GlowBaseTest
 
-class LiftOverCoordinatesExprSuite extends HLSBaseTest {
+class LiftOverCoordinatesExprSuite extends GlowBaseTest {
   val requiredBaseSchema: StructType = new StructType()
     .add("contigName", StringType)
     .add("start", LongType)

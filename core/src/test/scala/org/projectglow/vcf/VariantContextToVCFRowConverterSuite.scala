@@ -13,10 +13,10 @@ import org.bdgenomics.adam.rdd.VCFMetadataLoader
 
 import org.projectglow.common.{GenotypeFields, VCFRow}
 import org.projectglow.common.{GenotypeFields, VCFRow}
-import org.projectglow.sql.HLSBaseTest
-import org.projectglow.sql.HLSBaseTest
+import org.projectglow.sql.GlowBaseTest
+import org.projectglow.sql.GlowBaseTest
 
-class VariantContextToVCFRowConverterSuite extends HLSBaseTest with VCFConverterBaseTest {
+class VariantContextToVCFRowConverterSuite extends GlowBaseTest with VCFConverterBaseTest {
 
   lazy val NA12878 = s"$testDataHome/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf"
   lazy val TGP = s"$testDataHome/1000genomes-phase3-1row.vcf"

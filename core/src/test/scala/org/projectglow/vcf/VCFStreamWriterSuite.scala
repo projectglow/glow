@@ -10,9 +10,9 @@ import htsjdk.variant.vcf.{VCFCodec, VCFHeader, VCFHeaderLine}
 import org.apache.commons.io.IOUtils
 import org.bdgenomics.adam.rdd.VCFMetadataLoader
 
-import org.projectglow.sql.HLSBaseTest
+import org.projectglow.sql.GlowBaseTest
 
-class VCFStreamWriterSuite extends HLSBaseTest {
+class VCFStreamWriterSuite extends GlowBaseTest {
   val refA: Allele = Allele.create("A", true)
   val altT: Allele = Allele.create("T", false)
 

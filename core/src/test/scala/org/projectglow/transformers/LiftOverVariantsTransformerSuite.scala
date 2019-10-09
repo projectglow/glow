@@ -9,10 +9,10 @@ import picard.vcf.LiftoverVcf
 import org.projectglow.Glow
 import org.projectglow.Glow
 import org.projectglow.vcf.VCFConverterBaseTest
-import org.projectglow.sql.HLSBaseTest
+import org.projectglow.sql.GlowBaseTest
 import org.projectglow.vcf.VCFConverterBaseTest
 
-class LiftOverVariantsTransformerSuite extends HLSBaseTest with VCFConverterBaseTest {
+class LiftOverVariantsTransformerSuite extends GlowBaseTest with VCFConverterBaseTest {
   val picardTestDataHome = s"$testDataHome/liftover/picard"
   val CHAIN_FILE = s"$testDataHome/liftover/hg38ToHg19.over.chain.gz"
   val REFERENCE_FILE = s"$testDataHome/liftover/hg19.chr20.fa.gz"

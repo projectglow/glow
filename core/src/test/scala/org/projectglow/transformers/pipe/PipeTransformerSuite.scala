@@ -10,10 +10,10 @@ import org.apache.spark.unsafe.types.UTF8String
 
 import org.projectglow.Glow
 import org.projectglow.Glow
-import org.projectglow.sql.HLSBaseTest
-import org.projectglow.sql.HLSBaseTest
+import org.projectglow.sql.GlowBaseTest
+import org.projectglow.sql.GlowBaseTest
 
-class PipeTransformerSuite extends HLSBaseTest {
+class PipeTransformerSuite extends GlowBaseTest {
   test("read input and output formatters from service loader") {
     val sess = spark
     import sess.implicits._

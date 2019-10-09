@@ -13,10 +13,10 @@ import org.apache.spark.sql.types.{StringType, StructField}
 
 import org.projectglow.Glow
 import org.projectglow.Glow
-import org.projectglow.sql.HLSBaseTest
-import org.projectglow.sql.HLSBaseTest
+import org.projectglow.sql.GlowBaseTest
+import org.projectglow.sql.GlowBaseTest
 
-class CSVPiperSuite extends HLSBaseTest {
+class CSVPiperSuite extends GlowBaseTest {
   private val saige = s"$testDataHome/saige_output.txt"
   private val csv = s"$testDataHome/no_header.csv"
 

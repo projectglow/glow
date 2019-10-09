@@ -10,7 +10,7 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.sql.types.StructType
 
-import org.projectglow.common.HLSLogging
+import org.projectglow.common.GlowLogging
 
 /**
  * Statistics returned upon performing a likelihood ratio test.
@@ -31,7 +31,7 @@ case class LikelihoodRatioTestStats(
  * The Hail project can be found on Github: https://github.com/hail-is/hail.
  * The Hail project is under an MIT license: https://github.com/hail-is/hail/blob/master/LICENSE.
  */
-object LogisticRegressionGwas extends HLSLogging {
+object LogisticRegressionGwas extends GlowLogging {
   val logitTests: Map[String, LogitTest] = Map("LRT" -> LikelihoodRatioTest)
   val zScore: Double = new NormalDistribution().inverseCumulativeProbability(.975) // Two-sided 95% confidence
 

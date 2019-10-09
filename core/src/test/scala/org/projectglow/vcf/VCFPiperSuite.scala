@@ -17,12 +17,12 @@ import org.projectglow.Glow
 import org.projectglow.common.VCFRow
 import org.projectglow.Glow
 import org.projectglow.common.VCFRow
-import org.projectglow.sql.HLSBaseTest
+import org.projectglow.sql.GlowBaseTest
 import org.projectglow.transformers.pipe.ProcessHelper
-import org.projectglow.sql.HLSBaseTest
+import org.projectglow.sql.GlowBaseTest
 import org.projectglow.transformers.pipe.ProcessHelper
 
-class VCFPiperSuite extends HLSBaseTest {
+class VCFPiperSuite extends GlowBaseTest {
   lazy val sess = spark
   private val na12878 = s"$testDataHome/NA12878_21_10002403.vcf"
   private val TGP = s"$testDataHome/1000genomes-phase3-1row.vcf"

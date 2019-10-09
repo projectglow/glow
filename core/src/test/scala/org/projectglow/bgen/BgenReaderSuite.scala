@@ -12,10 +12,10 @@ import org.apache.spark.sql.types.{ArrayType, StructType}
 
 import org.projectglow.common.{BgenRow, VCFRow, VariantSchemas}
 import org.projectglow.common.{BgenRow, VCFRow, VariantSchemas}
-import org.projectglow.sql.HLSBaseTest
-import org.projectglow.sql.HLSBaseTest
+import org.projectglow.sql.GlowBaseTest
+import org.projectglow.sql.GlowBaseTest
 
-class BgenReaderSuite extends HLSBaseTest {
+class BgenReaderSuite extends GlowBaseTest {
 
   val sourceName = "bgen"
   private val testRoot = s"$testDataHome/bgen"

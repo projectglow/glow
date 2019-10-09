@@ -15,10 +15,10 @@ import org.apache.spark.{SparkConf, SparkException}
 
 import org.projectglow.common.{GenotypeFields, VCFRow}
 import org.projectglow.common.{GenotypeFields, VCFRow}
-import org.projectglow.sql.HLSBaseTest
-import org.projectglow.sql.HLSBaseTest
+import org.projectglow.sql.GlowBaseTest
+import org.projectglow.sql.GlowBaseTest
 
-class VCFDatasourceSuite extends HLSBaseTest {
+class VCFDatasourceSuite extends GlowBaseTest {
 
   val sourceName = "vcf"
 

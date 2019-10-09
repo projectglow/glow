@@ -6,7 +6,7 @@ import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.sql.types.{ArrayType, StructType}
 
 import org.projectglow.common.ConverterUtils._
-import org.projectglow.common.{BgenGenotype, BgenRow, HLSLogging, VariantSchemas}
+import org.projectglow.common.{BgenGenotype, BgenRow, GlowLogging, VariantSchemas}
 import org.projectglow.common.{BgenGenotype, BgenRow, VariantSchemas}
 
 /**
@@ -35,7 +35,7 @@ class InternalRowToBgenRowConverter(
     maxPloidy: Int,
     defaultPloidy: Int,
     defaultPhasing: Boolean)
-    extends HLSLogging {
+    extends GlowLogging {
   import org.projectglow.common.VariantSchemas._
 
   private val genotypeSchema = rowSchema

@@ -8,12 +8,12 @@ import htsjdk.variant.vcf.{VCFCodec, VCFHeader}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.UnsafeProjection
 
-import org.projectglow.common.HLSLogging
-import org.projectglow.common.HLSLogging
+import org.projectglow.common.GlowLogging
+import org.projectglow.common.GlowLogging
 import org.projectglow.transformers.pipe.{OutputFormatter, OutputFormatterFactory}
 import org.projectglow.transformers.pipe.{OutputFormatter, OutputFormatterFactory}
 
-class VCFOutputFormatter extends OutputFormatter with HLSLogging {
+class VCFOutputFormatter extends OutputFormatter with GlowLogging {
   override def makeIterator(stream: InputStream): Iterator[Any] = {
     val codec = new VCFCodec
     val lineIterator = new AsciiLineReaderIterator(AsciiLineReader.from(stream))

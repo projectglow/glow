@@ -15,9 +15,9 @@ import org.apache.spark.sql.execution.datasources.OutputWriter
 import org.apache.spark.sql.types.StructType
 import org.bdgenomics.adam.rdd.VCFMetadataLoader
 
-import org.projectglow.common.HLSLogging
+import org.projectglow.common.GlowLogging
 
-object VCFFileWriter extends HLSLogging {
+object VCFFileWriter extends GlowLogging {
 
   val VCF_HEADER_KEY = "vcfHeader"
   private val INFER_HEADER = "infer"
@@ -86,7 +86,7 @@ class VCFFileWriter(
     stream: OutputStream,
     writeHeader: Boolean)
     extends OutputWriter
-    with HLSLogging {
+    with GlowLogging {
 
   private val DEFAULT_VCF_WRITER_HEADER = "infer"
   private val (headerLineSet, providedSampleIds) =

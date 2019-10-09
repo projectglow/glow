@@ -21,9 +21,9 @@ import picard.util.LiftoverUtils
 import picard.vcf.LiftoverVcf
 
 import org.projectglow.DataFrameTransformer
-import org.projectglow.common.{HLSLogging, VariantSchemas}
+import org.projectglow.common.{GlowLogging, VariantSchemas}
 import org.projectglow.DataFrameTransformer
-import org.projectglow.common.{HLSLogging, VariantSchemas}
+import org.projectglow.common.{GlowLogging, VariantSchemas}
 import org.projectglow.vcf.{InternalRowToVariantContextConverter, VCFSchemaInferrer, VariantContextToInternalRowConverter}
 import org.projectglow.sql.expressions.LiftOverCoordinatesExpr
 import org.projectglow.vcf.{InternalRowToVariantContextConverter, VCFSchemaInferrer, VariantContextToInternalRowConverter}
@@ -116,7 +116,7 @@ class LiftOverVariantsTransformer extends DataFrameTransformer {
   }
 }
 
-object LiftOverVariantsTransformer extends HLSLogging {
+object LiftOverVariantsTransformer extends GlowLogging {
   val liftOverStatusColName = "liftOverStatus"
   val successColName = "success"
   val errorMessageColName = "errorMessage"

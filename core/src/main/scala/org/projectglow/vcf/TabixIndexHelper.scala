@@ -13,7 +13,7 @@ import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.sources.{Filter, _}
 import org.broadinstitute.hellbender.utils.SimpleInterval
 
-import org.projectglow.common.{HLSLogging, WithUtils}
+import org.projectglow.common.{GlowLogging, WithUtils}
 import org.projectglow.common.WithUtils
 
 /** An extended Contig class used by filter parser that keeps an Option(contigName)
@@ -131,7 +131,7 @@ case class ParsedFilterResult(
     endInterval: FilterInterval)
 
 /** Contains filter parsing tools and other tools used to apply tabix index */
-object TabixIndexHelper extends HLSLogging {
+object TabixIndexHelper extends GlowLogging {
 
   /**
    * Parses filters provided by spark sql parser to generate the ParsedFilterResult=(contig,

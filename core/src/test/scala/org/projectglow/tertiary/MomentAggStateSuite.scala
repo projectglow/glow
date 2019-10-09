@@ -1,11 +1,11 @@
 package org.projectglow.tertiary
 
-import org.projectglow.sql.HLSBaseTest
+import org.projectglow.sql.GlowBaseTest
 import org.projectglow.sql.expressions.MomentAggState
-import org.projectglow.sql.HLSBaseTest
+import org.projectglow.sql.GlowBaseTest
 import org.projectglow.sql.expressions.MomentAggState
 
-class MomentAggStateSuite extends HLSBaseTest {
+class MomentAggStateSuite extends GlowBaseTest {
   test("merge") {
     val s1 = MomentAggState(5, 0, 10, 2, 1)
     val s2 = MomentAggState(3, 1, 11, 1, 2)

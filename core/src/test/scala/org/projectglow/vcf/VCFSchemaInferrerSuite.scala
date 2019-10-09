@@ -5,10 +5,10 @@ import org.apache.spark.sql.types._
 
 import org.projectglow.common.VariantSchemas
 import org.projectglow.common.VariantSchemas
-import org.projectglow.sql.HLSBaseTest
-import org.projectglow.sql.HLSBaseTest
+import org.projectglow.sql.GlowBaseTest
+import org.projectglow.sql.GlowBaseTest
 
-class VCFSchemaInferrerSuite extends HLSBaseTest {
+class VCFSchemaInferrerSuite extends GlowBaseTest {
   test("includes base fields") {
     val schema = VCFSchemaInferrer.inferSchema(false, false, Seq.empty, Seq.empty)
     VariantSchemas.vcfBaseSchema.foreach { field =>

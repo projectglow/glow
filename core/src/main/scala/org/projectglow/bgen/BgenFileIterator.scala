@@ -9,7 +9,7 @@ import com.google.common.io.LittleEndianDataInputStream
 import org.apache.commons.math3.util.CombinatoricsUtils
 import org.apache.hadoop.fs.FSDataInputStream
 
-import org.projectglow.common.{BgenGenotype, BgenRow, HLSLogging, VCFRow}
+import org.projectglow.common.{BgenGenotype, BgenRow, GlowLogging, VCFRow}
 import org.projectglow.common.{BgenGenotype, BgenRow, VCFRow}
 
 /**
@@ -42,7 +42,7 @@ private[projectglow] class BgenFileIterator(
     minPos: Long,
     maxPos: Long)
     extends Iterator[BgenRow]
-    with HLSLogging {
+    with GlowLogging {
 
   import BgenFileIterator._
 
@@ -310,7 +310,7 @@ private[projectglow] object BgenFileIterator {
  * according to what the reader currently supports.
  */
 private[projectglow] class BgenHeaderReader(stream: LittleEndianDataInputStream)
-    extends HLSLogging {
+    extends GlowLogging {
 
   def readHeader(sampleIdsOpt: Option[Seq[String]] = None): BgenMetadata = {
     val variantOffset = Integer.toUnsignedLong(stream.readInt()) + 4

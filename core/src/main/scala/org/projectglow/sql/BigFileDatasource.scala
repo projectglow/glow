@@ -13,7 +13,7 @@ import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
 
-import org.projectglow.common.HLSLogging
+import org.projectglow.common.GlowLogging
 
 /**
  * Base class for big file datasources. Handles plumbing that's necessary for all such sources:
@@ -72,7 +72,7 @@ trait BigFileUploader {
   def upload(bytes: RDD[Array[Byte]], path: String): Unit
 }
 
-private[projectglow] object SingleFileWriter extends HLSLogging {
+private[projectglow] object SingleFileWriter extends GlowLogging {
 
   lazy val uploaders: Seq[BigFileUploader] = ServiceLoader
     .load(classOf[BigFileUploader])

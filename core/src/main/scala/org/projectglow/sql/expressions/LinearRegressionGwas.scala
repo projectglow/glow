@@ -7,12 +7,12 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.ArrayData
 import org.netlib.util.{doubleW, intW}
 
-import org.projectglow.common.HLSLogging
-import org.projectglow.common.HLSLogging
+import org.projectglow.common.GlowLogging
+import org.projectglow.common.GlowLogging
 
 case class RegressionStats(beta: Double, standardError: Double, pValue: Double)
 
-object LinearRegressionGwas extends HLSLogging {
+object LinearRegressionGwas extends GlowLogging {
 
   /**
    * Fits a linear regression model to a single variant.

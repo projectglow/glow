@@ -2,9 +2,9 @@ package org.projectglow
 
 import org.apache.spark.sql.DataFrame
 
-import org.projectglow.sql.HLSBaseTest
+import org.projectglow.sql.GlowBaseTest
 
-class GlowSuite extends HLSBaseTest {
+class GlowSuite extends GlowBaseTest {
   test("uses service provider") {
     val sess = spark
     import sess.implicits._

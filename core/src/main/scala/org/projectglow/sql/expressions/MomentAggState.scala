@@ -4,7 +4,7 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 import org.apache.spark.sql.types.{DoubleType, StructField, StructType}
 
-import org.projectglow.common.HLSLogging
+import org.projectglow.common.GlowLogging
 
 /**
  * The state necessary for maintaining moment based aggregations, currently only supported up to m2.
@@ -56,7 +56,7 @@ case class MomentAggState(
   }
 }
 
-object MomentAggState extends HLSLogging {
+object MomentAggState extends GlowLogging {
   val schema = StructType(
     Seq(
       StructField("mean", DoubleType),

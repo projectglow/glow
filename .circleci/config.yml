@@ -30,6 +30,10 @@ jobs:
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             sbt test exit
 
+			- store_artifacts:
+          path: ~/glow/unit-tests.log
+          destination: unit-tests.log
+
       - save_cache:
           paths:
             - /home/circleci/conda

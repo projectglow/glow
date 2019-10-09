@@ -3,13 +3,13 @@ package org.projectglow.transformers.normalizevariants
 import org.apache.spark.SparkConf
 
 import org.projectglow.Glow
-import org.projectglow.common.HLSLogging
+import org.projectglow.common.GlowLogging
 import org.projectglow.Glow
-import org.projectglow.common.HLSLogging
-import org.projectglow.sql.HLSBaseTest
-import org.projectglow.sql.HLSBaseTest
+import org.projectglow.common.GlowLogging
+import org.projectglow.sql.GlowBaseTest
+import org.projectglow.sql.GlowBaseTest
 
-class NormalizeVariantsTransformerSuite extends HLSBaseTest with HLSLogging {
+class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
 
   lazy val sourceName: String = "vcf"
   lazy val testFolder: String = s"$testDataHome/variantnormalizer-test"

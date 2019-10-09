@@ -3,7 +3,7 @@ package org.projectglow.sql
 import java.nio.file.{Files, Path}
 
 // Sanity check that legacy DataSource names starting with "com.databricks." still work
-class ComDatabricksDataSourceSuite extends HLSBaseTest {
+class ComDatabricksDataSourceSuite extends GlowBaseTest {
 
   lazy val vcf = s"$testDataHome/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf"
   lazy val bgen = s"$testDataHome/bgen/example.16bits.bgen"

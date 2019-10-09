@@ -10,7 +10,7 @@ import org.apache.commons.math3.util.CombinatoricsUtils
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
 
-import org.projectglow.common.{BgenRow, HLSLogging}
+import org.projectglow.common.{BgenRow, GlowLogging}
 import org.projectglow.common.BgenRow
 
 /**
@@ -36,7 +36,7 @@ class BgenRecordWriter(
     maxPloidy: Int,
     defaultPloidy: Int,
     defaultPhasing: Boolean)
-    extends HLSLogging {
+    extends GlowLogging {
 
   import BgenRecordWriter._
 

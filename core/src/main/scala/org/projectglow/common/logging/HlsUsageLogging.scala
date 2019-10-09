@@ -4,12 +4,12 @@ import scala.collection.JavaConverters._
 
 import com.google.gson.Gson
 
-import org.projectglow.common.HLSLogging
+import org.projectglow.common.GlowLogging
 
 /**
  * These are trait/objects/case classes to log hls events.
  */
-trait HlsUsageLogging extends HLSLogging {
+trait HlsUsageLogging extends GlowLogging {
 
   protected def recordHlsUsage(
       metric: MetricDefinition,

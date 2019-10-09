@@ -6,9 +6,9 @@ import org.apache.spark.SparkException
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 
-import org.projectglow.sql.HLSBaseTest
+import org.projectglow.sql.GlowBaseTest
 
-class TextPiperSuite extends HLSBaseTest {
+class TextPiperSuite extends GlowBaseTest {
   def pipeText(df: DataFrame): DataFrame = {
     val options =
       Map("inputFormatter" -> "text", "outputFormatter" -> "text", "cmd" -> """["cat", "-"]""")

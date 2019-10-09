@@ -13,8 +13,8 @@ import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, ArrayData, Generic
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
-import org.projectglow.common.{HLSLogging, VariantSchemas}
-import org.projectglow.common.{HLSLogging, VariantSchemas}
+import org.projectglow.common.{GlowLogging, VariantSchemas}
+import org.projectglow.common.{GlowLogging, VariantSchemas}
 import org.projectglow.sql.util.ExpectsGenotypeFields
 
 case class SampleSummaryStatsState(var sampleId: String, var momentAggState: MomentAggState) {
@@ -35,7 +35,7 @@ case class PerSampleSummaryStatistics(
     inputAggBufferOffset: Int = 0)
     extends TypedImperativeAggregate[mutable.ArrayBuffer[SampleSummaryStatsState]]
     with ExpectsGenotypeFields
-    with HLSLogging {
+    with GlowLogging {
 
   override def children: Seq[Expression] = Seq(genotypes)
   override def nullable: Boolean = false

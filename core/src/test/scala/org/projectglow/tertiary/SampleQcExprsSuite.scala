@@ -4,10 +4,10 @@ import org.apache.spark.sql.{DataFrame, Row}
 
 import org.projectglow.common.VCFRow
 import org.projectglow.common.VCFRow
-import org.projectglow.sql.HLSBaseTest
-import org.projectglow.sql.HLSBaseTest
+import org.projectglow.sql.GlowBaseTest
+import org.projectglow.sql.GlowBaseTest
 
-class SampleQcExprsSuite extends HLSBaseTest {
+class SampleQcExprsSuite extends GlowBaseTest {
   lazy val testVcf = s"$testDataHome/1000G.phase3.broad.withGenotypes.chr20.10100000.vcf"
   lazy val na12878 = s"$testDataHome/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf"
   lazy private val sess = {

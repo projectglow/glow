@@ -4,8 +4,8 @@ import com.github.fommil.netlib.LAPACK
 import org.apache.spark.ml.linalg.DenseMatrix
 import org.netlib.util.intW
 
-import org.projectglow.common.HLSLogging
-import org.projectglow.common.HLSLogging
+import org.projectglow.common.GlowLogging
+import org.projectglow.common.GlowLogging
 
 /**
  * Context that can be computed once for all variant sites for a linear regression GWAS analysis.
@@ -26,7 +26,7 @@ case class CovariateQRContext(
   def numCols: Int = numCovariateCols + 1
 }
 
-object ComputeQR extends HLSLogging {
+object ComputeQR extends GlowLogging {
   def computeQR(covariateMatrix: DenseMatrix): CovariateQRContext = {
     require(
       covariateMatrix.numRows > covariateMatrix.numCols,

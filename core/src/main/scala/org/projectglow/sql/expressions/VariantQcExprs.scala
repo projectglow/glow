@@ -7,8 +7,8 @@ import org.apache.spark.sql.catalyst.util.{ArrayData, GenericArrayData}
 import org.apache.spark.sql.catalyst.{InternalRow, ScalaReflection}
 import org.apache.spark.sql.types._
 
-import org.projectglow.common.{HLSLogging, VCFRow, VariantSchemas}
-import org.projectglow.common.{HLSLogging, VCFRow, VariantSchemas}
+import org.projectglow.common.{GlowLogging, VCFRow, VariantSchemas}
+import org.projectglow.common.{GlowLogging, VCFRow, VariantSchemas}
 import org.projectglow.sql.util.LeveneHaldane
 import org.projectglow.sql.util.{ExpectsGenotypeFields, LeveneHaldane}
 
@@ -18,7 +18,7 @@ import org.projectglow.sql.util.{ExpectsGenotypeFields, LeveneHaldane}
  *
  * The functions are exposed to the user as Catalyst expressions.
  */
-object VariantQcExprs extends HLSLogging {
+object VariantQcExprs extends GlowLogging {
 
   /**
    * Performs a two-sided test of the Hardy-Weinberg equilibrium. Returns the expected het frequency

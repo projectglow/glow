@@ -19,11 +19,11 @@ import org.bdgenomics.adam.rdd.VCFMetadataLoader
 
 import org.projectglow.common.{VCFRow, WithUtils}
 import org.projectglow.common.{VCFRow, WithUtils}
-import org.projectglow.sql.HLSBaseTest
-import org.projectglow.sql.HLSBaseTest
+import org.projectglow.sql.GlowBaseTest
+import org.projectglow.sql.GlowBaseTest
 
 abstract class VCFFileWriterSuite(val sourceName: String)
-    extends HLSBaseTest
+    extends GlowBaseTest
     with VCFConverterBaseTest {
 
   lazy val NA12878 = s"$testDataHome/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf"
@@ -399,7 +399,7 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
   }
 }
 
-class VCFWriterUtilsSuite extends HLSBaseTest {
+class VCFWriterUtilsSuite extends GlowBaseTest {
   val vcf = s"$testDataHome/NA12878_21_10002403.vcf"
   lazy val schema = spark.read.format("vcf").load(vcf).schema
 

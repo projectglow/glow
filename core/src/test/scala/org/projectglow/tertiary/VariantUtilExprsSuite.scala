@@ -6,12 +6,12 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{IntegerType, StringType, StructType}
 import org.apache.spark.unsafe.types.UTF8String
 
-import org.projectglow.sql.HLSBaseTest
+import org.projectglow.sql.GlowBaseTest
 import org.projectglow.sql.expressions.{VariantType, VariantUtilExprs}
-import org.projectglow.sql.HLSBaseTest
+import org.projectglow.sql.GlowBaseTest
 import org.projectglow.sql.expressions.{VariantType, VariantUtilExprs}
 
-class VariantUtilExprsSuite extends HLSBaseTest {
+class VariantUtilExprsSuite extends GlowBaseTest {
   case class SimpleGenotypeFields(calls: Seq[Int])
   case class SimpleVariant(genotypes: Seq[SimpleGenotypeFields])
 

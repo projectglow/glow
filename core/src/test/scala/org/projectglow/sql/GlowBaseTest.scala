@@ -5,16 +5,15 @@ import org.apache.spark.sql.test.SharedSparkSession
 import org.apache.spark.{DebugFilesystem, SparkConf}
 import org.scalatest.concurrent.{AbstractPatienceConfiguration, Eventually}
 import org.scalatest.time.{Milliseconds, Seconds, Span}
-import org.scalatest.{FunSuite, Tag}
+import org.scalatest.{Args, FunSuite, Status, Tag}
 
-import org.projectglow.common.{HLSLogging, TestUtils}
-import org.projectglow.common.{HLSLogging, TestUtils}
+import org.projectglow.common.{GlowLogging, TestUtils}
 
-abstract class HLSBaseTest
+abstract class GlowBaseTest
     extends FunSuite
     with SharedSparkSession
-    with HLSLogging
-    with HLSTestData
+    with GlowLogging
+    with GlowTestData
     with TestUtils
     with JenkinsTestPatience {
 
@@ -50,6 +49,17 @@ abstract class HLSBaseTest
   override def afterEach(): Unit = {
     DebugFilesystem.clearOpenStreams()
     super.afterEach()
+  }
+
+  override def runTest(testName: String, args: Args): Status = {
+    logger.info(s"Running test '$testName'")
+    val res = super.runTest(testName, args)
+    if (res.succeeds()) {
+      logger.info(s"Done running test '$testName'")
+    } else {
+      logger.info(s"Done running test '$testName' with a failure")
+    }
+    res
   }
 }
 

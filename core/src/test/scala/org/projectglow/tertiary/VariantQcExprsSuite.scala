@@ -7,10 +7,10 @@ import org.apache.spark.sql.functions._
 
 import org.projectglow.common.{GenotypeFields, VCFRow}
 import org.projectglow.common.{GenotypeFields, VCFRow}
-import org.projectglow.sql.HLSBaseTest
-import org.projectglow.sql.HLSBaseTest
+import org.projectglow.sql.GlowBaseTest
+import org.projectglow.sql.GlowBaseTest
 
-class VariantQcExprsSuite extends HLSBaseTest {
+class VariantQcExprsSuite extends GlowBaseTest {
 
   lazy val testVcf = s"$testDataHome/1kg_sample.vcf"
   lazy private val sess = spark

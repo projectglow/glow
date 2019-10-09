@@ -19,14 +19,14 @@ import org.apache.spark.sql.types.StructType
 import org.skife.jdbi.v2.DBI
 import org.skife.jdbi.v2.util.LongMapper
 
-import org.projectglow.common.{HLSLogging, WithUtils}
+import org.projectglow.common.{GlowLogging, WithUtils}
 import org.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
 import org.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues}
-import org.projectglow.common.{HLSLogging, WithUtils}
+import org.projectglow.common.{GlowLogging, WithUtils}
 import org.projectglow.sql.util.{ComDatabricksDataSource, SerializableConfiguration}
 import org.projectglow.sql.util.{ComDatabricksDataSource, SerializableConfiguration}
 
-class BgenFileFormat extends FileFormat with DataSourceRegister with Serializable with HLSLogging {
+class BgenFileFormat extends FileFormat with DataSourceRegister with Serializable with GlowLogging {
 
   override def shortName(): String = "bgen"
 

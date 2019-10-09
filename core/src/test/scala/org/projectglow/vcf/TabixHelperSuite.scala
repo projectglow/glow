@@ -4,13 +4,13 @@ import org.apache.spark.SparkConf
 import org.apache.spark.sql.sources._
 import org.broadinstitute.hellbender.utils.SimpleInterval
 
-import org.projectglow.common.{HLSLogging, VCFRow}
-import org.projectglow.common.{HLSLogging, VCFRow}
-import org.projectglow.sql.HLSBaseTest
+import org.projectglow.common.{GlowLogging, VCFRow}
+import org.projectglow.common.{GlowLogging, VCFRow}
+import org.projectglow.sql.GlowBaseTest
 import org.projectglow.vcf.TabixIndexHelper._
-import org.projectglow.sql.HLSBaseTest
+import org.projectglow.sql.GlowBaseTest
 
-class TabixHelperSuite extends HLSBaseTest with HLSLogging {
+class TabixHelperSuite extends GlowBaseTest with GlowLogging {
 
   lazy val sourceName: String = "vcf"
   lazy val tabixTestVcf: String = s"$testDataHome/tabix-test-vcf"

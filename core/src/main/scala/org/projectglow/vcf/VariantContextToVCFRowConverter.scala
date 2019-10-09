@@ -8,8 +8,8 @@ import htsjdk.samtools.ValidationStringency
 import htsjdk.variant.variantcontext.{VariantContext => HtsjdkVariantContext}
 import htsjdk.variant.vcf.{VCFConstants, VCFHeader}
 
-import org.projectglow.common.{HLSLogging, VCFRow}
-import org.projectglow.common.{HLSLogging, VCFRow}
+import org.projectglow.common.{GlowLogging, VCFRow}
+import org.projectglow.common.{GlowLogging, VCFRow}
 
 // HTSJDK VariantContext -> VCFRow
 // Based on the HTSJDK classes VCFEncoder and CommonInfo
@@ -50,7 +50,7 @@ class VariantContextToVCFRowConverter(
     vcfHeader: VCFHeader,
     stringency: ValidationStringency = ValidationStringency.LENIENT,
     includeSampleIds: Boolean = true)
-    extends HLSLogging
+    extends GlowLogging
     with Serializable {
 
   private val converter = new VariantContextToInternalRowConverter(

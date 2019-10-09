@@ -5,13 +5,13 @@ import java.nio.file.Paths
 import htsjdk.variant.variantcontext.Allele
 import org.broadinstitute.hellbender.engine.ReferenceDataSource
 
-import org.projectglow.common.HLSLogging
-import org.projectglow.common.HLSLogging
-import org.projectglow.sql.HLSBaseTest
+import org.projectglow.common.GlowLogging
+import org.projectglow.common.GlowLogging
+import org.projectglow.sql.GlowBaseTest
 import org.projectglow.transformers.normalizevariants.VariantNormalizer._
-import org.projectglow.sql.HLSBaseTest
+import org.projectglow.sql.GlowBaseTest
 
-class VariantNormalizerSuite extends HLSBaseTest with HLSLogging {
+class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
 
   lazy val sourceName: String = "vcf"
   lazy val testFolder: String = s"$testDataHome/variantnormalizer-test"

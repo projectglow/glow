@@ -7,7 +7,7 @@ import scala.collection.JavaConverters._
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.catalyst.InternalRow
 
-import org.projectglow.common.HLSLogging
+import org.projectglow.common.GlowLogging
 import org.projectglow.transformers.pipe.{InputFormatter, InputFormatterFactory}
 import org.projectglow.transformers.pipe.{InputFormatter, InputFormatterFactory}
 
@@ -18,7 +18,7 @@ class VCFInputFormatter(
     converter: InternalRowToVariantContextConverter,
     providedSampleIds: Option[Seq[String]])
     extends InputFormatter
-    with HLSLogging {
+    with GlowLogging {
 
   private var writer: VCFStreamWriter = _
   private var stream: OutputStream = _

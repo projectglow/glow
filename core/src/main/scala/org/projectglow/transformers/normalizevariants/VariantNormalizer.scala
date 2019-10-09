@@ -16,12 +16,12 @@ import org.broadinstitute.hellbender.tools.walkers.genotyper.GenotypeAssignmentM
 import org.broadinstitute.hellbender.utils.SimpleInterval
 import org.broadinstitute.hellbender.utils.variant.GATKVariantContextUtils
 
-import org.projectglow.common.HLSLogging
-import org.projectglow.common.HLSLogging
+import org.projectglow.common.GlowLogging
+import org.projectglow.common.GlowLogging
 import org.projectglow.vcf.{InternalRowToVariantContextConverter, VCFFileWriter, VariantContextToInternalRowConverter}
 import org.projectglow.vcf.{InternalRowToVariantContextConverter, VCFFileWriter, VariantContextToInternalRowConverter}
 
-private[projectglow] object VariantNormalizer extends HLSLogging {
+private[projectglow] object VariantNormalizer extends GlowLogging {
 
   /**
    * Normalizes the input DataFrame of variants and outputs them as a Dataframe; Optionally

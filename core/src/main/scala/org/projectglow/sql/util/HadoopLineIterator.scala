@@ -11,8 +11,8 @@ import org.apache.hadoop.mapreduce.lib.input.{FileSplit, LineRecordReader}
 import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl
 import org.apache.spark.sql.execution.datasources.RecordReaderIterator
 
-import org.projectglow.common.HLSLogging
-import org.projectglow.common.HLSLogging
+import org.projectglow.common.GlowLogging
+import org.projectglow.common.GlowLogging
 
 /**
  * Identical to [[org.apache.spark.sql.execution.datasources.HadoopFileLinesReader]], but
@@ -28,7 +28,7 @@ class HadoopLineIterator(
     conf: Configuration)
     extends Iterator[Text]
     with Closeable
-    with HLSLogging {
+    with GlowLogging {
 
   private val iterator = {
     val fileSplit = new FileSplit(
