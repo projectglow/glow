@@ -83,7 +83,7 @@ object VariantSchemas {
   )
 }
 
-private[projectglow] case class GenotypeFields(
+case class GenotypeFields(
     sampleId: Option[String],
     phased: Option[Boolean],
     calls: Option[Seq[Int]],
