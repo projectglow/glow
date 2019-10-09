@@ -21,7 +21,7 @@ class InternalRowToVariantContextConverterSuite extends HLSBaseTest {
   )
 
   gridTest("common schema options pass strict validation")(optionsSeq) { options =>
-    val df = spark.read.format("com.databricks.vcf").options(options).load(NA12878)
+    val df = spark.read.format("vcf").options(options).load(NA12878)
     new InternalRowToVariantContextConverter(
       toggleNullability(df.schema, true),
       headerLines,
