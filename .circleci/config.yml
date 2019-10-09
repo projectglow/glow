@@ -6,7 +6,7 @@ jobs:
       - image: circleci/openjdk:8
     steps:
       - run:
-          command: ls /home/circleci/glow/python
+          command: ls /home/circleci/glow
 
       - restore_cache:
           keys:
