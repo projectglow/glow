@@ -13,7 +13,7 @@ import org.projectglow.core.common.{HLSLogging, VCFRow}
 
 // HTSJDK VariantContext -> VCFRow
 // Based on the HTSJDK classes VCFEncoder and CommonInfo
-private[projectglow] object VariantContextToVCFRowConverter {
+object VariantContextToVCFRowConverter {
 
   def parseObjectAsString(obj: Object): String = {
     obj match {
@@ -46,7 +46,7 @@ private[projectglow] object VariantContextToVCFRowConverter {
 }
 
 // HTSJDK VariantContext -> VCFRow
-private[projectglow] class VariantContextToVCFRowConverter(
+class VariantContextToVCFRowConverter(
     vcfHeader: VCFHeader,
     stringency: ValidationStringency = ValidationStringency.LENIENT,
     includeSampleIds: Boolean = true)

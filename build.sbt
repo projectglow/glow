@@ -7,7 +7,7 @@ val scalaMajorMinor = "2.11"
 
 ThisBuild / scalaVersion := s"$scalaMajorMinor.12"
 ThisBuild / version := "0.1.0-SNAPSHOT"
-ThisBuild / organization := "com.databricks"
+ThisBuild / organization := "org.projectglow"
 ThisBuild / organizationName := "DB / RGC"
 ThisBuild / scalastyleConfig := baseDirectory.value / "scalastyle-config.xml"
 
@@ -61,7 +61,7 @@ lazy val commonSettings = Seq(
 lazy val core = (project in file("core"))
   .settings(
     commonSettings,
-    name := "spark-genomics",
+    name := "glow",
     libraryDependencies ++= Seq(
       "org.apache.spark" %% "spark-catalyst" % sparkVersion % "provided",
       "org.apache.spark" %% "spark-core" % sparkVersion % "provided",
@@ -106,7 +106,7 @@ lazy val python =
     .dependsOn(core % "test->test")
     .settings(
       unmanagedSourceDirectories in Compile := {
-        Seq(baseDirectory.value / "spark_genomics")
+        Seq(baseDirectory.value / "glow")
       },
       test in Test := {
         // Pass the test classpath to pyspark so that we run the same bits as the Scala tests

@@ -83,7 +83,7 @@ object VariantSchemas {
   )
 }
 
-private[projectglow] case class GenotypeFields(
+case class GenotypeFields(
     sampleId: Option[String],
     phased: Option[Boolean],
     calls: Option[Seq[Int]],
@@ -99,7 +99,7 @@ private[projectglow] case class GenotypeFields(
     alleleDepths: Option[Seq[Int]],
     otherFields: scala.collection.Map[String, String])
 
-private[projectglow] object GenotypeFields {
+object GenotypeFields {
   val baseReverseAliases: Map[String, String] = Map(
     "depth" -> "DP",
     "filters" -> "FT",
@@ -121,7 +121,7 @@ private[projectglow] object GenotypeFields {
     ("GT" -> Seq("phased", "calls"))
 }
 
-private[projectglow] case class VCFRow(
+case class VCFRow(
     contigName: String,
     start: Long,
     end: Long,

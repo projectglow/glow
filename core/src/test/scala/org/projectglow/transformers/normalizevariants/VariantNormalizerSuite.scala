@@ -13,7 +13,7 @@ import org.projectglow.sql.HLSBaseTest
 
 class VariantNormalizerSuite extends HLSBaseTest with HLSLogging {
 
-  lazy val sourceName: String = "com.databricks.vcf"
+  lazy val sourceName: String = "vcf"
   lazy val testFolder: String = s"$testDataHome/variantnormalizer-test"
   lazy val vtTestReference = s"$testFolder/20_altered.fasta"
 

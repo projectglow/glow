@@ -1,16 +1,15 @@
 version: 2.1
 jobs:
   test:
-    working_directory: ~/spark-genomics
+    working_directory: ~/glow
     docker:
       - image: circleci/openjdk:8
     steps:
+      - checkout
 
       - restore_cache:
           keys:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}
-
-      - checkout
 
       - run:
           name: install dependencies
@@ -28,7 +27,7 @@ jobs:
           name: run tests
           environment:
           command: |
-            export PATH=$HOME/conda/envs/spark-genomics/bin:$PATH
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
             sbt test exit
 
       - save_cache:
