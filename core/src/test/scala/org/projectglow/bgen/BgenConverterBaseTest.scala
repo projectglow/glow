@@ -1,8 +1,8 @@
 package org.projectglow.bgen
 
 import org.projectglow.common.BgenRow
-import org.projectglow.core.common.BgenRow
-import org.projectglow.core.sql.HLSBaseTest
+import org.projectglow.common.BgenRow
+import org.projectglow.sql.HLSBaseTest
 import org.projectglow.sql.HLSBaseTest
 
 trait BgenConverterBaseTest extends HLSBaseTest {

@@ -6,8 +6,8 @@ import org.apache.spark.sql.AnalysisException
 import org.apache.spark.sql.functions._
 
 import org.projectglow.common.{GenotypeFields, VCFRow}
-import org.projectglow.core.common.{GenotypeFields, VCFRow}
-import org.projectglow.core.sql.HLSBaseTest
+import org.projectglow.common.{GenotypeFields, VCFRow}
+import org.projectglow.sql.HLSBaseTest
 import org.projectglow.sql.HLSBaseTest
 
 class VariantQcExprsSuite extends HLSBaseTest {

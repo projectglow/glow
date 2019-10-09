@@ -7,8 +7,8 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.sources.DataSourceRegister
 
 import org.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
-import org.projectglow.core.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
-import org.projectglow.core.sql.BigFileDatasource
+import org.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
+import org.projectglow.sql.BigFileDatasource
 import org.projectglow.sql.BigFileDatasource
 import org.projectglow.sql.util.ComDatabricksDataSource
 

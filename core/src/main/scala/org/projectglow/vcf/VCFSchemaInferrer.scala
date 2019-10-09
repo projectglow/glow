@@ -7,7 +7,7 @@ import org.apache.commons.lang3.math.NumberUtils
 import org.apache.spark.sql.types._
 
 import org.projectglow.common.{GenotypeFields, VariantSchemas}
-import org.projectglow.core.common.{GenotypeFields, VariantSchemas}
+import org.projectglow.common.{GenotypeFields, VariantSchemas}
 
 /**
  * Infers the schema of a VCF file from its headers.

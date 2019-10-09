@@ -9,8 +9,8 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.UnsafeProjection
 
 import org.projectglow.common.HLSLogging
-import org.projectglow.core.common.HLSLogging
-import org.projectglow.core.transformers.pipe.{OutputFormatter, OutputFormatterFactory}
+import org.projectglow.common.HLSLogging
+import org.projectglow.transformers.pipe.{OutputFormatter, OutputFormatterFactory}
 import org.projectglow.transformers.pipe.{OutputFormatter, OutputFormatterFactory}
 
 class VCFOutputFormatter extends OutputFormatter with HLSLogging {

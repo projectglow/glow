@@ -17,9 +17,9 @@ import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.internal.SQLConf
 
 import org.projectglow.common.VariantSchemas
-import org.projectglow.core.common.VariantSchemas
-import org.projectglow.core.sql.expressions._
-import org.projectglow.core.sql.optimizer.HLSReplaceExpressionsRule
+import org.projectglow.common.VariantSchemas
+import org.projectglow.sql.expressions._
+import org.projectglow.sql.optimizer.HLSReplaceExpressionsRule
 import org.projectglow.sql.expressions.{AddStructFields, ArrayStatsSummary, ArrayToDenseVector, ArrayToSparseVector, CallStats, CallSummaryStats, ExpandStruct, ExplodeMatrix, GenotypeStates, HardCalls, HardyWeinberg, LiftOverCoordinatesExpr, LinearRegressionExpr, LogisticRegressionExpr, PerSampleSummaryStatistics, VectorToArray}
 import org.projectglow.sql.optimizer.HLSReplaceExpressionsRule
 

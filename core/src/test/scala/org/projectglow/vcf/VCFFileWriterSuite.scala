@@ -18,8 +18,8 @@ import org.bdgenomics.adam.rdd.ADAMContext._
 import org.bdgenomics.adam.rdd.VCFMetadataLoader
 
 import org.projectglow.common.{VCFRow, WithUtils}
-import org.projectglow.core.common.{VCFRow, WithUtils}
-import org.projectglow.core.sql.HLSBaseTest
+import org.projectglow.common.{VCFRow, WithUtils}
+import org.projectglow.sql.HLSBaseTest
 import org.projectglow.sql.HLSBaseTest
 
 abstract class VCFFileWriterSuite(val sourceName: String)

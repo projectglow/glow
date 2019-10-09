@@ -6,8 +6,8 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.StructType
 
 import org.projectglow.common.{VariantSchemas, WithUtils}
-import org.projectglow.core.common.{VariantSchemas, WithUtils}
-import org.projectglow.core.sql.util.SerializableConfiguration
+import org.projectglow.common.{VariantSchemas, WithUtils}
+import org.projectglow.sql.util.SerializableConfiguration
 import org.projectglow.sql.util.SerializableConfiguration
 
 /**

@@ -7,8 +7,8 @@ import org.apache.spark.sql.types.{LongType, StringType, StructType}
 import picard.vcf.LiftoverVcf
 
 import org.projectglow.Glow
-import org.projectglow.core.Glow
-import org.projectglow.core.vcf.VCFConverterBaseTest
+import org.projectglow.Glow
+import org.projectglow.vcf.VCFConverterBaseTest
 import org.projectglow.sql.HLSBaseTest
 import org.projectglow.vcf.VCFConverterBaseTest
 

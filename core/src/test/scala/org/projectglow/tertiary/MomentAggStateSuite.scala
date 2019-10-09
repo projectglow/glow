@@ -1,7 +1,7 @@
 package org.projectglow.tertiary
 
-import org.projectglow.core.sql.HLSBaseTest
-import org.projectglow.core.sql.expressions.MomentAggState
+import org.projectglow.sql.HLSBaseTest
+import org.projectglow.sql.expressions.MomentAggState
 import org.projectglow.sql.HLSBaseTest
 import org.projectglow.sql.expressions.MomentAggState
 

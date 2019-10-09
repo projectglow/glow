@@ -10,9 +10,9 @@ import org.apache.spark.sql.sources.DataSourceRegister
 import org.seqdoop.hadoop_bam.util.DatabricksBGZFOutputStream
 
 import org.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
-import org.projectglow.core.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
-import org.projectglow.core.sql.BigFileDatasource
-import org.projectglow.core.sql.util.{ComDatabricksDataSource, SerializableConfiguration}
+import org.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
+import org.projectglow.sql.BigFileDatasource
+import org.projectglow.sql.util.{ComDatabricksDataSource, SerializableConfiguration}
 import org.projectglow.sql.BigFileDatasource
 import org.projectglow.sql.util.{ComDatabricksDataSource, SerializableConfiguration}
 

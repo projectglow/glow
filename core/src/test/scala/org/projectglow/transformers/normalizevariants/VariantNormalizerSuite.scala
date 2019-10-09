@@ -6,9 +6,9 @@ import htsjdk.variant.variantcontext.Allele
 import org.broadinstitute.hellbender.engine.ReferenceDataSource
 
 import org.projectglow.common.HLSLogging
-import org.projectglow.core.common.HLSLogging
-import org.projectglow.core.sql.HLSBaseTest
-import org.projectglow.core.transformers.normalizevariants.VariantNormalizer._
+import org.projectglow.common.HLSLogging
+import org.projectglow.sql.HLSBaseTest
+import org.projectglow.transformers.normalizevariants.VariantNormalizer._
 import org.projectglow.sql.HLSBaseTest
 
 class VariantNormalizerSuite extends HLSBaseTest with HLSLogging {

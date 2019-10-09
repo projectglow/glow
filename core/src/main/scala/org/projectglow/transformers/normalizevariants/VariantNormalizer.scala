@@ -17,8 +17,8 @@ import org.broadinstitute.hellbender.utils.SimpleInterval
 import org.broadinstitute.hellbender.utils.variant.GATKVariantContextUtils
 
 import org.projectglow.common.HLSLogging
-import org.projectglow.core.common.HLSLogging
-import org.projectglow.core.vcf.{InternalRowToVariantContextConverter, VCFFileWriter, VariantContextToInternalRowConverter}
+import org.projectglow.common.HLSLogging
+import org.projectglow.vcf.{InternalRowToVariantContextConverter, VCFFileWriter, VariantContextToInternalRowConverter}
 import org.projectglow.vcf.{InternalRowToVariantContextConverter, VCFFileWriter, VariantContextToInternalRowConverter}
 
 private[projectglow] object VariantNormalizer extends HLSLogging {

@@ -3,7 +3,7 @@ package org.projectglow.transformers.pipe
 import org.apache.spark.sql.DataFrame
 
 import org.projectglow.DataFrameTransformer
-import org.projectglow.core.DataFrameTransformer
+import org.projectglow.DataFrameTransformer
 
 class CleanupPipeTransformer extends DataFrameTransformer {
   override def name: String = "pipe_cleanup"

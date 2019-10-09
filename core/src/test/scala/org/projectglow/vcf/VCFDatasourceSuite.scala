@@ -14,8 +14,8 @@ import org.apache.spark.sql.{DataFrame, Dataset}
 import org.apache.spark.{SparkConf, SparkException}
 
 import org.projectglow.common.{GenotypeFields, VCFRow}
-import org.projectglow.core.common.{GenotypeFields, VCFRow}
-import org.projectglow.core.sql.HLSBaseTest
+import org.projectglow.common.{GenotypeFields, VCFRow}
+import org.projectglow.sql.HLSBaseTest
 import org.projectglow.sql.HLSBaseTest
 
 class VCFDatasourceSuite extends HLSBaseTest {

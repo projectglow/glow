@@ -7,7 +7,7 @@ import org.apache.spark.sql.types.{ArrayType, StructType}
 
 import org.projectglow.common.ConverterUtils._
 import org.projectglow.common.{BgenGenotype, BgenRow, HLSLogging, VariantSchemas}
-import org.projectglow.core.common.{BgenGenotype, BgenRow, VariantSchemas}
+import org.projectglow.common.{BgenGenotype, BgenRow, VariantSchemas}
 
 /**
  * Converts internal rows to BGEN rows. Includes logic to infer phasing and ploidy if missing (eg.

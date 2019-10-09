@@ -1,1 +1,1 @@
-org.projectglow.core.sql.DummyFileUploader
+org.projectglow.sql.DummyFileUploader

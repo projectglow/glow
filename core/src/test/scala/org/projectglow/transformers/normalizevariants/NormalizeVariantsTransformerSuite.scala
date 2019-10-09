@@ -4,9 +4,9 @@ import org.apache.spark.SparkConf
 
 import org.projectglow.Glow
 import org.projectglow.common.HLSLogging
-import org.projectglow.core.Glow
-import org.projectglow.core.common.HLSLogging
-import org.projectglow.core.sql.HLSBaseTest
+import org.projectglow.Glow
+import org.projectglow.common.HLSLogging
+import org.projectglow.sql.HLSBaseTest
 import org.projectglow.sql.HLSBaseTest
 
 class NormalizeVariantsTransformerSuite extends HLSBaseTest with HLSLogging {

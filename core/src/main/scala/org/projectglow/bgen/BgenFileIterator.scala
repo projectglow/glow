@@ -10,7 +10,7 @@ import org.apache.commons.math3.util.CombinatoricsUtils
 import org.apache.hadoop.fs.FSDataInputStream
 
 import org.projectglow.common.{BgenGenotype, BgenRow, HLSLogging, VCFRow}
-import org.projectglow.core.common.{BgenGenotype, BgenRow, VCFRow}
+import org.projectglow.common.{BgenGenotype, BgenRow, VCFRow}
 
 /**
  * Parses variant records of a BGEN file into the [[VCFRow]] schema. The iterator assumes that the

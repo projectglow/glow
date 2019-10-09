@@ -11,7 +11,7 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
 
 import org.projectglow.common.{BgenRow, HLSLogging}
-import org.projectglow.core.common.BgenRow
+import org.projectglow.common.BgenRow
 
 /**
  * Writes BGEN records.

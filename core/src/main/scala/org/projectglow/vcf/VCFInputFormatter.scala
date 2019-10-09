@@ -8,7 +8,7 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.catalyst.InternalRow
 
 import org.projectglow.common.HLSLogging
-import org.projectglow.core.transformers.pipe.{InputFormatter, InputFormatterFactory}
+import org.projectglow.transformers.pipe.{InputFormatter, InputFormatterFactory}
 import org.projectglow.transformers.pipe.{InputFormatter, InputFormatterFactory}
 
 /**

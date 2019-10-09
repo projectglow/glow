@@ -5,9 +5,9 @@ import org.apache.spark.sql.sources._
 import org.broadinstitute.hellbender.utils.SimpleInterval
 
 import org.projectglow.common.{HLSLogging, VCFRow}
-import org.projectglow.core.common.{HLSLogging, VCFRow}
-import org.projectglow.core.sql.HLSBaseTest
-import org.projectglow.core.vcf.TabixIndexHelper._
+import org.projectglow.common.{HLSLogging, VCFRow}
+import org.projectglow.sql.HLSBaseTest
+import org.projectglow.vcf.TabixIndexHelper._
 import org.projectglow.sql.HLSBaseTest
 
 class TabixHelperSuite extends HLSBaseTest with HLSLogging {

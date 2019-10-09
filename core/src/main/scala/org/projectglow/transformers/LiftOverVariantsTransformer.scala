@@ -22,9 +22,9 @@ import picard.vcf.LiftoverVcf
 
 import org.projectglow.DataFrameTransformer
 import org.projectglow.common.{HLSLogging, VariantSchemas}
-import org.projectglow.core.DataFrameTransformer
-import org.projectglow.core.common.{HLSLogging, VariantSchemas}
-import org.projectglow.core.vcf.{InternalRowToVariantContextConverter, VCFSchemaInferrer, VariantContextToInternalRowConverter}
+import org.projectglow.DataFrameTransformer
+import org.projectglow.common.{HLSLogging, VariantSchemas}
+import org.projectglow.vcf.{InternalRowToVariantContextConverter, VCFSchemaInferrer, VariantContextToInternalRowConverter}
 import org.projectglow.sql.expressions.LiftOverCoordinatesExpr
 import org.projectglow.vcf.{InternalRowToVariantContextConverter, VCFSchemaInferrer, VariantContextToInternalRowConverter}
 

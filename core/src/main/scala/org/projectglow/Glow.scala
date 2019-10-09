@@ -7,8 +7,8 @@ import scala.collection.JavaConverters._
 import org.apache.spark.sql.DataFrame
 
 import org.projectglow.common.Named
-import org.projectglow.core.common.Named
-import org.projectglow.core.transformers.util.{SnakeCaseMap, StringUtils}
+import org.projectglow.common.Named
+import org.projectglow.transformers.util.{SnakeCaseMap, StringUtils}
 import org.projectglow.transformers.util.{SnakeCaseMap, StringUtils}
 
 /**

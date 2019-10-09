@@ -5,9 +5,9 @@ import org.apache.spark.sql.Encoders
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.functions.{expr, monotonically_increasing_id}
 
-import org.projectglow.core.sql.HLSBaseTest
-import org.projectglow.core.sql.expressions.{LikelihoodRatioTestStats, LogisticRegressionGwas, NewtonResult}
-import org.projectglow.core.tertiary.RegressionTestUtils._
+import org.projectglow.sql.HLSBaseTest
+import org.projectglow.sql.expressions.{LikelihoodRatioTestStats, LogisticRegressionGwas, NewtonResult}
+import org.projectglow.tertiary.RegressionTestUtils._
 import org.projectglow.sql.HLSBaseTest
 import org.projectglow.sql.expressions.{LikelihoodRatioTestStats, LogisticRegressionGwas, NewtonResult}
 

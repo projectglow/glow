@@ -12,7 +12,7 @@ import org.apache.hadoop.mapreduce.task.TaskAttemptContextImpl
 import org.apache.spark.sql.execution.datasources.RecordReaderIterator
 
 import org.projectglow.common.HLSLogging
-import org.projectglow.core.common.HLSLogging
+import org.projectglow.common.HLSLogging
 
 /**
  * Identical to [[org.apache.spark.sql.execution.datasources.HadoopFileLinesReader]], but

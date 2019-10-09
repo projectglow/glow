@@ -9,7 +9,7 @@ import htsjdk.variant.variantcontext.{VariantContext => HtsjdkVariantContext}
 import htsjdk.variant.vcf.{VCFConstants, VCFHeader}
 
 import org.projectglow.common.{HLSLogging, VCFRow}
-import org.projectglow.core.common.{HLSLogging, VCFRow}
+import org.projectglow.common.{HLSLogging, VCFRow}
 
 // HTSJDK VariantContext -> VCFRow
 // Based on the HTSJDK classes VCFEncoder and CommonInfo

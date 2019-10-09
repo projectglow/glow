@@ -15,10 +15,10 @@ import org.apache.spark.{SparkException, TaskContext}
 
 import org.projectglow.Glow
 import org.projectglow.common.VCFRow
-import org.projectglow.core.Glow
-import org.projectglow.core.common.VCFRow
-import org.projectglow.core.sql.HLSBaseTest
-import org.projectglow.core.transformers.pipe.ProcessHelper
+import org.projectglow.Glow
+import org.projectglow.common.VCFRow
+import org.projectglow.sql.HLSBaseTest
+import org.projectglow.transformers.pipe.ProcessHelper
 import org.projectglow.sql.HLSBaseTest
 import org.projectglow.transformers.pipe.ProcessHelper
 

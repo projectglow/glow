@@ -7,7 +7,7 @@ import htsjdk.variant.variantcontext.{VariantContext => HtsjdkVariantContext}
 import htsjdk.variant.vcf.VCFHeader
 
 import org.projectglow.common.VCFRow
-import org.projectglow.core.common.VCFRow
+import org.projectglow.common.VCFRow
 
 /**
  * VCFRow -> HTSJDK VariantContext

@@ -14,7 +14,7 @@ import org.apache.spark.sql.sources.{Filter, _}
 import org.broadinstitute.hellbender.utils.SimpleInterval
 
 import org.projectglow.common.{HLSLogging, WithUtils}
-import org.projectglow.core.common.WithUtils
+import org.projectglow.common.WithUtils
 
 /** An extended Contig class used by filter parser that keeps an Option(contigName)
  * updated under And and Or operations and provides other required functionalities

@@ -9,8 +9,8 @@ import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.unsafe.types.UTF8String
 
 import org.projectglow.Glow
-import org.projectglow.core.Glow
-import org.projectglow.core.sql.HLSBaseTest
+import org.projectglow.Glow
+import org.projectglow.sql.HLSBaseTest
 import org.projectglow.sql.HLSBaseTest
 
 class PipeTransformerSuite extends HLSBaseTest {

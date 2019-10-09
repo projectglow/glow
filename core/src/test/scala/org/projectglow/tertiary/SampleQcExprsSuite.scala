@@ -3,8 +3,8 @@ package org.projectglow.tertiary
 import org.apache.spark.sql.{DataFrame, Row}
 
 import org.projectglow.common.VCFRow
-import org.projectglow.core.common.VCFRow
-import org.projectglow.core.sql.HLSBaseTest
+import org.projectglow.common.VCFRow
+import org.projectglow.sql.HLSBaseTest
 import org.projectglow.sql.HLSBaseTest
 
 class SampleQcExprsSuite extends HLSBaseTest {

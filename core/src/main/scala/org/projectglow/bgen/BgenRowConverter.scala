@@ -7,7 +7,7 @@ import org.apache.spark.sql.types.{ArrayType, StructType}
 import org.apache.spark.unsafe.types.UTF8String
 
 import org.projectglow.common.{BgenGenotype, BgenRow, HLSLogging, VariantSchemas}
-import org.projectglow.core.common.{BgenGenotype, BgenRow, HLSLogging, VariantSchemas}
+import org.projectglow.common.{BgenGenotype, BgenRow, HLSLogging, VariantSchemas}
 import org.projectglow.sql.util.RowConverter
 
 /**

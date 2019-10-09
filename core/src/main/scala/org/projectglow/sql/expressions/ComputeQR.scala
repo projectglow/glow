@@ -5,7 +5,7 @@ import org.apache.spark.ml.linalg.DenseMatrix
 import org.netlib.util.intW
 
 import org.projectglow.common.HLSLogging
-import org.projectglow.core.common.HLSLogging
+import org.projectglow.common.HLSLogging
 
 /**
  * Context that can be computed once for all variant sites for a linear regression GWAS analysis.

@@ -8,8 +8,8 @@ import org.apache.spark.sql.catalyst.{InternalRow, ScalaReflection}
 import org.apache.spark.sql.types._
 
 import org.projectglow.common.{HLSLogging, VCFRow, VariantSchemas}
-import org.projectglow.core.common.{HLSLogging, VCFRow, VariantSchemas}
-import org.projectglow.core.sql.util.LeveneHaldane
+import org.projectglow.common.{HLSLogging, VCFRow, VariantSchemas}
+import org.projectglow.sql.util.LeveneHaldane
 import org.projectglow.sql.util.{ExpectsGenotypeFields, LeveneHaldane}
 
 /**
@@ -234,7 +234,7 @@ case class HardyWeinberg(genotypes: Expression) extends UnaryExpression with Exp
   override def child: Expression = genotypes
 
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    val fn = "org.projectglow.core.sql.expressions.VariantQcExprs.hardyWeinberg"
+    val fn = "org.projectglow.sql.expressions.VariantQcExprs.hardyWeinberg"
     nullSafeCodeGen(ctx, ev, calls => {
       s"""
          |${ev.value} = $fn($calls, $genotypeStructSize, ${genotypeFieldIndices.head});
@@ -267,7 +267,7 @@ case class CallStats(genotypes: Expression) extends UnaryExpression with Expects
   override def child: Expression = genotypes
 
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    val fn = "org.projectglow.core.sql.expressions.VariantQcExprs.callStats"
+    val fn = "org.projectglow.sql.expressions.VariantQcExprs.callStats"
     nullSafeCodeGen(ctx, ev, calls => {
       s"""
          |${ev.value} = $fn($calls, $genotypeStructSize, ${genotypeFieldIndices.head});
@@ -311,7 +311,7 @@ case class ArrayStatsSummary(array: Expression) extends UnaryExpression with Exp
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
     nullSafeCodeGen(ctx, ev, c => {
       s"""
-         |${ev.value} = org.projectglow.core.sql.expressions.VariantQcExprs.arraySummaryStats($c);
+         |${ev.value} = org.projectglow.sql.expressions.VariantQcExprs.arraySummaryStats($c);
        """.stripMargin
     })
   }

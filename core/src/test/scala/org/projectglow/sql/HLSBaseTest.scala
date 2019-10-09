@@ -8,7 +8,7 @@ import org.scalatest.time.{Milliseconds, Seconds, Span}
 import org.scalatest.{FunSuite, Tag}
 
 import org.projectglow.common.{HLSLogging, TestUtils}
-import org.projectglow.core.common.{HLSLogging, TestUtils}
+import org.projectglow.common.{HLSLogging, TestUtils}
 
 abstract class HLSBaseTest
     extends FunSuite

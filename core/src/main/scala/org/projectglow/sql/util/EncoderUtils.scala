@@ -6,7 +6,7 @@ import org.apache.spark.sql.catalyst.expressions.NamedExpression
 import org.apache.spark.sql.types.StructType
 
 import org.projectglow.common.VCFRow
-import org.projectglow.core.common.VCFRow
+import org.projectglow.common.VCFRow
 
 object EncoderUtils {
 

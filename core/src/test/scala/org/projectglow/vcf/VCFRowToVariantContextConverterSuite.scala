@@ -12,8 +12,8 @@ import org.apache.commons.io.FileUtils
 import org.bdgenomics.adam.rdd.VCFMetadataLoader
 
 import org.projectglow.common.{GenotypeFields, VCFRow}
-import org.projectglow.core.common.{GenotypeFields, VCFRow}
-import org.projectglow.core.sql.HLSBaseTest
+import org.projectglow.common.{GenotypeFields, VCFRow}
+import org.projectglow.sql.HLSBaseTest
 import org.projectglow.sql.HLSBaseTest
 
 class VCFRowToVariantContextConverterSuite extends HLSBaseTest with VCFConverterBaseTest {

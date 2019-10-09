@@ -15,7 +15,7 @@ import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.sql.types.{ArrayType, StructField, StructType}
 
 import org.projectglow.common.{GenotypeFields, HLSLogging, HasStringency, VariantSchemas}
-import org.projectglow.core.common.{GenotypeFields, HLSLogging, HasStringency, VariantSchemas}
+import org.projectglow.common.{GenotypeFields, HLSLogging, HasStringency, VariantSchemas}
 
 /**
  * Converts internal rows with the provided schema into HTSJDK variant context.

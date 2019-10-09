@@ -9,7 +9,7 @@ import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
 import org.projectglow.common.VariantSchemas
-import org.projectglow.core.common.VariantSchemas
+import org.projectglow.common.VariantSchemas
 import org.projectglow.sql.util.ExpectsGenotypeFields
 
 /**
@@ -162,7 +162,7 @@ case class GenotypeStates(genotypes: Expression)
   override def dataType: DataType = ArrayType(IntegerType)
 
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    val fn = "org.projectglow.core.sql.expressions.VariantUtilExprs.genotypeStates"
+    val fn = "org.projectglow.sql.expressions.VariantUtilExprs.genotypeStates"
     nullSafeCodeGen(ctx, ev, calls => {
       s"""
          |${ev.value} = $fn($calls, $genotypeStructSize, ${genotypeFieldIndices.head});

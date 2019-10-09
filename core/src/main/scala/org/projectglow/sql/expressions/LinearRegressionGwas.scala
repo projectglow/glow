@@ -8,7 +8,7 @@ import org.apache.spark.sql.catalyst.util.ArrayData
 import org.netlib.util.{doubleW, intW}
 
 import org.projectglow.common.HLSLogging
-import org.projectglow.core.common.HLSLogging
+import org.projectglow.common.HLSLogging
 
 case class RegressionStats(beta: Double, standardError: Double, pValue: Double)
 

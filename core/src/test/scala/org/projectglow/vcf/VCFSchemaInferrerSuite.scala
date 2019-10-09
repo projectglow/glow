@@ -4,8 +4,8 @@ import htsjdk.variant.vcf._
 import org.apache.spark.sql.types._
 
 import org.projectglow.common.VariantSchemas
-import org.projectglow.core.common.VariantSchemas
-import org.projectglow.core.sql.HLSBaseTest
+import org.projectglow.common.VariantSchemas
+import org.projectglow.sql.HLSBaseTest
 import org.projectglow.sql.HLSBaseTest
 
 class VCFSchemaInferrerSuite extends HLSBaseTest {

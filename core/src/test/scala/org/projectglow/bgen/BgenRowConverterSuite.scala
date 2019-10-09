@@ -3,7 +3,7 @@ package org.projectglow.bgen
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 
 import org.projectglow.common.{BgenGenotype, BgenRow}
-import org.projectglow.core.common.{BgenGenotype, BgenRow}
+import org.projectglow.common.{BgenGenotype, BgenRow}
 
 class BgenRowConverterSuite extends BgenConverterBaseTest {
 

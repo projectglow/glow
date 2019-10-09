@@ -29,9 +29,9 @@ import org.seqdoop.hadoop_bam.util.{BGZFEnhancedGzipCodec, DatabricksBGZFOutputS
 
 import org.projectglow.common.{HLSLogging, VCFRow, WithUtils}
 import org.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
-import org.projectglow.core.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
-import org.projectglow.core.common.{HLSLogging, VCFRow, WithUtils}
-import org.projectglow.core.sql.util.{ComDatabricksDataSource, HadoopLineIterator, SerializableConfiguration}
+import org.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
+import org.projectglow.common.{HLSLogging, VCFRow, WithUtils}
+import org.projectglow.sql.util.{ComDatabricksDataSource, HadoopLineIterator, SerializableConfiguration}
 import org.projectglow.sql.util.{ComDatabricksDataSource, HadoopLineIterator, SerializableConfiguration}
 
 class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HlsUsageLogging {
@@ -235,7 +235,7 @@ object VCFFileFormat {
   def hadoopConfWithBGZ(conf: Configuration): Configuration = {
     val toReturn = new Configuration(conf)
     val bgzCodecs = Seq(
-      "org.projectglow.core.sql.util.BGZFCodec",
+      "org.projectglow.sql.util.BGZFCodec",
       "org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec"
     )
     val codecs = toReturn
