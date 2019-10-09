@@ -45,7 +45,7 @@ object VariantContextToVCFRowConverter {
 }
 
 // HTSJDK VariantContext -> VCFRow
-private[projectglow] class VariantContextToVCFRowConverter(
+class VariantContextToVCFRowConverter(
     vcfHeader: VCFHeader,
     stringency: ValidationStringency = ValidationStringency.LENIENT,
     includeSampleIds: Boolean = true)
