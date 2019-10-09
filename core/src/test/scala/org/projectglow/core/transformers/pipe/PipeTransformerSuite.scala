@@ -27,18 +27,20 @@ class PipeTransformerSuite extends HLSBaseTest {
   }
 
   test("cleanup") {
-    sparkContext.getPersistentRDDs.values.foreach(_.unpersist(true))
     val sess = spark
+    val sc = sess.sparkContext
+
+    sc.getPersistentRDDs.values.foreach(_.unpersist(true))
     import sess.implicits._
     val df = Seq("dolphin").toDF.repartition(1)
     df.rdd.cache()
     val options =
       Map("inputFormatter" -> "dummy_in", "outputFormatter" -> "dummy_out", "cmd" -> """["cat"]""")
     new PipeTransformer().transform(df, options)
-    assert(sparkContext.getPersistentRDDs.size == 2)
+    assert(sc.getPersistentRDDs.size == 2)
     Glow.transform("pipe_cleanup", df, Map.empty[String, String])
     eventually {
-      assert(sparkContext.getPersistentRDDs.size == 1) // Should cleanup the RDD cached by piping
+      assert(sc.getPersistentRDDs.size == 1) // Should cleanup the RDD cached by piping
     }
   }
 }

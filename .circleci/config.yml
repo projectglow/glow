@@ -5,14 +5,11 @@ jobs:
     docker:
       - image: circleci/openjdk:8
     steps:
-      - run:
-          command: ls /home/circleci/glow
+      - checkout
 
       - restore_cache:
           keys:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}
-
-      - checkout
 
       - run:
           name: install dependencies
