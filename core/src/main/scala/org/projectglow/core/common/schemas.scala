@@ -99,7 +99,7 @@ case class GenotypeFields(
     alleleDepths: Option[Seq[Int]],
     otherFields: scala.collection.Map[String, String])
 
-private[projectglow] object GenotypeFields {
+object GenotypeFields {
   val baseReverseAliases: Map[String, String] = Map(
     "depth" -> "DP",
     "filters" -> "FT",
