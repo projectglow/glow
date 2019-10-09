@@ -3,7 +3,7 @@ package org.projectglow.sql;
 import org.apache.spark.sql.catalyst.util.GenericArrayData;
 import org.apache.spark.unsafe.types.UTF8String;
 
-public class HLSFunctions {
+public class Functions {
     public static GenericArrayData asciiCharSplit(UTF8String str, UTF8String split) {
          java.util.List<UTF8String> output = new java.util.ArrayList<>();
          int start = 0;
