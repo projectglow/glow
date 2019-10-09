@@ -9,8 +9,8 @@ jobs:
       - checkout
 
       - restore_cache:
-      keys:
-        - conda-deps-v1-{{ checksum "python/environment.yml" }}
+          keys:
+            - conda-deps-v1-{{ checksum "python/environment.yml" }}
 
       - run:
           name: install dependencies
