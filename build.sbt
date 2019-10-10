@@ -172,6 +172,7 @@ ThisBuild / pomIncludeRepository := { _ =>
 ThisBuild / publishMavenStyle := true
 
 ThisBuild / bintrayOrganization := Some("projectglow")
+ThisBuild / bintrayRepository := "glow"
 
 import ReleaseTransformations._
 
