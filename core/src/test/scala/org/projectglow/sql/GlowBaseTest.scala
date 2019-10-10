@@ -1,5 +1,6 @@
 package org.projectglow.sql
 
+import htsjdk.samtools.util.Log
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.test.SharedSparkSession
 import org.apache.spark.{DebugFilesystem, SparkConf}
@@ -36,6 +37,7 @@ abstract class GlowBaseTest
     val session = super.createSparkSession
     SqlExtensionProvider.register(session)
     SparkSession.setActiveSession(session)
+    Log.setGlobalLogLevel(Log.LogLevel.ERROR)
     session
   }
 
