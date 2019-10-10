@@ -16,7 +16,7 @@ import io.projectglow.transformers.util.{SnakeCaseMap, StringUtils}
  * We should expose as little functionality as is necessary through this object and should prefer
  * generic methods with stringly-typed arguments to reduce language-specific maintenance burden.
  */
-class Glow {
+class GlowBase {
 
   /**
    * Apply a named transformation to a DataFrame of genomic data. All parameters apart from the
@@ -58,7 +58,7 @@ class Glow {
     .load(classOf[DataFrameTransformer])
 }
 
-object Glow extends Glow
+object Glow extends GlowBase
 
 trait DataFrameTransformer extends Named {
   def transform(df: DataFrame, options: Map[String, String]): DataFrame
