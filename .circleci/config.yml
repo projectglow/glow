@@ -5,6 +5,7 @@ jobs:
     docker:
       - image: circleci/openjdk:8
     steps:
+      - checkout
 
       - checkout
 
@@ -30,6 +31,10 @@ jobs:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             sbt test exit
+
+      - store_artifacts:
+          path: ~/glow/unit-tests.log
+          destination: unit-tests.log
 
       - save_cache:
           paths:

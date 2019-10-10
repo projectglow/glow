@@ -1,11 +1,11 @@
 # Standard file formats
-com.databricks.bgen.BgenFileFormat
-com.databricks.bgen.BigBgenDatasource
-com.databricks.vcf.BigVCFDatasource
-com.databricks.vcf.VCFFileFormat
+io.projectglow.bgen.BgenFileFormat
+io.projectglow.bgen.BigBgenDatasource
+io.projectglow.vcf.BigVCFDatasource
+io.projectglow.vcf.VCFFileFormat
 
 # Legacy file formats
-com.databricks.bgen.ComDatabricksBgenFileFormat
-com.databricks.bgen.ComDatabricksBigBgenDatasource
-com.databricks.vcf.ComDatabricksBigVCFDatasource
-com.databricks.vcf.ComDatabricksVCFFileFormat
+io.projectglow.bgen.ComDatabricksBgenFileFormat
+io.projectglow.bgen.ComDatabricksBigBgenDatasource
+io.projectglow.vcf.ComDatabricksBigVCFDatasource
+io.projectglow.vcf.ComDatabricksVCFFileFormat

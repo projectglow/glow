@@ -27,3 +27,4 @@ docs/build
 
 # ADAM logs
 adam.log
+unit-tests.log
