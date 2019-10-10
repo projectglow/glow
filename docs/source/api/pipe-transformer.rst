@@ -119,4 +119,4 @@ The following options are not supported:
  - ``path`` options are ignored
  - The ``parserLib`` option is ignored. ``univocity`` is always used as the CSV parsing library.
 
-.. notebook:: pipe-transformer.html
+.. notebook:: ../_static/notebooks/pipe-transformer.html
