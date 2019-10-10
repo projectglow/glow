@@ -6,7 +6,7 @@ import os
 import logging
 
 NOTEBOOK_FILES = []
-OUT_DIR = ''
+NOTEBOOK_ROOT = ''
 
 def get_nb_size(nb_name):
     raw_path = os.path.abspath("_static/notebooks") + "/" + nb_name
@@ -92,6 +92,7 @@ Try to make this smaller.
         node_id = nodes.make_id(raw_file_name)
 
         url_encoded_file_path = urllib.parse.quote(raw_file_path, "/+")
+        notebook_url = os.path.join(NOTEBOOK_ROOT, url_encoded_file_path)
         nb_size = get_nb_size(raw_file_path)
         id_hash = hash(raw_file_path)
 
@@ -101,7 +102,7 @@ Try to make this smaller.
     <a style='float:right' href="{{ pathto('_static/notebooks/{url}', 1) }}">Get notebook link</a></p>
     <div class='embedded-notebook-container'>
         <div class='loading-spinner'></div>
-        <iframe src="{{ pathto('_static/notebooks/{url}', 1) }}" id='{id}' height="{h}" width="{w}" style="overflow-y:hidden;" scrolling="no"></iframe>
+        <iframe src="{url}', 1) }}" id='{id}' height="{h}" width="{w}" style="overflow-y:hidden;" scrolling="no"></iframe>
     </div>
 </div>
 """.format(id=id_hash, url=url_encoded_file_path, h=height, w=width)
@@ -126,12 +127,16 @@ Try to make this smaller.
 
 def setup(app):
     global NOTEBOOK_FILES
+    global NOTEBOOK_ROOT
 
     # could make this a recursive search through sub-directories
     path = os.path.abspath("_static/notebooks")
     NOTEBOOK_FILES = [os.path.join(dp, f) for dp, dn, fn in os.walk(path) for f in fn] # get all
     NOTEBOOK_FILES = [x[len(path) + 1:] for x in NOTEBOOK_FILES] # remove beginning string
     print("Notebooks at " + path + ": " + ", ".join(NOTEBOOK_FILES))
+
+    NOTEBOOK_ROOT = os.path.join(app.config.html_baseurl, '_static/notebooks')
+    print("Notebook root at " + NOTEBOOK_ROOT)
 
     app.add_node(embedded_notebook, html=(visit_notebook_node, depart_notebook_node), latex=(lambda x, y: "", lambda x, y: ""))
     app.add_directive("notebook", Notebook)
