@@ -8,7 +8,7 @@ import logging
 NOTEBOOK_FILES = []
 
 def get_nb_size(nb_name):
-    raw_path = os.path.abspath("./source/_static/notebooks") + "/" + nb_name
+    raw_path = os.path.abspath("_static/notebooks") + "/" + nb_name
     return os.path.getsize(raw_path)
 
 class embedded_notebook(nodes.Special, nodes.Inline, nodes.PreBibliographic, nodes.FixedTextElement):
@@ -91,7 +91,7 @@ Try to make this smaller.
         node_id = nodes.make_id(raw_file_name)
 
         url_encoded_file_path = urllib.parse.quote(raw_file_path, "/+")
-        notebook_url = os.path.abspath("./source/_static/notebooks") + "/" + url_encoded_file_path
+        notebook_url = os.path.abspath("_static/notebooks") + "/" + url_encoded_file_path
         nb_size = get_nb_size(raw_file_path)
         id_hash = hash(raw_file_path)
 
@@ -127,7 +127,7 @@ Try to make this smaller.
 def setup(app):
     global NOTEBOOK_FILES
     # could make this a recursive search through sub-directories
-    path = "./source/_static/notebooks"
+    path = "_static/notebooks"
     NOTEBOOK_FILES = [os.path.join(dp, f) for dp, dn, fn in os.walk(path) for f in fn] # get all
     NOTEBOOK_FILES = [x[len(path) + 1:] for x in NOTEBOOK_FILES] # remove beginning string
     print("Notebooks at " + os.path.abspath(path) + ": " + ", ".join(NOTEBOOK_FILES))
