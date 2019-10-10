@@ -98,7 +98,7 @@ Try to make this smaller.
         if nb_size < 1000000 and not force_inline:
             raw_contents = """
 <div class='embedded-notebook'>
-    <a style='float:right' href="{url}">Get notebook link</a></p>
+    <a style='float:right' href="{{ pathto('_static/notebooks/{url}', 1) }}">Get notebook link</a></p>
     <div class='embedded-notebook-container'>
         <div class='loading-spinner'></div>
         <iframe src="{{ pathto('_static/notebooks/{url}', 1) }}" id='{id}' height="{h}" width="{w}" style="overflow-y:hidden;" scrolling="no"></iframe>
