@@ -25,6 +25,6 @@ docs/build
 *.iml
 .idea
 
-# ADAM logs
+# Logs
 adam.log
 unit-tests.log

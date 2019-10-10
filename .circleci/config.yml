@@ -7,8 +7,6 @@ jobs:
     steps:
       - checkout
 
-      - checkout
-
       - restore_cache:
           keys:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}
