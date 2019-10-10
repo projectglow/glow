@@ -14,20 +14,6 @@ import org.projectglow.sql.GlowBaseTest
 import org.projectglow.sql.GlowBaseTest
 
 class PipeTransformerSuite extends GlowBaseTest {
-  test("read input and output formatters from service loader") {
-    val sess = spark
-    import sess.implicits._
-
-    val df = Seq("dolphin").toDF.repartition(1)
-    val options =
-      Map("inputFormatter" -> "dummy_in", "outputFormatter" -> "dummy_out", "cmd" -> """["cat"]""")
-    val output = new PipeTransformer().transform(df, options)
-    assert(output.count() == 1)
-    assert(output.schema.length == 1)
-    assert(output.schema.exists(f => f.name == "animal" && f.dataType == StringType))
-    assert(output.where("animal = 'monkey'").count() == 1)
-  }
-
   test("cleanup") {
     sparkContext.getPersistentRDDs.values.foreach(_.unpersist(true))
     val sess = spark
@@ -42,6 +28,20 @@ class PipeTransformerSuite extends GlowBaseTest {
     eventually {
       assert(sparkContext.getPersistentRDDs.size == 1) // Should cleanup the RDD cached by piping
     }
+  }
+
+  test("read input and output formatters from service loader") {
+    val sess = spark
+    import sess.implicits._
+
+    val df = Seq("dolphin").toDF.repartition(1)
+    val options =
+      Map("inputFormatter" -> "dummy_in", "outputFormatter" -> "dummy_out", "cmd" -> """["cat"]""")
+    val output = new PipeTransformer().transform(df, options)
+    assert(output.count() == 1)
+    assert(output.schema.length == 1)
+    assert(output.schema.exists(f => f.name == "animal" && f.dataType == StringType))
+    assert(output.where("animal = 'monkey'").count() == 1)
   }
 }
 
