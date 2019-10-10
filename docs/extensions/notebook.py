@@ -1,10 +1,6 @@
 from docutils import nodes
 from docutils.parsers import rst
 from docutils.parsers.rst import directives
-import urllib
-import os
-import logging
-import glob
 
 class embedded_notebook(nodes.Special, nodes.Inline, nodes.PreBibliographic, nodes.FixedTextElement):
     pass
