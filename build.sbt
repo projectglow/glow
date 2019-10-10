@@ -171,7 +171,7 @@ ThisBuild / pomIncludeRepository := { _ =>
 }
 ThisBuild / publishMavenStyle := true
 
-ThisBuild / bintrayOrganization := Some("databricks")
+ThisBuild / bintrayOrganization := Some("projectglow")
 
 import ReleaseTransformations._
 
