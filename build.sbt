@@ -120,6 +120,7 @@ lazy val core = (project in file("core"))
     commonSettings,
     name := "glow",
     publish / skip := false,
+    bintrayRepository := "glow",
     libraryDependencies ++= dependencies,
     // Fix versions of libraries that are depended on multiple times
     dependencyOverrides ++= Seq(
