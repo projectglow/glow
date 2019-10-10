@@ -9,3 +9,4 @@ adam.log
 *.pyc
 .DS_Store
 docs/build
+unit-tests.log
