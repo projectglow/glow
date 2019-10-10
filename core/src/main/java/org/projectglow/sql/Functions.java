@@ -1,4 +1,4 @@
-package org.projectglow.sql;
+package io.projectglow.sql;
 
 import org.apache.spark.sql.catalyst.util.GenericArrayData;
 import org.apache.spark.unsafe.types.UTF8String;

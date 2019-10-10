@@ -1,3 +1,0 @@
-org.projectglow.transformers.pipe.CSVOutputFormatterFactory
-org.projectglow.transformers.pipe.UTF8TextOutputFormatterFactory
-org.projectglow.vcf.VCFOutputFormatterFactory
