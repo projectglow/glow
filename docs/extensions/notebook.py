@@ -130,6 +130,6 @@ def setup(app):
     path = "../source/_static/notebooks"
     NOTEBOOK_FILES = [os.path.join(dp, f) for dp, dn, fn in os.walk(path) for f in fn] # get all
     NOTEBOOK_FILES = [x[len(path) + 1:] for x in NOTEBOOK_FILES] # remove beginning string
-    print("Notebooks files at " + os.path.abspath(path) + ": " + NOTEBOOK_FILES)
+    print("Notebooks files at " + os.path.abspath(path) + ": " + ", ".join(NOTEBOOK_FILES))
     app.add_node(embedded_notebook, html=(visit_notebook_node, depart_notebook_node), latex=(lambda x, y: "", lambda x, y: ""))
     app.add_directive("notebook", Notebook)
