@@ -1,7 +1,7 @@
 Python API
 ==========
 
-.. automodule:: db_genomics.dbg
+.. automodule:: glow.glow
     :members:
     :undoc-members:
     :show-inheritance:
