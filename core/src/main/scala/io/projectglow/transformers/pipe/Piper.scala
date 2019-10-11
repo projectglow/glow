@@ -11,8 +11,7 @@ import org.apache.spark.TaskContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
-import org.apache.spark.sql.{DataFrame, SQLUtils}
-
+import org.apache.spark.sql.{DataFrame, SQLUtils, SparkSession}
 import io.projectglow.common.GlowLogging
 
 /**
@@ -25,7 +24,15 @@ private[projectglow] object Piper extends GlowLogging {
   private val cachedRdds = mutable.ListBuffer[RDD[_]]()
 
   def clearCache(): Unit = cachedRdds.synchronized {
-    cachedRdds.foreach(_.unpersist())
+    SparkSession.getActiveSession match {
+      case None => // weird
+      case Some(spark) =>
+        cachedRdds.foreach { rdd =>
+          if (rdd.sparkContext == spark.sparkContext) {
+            rdd.unpersist()
+          }
+        }
+    }
     cachedRdds.clear()
   }
 
