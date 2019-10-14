@@ -7,9 +7,12 @@ val scalaMajorMinor = "2.11"
 
 ThisBuild / scalaVersion := s"$scalaMajorMinor.12"
 ThisBuild / version := "0.1.0-SNAPSHOT"
-ThisBuild / organization := "org.projectglow"
-ThisBuild / organizationName := "DB / RGC"
+ThisBuild / organization := "io.projectglow"
 ThisBuild / scalastyleConfig := baseDirectory.value / "scalastyle-config.xml"
+
+ThisBuild / organizationName := "The Glow Authors"
+ThisBuild / startYear := Some(2019)
+ThisBuild / licenses += ("Apache-2.0", new URL("https://www.apache.org/licenses/LICENSE-2.0.txt"))
 
 // Compile Java sources before Scala sources, so Scala code can depend on Java
 // but not vice versa
@@ -46,6 +49,8 @@ lazy val commonSettings = Seq(
   test in Test := ((test in Test) dependsOn mainScalastyle).value,
   test in Test := ((test in Test) dependsOn testScalastyle).value,
   test in Test := ((test in Test) dependsOn scalafmtCheckAll).value,
+  test in Test := ((test in Test) dependsOn (headerCheck in Compile)).value,
+  test in Test := ((test in Test) dependsOn (headerCheck in Test)).value,
   test in assembly := {},
   assemblyMergeStrategy in assembly := {
     // Assembly jar is not executable
@@ -56,7 +61,7 @@ lazy val commonSettings = Seq(
       MergeStrategy.first
   },
   scalacOptions += "-target:jvm-1.8"
-)
+  )
 
 lazy val core = (project in file("core"))
   .settings(
