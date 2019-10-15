@@ -2,7 +2,7 @@ from setuptools import setup
 
 setup(
     name='glowpy',
-    version='1.0.4',
+    version='0.1.0',
     packages=['glow'],
     install_requires=[
         'typeguard==2.5.0',
