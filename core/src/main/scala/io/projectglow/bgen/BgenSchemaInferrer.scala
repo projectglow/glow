@@ -17,7 +17,7 @@
 package io.projectglow.bgen
 
 import com.google.common.io.LittleEndianDataInputStream
-import org.apache.hadoop.fs.FileStatus
+import org.apache.hadoop.fs.{FileStatus, Path}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.StructType
 
