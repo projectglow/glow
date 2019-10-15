@@ -40,4 +40,4 @@ Each of these functions returns a map from sample ID to a struct containing metr
     - ``genotypes`` array with a ``conditionalQuality`` field
     - A struct with ``min``, ``max``, ``mean``, and ``stddev``
 
-.. notebook:: sample-qc-demo.html
+.. notebook:: ../_static/notebooks/sample-qc-demo.html

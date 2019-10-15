@@ -6,11 +6,14 @@ val sparkVersion = "2.4.3"
 val scalaMajorMinor = "2.11"
 
 ThisBuild / scalaVersion := s"$scalaMajorMinor.12"
-ThisBuild / version := "0.1.0"
-ThisBuild / organization := "org.projectglow"
-ThisBuild / organizationName := "DB / RGC"
+ThisBuild / version := "0.1.0-SNAPSHOT"
+ThisBuild / organization := "io.projectglow"
 ThisBuild / scalastyleConfig := baseDirectory.value / "scalastyle-config.xml"
 ThisBuild / publish / skip := true
+
+ThisBuild / organizationName := "The Glow Authors"
+ThisBuild / startYear := Some(2019)
+ThisBuild / licenses += ("Apache-2.0", new URL("https://www.apache.org/licenses/LICENSE-2.0.txt"))
 
 // Compile Java sources before Scala sources, so Scala code can depend on Java
 // but not vice versa
@@ -47,6 +50,8 @@ lazy val commonSettings = Seq(
   test in Test := ((test in Test) dependsOn mainScalastyle).value,
   test in Test := ((test in Test) dependsOn testScalastyle).value,
   test in Test := ((test in Test) dependsOn scalafmtCheckAll).value,
+  test in Test := ((test in Test) dependsOn (headerCheck in Compile)).value,
+  test in Test := ((test in Test) dependsOn (headerCheck in Test)).value,
   test in assembly := {},
   assemblyMergeStrategy in assembly := {
     // Assembly jar is not executable
@@ -159,9 +164,7 @@ lazy val python =
 
 // Publish to Bintray
 ThisBuild / description := "Glow: Genomics on Apache Spark"
-ThisBuild / licenses := List(
-  "Apache-2.0" -> new URL("http://www.apache.org/licenses/LICENSE-2.0.txt"))
-ThisBuild / homepage := Some(url("https://github.com/projectglow/glow"))
+ThisBuild / homepage := Some(url("http://projectglow.io"))
 ThisBuild / scmInfo := Some(
   ScmInfo(
     url("https://github.com/projectglow/glow"),

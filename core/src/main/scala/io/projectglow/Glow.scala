@@ -1,3 +1,19 @@
+/*
+ * Copyright 2019 The Glow Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.projectglow
 
 import java.util.ServiceLoader
@@ -16,7 +32,7 @@ import io.projectglow.transformers.util.{SnakeCaseMap, StringUtils}
  * We should expose as little functionality as is necessary through this object and should prefer
  * generic methods with stringly-typed arguments to reduce language-specific maintenance burden.
  */
-object Glow {
+class GlowBase {
 
   /**
    * Apply a named transformation to a DataFrame of genomic data. All parameters apart from the
@@ -57,6 +73,8 @@ object Glow {
   private val transformerLoader = ServiceLoader
     .load(classOf[DataFrameTransformer])
 }
+
+object Glow extends GlowBase
 
 trait DataFrameTransformer extends Named {
   def transform(df: DataFrame, options: Map[String, String]): DataFrame

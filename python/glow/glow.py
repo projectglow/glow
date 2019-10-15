@@ -25,7 +25,7 @@ def transform(operation: str, df: DataFrame, arg_map: Dict[str, str]=None,
     assert check_argument_types()
 
     sc = SparkContext.getOrCreate(0)
-    transform_fn = SparkContext._jvm.org.projectglow.Glow.transform
+    transform_fn = SparkContext._jvm.io.projectglow.Glow.transform
     args = arg_map if arg_map is not None else kwargs
     output_jdf = transform_fn(operation, df._jdf, args)
     output_df = DataFrame(output_jdf, SQLContext.getOrCreate(sc))
