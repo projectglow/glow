@@ -14,5 +14,4 @@ Perform population-scale statistical analyses of genetic variants.
    variant-normalization
    saige
    pandas-udf
-   hail
    regression-tests

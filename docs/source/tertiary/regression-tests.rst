@@ -2,7 +2,7 @@
 Genome-wide Association Study Regression Tests
 ==============================================
 
-|DBR| 6.0 HLS and above contain functions for performing simple regression analyses used in
+Glow contains functions for performing simple regression analyses used in
 genome-wide association studies (GWAS).
 
 Linear regression
@@ -21,7 +21,7 @@ Example
   import numpy as np
 
   # Read in VCF file
-  df = spark.read.format('com.databricks.vcf')\
+  df = spark.read.format('vcf')\
     .option("splitToBiallelic", True)\
     .load('/databricks-datasets/genomics/1kg-vcfs')\
     .limit(10).cache()
@@ -100,9 +100,9 @@ of the covariate matrix is computed once and reused for each (``genotypes``, ``p
 Example notebook and blog post
 ------------------------------
 
-The Databricks blog contains
-`a detailed example and explanation <https://databricks.com/blog/2019/09/20/engineering-population-scale-genome-wide-association-studies-with-apache-spark-delta-lake-and-mlflow.html>`_
-of a GWAS workflow.
+
+A detailed example and explanation of a GWAS workflow is available `here <https://databricks.com/blog/2019/09/20/engineering-population-scale-genome-wide-association-studies-with-apache-spark-delta-lake-and-mlflow.html>`_.
+
 
 
 .. notebook:: ../_static/notebooks/tertiary/gwas.html

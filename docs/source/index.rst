@@ -8,4 +8,4 @@ Glow is an open-source genomic data analysis tool using `Apache Spark <https://s
 
    etl/index
    tertiary/index
-   modules
+.. modules

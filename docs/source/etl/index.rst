@@ -1,9 +1,9 @@
 .. meta::
   :description: Learn about using pre-packaged pipelines contained in |DBR| for Health and Life Sciences.
 
-======================================
-Variant Data ETL, Manipulation, and QC
-======================================
+=========================
+Variant Data Manipulation
+=========================
 
 Glow offers functionalities to perform genomic variant data ETL, manipulation, and quality control.
 
