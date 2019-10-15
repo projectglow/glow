@@ -9,6 +9,7 @@ ThisBuild / scalaVersion := s"$scalaMajorMinor.12"
 ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / organization := "io.projectglow"
 ThisBuild / scalastyleConfig := baseDirectory.value / "scalastyle-config.xml"
+ThisBuild / publish / skip := true
 
 ThisBuild / organizationName := "The Glow Authors"
 ThisBuild / startYear := Some(2019)
@@ -61,48 +62,78 @@ lazy val commonSettings = Seq(
       MergeStrategy.first
   },
   scalacOptions += "-target:jvm-1.8"
-  )
+)
+
+lazy val dependencies = Seq(
+  "org.apache.spark" %% "spark-catalyst" % sparkVersion % "provided",
+  "org.apache.spark" %% "spark-core" % sparkVersion % "provided",
+  "org.apache.spark" %% "spark-mllib" % sparkVersion % "provided",
+  "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
+  "org.seqdoop" % "hadoop-bam" % "7.9.1",
+  "log4j" % "log4j" % "1.2.17",
+  "org.slf4j" % "slf4j-api" % "1.7.16",
+  "org.slf4j" % "slf4j-log4j12" % "1.7.16",
+  "org.jdbi" % "jdbi" % "2.63.1",
+  "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
+  // Exclude extraneous GATK dependencies
+  ("org.broadinstitute" % "gatk" % "4.0.11.0")
+    .exclude("biz.k11i", "xgboost-predictor")
+    .exclude("com.esotericsoftware", "kryo")
+    .exclude("com.esotericsoftware", "reflectasm")
+    .exclude("com.github.jsr203hadoop", "jsr203hadoop")
+    .exclude("com.google.cloud", "google-cloud-nio")
+    .exclude("com.google.cloud.bigdataoss", "gcs-connector")
+    .exclude("com.intel", "genomicsdb")
+    .exclude("com.intel.gkl", "gkl")
+    .exclude("com.opencsv", "opencsv")
+    .exclude("commons-io", "commons-io")
+    .exclude("gov.nist.math.jama", "gov.nist.math.jama")
+    .exclude("it.unimi.dsi", "fastutil")
+    .exclude("org.aeonbits.owner", "owner")
+    .exclude("org.apache.commons", "commons-lang3")
+    .exclude("org.apache.commons", "commons-math3")
+    .exclude("org.apache.commons", "commons-collections4")
+    .exclude("org.apache.commons", "commons-vfs2")
+    .exclude("org.apache.hadoop", "hadoop-client")
+    .exclude("org.apache.spark", s"spark-mllib_$scalaMajorMinor")
+    .exclude("org.bdgenomics.adam", s"adam-core-spark2_$scalaMajorMinor")
+    .exclude("org.broadinstitute", "barclay")
+    .exclude("org.broadinstitute", "hdf5-java-bindings")
+    .exclude("org.broadinstitute", "gatk-native-bindings")
+    .exclude("org.broadinstitute", "gatk-bwamem-jni")
+    .exclude("org.broadinstitute", "gatk-fermilite-jni")
+    .exclude("org.jgrapht", "jgrapht-core")
+    .exclude("org.objenesis", "objenesis")
+    .exclude("org.ojalgo", "ojalgo")
+    .exclude("org.ojalgo", "ojalgo-commons-math3")
+    .exclude("org.reflections", "reflections")
+    .exclude("org.seqdoop", "hadoop-bam")
+    .exclude("org.xerial", "sqlite-jdbc"),
+  // Test dependencies
+  "org.scalatest" %% "scalatest" % "3.0.3" % "test",
+  "org.scalacheck" %% "scalacheck" % "1.12.5" % "test",
+  "org.mockito" % "mockito-all" % "1.9.5" % "test",
+  "org.apache.spark" %% "spark-core" % sparkVersion % "test" classifier "tests",
+  "org.apache.spark" %% "spark-catalyst" % sparkVersion % "test" classifier "tests",
+  "org.apache.spark" %% "spark-sql" % sparkVersion % "test" classifier "tests",
+  "org.bdgenomics.adam" %% "adam-apis-spark2" % "0.28.0" % "test",
+  "org.bdgenomics.bdg-formats" % "bdg-formats" % "0.11.3" % "test",
+  "org.xerial" % "sqlite-jdbc" % "3.20.1" % "test"
+).map(_.exclude("com.google.code.findbugs", "jsr305"))
 
 lazy val core = (project in file("core"))
   .settings(
     commonSettings,
     name := "glow",
-    libraryDependencies ++= Seq(
-      "org.apache.spark" %% "spark-catalyst" % sparkVersion % "provided",
-      "org.apache.spark" %% "spark-core" % sparkVersion % "provided",
-      "org.apache.spark" %% "spark-mllib" % sparkVersion % "provided",
-      "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
-      "com.github.samtools" % "htsjdk" % "2.20.0",
-      "com.fasterxml.jackson.module" %% "jackson-module-scala" % "2.9.9",
-      "org.seqdoop" % "hadoop-bam" % "7.9.1",
-      "log4j" % "log4j" % "1.2.17",
-      "org.slf4j" % "slf4j-api" % "1.7.16",
-      "org.slf4j" % "slf4j-log4j12" % "1.7.16",
-      "org.jdbi" % "jdbi" % "2.63.1",
-      "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
-      // Exclude extraneous GATK dependencies
-      ("org.broadinstitute" % "gatk" % "4.0.11.0")
-        .exclude("biz.k11i", "xgboost-predictor")
-        .exclude("com.google.cloud.bigdataoss", "gcs-connector")
-        .exclude("com.intel", "genomicsdb")
-        .exclude("org.apache.spark", s"spark-mllib_$scalaMajorMinor")
-        .exclude("org.bdgenomics.adam", s"adam-core-spark2_$scalaMajorMinor")
-        .exclude("com.google.cloud", "google-cloud-nio"),
-      // Test dependencies
-      "org.scalatest" %% "scalatest" % "3.0.3" % "test",
-      "org.scalacheck" %% "scalacheck" % "1.12.5" % "test",
-      "org.mockito" % "mockito-all" % "1.9.5" % "test",
-      "org.apache.spark" %% "spark-core" % sparkVersion % "test" classifier "tests",
-      "org.apache.spark" %% "spark-catalyst" % sparkVersion % "test" classifier "tests",
-      "org.apache.spark" %% "spark-sql" % sparkVersion % "test" classifier "tests",
-      "org.bdgenomics.adam" %% "adam-apis-spark2" % "0.28.0" % "test",
-      "org.bdgenomics.bdg-formats" % "bdg-formats" % "0.11.3" % "test"
-    ),
+    publish / skip := false,
+    bintrayRepository := "glow",
+    libraryDependencies ++= dependencies,
     // Fix versions of libraries that are depended on multiple times
     dependencyOverrides ++= Seq(
       "org.apache.hadoop" % "hadoop-client" % "2.7.3",
       "io.netty" % "netty" % "3.9.9.Final",
-      "io.netty" % "netty-all" % "4.1.17.Final"
+      "io.netty" % "netty-all" % "4.1.17.Final",
+      "com.github.samtools" % "htsjdk" % "2.20.1"
     )
   )
 
@@ -127,33 +158,37 @@ lazy val python =
           "SPARK_HOME" -> (ThisBuild / baseDirectory).value.absolutePath
         ).!
         require(ret == 0, "Python tests failed")
-      }
+      },
+      publish / skip := true
     )
 
-// Uncomment the following for publishing to Sonatype.
-// See https://www.scala-sbt.org/1.x/docs/Using-Sonatype.html for more detail.
+// Publish to Bintray
+ThisBuild / description := "Glow: Genomics on Apache Spark"
+ThisBuild / homepage := Some(url("http://projectglow.io"))
+ThisBuild / scmInfo := Some(
+  ScmInfo(
+    url("https://github.com/projectglow/glow"),
+    "scm:git@github.com:projectglow/glow.git"
+  )
+)
+ThisBuild / pomIncludeRepository := { _ =>
+  false
+}
+ThisBuild / publishMavenStyle := true
 
-// ThisBuild / description := "Some descripiton about your project."
-// ThisBuild / licenses    := List("Apache 2" -> new URL("http://www.apache.org/licenses/LICENSE-2.0.txt"))
-// ThisBuild / homepage    := Some(url("https://github.com/example/project"))
-// ThisBuild / scmInfo := Some(
-//   ScmInfo(
-//     url("https://github.com/your-account/your-project"),
-//     "scm:git@github.com:your-account/your-project.git"
-//   )
-// )
-// ThisBuild / developers := List(
-//   Developer(
-//     id    = "Your identifier",
-//     name  = "Your Name",
-//     email = "your@email",
-//     url   = url("http://your.url")
-//   )
-// )
-// ThisBuild / pomIncludeRepository := { _ => false }
-// ThisBuild / publishTo := {
-//   val nexus = "https://oss.sonatype.org/"
-//   if (isSnapshot.value) Some("snapshots" at nexus + "content/repositories/snapshots")
-//   else Some("releases" at nexus + "service/local/staging/deploy/maven2")
-// }
-// ThisBuild / publishMavenStyle := true
+ThisBuild / bintrayOrganization := Some("projectglow")
+ThisBuild / bintrayRepository := "glow"
+
+import ReleaseTransformations._
+
+releaseProcess := Seq[ReleaseStep](
+  checkSnapshotDependencies,
+  inquireVersions,
+  runTest,
+  setReleaseVersion,
+  commitReleaseVersion,
+  tagRelease,
+  publishArtifacts,
+  setNextVersion,
+  commitNextVersion
+)

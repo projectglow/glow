@@ -457,13 +457,15 @@ private[vcf] object SchemaDelegate {
       files: Seq[FileStatus]): (Seq[VCFInfoHeaderLine], Seq[VCFFormatHeaderLine]) = {
     val serializableConf = new SerializableConfiguration(spark.sessionState.newHadoopConf())
 
+    val filePaths = files.map(_.getPath.toString)
     spark
       .sparkContext
-      .parallelize(files.map(_.getPath.toString))
+      .parallelize(filePaths)
       .map { path =>
         val (header, _) = VCFFileFormat.createVCFCodec(path, serializableConf.value)
-
-        (header.getInfoHeaderLines.asScala.toSeq, header.getFormatHeaderLines.asScala.toSeq)
+        val infoHeaderLines = header.getInfoHeaderLines.asScala.toSet
+        val formatHeaderLines = header.getFormatHeaderLines.asScala.toSet
+        (infoHeaderLines, formatHeaderLines)
       }
       .collect()
       .foldLeft((Seq.empty[VCFInfoHeaderLine], Seq.empty[VCFFormatHeaderLine])) {
