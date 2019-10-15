@@ -35,7 +35,7 @@ sys.path.append(os.path.abspath('../../python'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'glow'
+project = 'Glow'
 copyright = '2019, Glow Project'
 author = 'Glow Project'
 
