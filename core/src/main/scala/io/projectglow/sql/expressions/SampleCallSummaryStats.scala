@@ -21,23 +21,23 @@ import java.nio.ByteBuffer
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
+import io.projectglow.common.{GlowLogging, VariantSchemas}
+import io.projectglow.sql.util.ExpectsGenotypeFields
 import org.apache.spark.SparkEnv
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.expressions.aggregate.{ImperativeAggregate, TypedImperativeAggregate}
-import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, ArrayData, GenericArrayData}
+import org.apache.spark.sql.catalyst.util.{ArrayData, GenericArrayData}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
-
-import io.projectglow.common.{GlowLogging, VariantSchemas}
-import io.projectglow.sql.util.ExpectsGenotypeFields
 
 /**
  * Computes summary statistics per-sample in a genomic cohort. These statistics include the call
  * rate and the number of different types of variants.
  *
- * The return type is a map of sampleId -> summary statistics.
+ * The return type is an array of summary statistics. If sample ids are included in the input
+ * schema, they'll be propagated to the results.
  */
 case class CallSummaryStats(
     genotypes: Expression,
@@ -52,12 +52,15 @@ case class CallSummaryStats(
   override def genotypesExpr: Expression = genotypes
 
   override def genotypeFieldsRequired: Seq[StructField] = {
-    Seq(VariantSchemas.callsField, VariantSchemas.sampleIdField)
+    Seq(VariantSchemas.callsField)
   }
+
+  override def optionalGenotypeFields: Seq[StructField] = Seq(VariantSchemas.sampleIdField)
   override def children: Seq[Expression] = Seq(genotypes, refAllele, altAlleles)
   override def nullable: Boolean = false
 
-  override def dataType: DataType = MapType(StringType, SampleCallStats.outputSchema)
+  override def dataType: DataType =
+    ArrayType(SampleCallStats.outputSchema(optionalFieldIndices(0) != -1))
 
   override def checkInputDataTypes(): TypeCheckResult = {
     if (super.checkInputDataTypes().isFailure) {
@@ -86,9 +89,7 @@ case class CallSummaryStats(
   }
 
   override def eval(buffer: ArrayBuffer[SampleCallStats]): Any = {
-    val keys = new GenericArrayData(buffer.map(s => UTF8String.fromString(s.sampleId)))
-    val values = new GenericArrayData(buffer.map(_.toInternalRow))
-    new ArrayBasedMapData(keys, values)
+    new GenericArrayData(buffer.map(_.toInternalRow(optionalFieldIndices(0) != -1)))
   }
 
   override def update(
@@ -114,8 +115,12 @@ case class CallSummaryStats(
 
       // Make sure the buffer has an entry for this sample
       if (j >= buffer.size) {
-        val sampleId = struct
-          .getUTF8String(genotypeFieldIndices(1))
+        val sampleId = if (optionalFieldIndices(0) != -1) {
+          struct
+            .getUTF8String(optionalFieldIndices(0))
+        } else {
+          null
+        }
         buffer.append(SampleCallStats(sampleId.toString))
       }
 
@@ -212,7 +217,7 @@ case class CallSummaryStats(
 }
 
 case class SampleCallStats(
-    var sampleId: String,
+    var sampleId: String = null,
     var nCalled: Long = 0,
     var nUncalled: Long = 0,
     var nHomRef: Long = 0,
@@ -224,29 +229,46 @@ case class SampleCallStats(
     var nTransition: Long = 0,
     var nSpanningDeletion: Long = 0) {
 
-  def this() = {
-    this(null)
-  }
-
-  def toInternalRow: InternalRow =
+  def toInternalRow(includeSampleId: Boolean): InternalRow =
     new GenericInternalRow(
-      Array[Any](
-        nCalled.toDouble / (nCalled + nUncalled),
-        nCalled,
-        nUncalled,
-        nHomRef,
-        nHet,
-        nHomVar,
-        nTransition + nTransversion,
-        nInsertion,
-        nDeletion,
-        nTransition,
-        nTransversion,
-        nSpanningDeletion,
-        nTransition.toDouble / nTransversion,
-        nInsertion.toDouble / nDeletion,
-        nHet.toDouble / nHomVar
-      )
+      if (includeSampleId) {
+        Array[Any](
+          UTF8String.fromString(sampleId),
+          nCalled.toDouble / (nCalled + nUncalled),
+          nCalled,
+          nUncalled,
+          nHomRef,
+          nHet,
+          nHomVar,
+          nTransition + nTransversion,
+          nInsertion,
+          nDeletion,
+          nTransition,
+          nTransversion,
+          nSpanningDeletion,
+          nTransition.toDouble / nTransversion,
+          nInsertion.toDouble / nDeletion,
+          nHet.toDouble / nHomVar
+        )
+      } else {
+        Array[Any](
+          nCalled.toDouble / (nCalled + nUncalled),
+          nCalled,
+          nUncalled,
+          nHomRef,
+          nHet,
+          nHomVar,
+          nTransition + nTransversion,
+          nInsertion,
+          nDeletion,
+          nTransition,
+          nTransversion,
+          nSpanningDeletion,
+          nTransition.toDouble / nTransversion,
+          nInsertion.toDouble / nDeletion,
+          nHet.toDouble / nHomVar
+        )
+      }
     )
 }
 
@@ -267,7 +289,8 @@ object SampleCallStats extends GlowLogging {
     out
   }
 
-  val outputSchema = StructType(
+  private[projectglow] def outputSchema(includeSampleId: Boolean): StructType = StructType(
+    (if (includeSampleId) Some(VariantSchemas.sampleIdField) else None).toSeq ++
     Seq(
       StructField("callRate", DoubleType),
       StructField("nCalled", LongType),

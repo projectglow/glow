@@ -60,15 +60,16 @@ case class MomentAggState(
   def update(element: Int): Unit = update(element.toDouble)
   def update(element: Float): Unit = update(element.toDouble)
 
+  def toInternalRow(row: InternalRow): InternalRow = {
+    row.update(0, if (count > 0) mean else null)
+    row.update(1, if (count > 0) Math.sqrt(m2 / (count - 1)))
+    row.update(2, if (count > 0) min else null)
+    row.update(3, if (count > 0) max else null)
+    row
+  }
+
   def toInternalRow: InternalRow = {
-    new GenericInternalRow(
-      Array(
-        if (count > 0) mean else null,
-        if (count > 0) Math.sqrt(m2 / (count - 1)) else null,
-        if (count > 0) min else null,
-        if (count > 0) max else null
-      )
-    )
+    toInternalRow(new GenericInternalRow(4))
   }
 }
 
