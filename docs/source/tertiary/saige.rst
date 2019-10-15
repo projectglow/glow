@@ -196,10 +196,10 @@ Example notebooks
 .. notebook:: genomics/null-fit.html
   :title: Null logistic mixed model fit notebook
 
-.. notebook:: genomics/saige.html
+.. notebook:: ../_static/notebooks/tertiary/saige.html
   :title: SAIGE notebook
 
-.. notebook:: genomics/saige-gene.html
+.. notebook:: ../_static/notebooks/tertiary/saige-gene.html
   :title: SAIGE-GENE notebook
 
 .. include:: /shared/products.rst

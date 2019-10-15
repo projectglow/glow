@@ -70,7 +70,7 @@ Limitations
 
 After you've set up a Hail cluster, try out the Hail overview notebook.
 
-.. notebook:: genomics/hail-overview.html
+.. notebook:: ../_static/notebooks/tertiary/hail-overview.html
   :title: Hail overview notebook
 
 

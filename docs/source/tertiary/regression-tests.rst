@@ -71,7 +71,7 @@ Parameters
 Return
 ------
 
-The function returns a struct with the following fields. The computation of each value matches the 
+The function returns a struct with the following fields. The computation of each value matches the
 `lm R package <https://www.rdocumentation.org/packages/stats/versions/3.6.1/topics/lm>`_.
 
 .. list-table::
@@ -88,24 +88,24 @@ The function returns a struct with the following fields. The computation of each
     - The standard error of ``beta``.
   * - ``pValue``
     - ``double``
-    - The P-value of the t-statistic for ``beta``. 
+    - The P-value of the t-statistic for ``beta``.
 
 Implementation details
 ----------------------
 
 The linear regression model is fit using the QR decomposition. For performance, the QR decomposition
-of the covariate matrix is computed once and reused for each (``genotypes``, ``phenotypes``) pair. 
+of the covariate matrix is computed once and reused for each (``genotypes``, ``phenotypes``) pair.
 
 
 Example notebook and blog post
 ------------------------------
 
-The Databricks blog contains 
+The Databricks blog contains
 `a detailed example and explanation <https://databricks.com/blog/2019/09/20/engineering-population-scale-genome-wide-association-studies-with-apache-spark-delta-lake-and-mlflow.html>`_
 of a GWAS workflow.
 
 
-.. notebook:: genomics/gwas.html
+.. notebook:: ../_static/notebooks/tertiary/gwas.html
   :title: GWAS notebook
 
 .. include:: /shared/products.rst
