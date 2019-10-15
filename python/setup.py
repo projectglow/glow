@@ -2,8 +2,8 @@ from setuptools import setup
 
 setup(
     name='glowpy',
-    version='1.0.3',
-    packages=['db_genomics'],
+    version='1.0.4',
+    packages=['glow'],
     install_requires=[
         'typeguard==2.5.0',
     ],
@@ -16,5 +16,5 @@ setup(
         'Intended Audience :: Developers',
         'Programming Language :: Python :: 3.7',
     ],
-    url='https://github.com/projectglow/glow'
+    url='http://projectglow.io'
 )
