@@ -16,31 +16,21 @@
 
 package io.projectglow.tertiary
 
-import org.apache.spark.sql.{DataFrame, Row}
 import io.projectglow.common.{VCFRow, VariantSchemas}
 import io.projectglow.sql.GlowBaseTest
-import io.projectglow.sql.GlowBaseTest
+import org.apache.spark.sql.{DataFrame, Row}
 
 class SampleQcExprsSuite extends GlowBaseTest {
   lazy val testVcf = s"$testDataHome/1000G.phase3.broad.withGenotypes.chr20.10100000.vcf"
   lazy val na12878 = s"$testDataHome/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf"
-  lazy private val sess = {
-    // Set small partition size so that `merge` code path is implemented
-    spark.conf.set("spark.sql.files.maxPartitionBytes", 512)
-    spark
-  }
+  lazy private val sess = spark
 
-  test("high level test") {
+  gridTest("sample_call_summary_stats high level test")(Seq(true, false)) { sampleIds =>
     import sess.implicits._
-    val df = spark
-      .read
-      .format("vcf")
-      .option("includeSampleIds", true)
-      .load(na12878)
+    val df = readVcf(na12878, sampleIds)
     val stats = df
       .selectExpr("sample_call_summary_stats(genotypes, referenceAllele, alternateAlleles) as qc")
-      .selectExpr("explode(qc) as sqc")
-      .selectExpr("expand_struct(sqc)")
+      .selectExpr("expand_struct(qc[0])")
       .as[TestSampleCallStats]
       .head
 
@@ -90,6 +80,7 @@ class SampleQcExprsSuite extends GlowBaseTest {
       .format("vcf")
       .option("includeSampleIds", includeSampleIds)
       .load(path)
+      .repartition(4)
   }
 
   private def toCallStats(df: DataFrame): Seq[TestSampleCallStats] = {
@@ -114,9 +105,9 @@ class SampleQcExprsSuite extends GlowBaseTest {
     assert(stats.isEmpty) // No error expected
   }
 
-  test("dp stats") {
+  gridTest("dp stats")(Seq(true, false)) { sampleIds =>
     import sess.implicits._
-    val stats = readVcf(na12878)
+    val stats = readVcf(na12878, includeSampleIds = sampleIds)
       .selectExpr("sample_dp_summary_stats(genotypes) as stats")
       .selectExpr("explode(stats) as dp_stats")
       .selectExpr("expand_struct(dp_stats)")

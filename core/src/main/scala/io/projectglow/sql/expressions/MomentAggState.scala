@@ -60,11 +60,14 @@ case class MomentAggState(
   def update(element: Int): Unit = update(element.toDouble)
   def update(element: Float): Unit = update(element.toDouble)
 
-  def toInternalRow(row: InternalRow): InternalRow = {
-    row.update(0, if (count > 0) mean else null)
-    row.update(1, if (count > 0) Math.sqrt(m2 / (count - 1)) else null)
-    row.update(2, if (count > 0) min else null)
-    row.update(3, if (count > 0) max else null)
+  /**
+   * Writes the mean, stdev, min, and max into the input row beginning at the provided offset.
+   */
+  def toInternalRow(row: InternalRow, offset: Int = 0): InternalRow = {
+    row.update(offset, if (count > 0) mean else null)
+    row.update(offset + 1, if (count > 0) Math.sqrt(m2 / (count - 1)) else null)
+    row.update(offset + 2, if (count > 0) min else null)
+    row.update(offset + 3, if (count > 0) max else null)
     row
   }
 

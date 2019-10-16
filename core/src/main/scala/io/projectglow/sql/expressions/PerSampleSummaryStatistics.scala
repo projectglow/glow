@@ -56,8 +56,9 @@ case class PerSampleSummaryStatistics(
   override def nullable: Boolean = false
 
   override def dataType: DataType =
-    if (optionalFieldIndices(0) != -1) {
-      ArrayType(MomentAggState.schema.add(VariantSchemas.sampleIdField))
+    if (hasSampleIds) {
+      val fields = VariantSchemas.sampleIdField +: MomentAggState.schema.fields
+      ArrayType(StructType(fields))
     } else {
       ArrayType(MomentAggState.schema)
     }
@@ -65,20 +66,20 @@ case class PerSampleSummaryStatistics(
   override def genotypesExpr: Expression = genotypes
   override def genotypeFieldsRequired: Seq[StructField] = Seq(field)
   override def optionalGenotypeFields: Seq[StructField] = Seq(VariantSchemas.sampleIdField)
+  private lazy val hasSampleIds = optionalFieldIndices(0) != -1
 
   override def createAggregationBuffer(): ArrayBuffer[SampleSummaryStatsState] = {
     mutable.ArrayBuffer[SampleSummaryStatsState]()
   }
 
   override def eval(buffer: ArrayBuffer[SampleSummaryStatsState]): Any = {
-    if (optionalFieldIndices(0) == -1) { // no sample ids
+    if (!hasSampleIds) {
       new GenericArrayData(buffer.map(s => s.momentAggState.toInternalRow))
     } else {
       new GenericArrayData(buffer.map { s =>
         val outputRow = new GenericInternalRow(MomentAggState.schema.length + 1)
-        s.momentAggState.toInternalRow(outputRow)
-        outputRow.update(MomentAggState.schema.length, UTF8String.fromString(s.sampleId))
-        outputRow
+        outputRow.update(0, UTF8String.fromString(s.sampleId))
+        s.momentAggState.toInternalRow(outputRow, offset = 1)
       })
     }
   }
@@ -114,7 +115,7 @@ case class PerSampleSummaryStatistics(
 
       // Make sure the buffer has an entry for this sample
       if (i >= buffer.size) {
-        val sampleId = if (optionalFieldIndices(0) != -1) {
+        val sampleId = if (hasSampleIds) {
           genotypesArray
             .getStruct(buffer.size, genotypeStructSize)
             .getString(optionalFieldIndices(0))

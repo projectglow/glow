@@ -56,11 +56,12 @@ case class CallSummaryStats(
   }
 
   override def optionalGenotypeFields: Seq[StructField] = Seq(VariantSchemas.sampleIdField)
+  private lazy val hasSampleIds = optionalFieldIndices(0) != -1
   override def children: Seq[Expression] = Seq(genotypes, refAllele, altAlleles)
   override def nullable: Boolean = false
 
   override def dataType: DataType =
-    ArrayType(SampleCallStats.outputSchema(optionalFieldIndices(0) != -1))
+    ArrayType(SampleCallStats.outputSchema(hasSampleIds))
 
   override def checkInputDataTypes(): TypeCheckResult = {
     if (super.checkInputDataTypes().isFailure) {
@@ -89,7 +90,7 @@ case class CallSummaryStats(
   }
 
   override def eval(buffer: ArrayBuffer[SampleCallStats]): Any = {
-    new GenericArrayData(buffer.map(_.toInternalRow(optionalFieldIndices(0) != -1)))
+    new GenericArrayData(buffer.map(_.toInternalRow(hasSampleIds)))
   }
 
   override def update(
@@ -115,13 +116,12 @@ case class CallSummaryStats(
 
       // Make sure the buffer has an entry for this sample
       if (j >= buffer.size) {
-        val sampleId = if (optionalFieldIndices(0) != -1) {
-          struct
-            .getUTF8String(optionalFieldIndices(0))
+        val sampleId = if (hasSampleIds) {
+          struct.getUTF8String(optionalFieldIndices(0))
         } else {
           null
         }
-        buffer.append(SampleCallStats(sampleId.toString))
+        buffer.append(SampleCallStats(if (sampleId != null) sampleId.toString else null))
       }
 
       val stats = buffer(j)
@@ -229,47 +229,32 @@ case class SampleCallStats(
     var nTransition: Long = 0,
     var nSpanningDeletion: Long = 0) {
 
-  def toInternalRow(includeSampleId: Boolean): InternalRow =
-    new GenericInternalRow(
-      if (includeSampleId) {
-        Array[Any](
-          UTF8String.fromString(sampleId),
-          nCalled.toDouble / (nCalled + nUncalled),
-          nCalled,
-          nUncalled,
-          nHomRef,
-          nHet,
-          nHomVar,
-          nTransition + nTransversion,
-          nInsertion,
-          nDeletion,
-          nTransition,
-          nTransversion,
-          nSpanningDeletion,
-          nTransition.toDouble / nTransversion,
-          nInsertion.toDouble / nDeletion,
-          nHet.toDouble / nHomVar
-        )
-      } else {
-        Array[Any](
-          nCalled.toDouble / (nCalled + nUncalled),
-          nCalled,
-          nUncalled,
-          nHomRef,
-          nHet,
-          nHomVar,
-          nTransition + nTransversion,
-          nInsertion,
-          nDeletion,
-          nTransition,
-          nTransversion,
-          nSpanningDeletion,
-          nTransition.toDouble / nTransversion,
-          nInsertion.toDouble / nDeletion,
-          nHet.toDouble / nHomVar
-        )
-      }
-    )
+  def toInternalRow(includeSampleId: Boolean): InternalRow = {
+    val valueArr =
+      Array[Any](
+        nCalled.toDouble / (nCalled + nUncalled),
+        nCalled,
+        nUncalled,
+        nHomRef,
+        nHet,
+        nHomVar,
+        nTransition + nTransversion,
+        nInsertion,
+        nDeletion,
+        nTransition,
+        nTransversion,
+        nSpanningDeletion,
+        nTransition.toDouble / nTransversion,
+        nInsertion.toDouble / nDeletion,
+        nHet.toDouble / nHomVar
+      )
+
+    if (includeSampleId) {
+      new GenericInternalRow(Array[Any](UTF8String.fromString(sampleId)) ++ valueArr)
+    } else {
+      new GenericInternalRow(valueArr)
+    }
+  }
 }
 
 object SampleCallStats extends GlowLogging {
