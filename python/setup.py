@@ -1,7 +1,7 @@
 from setuptools import setup
 
 setup(
-    name='glow-py',
+    name='glow.py',
     version='0.1.0',
     packages=['glow'],
     install_requires=[
