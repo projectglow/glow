@@ -6,3 +6,4 @@ dependencies:
   - pip:
     - pyspark==2.4.2
     - typeguard==2.5.0
+    - sphinx_rtd_theme
