@@ -16,39 +16,26 @@
 
 package io.projectglow.tertiary
 
+import io.projectglow.common.{VCFRow, VariantSchemas}
+import io.projectglow.sql.GlowBaseTest
 import org.apache.spark.sql.{DataFrame, Row}
-
-import io.projectglow.common.VCFRow
-import io.projectglow.common.VCFRow
-import io.projectglow.sql.GlowBaseTest
-import io.projectglow.sql.GlowBaseTest
 
 class SampleQcExprsSuite extends GlowBaseTest {
   lazy val testVcf = s"$testDataHome/1000G.phase3.broad.withGenotypes.chr20.10100000.vcf"
   lazy val na12878 = s"$testDataHome/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf"
-  lazy private val sess = {
-    // Set small partition size so that `merge` code path is implemented
-    spark.conf.set("spark.sql.files.maxPartitionBytes", 512)
-    spark
-  }
+  lazy private val sess = spark
 
-  test("high level test") {
+  gridTest("sample_call_summary_stats high level test")(Seq(true, false)) { sampleIds =>
     import sess.implicits._
-    val df = spark
-      .read
-      .format("vcf")
-      .option("includeSampleIds", true)
-      .load(na12878)
+    val df = readVcf(na12878, sampleIds)
     val stats = df
       .selectExpr("sample_call_summary_stats(genotypes, referenceAllele, alternateAlleles) as qc")
-      .selectExpr("explode(qc) as (sampleId, sqc)")
-      .selectExpr("sampleId", "expand_struct(sqc)")
+      .selectExpr("expand_struct(qc[0])")
       .as[TestSampleCallStats]
       .head
 
     // Golden value is from Hail 0.2.12
     val expected = TestSampleCallStats(
-      "NA12878",
       1,
       1075,
       0,
@@ -87,19 +74,20 @@ class SampleQcExprsSuite extends GlowBaseTest {
     spark.createDataFrame(data)
   }
 
-  private def readVcf(path: String): DataFrame = {
+  private def readVcf(path: String, includeSampleIds: Boolean = true): DataFrame = {
     spark
       .read
       .format("vcf")
-      .option("includeSampleIds", true)
+      .option("includeSampleIds", includeSampleIds)
       .load(path)
+      .repartition(4)
   }
 
   private def toCallStats(df: DataFrame): Seq[TestSampleCallStats] = {
     import sess.implicits._
     df.selectExpr("sample_call_summary_stats(genotypes, referenceAllele, alternateAlleles) as qc")
-      .selectExpr("explode(qc) as (sampleId, sqc)")
-      .selectExpr("sampleId", "expand_struct(sqc)")
+      .selectExpr("explode(qc) as sqc")
+      .selectExpr("expand_struct(sqc)")
       .as[TestSampleCallStats]
       .collect()
   }
@@ -117,12 +105,12 @@ class SampleQcExprsSuite extends GlowBaseTest {
     assert(stats.isEmpty) // No error expected
   }
 
-  test("dp stats") {
+  gridTest("dp stats")(Seq(true, false)) { sampleIds =>
     import sess.implicits._
-    val stats = readVcf(na12878)
+    val stats = readVcf(na12878, includeSampleIds = sampleIds)
       .selectExpr("sample_dp_summary_stats(genotypes) as stats")
-      .selectExpr("explode(stats) as (sampleId, stats)")
-      .selectExpr("sampleId", "expand_struct(stats)")
+      .selectExpr("explode(stats) as dp_stats")
+      .selectExpr("expand_struct(dp_stats)")
       .as[ArraySummaryStats]
       .head
     assert(stats.min.get ~== 1 relTol 0.2)
@@ -135,7 +123,7 @@ class SampleQcExprsSuite extends GlowBaseTest {
     import sess.implicits._
     val stats = makeDf(Seq(Some(1), None, Some(3)))
       .selectExpr("sample_dp_summary_stats(genotypes) as stats")
-      .selectExpr("explode(stats) as (sampleId, stats)")
+      .selectExpr("explode(stats) as stats")
       .selectExpr("expand_struct(stats)")
       .as[ArraySummaryStats]
       .head()
@@ -148,8 +136,8 @@ class SampleQcExprsSuite extends GlowBaseTest {
     import sess.implicits._
     val stats = readVcf(na12878)
       .selectExpr("sample_gq_summary_stats(genotypes) as stats")
-      .selectExpr("explode(stats) as (sampleId, stats)")
-      .selectExpr("sampleId", "expand_struct(stats)")
+      .selectExpr("explode(stats) as stats")
+      .selectExpr("expand_struct(stats)")
       .as[ArraySummaryStats]
       .head
     assert(stats.min.get ~== 3 relTol 0.2)
@@ -157,10 +145,28 @@ class SampleQcExprsSuite extends GlowBaseTest {
     assert(stats.mean.get ~== 89.2 relTol 0.2)
     assert(stats.stdDev.get ~== 23.2 relTol 0.2)
   }
+
+  private val expressionsToTest = Seq(
+    "expand_struct(sample_call_summary_stats(genotypes, referenceAllele, alternateAlleles)[0])",
+    "expand_struct(sample_gq_summary_stats(genotypes)[0])",
+    "expand_struct(sample_dp_summary_stats(genotypes)[0])"
+  )
+  private val testCases = expressionsToTest
+    .flatMap(expr => Seq((expr, true), (expr, false)))
+  gridTest("sample ids are propagated if included")(testCases) {
+    case (expr, sampleIds) =>
+      import sess.implicits._
+      val df = readVcf(na12878, sampleIds)
+        .selectExpr(expr)
+      val outputSchema = df.schema
+      assert(outputSchema.exists(_.name == VariantSchemas.sampleIdField.name) == sampleIds)
+      if (sampleIds) {
+        assert(df.select("sampleId").as[String].head == "NA12878")
+      }
+  }
 }
 
 case class TestSampleCallStats(
-    sampleId: String,
     callRate: Double,
     nCalled: Long,
     nUncalled: Long,
