@@ -6,7 +6,6 @@ val sparkVersion = "2.4.3"
 val scalaMajorMinor = "2.11"
 
 ThisBuild / scalaVersion := s"$scalaMajorMinor.12"
-ThisBuild / version := "0.1.0-SNAPSHOT"
 ThisBuild / organization := "io.projectglow"
 ThisBuild / scalastyleConfig := baseDirectory.value / "scalastyle-config.xml"
 ThisBuild / publish / skip := true
