@@ -1,5 +1,5 @@
 from pyspark import SparkContext
-from pyspark.sql import DataFrame, SQLContext
+from pyspark.sql import DataFrame, SQLContext, SparkSession
 from typing import Dict
 from typeguard import check_argument_types, check_return_type
 
@@ -32,3 +32,14 @@ def transform(operation: str, df: DataFrame, arg_map: Dict[str, str]=None,
 
     assert check_return_type(output_df)
     return output_df
+
+def register(session: SparkSession):
+    """
+    register(session)
+
+    Register SQL extensions for a Spark session.
+
+    :param session: Spark session
+    """
+    assert check_argument_types()
+    session._jvm.io.projectglow.sql.SqlExtensionProvider.register(session._jsparkSession)
