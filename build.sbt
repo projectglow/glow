@@ -163,7 +163,7 @@ lazy val python =
 
 // Publish to Bintray
 ThisBuild / description := "An open-source toolkit for large-scale genomic analysis"
-ThisBuild / homepage := Some(url("https://www.projectglow.io"))
+ThisBuild / homepage := Some(url("https://projectglow.io"))
 ThisBuild / scmInfo := Some(
   ScmInfo(
     url("https://github.com/projectglow/glow"),
