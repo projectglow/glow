@@ -1,9 +1,0 @@
-README.rst
-setup.py
-glow/__init__.py
-glow/glow.py
-glow.py.egg-info/PKG-INFO
-glow.py.egg-info/SOURCES.txt
-glow.py.egg-info/dependency_links.txt
-glow.py.egg-info/requires.txt
-glow.py.egg-info/top_level.txt
