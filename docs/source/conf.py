@@ -35,9 +35,9 @@ sys.path.append(os.path.abspath('../../python'))
 
 # -- Project information -----------------------------------------------------
 
-project = 'glow'
-copyright = '2019, Glow Project'
-author = 'Glow Project'
+project = 'Glow'
+copyright = '2019, Glow Authors'
+author = 'Glow Authos'
 
 # The short X.Y version
 version = ''
@@ -106,7 +106,10 @@ html_theme = 'alabaster'
 # further.  For a list of options available for each theme, see the
 # documentation.
 #
-# html_theme_options = {}
+html_theme_options = {
+    'page_width': '85%',
+    'sidebar_width': '15%'
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

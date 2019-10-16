@@ -2,7 +2,7 @@
 Variant I/O with Spark SQL
 ==========================
 
-Glow includes Spark SQL support for reading and writing variant data in parallel directly from S3.
+Glow makes it possible to read and write variant data at scale using Spark SQL.
 
 .. tip::
 
@@ -19,7 +19,7 @@ the DataFrame API using Python, R, Scala, or SQL.
 
 .. code-block:: py
 
-  df = spark.read.format("com.databricks.vcf").load(path)
+  df = spark.read.format("vcf").load(path)
 
 The returned DataFrame has a schema that mirrors a single row of a VCF. Information that applies to an entire
 variant (SNV or indel), such as the contig name, start and end positions, and INFO attributes,
@@ -37,8 +37,6 @@ You can control the behavior of the VCF reader with a few parameters. All parame
 +----------------------+---------+---------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
 | Parameter            | Type    | Default | Description                                                                                                                                             |
 +======================+=========+=========+=========================================================================================================================================================+
-| asADAMVariantContext | boolean | false   | If true, rows are emitted in the VariantContext schema from the `ADAM <https://github.com/bigdatagenomics/adam>`_ project.                              |
-+----------------------+---------+---------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
 | includeSampleIds     | boolean | true    | If true, each genotype includes the name of the sample ID it belongs to. Sample names increases the size of each row, both in memory and on storage.    |
 +----------------------+---------+---------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
 | splitToBiallelic     | boolean | false   | If true, multiallelic variants are split into two or more biallelic variants.                                                                           |
@@ -53,7 +51,7 @@ You can save a DataFrame as a VCF file, which you can then read with other tools
 
 .. code-block:: py
 
-  df.write.format("com.databricks.bigvcf").save(<path-to-file>)
+  df.write.format("bigvcf").save(<path-to-file>)
 
 The file extension of the output path determines which, if any, compression codec should be used.
 For instance, writing to a path such as ``/genomics/my_vcf.vcf.bgz`` will cause the output file to be
@@ -63,7 +61,7 @@ If you'd rather save a sharded VCF where each partition saves to a separate file
 
 .. code-block:: py
 
-  df.write.format("com.databricks.vcf").save(path)
+  df.write.format("vcf").save(path)
 
 To control the behavior of the sharded VCF writer, you can provide the following option:
 
@@ -80,7 +78,7 @@ For both the single and sharded VCF writer, you can use the following option to 
 | Parameter   | Type   | Default | Description                                                                                                        |
 +=============+========+=========+====================================================================================================================+
 | vcfHeader   | string | infer   | If ``infer``, infers the header from the DataFrame schema. This value can be a complete header                     |
-|             |        |         | starting with ``##`` or a Hadoop filesystem path (for example, ``dbfs://...``) to a VCF file. The header from      |
+|             |        |         | starting with ``##`` or a Hadoop filesystem path to a VCF file. The header from                                    |
 |             |        |         | this file is used as the VCF header for each partition.                                                            |
 +-------------+--------+---------+--------------------------------------------------------------------------------------------------------------------+
 
@@ -92,7 +90,7 @@ Glow also provides the ability to read BGEN files, including those distributed b
 
 .. code-block:: py
 
-  df = spark.read.format("com.databricks.bgen").load(path)
+  df = spark.read.format("bgen").load(path)
 
 As with the VCF reader, the provided path can be a file, directory, or glob pattern. If ``.bgi``
 index files are located in the same directory as the data files, the reader uses the indexes to
@@ -113,7 +111,7 @@ You can use the ``DataFrameWriter`` API to save a single BGEN file, which you ca
 
 .. code-block:: py
 
-  df.write.format("com.databricks.bigbgen").save(path)
+  df.write.format("bigbgen").save(path)
 
 If the genotype arrays are missing ploidy and/or phasing information, the BGEN writer infers the values using the
 provided values for ploidy, phasing, or ``posteriorProbabilities`` in the genotype arrays. You can provide the value for ploidy
@@ -134,4 +132,4 @@ To control the behavior of the BGEN writer, you can provide the following option
 | defaultInferredPhasing | boolean | false   | The inferred phasing if phasing is missing and cannot be inferred from ``posteriorProbabilities``.                                 |
 +------------------------+---------+---------+------------------------------------------------------------------------------------------------------------------------------------+
 
-.. notebook:: ../_static/notebooks/variant-data.html
+.. notebook:: ../_static/notebooks/etl/variant-data.html

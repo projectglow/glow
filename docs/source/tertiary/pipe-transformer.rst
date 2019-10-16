@@ -2,7 +2,7 @@
 Parallelizing Command-Line Tools With the Pipe Transformer
 ==========================================================
 
-To help you use single-node tools on massive data sets, Glow includes a
+To use single-node tools on massive data sets, Glow includes a
 utility called the Pipe Transformer to process Spark DataFrames with command-line programs.
 
 Python usage
@@ -17,11 +17,11 @@ Transformer to reverse each of the strings in the input DataFrame using the ``re
 
 .. code-block:: py
 
-  import db_genomics as dbg
+  import glow
 
   # Create a text-only DataFrame
   df = spark.createDataFrame([['foo'], ['bar'], ['baz']], ['value'])
-  display(dbg.transform('pipe', df, cmd='["rev"]', inputformatter='text', outputformatter='text'))
+  display(glow.transform('pipe', df, cmd='["rev"]', inputformatter='text', outputformatter='text'))
 
 The options in this example demonstrate how to control the basic behavior of the transformer:
 
@@ -39,14 +39,20 @@ partition of the input DataFrame as VCF by choosing ``vcf`` as the input and out
 
 .. code-block:: py
 
-  import db_genomics as dbg
+  import glow
 
-  df = spark.read.format("com.databricks.vcf")\
+  df = spark.read.format("vcf")\
     .load("/databricks-datasets/genomics/1kg-vcfs")\
     .limit(1000)
 
-  dbg.transform('pipe', df, cmd='["grep", "-v", "#INFO"]',
-                inputformatter='vcf', in_vcfheader='infer', outputformatter='vcf')
+  glow.transform(
+    'pipe',
+    df,
+    cmd='["grep", "-v", "#INFO"]',
+    inputformatter='vcf',
+    in_vcfheader='infer',
+    outputformatter='vcf'
+  )
 
 When you use the VCF input formatter, you must specify a method to determine the VCF header. The
 simplest option is ``infer``, which instructs the Pipe Transformer to derive a VCF header from the
@@ -60,13 +66,14 @@ String]``.
 
 .. code-block:: scala
 
-  import com.databricks.hls.DBGenomics
+  import io.projectglow.Glow
 
-  DBGenomics.transform("pipe", df, Map(
+  Glow.transform("pipe", df, Map(
     "cmd" -> "[\"grep\", \"-v\", \"#INFO\"]"
     "inputFormatter" -> "vcf",
     "outputFormatter" -> "vcf",
-    "in_vcfHeader" -> "infer"))
+    "in_vcfHeader" -> "infer")
+  )
 
 Options
 =======
@@ -109,7 +116,7 @@ VCF input formatter:
 
       * ``infer``: Derive a VCF header from the DataFrame schema.
       * The complete contents of a VCF header starting with ``##``
-      * A Hadoop filesystem path (for example, ``dbfs://...``) to a VCF file. The header from this file is used as the VCF header for each partition.
+      * A Hadoop filesystem path to a VCF file. The header from this file is used as the VCF header for each partition.
 
 The CSV input and output formatters accept most of the same options as the CSV data source.
 You must prefix options to the input formatter with ``in_``, and options to the output formatter with ``out_``. For example, ``in_quote`` sets the quote character when writing the input DataFrame to the piped program.
@@ -119,4 +126,4 @@ The following options are not supported:
  - ``path`` options are ignored
  - The ``parserLib`` option is ignored. ``univocity`` is always used as the CSV parsing library.
 
-.. notebook:: ../_static/notebooks/pipe-transformer.html
+.. notebook:: ../_static/notebooks/tertiary/pipe-transformer.html
