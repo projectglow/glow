@@ -30,23 +30,27 @@ trait ExpectsGenotypeFields extends Expression {
 
   protected def genotypeFieldsRequired: Seq[StructField]
 
+  protected def optionalGenotypeFields: Seq[StructField] = Seq.empty
+
+  private lazy val gStruct = genotypesExpr
+    .dataType
+    .asInstanceOf[ArrayType]
+    .elementType
+    .asInstanceOf[StructType]
+
   protected lazy val genotypeFieldIndices: Seq[Int] = {
-    val gStruct = genotypesExpr
-      .dataType
-      .asInstanceOf[ArrayType]
-      .elementType
-      .asInstanceOf[StructType]
     genotypeFieldsRequired.map { f =>
       gStruct.indexWhere(SQLUtils.structFieldsEqualExceptNullability(f, _))
     }
   }
 
+  protected lazy val optionalFieldIndices: Seq[Int] = {
+    optionalGenotypeFields.map { f =>
+      gStruct.indexWhere(SQLUtils.structFieldsEqualExceptNullability(f, _))
+    }
+  }
+
   protected lazy val genotypeStructSize: Int = {
-    val gStruct = genotypesExpr
-      .dataType
-      .asInstanceOf[ArrayType]
-      .elementType
-      .asInstanceOf[StructType]
     gStruct.length
   }
 

@@ -178,8 +178,8 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
    * normalizes a single VariantContext by checking some conditions and then calling realignAlleles
    *
    * @param vc
-   * @param refGenomePathString
-   * @return: normalized VariantContext
+   * @param refGenomeDataSource
+   * @return normalized VariantContext
    */
   private def normalizeVC(
       vc: VariantContext,
