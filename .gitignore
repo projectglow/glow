@@ -1,12 +1,30 @@
+# Java targets
 target
 core/target
 project/target
-.idea
-*.swp
-*.swo
-adam.log
+
+# Distribution / packaging
+build/
+dist/
+maven-repo/
+*.egg-info/
+
+# Mac
+.DS_Store
+
+# Byte-compiled / optimized / DLL files
 **/__pycache__
 *.pyc
-.DS_Store
+
+# Sphinx documentation
 docs/build
+
+# Editor files
+*.swp
+*.swo
+*.iml
+.idea
+
+# Logs
+adam.log
 unit-tests.log
