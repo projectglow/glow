@@ -107,5 +107,3 @@ A detailed example and explanation of a GWAS workflow is available `here <https:
 
 .. notebook:: ../_static/notebooks/tertiary/gwas.html
   :title: GWAS notebook
-
-.. include:: /shared/products.rst

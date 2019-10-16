@@ -16,8 +16,7 @@ Glow can be used to run `coordinate liftover`_ and `variant liftover`_.
 Create a liftover cluster
 ==========================
 
-For both coordinate and variant liftover, pull a chain file down to every node in the Apache Spark cluster using an
-:ref:`initialization script <cluster-scoped-init-script>`. The following example downloads a chain file for liftover
+For both coordinate and variant liftover, you need a chain file on every node of the cluster. The following example downloads a chain file for liftover
 from the b37 to the hg38 reference assembly.
 
 .. code-block:: bash
@@ -110,5 +109,3 @@ If liftover fails, the output row contains the original input row, the additiona
 
 .. notebook:: ../_static/notebooks/etl/lift-over.html
   :title: Liftover notebook
-
-.. include:: /shared/products.rst

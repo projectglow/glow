@@ -36,8 +36,8 @@ sys.path.append(os.path.abspath('../../python'))
 # -- Project information -----------------------------------------------------
 
 project = 'Glow'
-copyright = '2019, Glow Project'
-author = 'Glow Project'
+copyright = '2019, Glow Authors'
+author = 'Glow Authos'
 
 # The short X.Y version
 version = ''

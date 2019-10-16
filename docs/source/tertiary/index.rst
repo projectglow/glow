@@ -12,6 +12,5 @@ Perform population-scale statistical analyses of genetic variants.
 
    pipe-transformer
    variant-normalization
-   saige
    pandas-udf
    regression-tests
