@@ -16,5 +16,5 @@ setup(
         'Intended Audience :: Developers',
         'Programming Language :: Python :: 3.7',
     ],
-    url='https://projectglow.io'
+    url='https://www.projectglow.io'
 )
