@@ -2,8 +2,6 @@
 [![Documentation
 Status](https://readthedocs.org/projects/glow/badge/?version=latest)](https://glow.readthedocs.io/en/latest/?badge=latest)
 
-![Logo](static/glow_logo_horiz_color.png)
-
 # Building and Testing
 This project is built using sbt: https://www.scala-sbt.org/1.0/docs/Setup.html
 
