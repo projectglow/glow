@@ -10,9 +10,9 @@ Glow offers functionalities to perform genomic variant data ETL, manipulation, a
 .. toctree::
    :maxdepth: 2
 
-   variant-data.rst
-   vcf2delta.rst
-   variant-qc.rst
-   sample-qc.rst
-   lift-over.rst
-   utility-functions.rst
+   variant-data
+   vcf2delta
+   variant-qc
+   sample-qc
+   lift-over
+   utility-functions

@@ -1,4 +1,6 @@
 [![CircleCI](https://circleci.com/gh/projectglow/glow.svg?style=svg&circle-token=7511f70b2c810a18e88b5c537b0410e82db8617d)](https://circleci.com/gh/projectglow/glow)
+[![Documentation
+Status](https://readthedocs.org/projects/glow/badge/?version=latest)](https://glow.readthedocs.io/en/latest/?badge=latest)
 
 # Building and Testing
 This project is built using sbt: https://www.scala-sbt.org/1.0/docs/Setup.html
