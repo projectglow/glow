@@ -1,11 +1,10 @@
 Introduction to Glow
 ====================
 
-Glow aims to simplify genomic workflows at scale. We believe that the best way to accomplish this
-goal is to take a system that has already been proven to work and adapt it to fit into the
-genomics ecosystem.
+Glow aims to simplify genomic workflows at scale. The best way to accomplish this goal is to take a system that
+has already been proven to work and adapt it to fit into the genomics ecosystem.
 
-Apache Spark and in particular [Spark SQL](https://spark.apache.org/sql/), its module for working with
+Apache Spark and in particular `Spark SQL <https://spark.apache.org/sql/>`_, its module for working with
 structured data, is used at organizations across industries with datasets at the petabyte scale and
 beyond. Glow smoothes the rough edges so that you can be productive immediately.
 
@@ -19,6 +18,6 @@ Glow features:
   lift over to help produce analysis ready datasets.
 - Integration with existing tools: With Spark SQL, you can write user-defined functions (UDFs) in
   Python, R, or Scala. Glow also makes it easy to run DataFrames through command line tools.
-- Integration with other data types: Genomic data starts to get really interesting once you can join
-  it with different data sets like health records, real world evidence, and medical images. Since
-  Glow returns native Spark SQL DataFrames, its simple to join multiple data sets together.
+- Integration with other data types: Genomic data can generate additional insights when joined with data sets
+  such as electronic health records, real world evidence, and medical images. Since Glow returns native Spark
+  SQL DataFrames, its simple to join multiple data sets together.

@@ -20,7 +20,7 @@ Install the Python frontend from pip:
   pip install glow.py
 
 and then start the `Spark shell <http://spark.apache.org/docs/latest/rdd-programming-guide.html#using-the-shell>`_ 
-with the glow maven package:
+with the Glow maven package:
 
 .. code-block:: sh
 
@@ -33,7 +33,7 @@ To start a Jupyter notebook instead of a shell:
   PYSPARK_DRIVER_PYTHON=jupyter PYSPARK_DRIVER_PYTHON_OPTS=notebook ./bin/pyspark --packages io.projectglow:glow_2.11:0.1.0
   
 And now your notebook is glowing! To access the Glow functions, you need to register them with the
-Spark Session.
+Spark session.
 
 .. code-block:: python
   
@@ -53,7 +53,6 @@ Example notebook
 ----------------
 
 This notebook demonstrates some of the key functionality of Glow, like reading in a genomic dataset,
-saving it as a `Delta Lake <https://delta.io>`_, and performaing a genome-wide assocation study.
+saving it as a `Delta Lake <https://delta.io>`_, and performing a genome-wide assocation study.
 
 .. notebook:: _static/notebooks/tertiary/gwas.html
-  
