@@ -170,6 +170,18 @@ ThisBuild / scmInfo := Some(
     "scm:git@github.com:projectglow/glow.git"
   )
 )
+ThisBuild / developers := List(
+  Developer(
+    "henrydavidge",
+    "Henry Davidge",
+    "hhd@databricks.com",
+    url("https://github.com/henrydavidge")),
+  Developer(
+    "karenfeng",
+    "Karen Feng",
+    "karen.feng@databricks.com",
+    url("https://github.com/karenfeng"))
+)
 ThisBuild / pomIncludeRepository := { _ =>
   false
 }
