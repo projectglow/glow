@@ -180,6 +180,8 @@ ThisBuild / bintrayRepository := "glow"
 
 import ReleaseTransformations._
 
+releasePublishArtifactsAction := PgpKeys.publishSigned.value
+
 releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,
   inquireVersions,
