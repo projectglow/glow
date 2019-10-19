@@ -125,6 +125,11 @@ lazy val core = (project in file("core"))
     commonSettings,
     name := "glow",
     publish / skip := false,
+
+    // Adds the Git hash to the MANIFEST file
+    packageOptions in (Compile, packageBin) +=
+      Package.ManifestAttributes("Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
+
     bintrayRepository := "glow",
     libraryDependencies ++= dependencies,
     // Fix versions of libraries that are depended on multiple times
@@ -135,6 +140,18 @@ lazy val core = (project in file("core"))
       "com.github.samtools" % "htsjdk" % "2.20.1"
     )
   )
+
+/**
+ * @param dir The base directory of the Git project
+ * @return The commit of HEAD
+ */
+def currentGitHash(dir: File): String = {
+  Process(
+    Seq("git", "rev-parse", "HEAD"),
+    // Set the working directory for Git to the passed in directory
+    Some(dir),
+  ).!!.trim
+}
 
 lazy val python =
   (project in file("python"))
