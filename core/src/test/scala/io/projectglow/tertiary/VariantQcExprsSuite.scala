@@ -22,8 +22,6 @@ import org.apache.spark.sql.AnalysisException
 import org.apache.spark.sql.functions._
 
 import io.projectglow.common.{GenotypeFields, VCFRow}
-import io.projectglow.common.{GenotypeFields, VCFRow}
-import io.projectglow.sql.GlowBaseTest
 import io.projectglow.sql.GlowBaseTest
 
 class VariantQcExprsSuite extends GlowBaseTest {

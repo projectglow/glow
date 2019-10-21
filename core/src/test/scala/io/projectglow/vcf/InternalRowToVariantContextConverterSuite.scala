@@ -20,7 +20,6 @@ import scala.collection.JavaConverters._
 
 import htsjdk.samtools.ValidationStringency
 import org.apache.spark.sql.types.{ArrayType, DataType, MapType, StructType}
-import org.bdgenomics.adam.rdd.VCFMetadataLoader
 
 import io.projectglow.sql.GlowBaseTest
 

@@ -23,7 +23,6 @@ import com.google.common.io.LittleEndianDataInputStream
 import org.apache.spark.SparkException
 
 import io.projectglow.common.BgenRow
-import io.projectglow.common.BgenRow
 
 class BgenWriterSuite extends BgenConverterBaseTest {
 

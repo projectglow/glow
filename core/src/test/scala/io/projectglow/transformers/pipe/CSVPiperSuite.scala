@@ -20,8 +20,6 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.{StringType, StructField}
 
 import io.projectglow.Glow
-import io.projectglow.Glow
-import io.projectglow.sql.GlowBaseTest
 import io.projectglow.sql.GlowBaseTest
 
 class CSVPiperSuite extends GlowBaseTest {

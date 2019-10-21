@@ -25,11 +25,8 @@ import htsjdk.samtools.ValidationStringency
 import htsjdk.variant.variantcontext.GenotypeLikelihoods
 import htsjdk.variant.vcf.{VCFFileReader, VCFHeader}
 import org.apache.commons.io.FileUtils
-import org.bdgenomics.adam.rdd.VCFMetadataLoader
 
 import io.projectglow.common.{GenotypeFields, VCFRow}
-import io.projectglow.common.{GenotypeFields, VCFRow}
-import io.projectglow.sql.GlowBaseTest
 import io.projectglow.sql.GlowBaseTest
 
 class VCFRowToVariantContextConverterSuite extends GlowBaseTest with VCFConverterBaseTest {

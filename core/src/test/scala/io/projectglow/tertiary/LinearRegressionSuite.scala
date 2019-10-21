@@ -25,7 +25,6 @@ import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
 import org.apache.spark.ml.linalg.DenseMatrix
 import org.apache.spark.sql.functions._
 
-import io.projectglow.sql.expressions.{ComputeQR, LinearRegressionGwas, RegressionStats}
 import RegressionTestUtils._
 import io.projectglow.sql.GlowBaseTest
 import io.projectglow.sql.expressions.{ComputeQR, LinearRegressionGwas, RegressionStats}
