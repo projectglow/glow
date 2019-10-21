@@ -1,7 +1,7 @@
 Troubleshooting
 ===============
 
-- Job is slow or OOMs while using an aggregate like ``collect_list`` or
+- Job is slow or OOMs (throws an ``OutOfMemoryError``) while using an aggregate like ``collect_list`` or
   ``sample_call_summary_stats``
 
   * Try disabling the `ObjectHashAggregate
