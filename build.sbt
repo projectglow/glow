@@ -68,10 +68,10 @@ lazy val dependencies = Seq(
   "org.apache.spark" %% "spark-core" % sparkVersion % "provided",
   "org.apache.spark" %% "spark-mllib" % sparkVersion % "provided",
   "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
-  "org.seqdoop" % "hadoop-bam" % "7.9.1",
+  "org.seqdoop" % "hadoop-bam" % "7.9.2",
   "log4j" % "log4j" % "1.2.17",
-  "org.slf4j" % "slf4j-api" % "1.7.16",
-  "org.slf4j" % "slf4j-log4j12" % "1.7.16",
+  "org.slf4j" % "slf4j-api" % "1.7.25",
+  "org.slf4j" % "slf4j-log4j12" % "1.7.25",
   "org.jdbi" % "jdbi" % "2.63.1",
   "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
   // Exclude extraneous GATK dependencies
@@ -115,8 +115,8 @@ lazy val dependencies = Seq(
   "org.apache.spark" %% "spark-core" % sparkVersion % "test" classifier "tests",
   "org.apache.spark" %% "spark-catalyst" % sparkVersion % "test" classifier "tests",
   "org.apache.spark" %% "spark-sql" % sparkVersion % "test" classifier "tests",
-  "org.bdgenomics.adam" %% "adam-apis-spark2" % "0.28.0" % "test",
-  "org.bdgenomics.bdg-formats" % "bdg-formats" % "0.11.3" % "test",
+  "org.bdgenomics.adam" %% "adam-apis-spark2" % "0.29.0" % "test",
+  "org.bdgenomics.bdg-formats" % "bdg-formats" % "0.14.0" % "test",
   "org.xerial" % "sqlite-jdbc" % "3.20.1" % "test"
 ).map(_.exclude("com.google.code.findbugs", "jsr305"))
 
@@ -132,7 +132,7 @@ lazy val core = (project in file("core"))
       "org.apache.hadoop" % "hadoop-client" % "2.7.3",
       "io.netty" % "netty" % "3.9.9.Final",
       "io.netty" % "netty-all" % "4.1.17.Final",
-      "com.github.samtools" % "htsjdk" % "2.20.1"
+      "com.github.samtools" % "htsjdk" % "2.20.3"
     )
   )
 
