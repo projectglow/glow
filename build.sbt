@@ -126,7 +126,8 @@ lazy val core = (project in file("core"))
     name := "glow",
     publish / skip := false,
 
-    // Adds the Git hash to the MANIFEST file
+    // Adds the Git hash to the MANIFEST file. We set it here instead of relying on sbt-release to
+    // do so.
     packageOptions in (Compile, packageBin) +=
       Package.ManifestAttributes("Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
 
