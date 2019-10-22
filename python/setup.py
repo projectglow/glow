@@ -1,8 +1,11 @@
 from setuptools import setup
+import imp
+
+version = imp.load_source('version', 'version.py').VERSION
 
 setup(
     name='glow.py',
-    version='0.1.0',
+    version=version,
     packages=['glow'],
     install_requires=[
         'typeguard==2.5.0',
