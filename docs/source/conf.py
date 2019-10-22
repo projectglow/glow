@@ -37,13 +37,22 @@ sys.path.append(os.path.abspath('../../python'))
 
 project = 'Glow'
 copyright = '2019, Glow Authors'
-author = 'Glow Authos'
+author = 'Glow Authors'
 
 # The short X.Y version
 version = ''
 # The full version, including alpha/beta/rc tags
 release = ''
 
+# -- Substitutions for code blocks -------------------------------------------
+
+mvn_version_file = open('../../version.sbt', 'r')
+mvn_version_line = mvn_version_file.readline()
+mvn_version_file.close()
+
+substitutions = [
+    ('|mvn-version|', mvn_version_line.split('\"')[1]),
+]
 
 # -- General configuration ---------------------------------------------------
 
@@ -65,6 +74,7 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.githubpages',
     'notebook',
+    'sphinx_substitution_extensions',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
