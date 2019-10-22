@@ -21,7 +21,6 @@ import scala.reflect.runtime.universe._
 import org.bdgenomics.adam.util.PhredUtils
 
 import io.projectglow.common.{GenotypeFields, TestUtils, VCFRow}
-import io.projectglow.common.{GenotypeFields, TestUtils, VCFRow}
 
 trait VCFConverterBaseTest extends TestUtils {
 

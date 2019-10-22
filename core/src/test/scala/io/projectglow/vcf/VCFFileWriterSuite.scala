@@ -31,11 +31,8 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.{SparkConf, SparkException}
 import org.bdgenomics.adam.rdd.ADAMContext._
-import org.bdgenomics.adam.rdd.VCFMetadataLoader
 
 import io.projectglow.common.{VCFRow, WithUtils}
-import io.projectglow.common.{VCFRow, WithUtils}
-import io.projectglow.sql.GlowBaseTest
 import io.projectglow.sql.GlowBaseTest
 
 abstract class VCFFileWriterSuite(val sourceName: String)

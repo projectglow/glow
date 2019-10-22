@@ -18,8 +18,6 @@ package io.projectglow.tertiary
 
 import io.projectglow.sql.GlowBaseTest
 import io.projectglow.sql.expressions.MomentAggState
-import io.projectglow.sql.GlowBaseTest
-import io.projectglow.sql.expressions.MomentAggState
 
 class MomentAggStateSuite extends GlowBaseTest {
   test("merge") {

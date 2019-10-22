@@ -25,8 +25,6 @@ import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.unsafe.types.UTF8String
 
 import io.projectglow.Glow
-import io.projectglow.Glow
-import io.projectglow.sql.GlowBaseTest
 import io.projectglow.sql.GlowBaseTest
 
 class PipeTransformerSuite extends GlowBaseTest {

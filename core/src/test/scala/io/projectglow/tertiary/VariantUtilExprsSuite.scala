@@ -24,8 +24,6 @@ import org.apache.spark.unsafe.types.UTF8String
 
 import io.projectglow.sql.GlowBaseTest
 import io.projectglow.sql.expressions.{VariantType, VariantUtilExprs}
-import io.projectglow.sql.GlowBaseTest
-import io.projectglow.sql.expressions.{VariantType, VariantUtilExprs}
 
 class VariantUtilExprsSuite extends GlowBaseTest {
   case class SimpleGenotypeFields(calls: Seq[Int])

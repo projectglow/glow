@@ -17,8 +17,6 @@
 package io.projectglow.bgen
 
 import io.projectglow.common.BgenRow
-import io.projectglow.common.BgenRow
-import io.projectglow.sql.GlowBaseTest
 import io.projectglow.sql.GlowBaseTest
 
 trait BgenConverterBaseTest extends GlowBaseTest {

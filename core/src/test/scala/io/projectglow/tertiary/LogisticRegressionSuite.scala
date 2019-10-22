@@ -24,8 +24,6 @@ import org.apache.spark.sql.functions.{expr, monotonically_increasing_id}
 import io.projectglow.sql.GlowBaseTest
 import io.projectglow.sql.expressions.{LikelihoodRatioTestStats, LogisticRegressionGwas, NewtonResult}
 import io.projectglow.tertiary.RegressionTestUtils._
-import io.projectglow.sql.GlowBaseTest
-import io.projectglow.sql.expressions.{LikelihoodRatioTestStats, LogisticRegressionGwas, NewtonResult}
 
 class LogisticRegressionSuite extends GlowBaseTest {
 

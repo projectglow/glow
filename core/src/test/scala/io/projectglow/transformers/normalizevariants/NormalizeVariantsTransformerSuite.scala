@@ -20,9 +20,6 @@ import org.apache.spark.SparkConf
 
 import io.projectglow.Glow
 import io.projectglow.common.GlowLogging
-import io.projectglow.Glow
-import io.projectglow.common.GlowLogging
-import io.projectglow.sql.GlowBaseTest
 import io.projectglow.sql.GlowBaseTest
 
 class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {

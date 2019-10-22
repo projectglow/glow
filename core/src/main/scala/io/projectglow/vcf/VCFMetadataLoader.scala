@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package org.bdgenomics.adam.rdd
+package io.projectglow.vcf
 
 import htsjdk.variant.vcf.VCFHeader
 import org.apache.hadoop.conf.Configuration
@@ -23,7 +23,8 @@ import org.seqdoop.hadoop_bam.util.{VCFHeaderReader, WrapSeekable}
 
 object VCFMetadataLoader {
 
-  // Currently private in ADAM (ADAMContext).
+  // From ADAMContext, see:
+  // https://github.com/bigdatagenomics/adam/blob/master/adam-core/src/main/scala/org/bdgenomics/adam/rdd/ADAMContext.scala
   def readVcfHeader(config: Configuration, pathName: String): VCFHeader = {
     val is = WrapSeekable.openPath(config, new Path(pathName))
     val header = VCFHeaderReader.readHeaderFrom(is)

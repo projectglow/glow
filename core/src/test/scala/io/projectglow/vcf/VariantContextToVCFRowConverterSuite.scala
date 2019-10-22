@@ -25,11 +25,8 @@ import scala.collection.JavaConverters._
 import htsjdk.samtools.ValidationStringency
 import htsjdk.variant.variantcontext.{Allele, GenotypeBuilder, VariantContextBuilder}
 import htsjdk.variant.vcf.{VCFFileReader, VCFHeader}
-import org.bdgenomics.adam.rdd.VCFMetadataLoader
 
 import io.projectglow.common.{GenotypeFields, VCFRow}
-import io.projectglow.common.{GenotypeFields, VCFRow}
-import io.projectglow.sql.GlowBaseTest
 import io.projectglow.sql.GlowBaseTest
 
 class VariantContextToVCFRowConverterSuite extends GlowBaseTest with VCFConverterBaseTest {

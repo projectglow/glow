@@ -23,8 +23,6 @@ import org.apache.spark.sql.types.{LongType, StringType, StructType}
 import picard.vcf.LiftoverVcf
 
 import io.projectglow.Glow
-import io.projectglow.Glow
-import io.projectglow.vcf.VCFConverterBaseTest
 import io.projectglow.sql.GlowBaseTest
 import io.projectglow.vcf.VCFConverterBaseTest
 

@@ -21,10 +21,8 @@ import org.apache.spark.sql.sources._
 import org.broadinstitute.hellbender.utils.SimpleInterval
 
 import io.projectglow.common.{GlowLogging, VCFRow}
-import io.projectglow.common.{GlowLogging, VCFRow}
 import io.projectglow.sql.GlowBaseTest
 import io.projectglow.vcf.TabixIndexHelper._
-import io.projectglow.sql.GlowBaseTest
 
 class TabixHelperSuite extends GlowBaseTest with GlowLogging {
 
