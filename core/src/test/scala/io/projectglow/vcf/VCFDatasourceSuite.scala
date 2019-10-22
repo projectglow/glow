@@ -30,8 +30,6 @@ import org.apache.spark.sql.{DataFrame, Dataset}
 import org.apache.spark.{SparkConf, SparkException}
 
 import io.projectglow.common.{GenotypeFields, VCFRow}
-import io.projectglow.common.{GenotypeFields, VCFRow}
-import io.projectglow.sql.GlowBaseTest
 import io.projectglow.sql.GlowBaseTest
 
 class VCFDatasourceSuite extends GlowBaseTest {

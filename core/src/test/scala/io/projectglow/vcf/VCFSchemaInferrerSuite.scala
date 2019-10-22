@@ -20,8 +20,6 @@ import htsjdk.variant.vcf._
 import org.apache.spark.sql.types._
 
 import io.projectglow.common.VariantSchemas
-import io.projectglow.common.VariantSchemas
-import io.projectglow.sql.GlowBaseTest
 import io.projectglow.sql.GlowBaseTest
 
 class VCFSchemaInferrerSuite extends GlowBaseTest {

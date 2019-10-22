@@ -19,7 +19,6 @@ package io.projectglow.vcf
 import htsjdk.variant.vcf.VCFHeader
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
-import org.bdgenomics.adam.rdd.VCFMetadataLoader
 
 object VCFHeaderLoader {
 

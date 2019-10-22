@@ -22,8 +22,6 @@ import htsjdk.variant.variantcontext.Allele
 import org.broadinstitute.hellbender.engine.ReferenceDataSource
 
 import io.projectglow.common.GlowLogging
-import io.projectglow.common.GlowLogging
-import io.projectglow.sql.GlowBaseTest
 import io.projectglow.transformers.normalizevariants.VariantNormalizer._
 import io.projectglow.sql.GlowBaseTest
 

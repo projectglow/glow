@@ -24,7 +24,6 @@ import htsjdk.tribble.TribbleException.InvalidHeader
 import htsjdk.variant.variantcontext.{Allele, GenotypeBuilder, VariantContextBuilder}
 import htsjdk.variant.vcf.{VCFCodec, VCFHeader, VCFHeaderLine}
 import org.apache.commons.io.IOUtils
-import org.bdgenomics.adam.rdd.VCFMetadataLoader
 
 import io.projectglow.sql.GlowBaseTest
 

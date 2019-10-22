@@ -23,10 +23,6 @@ import org.apache.spark.{SparkException, TaskContext}
 
 import io.projectglow.Glow
 import io.projectglow.common.VCFRow
-import io.projectglow.Glow
-import io.projectglow.common.VCFRow
-import io.projectglow.sql.GlowBaseTest
-import io.projectglow.transformers.pipe.ProcessHelper
 import io.projectglow.sql.GlowBaseTest
 import io.projectglow.transformers.pipe.ProcessHelper
 

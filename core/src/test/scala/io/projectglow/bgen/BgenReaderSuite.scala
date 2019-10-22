@@ -27,8 +27,6 @@ import org.apache.spark.sql.catalyst.ScalaReflection
 import org.apache.spark.sql.types.{ArrayType, StructType}
 
 import io.projectglow.common.{BgenRow, VCFRow, VariantSchemas}
-import io.projectglow.common.{BgenRow, VCFRow, VariantSchemas}
-import io.projectglow.sql.GlowBaseTest
 import io.projectglow.sql.GlowBaseTest
 
 class BgenReaderSuite extends GlowBaseTest {
