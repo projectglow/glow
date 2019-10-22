@@ -1,6 +1,14 @@
 Additional Resources
 ====================
 
+Running Databricks notebooks
+----------------------------
+
+Most of the code in the Databricks notebooks can be run on Spark and Glow alone, but some functions are only available
+on Databricks. `Try Databricks for free <https://databricks.com/try-databricks>`_ and import the Databricks notebooks
+following the
+`Databricks documentation <https://docs.databricks.com/notebooks/notebooks-manage.html#import-a-notebook>`_.
+
 Blog posts
 ----------
 
@@ -13,3 +21,6 @@ Blog posts
 - `Accurately Building Genomic Cohorts at Scale with Delta Lake and Spark SQL <https://databricks.com/blog/2019/06/19/accurately-building-genomic-cohorts-at-scale-with-delta-lake-and-spark-sql.html>`_
 
   + Joint genotyping with Glow and Databricks
+
+- `Introducing Glow: an open-source toolkit for large-scale genomic analysis
+  <https://databricks.com/blog/2019/10/18/introducing-glow-an-open-source-toolkit-for-large-scale-genomic-analysis.html>`_
