@@ -47,7 +47,7 @@ You can control the behavior of the VCF reader with a few parameters. All parame
 
 .. important:: The VCF reader uses the 0-start, half-open (zero-based) coordinate system.
 
-You can save a DataFrame as a VCF file, which you can then read with other tools. To write a DataFrame as a single VCF file specify the format ``"com.databricks.bigvcf"``:
+You can save a DataFrame as a VCF file, which you can then read with other tools. To write a DataFrame as a single VCF file specify the format ``"bigvcf"``:
 
 .. code-block:: py
 
@@ -132,4 +132,4 @@ To control the behavior of the BGEN writer, you can provide the following option
 | defaultInferredPhasing | boolean | false   | The inferred phasing if phasing is missing and cannot be inferred from ``posteriorProbabilities``.                                 |
 +------------------------+---------+---------+------------------------------------------------------------------------------------------------------------------------------------+
 
-.. notebook:: ../_static/notebooks/etl/variant-data.html
+.. notebook:: .. etl/variant-data.html

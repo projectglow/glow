@@ -62,8 +62,8 @@ coordinates, variant liftover performs the following transformations:
 - Adjust the SNP, and correct AF-like INFO fields and the relevant genotypes if the reference and alternate alleles have
   been swapped in the new genome build
 
-Pull a target assembly :ref:`reference file <reference-genomes>` down to every node in the Spark cluster in addition to
-a chain file before performing variant liftover.
+Pull a target assembly reference file down to every node in the Spark cluster in addition to a chain file before
+performing variant liftover.
 
 The ``lift_over_variants`` transformer operates on a DataFrame containing genetic variants and supports the following
 :ref:`options <transformer-options>`.
@@ -107,5 +107,5 @@ If liftover fails, the output row contains the original input row, the additiona
     output_df = glow.transform('lift_over_variants', input_df, chain_file=chain_file, reference_file=reference_file)
 
 
-.. notebook:: ../_static/notebooks/etl/lift-over.html
+.. notebook:: .. etl/lift-over.html
   :title: Liftover notebook

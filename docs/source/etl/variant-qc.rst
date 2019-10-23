@@ -39,4 +39,4 @@ You can calculate quality control statistics on your variant data using Spark SQ
     - The ``genotypes`` array
     - A struct containing the min, max, mean, and sample standard deviation for genotype quality (GQ in VCF v4.2 specification) across all samples
 
-.. notebook:: ../_static/notebooks/etl/variant-qc-demo.html
+.. notebook:: .. etl/variant-qc-demo.html
