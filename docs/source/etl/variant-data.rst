@@ -47,7 +47,7 @@ You can control the behavior of the VCF reader with a few parameters. All parame
 
 .. important:: The VCF reader uses the 0-start, half-open (zero-based) coordinate system.
 
-You can save a DataFrame as a VCF file, which you can then read with other tools. To write a DataFrame as a single VCF file specify the format ``"com.databricks.bigvcf"``:
+You can save a DataFrame as a VCF file, which you can then read with other tools. To write a DataFrame as a single VCF file specify the format ``"bigvcf"``:
 
 .. code-block:: py
 
