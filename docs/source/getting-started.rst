@@ -22,15 +22,15 @@ Install the Python frontend from pip:
 and then start the `Spark shell <http://spark.apache.org/docs/latest/rdd-programming-guide.html#using-the-shell>`_ 
 with the Glow maven package:
 
-.. code-block:: sh
+.. substitution-code-block:: sh
 
-  ./bin/pyspark --packages io.projectglow:glow_2.11:0.1.0
+  ./bin/pyspark --packages io.projectglow:glow_2.11:|mvn-version|
 
 To start a Jupyter notebook instead of a shell:
 
-.. code-block:: sh
+.. substitution-code-block:: sh
   
-  PYSPARK_DRIVER_PYTHON=jupyter PYSPARK_DRIVER_PYTHON_OPTS=notebook ./bin/pyspark --packages io.projectglow:glow_2.11:0.1.0
+  PYSPARK_DRIVER_PYTHON=jupyter PYSPARK_DRIVER_PYTHON_OPTS=notebook ./bin/pyspark --packages io.projectglow:glow_2.11:|mvn-version|
   
 And now your notebook is glowing! To access the Glow functions, you need to register them with the
 Spark session.
