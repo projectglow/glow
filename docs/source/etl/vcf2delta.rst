@@ -13,5 +13,5 @@ machine learning or deep learning.
 
 .. tip:: We recommend ingesting VCF files into Delta tables once volumes reach >1000 samples, >10 billion genotypes or >1 terabyte.
 
-.. notebook:: ../_static/notebooks/etl/vcf2delta.html
+.. notebook:: .. etl/vcf2delta.html
   :title: VCF to Delta Lake table notebook

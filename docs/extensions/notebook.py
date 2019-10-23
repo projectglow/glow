@@ -1,6 +1,7 @@
 from docutils import nodes
 from docutils.parsers import rst
 from docutils.parsers.rst import directives
+import os
 
 class embedded_notebook(nodes.Special, nodes.Inline, nodes.PreBibliographic, nodes.FixedTextElement):
     pass
@@ -20,7 +21,7 @@ def depart_notebook_node(self, node):
     pass
 
 class Notebook(rst.Directive):
-    required_arguments = 1
+    required_arguments = 2
     has_content = False
     option_spec = {
         'title': directives.unchanged,
@@ -31,16 +32,18 @@ class Notebook(rst.Directive):
         }
 
     def run(self):
-        raw_file_path = self.arguments[0]
+        path_to_base = self.arguments[0]
+        relative_notebook_path  = self.arguments[1]
+        notebook_path_from_base = os.path.join(path_to_base, '_static/notebooks', relative_notebook_path)
 
-        raw_file_name = raw_file_path.split(".")[-2]
+        notebook_name = relative_notebook_path.split(".")[-2]
         opts = self.options
         title = opts['title'] if 'title' in opts else "Notebook"
         width = opts['width'] if 'width' in opts else "100%"
         height = opts['height'] if 'height' in opts else "1000px"
-        node_id = nodes.make_id(raw_file_name)
+        node_id = nodes.make_id(notebook_name)
 
-        id_hash = hash(raw_file_path)
+        id_hash = hash(notebook_path_from_base)
 
         raw_contents = """
 <div class='embedded-notebook'>
@@ -51,9 +54,9 @@ class Notebook(rst.Directive):
         <iframe src="{url}" id='{id}' height="{h}" width="{w}" style="overflow-y:hidden;" scrolling="no"></iframe>
     </div>
 </div>
-""".format(id=id_hash, url=raw_file_path, h=height, w=width)
+""".format(id=id_hash, url=notebook_path_from_base, h=height, w=width)
 
-        top_section = nodes.section(raw_file_path, ids=[node_id])
+        top_section = nodes.section(notebook_path_from_base, ids=[node_id])
         top_section += nodes.title(text=title)
         top_section += embedded_notebook('', raw_contents, format='html')
         nb = embedded_notebook('', raw_contents, format='html')

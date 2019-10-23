@@ -24,11 +24,19 @@ jobs:
             fi
 
       - run:
-          name: run tests
+          name: run Scala and Python tests
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             sbt test exit
+
+      - run:
+          name: run docs tests
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            cd docs
+            make linkcheck
 
       - store_artifacts:
           path: ~/glow/unit-tests.log
