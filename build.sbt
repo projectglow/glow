@@ -107,7 +107,9 @@ lazy val dependencies = Seq(
     .exclude("org.ojalgo", "ojalgo-commons-math3")
     .exclude("org.reflections", "reflections")
     .exclude("org.seqdoop", "hadoop-bam")
-    .exclude("org.xerial", "sqlite-jdbc"),
+    .exclude("org.xerial", "sqlite-jdbc")
+    .exclude("com.github.fommil.netlib", "*"),
+
   // Test dependencies
   "org.scalatest" %% "scalatest" % "3.0.3" % "test",
   "org.scalacheck" %% "scalacheck" % "1.12.5" % "test",
