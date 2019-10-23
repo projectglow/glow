@@ -14,3 +14,5 @@ machine learning, enabling the scale of the cloud for genomics workflows.
    tertiary/index
    troubleshooting
    additional-resources
+
+.. modules
