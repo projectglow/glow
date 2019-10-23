@@ -9,3 +9,4 @@ dependencies:
     - typeguard==2.5.0
     - twine==2.0.0 # Pypi publishing
     - sphinx_rtd_theme
+    - Sphinx-Substitution-Extensions==2019.6.15.0 # Substitutions in code blocks
