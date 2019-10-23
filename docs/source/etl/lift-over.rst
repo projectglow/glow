@@ -62,11 +62,11 @@ coordinates, variant liftover performs the following transformations:
 - Adjust the SNP, and correct AF-like INFO fields and the relevant genotypes if the reference and alternate alleles have
   been swapped in the new genome build
 
-Pull a target assembly :ref:`reference file <reference-genomes>` down to every node in the Spark cluster in addition to
+Pull a target assembly reference file down to every node in the Spark cluster in addition to
 a chain file before performing variant liftover.
 
 The ``lift_over_variants`` transformer operates on a DataFrame containing genetic variants and supports the following
-:ref:`options <transformer-options>`.
+options:
 
 .. list-table::
   :header-rows: 1
