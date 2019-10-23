@@ -75,6 +75,8 @@ String]``.
     "in_vcfHeader" -> "infer")
   )
 
+.. _transformer-options:
+
 Options
 =======
 
@@ -126,4 +128,4 @@ The following options are not supported:
  - ``path`` options are ignored
  - The ``parserLib`` option is ignored. ``univocity`` is always used as the CSV parsing library.
 
-.. notebook:: ../_static/notebooks/tertiary/pipe-transformer.html
+.. notebook:: .. tertiary/pipe-transformer.html

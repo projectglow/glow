@@ -132,4 +132,4 @@ To control the behavior of the BGEN writer, you can provide the following option
 | defaultInferredPhasing | boolean | false   | The inferred phasing if phasing is missing and cannot be inferred from ``posteriorProbabilities``.                                 |
 +------------------------+---------+---------+------------------------------------------------------------------------------------------------------------------------------------+
 
-.. notebook:: ../_static/notebooks/etl/variant-data.html
+.. notebook:: .. etl/variant-data.html
