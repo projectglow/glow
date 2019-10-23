@@ -9,7 +9,6 @@
 # -- Path setup --------------------------------------------------------------
 
 from unittest import mock
-import imp
 import os
 import sys
 
@@ -38,25 +37,13 @@ sys.path.append(os.path.abspath('../../python'))
 
 project = 'Glow'
 copyright = '2019, Glow Authors'
-author = 'Glow Authors'
+author = 'Glow Authos'
 
 # The short X.Y version
 version = ''
 # The full version, including alpha/beta/rc tags
 release = ''
 
-# -- Substitutions for code blocks -------------------------------------------
-
-mvn_version_file = open('../../version.sbt', 'r')
-mvn_version_line = mvn_version_file.readline()
-mvn_version_file.close()
-
-pypi_version = imp.load_source('version', '../../python/version.py').VERSION
-
-substitutions = [
-    ('|mvn-version|', mvn_version_line.split('\"')[1]),
-    ('|pypi-version|', pypi_version)
-]
 
 # -- General configuration ---------------------------------------------------
 
@@ -78,7 +65,6 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.githubpages',
     'notebook',
-    'sphinx_substitution_extensions',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
