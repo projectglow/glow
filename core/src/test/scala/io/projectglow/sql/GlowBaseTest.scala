@@ -45,15 +45,18 @@ abstract class GlowBaseTest
         "spark.hadoop.io.compression.codecs",
         "org.seqdoop.hadoop_bam.util.BGZFCodec,org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec"
       )
+      .set("spark.sql.extensions", classOf[GlowSQLExtensions].getCanonicalName)
 
   }
 
-  override protected def createSparkSession = {
-    val session = super.createSparkSession
-    SqlExtensionProvider.register(session)
-    SparkSession.setActiveSession(session)
+  override def initializeSession(): Unit = ()
+
+  override protected implicit def spark: SparkSession = {
+    val sess = SparkSession.builder().config(sparkConf).master("local[2]").getOrCreate()
+    SqlExtensionProvider.register(sess)
+    SparkSession.setActiveSession(sess)
     Log.setGlobalLogLevel(Log.LogLevel.ERROR)
-    session
+    sess
   }
 
   protected def gridTest[A](testNamePrefix: String, testTags: Tag*)(params: Seq[A])(

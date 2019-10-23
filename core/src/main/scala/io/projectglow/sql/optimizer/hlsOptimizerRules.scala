@@ -16,12 +16,13 @@
 
 package io.projectglow.sql.optimizer
 
+import io.projectglow.sql.expressions.{AddStructFields, AggregateByIndex, UnwrappedAggregateFunction}
+
+import org.apache.spark.sql.catalyst.expressions.aggregate.{AggregateExpression, Complete}
 import org.apache.spark.sql.catalyst.expressions.{CreateNamedStruct, GetStructField, Literal}
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.types.StructType
-
-import io.projectglow.sql.expressions.AddStructFields
 
 /**
  * Simple optimization rule that handles expression rewrites
@@ -34,5 +35,20 @@ object HLSReplaceExpressionsRule extends Rule[LogicalPlan] {
         Seq(Literal(baseType(idx).name), GetStructField(struct, idx))
       }
       CreateNamedStruct(baseFields ++ newFields)
+  }
+}
+
+/**
+ * This rule is needed by [[AggregateByIndex]].
+ *
+ * Spark's analyzer only wraps AggregateFunctions in AggregateExpressions immediately after
+ * resolution. Since [[AggregateByIndex]] is first resolved as a higher order function, it is
+ * not correctly wrapped. Note that it's merely a coincidence that it is first resolved as a higher
+ * order function.
+ */
+object ResolveAggregateFunctionsRule extends Rule[LogicalPlan] {
+  override def apply(plan: LogicalPlan): LogicalPlan = plan.transformExpressions {
+    case agg: UnwrappedAggregateFunction =>
+      AggregateExpression(agg.asWrapped, Complete, isDistinct = false)
   }
 }
