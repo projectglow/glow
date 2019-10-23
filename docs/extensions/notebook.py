@@ -44,6 +44,7 @@ class Notebook(rst.Directive):
 
         raw_contents = """
 <div class='embedded-notebook'>
+    <a href="../additional-resources.html#running-databricks-notebooks">How to run a notebook</a>
     <a style='float:right' href="{url}">Get notebook link</a></p>
     <div class='embedded-notebook-container'>
         <div class='loading-spinner'></div>
