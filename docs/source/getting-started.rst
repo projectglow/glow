@@ -62,4 +62,4 @@ Demo notebook
 This notebook showcases some of the key functionality of Glow, like reading in a genomic dataset,
 saving it as a `Delta Lake <https://delta.io>`_, and performing a genome-wide association study.
 
-.. notebook:: _static/notebooks/tertiary/gwas.html
+.. notebook:: . tertiary/gwas.html

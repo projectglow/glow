@@ -100,10 +100,7 @@ of the covariate matrix is computed once and reused for each (``genotypes``, ``p
 Example notebook and blog post
 ------------------------------
 
-
 A detailed example and explanation of a GWAS workflow is available `here <https://databricks.com/blog/2019/09/20/engineering-population-scale-genome-wide-association-studies-with-apache-spark-delta-lake-and-mlflow.html>`_.
 
-
-
-.. notebook:: ../_static/notebooks/tertiary/gwas.html
+.. notebook:: .. tertiary/gwas.html
   :title: GWAS notebook
