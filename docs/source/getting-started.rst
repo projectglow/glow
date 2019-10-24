@@ -52,8 +52,7 @@ provider or Spark distribution. You need to install the maven package
 Notebooks embedded in the docs
 ------------------------------
 
-To demonstrate example use cases of Glow functionalities, most of the doc pages on this website are accompanied by embedded notebooks.
-The commands in these notebooks are cloud-independent, except for the ``display()`` command, which is specific to `Databricks Notebooks <https://docs.databricks.com/notebooks/index.html>`_ but can be easily replaced by other commands like ``.show``.
+To demonstrate example use cases of Glow functionalities, most doc pages are accompanied by embedded `Databricks Notebooks <https://docs.databricks.com/notebooks/index.html>`_. Most of the code in these notebooks can be run on Spark and Glow alone, but a few functions such as ``display()`` or ``dbutils()`` are only available on Databricks. See :ref:`dbnotebooks` for more info.
 
 Also note that the path to datasets used as example in these notebooks is usually a folder in ``/databricks-datasets/genomics/`` and should be replaced with the appropriate path based on your own folder structure.
 
