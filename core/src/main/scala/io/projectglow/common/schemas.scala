@@ -97,6 +97,31 @@ object VariantSchemas {
       bgenGenotypesField(hasSampleIds)
     )
   )
+
+  // Possible fields for PLINK
+  val positionField = StructField("position", DoubleType)
+  val bimSchema = StructType(
+    Seq(
+      contigNameField,
+      namesField,
+      positionField,
+      startField,
+      alternateAllelesField,
+      refAlleleField
+    )
+  )
+
+  val plinkSchema: StructType = bimSchema.add(
+    StructField(
+      genotypesFieldName,
+      ArrayType(
+        StructType(
+          Seq(
+            sampleIdField,
+            callsField
+          )
+        )
+      )))
 }
 
 case class GenotypeFields(
