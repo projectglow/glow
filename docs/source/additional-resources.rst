@@ -1,6 +1,8 @@
 Additional Resources
 ====================
 
+.. _dbnotebooks:
+
 Running Databricks notebooks
 ----------------------------
 
