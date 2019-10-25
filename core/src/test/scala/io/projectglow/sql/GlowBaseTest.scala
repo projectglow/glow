@@ -42,7 +42,8 @@ abstract class GlowBaseTest
       .set("spark.kryoserializer.buffer.max", "2047m")
       .set("spark.kryo.registrationRequired", "false")
       .set(
-        "spark.hadoop.io.compression.codecs", classOf[BGZFCodec].getCanonicalName
+        "spark.hadoop.io.compression.codecs",
+        classOf[BGZFCodec].getCanonicalName
       )
       .set("spark.sql.extensions", classOf[GlowSQLExtensions].getCanonicalName)
 
