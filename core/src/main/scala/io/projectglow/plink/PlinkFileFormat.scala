@@ -22,7 +22,7 @@ import com.univocity.parsers.csv.CsvParser
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileStatus, Path}
 import org.apache.hadoop.mapreduce.Job
-import org.apache.spark.TaskContext
+import org.apache.spark.{SparkException, TaskContext}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.datasources.{FileFormat, OutputWriterFactory, PartitionedFile}
@@ -31,6 +31,7 @@ import org.apache.spark.sql.types.StructType
 import io.projectglow.common.{GlowLogging, VariantSchemas}
 import io.projectglow.sql.util.SerializableConfiguration
 import org.apache.commons.io.IOUtils
+import org.apache.spark.sql.catalyst.util.FailFastMode
 import org.apache.spark.sql.execution.datasources.csv.{CSVOptions, CSVUtils, UnivocityParser, UnivocityParserUtils}
 import org.apache.spark.sql.internal.SQLConf
 
@@ -82,10 +83,6 @@ class PlinkFileFormat
     val prefixPath = bedPath.dropRight(4)
     val sampleIds = PlinkFileFormat.getSampleIds(prefixPath, options, hadoopConf)
     val variants = PlinkFileFormat.getVariants(prefixPath, options, hadoopConf)
-
-    println("Variants are: ")
-    variants.foreach(println)
-
     val serializableConf = new SerializableConfiguration(hadoopConf)
 
     file => {
@@ -116,11 +113,9 @@ class PlinkFileFormat
         file.start + file.length
       )
 
-      val numVariantsInBlock = getNumVariants(file, firstVariantStart, blockSize)
+      val numVariants = getNumVariants(file, firstVariantStart, blockSize)
       val relevantVariants =
-        variants.slice(firstVariantStart, firstVariantStart + numVariantsInBlock)
-      println("Relevant variants are: ")
-      relevantVariants.foreach(println)
+        variants.slice(firstVariantIdx, firstVariantIdx + numVariants)
 
       val rowConverter = new PlinkRowToInternalRowConverter(requiredSchema)
       relevantVariants.toIterator.zip(bedIter).map {
@@ -162,7 +157,13 @@ object PlinkFileFormat {
     val filteredLines = CSVUtils.filterCommentAndEmpty(lines, parsedOptions)
     val parser = new CsvParser(parsedOptions.asParserSettings)
     val sampleIdIterator = filteredLines.map { l =>
-      parser.parseRecord(l).getString(0)
+      val sampleLine = parser.parseRecord(l)
+      require(
+        sampleLine.getValues.length == 6,
+        s"Failed while parsing FAM file $famPath: does not have 6 columns delimited by '$famDelimiterOption'")
+      val familyId = sampleLine.getString(0)
+      val individualId = sampleLine.getString(1)
+      s"${familyId}_$individualId"
     }
     sampleIdIterator.toArray
   }
@@ -175,7 +176,7 @@ object PlinkFileFormat {
     val bimDelimiterOption = options.getOrElse(BIM_DELIMITER_KEY, DEFAULT_DELIMITER_VALUE)
     val parsedOptions =
       new CSVOptions(
-        Map(CSV_DELIMITER_KEY -> bimDelimiterOption),
+        Map(CSV_DELIMITER_KEY -> bimDelimiterOption, "mode" -> FailFastMode.name),
         SQLConf.get.csvColumnPruning,
         SQLConf.get.sessionLocalTimeZone)
     val bimPath = new Path(prefixPath + ".bim")
@@ -184,9 +185,15 @@ object PlinkFileFormat {
     val lines = IOUtils.lineIterator(stream, "UTF-8").asScala
     val filteredLines = CSVUtils.filterCommentAndEmpty(lines, parsedOptions)
     val univocityParser = new UnivocityParser(bimSchema, bimSchema, parsedOptions)
-    val variantIterator =
-      UnivocityParserUtils.parseIterator(filteredLines, univocityParser, bimSchema)
-    variantIterator.toArray
+    try {
+      val variantIterator =
+        UnivocityParserUtils.parseIterator(filteredLines, univocityParser, bimSchema)
+      variantIterator.map(_.copy).toArray
+    } catch {
+      case e: Exception =>
+        throw new IllegalArgumentException(
+          s"Failed while parsing BIM file $bimPath: ${e.getMessage}")
+    }
   }
 
   def getBlockSize(numSamples: Int): Int = {
@@ -194,11 +201,13 @@ object PlinkFileFormat {
   }
 
   def getFirstVariantIdx(partitionedFile: PartitionedFile, blockSize: Int): Int = {
-    math.ceil((partitionedFile.start - NUM_MAGIC_BYTES.toDouble) / blockSize).toInt
+    math.max(
+      0,
+      math.ceil((partitionedFile.start - (NUM_MAGIC_BYTES.toDouble - 1)) / blockSize).toInt)
   }
 
   def getFirstVariantStart(variantIdx: Int, blockSize: Int): Int = {
-    NUM_MAGIC_BYTES + blockSize * variantIdx
+    NUM_MAGIC_BYTES + (blockSize * variantIdx)
   }
 
   def getNumVariants(

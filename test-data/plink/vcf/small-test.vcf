@@ -1,0 +1,16 @@
+##fileformat=VCFv4.2
+##fileDate=20191025
+##source=PLINKv1.90
+##contig=<ID=1,length=11>
+##contig=<ID=23,length=21>
+##contig=<ID=24,length=31>
+##contig=<ID=25,length=41>
+##contig=<ID=26,length=51>
+##INFO=<ID=PR,Number=0,Type=Flag,Description="Provisional reference allele, may not be based on real reference genome">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	1_1	2_1	3_1	4_1
+1	10	snp1	C	A	.	.	PR	GT	1/1	0/1	0/0	./.
+23	20	snp2	A	C	.	.	PR	GT	0/0	0/1	0/0	0/1
+24	30	snp3	A	C	.	.	PR	GT	0/0	0/1	0/0	0/1
+25	40	snp4	A	C	.	.	PR	GT	0/0	0/1	0/0	0/1
+26	50	snp5	A	C	.	.	PR	GT	0/0	0/1	0/0	0/1

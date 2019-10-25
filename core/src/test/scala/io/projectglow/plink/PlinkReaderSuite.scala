@@ -16,11 +16,16 @@
 
 package io.projectglow.plink
 
-import io.projectglow.common.{PlinkGenotype, PlinkRow}
+import java.io.FileNotFoundException
+
+import org.apache.spark.sql.catalyst.errors.TreeNodeException
+import io.projectglow.common.{PlinkGenotype, PlinkRow, VariantSchemas}
 import io.projectglow.sql.GlowBaseTest
+import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
+import org.apache.spark.sql.types.StructType
 
 class PlinkReaderSuite extends GlowBaseTest {
-  private val testBed = s"$testDataHome/plink/small-test.bed"
+  private val testRoot = s"$testDataHome/plink"
 
   test("Read PLINK files") {
     val sess = spark
@@ -30,11 +35,10 @@ class PlinkReaderSuite extends GlowBaseTest {
       .read
       .format("plink")
       .option("bim_delimiter", "\t")
-      .load(testBed)
+      .load(s"$testRoot/small-test/small-test.bed")
       .sort("contigName")
       .as[PlinkRow]
       .collect
-    plinkRows.foreach(println)
 
     assert(plinkRows.length == 5)
 
@@ -43,29 +47,125 @@ class PlinkReaderSuite extends GlowBaseTest {
       snp1 == PlinkRow(
         contigName = "1",
         position = 0.0,
-        start = 999,
-        end = 1000,
+        start = 9,
+        end = 10,
         names = Seq("snp1"),
-        referenceAllele = "A",
-        alternateAlleles = Seq("C"),
+        referenceAllele = "C",
+        alternateAlleles = Seq("A"),
         genotypes = Seq(
           PlinkGenotype(
-            sampleId = "1",
-            calls = Seq(0, 0)
-          ),
-          PlinkGenotype(
-            sampleId = "2",
-            calls = Seq(0, 1)
-          ),
-          PlinkGenotype(
-            sampleId = "3",
+            sampleId = "1_1",
             calls = Seq(1, 1)
           ),
           PlinkGenotype(
-            sampleId = "4",
+            sampleId = "2_1",
+            calls = Seq(0, 1)
+          ),
+          PlinkGenotype(
+            sampleId = "3_1",
+            calls = Seq(0, 0)
+          ),
+          PlinkGenotype(
+            sampleId = "4_1",
             calls = Seq(-1, -1)
           )
         )
       ))
+
+    val snp5 = plinkRows.last
+    assert(
+      snp5 == PlinkRow(
+        contigName = "26", // MT
+        position = 2.5,
+        start = 49,
+        end = 50,
+        names = Seq("snp5"),
+        referenceAllele = "A",
+        alternateAlleles = Seq("C"),
+        genotypes = Seq(
+          PlinkGenotype(
+            sampleId = "1_1",
+            calls = Seq(0, 0)
+          ),
+          PlinkGenotype(
+            sampleId = "2_1",
+            calls = Seq(0, 1)
+          ),
+          PlinkGenotype(
+            sampleId = "3_1",
+            calls = Seq(0, 0)
+          ),
+          PlinkGenotype(
+            sampleId = "4_1",
+            calls = Seq(0, 1)
+          )
+        )
+      ))
+  }
+
+  test("Missing FAM") {
+    val df = spark
+      .read
+      .format("plink")
+      .load(s"$testRoot/no-fam/small-test.bed")
+    assertThrows[FileNotFoundException] {
+      df.collect()
+    }
+  }
+
+  test("Missing BIM") {
+    val df = spark
+      .read
+      .format("plink")
+      .load(s"$testRoot/no-bim/small-test.bed")
+    assertThrows[FileNotFoundException] {
+      df.collect()
+    }
+  }
+
+  test("Wrong BIM delimiter") {
+    val e = intercept[TreeNodeException[LogicalPlan]] {
+      spark
+        .read
+        .format("plink")
+        .load(s"$testRoot/small-test/small-test.bed")
+        .sort("contigName")
+        .collect
+    }
+    assert(e.getCause.getMessage.contains("Failed while parsing BIM file"))
+  }
+
+  test("Wrong FAM delimiter") {
+    val e = intercept[IllegalArgumentException] {
+      spark
+        .read
+        .format("plink")
+        .option("fam_delimiter", "\t")
+        .option("bim_delimiter", "\t")
+        .load(s"$testRoot/small-test/small-test.bed")
+        .show()
+    }
+    assert(e.getMessage.contains("Failed while parsing FAM file"))
+  }
+
+  test("Read compared to VCF") {
+    // The PLINK schema is a sub-set of the VCF schema, with the addition of a position field
+    val commonVcfPlinkSchema =
+      StructType(VariantSchemas.plinkSchema.filter(_.name != VariantSchemas.positionField.name))
+    val vcfRows = spark
+      .read
+      .format("vcf")
+      .schema(commonVcfPlinkSchema)
+      .load(s"$testRoot/vcf/small-test.vcf")
+      .sort("contigName")
+    val plinkRows =
+      spark
+        .read
+        .format("plink")
+        .option("bim_delimiter", "\t")
+        .schema(commonVcfPlinkSchema)
+        .load(s"$testRoot/small-test/small-test.bed")
+        .sort("contigName")
+    assert(vcfRows.collect sameElements plinkRows.collect)
   }
 }
