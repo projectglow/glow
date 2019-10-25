@@ -83,6 +83,9 @@ class PlinkFileFormat
     val sampleIds = PlinkFileFormat.getSampleIds(prefixPath, options, hadoopConf)
     val variants = PlinkFileFormat.getVariants(prefixPath, options, hadoopConf)
 
+    println("Variants are: ")
+    variants.foreach(println)
+
     val serializableConf = new SerializableConfiguration(hadoopConf)
 
     file => {
@@ -116,6 +119,8 @@ class PlinkFileFormat
       val numVariantsInBlock = getNumVariants(file, firstVariantStart, blockSize)
       val relevantVariants =
         variants.slice(firstVariantStart, firstVariantStart + numVariantsInBlock)
+      println("Relevant variants are: ")
+      relevantVariants.foreach(println)
 
       val rowConverter = new PlinkRowToInternalRowConverter(requiredSchema)
       relevantVariants.toIterator.zip(bedIter).map {
@@ -157,8 +162,7 @@ object PlinkFileFormat {
     val filteredLines = CSVUtils.filterCommentAndEmpty(lines, parsedOptions)
     val parser = new CsvParser(parsedOptions.asParserSettings)
     val sampleIdIterator = filteredLines.map { l =>
-      val sampleLine = parser.parseRecord(l)
-      sampleLine.getString(0)
+      parser.parseRecord(l).getString(0)
     }
     sampleIdIterator.toArray
   }

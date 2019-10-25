@@ -219,3 +219,15 @@ object BgenRow {
     .dataType
     .asInstanceOf[StructType]
 }
+
+private[projectglow] case class PlinkGenotype(sampleId: String, calls: Seq[Int])
+
+private[projectglow] case class PlinkRow(
+    contigName: String,
+    position: Double,
+    start: Long,
+    end: Long,
+    names: Seq[String],
+    referenceAllele: String,
+    alternateAlleles: Seq[String],
+    genotypes: Seq[PlinkGenotype])
