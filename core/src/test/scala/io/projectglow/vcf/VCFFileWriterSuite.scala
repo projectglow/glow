@@ -107,8 +107,8 @@ abstract class VCFFileWriterSuite(val sourceName: String)
 
   gridTest("Read single sample VCF with VCF parser")(schemaOptions) { schema =>
     val (ds, rewrittenDs) = writeAndRereadWithDBParser(NA12878, schemaOption = schema)
-    ds.show()
-    rewrittenDs.show()
+    ds.collect()
+    rewrittenDs.collect()
     ds.collect.zip(rewrittenDs.collect).foreach {
       case (vc1, vc2) =>
         assert(vc1.equals(vc2), s"VC1\n$vc1\nVC2\n$vc2")
