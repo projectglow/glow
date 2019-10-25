@@ -161,16 +161,16 @@ The function returns a struct with the following fields. The computation of each
     - Details
   * - ``beta``
     - ``double``
-    - Log-odds associated with the ``genotypes`` parameter.
+    - Log-odds associated with the ``genotypes`` parameter, ``NaN`` if the fit failed.
   * - ``oddsRatio``
     - ``double``
-    - Odds ratio associated with the ``genotypes`` parameter.
+    - Odds ratio associated with the ``genotypes`` parameter, ``NaN`` if the fit failed..
   * - ``waldConfidenceInterval``
     - ``array<double>``
-    - Wald 95% confidence interval of the odds ratio, ``NaN`` if and only if Newton iterations exploded.
+    - Wald 95% confidence interval of the odds ratio, ``NaN``s if the fit failed.
   * - ``pValue``
     - ``double``
-    - p-value for the specified ``test``, ``NaN`` if and only if the fit failed.
+    - p-value for the specified ``test``, ``NaN`` if the fit failed.
 
 Implementation details
 ----------------------

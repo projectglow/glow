@@ -81,7 +81,6 @@ case class LogisticRegressionExpr(
     val genotypeArray = genotypes.asInstanceOf[ArrayData].toDoubleArray
     val phenotypeArray = phenotypes.asInstanceOf[ArrayData].toDoubleArray
     val covariateMatrix = matrixUDT.deserialize(covariates.asInstanceOf[InternalRow]).toDense
-    val testName = test.asInstanceOf[UTF8String].toString
 
     val nullFitNewtonResult = fitNullModel(phenotypeArray, covariateMatrix)
     LogisticRegressionGwas.logisticRegressionGwas(

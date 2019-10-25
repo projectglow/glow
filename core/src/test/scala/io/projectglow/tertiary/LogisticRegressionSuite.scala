@@ -280,9 +280,28 @@ class LogisticRegressionSuite extends GlowBaseTest {
     }
   }
 
-  test("No p-value if didn't converge") {
+  def checkAllNan(lrtStats: LikelihoodRatioTestStats): Unit = {
+    assert(lrtStats.beta.isNaN)
+    assert(lrtStats.oddsRatio.isNaN)
+    lrtStats.waldConfidenceInterval.foreach { c =>
+      assert(c.isNaN)
+    }
+    assert(lrtStats.pValue.isNaN)
+  }
+
+  test("Return NaNs if null fit didn't converge") {
     val ourStats = runLRT(completeSeparation, false).head
-    assert(ourStats.pValue.isNaN)
+    checkAllNan(ourStats)
+  }
+
+  test("Return NaNs if full fit didn't converge") {
+    val ourStats = runLRT(
+      TestData(
+        Seq(completeSeparation.covariates.flatten),
+        completeSeparation.phenotypes,
+        completeSeparation.genotypes.head.map(Array(_))),
+      false).head
+    checkAllNan(ourStats)
   }
 
   test("Check sample number matches") {
