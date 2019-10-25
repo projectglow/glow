@@ -58,7 +58,7 @@ class PlinkRowToInternalRowConverter(schema: StructType) extends GlowLogging {
             val genotypes = new Array[Any](bsc._2.length)
             var j = 0
             while (j < genotypes.length) {
-              genotypes(j) = converter(bsc._2(j), bsc._3(j))
+              genotypes(j) = converter((bsc._2(j), bsc._3(j)))
               j += 1
             }
             r.update(i, new GenericArrayData(genotypes))
@@ -110,22 +110,23 @@ object BimRow {
   }
 
   def getNames(row: InternalRow): ArrayData = {
-    row.getArray(bimSchema.fieldIndex(namesField.name))
+    new GenericArrayData(Array(row.getUTF8String(bimSchema.fieldIndex(variantIdField.name))))
   }
 
   def getPosition(row: InternalRow): Double = {
     row.getDouble(bimSchema.fieldIndex(positionField.name))
   }
 
+  // BIM is 1-start
   def getStart(row: InternalRow): Long = {
-    row.getLong(bimSchema.fieldIndex(startField.name) - 1)
+    row.getLong(bimSchema.fieldIndex(startField.name)) - 1
   }
 
   def getAlternateAlleles(row: InternalRow): ArrayData = {
-    row.getArray(bimSchema.fieldIndex(alternateAllelesField.name))
+    new GenericArrayData(Array(row.getUTF8String(bimSchema.fieldIndex(alleleOneField.name))))
   }
 
   def getRefAllele(row: InternalRow): UTF8String = {
-    row.getUTF8String(bimSchema.fieldIndex(refAlleleField.name))
+    row.getUTF8String(bimSchema.fieldIndex(alleleTwoField.name))
   }
 }

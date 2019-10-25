@@ -29,8 +29,8 @@ class BedFileIterator(
     extends Iterator[Array[Array[Int]]]
     with GlowLogging {
 
-  val callsArray: Array[Array[Int]] = new Array(numSamples)[Array[Int]]
-  val byteArray: Array[Byte] = new Array(blockSize)[Byte]
+  val callsArray: Array[Array[Int]] = new Array[Array[Int]](numSamples)
+  val byteArray: Array[Byte] = new Array[Byte](blockSize)
 
   def hasNext(): Boolean = {
     val ret = underlyingStream.getPos < maxPos
@@ -56,7 +56,7 @@ class BedFileIterator(
       case 0 => Array(1, 1) // Homozygous for first (alternate) allele
       case 1 => Array(-1, -1) // Missing genotype
       case 2 => Array(0, 1) // Heterozygous
-      case 3 => Array(0, 10) // Homozygous for second (reference) allele
+      case 3 => Array(0, 1) // Homozygous for second (reference) allele
       case _ => throw new IllegalArgumentException("Two bits can only represent values in [0,3].")
     }
   }
