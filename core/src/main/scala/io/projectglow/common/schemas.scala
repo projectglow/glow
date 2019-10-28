@@ -58,7 +58,7 @@ object VariantSchemas {
   val posteriorProbabilitiesField = StructField("posteriorProbabilities", ArrayType(DoubleType))
 
   // Possible genotype fields for VCF
-  val callsField = StructField("calls", ArrayType(IntegerType))
+  val callsField = StructField("calls", ArrayType(ShortType))
   val depthField = StructField("depth", IntegerType)
   val genotypeFiltersField = StructField("filters", ArrayType(StringType))
   val phredLikelihoodsField = StructField("phredLikelihoods", ArrayType(IntegerType))
@@ -68,7 +68,7 @@ object VariantSchemas {
   val otherFieldsField = StructField("otherFields", MapType(StringType, StringType))
 
   // Possible genotype fields for BGEN
-  val ploidyField = StructField("ploidy", IntegerType)
+  val ploidyField = StructField("ploidy", ShortType)
 
   // Genotype fields that are typically present in BGEN records
   def bgenGenotypesField(hasSampleIds: Boolean): StructField = StructField(
