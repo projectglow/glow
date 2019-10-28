@@ -124,4 +124,36 @@ class AggregateByIndexSuite extends GlowBaseTest {
       assert(row == Seq(0, 10, 20, 30, 40))
     }
   }
+
+  test("empty dataframe") {
+    import sess.implicits._
+    val result = spark
+      .emptyDataset[Tuple1[Seq[Int]]]
+      .selectExpr("""
+          |aggregate_by_index(
+          |_1,
+          |0,
+          |(acc, el) -> acc + el,
+          |(acc1, acc2) -> acc1 + acc2)
+        """.stripMargin)
+      .as[Seq[Int]]
+      .head
+    assert(result == Seq.empty)
+  }
+
+  test("null array") {
+    import sess.implicits._
+    val result = spark
+      .createDataFrame(Seq(Tuple1(null), Tuple1(Seq(1))))
+      .selectExpr("""
+          |aggregate_by_index(
+          |_1,
+          |0,
+          |(acc, el) -> acc + el,
+          |(acc1, acc2) -> acc1 + acc2)
+        """.stripMargin)
+      .as[Seq[Option[Int]]]
+      .head
+    assert(result == Seq(None))
+  }
 }

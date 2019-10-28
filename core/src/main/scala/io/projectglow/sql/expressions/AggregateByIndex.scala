@@ -67,11 +67,9 @@ trait AggregateByIndex extends DeclarativeAggregate with HigherOrderFunction {
       newMerge: Expression,
       newEvaluate: Expression): AggregateByIndex
 
-
   protected val buffer: AttributeReference = {
     AttributeReference("buffer", ArrayType(initialValue.dataType))()
   }
-
 
   // Overrides from [[Expression]]
   override def prettyName: String = "aggregate_by_index"
@@ -100,7 +98,6 @@ trait AggregateByIndex extends DeclarativeAggregate with HigherOrderFunction {
     )
   }
 
-
   // Overrides from [[DeclarativeAggregate]]
   override def aggBufferAttributes: Seq[AttributeReference] = Seq(buffer)
 
@@ -126,7 +123,6 @@ trait AggregateByIndex extends DeclarativeAggregate with HigherOrderFunction {
   override lazy val mergeExpressions: Seq[Expression] = Seq(mergeExpr)
 
   override lazy val updateExpressions: Seq[Expression] = Seq(updateExpr)
-
 
   /**
    * A helper for accessing a buffer that may not yet be initialized.

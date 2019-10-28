@@ -16,13 +16,13 @@
 
 package io.projectglow.sql.optimizer
 
-import io.projectglow.sql.expressions.{AddStructFields, AggregateByIndex, UnwrappedAggregateFunction}
-
 import org.apache.spark.sql.catalyst.expressions.aggregate.{AggregateExpression, Complete}
 import org.apache.spark.sql.catalyst.expressions.{CreateNamedStruct, GetStructField, Literal}
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.types.StructType
+
+import io.projectglow.sql.expressions.{AddStructFields, AggregateByIndex, UnwrappedAggregateFunction}
 
 /**
  * Simple optimization rule that handles expression rewrites

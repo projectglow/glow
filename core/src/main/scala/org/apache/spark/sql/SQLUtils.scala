@@ -20,9 +20,6 @@ import org.apache.spark.TaskContext
 import org.apache.spark.ml.linalg.{MatrixUDT, VectorUDT}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.analysis.SimpleAnalyzer
-import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
-import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.types._
 
 object SQLUtils {
