@@ -47,17 +47,19 @@ object SqlExtensionProvider {
 
   def registerFunctions(conf: SQLConf, functionRegistry: FunctionRegistry): Unit = {
     functionRegistry.registerFunction(
-      FunctionIdentifier("subset_struct"),
-      exprs => {
-        val struct = exprs.head
-        val fields = exprs.tail
-        CreateNamedStruct(fields.flatMap(f => Seq(f, UnresolvedExtractValue(struct, f))))
-      }
+      FunctionIdentifier("add_struct_fields"),
+      exprs => AddStructFields(exprs.head, exprs.tail)
     )
 
     functionRegistry.registerFunction(
-      FunctionIdentifier("add_struct_fields"),
-      exprs => AddStructFields(exprs.head, exprs.tail)
+      FunctionIdentifier("aggregate_by_index"),
+      exprs =>
+        UnwrappedAggregateByIndex(
+          exprs(0),
+          exprs(1),
+          exprs(2),
+          exprs(3),
+          exprs.lift(4).getOrElse(LambdaFunction.identity))
     )
 
     functionRegistry.registerFunction(
@@ -146,19 +148,17 @@ object SqlExtensionProvider {
     )
 
     functionRegistry.registerFunction(
-      FunctionIdentifier("vector_to_array"),
-      exprs => VectorToArray(exprs.head)
+      FunctionIdentifier("subset_struct"),
+      exprs => {
+        val struct = exprs.head
+        val fields = exprs.tail
+        CreateNamedStruct(fields.flatMap(f => Seq(f, UnresolvedExtractValue(struct, f))))
+      }
     )
 
     functionRegistry.registerFunction(
-      FunctionIdentifier("aggregate_by_index"),
-      exprs =>
-        UnwrappedAggregateByIndex(
-          exprs(0),
-          exprs(1),
-          exprs(2),
-          exprs(3),
-          exprs.lift(4).getOrElse(LambdaFunction.identity))
+      FunctionIdentifier("vector_to_array"),
+      exprs => VectorToArray(exprs.head)
     )
   }
 }
