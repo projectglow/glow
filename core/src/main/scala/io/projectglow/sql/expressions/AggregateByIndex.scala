@@ -30,22 +30,23 @@ import org.apache.spark.sql.types._
  * The user must provide the following arguments:
  * - The array for aggregation
  * - The initialValue for each element in the per-index buffer
- * - An update function to update the accumulator with a new element
- * - A merge function to combine two accumulators
+ * - An update function to update the buffer with a new element
+ * - A merge function to combine two buffers
  *
  * The user may optionally provide an evaluate function. If it's not provided, the identity function
  * is used.
  *
- * Example usage to calculate total depth across all sites for a sample:
+ * Example usage to calculate average depth across all sites for a sample:
  * aggregate_by_index(
  *   genotypes,
- *   0,
- *   (acc, genotype) -> acc + genotype.depth,
- *   (acc1, acc2) -> acc1 + acc2,
- *   acc -> acc)
+ *   named_struct('sum', 0l, 'count', 0l),
+ *   (buf, genotype) -> named_struct('sum', buf.sum + genotype.depth, 'count', buf.count + 1),
+ *   (buf1, buf2) -> named_struct('sum', buf1.sum + buf2.sum, 'count', buf1.count + buf2.count),
+ *   buf -> buf.sum / buf.count)
  */
 trait AggregateByIndex extends DeclarativeAggregate with HigherOrderFunction {
 
+  // Fields specific to AggregateByIndex that must be overridden by subclasses
   /** The array over which we're aggregating */
   def arr: Expression
 
@@ -55,7 +56,7 @@ trait AggregateByIndex extends DeclarativeAggregate with HigherOrderFunction {
   /** Function to update an element of the buffer with a new input element */
   def update: Expression
 
-  /** Function to merge two buffers elements */
+  /** Function to merge two buffers' elements */
   def merge: Expression
 
   /** Function to turn a buffer into the actual output */
@@ -66,22 +67,18 @@ trait AggregateByIndex extends DeclarativeAggregate with HigherOrderFunction {
       newMerge: Expression,
       newEvaluate: Expression): AggregateByIndex
 
+
   protected val buffer: AttributeReference = {
     AttributeReference("buffer", ArrayType(initialValue.dataType))()
   }
 
-  /**
-   * Since we don't know the proper size of the aggregation buffer, we create it with the size
-   * of the data array (or the aggregation buffer with which it's being merged) if it's not yet
-   * defined.
-   */
-  private def bufferNotNull(buf: Expression, array: Expression): Expression = {
-    If(buf.isNull, ArrayRepeat(initialValue, Size(array)), buf)
-  }
 
+  // Overrides from [[Expression]]
   override def prettyName: String = "aggregate_by_index"
   override def nullable: Boolean = children.exists(_.nullable)
   override def dataType: DataType = ArrayType(evaluate.dataType)
+
+  // Overrides from [[HigherOrderFunction]]
   override def functions: Seq[Expression] = Seq(update, merge, evaluate)
   override def functionTypes: Seq[SQLUtils.ADT] = {
     Seq(SQLUtils.anyDataType, SQLUtils.anyDataType, SQLUtils.anyDataType)
@@ -103,6 +100,8 @@ trait AggregateByIndex extends DeclarativeAggregate with HigherOrderFunction {
     )
   }
 
+
+  // Overrides from [[DeclarativeAggregate]]
   override def aggBufferAttributes: Seq[AttributeReference] = Seq(buffer)
 
   private lazy val updateExpr = {
@@ -127,6 +126,18 @@ trait AggregateByIndex extends DeclarativeAggregate with HigherOrderFunction {
   override lazy val mergeExpressions: Seq[Expression] = Seq(mergeExpr)
 
   override lazy val updateExpressions: Seq[Expression] = Seq(updateExpr)
+
+
+  /**
+   * A helper for accessing a buffer that may not yet be initialized.
+   *
+   * @param buf The maybe initialized buffer to return
+   * @param array An input array that has the same length as the aggregation buffer
+   * @return `buf` if it is not null, otherwise [[initialValue]] repeated size(`array`) times
+   */
+  private def bufferNotNull(buf: Expression, array: Expression): Expression = {
+    If(buf.isNull, ArrayRepeat(initialValue, Size(array)), buf)
+  }
 }
 
 /**
