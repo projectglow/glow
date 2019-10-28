@@ -20,6 +20,23 @@ import com.google.common.io.LittleEndianDataInputStream
 import io.projectglow.common.GlowLogging
 import org.apache.hadoop.fs.FSDataInputStream
 
+/**
+ * Parses genotype blocks of a BED file into an array. The iterator assumes that the input streams are currently at the
+ * beginning of a genotype block.
+ *
+ * BED standard: https://www.well.ox.ac.uk/~gav/bgen_format/
+ *
+ * This class does not currently support the entire BED standard. Limitations:
+ * - Only variant-major BEDs are supported.
+ *
+ * @param stream Data stream that records are read from. Must be little-endian.
+ * @param underlyingStream Hadoop input stream that underlies the little-endian data stream. Only
+ *                         used for cleaning up when there are no genotype blocks left.
+ * @param numSamples The number of samples represented in each genotype block.
+ * @param numBlocks The number of genotype blocks which can be read. `hasNext` will return `false` once we've reached
+ *                  `numBlocks` blocks.
+ * @param blockSize The size of a block in bytes; equal to `ceil(numSamples / 4)`
+ */
 class BedFileIterator(
     stream: LittleEndianDataInputStream,
     underlyingStream: FSDataInputStream,
@@ -49,6 +66,7 @@ class BedFileIterator(
       s"BED file corrupted: could not read block $blockIdx from $numBlocks blocks.")
     var i = 0
     while (i < numSamples) {
+      // Get the relevant 2 bits for the sample within the block
       callsArray(i) = twoBitsToCalls((byteArray(i / 4) >> (2 * (i % 4))) & 3)
       i += 1
     }
