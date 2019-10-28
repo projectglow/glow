@@ -22,7 +22,7 @@ import com.univocity.parsers.csv.CsvParser
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileStatus, Path}
 import org.apache.hadoop.mapreduce.Job
-import org.apache.spark.{SparkException, TaskContext}
+import org.apache.spark.TaskContext
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.datasources.{FileFormat, OutputWriterFactory, PartitionedFile}
@@ -78,11 +78,8 @@ class PlinkFileFormat
       options: Map[String, String],
       hadoopConf: Configuration): PartitionedFile => Iterator[InternalRow] = {
 
-    val bedPath =
-      options.getOrElse("path", throw new IllegalArgumentException("Must provide path."))
-    val prefixPath = bedPath.dropRight(4)
-    val sampleIds = PlinkFileFormat.getSampleIds(prefixPath, options, hadoopConf)
-    val variants = PlinkFileFormat.getVariants(prefixPath, options, hadoopConf)
+    val sampleIds = PlinkFileFormat.getSampleIds(options, hadoopConf)
+    val variants = PlinkFileFormat.getVariants(options, hadoopConf)
     val serializableConf = new SerializableConfiguration(hadoopConf)
 
     file => {
@@ -105,17 +102,17 @@ class PlinkFileFormat
       val firstVariantStart = getFirstVariantStart(firstVariantIdx, blockSize)
       stream.seek(firstVariantStart)
 
+      val numVariants = getNumVariants(file, firstVariantStart, blockSize)
+      val relevantVariants =
+        variants.slice(firstVariantIdx, firstVariantIdx + numVariants)
+
       val bedIter = new BedFileIterator(
         littleEndianStream,
         stream,
         numSamples,
-        blockSize,
-        file.start + file.length
+        numVariants,
+        blockSize
       )
-
-      val numVariants = getNumVariants(file, firstVariantStart, blockSize)
-      val relevantVariants =
-        variants.slice(firstVariantIdx, firstVariantIdx + numVariants)
 
       val rowConverter = new PlinkRowToInternalRowConverter(requiredSchema)
       relevantVariants.toIterator.zip(bedIter).map {
@@ -126,7 +123,7 @@ class PlinkFileFormat
   }
 }
 
-object PlinkFileFormat {
+object PlinkFileFormat extends GlowLogging {
 
   import io.projectglow.common.VariantSchemas._
 
@@ -135,25 +132,43 @@ object PlinkFileFormat {
   val BIM_DELIMITER_KEY = "bim_delimiter"
   val DEFAULT_DELIMITER_VALUE = " "
 
+  val FAM_PATH_KEY = "fam"
+  val BIM_PATH_KEY = "bim"
+
+  val FAM_FILE_EXTENSION = ".fam"
+  val BIM_FILE_EXTENSION = ".bim"
+
   val BLOCKS_PER_BYTE = 4
   val MAGIC_BYTES: Seq[Byte] = Seq(0x6c, 0x1b, 0x01).map(_.toByte)
   val NUM_MAGIC_BYTES: Int = MAGIC_BYTES.size
 
+  def getPrefixPath(options: Map[String, String]): String = {
+    val bedPath =
+      options.getOrElse("path", throw new IllegalArgumentException("Must provide path."))
+    bedPath.dropRight(4)
+  }
+
   // Parses FAM file to get the sample IDs
-  def getSampleIds(
-      prefixPath: String,
-      options: Map[String, String],
-      hadoopConf: Configuration): Array[String] = {
+  def getSampleIds(options: Map[String, String], hadoopConf: Configuration): Array[String] = {
+    val famPathStr = options.get(FAM_PATH_KEY) match {
+      case Some(s) => s
+      case None => getPrefixPath(options) + FAM_FILE_EXTENSION
+      // For now, the user must have a FAM path
+    }
+    logger.info(s"Using FAM file $famPathStr")
+
+    val famPath = new Path(famPathStr)
+    val hadoopFs = famPath.getFileSystem(hadoopConf)
+    val stream = hadoopFs.open(famPath)
+    val lines = IOUtils.lineIterator(stream, "UTF-8").asScala
+
     val famDelimiterOption = options.getOrElse(FAM_DELIMITER_KEY, DEFAULT_DELIMITER_VALUE)
     val parsedOptions =
       new CSVOptions(
         Map(CSV_DELIMITER_KEY -> famDelimiterOption),
         SQLConf.get.csvColumnPruning,
         SQLConf.get.sessionLocalTimeZone)
-    val famPath = new Path(prefixPath + ".fam")
-    val hadoopFs = famPath.getFileSystem(hadoopConf)
-    val stream = hadoopFs.open(famPath)
-    val lines = IOUtils.lineIterator(stream, "UTF-8").asScala
+
     val filteredLines = CSVUtils.filterCommentAndEmpty(lines, parsedOptions)
     val parser = new CsvParser(parsedOptions.asParserSettings)
     val sampleIdIterator = filteredLines.map { l =>
@@ -169,20 +184,26 @@ object PlinkFileFormat {
   }
 
   // Parses BIM file to get the variants
-  def getVariants(
-      prefixPath: String,
-      options: Map[String, String],
-      hadoopConf: Configuration): Array[InternalRow] = {
+  def getVariants(options: Map[String, String], hadoopConf: Configuration): Array[InternalRow] = {
+    val bimPathStr = options.get(BIM_PATH_KEY) match {
+      case Some(s) => s
+      case None => getPrefixPath(options) + BIM_FILE_EXTENSION
+      // For now, the user must have a BIM path
+    }
+    logger.info(s"Using BIM file $bimPathStr")
+
+    val bimPath = new Path(bimPathStr)
+    val hadoopFs = bimPath.getFileSystem(hadoopConf)
+    val stream = hadoopFs.open(bimPath)
+    val lines = IOUtils.lineIterator(stream, "UTF-8").asScala
+
     val bimDelimiterOption = options.getOrElse(BIM_DELIMITER_KEY, DEFAULT_DELIMITER_VALUE)
     val parsedOptions =
       new CSVOptions(
         Map(CSV_DELIMITER_KEY -> bimDelimiterOption, "mode" -> FailFastMode.name),
         SQLConf.get.csvColumnPruning,
         SQLConf.get.sessionLocalTimeZone)
-    val bimPath = new Path(prefixPath + ".bim")
-    val hadoopFs = bimPath.getFileSystem(hadoopConf)
-    val stream = hadoopFs.open(bimPath)
-    val lines = IOUtils.lineIterator(stream, "UTF-8").asScala
+
     val filteredLines = CSVUtils.filterCommentAndEmpty(lines, parsedOptions)
     val univocityParser = new UnivocityParser(bimSchema, bimSchema, parsedOptions)
     try {
@@ -214,15 +235,18 @@ object PlinkFileFormat {
       partitionedFile: PartitionedFile,
       firstVariantStart: Int,
       blockSize: Int): Int = {
-    math.floor((partitionedFile.length - firstVariantStart) / blockSize.toDouble).toInt
+    math.ceil((partitionedFile.length - firstVariantStart) / blockSize.toDouble).toInt
   }
 
   def verifyBed(stream: LittleEndianDataInputStream): Unit = {
     val magicNumber = MAGIC_BYTES.map(_ => stream.readByte())
 
+    lazy val hexString = MAGIC_BYTES.map { b =>
+      String.format("%04x", Byte.box(b))
+    }.mkString(",")
     require(
       magicNumber == MAGIC_BYTES,
-      s"Magic bytes were not '0x6c', '0x1b', '0x01'; this is not a variant-major BED."
+      s"Magic bytes were not $hexString; this is not a variant-major BED."
     )
   }
 }

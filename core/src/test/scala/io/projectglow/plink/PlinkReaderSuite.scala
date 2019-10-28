@@ -21,6 +21,7 @@ import java.io.FileNotFoundException
 import org.apache.spark.sql.catalyst.errors.TreeNodeException
 import io.projectglow.common.{PlinkGenotype, PlinkRow, VariantSchemas}
 import io.projectglow.sql.GlowBaseTest
+import org.apache.spark.SparkException
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.types.StructType
 
@@ -50,12 +51,12 @@ class PlinkReaderSuite extends GlowBaseTest {
         start = 9,
         end = 10,
         names = Seq("snp1"),
-        referenceAllele = "C",
-        alternateAlleles = Seq("A"),
+        referenceAllele = "A",
+        alternateAlleles = Seq("C"),
         genotypes = Seq(
           PlinkGenotype(
             sampleId = "1_1",
-            calls = Seq(1, 1)
+            calls = Seq(0, 0)
           ),
           PlinkGenotype(
             sampleId = "2_1",
@@ -63,10 +64,14 @@ class PlinkReaderSuite extends GlowBaseTest {
           ),
           PlinkGenotype(
             sampleId = "3_1",
-            calls = Seq(0, 0)
+            calls = Seq(1, 1)
           ),
           PlinkGenotype(
             sampleId = "4_1",
+            calls = Seq(-1, -1)
+          ),
+          PlinkGenotype(
+            sampleId = "5_1",
             calls = Seq(-1, -1)
           )
         )
@@ -98,6 +103,10 @@ class PlinkReaderSuite extends GlowBaseTest {
           PlinkGenotype(
             sampleId = "4_1",
             calls = Seq(0, 1)
+          ),
+          PlinkGenotype(
+            sampleId = "5_1",
+            calls = Seq(0, 1)
           )
         )
       ))
@@ -113,6 +122,17 @@ class PlinkReaderSuite extends GlowBaseTest {
     }
   }
 
+  test("Non-standard FAM path") {
+    val df = spark
+      .read
+      .format("plink")
+      .option("bim_delimiter", "\t")
+      .option("fam", s"$testRoot/small-test/small-test.fam")
+      .load(s"$testRoot/no-fam/small-test.bed")
+    // Should not throw an error
+    df.collect()
+  }
+
   test("Missing BIM") {
     val df = spark
       .read
@@ -121,6 +141,17 @@ class PlinkReaderSuite extends GlowBaseTest {
     assertThrows[FileNotFoundException] {
       df.collect()
     }
+  }
+
+  test("Non-standard BIM path") {
+    val df = spark
+      .read
+      .format("plink")
+      .option("bim_delimiter", "\t")
+      .option("bim", s"$testRoot/small-test/small-test.bim")
+      .load(s"$testRoot/no-bim/small-test.bed")
+    // Should not throw an error
+    df.collect()
   }
 
   test("Wrong BIM delimiter") {
@@ -143,7 +174,7 @@ class PlinkReaderSuite extends GlowBaseTest {
         .option("fam_delimiter", "\t")
         .option("bim_delimiter", "\t")
         .load(s"$testRoot/small-test/small-test.bed")
-        .show()
+        .collect()
     }
     assert(e.getMessage.contains("Failed while parsing FAM file"))
   }
@@ -167,5 +198,31 @@ class PlinkReaderSuite extends GlowBaseTest {
         .load(s"$testRoot/small-test/small-test.bed")
         .sort("contigName")
     assert(vcfRows.collect sameElements plinkRows.collect)
+  }
+
+  test("Read BED without magic bytes") {
+    val e = intercept[SparkException] {
+      spark
+        .read
+        .format("plink")
+        .option("bim_delimiter", "\t")
+        .load(s"$testRoot/small-test/small-test.fam")
+        .collect()
+    }
+    assert(e.getMessage.contains("Magic bytes were not 006c,001b,0001"))
+  }
+
+  test("Read prematurely truncated BED") {
+    val e = intercept[SparkException] {
+      spark
+        .read
+        .format("plink")
+        .option("bim_delimiter", "\t")
+        .option("bim", s"$testRoot/small-test/small-test.bim")
+        .option("fam", s"$testRoot/small-test/small-test.fam")
+        .load(s"$testRoot/malformed/truncated.bed")
+        .collect()
+    }
+    assert(e.getMessage.contains("BED file corrupted: could not read block 5 from 5 blocks"))
   }
 }

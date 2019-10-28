@@ -24,16 +24,17 @@ class BedFileIterator(
     stream: LittleEndianDataInputStream,
     underlyingStream: FSDataInputStream,
     numSamples: Int,
-    blockSize: Int,
-    maxPos: Long)
+    numBlocks: Int,
+    blockSize: Int)
     extends Iterator[Array[Array[Int]]]
     with GlowLogging {
 
+  var blockIdx = 0
   val callsArray: Array[Array[Int]] = new Array[Array[Int]](numSamples)
   val byteArray: Array[Byte] = new Array[Byte](blockSize)
 
   def hasNext(): Boolean = {
-    val ret = underlyingStream.getPos < maxPos
+    val ret = blockIdx < numBlocks
     if (!ret) {
       cleanup()
     }
@@ -41,8 +42,11 @@ class BedFileIterator(
   }
 
   def next(): Array[Array[Int]] = {
+    blockIdx += 1
     val bytesRead = stream.read(byteArray)
-    require(bytesRead == blockSize, "BED file corrupted.")
+    require(
+      bytesRead == blockSize,
+      s"BED file corrupted: could not read block $blockIdx from $numBlocks blocks.")
     var i = 0
     while (i < numSamples) {
       callsArray(i) = twoBitsToCalls((byteArray(i / 4) >> (2 * (i % 4))) & 3)
