@@ -45,7 +45,7 @@ jobs:
           destination: unit-tests.log
 
       - codecov/upload:
-          file: "target/scala-2.11/scoverage-report/scoverage.xml"
+          file: "core/target/scala-2.11/scoverage-report/scoverage.xml"
 
       - save_cache:
           paths:
