@@ -19,6 +19,7 @@ package io.projectglow.plink
 import java.io.FileNotFoundException
 
 import org.apache.spark.{DebugFilesystem, SparkException}
+import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.ScalaReflection
 import org.apache.spark.sql.catalyst.errors.TreeNodeException
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
@@ -280,14 +281,19 @@ class PlinkReaderSuite extends GlowBaseTest {
 
   case class WeirdGenotype(animal: String)
   case class WeirdVariant(species: String, genotypes: Seq[WeirdGenotype])
-  test("be permissive if schema includes fields that can't be derived from PLINK files") {
-    spark
+
+  test("Be permissive if schema includes fields that can't be derived from PLINK files") {
+    val rows = spark
       .read
       .schema(ScalaReflection.schemaFor[WeirdVariant].dataType.asInstanceOf[StructType])
       .format(sourceName)
       .option("bim_delimiter", "\t")
       .load(s"$bedBimFam/test.bed")
-    // No error expected
+      .collect
+
+    rows.foreach { r =>
+      assert(r == Row(null, Seq(Row(null), Row(null), Row(null), Row(null), Row(null))))
+    }
   }
 
 }
