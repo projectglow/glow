@@ -41,7 +41,7 @@ class VariantQcExprsSuite extends GlowBaseTest {
       .filter(targetSite)
       .selectExpr("explode(genotypes)")
       .selectExpr("expand_struct(col)")
-      .show()
+      .collect()
   }
 
   // Golden values are pulled from Hail

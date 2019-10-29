@@ -72,5 +72,7 @@ object SQLUtils {
     new AnalysisException(msg)
   }
 
+  def anyDataType: ADT = AnyDataType
+
   type ADT = AbstractDataType
 }

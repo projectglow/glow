@@ -42,10 +42,9 @@ import org.broadinstitute.hellbender.tools.walkers.genotyper.GenotypeAssignmentM
 import org.broadinstitute.hellbender.utils.SimpleInterval
 import org.broadinstitute.hellbender.utils.variant.GATKVariantContextUtils
 import org.seqdoop.hadoop_bam.util.{BGZFEnhancedGzipCodec, DatabricksBGZFOutputStream}
-
 import io.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
 import io.projectglow.common.{GlowLogging, VCFRow, WithUtils}
-import io.projectglow.sql.util.{ComDatabricksDataSource, HadoopLineIterator, SerializableConfiguration}
+import io.projectglow.sql.util.{BGZFCodec, ComDatabricksDataSource, HadoopLineIterator, SerializableConfiguration}
 
 class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HlsUsageLogging {
   var codecFactory: CompressionCodecFactory = _
@@ -248,8 +247,8 @@ object VCFFileFormat {
   def hadoopConfWithBGZ(conf: Configuration): Configuration = {
     val toReturn = new Configuration(conf)
     val bgzCodecs = Seq(
-      "io.projectglow.sql.util.BGZFCodec",
-      "org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec"
+      classOf[BGZFCodec].getCanonicalName,
+      classOf[BGZFEnhancedGzipCodec].getCanonicalName
     )
     val codecs = toReturn
         .get("io.compression.codecs", "")

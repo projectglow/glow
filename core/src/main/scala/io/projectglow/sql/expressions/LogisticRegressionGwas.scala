@@ -31,10 +31,10 @@ import io.projectglow.common.GlowLogging
 /**
  * Statistics returned upon performing a likelihood ratio test.
  *
- * @param beta Log-odds associated with the genotype, NaN iff test does not require full model fit
- * @param oddsRatio Odds ratio associated with the genotype
- * @param waldConfidenceInterval Wald 95% confidence interval of the odds ratio, NaN iff Newton iterations exploded
- * @param pValue P-value for the specified test, NaN iff the fit failed
+ * @param beta Log-odds associated with the genotype, NaN if the null/full model fit failed
+ * @param oddsRatio Odds ratio associated with the genotype, NaN if the null/full model fit failed
+ * @param waldConfidenceInterval Wald 95% confidence interval of the odds ratio, NaN if the null/full model fit failed
+ * @param pValue P-value for the specified test, NaN if the null/full model fit failed
  */
 case class LikelihoodRatioTestStats(
     beta: Double,
@@ -106,8 +106,12 @@ object LogisticRegressionGwas extends GlowLogging {
     logitTest match {
       case nullFitTest: LogitTestWithNullModelFit => nullFitTest.runTest(nullFit)
       case nullAndFullFitTest: LogitTestWithNullAndFullModelFit =>
-        val fullFit = newtonIterations(fullX, y, Some(nullFit.args))
-        nullAndFullFitTest.runTest(nullFit, fullFit)
+        val fullFitOpt = if (nullFit.converged) {
+          Some(newtonIterations(fullX, y, Some(nullFit.args)))
+        } else {
+          None
+        }
+        nullAndFullFitTest.runTest(nullFit, fullFitOpt)
     }
   }
 
@@ -180,35 +184,32 @@ trait LogitTestWithNullModelFit extends LogitTest {
 }
 
 trait LogitTestWithNullAndFullModelFit extends LogitTest {
-  def runTest(nullFit: NewtonResult, fullFit: NewtonResult): InternalRow
+  // fullFitOpt is None iff nullFit fails to converge
+  def runTest(nullFit: NewtonResult, fullFitOpt: Option[NewtonResult]): InternalRow
 }
 
 object LikelihoodRatioTest extends LogitTestWithNullAndFullModelFit {
   override def resultSchema: StructType = Encoders.product[LikelihoodRatioTestStats].schema
-  override def runTest(nullFit: NewtonResult, fullFit: NewtonResult): InternalRow = {
+  override def runTest(nullFit: NewtonResult, fullFitOpt: Option[NewtonResult]): InternalRow = {
+    if (!nullFit.converged || !fullFitOpt.get.converged) {
+      return InternalRow(NaN, NaN, ArrayData.toArrayData(Seq(NaN, NaN)), NaN)
+    }
+
+    val fullFit = fullFitOpt.get
+
     val beta = fullFit.args.b(-1)
     val oddsRatio = math.exp(beta)
 
-    val waldConfidenceInterval = if (!fullFit.exploded) {
-      val covarianceMatrix = inv(fullFit.args.fisher)
-      val variance = diag(covarianceMatrix)
-      val standardError = math.sqrt(variance(-1))
-      val halfWidth = LogisticRegressionGwas.zScore * standardError
+    val covarianceMatrix = inv(fullFit.args.fisher)
+    val variance = diag(covarianceMatrix)
+    val standardError = math.sqrt(variance(-1))
+    val halfWidth = LogisticRegressionGwas.zScore * standardError
+    val waldConfidenceInterval = Array(beta - halfWidth, beta + halfWidth).map(math.exp)
 
-      val beta = fullFit.args.b(-1)
-      Array(beta - halfWidth, beta + halfWidth).map(math.exp)
-    } else {
-      Array(Double.NaN, Double.NaN)
-    }
-
-    val pValue = if (fullFit.converged) {
-      val chi2 = 2 * (fullFit.logLkhd - nullFit.logLkhd)
-      val df = fullFit.args.m - nullFit.args.m
-      val chi2Dist = new ChiSquaredDistribution(df)
-      1 - chi2Dist.cumulativeProbability(Math.abs(chi2)) // 1-sided p-value
-    } else {
-      Double.NaN
-    }
+    val chi2 = 2 * (fullFit.logLkhd - nullFit.logLkhd)
+    val df = fullFit.args.m - nullFit.args.m
+    val chi2Dist = new ChiSquaredDistribution(df)
+    val pValue = 1 - chi2Dist.cumulativeProbability(Math.abs(chi2)) // 1-sided p-value
 
     InternalRow(beta, oddsRatio, ArrayData.toArrayData(waldConfidenceInterval), pValue)
   }
