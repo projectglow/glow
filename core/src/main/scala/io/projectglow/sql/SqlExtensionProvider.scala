@@ -19,42 +19,47 @@ package io.projectglow.sql
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.FunctionIdentifier
 import org.apache.spark.sql.catalyst.analysis.{FunctionRegistry, UnresolvedExtractValue}
-import org.apache.spark.sql.catalyst.expressions.CreateNamedStruct
+import org.apache.spark.sql.catalyst.expressions.{CreateNamedStruct, LambdaFunction}
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.internal.SQLConf
-
 import io.projectglow.common.VariantSchemas
 import io.projectglow.sql.expressions._
-import io.projectglow.sql.optimizer.HLSReplaceExpressionsRule
+import io.projectglow.sql.optimizer.{HLSReplaceExpressionsRule, ResolveAggregateFunctionsRule}
+
+// TODO(hhd): Spark 3.0 allows extensions to register functions. After Spark 3.0 is released,
+// we should move all extensions into this class.
+class GlowSQLExtensions extends (SparkSessionExtensions => Unit) {
+  val resolutionRules: Seq[Rule[LogicalPlan]] = Seq(ResolveAggregateFunctionsRule)
+  val optimizations: Seq[Rule[LogicalPlan]] = Seq(HLSReplaceExpressionsRule)
+  def apply(extensions: SparkSessionExtensions): Unit = {
+
+    resolutionRules.foreach(r => extensions.injectResolutionRule(_ => r))
+    optimizations.foreach(r => extensions.injectOptimizerRule(_ => r))
+  }
+}
 
 object SqlExtensionProvider {
 
   final def register(session: SparkSession): Unit = {
-    val experimental = session.experimental
-    experimental.extraOptimizations ++= getExtraOptimizations
-    experimental.extraStrategies ++= getExtraStrategies
     registerFunctions(session.sessionState.conf, session.sessionState.functionRegistry)
   }
-  def getExtraOptimizations: Seq[Rule[LogicalPlan]] = {
-    Seq(HLSReplaceExpressionsRule)
-  }
-
-  def getExtraStrategies: Seq[Strategy] = Nil
 
   def registerFunctions(conf: SQLConf, functionRegistry: FunctionRegistry): Unit = {
     functionRegistry.registerFunction(
-      FunctionIdentifier("subset_struct"),
-      exprs => {
-        val struct = exprs.head
-        val fields = exprs.tail
-        CreateNamedStruct(fields.flatMap(f => Seq(f, UnresolvedExtractValue(struct, f))))
-      }
+      FunctionIdentifier("add_struct_fields"),
+      exprs => AddStructFields(exprs.head, exprs.tail)
     )
 
     functionRegistry.registerFunction(
-      FunctionIdentifier("add_struct_fields"),
-      exprs => AddStructFields(exprs.head, exprs.tail)
+      FunctionIdentifier("aggregate_by_index"),
+      exprs =>
+        UnwrappedAggregateByIndex(
+          exprs(0),
+          exprs(1),
+          exprs(2),
+          exprs(3),
+          exprs.lift(4).getOrElse(LambdaFunction.identity))
     )
 
     functionRegistry.registerFunction(
@@ -140,6 +145,15 @@ object SqlExtensionProvider {
     functionRegistry.registerFunction(
       FunctionIdentifier("sample_gq_summary_stats"),
       exprs => PerSampleSummaryStatistics(exprs.head, VariantSchemas.conditionalQualityField)
+    )
+
+    functionRegistry.registerFunction(
+      FunctionIdentifier("subset_struct"),
+      exprs => {
+        val struct = exprs.head
+        val fields = exprs.tail
+        CreateNamedStruct(fields.flatMap(f => Seq(f, UnresolvedExtractValue(struct, f))))
+      }
     )
 
     functionRegistry.registerFunction(
