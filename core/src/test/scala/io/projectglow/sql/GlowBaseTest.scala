@@ -23,8 +23,8 @@ import org.apache.spark.{DebugFilesystem, SparkConf}
 import org.scalatest.concurrent.{AbstractPatienceConfiguration, Eventually}
 import org.scalatest.time.{Milliseconds, Seconds, Span}
 import org.scalatest.{Args, FunSuite, Status, Tag}
-
 import io.projectglow.common.{GlowLogging, TestUtils}
+import io.projectglow.sql.util.BGZFCodec
 
 abstract class GlowBaseTest
     extends FunSuite
@@ -43,17 +43,20 @@ abstract class GlowBaseTest
       .set("spark.kryo.registrationRequired", "false")
       .set(
         "spark.hadoop.io.compression.codecs",
-        "org.seqdoop.hadoop_bam.util.BGZFCodec,org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec"
+        classOf[BGZFCodec].getCanonicalName
       )
+      .set("spark.sql.extensions", classOf[GlowSQLExtensions].getCanonicalName)
 
   }
 
-  override protected def createSparkSession = {
-    val session = super.createSparkSession
-    SqlExtensionProvider.register(session)
-    SparkSession.setActiveSession(session)
+  override def initializeSession(): Unit = ()
+
+  override protected implicit def spark: SparkSession = {
+    val sess = SparkSession.builder().config(sparkConf).master("local[2]").getOrCreate()
+    SqlExtensionProvider.register(sess)
+    SparkSession.setActiveSession(sess)
     Log.setGlobalLogLevel(Log.LogLevel.ERROR)
-    session
+    sess
   }
 
   protected def gridTest[A](testNamePrefix: String, testTags: Tag*)(params: Seq[A])(
