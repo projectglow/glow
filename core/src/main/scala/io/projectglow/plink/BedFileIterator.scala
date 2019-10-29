@@ -24,7 +24,7 @@ import org.apache.hadoop.fs.FSDataInputStream
  * Parses genotype blocks of a BED file into an array. The iterator assumes that the input streams are currently at the
  * beginning of a genotype block.
  *
- * BED standard: https://www.well.ox.ac.uk/~gav/bgen_format/
+ * BED standard: https://www.cog-genomics.org/plink/1.9/formats#bed
  *
  * This class does not currently support the entire BED standard. Limitations:
  * - Only variant-major BEDs are supported.
@@ -73,13 +73,12 @@ class BedFileIterator(
     callsArray
   }
 
-  def twoBitsToCalls(twoBits: Int): Array[Int] = {
+  private def twoBitsToCalls(twoBits: Int): Array[Int] = {
     twoBits match {
       case 0 => Array(1, 1) // Homozygous for first (alternate) allele
       case 1 => Array(-1, -1) // Missing genotype
       case 2 => Array(0, 1) // Heterozygous
       case 3 => Array(0, 0) // Homozygous for second (reference) allele
-      case _ => throw new IllegalArgumentException("Two bits can only represent values in [0,3].")
     }
   }
 

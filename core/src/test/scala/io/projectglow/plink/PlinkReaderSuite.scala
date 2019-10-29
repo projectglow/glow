@@ -18,17 +18,19 @@ package io.projectglow.plink
 
 import java.io.FileNotFoundException
 
+import org.apache.spark.{DebugFilesystem, SparkException}
 import org.apache.spark.sql.catalyst.errors.TreeNodeException
-import io.projectglow.common.{PlinkGenotype, PlinkRow, VariantSchemas}
-import io.projectglow.sql.GlowBaseTest
-import org.apache.spark.SparkException
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.types.StructType
+
+import io.projectglow.common.{PlinkGenotype, PlinkRow, VariantSchemas}
+import io.projectglow.sql.GlowBaseTest
 
 class PlinkReaderSuite extends GlowBaseTest {
   private val testRoot = s"$testDataHome/plink"
   private val fiveSamplesFiveVariants = s"$testRoot/five-samples-five-variants"
   private val bedBimFam = s"$fiveSamplesFiveVariants/bed-bim-fam"
+  private val sourceName = "plink"
 
   test("Read PLINK files") {
     val sess = spark
@@ -36,7 +38,7 @@ class PlinkReaderSuite extends GlowBaseTest {
 
     val plinkRows = spark
       .read
-      .format("plink")
+      .format(sourceName)
       .option("bim_delimiter", "\t")
       .load(s"$bedBimFam/test.bed")
       .sort("contigName")
@@ -44,6 +46,7 @@ class PlinkReaderSuite extends GlowBaseTest {
       .collect
 
     assert(plinkRows.length == 5)
+    DebugFilesystem.assertNoOpenStreams()
 
     val snp1 = plinkRows.head
     assert(
@@ -117,17 +120,18 @@ class PlinkReaderSuite extends GlowBaseTest {
   test("Missing FAM") {
     val df = spark
       .read
-      .format("plink")
+      .format(sourceName)
       .load(s"$fiveSamplesFiveVariants/no-fam/test.bed")
     assertThrows[FileNotFoundException] {
       df.collect()
     }
+    DebugFilesystem.assertNoOpenStreams()
   }
 
   test("Non-standard FAM path") {
     val df = spark
       .read
-      .format("plink")
+      .format(sourceName)
       .option("bim_delimiter", "\t")
       .option("fam", s"$bedBimFam/test.fam")
       .load(s"$fiveSamplesFiveVariants/no-fam/test.bed")
@@ -138,17 +142,18 @@ class PlinkReaderSuite extends GlowBaseTest {
   test("Missing BIM") {
     val df = spark
       .read
-      .format("plink")
+      .format(sourceName)
       .load(s"$fiveSamplesFiveVariants/no-bim/test.bed")
     assertThrows[FileNotFoundException] {
       df.collect()
     }
+    DebugFilesystem.assertNoOpenStreams()
   }
 
   test("Non-standard BIM path") {
     val df = spark
       .read
-      .format("plink")
+      .format(sourceName)
       .option("bim_delimiter", "\t")
       .option("bim", s"$bedBimFam/test.bim")
       .load(s"$fiveSamplesFiveVariants/no-bim/test.bed")
@@ -160,7 +165,7 @@ class PlinkReaderSuite extends GlowBaseTest {
     val e = intercept[TreeNodeException[LogicalPlan]] {
       spark
         .read
-        .format("plink")
+        .format(sourceName)
         .load(s"$bedBimFam/test.bed")
         .sort("contigName")
         .collect
@@ -172,7 +177,7 @@ class PlinkReaderSuite extends GlowBaseTest {
     val e = intercept[IllegalArgumentException] {
       spark
         .read
-        .format("plink")
+        .format(sourceName)
         .option("fam_delimiter", "\t")
         .option("bim_delimiter", "\t")
         .load(s"$bedBimFam/test.bed")
@@ -194,7 +199,7 @@ class PlinkReaderSuite extends GlowBaseTest {
     val plinkRows =
       spark
         .read
-        .format("plink")
+        .format(sourceName)
         .option("bim_delimiter", "\t")
         .schema(commonVcfPlinkSchema)
         .load(s"$bedBimFam/test.bed")
@@ -206,7 +211,7 @@ class PlinkReaderSuite extends GlowBaseTest {
     val e = intercept[SparkException] {
       spark
         .read
-        .format("plink")
+        .format(sourceName)
         .option("bim_delimiter", "\t")
         .load(s"$bedBimFam/test.fam")
         .collect()
@@ -218,7 +223,7 @@ class PlinkReaderSuite extends GlowBaseTest {
     val e = intercept[SparkException] {
       spark
         .read
-        .format("plink")
+        .format(sourceName)
         .option("bim_delimiter", "\t")
         .option("bim", s"$bedBimFam/test.bim")
         .option("fam", s"$bedBimFam/test.fam")
@@ -234,7 +239,7 @@ class PlinkReaderSuite extends GlowBaseTest {
 
     val sampleIds = spark
       .read
-      .format("plink")
+      .format(sourceName)
       .option("bim_delimiter", "\t")
       .option("merge-fid-iid", "false")
       .load(s"$bedBimFam/test.bed")
@@ -251,12 +256,24 @@ class PlinkReaderSuite extends GlowBaseTest {
     val e = intercept[IllegalArgumentException] {
       spark
         .read
-        .format("plink")
+        .format(sourceName)
         .option("bim_delimiter", "\t")
         .option("merge-fid-iid", "hello")
         .load(s"$bedBimFam/test.bed")
         .collect()
     }
     assert(e.getMessage.contains("Value for merge-fid-iid must be [true, false]. Provided: hello"))
+  }
+
+  test("Plink file format does not support writing") {
+    val df = spark
+      .read
+      .format(sourceName)
+      .option("bim_delimiter", "\t")
+      .load(s"$bedBimFam/test.bed")
+    val e = intercept[UnsupportedOperationException] {
+      df.write.format(sourceName).save("noop")
+    }
+    assert(e.getMessage.contains("PLINK data source does not support writing sharded files"))
   }
 }

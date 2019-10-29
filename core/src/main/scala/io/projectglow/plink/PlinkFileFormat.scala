@@ -182,20 +182,23 @@ object PlinkFileFormat extends GlowLogging {
           s"Value for $MERGE_FID_IID must be [true, false]. Provided: ${options(MERGE_FID_IID)}")
     }
 
-    val sampleIdIterator = filteredLines.map { l =>
-      val sampleLine = parser.parseRecord(l)
-      require(
-        sampleLine.getValues.length == 6,
-        s"Failed while parsing FAM file $famPath: does not have 6 columns delimited by '$famDelimiterOption'")
-      val individualId = sampleLine.getString(1)
-      if (mergeFidIid) {
-        val familyId = sampleLine.getString(0)
-        s"${familyId}_$individualId"
-      } else {
-        individualId
-      }
+    try {
+      filteredLines.map { l =>
+        val sampleLine = parser.parseRecord(l)
+        require(
+          sampleLine.getValues.length == 6,
+          s"Failed while parsing FAM file $famPath: does not have 6 columns delimited by '$famDelimiterOption'")
+        val individualId = sampleLine.getString(1)
+        if (mergeFidIid) {
+          val familyId = sampleLine.getString(0)
+          s"${familyId}_$individualId"
+        } else {
+          individualId
+        }
+      }.toArray
+    } finally {
+      stream.close()
     }
-    sampleIdIterator.toArray
   }
 
   // Parses BIM file to get the variants
@@ -229,6 +232,8 @@ object PlinkFileFormat extends GlowLogging {
       case e: Exception =>
         throw new IllegalArgumentException(
           s"Failed while parsing BIM file $bimPath: ${e.getMessage}")
+    } finally {
+      stream.close()
     }
   }
 
