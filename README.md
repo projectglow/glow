@@ -3,6 +3,7 @@
 Status](https://readthedocs.org/projects/glow/badge/?version=latest)](https://glow.readthedocs.io/en/latest/?badge=latest)
 [![PyPi](https://img.shields.io/pypi/v/glow.py.svg)](https://pypi.org/project/glow.py/)
 [![Maven Central](https://img.shields.io/maven-central/v/io.projectglow/glow_2.11.svg)](https://mvnrepository.com/artifact/io.projectglow)
+[![Coverage Status](https://codecov.io/gh/projectglow/glow/branch/master/graph/badge.svg)](https://codecov.io/gh/projectglow/glow)
 
 # Building and Testing
 This project is built using sbt: https://www.scala-sbt.org/1.0/docs/Setup.html
