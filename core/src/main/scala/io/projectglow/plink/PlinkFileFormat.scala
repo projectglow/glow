@@ -78,8 +78,8 @@ class PlinkFileFormat
       options: Map[String, String],
       hadoopConf: Configuration): PartitionedFile => Iterator[InternalRow] = {
 
-    val sampleIds = PlinkFileFormat.getSampleIds(options, hadoopConf)
-    val variants = PlinkFileFormat.getVariants(options, hadoopConf)
+    val sampleIds = getSampleIds(options, hadoopConf)
+    val variants = getVariants(options, hadoopConf)
     val serializableConf = new SerializableConfiguration(hadoopConf)
 
     file => {
