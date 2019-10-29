@@ -138,6 +138,8 @@ object PlinkFileFormat extends GlowLogging {
   val FAM_FILE_EXTENSION = ".fam"
   val BIM_FILE_EXTENSION = ".bim"
 
+  val MERGE_FID_IID = "merge-fid-iid"
+
   val BLOCKS_PER_BYTE = 4
   val MAGIC_BYTES: Seq[Byte] = Seq(0x6c, 0x1b, 0x01).map(_.toByte)
   val NUM_MAGIC_BYTES: Int = MAGIC_BYTES.size
@@ -171,14 +173,27 @@ object PlinkFileFormat extends GlowLogging {
 
     val filteredLines = CSVUtils.filterCommentAndEmpty(lines, parsedOptions)
     val parser = new CsvParser(parsedOptions.asParserSettings)
+
+    val mergeFidIid = try {
+      options.getOrElse(MERGE_FID_IID, "true").toBoolean
+    } catch {
+      case _: IllegalArgumentException =>
+        throw new IllegalArgumentException(
+          s"Value for $MERGE_FID_IID must be [true, false]. Provided: ${options(MERGE_FID_IID)}")
+    }
+
     val sampleIdIterator = filteredLines.map { l =>
       val sampleLine = parser.parseRecord(l)
       require(
         sampleLine.getValues.length == 6,
         s"Failed while parsing FAM file $famPath: does not have 6 columns delimited by '$famDelimiterOption'")
-      val familyId = sampleLine.getString(0)
       val individualId = sampleLine.getString(1)
-      s"${familyId}_$individualId"
+      if (mergeFidIid) {
+        val familyId = sampleLine.getString(0)
+        s"${familyId}_$individualId"
+      } else {
+        individualId
+      }
     }
     sampleIdIterator.toArray
   }

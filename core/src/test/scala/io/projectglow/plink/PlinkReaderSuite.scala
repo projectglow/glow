@@ -27,6 +27,8 @@ import org.apache.spark.sql.types.StructType
 
 class PlinkReaderSuite extends GlowBaseTest {
   private val testRoot = s"$testDataHome/plink"
+  private val fiveSamplesFiveVariants = s"$testRoot/five-samples-five-variants"
+  private val bedBimFam = s"$fiveSamplesFiveVariants/bed-bim-fam"
 
   test("Read PLINK files") {
     val sess = spark
@@ -36,7 +38,7 @@ class PlinkReaderSuite extends GlowBaseTest {
       .read
       .format("plink")
       .option("bim_delimiter", "\t")
-      .load(s"$testRoot/small-test/small-test.bed")
+      .load(s"$bedBimFam/test.bed")
       .sort("contigName")
       .as[PlinkRow]
       .collect
@@ -55,23 +57,23 @@ class PlinkReaderSuite extends GlowBaseTest {
         alternateAlleles = Seq("C"),
         genotypes = Seq(
           PlinkGenotype(
-            sampleId = "1_1",
+            sampleId = "fam1_ind1",
             calls = Seq(0, 0)
           ),
           PlinkGenotype(
-            sampleId = "2_1",
+            sampleId = "fam2_ind2",
             calls = Seq(0, 1)
           ),
           PlinkGenotype(
-            sampleId = "3_1",
+            sampleId = "fam3_ind3",
             calls = Seq(1, 1)
           ),
           PlinkGenotype(
-            sampleId = "4_1",
+            sampleId = "fam4_ind4",
             calls = Seq(-1, -1)
           ),
           PlinkGenotype(
-            sampleId = "5_1",
+            sampleId = "fam5_ind5",
             calls = Seq(-1, -1)
           )
         )
@@ -89,23 +91,23 @@ class PlinkReaderSuite extends GlowBaseTest {
         alternateAlleles = Seq("C"),
         genotypes = Seq(
           PlinkGenotype(
-            sampleId = "1_1",
+            sampleId = "fam1_ind1",
             calls = Seq(0, 0)
           ),
           PlinkGenotype(
-            sampleId = "2_1",
+            sampleId = "fam2_ind2",
             calls = Seq(0, 1)
           ),
           PlinkGenotype(
-            sampleId = "3_1",
+            sampleId = "fam3_ind3",
             calls = Seq(0, 0)
           ),
           PlinkGenotype(
-            sampleId = "4_1",
+            sampleId = "fam4_ind4",
             calls = Seq(0, 1)
           ),
           PlinkGenotype(
-            sampleId = "5_1",
+            sampleId = "fam5_ind5",
             calls = Seq(0, 1)
           )
         )
@@ -116,7 +118,7 @@ class PlinkReaderSuite extends GlowBaseTest {
     val df = spark
       .read
       .format("plink")
-      .load(s"$testRoot/no-fam/small-test.bed")
+      .load(s"$fiveSamplesFiveVariants/no-fam/test.bed")
     assertThrows[FileNotFoundException] {
       df.collect()
     }
@@ -127,8 +129,8 @@ class PlinkReaderSuite extends GlowBaseTest {
       .read
       .format("plink")
       .option("bim_delimiter", "\t")
-      .option("fam", s"$testRoot/small-test/small-test.fam")
-      .load(s"$testRoot/no-fam/small-test.bed")
+      .option("fam", s"$bedBimFam/test.fam")
+      .load(s"$fiveSamplesFiveVariants/no-fam/test.bed")
     // Should not throw an error
     df.collect()
   }
@@ -137,7 +139,7 @@ class PlinkReaderSuite extends GlowBaseTest {
     val df = spark
       .read
       .format("plink")
-      .load(s"$testRoot/no-bim/small-test.bed")
+      .load(s"$fiveSamplesFiveVariants/no-bim/test.bed")
     assertThrows[FileNotFoundException] {
       df.collect()
     }
@@ -148,8 +150,8 @@ class PlinkReaderSuite extends GlowBaseTest {
       .read
       .format("plink")
       .option("bim_delimiter", "\t")
-      .option("bim", s"$testRoot/small-test/small-test.bim")
-      .load(s"$testRoot/no-bim/small-test.bed")
+      .option("bim", s"$bedBimFam/test.bim")
+      .load(s"$fiveSamplesFiveVariants/no-bim/test.bed")
     // Should not throw an error
     df.collect()
   }
@@ -159,7 +161,7 @@ class PlinkReaderSuite extends GlowBaseTest {
       spark
         .read
         .format("plink")
-        .load(s"$testRoot/small-test/small-test.bed")
+        .load(s"$bedBimFam/test.bed")
         .sort("contigName")
         .collect
     }
@@ -173,7 +175,7 @@ class PlinkReaderSuite extends GlowBaseTest {
         .format("plink")
         .option("fam_delimiter", "\t")
         .option("bim_delimiter", "\t")
-        .load(s"$testRoot/small-test/small-test.bed")
+        .load(s"$bedBimFam/test.bed")
         .collect()
     }
     assert(e.getMessage.contains("Failed while parsing FAM file"))
@@ -187,7 +189,7 @@ class PlinkReaderSuite extends GlowBaseTest {
       .read
       .format("vcf")
       .schema(commonVcfPlinkSchema)
-      .load(s"$testRoot/vcf/small-test.vcf")
+      .load(s"$fiveSamplesFiveVariants/vcf/test.vcf")
       .sort("contigName")
     val plinkRows =
       spark
@@ -195,7 +197,7 @@ class PlinkReaderSuite extends GlowBaseTest {
         .format("plink")
         .option("bim_delimiter", "\t")
         .schema(commonVcfPlinkSchema)
-        .load(s"$testRoot/small-test/small-test.bed")
+        .load(s"$bedBimFam/test.bed")
         .sort("contigName")
     assert(vcfRows.collect sameElements plinkRows.collect)
   }
@@ -206,7 +208,7 @@ class PlinkReaderSuite extends GlowBaseTest {
         .read
         .format("plink")
         .option("bim_delimiter", "\t")
-        .load(s"$testRoot/small-test/small-test.fam")
+        .load(s"$bedBimFam/test.fam")
         .collect()
     }
     assert(e.getMessage.contains("Magic bytes were not 006c,001b,0001"))
@@ -218,11 +220,43 @@ class PlinkReaderSuite extends GlowBaseTest {
         .read
         .format("plink")
         .option("bim_delimiter", "\t")
-        .option("bim", s"$testRoot/small-test/small-test.bim")
-        .option("fam", s"$testRoot/small-test/small-test.fam")
-        .load(s"$testRoot/malformed/truncated.bed")
+        .option("bim", s"$bedBimFam/test.bim")
+        .option("fam", s"$bedBimFam/test.fam")
+        .load(s"$fiveSamplesFiveVariants/malformed/test.bed")
         .collect()
     }
     assert(e.getMessage.contains("BED file corrupted: could not read block 5 from 5 blocks"))
+  }
+
+  test("Use IID only for sample ID") {
+    val sess = spark
+    import sess.implicits._
+
+    val sampleIds = spark
+      .read
+      .format("plink")
+      .option("bim_delimiter", "\t")
+      .option("merge-fid-iid", "false")
+      .load(s"$bedBimFam/test.bed")
+      .select("genotypes.sampleId")
+      .as[Seq[String]]
+      .limit(1)
+      .collect
+      .head
+
+    assert(sampleIds == Seq("ind1", "ind2", "ind3", "ind4", "ind5"))
+  }
+
+  test("Invalid arg for merge-fid-iid") {
+    val e = intercept[IllegalArgumentException] {
+      spark
+        .read
+        .format("plink")
+        .option("bim_delimiter", "\t")
+        .option("merge-fid-iid", "hello")
+        .load(s"$bedBimFam/test.bed")
+        .collect()
+    }
+    assert(e.getMessage.contains("Value for merge-fid-iid must be [true, false]. Provided: hello"))
   }
 }

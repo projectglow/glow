@@ -1,5 +1,5 @@
 ##fileformat=VCFv4.2
-##fileDate=20191028
+##fileDate=20191029
 ##source=PLINKv1.90
 ##contig=<ID=1,length=11>
 ##contig=<ID=23,length=21>
@@ -8,7 +8,7 @@
 ##contig=<ID=26,length=51>
 ##INFO=<ID=PR,Number=0,Type=Flag,Description="Provisional reference allele, may not be based on real reference genome">
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
-#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	1_1	2_1	3_1	4_1	5_1
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	fam1_ind1	fam2_ind2	fam3_ind3	fam4_ind4	fam5_ind5
 1	10	snp1	A	C	.	.	PR	GT	0/0	0/1	1/1	./.	./.
 23	20	snp2	A	C	.	.	PR	GT	0/0	0/1	0/0	0/1	0/1
 24	30	snp3	A	C	.	.	PR	GT	0/0	0/1	0/0	0/1	0/1
