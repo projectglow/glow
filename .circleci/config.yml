@@ -28,7 +28,7 @@ jobs:
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            sbt test exit
+            sbt coverage test coverageReport exit
 
       - run:
           name: run docs tests
@@ -41,6 +41,9 @@ jobs:
       - store_artifacts:
           path: ~/glow/unit-tests.log
           destination: unit-tests.log
+
+      - codecov/upload:
+          file: "target/scala-2.11/scoverage-report/scoverage.xml"
 
       - save_cache:
           paths:
