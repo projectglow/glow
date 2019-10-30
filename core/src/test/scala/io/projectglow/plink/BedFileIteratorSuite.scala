@@ -16,11 +16,10 @@
 
 package io.projectglow.plink
 
-import java.io.IOException
+import java.io.{EOFException, IOException}
 
 import com.google.common.io.LittleEndianDataInputStream
 import org.apache.hadoop.fs.Path
-
 import io.projectglow.sql.GlowBaseTest
 
 class BedFileIteratorSuite extends GlowBaseTest {
@@ -59,5 +58,25 @@ class BedFileIteratorSuite extends GlowBaseTest {
 
   test("Slice") {
     compareCalls(1, 3)
+  }
+
+  test("Out of blocks") {
+    val p = new Path(s"$testDataHome/plink/five-samples-five-variants/malformed/test.bed")
+    val fs = p.getFileSystem(spark.sparkContext.hadoopConfiguration)
+    val baseStream = fs.open(p)
+    val stream = new LittleEndianDataInputStream(baseStream)
+
+    baseStream.seek(numMagicBytes)
+    val iterator = new BedFileIterator(stream, baseStream, numSamples, 5, blockSize)
+    iterator.next()
+    iterator.next()
+    iterator.next()
+    iterator.next()
+
+    val e1 = intercept[EOFException](iterator.next())
+    assert(e1.getMessage.contains("BED file corrupted: could not read block 5 from 5 blocks."))
+
+    val e2 = intercept[IOException](stream.readByte())
+    assert(e2.getMessage.contains("Stream is closed"))
   }
 }

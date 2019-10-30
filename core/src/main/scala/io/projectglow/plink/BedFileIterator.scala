@@ -16,9 +16,12 @@
 
 package io.projectglow.plink
 
+import java.io.EOFException
+
 import com.google.common.io.LittleEndianDataInputStream
-import io.projectglow.common.GlowLogging
 import org.apache.hadoop.fs.FSDataInputStream
+
+import io.projectglow.common.GlowLogging
 
 /**
  * Parses genotype blocks of a BED file into an array. The iterator assumes that the input streams are currently at the
@@ -61,9 +64,13 @@ class BedFileIterator(
   def next(): Array[Array[Int]] = {
     blockIdx += 1
     val bytesRead = stream.read(byteArray)
-    require(
-      bytesRead == blockSize,
-      s"BED file corrupted: could not read block $blockIdx from $numBlocks blocks.")
+
+    if (bytesRead != blockSize) {
+      cleanup()
+      throw new EOFException(
+        s"BED file corrupted: could not read block $blockIdx from $numBlocks blocks.")
+    }
+
     var i = 0
     while (i < numSamples) {
       // Get the relevant 2 bits for the sample within the block
