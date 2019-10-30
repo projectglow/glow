@@ -19,8 +19,6 @@ package io.projectglow.plink
 import com.google.common.io.LittleEndianDataInputStream
 import org.apache.hadoop.fs.FSDataInputStream
 
-import io.projectglow.common.GlowLogging
-
 /**
  * Parses genotype blocks of a BED file into an array. The iterator assumes that the input streams are currently at the
  * beginning of a genotype block.
@@ -34,8 +32,8 @@ import io.projectglow.common.GlowLogging
  * @param underlyingStream Hadoop input stream that underlies the little-endian data stream. Only
  *                         used for cleaning up when there are no genotype blocks left.
  * @param numSamples The number of samples represented in each genotype block.
- * @param numBlocks The number of genotype blocks which can be read. `hasNext` will return `false` once we've reached
- *                  `numBlocks` blocks.
+ * @param numBlocks The number of genotype blocks to be read. `hasNext` will return `false` once we've read `numBlocks`
+ *                  blocks.
  * @param blockSize The size of a block in bytes; equal to `ceil(numSamples / 4)`
  */
 class BedFileIterator(
@@ -44,8 +42,7 @@ class BedFileIterator(
     numSamples: Int,
     numBlocks: Int,
     blockSize: Int)
-    extends Iterator[Array[Array[Int]]]
-    with GlowLogging {
+    extends Iterator[Array[Array[Int]]] {
 
   var blockIdx = 0
   val callsArray: Array[Array[Int]] = new Array[Array[Int]](numSamples)
@@ -66,6 +63,7 @@ class BedFileIterator(
     var i = 0
     while (i < numSamples) {
       // Get the relevant 2 bits for the sample within the block
+      // The i-th sample's call bits are the (i%4)-th pair within the (i/4)-th block
       callsArray(i) = twoBitsToCalls((byteArray(i / 4) >> (2 * (i % 4))) & 3)
       i += 1
     }

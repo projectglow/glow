@@ -99,17 +99,17 @@ object VariantSchemas {
   )
 
   // Fields for PLINK
-  val variantIdField = StructField("variantId", StringType, nullable = false)
-  val positionField = StructField("position", DoubleType, nullable = false)
-  val alleleOneField = StructField("alleleOne", StringType, nullable = false)
-  val alleleTwoField = StructField("alleleTwo", StringType, nullable = false)
+  val variantIdField = StructField("variantId", StringType)
+  val positionField = StructField("position", DoubleType)
+  val alleleOneField = StructField("alleleOne", StringType)
+  val alleleTwoField = StructField("alleleTwo", StringType)
 
   val bimSchema = StructType(
     Seq(
-      contigNameField.copy(nullable = false),
+      contigNameField,
       variantIdField,
       positionField,
-      startField.copy(nullable = false),
+      startField,
       alleleOneField,
       alleleTwoField
     )

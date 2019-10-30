@@ -296,7 +296,7 @@ class PlinkReaderSuite extends GlowBaseTest {
 
   def getVariantIdxStartNum(fileStart: Long, fileLength: Long, blockSize: Int): (Int, Int, Int) = {
     val firstVariantIdx = PlinkFileFormat.getFirstVariantIdx(fileStart, blockSize)
-    val firstVariantStart = PlinkFileFormat.getFirstVariantStart(firstVariantIdx, blockSize)
+    val firstVariantStart = PlinkFileFormat.getVariantStart(firstVariantIdx, blockSize)
     val numVariants =
       PlinkFileFormat.getNumVariants(fileStart, fileLength, firstVariantStart, blockSize)
     (firstVariantIdx, firstVariantStart, numVariants)
