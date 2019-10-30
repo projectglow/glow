@@ -68,7 +68,7 @@ class BedFileIterator(
     if (bytesRead != blockSize) {
       cleanup()
       throw new EOFException(
-        s"BED file corrupted: could not read block $blockIdx from $numBlocks blocks.")
+        s"BED file corrupted: could not read block $blockIdx from $numBlocks blocks. Num samples $numSamples, block size $blockSize")
     }
 
     var i = 0
