@@ -16,7 +16,7 @@
 
 package io.projectglow.plink
 
-import java.io.FileNotFoundException
+import java.io.{EOFException, FileNotFoundException}
 
 import org.apache.spark.{DebugFilesystem, SparkException}
 import org.apache.spark.sql.Row
@@ -24,7 +24,6 @@ import org.apache.spark.sql.catalyst.ScalaReflection
 import org.apache.spark.sql.catalyst.errors.TreeNodeException
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.types.StructType
-
 import io.projectglow.common.{PlinkGenotype, PlinkRow, VariantSchemas}
 import io.projectglow.sql.GlowBaseTest
 
@@ -226,7 +225,7 @@ class PlinkReaderSuite extends GlowBaseTest {
         .load(s"$fiveSamplesFiveVariants/malformed/test.bed")
         .collect()
     }
-    assert(e.getMessage.contains("BED file corrupted: could not read block 5 from 5 blocks"))
+    assert(e.getCause.isInstanceOf[EOFException])
   }
 
   test("Use IID only for sample ID") {
@@ -259,7 +258,7 @@ class PlinkReaderSuite extends GlowBaseTest {
     assert(e.getMessage.contains("Value for mergeFidIid must be [true, false]. Provided: hello"))
   }
 
-  test("Plink file format does not support writing") {
+  test("PLINK file format does not support writing") {
     val df = spark
       .read
       .format(sourceName)

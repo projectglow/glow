@@ -73,10 +73,6 @@ class BedFileIteratorSuite extends GlowBaseTest {
     iterator.next()
     iterator.next()
 
-    val e1 = intercept[EOFException](iterator.next())
-    assert(e1.getMessage.contains("BED file corrupted: could not read block 5 from 5 blocks."))
-
-    val e2 = intercept[IOException](stream.readByte())
-    assert(e2.getMessage.contains("Stream is closed"))
+    assertThrows[EOFException](iterator.next())
   }
 }
