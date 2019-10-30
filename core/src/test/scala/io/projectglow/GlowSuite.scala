@@ -21,22 +21,56 @@ import org.apache.spark.sql.DataFrame
 import io.projectglow.sql.GlowBaseTest
 
 class GlowSuite extends GlowBaseTest {
-  test("uses service provider") {
+  def checkTransform(df: DataFrame): Unit = {
     val sess = spark
     import sess.implicits._
-    val output =
-      Glow.transform("dummy_transformer", spark.emptyDataFrame, Map.empty[String, String])
-    assert(output.count() == 1)
-    assert(output.as[String].head() == "monkey")
+    assert(df.count() == 2)
+    assert(df.as[String].collect.toSeq == Seq("camel", "snake"))
+  }
+
+  test("uses service provider") {
+    val df =
+      Glow.transform(
+        "dummy_transformer",
+        spark.emptyDataFrame,
+        Map("camel_animal" -> "camel", "snake_animal" -> "snake"))
+    checkTransform(df)
   }
 
   test("transformer names are converted to snake case") {
-    val sess = spark
-    import sess.implicits._
-    val output =
-      Glow.transform("dummyTransformer", spark.emptyDataFrame, Map.empty[String, String])
-    assert(output.count() == 1)
-    assert(output.as[String].head() == "monkey")
+    val df =
+      Glow.transform(
+        "dummyTransformer",
+        spark.emptyDataFrame,
+        Map("camel_animal" -> "camel", "snake_animal" -> "snake"))
+    checkTransform(df)
+  }
+
+  test("options are converted to snake case") {
+    val df =
+      Glow.transform(
+        "dummyTransformer",
+        spark.emptyDataFrame,
+        Map("camelAnimal" -> "camel", "snake_animal" -> "snake"))
+    checkTransform(df)
+  }
+
+  test("java map options") {
+    val javaMap = new java.util.HashMap[String, String]
+    javaMap.put("camelAnimal", "camel")
+    javaMap.put("snake_animal", "snake")
+    val df = Glow.transform("dummyTransformer", spark.emptyDataFrame, javaMap)
+    checkTransform(df)
+  }
+
+  test("tuple options") {
+    val df =
+      Glow.transform(
+        "dummyTransformer",
+        spark.emptyDataFrame,
+        ("camelAnimal", "camel"),
+        ("snake_animal", "snake"))
+    checkTransform(df)
   }
 }
 
@@ -44,7 +78,8 @@ class DummyTransformer extends DataFrameTransformer {
   override def name: String = "dummy_transformer"
 
   override def transform(df: DataFrame, options: Map[String, String]): DataFrame = {
-    df.sparkSession.createDataFrame(Seq(StringWrapper("monkey")))
+    val animals = Seq(options.get("camel_animal"), options.get("snake_animal")).flatten
+    df.sparkSession.createDataFrame(animals.map(StringWrapper)).sort()
   }
 }
 
