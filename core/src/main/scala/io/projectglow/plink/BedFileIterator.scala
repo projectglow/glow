@@ -49,6 +49,7 @@ class BedFileIterator(
     extends Iterator[Array[Array[Int]]]
     with GlowLogging {
 
+  val startPos = underlyingStream.getPos
   var blockIdx = 0
   val callsArray: Array[Array[Int]] = new Array[Array[Int]](numSamples)
   val byteArray: Array[Byte] = new Array[Byte](blockSize)
@@ -68,7 +69,7 @@ class BedFileIterator(
     if (bytesRead != blockSize) {
       cleanup()
       throw new EOFException(
-        s"BED file corrupted: could not read block $blockIdx from $numBlocks blocks. Num samples $numSamples, block size $blockSize")
+        s"BED file corrupted: could not read block $blockIdx from $numBlocks blocks. Start $startPos, num samples $numSamples, block size $blockSize")
     }
 
     var i = 0
