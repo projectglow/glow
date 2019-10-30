@@ -17,6 +17,7 @@
 package io.projectglow.plink
 
 import scala.collection.JavaConverters._
+
 import com.google.common.io.LittleEndianDataInputStream
 import com.univocity.parsers.csv.CsvParser
 import org.apache.hadoop.conf.Configuration
@@ -28,12 +29,14 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.datasources.{FileFormat, OutputWriterFactory, PartitionedFile}
 import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
 import org.apache.spark.sql.types.StructType
-import io.projectglow.common.{GlowLogging, VariantSchemas}
-import io.projectglow.sql.util.SerializableConfiguration
 import org.apache.commons.io.IOUtils
 import org.apache.spark.sql.catalyst.util.FailFastMode
 import org.apache.spark.sql.execution.datasources.csv.{CSVOptions, CSVUtils, UnivocityParser, UnivocityParserUtils}
 import org.apache.spark.sql.internal.SQLConf
+
+import io.projectglow.common.{GlowLogging, VariantSchemas}
+import io.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
+import io.projectglow.sql.util.SerializableConfiguration
 
 class PlinkFileFormat
     extends FileFormat
@@ -78,6 +81,8 @@ class PlinkFileFormat
       options: Map[String, String],
       hadoopConf: Configuration): PartitionedFile => Iterator[InternalRow] = {
 
+    logPlinkRead(options)
+
     val sampleIds = getSampleIds(options, hadoopConf)
     val variants = getVariants(options, hadoopConf)
     val serializableConf = new SerializableConfiguration(hadoopConf)
@@ -85,7 +90,6 @@ class PlinkFileFormat
     file => {
       val path = new Path(file.filePath)
       val hadoopFs = path.getFileSystem(serializableConf.value)
-
       val stream = hadoopFs.open(path)
       val littleEndianStream = new LittleEndianDataInputStream(stream)
 
@@ -100,12 +104,13 @@ class PlinkFileFormat
       val blockSize = getBlockSize(numSamples)
       val firstVariantIdx = getFirstVariantIdx(file.start, blockSize)
       val firstVariantStart = getFirstVariantStart(firstVariantIdx, blockSize)
-      stream.seek(firstVariantStart)
 
       val numVariants = getNumVariants(file.start, file.length, firstVariantStart, blockSize)
       val relevantVariants =
         variants.slice(firstVariantIdx, firstVariantIdx + numVariants)
 
+      logger.info(s"Reading variants [$firstVariantIdx, ${firstVariantIdx + numVariants}]")
+      stream.seek(firstVariantStart)
       val bedIter = new BedFileIterator(
         littleEndianStream,
         stream,
@@ -123,7 +128,7 @@ class PlinkFileFormat
   }
 }
 
-object PlinkFileFormat extends GlowLogging {
+object PlinkFileFormat extends HlsUsageLogging {
 
   import io.projectglow.common.VariantSchemas._
 
@@ -268,6 +273,20 @@ object PlinkFileFormat extends GlowLogging {
     require(
       magicNumber == MAGIC_BYTES,
       s"Magic bytes were not $hexString; this is not a variant-major BED."
+    )
+  }
+
+  def logPlinkRead(options: Map[String, String]): Unit = {
+    val logOptions = Map(
+      "customFam" -> options.contains(FAM_PATH_KEY),
+      "customBim" -> options.contains(BIM_PATH_KEY)
+    )
+    recordHlsUsage(
+      HlsMetricDefinitions.EVENT_HLS_USAGE,
+      Map(
+        HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_PLINK_READ
+      ),
+      blob = hlsJsonBuilder(logOptions)
     )
   }
 }

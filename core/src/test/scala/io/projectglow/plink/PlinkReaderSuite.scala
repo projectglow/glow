@@ -339,4 +339,5 @@ class PlinkReaderSuite extends GlowBaseTest {
       assert(PlinkFileFormat.getBlockSize(s) == 2)
     }
   }
+
 }
