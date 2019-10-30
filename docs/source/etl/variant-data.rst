@@ -144,19 +144,19 @@ Glow provides the ability to read binary PLINK BED files with accompanying BIM a
 
 The schema of the resulting DataFrame matches that of the VCF reader.
 
-+----------------+---------+-------------+-----------------------------------------------------------------------------------------------------+
-| Parameter      | Type    | Default     | Description                                                                                         |
-+================+=========+=============+=====================================================================================================+
-| bim            | string  | prefix.bim  | Path to a ``.bim`` file containing biallelic variant information.                                   |
-+----------------+---------+-------------+-----------------------------------------------------------------------------------------------------+
-| fam            | string  | prefix.fam  | Path to a ``.fam`` file containing sample information.                                              |
-+----------------+---------+-------------+-----------------------------------------------------------------------------------------------------+
-| bimDelimiter   | string  | " " (space) | Whitespace delimiter in the ``.bim`` file.                                                          |
-+----------------+---------+-------------+-----------------------------------------------------------------------------------------------------+
-| famDelimiter   | string  | " " (space) | Whitespace delimiter in the ``.fam`` file.                                                          |
-+----------------+---------+-------------+-----------------------------------------------------------------------------------------------------+
-| mergeFidIid    | boolean | true        | If true, sets the sample ID to the family ID and individual ID merged with an underscore delimiter. |
-|                |         |             | If false, sets the sample ID to the individual ID                                                   |
-+----------------+---------+-------------+-----------------------------------------------------------------------------------------------------+
++----------------+---------+----------------+-----------------------------------------------------------------------------------------------------+
+| Parameter      | Type    | Default        | Description                                                                                         |
++================+=========+================+=====================================================================================================+
+| bim            | string  | prefix.bim     | Path to a ``.bim`` file containing biallelic variant information.                                   |
++----------------+---------+----------------+-----------------------------------------------------------------------------------------------------+
+| fam            | string  | prefix.fam     | Path to a ``.fam`` file containing sample information.                                              |
++----------------+---------+----------------+-----------------------------------------------------------------------------------------------------+
+| bimDelimiter   | string  | " " (space)    | Whitespace delimiter in the ``.bim`` file.                                                          |
++----------------+---------+----------------+-----------------------------------------------------------------------------------------------------+
+| famDelimiter   | string  | "\\t" (tab)    | Whitespace delimiter in the ``.fam`` file.                                                          |
++----------------+---------+----------------+-----------------------------------------------------------------------------------------------------+
+| mergeFidIid    | boolean | true           | If true, sets the sample ID to the family ID and individual ID merged with an underscore delimiter. |
+|                |         |                | If false, sets the sample ID to the individual ID.                                                  |
++----------------+---------+----------------+-----------------------------------------------------------------------------------------------------+
 
 .. notebook:: .. etl/variant-data.html
