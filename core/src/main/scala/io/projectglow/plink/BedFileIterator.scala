@@ -16,8 +16,6 @@
 
 package io.projectglow.plink
 
-import java.io.EOFException
-
 import com.google.common.io.LittleEndianDataInputStream
 import org.apache.hadoop.fs.FSDataInputStream
 

@@ -20,6 +20,7 @@ import java.io.{EOFException, IOException}
 
 import com.google.common.io.LittleEndianDataInputStream
 import org.apache.hadoop.fs.Path
+
 import io.projectglow.sql.GlowBaseTest
 
 class BedFileIteratorSuite extends GlowBaseTest {
