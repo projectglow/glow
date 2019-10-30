@@ -41,7 +41,6 @@ class PlinkReaderSuite extends GlowBaseTest {
     val plinkRows = spark
       .read
       .format(sourceName)
-      .option("bimDelimiter", "\t")
       .load(s"$bedBimFam/test.bed")
       .sort("contigName")
       .as[PlinkRow]
@@ -134,7 +133,6 @@ class PlinkReaderSuite extends GlowBaseTest {
     val df = spark
       .read
       .format(sourceName)
-      .option("bimDelimiter", "\t")
       .option("fam", s"$bedBimFam/test.fam")
       .load(s"$fiveSamplesFiveVariants/no-fam/test.bed")
     // Should not throw an error
@@ -156,7 +154,6 @@ class PlinkReaderSuite extends GlowBaseTest {
     val df = spark
       .read
       .format(sourceName)
-      .option("bimDelimiter", "\t")
       .option("bim", s"$bedBimFam/test.bim")
       .load(s"$fiveSamplesFiveVariants/no-bim/test.bed")
     // Should not throw an error
@@ -168,6 +165,7 @@ class PlinkReaderSuite extends GlowBaseTest {
       spark
         .read
         .format(sourceName)
+        .option("bimDelimiter", " ")
         .load(s"$bedBimFam/test.bed")
         .sort("contigName")
         .collect
@@ -181,7 +179,6 @@ class PlinkReaderSuite extends GlowBaseTest {
         .read
         .format(sourceName)
         .option("famDelimiter", "\t")
-        .option("bimDelimiter", "\t")
         .load(s"$bedBimFam/test.bed")
         .collect()
     }
@@ -202,7 +199,6 @@ class PlinkReaderSuite extends GlowBaseTest {
       spark
         .read
         .format(sourceName)
-        .option("bimDelimiter", "\t")
         .schema(commonVcfPlinkSchema)
         .load(s"$bedBimFam/test.bed")
         .sort("contigName")
@@ -214,7 +210,6 @@ class PlinkReaderSuite extends GlowBaseTest {
       spark
         .read
         .format(sourceName)
-        .option("bimDelimiter", "\t")
         .load(s"$bedBimFam/test.fam")
         .collect()
     }
@@ -226,7 +221,6 @@ class PlinkReaderSuite extends GlowBaseTest {
       spark
         .read
         .format(sourceName)
-        .option("bimDelimiter", "\t")
         .option("bim", s"$bedBimFam/test.bim")
         .option("fam", s"$bedBimFam/test.fam")
         .load(s"$fiveSamplesFiveVariants/malformed/test.bed")
@@ -242,7 +236,6 @@ class PlinkReaderSuite extends GlowBaseTest {
     val sampleIds = spark
       .read
       .format(sourceName)
-      .option("bimDelimiter", "\t")
       .option("mergeFidIid", "false")
       .load(s"$bedBimFam/test.bed")
       .select("genotypes.sampleId")
@@ -259,7 +252,6 @@ class PlinkReaderSuite extends GlowBaseTest {
       spark
         .read
         .format(sourceName)
-        .option("bimDelimiter", "\t")
         .option("mergeFidIid", "hello")
         .load(s"$bedBimFam/test.bed")
         .collect()
@@ -271,7 +263,6 @@ class PlinkReaderSuite extends GlowBaseTest {
     val df = spark
       .read
       .format(sourceName)
-      .option("bimDelimiter", "\t")
       .load(s"$bedBimFam/test.bed")
     val e = intercept[UnsupportedOperationException] {
       df.write.format(sourceName).save("noop")
@@ -287,7 +278,6 @@ class PlinkReaderSuite extends GlowBaseTest {
       .read
       .schema(ScalaReflection.schemaFor[WeirdVariant].dataType.asInstanceOf[StructType])
       .format(sourceName)
-      .option("bimDelimiter", "\t")
       .load(s"$bedBimFam/test.bed")
       .collect
 
@@ -300,7 +290,6 @@ class PlinkReaderSuite extends GlowBaseTest {
     val rows = spark
       .read
       .format(sourceName)
-      .option("bimDelimiter", "\t")
       .load(s"$bedBimFam/test.bed")
       .repartition(10)
     assert(rows.count == 5)

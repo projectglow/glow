@@ -130,7 +130,8 @@ object PlinkFileFormat extends GlowLogging {
   val CSV_DELIMITER_KEY = "delimiter"
   val FAM_DELIMITER_KEY = "famDelimiter"
   val BIM_DELIMITER_KEY = "bimDelimiter"
-  val DEFAULT_DELIMITER_VALUE = " "
+  val DEFAULT_FAM_DELIMITER_VALUE = " "
+  val DEFAULT_BIM_DELIMITER_VALUE = "\t"
 
   val FAM_PATH_KEY = "fam"
   val BIM_PATH_KEY = "bim"
@@ -164,7 +165,7 @@ object PlinkFileFormat extends GlowLogging {
     val stream = hadoopFs.open(famPath)
     val lines = IOUtils.lineIterator(stream, "UTF-8").asScala
 
-    val famDelimiterOption = options.getOrElse(FAM_DELIMITER_KEY, DEFAULT_DELIMITER_VALUE)
+    val famDelimiterOption = options.getOrElse(FAM_DELIMITER_KEY, DEFAULT_FAM_DELIMITER_VALUE)
     val parsedOptions =
       new CSVOptions(
         Map(CSV_DELIMITER_KEY -> famDelimiterOption),
@@ -215,7 +216,7 @@ object PlinkFileFormat extends GlowLogging {
     val stream = hadoopFs.open(bimPath)
     val lines = IOUtils.lineIterator(stream, "UTF-8").asScala
 
-    val bimDelimiterOption = options.getOrElse(BIM_DELIMITER_KEY, DEFAULT_DELIMITER_VALUE)
+    val bimDelimiterOption = options.getOrElse(BIM_DELIMITER_KEY, DEFAULT_BIM_DELIMITER_VALUE)
     val parsedOptions =
       new CSVOptions(
         Map(CSV_DELIMITER_KEY -> bimDelimiterOption, "mode" -> FailFastMode.name),
