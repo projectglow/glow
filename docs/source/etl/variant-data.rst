@@ -86,7 +86,7 @@ For both the single and sharded VCF writer, you can use the following option to 
 BGEN
 ====
 
-Glow also provides the ability to read BGEN files, including those distributed by the UK Biobank project.
+Glow provides the ability to read BGEN files, including those distributed by the UK Biobank project.
 
 .. code-block:: py
 
@@ -131,5 +131,32 @@ To control the behavior of the BGEN writer, you can provide the following option
 +------------------------+---------+---------+------------------------------------------------------------------------------------------------------------------------------------+
 | defaultInferredPhasing | boolean | false   | The inferred phasing if phasing is missing and cannot be inferred from ``posteriorProbabilities``.                                 |
 +------------------------+---------+---------+------------------------------------------------------------------------------------------------------------------------------------+
+
+
+PLINK
+=====
+
+Glow provides the ability to read binary PLINK BED files with accompanying BIM and FAM files.
+
+.. code-block:: py
+
+  df = spark.read.format("plink").load("prefix.bed")
+
+The schema of the resulting DataFrame matches that of the VCF reader.
+
++----------------+---------+-------------+-----------------------------------------------------------------------------------------------------+
+| Parameter      | Type    | Default     | Description                                                                                         |
++================+=========+=============+=====================================================================================================+
+| bim            | string  | prefix.bim  | Path to a ``.bim`` file containing biallelic variant information.                                   |
++----------------+---------+-------------+-----------------------------------------------------------------------------------------------------+
+| fam            | string  | prefix.fam  | Path to a ``.fam`` file containing sample information.                                              |
++----------------+---------+-------------+-----------------------------------------------------------------------------------------------------+
+| bimDelimiter   | string  | " " (space) | Whitespace delimiter in the ``.bim`` file.                                                          |
++----------------+---------+-------------+-----------------------------------------------------------------------------------------------------+
+| famDelimiter   | string  | " " (space) | Whitespace delimiter in the ``.fam`` file.                                                          |
++----------------+---------+-------------+-----------------------------------------------------------------------------------------------------+
+| mergeFidIid    | boolean | true        | If true, sets the sample ID to the family ID and individual ID merged with an underscore delimiter. |
+|                |         |             | If false, sets the sample ID to the individual ID                                                   |
++----------------+---------+-------------+-----------------------------------------------------------------------------------------------------+
 
 .. notebook:: .. etl/variant-data.html

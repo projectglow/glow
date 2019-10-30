@@ -41,7 +41,7 @@ class PlinkReaderSuite extends GlowBaseTest {
     val plinkRows = spark
       .read
       .format(sourceName)
-      .option("bim_delimiter", "\t")
+      .option("bimDelimiter", "\t")
       .load(s"$bedBimFam/test.bed")
       .sort("contigName")
       .as[PlinkRow]
@@ -134,7 +134,7 @@ class PlinkReaderSuite extends GlowBaseTest {
     val df = spark
       .read
       .format(sourceName)
-      .option("bim_delimiter", "\t")
+      .option("bimDelimiter", "\t")
       .option("fam", s"$bedBimFam/test.fam")
       .load(s"$fiveSamplesFiveVariants/no-fam/test.bed")
     // Should not throw an error
@@ -156,7 +156,7 @@ class PlinkReaderSuite extends GlowBaseTest {
     val df = spark
       .read
       .format(sourceName)
-      .option("bim_delimiter", "\t")
+      .option("bimDelimiter", "\t")
       .option("bim", s"$bedBimFam/test.bim")
       .load(s"$fiveSamplesFiveVariants/no-bim/test.bed")
     // Should not throw an error
@@ -180,8 +180,8 @@ class PlinkReaderSuite extends GlowBaseTest {
       spark
         .read
         .format(sourceName)
-        .option("fam_delimiter", "\t")
-        .option("bim_delimiter", "\t")
+        .option("famDelimiter", "\t")
+        .option("bimDelimiter", "\t")
         .load(s"$bedBimFam/test.bed")
         .collect()
     }
@@ -202,11 +202,11 @@ class PlinkReaderSuite extends GlowBaseTest {
       spark
         .read
         .format(sourceName)
-        .option("bim_delimiter", "\t")
+        .option("bimDelimiter", "\t")
         .schema(commonVcfPlinkSchema)
         .load(s"$bedBimFam/test.bed")
         .sort("contigName")
-    assert(vcfRows.collect sameElements plinkRows.collect)
+    assert(vcfRows.collect.sameElements(plinkRows.collect))
   }
 
   test("Read BED without magic bytes") {
@@ -214,7 +214,7 @@ class PlinkReaderSuite extends GlowBaseTest {
       spark
         .read
         .format(sourceName)
-        .option("bim_delimiter", "\t")
+        .option("bimDelimiter", "\t")
         .load(s"$bedBimFam/test.fam")
         .collect()
     }
@@ -226,7 +226,7 @@ class PlinkReaderSuite extends GlowBaseTest {
       spark
         .read
         .format(sourceName)
-        .option("bim_delimiter", "\t")
+        .option("bimDelimiter", "\t")
         .option("bim", s"$bedBimFam/test.bim")
         .option("fam", s"$bedBimFam/test.fam")
         .load(s"$fiveSamplesFiveVariants/malformed/test.bed")
@@ -242,8 +242,8 @@ class PlinkReaderSuite extends GlowBaseTest {
     val sampleIds = spark
       .read
       .format(sourceName)
-      .option("bim_delimiter", "\t")
-      .option("merge-fid-iid", "false")
+      .option("bimDelimiter", "\t")
+      .option("mergeFidIid", "false")
       .load(s"$bedBimFam/test.bed")
       .select("genotypes.sampleId")
       .as[Seq[String]]
@@ -254,24 +254,24 @@ class PlinkReaderSuite extends GlowBaseTest {
     assert(sampleIds == Seq("ind1", "ind2", "ind3", "ind4", "ind5"))
   }
 
-  test("Invalid arg for merge-fid-iid") {
+  test("Invalid arg for mergeFidIid") {
     val e = intercept[IllegalArgumentException] {
       spark
         .read
         .format(sourceName)
-        .option("bim_delimiter", "\t")
-        .option("merge-fid-iid", "hello")
+        .option("bimDelimiter", "\t")
+        .option("mergeFidIid", "hello")
         .load(s"$bedBimFam/test.bed")
         .collect()
     }
-    assert(e.getMessage.contains("Value for merge-fid-iid must be [true, false]. Provided: hello"))
+    assert(e.getMessage.contains("Value for mergeFidIid must be [true, false]. Provided: hello"))
   }
 
   test("Plink file format does not support writing") {
     val df = spark
       .read
       .format(sourceName)
-      .option("bim_delimiter", "\t")
+      .option("bimDelimiter", "\t")
       .load(s"$bedBimFam/test.bed")
     val e = intercept[UnsupportedOperationException] {
       df.write.format(sourceName).save("noop")
@@ -287,7 +287,7 @@ class PlinkReaderSuite extends GlowBaseTest {
       .read
       .schema(ScalaReflection.schemaFor[WeirdVariant].dataType.asInstanceOf[StructType])
       .format(sourceName)
-      .option("bim_delimiter", "\t")
+      .option("bimDelimiter", "\t")
       .load(s"$bedBimFam/test.bed")
       .collect
 
@@ -296,4 +296,58 @@ class PlinkReaderSuite extends GlowBaseTest {
     }
   }
 
+  test("Small partitions") {
+    val rows = spark
+      .read
+      .format(sourceName)
+      .option("bimDelimiter", "\t")
+      .load(s"$bedBimFam/test.bed")
+      .repartition(10)
+    assert(rows.count == 5)
+  }
+
+  def getVariantIdxStartNum(fileStart: Long, fileLength: Long, blockSize: Int): (Int, Int, Int) = {
+    val firstVariantIdx = PlinkFileFormat.getFirstVariantIdx(fileStart, blockSize)
+    val firstVariantStart = PlinkFileFormat.getFirstVariantStart(firstVariantIdx, blockSize)
+    val numVariants =
+      PlinkFileFormat.getNumVariants(fileStart, fileLength, firstVariantStart, blockSize)
+    (firstVariantIdx, firstVariantStart, numVariants)
+  }
+
+  test("Full file") {
+    assert(getVariantIdxStartNum(0, 13, 2) == (0, 3, 5))
+  }
+
+  test("Start in magic block") {
+    assert(getVariantIdxStartNum(1, 12, 5) == (0, 3, 2))
+  }
+
+  test("Start at beginning of first block") {
+    assert(getVariantIdxStartNum(3, 10, 2) == (0, 3, 5))
+  }
+
+  test("Start in middle of first block") {
+    assert(getVariantIdxStartNum(4, 9, 2) == (1, 5, 4))
+  }
+
+  test("Zero-variant slice") {
+    assert(getVariantIdxStartNum(6, 1, 2) == (2, 7, 0))
+  }
+
+  test("One-variant slice") {
+    assert(getVariantIdxStartNum(7, 1, 2) == (2, 7, 1))
+  }
+
+  test("Multi-variant slice") {
+    assert(getVariantIdxStartNum(7, 6, 2) == (2, 7, 3))
+  }
+
+  test("Get block size") {
+    (1 to 4).foreach { s =>
+      assert(PlinkFileFormat.getBlockSize(s) == 1)
+    }
+    (5 to 8).foreach { s =>
+      assert(PlinkFileFormat.getBlockSize(s) == 2)
+    }
+  }
 }

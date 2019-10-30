@@ -98,11 +98,11 @@ class PlinkFileFormat
       verifyBed(littleEndianStream)
       val numSamples = sampleIds.length
       val blockSize = getBlockSize(numSamples)
-      val firstVariantIdx = getFirstVariantIdx(file, blockSize)
+      val firstVariantIdx = getFirstVariantIdx(file.start, blockSize)
       val firstVariantStart = getFirstVariantStart(firstVariantIdx, blockSize)
       stream.seek(firstVariantStart)
 
-      val numVariants = getNumVariants(file, firstVariantStart, blockSize)
+      val numVariants = getNumVariants(file.start, file.length, firstVariantStart, blockSize)
       val relevantVariants =
         variants.slice(firstVariantIdx, firstVariantIdx + numVariants)
 
@@ -128,8 +128,8 @@ object PlinkFileFormat extends GlowLogging {
   import io.projectglow.common.VariantSchemas._
 
   val CSV_DELIMITER_KEY = "delimiter"
-  val FAM_DELIMITER_KEY = "fam_delimiter"
-  val BIM_DELIMITER_KEY = "bim_delimiter"
+  val FAM_DELIMITER_KEY = "famDelimiter"
+  val BIM_DELIMITER_KEY = "bimDelimiter"
   val DEFAULT_DELIMITER_VALUE = " "
 
   val FAM_PATH_KEY = "fam"
@@ -138,7 +138,7 @@ object PlinkFileFormat extends GlowLogging {
   val FAM_FILE_EXTENSION = ".fam"
   val BIM_FILE_EXTENSION = ".bim"
 
-  val MERGE_FID_IID = "merge-fid-iid"
+  val MERGE_FID_IID = "mergeFidIid"
 
   val BLOCKS_PER_BYTE = 4
   val MAGIC_BYTES: Seq[Byte] = Seq(0x6c, 0x1b, 0x01).map(_.toByte)
@@ -241,10 +241,8 @@ object PlinkFileFormat extends GlowLogging {
     math.ceil(numSamples / BLOCKS_PER_BYTE.toDouble).toInt
   }
 
-  def getFirstVariantIdx(partitionedFile: PartitionedFile, blockSize: Int): Int = {
-    math.max(
-      0,
-      math.ceil((partitionedFile.start - (NUM_MAGIC_BYTES.toDouble - 1)) / blockSize).toInt)
+  def getFirstVariantIdx(partitionedFileStart: Long, blockSize: Int): Int = {
+    math.max(0, math.ceil((partitionedFileStart - NUM_MAGIC_BYTES.toDouble) / blockSize).toInt)
   }
 
   def getFirstVariantStart(variantIdx: Int, blockSize: Int): Int = {
@@ -252,10 +250,12 @@ object PlinkFileFormat extends GlowLogging {
   }
 
   def getNumVariants(
-      partitionedFile: PartitionedFile,
+      partitionedFileStart: Long,
+      partitionedFileLength: Long,
       firstVariantStart: Int,
       blockSize: Int): Int = {
-    math.ceil((partitionedFile.length - firstVariantStart) / blockSize.toDouble).toInt
+    val actualLength = partitionedFileLength - (firstVariantStart - partitionedFileStart)
+    math.ceil(actualLength / blockSize.toDouble).toInt
   }
 
   def verifyBed(stream: LittleEndianDataInputStream): Unit = {
