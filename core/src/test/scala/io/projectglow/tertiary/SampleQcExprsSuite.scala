@@ -16,9 +16,11 @@
 
 package io.projectglow.tertiary
 
+import org.apache.spark.sql.{AnalysisException, DataFrame, Row}
+import org.apache.spark.sql.functions.expr
+
 import io.projectglow.common.{VCFRow, VariantSchemas}
 import io.projectglow.sql.GlowBaseTest
-import org.apache.spark.sql.{DataFrame, Row}
 
 class SampleQcExprsSuite extends GlowBaseTest {
   lazy val testVcf = s"$testDataHome/1000G.phase3.broad.withGenotypes.chr20.10100000.vcf"
@@ -163,6 +165,26 @@ class SampleQcExprsSuite extends GlowBaseTest {
       if (sampleIds) {
         assert(df.select("sampleId").as[String].head == "NA12878")
       }
+  }
+
+  private val typeTransformations = Seq(
+    ("genotypes", "referenceAllele", "Genotypes field must be an array of structs"),
+    (
+      "genotypes",
+      "transform(genotypes, gt -> subset_struct(gt, 'sampleId'))",
+      "Genotype struct was missing required fields"),
+    ("referenceAllele", "alternateAlleles", "Reference allele must be a string"),
+    ("alternateAlleles", "referenceAllele", "Alternate alleles must be an array of strings")
+  )
+  gridTest("type check failures")(typeTransformations) {
+    case (colName, colExpr, error) =>
+      val e = intercept[AnalysisException] {
+        readVcf(na12878)
+          .withColumn(colName, expr(colExpr))
+          .selectExpr("sample_call_summary_stats(genotypes, referenceAllele, alternateAlleles)")
+          .collect()
+      }
+      assert(e.getMessage.contains(error))
   }
 }
 

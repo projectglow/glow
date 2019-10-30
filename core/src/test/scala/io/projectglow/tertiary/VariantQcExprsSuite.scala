@@ -296,6 +296,7 @@ class VariantQcExprsSuite extends GlowBaseTest {
         .contains(
           "Genotype struct was missing required fields: (name: calls, type: ArrayType(IntegerType,true))"))
   }
+
 }
 
 case class ArraySummaryStats(
