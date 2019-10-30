@@ -99,9 +99,13 @@ object LogisticRegressionGwas extends GlowLogging {
       covariates: SparkDenseMatrix,
       nullFit: NewtonResult,
       logitTest: LogitTest): InternalRow = {
-    val fullX =
+
+    require(
+      genotypes.length == phenotypes.length,
+      "Number of samples differs between genotype and phenotype arrays")
+    lazy val fullX =
       new DenseMatrix(covariates.numRows, covariates.numCols + 1, covariates.values ++ genotypes)
-    val y = new DenseVector(phenotypes)
+    lazy val y = new DenseVector(phenotypes)
 
     logitTest match {
       case nullFitTest: LogitTestWithNullModelFit => nullFitTest.runTest(nullFit)

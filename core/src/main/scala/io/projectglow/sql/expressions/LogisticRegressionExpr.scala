@@ -40,7 +40,7 @@ case class LogisticRegressionExpr(
 
   private val matrixUDT = SQLUtils.newMatrixUDT()
 
-  private val logitTest = LogisticRegressionGwas
+  private lazy val logitTest = LogisticRegressionGwas
     .logitTests
     .getOrElse(
       test.eval().asInstanceOf[UTF8String].toString,

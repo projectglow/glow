@@ -191,7 +191,7 @@ class LiftOverCoordinatesExprSuite extends GlowBaseTest {
     assert(outputDf.filter("lifted is null").count == outputDf.count)
   }
 
-  test("Non-constant chain file") {
+  test("Chain file must be constant") {
     val inputDf = readBed(s"$testDataHome/liftover/unlifted.test.bed")
     val e = intercept[AnalysisException] {
       inputDf.selectExpr(s"lift_over_coordinates(contigName, start, end, rand())").collect()
