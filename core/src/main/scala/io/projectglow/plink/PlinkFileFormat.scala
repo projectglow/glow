@@ -63,7 +63,7 @@ class PlinkFileFormat
       options: Map[String, String],
       dataSchema: StructType): OutputWriterFactory = {
     throw new UnsupportedOperationException(
-      "PLINK data source does not support writing sharded files."
+      "PLINK data source does not support writing."
     )
   }
 
@@ -83,11 +83,8 @@ class PlinkFileFormat
       options: Map[String, String],
       hadoopConf: Configuration): PartitionedFile => Iterator[InternalRow] = {
 
-    val sampleIds = getSampleIds(options, hadoopConf) // Read sample IDs from a FAM file
-    val variants = getVariants(options, hadoopConf) // Read variant metadata from a BIM file
-
     val serializableConf = new SerializableConfiguration(hadoopConf)
-    logPlinkRead(options)
+    logPlinkRead()
 
     file => {
       val path = new Path(file.filePath)
@@ -100,6 +97,9 @@ class PlinkFileFormat
           stream.close()
         }
       }
+
+      val sampleIds = getSampleIds(file.filePath, options, serializableConf.value) // Read sample IDs from a FAM file
+      val variants = getVariants(file.filePath, options, serializableConf.value) // Read variant metadata from a BIM file
 
       verifyBed(littleEndianStream)
       val numSamples = sampleIds.length
@@ -143,10 +143,6 @@ object PlinkFileFormat extends HlsUsageLogging {
   val DEFAULT_BIM_DELIMITER_VALUE = "\t"
   val CSV_DELIMITER_KEY = "delimiter"
 
-  // Path options
-  val FAM_PATH_KEY = "fam"
-  val BIM_PATH_KEY = "bim"
-
   // Sample ID options
   val MERGE_FID_IID = "mergeFidIid"
 
@@ -157,21 +153,16 @@ object PlinkFileFormat extends HlsUsageLogging {
   val MAGIC_BYTES: Seq[Byte] = Seq(0x6c, 0x1b, 0x01).map(_.toByte)
   val NUM_MAGIC_BYTES: Int = MAGIC_BYTES.size
 
-  /* If a custom FAM or BIM path is not specified, use the BED's prefix as the default prefix  */
-  def getPrefixPath(options: Map[String, String]): String = {
-    val bedPath =
-      options.getOrElse("path", throw new IllegalArgumentException("Must provide path."))
+  /* Gets the BED path's prefix as the FAM and BIM path prefix  */
+  def getPrefixPath(bedPath: String): String = {
     bedPath.dropRight(4)
   }
 
   /* Parses a FAM file to get the sample IDs */
-  def getSampleIds(options: Map[String, String], hadoopConf: Configuration): Array[String] = {
-    val famPathStr = options.get(FAM_PATH_KEY) match {
-      case Some(s) => s
-      case None => getPrefixPath(options) + FAM_FILE_EXTENSION
-    }
-    logger.info(s"Using FAM file $famPathStr")
-
+  def getSampleIds(
+      bedPath: String,
+      options: Map[String, String],
+      hadoopConf: Configuration): Array[String] = {
     val famDelimiterOption = options.getOrElse(FAM_DELIMITER_KEY, DEFAULT_FAM_DELIMITER_VALUE)
     val parsedOptions =
       new CSVOptions(
@@ -187,7 +178,8 @@ object PlinkFileFormat extends HlsUsageLogging {
           s"Value for $MERGE_FID_IID must be [true, false]. Provided: ${options(MERGE_FID_IID)}")
     }
 
-    val famPath = new Path(famPathStr)
+    val prefixPath = getPrefixPath(bedPath)
+    val famPath = new Path(prefixPath + FAM_FILE_EXTENSION)
     val hadoopFs = famPath.getFileSystem(hadoopConf)
     val stream = hadoopFs.open(famPath)
     val lines = IOUtils.lineIterator(stream, "UTF-8").asScala
@@ -214,13 +206,10 @@ object PlinkFileFormat extends HlsUsageLogging {
   }
 
   /* Parses a BIM file to get the variants */
-  def getVariants(options: Map[String, String], hadoopConf: Configuration): Array[InternalRow] = {
-    val bimPathStr = options.get(BIM_PATH_KEY) match {
-      case Some(s) => s
-      case None => getPrefixPath(options) + BIM_FILE_EXTENSION
-    }
-    logger.info(s"Using BIM file $bimPathStr")
-
+  def getVariants(
+      bedPath: String,
+      options: Map[String, String],
+      hadoopConf: Configuration): Array[InternalRow] = {
     val bimDelimiterOption = options.getOrElse(BIM_DELIMITER_KEY, DEFAULT_BIM_DELIMITER_VALUE)
     val parsedOptions =
       new CSVOptions(
@@ -228,7 +217,8 @@ object PlinkFileFormat extends HlsUsageLogging {
         SQLConf.get.csvColumnPruning,
         SQLConf.get.sessionLocalTimeZone)
 
-    val bimPath = new Path(bimPathStr)
+    val prefixPath = getPrefixPath(bedPath)
+    val bimPath = new Path(prefixPath + BIM_FILE_EXTENSION)
     val hadoopFs = bimPath.getFileSystem(hadoopConf)
     val stream = hadoopFs.open(bimPath)
     val lines = IOUtils.lineIterator(stream, "UTF-8").asScala
@@ -286,18 +276,13 @@ object PlinkFileFormat extends HlsUsageLogging {
     )
   }
 
-  /* Log that PLINK files are being read, and whether custom FAM and BIM files were specified */
-  def logPlinkRead(options: Map[String, String]): Unit = {
-    val logOptions = Map(
-      "customFam" -> options.contains(FAM_PATH_KEY),
-      "customBim" -> options.contains(BIM_PATH_KEY)
-    )
+  /* Log that PLINK files are being read */
+  def logPlinkRead(): Unit = {
     recordHlsUsage(
       HlsMetricDefinitions.EVENT_HLS_USAGE,
       Map(
         HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_PLINK_READ
-      ),
-      blob = hlsJsonBuilder(logOptions)
+      )
     )
   }
 
