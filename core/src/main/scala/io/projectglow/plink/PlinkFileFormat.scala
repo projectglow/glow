@@ -114,7 +114,6 @@ class PlinkFileFormat
       val bedIter = new BedFileIterator(
         littleEndianStream,
         stream,
-        numSamples,
         numVariants,
         blockSize
       )

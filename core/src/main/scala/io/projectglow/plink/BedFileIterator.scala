@@ -20,8 +20,8 @@ import com.google.common.io.LittleEndianDataInputStream
 import org.apache.hadoop.fs.FSDataInputStream
 
 /**
- * Parses genotype blocks of a BED file into an array. The iterator assumes that the input streams are currently at the
- * beginning of a genotype block.
+ * Parses genotype blocks of a BED file. The iterator assumes that the input streams are currently at the beginning of a
+ * genotype block.
  *
  * BED standard: https://www.cog-genomics.org/plink/1.9/formats#bed
  *
@@ -31,7 +31,6 @@ import org.apache.hadoop.fs.FSDataInputStream
  * @param stream Data stream that records are read from. Must be little-endian.
  * @param underlyingStream Hadoop input stream that underlies the little-endian data stream. Only
  *                         used for cleaning up when there are no genotype blocks left.
- * @param numSamples The number of samples represented in each genotype block.
  * @param numBlocks The number of genotype blocks to be read. `hasNext` will return `false` once we've read `numBlocks`
  *                  blocks.
  * @param blockSize The size of a block in bytes; equal to `ceil(numSamples / 4)`
@@ -39,13 +38,11 @@ import org.apache.hadoop.fs.FSDataInputStream
 class BedFileIterator(
     stream: LittleEndianDataInputStream,
     underlyingStream: FSDataInputStream,
-    numSamples: Int,
     numBlocks: Int,
     blockSize: Int)
-    extends Iterator[Array[Array[Int]]] {
+    extends Iterator[Array[Byte]] {
 
   var blockIdx = 0
-  val callsArray: Array[Array[Int]] = new Array[Array[Int]](numSamples)
   val byteArray: Array[Byte] = new Array[Byte](blockSize)
 
   def hasNext(): Boolean = {
@@ -56,27 +53,10 @@ class BedFileIterator(
     ret
   }
 
-  def next(): Array[Array[Int]] = {
+  def next(): Array[Byte] = {
     blockIdx += 1
     stream.readFully(byteArray)
-
-    var i = 0
-    while (i < numSamples) {
-      // Get the relevant 2 bits for the sample within the block
-      // The i-th sample's call bits are the (i%4)-th pair within the (i/4)-th block
-      callsArray(i) = twoBitsToCalls((byteArray(i / 4) >> (2 * (i % 4))) & 3)
-      i += 1
-    }
-    callsArray
-  }
-
-  private def twoBitsToCalls(twoBits: Int): Array[Int] = {
-    twoBits match {
-      case 0 => Array(1, 1) // Homozygous for first (alternate) allele
-      case 1 => Array(-1, -1) // Missing genotype
-      case 2 => Array(0, 1) // Heterozygous
-      case 3 => Array(0, 0) // Homozygous for second (reference) allele
-    }
+    byteArray
   }
 
   private def cleanup(): Unit = {

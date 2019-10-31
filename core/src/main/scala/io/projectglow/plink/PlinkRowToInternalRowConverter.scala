@@ -32,18 +32,36 @@ import io.projectglow.sql.util.RowConverter
  */
 class PlinkRowToInternalRowConverter(schema: StructType) extends GlowLogging {
 
+  private val homAlt = new GenericArrayData(Array(1, 1))
+  private val missing = new GenericArrayData(Array(-1, -1))
+  private val het = new GenericArrayData(Array(0, 1))
+  private val homRef = new GenericArrayData(Array(0, 0))
+
+  private def twoBitsToCalls(twoBits: Int): GenericArrayData = {
+    twoBits match {
+      case 0 => homAlt // Homozygous for first (alternate) allele
+      case 1 => missing // Missing genotype
+      case 2 => het // Heterozygous
+      case 3 => homRef // Homozygous for second (reference) allele
+    }
+  }
+
   private val converter = {
     val fns = schema.map { field =>
-      val fn: RowConverter.Updater[(Array[String], Array[Array[Int]])] = field match {
+      val fn: RowConverter.Updater[(Array[String], Array[Byte])] = field match {
         case f if f.name == VariantSchemas.genotypesFieldName =>
           val gSchema = f.dataType.asInstanceOf[ArrayType].elementType.asInstanceOf[StructType]
           val converter = makeGenotypeConverter(gSchema)
-          (samplesAndCalls, r, i) => {
-            val genotypes = new Array[Any](samplesAndCalls._1.length)
-            var j = 0
-            while (j < genotypes.length) {
-              genotypes(j) = converter((samplesAndCalls._1(j), samplesAndCalls._2(j)))
-              j += 1
+          (samplesAndBlock, r, i) => {
+            val genotypes = new Array[Any](samplesAndBlock._1.length)
+            var sampleIdx = 0
+            while (sampleIdx < genotypes.length) {
+              val sample = samplesAndBlock._1(sampleIdx)
+              // Get the relevant 2 bits for the sample from the block
+              // The i-th sample's call bits are the (i%4)-th pair within the (i/4)-th block
+              val twoBits = samplesAndBlock._2(sampleIdx / 4) >> (2 * (sampleIdx % 4)) & 3
+              genotypes(sampleIdx) = converter((sample, twoBits))
+              sampleIdx += 1
             }
             r.update(i, new GenericArrayData(genotypes))
           }
@@ -56,18 +74,18 @@ class PlinkRowToInternalRowConverter(schema: StructType) extends GlowLogging {
       }
       fn
     }
-    new RowConverter[(Array[String], Array[Array[Int]])](schema, fns.toArray)
+    new RowConverter[(Array[String], Array[Byte])](schema, fns.toArray)
   }
 
-  private def makeGenotypeConverter(gSchema: StructType): RowConverter[(String, Array[Int])] = {
+  private def makeGenotypeConverter(gSchema: StructType): RowConverter[(String, Int)] = {
     val functions = gSchema.map { field =>
-      val fn: RowConverter.Updater[(String, Array[Int])] = field match {
+      val fn: RowConverter.Updater[(String, Int)] = field match {
         case f if structFieldsEqualExceptNullability(f, VariantSchemas.sampleIdField) =>
-          (samplesAndCalls, r, i) => {
-            r.update(i, UTF8String.fromString(samplesAndCalls._1))
+          (sampleAndTwoBits, r, i) => {
+            r.update(i, UTF8String.fromString(sampleAndTwoBits._1))
           }
         case f if structFieldsEqualExceptNullability(f, VariantSchemas.callsField) =>
-          (samplesAndCalls, r, i) => r.update(i, new GenericArrayData(samplesAndCalls._2))
+          (sampleAndTwoBits, r, i) => r.update(i, twoBitsToCalls(sampleAndTwoBits._2))
         case f =>
           logger.info(
             s"Genotype field $f cannot be derived from PLINK files. It will be null " +
@@ -77,13 +95,13 @@ class PlinkRowToInternalRowConverter(schema: StructType) extends GlowLogging {
       }
       fn
     }
-    new RowConverter[(String, Array[Int])](gSchema, functions.toArray)
+    new RowConverter[(String, Int)](gSchema, functions.toArray)
   }
 
   def convertRow(
       bimRow: InternalRow,
       sampleIds: Array[String],
-      calls: Array[Array[Int]]): InternalRow = {
-    converter((sampleIds, calls), bimRow)
+      gtBlock: Array[Byte]): InternalRow = {
+    converter((sampleIds, gtBlock), bimRow)
   }
 }
