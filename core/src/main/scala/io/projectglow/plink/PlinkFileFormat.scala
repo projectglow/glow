@@ -98,8 +98,10 @@ class PlinkFileFormat
         }
       }
 
-      val sampleIds = getSampleIds(file.filePath, options, serializableConf.value) // Read sample IDs from a FAM file
-      val variants = getVariants(file.filePath, options, serializableConf.value) // Read variant metadata from a BIM file
+      // Read sample IDs from the accompanying FAM file
+      val sampleIds = getSampleIds(file.filePath, options, serializableConf.value)
+      // Read variant metadata from the accompanying BIM file
+      val variants = getVariants(file.filePath, options, serializableConf.value)
 
       verifyBed(littleEndianStream)
       val numSamples = sampleIds.length
@@ -204,7 +206,14 @@ object PlinkFileFormat extends HlsUsageLogging {
     }
   }
 
-  /* Parses a BIM file to get the variants */
+  /* Parses a BIM file to get the variants. The schema of the returned rows has the following fields:
+       - chromosome (string)
+       - variant ID (string)
+       - position (double)
+       - base-pair coordinate, 1-based (int)
+       - allele 1, assumed to be alternate (string)
+       - allele 2, assumed to be reference (string)
+   */
   def getVariants(
       bedPath: String,
       options: Map[String, String],
