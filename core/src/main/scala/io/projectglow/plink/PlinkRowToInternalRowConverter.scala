@@ -18,11 +18,11 @@ package io.projectglow.plink
 
 import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.util.{ArrayData, GenericArrayData}
+import org.apache.spark.sql.catalyst.util.GenericArrayData
 import org.apache.spark.sql.types.{ArrayType, StructType}
 import org.apache.spark.unsafe.types.UTF8String
 
-import io.projectglow.common.{BgenGenotype, BgenRow, GlowLogging, VariantSchemas}
+import io.projectglow.common.{GlowLogging, VariantSchemas}
 import io.projectglow.sql.util.RowConverter
 
 /**
@@ -31,34 +31,18 @@ import io.projectglow.sql.util.RowConverter
  * schema cannot be derived from a PLINK record.
  */
 class PlinkRowToInternalRowConverter(schema: StructType) extends GlowLogging {
-  import io.projectglow.common.VariantSchemas._
-  import BimRow._
 
   private val converter = {
     val fns = schema.map { field =>
-      val fn: RowConverter.Updater[(InternalRow, Array[String], Array[Array[Int]])] = field match {
-        case f if structFieldsEqualExceptNullability(f, contigNameField) =>
-          (bsc, r, i) => r.update(i, getContigName(bsc._1))
-        case f if structFieldsEqualExceptNullability(f, namesField) =>
-          (bsc, r, i) => r.update(i, getNames(bsc._1))
-        case f if structFieldsEqualExceptNullability(f, positionField) =>
-          (bsc, r, i) => r.update(i, getPosition(bsc._1))
-        case f if structFieldsEqualExceptNullability(f, startField) =>
-          (bsc, r, i) => r.update(i, getStart(bsc._1))
-        case f if structFieldsEqualExceptNullability(f, endField) =>
-          (bsc, r, i) => r.update(i, getStart(bsc._1) + getRefAllele(bsc._1).numChars)
-        case f if structFieldsEqualExceptNullability(f, refAlleleField) =>
-          (bsc, r, i) => r.update(i, getRefAllele(bsc._1))
-        case f if structFieldsEqualExceptNullability(f, alternateAllelesField) =>
-          (bsc, r, i) => r.update(i, getAlternateAlleles(bsc._1))
+      val fn: RowConverter.Updater[(Array[String], Array[Array[Int]])] = field match {
         case f if f.name == VariantSchemas.genotypesFieldName =>
           val gSchema = f.dataType.asInstanceOf[ArrayType].elementType.asInstanceOf[StructType]
           val converter = makeGenotypeConverter(gSchema)
-          (bsc, r, i) => {
-            val genotypes = new Array[Any](bsc._2.length)
+          (samplesAndCalls, r, i) => {
+            val genotypes = new Array[Any](samplesAndCalls._1.length)
             var j = 0
             while (j < genotypes.length) {
-              genotypes(j) = converter((bsc._2(j), bsc._3(j)))
+              genotypes(j) = converter((samplesAndCalls._1(j), samplesAndCalls._2(j)))
               j += 1
             }
             r.update(i, new GenericArrayData(genotypes))
@@ -72,18 +56,18 @@ class PlinkRowToInternalRowConverter(schema: StructType) extends GlowLogging {
       }
       fn
     }
-    new RowConverter[(InternalRow, Array[String], Array[Array[Int]])](schema, fns.toArray)
+    new RowConverter[(Array[String], Array[Array[Int]])](schema, fns.toArray)
   }
 
   private def makeGenotypeConverter(gSchema: StructType): RowConverter[(String, Array[Int])] = {
     val functions = gSchema.map { field =>
       val fn: RowConverter.Updater[(String, Array[Int])] = field match {
-        case f if structFieldsEqualExceptNullability(f, sampleIdField) =>
-          (sc, r, i) => {
-            r.update(i, UTF8String.fromString(sc._1))
+        case f if structFieldsEqualExceptNullability(f, VariantSchemas.sampleIdField) =>
+          (samplesAndCalls, r, i) => {
+            r.update(i, UTF8String.fromString(samplesAndCalls._1))
           }
-        case f if structFieldsEqualExceptNullability(f, callsField) =>
-          (sc, r, i) => r.update(i, new GenericArrayData(sc._2))
+        case f if structFieldsEqualExceptNullability(f, VariantSchemas.callsField) =>
+          (samplesAndCalls, r, i) => r.update(i, new GenericArrayData(samplesAndCalls._2))
         case f =>
           logger.info(
             s"Genotype field $f cannot be derived from PLINK files. It will be null " +
@@ -99,34 +83,7 @@ class PlinkRowToInternalRowConverter(schema: StructType) extends GlowLogging {
   def convertRow(
       bimRow: InternalRow,
       sampleIds: Array[String],
-      calls: Array[Array[Int]]): InternalRow = converter((bimRow, sampleIds, calls))
-}
-
-object BimRow {
-  import VariantSchemas._
-
-  def getContigName(row: InternalRow): UTF8String = {
-    row.getUTF8String(bimSchema.fieldIndex(contigNameField.name))
-  }
-
-  def getNames(row: InternalRow): ArrayData = {
-    new GenericArrayData(Array(row.getUTF8String(bimSchema.fieldIndex(variantIdField.name))))
-  }
-
-  def getPosition(row: InternalRow): Double = {
-    row.getDouble(bimSchema.fieldIndex(positionField.name))
-  }
-
-  // BIM is 1-start
-  def getStart(row: InternalRow): Long = {
-    row.getLong(bimSchema.fieldIndex(startField.name)) - 1
-  }
-
-  def getAlternateAlleles(row: InternalRow): ArrayData = {
-    new GenericArrayData(Array(row.getUTF8String(bimSchema.fieldIndex(alleleOneField.name))))
-  }
-
-  def getRefAllele(row: InternalRow): UTF8String = {
-    row.getUTF8String(bimSchema.fieldIndex(alleleTwoField.name))
+      calls: Array[Array[Int]]): InternalRow = {
+    converter((sampleIds, calls), bimRow)
   }
 }

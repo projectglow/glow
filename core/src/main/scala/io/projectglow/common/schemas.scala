@@ -115,7 +115,18 @@ object VariantSchemas {
     )
   )
 
-  val plinkSchema: StructType = StructType(
+  val plinkGenotypeSchema = StructField(
+    genotypesFieldName,
+    ArrayType(
+      StructType(
+        Seq(
+          sampleIdField,
+          callsField
+        )
+      )
+    ))
+
+  val plinkBaseSchema = StructType(
     Seq(
       contigNameField,
       namesField,
@@ -123,18 +134,9 @@ object VariantSchemas {
       startField,
       endField,
       refAlleleField,
-      alternateAllelesField,
-      StructField(
-        genotypesFieldName,
-        ArrayType(
-          StructType(
-            Seq(
-              sampleIdField,
-              callsField
-            )
-          )
-        ))
-    ))
+      alternateAllelesField))
+
+  val plinkSchema = StructType(plinkBaseSchema :+ plinkGenotypeSchema)
 }
 
 case class GenotypeFields(

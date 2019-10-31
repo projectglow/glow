@@ -24,6 +24,7 @@ import org.apache.spark.sql.catalyst.ScalaReflection
 import org.apache.spark.sql.catalyst.errors.TreeNodeException
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.types.StructType
+
 import io.projectglow.common.{PlinkGenotype, PlinkRow, VariantSchemas}
 import io.projectglow.sql.GlowBaseTest
 
@@ -182,6 +183,21 @@ class PlinkReaderSuite extends GlowBaseTest {
         .collect()
     }
     assert(e.getMessage.contains("Failed while parsing FAM file"))
+  }
+
+  test("Read subset of columns") {
+    val rows = spark
+      .read
+      .format(sourceName)
+      .load(s"$bedBimFam/test.bed")
+      .select("contigName", "start", "genotypes.sampleId")
+      .orderBy("contigName")
+      .collect
+    assert(
+      rows.head == Row(
+        "1",
+        9,
+        Seq("fam1_ind1", "fam2_ind2", "fam3_ind3", "fam4_ind4", "fam5_ind5")))
   }
 
   test("Read compared to VCF") {

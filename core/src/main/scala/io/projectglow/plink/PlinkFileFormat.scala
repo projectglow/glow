@@ -20,19 +20,21 @@ import scala.collection.JavaConverters._
 
 import com.google.common.io.LittleEndianDataInputStream
 import com.univocity.parsers.csv.CsvParser
+import org.apache.commons.io.IOUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileStatus, Path}
 import org.apache.hadoop.mapreduce.Job
 import org.apache.spark.TaskContext
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.execution.datasources.{FileFormat, OutputWriterFactory, PartitionedFile}
-import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
-import org.apache.spark.sql.types.StructType
-import org.apache.commons.io.IOUtils
+import org.apache.spark.sql.catalyst.expressions.codegen.GenerateMutableProjection
+import org.apache.spark.sql.catalyst.expressions.{Add, BoundReference, CreateArray, Length, Literal, MutableProjection, Subtract}
 import org.apache.spark.sql.catalyst.util.FailFastMode
+import org.apache.spark.sql.execution.datasources.{FileFormat, OutputWriterFactory, PartitionedFile}
 import org.apache.spark.sql.execution.datasources.csv.{CSVOptions, CSVUtils, UnivocityParser, UnivocityParserUtils}
 import org.apache.spark.sql.internal.SQLConf
+import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
+import org.apache.spark.sql.types.{StructField, StructType}
 
 import io.projectglow.common.{GlowLogging, VariantSchemas}
 import io.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
@@ -120,10 +122,11 @@ class PlinkFileFormat
       // Join the variant metadata, sample IDs and genotype calls
       val relevantVariants =
         variants.slice(firstVariantIdx, firstVariantIdx + numVariants)
+      val projection = makeMutableProjection(requiredSchema)
       val rowConverter = new PlinkRowToInternalRowConverter(requiredSchema)
       relevantVariants.toIterator.zip(bedIter).map {
         case (variant, gtBlock) =>
-          rowConverter.convertRow(variant, sampleIds, gtBlock)
+          rowConverter.convertRow(projection(variant), sampleIds, gtBlock)
       }
     }
   }
@@ -296,5 +299,30 @@ object PlinkFileFormat extends HlsUsageLogging {
       ),
       blob = hlsJsonBuilder(logOptions)
     )
+  }
+
+  /* Project BIM rows to the output schema */
+  def makeMutableProjection(schema: StructType): MutableProjection = {
+    val expressions =
+      schema.map {
+        case `contigNameField` => makeBimBoundReference(contigNameField)
+        case `namesField` => CreateArray(Seq(makeBimBoundReference(variantIdField)))
+        case `positionField` => makeBimBoundReference(positionField)
+        case `startField` =>
+          Subtract(makeBimBoundReference(startField), Literal(1)) // BIM is 1-start
+        case `endField` =>
+          Add(
+            Subtract(makeBimBoundReference(startField), Literal(1)),
+            Length(makeBimBoundReference(alleleTwoField)))
+        case `refAlleleField` => makeBimBoundReference(alleleTwoField)
+        case `alternateAllelesField` => CreateArray(Seq(makeBimBoundReference(alleleOneField)))
+        case f => Literal(null, f.dataType)
+      }
+    GenerateMutableProjection.generate(expressions)
+  }
+
+  def makeBimBoundReference(f: StructField): BoundReference = {
+    val idx = bimSchema.indexOf(f)
+    BoundReference(idx, f.dataType, f.nullable)
   }
 }
