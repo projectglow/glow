@@ -69,7 +69,7 @@ trait ExpectsGenotypeFields extends Expression {
     if (missingFields.isEmpty) {
       TypeCheckResult.TypeCheckSuccess
     } else {
-      val fieldStrs = missingFields.map(f => s"name: ${f.name}, type: ${f.dataType}")
+      val fieldStrs = missingFields.map(f => s"(name: ${f.name}, type: ${f.dataType})")
       val msg = s"Genotype struct was missing required fields: ${fieldStrs.mkString(", ")}"
       TypeCheckResult.TypeCheckFailure(msg)
     }

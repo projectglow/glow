@@ -17,10 +17,9 @@
 package io.projectglow.tertiary
 
 import org.apache.spark.SparkException
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{AnalysisException, DataFrame}
 import org.apache.spark.sql.functions.expr
 import org.apache.spark.sql.types.{LongType, StringType, StructType}
-
 import io.projectglow.sql.GlowBaseTest
 
 class LiftOverCoordinatesExprSuite extends GlowBaseTest {
@@ -190,5 +189,13 @@ class LiftOverCoordinatesExprSuite extends GlowBaseTest {
         "lifted",
         expr(s"lift_over_coordinates(contigName, start, end, '$chainFile', null)"))
     assert(outputDf.filter("lifted is null").count == outputDf.count)
+  }
+
+  test("Chain file must be constant") {
+    val inputDf = readBed(s"$testDataHome/liftover/unlifted.test.bed")
+    val e = intercept[AnalysisException] {
+      inputDf.selectExpr(s"lift_over_coordinates(contigName, start, end, rand())").collect()
+    }
+    assert(e.getMessage().contains("Chain file must be a constant value"))
   }
 }

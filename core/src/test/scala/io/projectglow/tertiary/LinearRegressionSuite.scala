@@ -18,12 +18,12 @@ package io.projectglow.tertiary
 
 import scala.concurrent.duration._
 import scala.util.Random
-
 import org.apache.commons.math3.distribution.TDistribution
 import org.apache.commons.math3.linear.SingularMatrixException
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
 import org.apache.spark.ml.linalg.DenseMatrix
 import org.apache.spark.sql.functions._
+import org.apache.spark.SparkException
 
 import RegressionTestUtils._
 import io.projectglow.sql.GlowBaseTest
@@ -283,7 +283,7 @@ class LinearRegressionSuite extends GlowBaseTest {
     val genotypes = Array(0d, 0d, 0d)
     val phenotypes = Array(1d, 2d, 3d)
 
-    intercept[SingularMatrixException] {
+    assertThrows[SingularMatrixException] {
       olsBaseline(genotypes, phenotypes, Array(Array(1), Array(1), Array(1)))
     }
 
@@ -291,5 +291,53 @@ class LinearRegressionSuite extends GlowBaseTest {
       LinearRegressionGwas.runRegression(genotypes, phenotypes, ctx)
     }
     assert(ex.getMessage.toLowerCase.contains("singular"))
+  }
+
+  def checkIllegalArgumentException(rows: Seq[RegressionRow], error: String): Unit = {
+    val e = intercept[SparkException] {
+      spark
+        .createDataFrame(rows)
+        .withColumn("linreg", expr("linear_regression_gwas(genotypes, phenotypes, covariates)"))
+        .collect
+    }
+    assert(e.getCause.isInstanceOf[IllegalArgumentException])
+    assert(e.getCause.getMessage.contains(error))
+  }
+
+  test("throws exception if more covariates than samples") {
+    val testData = generateTestData(26, 100, 30, true, 1)
+    val rows = testData.genotypes.map { g =>
+      RegressionRow(
+        g.toArray,
+        testData.phenotypes.toArray,
+        twoDArrayToSparkMatrix(testData.covariates.toArray))
+    }
+    checkIllegalArgumentException(rows, "Number of covariates must be less than number of samples")
+  }
+
+  test("throws exception if number of genotypes and phenotypes do not match") {
+    val testData = generateTestData(10, 1, 0, true, 1)
+    val rows = testData.genotypes.map { g =>
+      RegressionRow(
+        g.tail.toArray,
+        testData.phenotypes.toArray,
+        twoDArrayToSparkMatrix(testData.covariates.toArray))
+    }
+    checkIllegalArgumentException(
+      rows,
+      "Number of samples differs between genotype and phenotype arrays")
+  }
+
+  test("throws exception if number of samples does not match between genotypes and covariates") {
+    val testData = generateTestData(10, 1, 0, true, 1)
+    val rows = testData.genotypes.map { g =>
+      RegressionRow(
+        g.tail.toArray,
+        testData.phenotypes.tail.toArray,
+        twoDArrayToSparkMatrix(testData.covariates.toArray))
+    }
+    checkIllegalArgumentException(
+      rows,
+      "Number of samples differs between genotype array and covariate matrix")
   }
 }
