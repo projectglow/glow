@@ -34,6 +34,7 @@ import org.apache.spark.sql.execution.datasources.csv.{CSVOptions, CSVUtils, Uni
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
 import org.apache.spark.sql.types.{StructField, StructType}
+
 import io.projectglow.common.{GlowLogging, VariantSchemas}
 import io.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
 import io.projectglow.sql.util.SerializableConfiguration
@@ -100,8 +101,6 @@ class PlinkFileFormat
 
       // Read sample IDs from the accompanying FAM file
       val sampleIds = getSampleIds(file.filePath, options, serializableConf.value)
-      // Read variant metadata from the accompanying BIM file
-      val variants = getVariants(file.filePath, options, serializableConf.value)
 
       verifyBed(littleEndianStream)
       val numSamples = sampleIds.length
@@ -109,6 +108,10 @@ class PlinkFileFormat
       val firstVariantIdx = getFirstVariantIdx(file.start, blockSize)
       val firstVariantStart = getVariantStart(firstVariantIdx, blockSize)
       val numVariants = getNumVariants(file.start, file.length, firstVariantStart, blockSize)
+
+      // Read the relevant variant metadata from the accompanying BIM file
+      val variants =
+        getVariants(file.filePath, firstVariantIdx, numVariants, options, serializableConf.value)
 
       // Read genotype calls from the BED file
       logger.info(s"Reading variants [$firstVariantIdx, ${firstVariantIdx + numVariants}]")
@@ -121,11 +124,9 @@ class PlinkFileFormat
       )
 
       // Join the variant metadata, sample IDs and genotype calls
-      val relevantVariants =
-        variants.slice(firstVariantIdx, firstVariantIdx + numVariants)
       val projection = makeMutableProjection(requiredSchema)
       val rowConverter = new PlinkRowToInternalRowConverter(requiredSchema)
-      relevantVariants.toIterator.zip(bedIter).map {
+      variants.toIterator.zip(bedIter).map {
         case (variant, gtBlock) =>
           rowConverter.convertRow(projection(variant), sampleIds, gtBlock)
       }
@@ -206,7 +207,7 @@ object PlinkFileFormat extends HlsUsageLogging {
     }
   }
 
-  /* Parses a BIM file to get the variants. The schema of the returned rows has the following fields:
+  /* Parses a BIM file to get the relevant variants. The schema of the returned rows has the following fields:
        - chromosome (string)
        - variant ID (string)
        - position (double)
@@ -216,6 +217,8 @@ object PlinkFileFormat extends HlsUsageLogging {
    */
   def getVariants(
       bedPath: String,
+      firstVariant: Int,
+      numVariants: Int,
       options: Map[String, String],
       hadoopConf: Configuration): Array[InternalRow] = {
     val bimDelimiterOption = options.getOrElse(BIM_DELIMITER_KEY, DEFAULT_BIM_DELIMITER_VALUE)
@@ -230,7 +233,9 @@ object PlinkFileFormat extends HlsUsageLogging {
     val hadoopFs = bimPath.getFileSystem(hadoopConf)
     val stream = hadoopFs.open(bimPath)
     val lines = IOUtils.lineIterator(stream, "UTF-8").asScala
-    val filteredLines = CSVUtils.filterCommentAndEmpty(lines, parsedOptions)
+    val filteredLines = CSVUtils
+      .filterCommentAndEmpty(lines, parsedOptions)
+      .slice(firstVariant, firstVariant + numVariants)
     val univocityParser = new UnivocityParser(bimSchema, bimSchema, parsedOptions)
 
     try {
