@@ -60,7 +60,7 @@ abstract class BigFileDatasource extends CreatableRelationProvider {
           fs.delete(filesystemPath, true)
           true
         case SaveMode.ErrorIfExists =>
-          sys.error(s"path $path already exists.")
+          sys.error(s"Path $path already exists.")
         case SaveMode.Ignore => false
       }
     } else {
