@@ -17,7 +17,6 @@
 package io.projectglow.plink
 
 import scala.collection.JavaConverters._
-
 import com.google.common.io.LittleEndianDataInputStream
 import com.univocity.parsers.csv.CsvParser
 import org.apache.commons.io.IOUtils
@@ -35,10 +34,10 @@ import org.apache.spark.sql.execution.datasources.csv.{CSVOptions, CSVUtils, Uni
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
 import org.apache.spark.sql.types.{StructField, StructType}
-
 import io.projectglow.common.{GlowLogging, VariantSchemas}
 import io.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
 import io.projectglow.sql.util.SerializableConfiguration
+import io.projectglow.vcf.VCFOption
 
 class PlinkFileFormat
     extends FileFormat
@@ -54,7 +53,8 @@ class PlinkFileFormat
       sparkSession: SparkSession,
       options: Map[String, String],
       files: Seq[FileStatus]): Option[StructType] = {
-    Some(VariantSchemas.plinkSchema)
+    val includeSampleIds = options.get(VCFOption.INCLUDE_SAMPLE_IDS).forall(_.toBoolean)
+    Some(VariantSchemas.plinkSchema(includeSampleIds))
   }
 
   override def prepareWrite(

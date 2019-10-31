@@ -21,8 +21,7 @@ import java.io.{EOFException, FileNotFoundException}
 import org.apache.spark.{DebugFilesystem, SparkException}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.ScalaReflection
-import org.apache.spark.sql.catalyst.errors.TreeNodeException
-import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
+import org.apache.spark.sql.functions.expr
 import org.apache.spark.sql.types.StructType
 
 import io.projectglow.common.{PlinkGenotype, PlinkRow, VariantSchemas}
@@ -185,7 +184,8 @@ class PlinkReaderSuite extends GlowBaseTest {
   test("Read compared to VCF") {
     // The PLINK schema is a sub-set of the VCF schema, with the addition of a position field
     val commonVcfPlinkSchema =
-      StructType(VariantSchemas.plinkSchema.filter(_.name != VariantSchemas.positionField.name))
+      StructType(
+        VariantSchemas.plinkSchema(true).filter(_.name != VariantSchemas.positionField.name))
     val vcfRows = spark
       .read
       .format("vcf")
@@ -288,6 +288,21 @@ class PlinkReaderSuite extends GlowBaseTest {
   test("Accept glob path") {
     val rows = spark.read.format(sourceName).load(s"$bedBimFam/*.bed").collect
     assert(rows.length == 5)
+  }
+
+  test("Support not having sample IDs") {
+    val df = spark
+      .read
+      .format(sourceName)
+      .option("includeSampleIds", "false")
+      .load(s"$bedBimFam/test.bed")
+
+    val schema = df
+      .withColumn("g", expr("genotypes[0]"))
+      .selectExpr("g.*")
+      .schema
+
+    assert(!schema.exists(_.name == "sampleId"))
   }
 
   def getVariantIdxStartNum(fileStart: Long, fileLength: Long, blockSize: Int): (Int, Int, Int) = {

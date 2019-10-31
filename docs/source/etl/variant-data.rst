@@ -144,17 +144,19 @@ file or glob pattern.
   df = spark.read.format("plink").load("prefix.bed")
 
 The schema of the resulting DataFrame matches that of the VCF reader. The accompanying variant and sample information
-files must be located at `"prefix.bim"` and `"prefix.fam"`.
+files must be located at ``prefix.bim`` and ``prefix.fam``.
 
-+----------------+---------+----------------+-----------------------------------------------------------------------------------------------------+
-| Parameter      | Type    | Default        | Description                                                                                         |
-+================+=========+================+=====================================================================================================+
-| bimDelimiter   | string  | " " (space)    | Whitespace delimiter in the ``prefix.bim`` file.                                                    |
-+----------------+---------+----------------+-----------------------------------------------------------------------------------------------------+
-| famDelimiter   | string  | "\\t" (tab)    | Whitespace delimiter in the ``prefix.fam`` file.                                                    |
-+----------------+---------+----------------+-----------------------------------------------------------------------------------------------------+
-| mergeFidIid    | boolean | true           | If true, sets the sample ID to the family ID and individual ID merged with an underscore delimiter. |
-|                |         |                | If false, sets the sample ID to the individual ID.                                                  |
-+----------------+---------+----------------+-----------------------------------------------------------------------------------------------------+
++------------------+---------+-------------+-----------------------------------------------------------------------------------------------------+
+| Parameter        | Type    | Default     | Description                                                                                         |
++==================+=========+=============+=====================================================================================================+
+| includeSampleIds | boolean | true        | If true, each genotype includes the name of the sample ID it belongs to.                            |
++------------------+---------+-------------+-----------------------------------------------------------------------------------------------------+
+| bimDelimiter     | string  | " " (space) | Whitespace delimiter in the ``prefix.bim`` file.                                                    |
++------------------+---------+-------------+-----------------------------------------------------------------------------------------------------+
+| famDelimiter     | string  | "\\t" (tab) | Whitespace delimiter in the ``prefix.fam`` file.                                                    |
++------------------+---------+-------------+-----------------------------------------------------------------------------------------------------+
+| mergeFidIid      | boolean | true        | If true, sets the sample ID to the family ID and individual ID merged with an underscore delimiter. |
+|                  |         |             | If false, sets the sample ID to the individual ID.                                                  |
++------------------+---------+-------------+-----------------------------------------------------------------------------------------------------+
 
 .. notebook:: .. etl/variant-data.html

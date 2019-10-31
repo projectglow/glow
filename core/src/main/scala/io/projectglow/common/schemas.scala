@@ -115,16 +115,15 @@ object VariantSchemas {
     )
   )
 
-  val plinkGenotypeSchema = StructField(
-    genotypesFieldName,
-    ArrayType(
-      StructType(
-        Seq(
-          sampleIdField,
-          callsField
+  def plinkGenotypeSchema(hasSampleIds: Boolean): StructField = {
+    StructField(
+      genotypesFieldName,
+      ArrayType(
+        StructType(
+          (if (hasSampleIds) Seq(sampleIdField) else Seq.empty) :+ callsField
         )
-      )
-    ))
+      ))
+  }
 
   val plinkBaseSchema = StructType(
     Seq(
@@ -136,7 +135,9 @@ object VariantSchemas {
       refAlleleField,
       alternateAllelesField))
 
-  val plinkSchema = StructType(plinkBaseSchema :+ plinkGenotypeSchema)
+  def plinkSchema(hasSampleIds: Boolean): StructType = {
+    StructType(plinkBaseSchema :+ plinkGenotypeSchema(hasSampleIds))
+  }
 }
 
 case class GenotypeFields(
