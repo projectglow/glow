@@ -94,14 +94,14 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HlsUsageLog
   }
 }
 
-private[projectglow] object NormalizeVariantsTransformer extends HlsUsageLogging {
-  private val MODE_KEY = "mode"
+object NormalizeVariantsTransformer extends HlsUsageLogging {
+  val MODE_KEY = "mode"
   val MODE_NORMALIZE = "normalize"
   val MODE_SPLIT_NORMALIZE = "split_and_normalize"
   val MODE_SPLIT = "split"
   private val REFERENCE_GENOME_PATH = "reference_genome_path"
 
-  def logNormalizeVariants(mode: String): Unit = {
+  private[projectglow] def logNormalizeVariants(mode: String): Unit = {
     val logOptions = Map(MODE_KEY -> mode)
     recordHlsUsage(
       HlsMetricDefinitions.EVENT_HLS_USAGE,

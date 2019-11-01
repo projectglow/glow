@@ -109,7 +109,6 @@ lazy val dependencies = Seq(
     .exclude("org.seqdoop", "hadoop-bam")
     .exclude("org.xerial", "sqlite-jdbc")
     .exclude("com.github.fommil.netlib", "*"),
-
   // Test dependencies
   "org.scalatest" %% "scalatest" % "3.0.3" % "test",
   "org.scalacheck" %% "scalacheck" % "1.12.5" % "test",
@@ -127,12 +126,10 @@ lazy val core = (project in file("core"))
     commonSettings,
     name := "glow",
     publish / skip := false,
-
     // Adds the Git hash to the MANIFEST file. We set it here instead of relying on sbt-release to
     // do so.
     packageOptions in (Compile, packageBin) +=
-      Package.ManifestAttributes("Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
-
+    Package.ManifestAttributes("Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
     bintrayRepository := "glow",
     libraryDependencies ++= dependencies,
     // Fix versions of libraries that are depended on multiple times
@@ -152,7 +149,7 @@ def currentGitHash(dir: File): String = {
   Process(
     Seq("git", "rev-parse", "HEAD"),
     // Set the working directory for Git to the passed in directory
-    Some(dir),
+    Some(dir)
   ).!!.trim
 }
 
