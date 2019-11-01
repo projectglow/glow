@@ -81,6 +81,8 @@ object HlsTagValues {
   val EVENT_BGEN_READ = "bgenRead"
 
   val EVENT_BGEN_WRITE = "bgenWrite"
+
+  val EVENT_PLINK_READ = "plinkRead"
 }
 
 object HlsBlobKeys {
