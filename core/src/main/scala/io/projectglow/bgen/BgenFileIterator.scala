@@ -27,8 +27,8 @@ import org.apache.hadoop.fs.FSDataInputStream
 import io.projectglow.common.{BgenGenotype, BgenRow, GlowLogging}
 
 /**
- * Parses variant records of a BGEN file into the [[io.projectglow.common.VCFRow]] schema. The iterator assumes that the
- * input streams are currently at the beginning of a variant block.
+ * Parses variant records of a BGEN file into the [[io.projectglow.common.BgenRow]] schema. The iterator assumes that
+ * the input streams are currently at the beginning of a variant block.
  *
  * The `init` method should be called before reading variants to skip to an appropriate starting
  * point.

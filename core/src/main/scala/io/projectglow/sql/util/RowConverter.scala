@@ -21,7 +21,7 @@ import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 import org.apache.spark.sql.types.StructType
 
 /**
- * A convenience class to help build converts from objects to Spark [[InternalRow]]s.
+ * A convenience class to help convert from objects to Spark [[InternalRow]]s.
  *
  * @param schema The schema to which we're converting
  * @param fieldConverters Converters for each field in the schema
