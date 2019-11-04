@@ -214,7 +214,7 @@ class BgenReaderSuite extends GlowBaseTest {
   }
 
   case class WeirdSchema(animal: String)
-  test("be permissive if schema includes fields that can't be derived from VCF") {
+  test("be permissive if schema includes fields that can't be derived from BGEN") {
     val path = s"$testRoot/example.16bits.noindex.bgen"
     spark
       .read

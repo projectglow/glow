@@ -97,6 +97,47 @@ object VariantSchemas {
       bgenGenotypesField(hasSampleIds)
     )
   )
+
+  // Fields for PLINK
+  val variantIdField = StructField("variantId", StringType)
+  val positionField = StructField("position", DoubleType)
+  val alleleOneField = StructField("alleleOne", StringType)
+  val alleleTwoField = StructField("alleleTwo", StringType)
+
+  val bimSchema = StructType(
+    Seq(
+      contigNameField,
+      variantIdField,
+      positionField,
+      startField,
+      alleleOneField,
+      alleleTwoField
+    )
+  )
+
+  def plinkGenotypeSchema(hasSampleIds: Boolean): StructField = {
+    StructField(
+      genotypesFieldName,
+      ArrayType(
+        StructType(
+          (if (hasSampleIds) Seq(sampleIdField) else Seq.empty) :+ callsField
+        )
+      ))
+  }
+
+  val plinkBaseSchema = StructType(
+    Seq(
+      contigNameField,
+      namesField,
+      positionField,
+      startField,
+      endField,
+      refAlleleField,
+      alternateAllelesField))
+
+  def plinkSchema(hasSampleIds: Boolean): StructType = {
+    StructType(plinkBaseSchema :+ plinkGenotypeSchema(hasSampleIds))
+  }
 }
 
 case class GenotypeFields(
@@ -181,3 +222,15 @@ object BgenRow {
     .dataType
     .asInstanceOf[StructType]
 }
+
+private[projectglow] case class PlinkGenotype(sampleId: String, calls: Seq[Int])
+
+private[projectglow] case class PlinkRow(
+    contigName: String,
+    position: Double,
+    start: Long,
+    end: Long,
+    names: Seq[String],
+    referenceAllele: String,
+    alternateAlleles: Seq[String],
+    genotypes: Seq[PlinkGenotype])

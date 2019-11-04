@@ -17,11 +17,10 @@
 package io.projectglow.tertiary
 
 import org.apache.spark.ml.linalg.{DenseMatrix, DenseVector, SparseVector, Vector}
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{AnalysisException, DataFrame, Row}
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.types.{IntegerType, StringType, StructType}
+import org.apache.spark.sql.types.{DoubleType, IntegerType, StringType, StructField, StructType}
 import org.apache.spark.unsafe.types.UTF8String
-
 import io.projectglow.sql.GlowBaseTest
 import io.projectglow.sql.expressions.{VariantType, VariantUtilExprs}
 
@@ -208,6 +207,16 @@ class VariantUtilExprsSuite extends GlowBaseTest {
     assert(res == Seq(1, 1))
   }
 
+  test("hard calls threshold must be constant") {
+    val e = intercept[AnalysisException] {
+      spark
+        .range(1)
+        .selectExpr("hard_calls(array(0, 0, 1), cast(1 as bigint), false, rand())")
+        .head
+    }
+    assert(e.getMessage.contains("Threshold must be a constant value"))
+  }
+
   private val arrays: Seq[Seq[Double]] = Seq(
     Seq.empty,
     Seq(1, 2, 3),
@@ -302,6 +311,22 @@ class VariantUtilExprsSuite extends GlowBaseTest {
   test("explode matrix (null)") {
     assert(spark.sql("select explode_matrix(null)").count() == 0)
   }
+
+  test("subset struct") {
+    val df = spark.createDataFrame(Seq(BigOuter(BigInner(1, "monkey", 2.5, false))))
+    val subsetted =
+      df.selectExpr("subset_struct(bigInner, 'one', 'three') as struct")
+    assert(
+      subsetted.schema.find(_.name == "struct").get.dataType.asInstanceOf[StructType] == StructType(
+        Seq(StructField("one", IntegerType), StructField("three", DoubleType))))
+    assert(subsetted.select("struct").collect.head == Row(Row(1, 2.5)))
+  }
+
+  test("expand struct only works on structs") {
+    val df = spark.createDataFrame(Seq(Outer(Inner(1, "monkey"))))
+    val e = intercept[AnalysisException] { df.selectExpr("expand_struct(inner.two)").show() }
+    assert(e.getMessage.contains("Only structs can be expanded"))
+  }
 }
 
 case class HCTestCase(
@@ -317,5 +342,6 @@ case class HCTestCase(
 case class Inner(one: Int, two: String)
 case class BigInner(one: Int, two: String, three: Double, four: Boolean)
 case class Outer(inner: Inner)
+case class BigOuter(bigInner: BigInner)
 case class DoubleArrayWrapper(features: Seq[Double])
 case class VectorWrapper(features: Vector)

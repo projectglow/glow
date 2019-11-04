@@ -17,10 +17,9 @@
 package io.projectglow.tertiary
 
 import breeze.linalg.DenseVector
-import org.apache.spark.sql.Encoders
+import org.apache.spark.sql.{AnalysisException, Encoders}
 import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.functions.{expr, monotonically_increasing_id}
-
 import io.projectglow.sql.GlowBaseTest
 import io.projectglow.sql.expressions.{LikelihoodRatioTestStats, LogisticRegressionGwas, NewtonResult}
 import io.projectglow.tertiary.RegressionTestUtils._
@@ -240,7 +239,7 @@ class LogisticRegressionSuite extends GlowBaseTest {
         admitStudents.phenotypes.toArray,
         twoDArrayToSparkMatrix(admitStudents.covariates.toArray))
     }
-    assertThrows[UnsupportedOperationException] {
+    val e = intercept[AnalysisException] {
       spark
         .createDataFrame(rows)
         .repartition(10)
@@ -248,9 +247,9 @@ class LogisticRegressionSuite extends GlowBaseTest {
         .withColumn(
           "logit",
           expr("logistic_regression_gwas(genotypes, phenotypes, covariates, test)"))
-        .selectExpr("expand_struct(logit)")
         .collect()
     }
+    assert(e.getMessage.contains("Test must be a constant value"))
   }
 
   test("Throw error if test is not supported") {
@@ -280,12 +279,31 @@ class LogisticRegressionSuite extends GlowBaseTest {
     }
   }
 
-  test("No p-value if didn't converge") {
-    val ourStats = runLRT(completeSeparation, false).head
-    assert(ourStats.pValue.isNaN)
+  def checkAllNan(lrtStats: LikelihoodRatioTestStats): Unit = {
+    assert(lrtStats.beta.isNaN)
+    assert(lrtStats.oddsRatio.isNaN)
+    lrtStats.waldConfidenceInterval.foreach { c =>
+      assert(c.isNaN)
+    }
+    assert(lrtStats.pValue.isNaN)
   }
 
-  test("Check sample number matches") {
+  test("Return NaNs if null fit didn't converge") {
+    val ourStats = runLRT(completeSeparation, false).head
+    checkAllNan(ourStats)
+  }
+
+  test("Return NaNs if full fit didn't converge") {
+    val ourStats = runLRT(
+      TestData(
+        Seq(completeSeparation.covariates.flatten),
+        completeSeparation.phenotypes,
+        completeSeparation.genotypes.head.map(Array(_))),
+      false).head
+    checkAllNan(ourStats)
+  }
+
+  test("Check sample number matches between phenos and covars") {
     val fewerPhenoSamples = TestData(
       Seq(Seq(0, 1, 2, 0, 0, 1)),
       Seq(0, 0, 1, 1, 1),
@@ -293,7 +311,22 @@ class LogisticRegressionSuite extends GlowBaseTest {
     val ex = intercept[IllegalArgumentException] {
       runLRT(fewerPhenoSamples, false)
     }
-    assert(ex.getMessage.toLowerCase.contains("samples do not match"))
+    assert(
+      ex.getMessage
+        .contains("Number of samples do not match between phenotype vector and covariate matrix"))
+  }
+
+  test("Check sample number matches between genos and phenos") {
+    val fewerPhenoSamples = TestData(
+      Seq(Seq(0, 1, 2, 0, 0)),
+      Seq(0, 0, 1, 1, 1, 1),
+      Seq(Array(1), Array(1), Array(1), Array(1), Array(1), Array(1)))
+    val ex = intercept[IllegalArgumentException] {
+      runLRT(fewerPhenoSamples, false)
+    }
+    assert(
+      ex.getMessage
+        .contains("Number of samples differs between genotype and phenotype arrays"))
   }
 
   test("Checks for non-zero covariates") {
@@ -342,4 +375,5 @@ class LogisticRegressionSuite extends GlowBaseTest {
         compareLRTStats(golden, our)
     }
   }
+
 }
