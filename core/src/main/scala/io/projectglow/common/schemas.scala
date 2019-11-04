@@ -55,7 +55,7 @@ object VariantSchemas {
   // Possible genotype fields common to VCF and BGEN
   val sampleIdField = StructField("sampleId", StringType)
   val phasedField = StructField("phased", BooleanType)
-  val posteriorProbabilitiesField = StructField("posteriorProbabilities", ArrayType(DoubleType))
+  val posteriorProbabilitiesField = StructField("posteriorProbabilities", ArrayType(FloatType))
 
   // Possible genotype fields for VCF
   val callsField = StructField("calls", ArrayType(ShortType))
@@ -143,7 +143,7 @@ object VariantSchemas {
 case class GenotypeFields(
     sampleId: Option[String],
     phased: Option[Boolean],
-    calls: Option[Seq[Int]],
+    calls: Option[Seq[Short]],
     depth: Option[Int],
     filters: Option[Seq[String]],
     genotypeLikelihoods: Option[Seq[Double]],
@@ -204,8 +204,8 @@ object VCFRow {
 private[projectglow] case class BgenGenotype(
     sampleId: Option[String],
     phased: Option[Boolean],
-    ploidy: Option[Int],
-    posteriorProbabilities: Seq[Double])
+    ploidy: Option[Short],
+    posteriorProbabilities: Seq[Float])
 
 private[projectglow] case class BgenRow(
     contigName: String,

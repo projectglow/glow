@@ -121,11 +121,11 @@ class InternalRowToBgenRowConverter(
         case f if structFieldsEqualExceptNullability(f, phasedField) =>
           (g, r, i) => g.copy(phased = Some(r.getBoolean(i)))
         case f if structFieldsEqualExceptNullability(f, callsField) =>
-          (g, r, i) => g.copy(ploidy = Some(r.getArray(i).numElements))
+          (g, r, i) => g.copy(ploidy = Some(r.getArray(i).numElements.toShort))
         case f if structFieldsEqualExceptNullability(f, ploidyField) =>
-          (g, r, i) => g.copy(ploidy = Some(r.getInt(i)))
+          (g, r, i) => g.copy(ploidy = Some(r.getInt(i).toShort))
         case f if structFieldsEqualExceptNullability(f, posteriorProbabilitiesField) =>
-          (g, r, i) => g.copy(posteriorProbabilities = r.getArray(i).toDoubleArray)
+          (g, r, i) => g.copy(posteriorProbabilities = r.getArray(i).toFloatArray())
         case _ => (g, _, _) => g
       }
       fn
@@ -153,7 +153,7 @@ class InternalRowToBgenRowConverter(
 
         // If neither phasing information nor ploidy is provided, use the default ploidy
         if (gt.phased.isEmpty && gt.ploidy.isEmpty) {
-          gt = gt.copy(ploidy = Some(defaultPloidy))
+          gt = gt.copy(ploidy = Some(defaultPloidy.toShort))
         }
 
         // Infer phasing based on ploidy
@@ -201,7 +201,7 @@ class InternalRowToBgenRowConverter(
           } else {
             BgenConverterUtils.getPloidy(gt.posteriorProbabilities.length, numAlleles, maxPloidy)
           }
-          gt = gt.copy(ploidy = Some(inferredPloidy))
+          gt = gt.copy(ploidy = Some(inferredPloidy.toShort))
         }
 
         gtArray(i) = gt

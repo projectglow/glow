@@ -104,7 +104,7 @@ class VariantQcExprsSuite extends GlowBaseTest {
         GenotypeFields(
           None,
           None,
-          Some(call),
+          Some(call.map(_.toShort)),
           None,
           None,
           None,

@@ -201,19 +201,20 @@ class BgenWriterSuite extends BgenConverterBaseTest {
 
   test("Represent probabilities as int") {
     assert(
-      BgenRecordWriter.calculateIntProbabilities(bitsPerProb = 2, Seq(0.5, 0.5)).sorted ==
+      BgenRecordWriter.calculateIntProbabilities(bitsPerProb = 2, Seq(0.5f, 0.5f)).sorted ==
       Seq(1, 2) // Unrounded: 1.5, 1.5
     )
     assert(
-      BgenRecordWriter.calculateIntProbabilities(bitsPerProb = 8, Seq(0.99, 0.01)) ==
+      BgenRecordWriter.calculateIntProbabilities(bitsPerProb = 8, Seq(0.99f, 0.01f)) ==
       Seq(252, 3) // Unrounded: 252.45, 2.55
     )
     assert(
-      BgenRecordWriter.calculateIntProbabilities(bitsPerProb = 16, Seq(0.605, 0.283, 0.122)) ==
+      BgenRecordWriter.calculateIntProbabilities(bitsPerProb = 16, Seq(0.605f, 0.283f, 0.122f)) ==
       Seq(39649, 18547, 7995) // Unrounded: 39648.675, 18546.405, 7995.27
     )
     assert(
-      BgenRecordWriter.calculateIntProbabilities(bitsPerProb = 32, Seq(0.23, 0.27, 0.16, 0.34)) ==
+      BgenRecordWriter
+        .calculateIntProbabilities(bitsPerProb = 32, Seq(0.23f, 0.27f, 0.16f, 0.34f)) ==
       Seq(987842478, 1159641170, 687194767, 1460288881)
       // Unrounded: 987842477.85, 1159641169.65, 687194767.2, 1460288880.3
     )

@@ -98,8 +98,8 @@ class BgenRowConverterSuite extends BgenConverterBaseTest {
         BgenGenotype(
           None,
           phasedOpt,
-          ploidyOpt,
-          (0 until numPosteriorProbabilities).map(_.toDouble)
+          ploidyOpt.map(_.toShort),
+          (0 until numPosteriorProbabilities).map(_.toFloat)
         )
       )
     )

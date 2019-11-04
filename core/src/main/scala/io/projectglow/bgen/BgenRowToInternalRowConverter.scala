@@ -83,7 +83,7 @@ class BgenRowToInternalRowConverter(schema: StructType) extends GlowLogging {
         case f if structFieldsEqualExceptNullability(f, phasedField) =>
           (g, r, i) => g.phased.foreach(r.setBoolean(i, _))
         case f if structFieldsEqualExceptNullability(f, ploidyField) =>
-          (g, r, i) => g.ploidy.foreach(r.setInt(i, _))
+          (g, r, i) => g.ploidy.foreach(r.setShort(i, _))
         case f if structFieldsEqualExceptNullability(f, posteriorProbabilitiesField) =>
           (g, r, i) => r.update(i, new GenericArrayData(g.posteriorProbabilities))
         case f =>

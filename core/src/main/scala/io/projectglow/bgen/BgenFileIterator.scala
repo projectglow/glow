@@ -195,9 +195,9 @@ private[projectglow] class BgenFileIterator(
       j = 0
 
       val ploidyWithMissingness = ploidyBySample(i)
-      val ploidy = ploidyWithMissingness & 63
+      val ploidy = (ploidyWithMissingness & 63).toShort
       val numValues = ploidy * nAlleles
-      val probabilityBuffer = new Array[Double](if (ploidyWithMissingness > 63) 0 else numValues)
+      val probabilityBuffer = new Array[Float](if (ploidyWithMissingness > 63) 0 else numValues)
 
       while (j < ploidy) {
         k = 0
@@ -247,9 +247,9 @@ private[projectglow] class BgenFileIterator(
       var j = 0
 
       val ploidyWithMissingness = ploidyBySample(i)
-      val ploidy = ploidyWithMissingness & 63
+      val ploidy = (ploidyWithMissingness & 63).toShort
       val nCombs = CombinatoricsUtils.binomialCoefficient(ploidy + nAlleles - 1, ploidy).toInt
-      val probabilityBuffer = new Array[Double](if (ploidyWithMissingness > 63) 0 else nCombs)
+      val probabilityBuffer = new Array[Float](if (ploidyWithMissingness > 63) 0 else nCombs)
 
       var sum = 0L
       while (j < nCombs - 1) {
@@ -279,12 +279,12 @@ private[projectglow] class BgenFileIterator(
    * Writes the probability to the output array while handling the case where the output array
    * is empty (for missing samples).
    */
-  private def writeProbability(p: Long, divisor: Long, idx: Int, outputArr: Array[Double]): Unit = {
+  private def writeProbability(p: Long, divisor: Long, idx: Int, outputArr: Array[Float]): Unit = {
     if (outputArr.length == 0) {
       return
     }
 
-    outputArr(idx) = p.toDouble / divisor
+    outputArr(idx) = p.toFloat / divisor
   }
 
   private def cleanup(): Unit = {

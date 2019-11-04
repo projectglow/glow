@@ -174,7 +174,7 @@ class BgenRecordWriter(
     writeUnsignedInt(row.genotypes.length, ledos)
     val numAlleles = row.alternateAlleles.length + 1
     writeUnsignedShort(numAlleles, ledos)
-    val (minPloidy, maxPloidy) = minMax(row.genotypes.map(_.ploidy.get), defaultPloidy)
+    val (minPloidy, maxPloidy) = minMax(row.genotypes.map(_.ploidy.get.toInt), defaultPloidy)
     ledos.writeByte(minPloidy)
     ledos.writeByte(maxPloidy)
 
@@ -337,7 +337,7 @@ object BgenRecordWriter {
    * - Form x by rounding the F entries of v with the largest fractional parts up to the nearest
    *   integer, and the other d-F entries down to the nearest smaller integer.
    */
-  def calculateIntProbabilities(bitsPerProb: Int, probabilities: Seq[Double]): Seq[Long] = {
+  def calculateIntProbabilities(bitsPerProb: Int, probabilities: Seq[Float]): Seq[Long] = {
     val multiplier = (1L << bitsPerProb) - 1
     val numProbs = probabilities.length
 

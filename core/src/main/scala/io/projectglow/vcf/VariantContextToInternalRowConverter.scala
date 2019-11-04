@@ -333,7 +333,7 @@ class VariantContextToInternalRowConverter(
         while (alleleIdx < numAlleles) {
           val allele = alleleList.get(alleleIdx)
           val call = alleleMap.getOrDefault(allele, -1)
-          callArray(alleleIdx) = call
+          callArray(alleleIdx) = call.toShort
           alleleIdx += 1
         }
         row.update(offset, new GenericArrayData(callArray))

@@ -357,7 +357,7 @@ class InternalRowToVariantContextConverter(
       offset: Int): GenotypeBuilder = {
     val calls = row
       .getArray(offset)
-      .toIntArray()
+      .toShortArray()
     val gtAlleles = new JArrayList[Allele](calls.length)
     var callIdx = 0
     while (callIdx < calls.length) {
