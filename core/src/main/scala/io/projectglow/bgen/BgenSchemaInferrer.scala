@@ -23,6 +23,7 @@ import org.apache.spark.sql.types.StructType
 
 import io.projectglow.common.{VariantSchemas, WithUtils}
 import io.projectglow.sql.util.SerializableConfiguration
+import io.projectglow.vcf.VCFOption
 
 /**
  * Infers the schema of a set of BGEN files from the user-provided options and the header of each
@@ -37,6 +38,11 @@ object BgenSchemaInferrer {
       spark: SparkSession,
       files: Seq[FileStatus],
       options: Map[String, String]): StructType = {
+    val shouldIncludeSampleIds = options.get(VCFOption.INCLUDE_SAMPLE_IDS).forall(_.toBoolean)
+    if (!shouldIncludeSampleIds) {
+      return VariantSchemas.bgenDefaultSchema(hasSampleIds = false)
+    }
+
     val sampleIdsFromSampleFile =
       BgenFileFormat.getSampleIds(options, spark.sparkContext.hadoopConfiguration)
     if (sampleIdsFromSampleFile.isDefined) {

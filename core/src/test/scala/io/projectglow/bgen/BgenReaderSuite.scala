@@ -28,6 +28,7 @@ import org.apache.spark.sql.types.{ArrayType, StructType}
 
 import io.projectglow.common.{BgenRow, VCFRow, VariantSchemas}
 import io.projectglow.sql.GlowBaseTest
+import io.projectglow.vcf.VCFOption
 
 class BgenReaderSuite extends GlowBaseTest {
 
@@ -392,5 +393,14 @@ class BgenReaderSuite extends GlowBaseTest {
       .format(sourceName)
       .load(s"$testRoot/example.16bits.nosampleids.bgen")
     assert(hasSampleIdField(df.schema))
+  }
+
+  test("schema does not include sample ids if `includeSampleIds` is false") {
+    val df = spark
+      .read
+      .format(sourceName)
+      .option(VCFOption.INCLUDE_SAMPLE_IDS, false)
+      .load(s"$testRoot/example.16bits*.bgen")
+    assert(!hasSampleIdField(df.schema))
   }
 }

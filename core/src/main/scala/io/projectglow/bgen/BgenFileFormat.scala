@@ -38,6 +38,7 @@ import org.skife.jdbi.v2.util.LongMapper
 import io.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
 import io.projectglow.common.{GlowLogging, WithUtils}
 import io.projectglow.sql.util.{ComDatabricksDataSource, SerializableConfiguration}
+import io.projectglow.vcf.VCFOption
 
 class BgenFileFormat extends FileFormat with DataSourceRegister with Serializable with GlowLogging {
 
@@ -197,7 +198,6 @@ object BgenFileFormat extends HlsUsageLogging {
    * If no path is given, None is returned; if a valid path is given, Some list is returned.
    */
   def getSampleIds(options: Map[String, String], hadoopConf: Configuration): Option[Seq[String]] = {
-
     val samplePathOpt = options.get(SAMPLE_FILE_PATH_OPTION_KEY)
 
     if (samplePathOpt.isEmpty) {
