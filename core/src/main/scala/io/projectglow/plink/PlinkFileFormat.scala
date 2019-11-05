@@ -85,7 +85,7 @@ class PlinkFileFormat
       hadoopConf: Configuration): PartitionedFile => Iterator[InternalRow] = {
 
     val serializableConf = new SerializableConfiguration(hadoopConf)
-    logPlinkRead()
+    logPlinkRead(options)
 
     file => {
       val path = new Path(file.filePath)
