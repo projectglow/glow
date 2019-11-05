@@ -245,7 +245,7 @@ object BgenFileFormat extends HlsUsageLogging {
   def logBgenRead(options: Map[String, String]): Unit = {
 
     val logOptions = Map(
-      USE_INDEX_KEY -> options.get(BgenFileFormat.USE_INDEX_KEY).forall(_.toBoolean)
+      USE_INDEX_KEY -> options.get(USE_INDEX_KEY).forall(_.toBoolean)
     )
     recordHlsUsage(
       HlsMetricDefinitions.EVENT_HLS_USAGE,
