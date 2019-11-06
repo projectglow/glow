@@ -84,7 +84,3 @@ object HlsTagValues {
 
   val EVENT_PLINK_READ = "plinkRead"
 }
-
-object HlsBlobKeys {
-  val PIPE_CMD_TOOL = "pipeCmdTool"
-}
