@@ -17,6 +17,7 @@
 package io.projectglow.plink
 
 import scala.collection.JavaConverters._
+
 import com.google.common.io.LittleEndianDataInputStream
 import com.univocity.parsers.csv.CsvParser
 import org.apache.commons.io.IOUtils
@@ -35,10 +36,9 @@ import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
 import org.apache.spark.sql.types.{StructField, StructType}
 
-import io.projectglow.common.{GlowLogging, VariantSchemas}
+import io.projectglow.common.{CommonOptions, GlowLogging, VCFOptions, VariantSchemas}
 import io.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
 import io.projectglow.sql.util.SerializableConfiguration
-import io.projectglow.vcf.VCFOption
 
 class PlinkFileFormat
     extends FileFormat
@@ -54,7 +54,7 @@ class PlinkFileFormat
       sparkSession: SparkSession,
       options: Map[String, String],
       files: Seq[FileStatus]): Option[StructType] = {
-    val includeSampleIds = options.get(VCFOption.INCLUDE_SAMPLE_IDS).forall(_.toBoolean)
+    val includeSampleIds = options.get(CommonOptions.INCLUDE_SAMPLE_IDS).forall(_.toBoolean)
     Some(VariantSchemas.plinkSchema(includeSampleIds))
   }
 
@@ -137,19 +137,11 @@ class PlinkFileFormat
 object PlinkFileFormat extends HlsUsageLogging {
 
   import io.projectglow.common.VariantSchemas._
-
-  // Delimiter options
-  val FAM_DELIMITER_KEY = "famDelimiter"
-  val BIM_DELIMITER_KEY = "bimDelimiter"
-  val DEFAULT_FAM_DELIMITER_VALUE = " "
-  val DEFAULT_BIM_DELIMITER_VALUE = "\t"
-  val CSV_DELIMITER_KEY = "delimiter"
-
-  // Sample ID options
-  val MERGE_FID_IID = "mergeFidIid"
+  import io.projectglow.common.PlinkOptions._
 
   val FAM_FILE_EXTENSION = ".fam"
   val BIM_FILE_EXTENSION = ".bim"
+  val CSV_DELIMITER_KEY = "delimiter"
 
   val BLOCKS_PER_BYTE = 4
   val MAGIC_BYTES: Seq[Byte] = Seq(0x6c, 0x1b, 0x01).map(_.toByte)
