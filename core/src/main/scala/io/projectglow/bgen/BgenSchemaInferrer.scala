@@ -21,9 +21,8 @@ import org.apache.hadoop.fs.{FileStatus, Path}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.StructType
 
-import io.projectglow.common.{VariantSchemas, WithUtils}
+import io.projectglow.common.{BgenOptions, CommonOptions, VariantSchemas, WithUtils}
 import io.projectglow.sql.util.SerializableConfiguration
-import io.projectglow.vcf.VCFOption
 
 /**
  * Infers the schema of a set of BGEN files from the user-provided options and the header of each
@@ -38,7 +37,7 @@ object BgenSchemaInferrer {
       spark: SparkSession,
       files: Seq[FileStatus],
       options: Map[String, String]): StructType = {
-    val shouldIncludeSampleIds = options.get(VCFOption.INCLUDE_SAMPLE_IDS).forall(_.toBoolean)
+    val shouldIncludeSampleIds = options.get(CommonOptions.INCLUDE_SAMPLE_IDS).forall(_.toBoolean)
     if (!shouldIncludeSampleIds) {
       return VariantSchemas.bgenDefaultSchema(hasSampleIds = false)
     }
@@ -50,7 +49,7 @@ object BgenSchemaInferrer {
     }
 
     val serializableConf = new SerializableConfiguration(spark.sparkContext.hadoopConfiguration)
-    val ignoreExtension = options.get(BgenFileFormat.IGNORE_EXTENSION_KEY).exists(_.toBoolean)
+    val ignoreExtension = options.get(BgenOptions.IGNORE_EXTENSION_KEY).exists(_.toBoolean)
     val bgenPaths =
       files.filter { fs =>
         fs.getLen > 0 && (fs

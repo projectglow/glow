@@ -42,8 +42,9 @@ import org.broadinstitute.hellbender.tools.walkers.genotyper.GenotypeAssignmentM
 import org.broadinstitute.hellbender.utils.SimpleInterval
 import org.broadinstitute.hellbender.utils.variant.GATKVariantContextUtils
 import org.seqdoop.hadoop_bam.util.{BGZFEnhancedGzipCodec, DatabricksBGZFOutputStream}
+
 import io.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
-import io.projectglow.common.{GlowLogging, VCFRow, WithUtils}
+import io.projectglow.common.{CommonOptions, GlowLogging, VCFOptions, VCFRow, WithUtils}
 import io.projectglow.sql.util.{BGZFCodec, ComDatabricksDataSource, HadoopLineIterator, SerializableConfiguration}
 
 class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HlsUsageLogging {
@@ -89,7 +90,7 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
       options: Map[String, String],
       dataSchema: StructType): OutputWriterFactory = {
 
-    options.get(VCFOption.COMPRESSION).foreach { compressionOption =>
+    options.get(VCFOptions.COMPRESSION).foreach { compressionOption =>
       if (codecFactory == null) {
         codecFactory =
           new CompressionCodecFactory(VCFFileFormat.hadoopConfWithBGZ(job.getConfiguration))
@@ -101,7 +102,7 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
 
     // record vcfWrite event in the log along with its compression coded
     val logOptions = Map(
-      VCFOption.COMPRESSION -> options.get(VCFOption.COMPRESSION).getOrElse("None")
+      VCFOptions.COMPRESSION -> options.get(VCFOptions.COMPRESSION).getOrElse("None")
     )
     recordHlsUsage(
       HlsMetricDefinitions.EVENT_HLS_USAGE,
@@ -122,19 +123,23 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
       options: Map[String, String],
       hadoopConf: Configuration): PartitionedFile => Iterator[InternalRow] = {
 
-    val useFilterParser = options.get(VCFOption.USE_FILTER_PARSER).forall(_.toBoolean)
-    val useIndex = options.get(VCFOption.USE_TABIX_INDEX).forall(_.toBoolean)
+    val useFilterParser = options.get(VCFOptions.USE_FILTER_PARSER).forall(_.toBoolean)
+    val useIndex = options.get(VCFOptions.USE_TABIX_INDEX).forall(_.toBoolean)
 
     // record vcfRead event in the log along with the options
 
     val logOptions = Map(
-      VCFOption.FLATTEN_INFO_FIELDS -> options
-        .get(VCFOption.FLATTEN_INFO_FIELDS)
+      VCFOptions.FLATTEN_INFO_FIELDS -> options
+        .get(VCFOptions.FLATTEN_INFO_FIELDS)
         .forall(_.toBoolean),
-      VCFOption.INCLUDE_SAMPLE_IDS -> options.get(VCFOption.INCLUDE_SAMPLE_IDS).forall(_.toBoolean),
-      VCFOption.SPLIT_TO_BIALLELIC -> options.get(VCFOption.SPLIT_TO_BIALLELIC).exists(_.toBoolean),
-      VCFOption.USE_FILTER_PARSER -> useFilterParser,
-      VCFOption.USE_TABIX_INDEX -> useIndex
+      CommonOptions.INCLUDE_SAMPLE_IDS -> options
+        .get(CommonOptions.INCLUDE_SAMPLE_IDS)
+        .forall(_.toBoolean),
+      VCFOptions.SPLIT_TO_BIALLELIC -> options
+        .get(VCFOptions.SPLIT_TO_BIALLELIC)
+        .exists(_.toBoolean),
+      VCFOptions.USE_FILTER_PARSER -> useFilterParser,
+      VCFOptions.USE_TABIX_INDEX -> useIndex
     )
 
     recordHlsUsage(
@@ -281,7 +286,7 @@ private object VCFIteratorDelegate {
       lineReader: Iterator[Text],
       codec: VCFCodec,
       filteredSimpleInterval: SimpleInterval): AbstractVCFIterator = {
-    if (options.get(VCFOption.SPLIT_TO_BIALLELIC).exists(_.toBoolean)) {
+    if (options.get(VCFOptions.SPLIT_TO_BIALLELIC).exists(_.toBoolean)) {
       new SplitVCFIterator(new VCFIterator(lineReader, codec, filteredSimpleInterval))
     } else {
       new VCFIterator(lineReader, codec, filteredSimpleInterval)
@@ -441,10 +446,10 @@ private[vcf] object SchemaDelegate {
 
   def makeDelegate(options: Map[String, String]): SchemaDelegate = {
     val stringency = VCFOptionParser.getValidationStringency(options)
-    val includeSampleId = options.get(VCFOption.INCLUDE_SAMPLE_IDS).forall(_.toBoolean)
-    if (options.get(VCFOption.VCF_ROW_SCHEMA).exists(_.toBoolean)) {
+    val includeSampleId = options.get(CommonOptions.INCLUDE_SAMPLE_IDS).forall(_.toBoolean)
+    if (options.get(VCFOptions.VCF_ROW_SCHEMA).exists(_.toBoolean)) {
       new VCFRowSchemaDelegate(stringency, includeSampleId)
-    } else if (options.get(VCFOption.FLATTEN_INFO_FIELDS).forall(_.toBoolean)) {
+    } else if (options.get(VCFOptions.FLATTEN_INFO_FIELDS).forall(_.toBoolean)) {
       new FlattenedInfoDelegate(includeSampleId, stringency)
     } else {
       new NormalDelegate(includeSampleId, stringency)
@@ -559,23 +564,7 @@ private[projectglow] class VCFOutputWriterFactory(options: Map[String, String])
 
 private[projectglow] object VCFOptionParser {
   def getValidationStringency(options: Map[String, String]): ValidationStringency = {
-    val stringency = options.getOrElse(VCFOption.VALIDATION_STRINGENCY, "SILENT").toUpperCase
+    val stringency = options.getOrElse(VCFOptions.VALIDATION_STRINGENCY, "SILENT").toUpperCase
     ValidationStringency.valueOf(stringency)
   }
-}
-
-object VCFOption {
-  // Reader-only options
-  val FLATTEN_INFO_FIELDS = "flattenInfoFields"
-  val INCLUDE_SAMPLE_IDS = "includeSampleIds"
-  val SPLIT_TO_BIALLELIC = "splitToBiallelic"
-  val VCF_ROW_SCHEMA = "vcfRowSchema"
-  val USE_TABIX_INDEX = "useTabixIndex"
-  val USE_FILTER_PARSER = "useFilterParser"
-
-  // Writer-only options
-  val COMPRESSION = "compression"
-
-  // Reader and writer options
-  val VALIDATION_STRINGENCY = "validationStringency"
 }
