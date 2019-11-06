@@ -284,8 +284,10 @@ object PlinkFileFormat extends HlsUsageLogging {
   /* Log that PLINK files are being read */
   def logPlinkRead(options: Map[String, String]): Unit = {
     val logOptions = Map(
-      VCFOption.INCLUDE_SAMPLE_IDS -> options.get(VCFOption.INCLUDE_SAMPLE_IDS).forall(_.toBoolean),
-      MERGE_FID_IID -> options.get(VCFOption.INCLUDE_SAMPLE_IDS).forall(_.toBoolean)
+      CommonOptions.INCLUDE_SAMPLE_IDS -> options
+        .get(CommonOptions.INCLUDE_SAMPLE_IDS)
+        .forall(_.toBoolean),
+      MERGE_FID_IID -> options.get(CommonOptions.INCLUDE_SAMPLE_IDS).forall(_.toBoolean)
     )
     recordHlsUsage(
       HlsMetricDefinitions.EVENT_HLS_USAGE,
