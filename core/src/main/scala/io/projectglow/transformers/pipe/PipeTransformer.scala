@@ -100,14 +100,16 @@ class PipeTransformer extends DataFrameTransformer with HlsUsageLogging {
       // TODO: More tools to be added
       val toolInPipe = Map(
         HlsBlobKeys.PIPE_CMD_TOOL ->
-        pipeToolSet.foldLeft(Array[String]())(
-          (a, b: String) =>
-            if (cmd.exists(_.toLowerCase.contains(b))) {
-              a :+ b
-            } else {
-              a
-            }
-        )
+        pipeToolSet
+          .foldLeft(Array[String]())(
+            (a, b: String) =>
+              if (cmd.exists(_.toLowerCase.contains(b))) {
+                a :+ b
+              } else {
+                a
+              }
+          )
+          .mkString(",")
       )
 
       recordHlsUsage(
