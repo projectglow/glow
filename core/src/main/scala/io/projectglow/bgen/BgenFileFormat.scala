@@ -36,7 +36,7 @@ import org.skife.jdbi.v2.DBI
 import org.skife.jdbi.v2.util.LongMapper
 
 import io.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
-import io.projectglow.common.{GlowLogging, WithUtils}
+import io.projectglow.common.{BgenOptions, GlowLogging, WithUtils}
 import io.projectglow.sql.util.{ComDatabricksDataSource, SerializableConfiguration}
 
 class BgenFileFormat extends FileFormat with DataSourceRegister with Serializable with GlowLogging {
@@ -76,8 +76,8 @@ class BgenFileFormat extends FileFormat with DataSourceRegister with Serializabl
       options: Map[String, String],
       hadoopConf: Configuration): PartitionedFile => Iterator[InternalRow] = {
 
-    val useIndex = options.get(BgenFileFormat.USE_INDEX_KEY).forall(_.toBoolean)
-    val ignoreExtension = options.get(BgenFileFormat.IGNORE_EXTENSION_KEY).exists(_.toBoolean)
+    val useIndex = options.get(BgenOptions.USE_INDEX_KEY).forall(_.toBoolean)
+    val ignoreExtension = options.get(BgenOptions.IGNORE_EXTENSION_KEY).exists(_.toBoolean)
     val sampleIdsOpt = BgenFileFormat.getSampleIds(options, hadoopConf)
 
     // record bgenRead event in the log along with the option
@@ -174,6 +174,8 @@ class BgenFileFormat extends FileFormat with DataSourceRegister with Serializabl
 class ComDatabricksBgenFileFormat extends BgenFileFormat with ComDatabricksDataSource
 
 object BgenFileFormat extends HlsUsageLogging {
+  import io.projectglow.common.BgenOptions._
+
   val BGEN_SUFFIX = ".bgen"
   val INDEX_SUFFIX = ".bgi"
   val NEXT_IDX_QUERY =
@@ -182,11 +184,6 @@ object BgenFileFormat extends HlsUsageLogging {
       |WHERE file_start_position > :pos
     """.stripMargin
   val idxLock = Striped.lock(100)
-  val IGNORE_EXTENSION_KEY = "ignoreExtension"
-  val USE_INDEX_KEY = "useBgenIndex"
-  val SAMPLE_FILE_PATH_OPTION_KEY = "sampleFilePath"
-  val SAMPLE_ID_COLUMN_OPTION_KEY = "sampleIdColumn"
-  val SAMPLE_ID_COLUMN_OPTION_DEFAULT_VALUE = "ID_2"
 
   /**
    * Given a path to an Oxford-style .sample file exists (option: sampleFilePath), reads the sample
@@ -197,7 +194,6 @@ object BgenFileFormat extends HlsUsageLogging {
    * If no path is given, None is returned; if a valid path is given, Some list is returned.
    */
   def getSampleIds(options: Map[String, String], hadoopConf: Configuration): Option[Seq[String]] = {
-
     val samplePathOpt = options.get(SAMPLE_FILE_PATH_OPTION_KEY)
 
     if (samplePathOpt.isEmpty) {

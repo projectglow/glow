@@ -26,7 +26,7 @@ import org.apache.spark.SparkException
 import org.apache.spark.sql.catalyst.ScalaReflection
 import org.apache.spark.sql.types.{ArrayType, StructType}
 
-import io.projectglow.common.{BgenRow, VCFRow, VariantSchemas}
+import io.projectglow.common._
 import io.projectglow.sql.GlowBaseTest
 
 class BgenReaderSuite extends GlowBaseTest {
@@ -350,7 +350,7 @@ class BgenReaderSuite extends GlowBaseTest {
       spark
         .read
         .format(sourceName)
-        .option(BgenFileFormat.IGNORE_EXTENSION_KEY, true)
+        .option(BgenOptions.IGNORE_EXTENSION_KEY, true)
         .load(input)
         .count()
     }
@@ -392,5 +392,14 @@ class BgenReaderSuite extends GlowBaseTest {
       .format(sourceName)
       .load(s"$testRoot/example.16bits.nosampleids.bgen")
     assert(hasSampleIdField(df.schema))
+  }
+
+  test("schema does not include sample ids if `includeSampleIds` is false") {
+    val df = spark
+      .read
+      .format(sourceName)
+      .option(CommonOptions.INCLUDE_SAMPLE_IDS, false)
+      .load(s"$testRoot/example.16bits*.bgen")
+    assert(!hasSampleIdField(df.schema))
   }
 }
