@@ -96,7 +96,7 @@ class VCFStreamWriter(
     if (!headerHasBeenSetOrWritten && writeHeader) {
       if (providedSampleIds.isEmpty) {
         throw new IllegalStateException(
-          "Missing samples for empty stream; header cannot be written properly.")
+          "Cannot infer header for empty partition; we suggest calling coalesce.")
       }
       writer.writeHeader(header)
       headerHasBeenSetOrWritten = true
