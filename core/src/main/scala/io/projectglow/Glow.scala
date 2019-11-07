@@ -41,6 +41,8 @@ class GlowBase {
    * There are no bounds on what the transformer may do. For instance, it's legal for the
    * transformer to materialize the input DataFrame.
    *
+   * You can chain transformers together by using the DataFrame.transform method.
+   *
    * @return The transformed DataFrame
    */
   def transform(operationName: String, df: DataFrame, options: Map[String, String]): DataFrame = {
