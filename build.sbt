@@ -211,6 +211,7 @@ import sbtrelease.Versions
 import ReleaseKeys.versions
 import ReleaseTransformations._
 
+// Write stable version
 lazy val stableVersionFile = settingKey[File]("Stable release version file")
 lazy val writeStableReleaseVersion = writeStableVersion(_._1)
 
@@ -221,7 +222,7 @@ def writeStableVersion(selectVersion: Versions => String): ReleaseStep = { st: S
       sys.error("No versions are set! Was this release part executed before inquireVersions?"))
   val selected = selectVersion(vs)
 
-  st.log.info("Setting version to '%s'." format selected)
+  st.log.info("Writing stable version '%s'." format selected)
   val useGlobal = Project.extract(st).get(releaseUseGlobalVersion)
   val versionStr = (if (useGlobal) globalVersionString else versionString) format selected
   IO.writeLines(Project.extract(st).get(stableVersionFile), Seq(versionStr))
