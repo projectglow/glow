@@ -47,14 +47,14 @@ release = ''
 
 # -- Substitutions for code blocks -------------------------------------------
 
-mvn_version_file = open('../../stable-version.sbt', 'r')
-mvn_version_line = mvn_version_file.readline()
+mvn_version_file = open('../../stable-version.txt', 'r')
+mvn_version = mvn_version_file.readline()
 mvn_version_file.close()
 
 pypi_version = imp.load_source('version', '../../python/version.py').VERSION
 
 substitutions = [
-    ('|mvn-version|', mvn_version_line.split('\"')[1]),
+    ('|mvn-version|', mvn_version),
     ('|pypi-version|', pypi_version)
 ]
 

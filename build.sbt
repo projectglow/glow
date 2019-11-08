@@ -223,13 +223,11 @@ def writeStableVersion(selectVersion: Versions => String): ReleaseStep = { st: S
   val selected = selectVersion(vs)
 
   st.log.info("Writing stable version '%s'." format selected)
-  val useGlobal = Project.extract(st).get(releaseUseGlobalVersion)
-  val versionStr = (if (useGlobal) globalVersionString else versionString) format selected
-  IO.writeLines(Project.extract(st).get(stableVersionFile), Seq(versionStr))
+  IO.writeLines(Project.extract(st).get(stableVersionFile), Seq(selected))
   st
 }
 
-stableVersionFile := baseDirectory.value / "stable-version.sbt"
+stableVersionFile := baseDirectory.value / "stable-version.txt"
 
 releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,
