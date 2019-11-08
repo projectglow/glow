@@ -9,7 +9,7 @@ you can install it from PyPI:
 
 .. code-block:: sh
 
-  pip install pyspark==2.4.2
+  pip install pyspark==2.4.3
 
 or `download a specific distribution <https://spark.apache.org/downloads.html>`_.
 
@@ -20,7 +20,7 @@ Install the Python frontend from pip:
   pip install glow.py
 
 and then start the `Spark shell <http://spark.apache.org/docs/latest/rdd-programming-guide.html#using-the-shell>`_
-with the Glow maven package:
+with the Glow maven package built for the same Scala version (2.11 or 2.12) as Spark:
 
 .. substitution-code-block:: sh
 
