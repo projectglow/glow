@@ -2,10 +2,14 @@ import scala.sys.process._
 
 import sbt.Tests._
 
-val sparkVersion = "2.4.3"
-val scalaMajorMinor = "2.11"
+val sparkVersion = "2.4.2"
 
-ThisBuild / scalaVersion := s"$scalaMajorMinor.12"
+val scala212 = "2.12.10"
+val scala211MajorMinor = "2.11"
+val scala211 = s"$scala211MajorMinor.12"
+
+ThisBuild / crossScalaVersions := List(scala212, scala211)
+ThisBuild / scalaVersion := scala212
 ThisBuild / organization := "io.projectglow"
 ThisBuild / scalastyleConfig := baseDirectory.value / "scalastyle-config.xml"
 ThisBuild / publish / skip := true
@@ -73,7 +77,7 @@ lazy val dependencies = Seq(
   "org.slf4j" % "slf4j-api" % "1.7.25",
   "org.slf4j" % "slf4j-log4j12" % "1.7.25",
   "org.jdbi" % "jdbi" % "2.63.1",
-  "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2",
   // Exclude extraneous GATK dependencies
   ("org.broadinstitute" % "gatk" % "4.0.11.0")
     .exclude("biz.k11i", "xgboost-predictor")
@@ -94,8 +98,8 @@ lazy val dependencies = Seq(
     .exclude("org.apache.commons", "commons-collections4")
     .exclude("org.apache.commons", "commons-vfs2")
     .exclude("org.apache.hadoop", "hadoop-client")
-    .exclude("org.apache.spark", s"spark-mllib_$scalaMajorMinor")
-    .exclude("org.bdgenomics.adam", s"adam-core-spark2_$scalaMajorMinor")
+    .exclude("org.apache.spark", s"spark-mllib_$scala211MajorMinor")
+    .exclude("org.bdgenomics.adam", s"adam-core-spark2_$scala211MajorMinor")
     .exclude("org.broadinstitute", "barclay")
     .exclude("org.broadinstitute", "hdf5-java-bindings")
     .exclude("org.broadinstitute", "gatk-native-bindings")
@@ -111,7 +115,6 @@ lazy val dependencies = Seq(
     .exclude("com.github.fommil.netlib", "*"),
   // Test dependencies
   "org.scalatest" %% "scalatest" % "3.0.3" % "test",
-  "org.scalacheck" %% "scalacheck" % "1.12.5" % "test",
   "org.mockito" % "mockito-all" % "1.9.5" % "test",
   "org.apache.spark" %% "spark-core" % sparkVersion % "test" classifier "tests",
   "org.apache.spark" %% "spark-catalyst" % sparkVersion % "test" classifier "tests",
@@ -203,6 +206,7 @@ ThisBuild / pomIncludeRepository := { _ =>
   false
 }
 ThisBuild / publishMavenStyle := true
+ThisBuild / releaseCrossBuild := true
 
 ThisBuild / bintrayOrganization := Some("projectglow")
 ThisBuild / bintrayRepository := "glow"
