@@ -45,6 +45,8 @@ object BigVCFDatasource extends HlsUsageLogging {
 
     val dSchema = data.schema
     val rdd = data.queryExecution.toRdd
+    rdd.cache()
+
     val nParts = rdd.getNumPartitions
     val conf = VCFFileFormat.hadoopConfWithBGZ(data.sparkSession.sparkContext.hadoopConfiguration)
     val serializableConf = new SerializableConfiguration(conf)
@@ -55,9 +57,10 @@ object BigVCFDatasource extends HlsUsageLogging {
       options
         .get(VCFFileWriter.VCF_HEADER_KEY)
         .contains(VCFFileWriter.INFER_HEADER))) {
+      rdd.unpersist()
       throw new SparkException("Cannot infer header for empty VCF.")
     }
-    rdd.mapPartitionsWithIndex {
+    val byteRdd = rdd.mapPartitionsWithIndex {
       case (idx, it) =>
         val conf = serializableConf.value
         val codec = new CompressionCodecFactory(conf)
@@ -89,5 +92,7 @@ object BigVCFDatasource extends HlsUsageLogging {
 
         Iterator(baos.toByteArray)
     }
+    rdd.unpersist()
+    byteRdd
   }
 }
