@@ -99,7 +99,7 @@ class PipeTransformer extends DataFrameTransformer with HlsUsageLogging {
       // record the pipe event along with tools of interest which maybe called using it.
       // TODO: More tools to be added
       val toolInPipe = Map(
-        HlsBlobKeys.PIPE_CMD_TOOL ->
+        LOGGING_BLOB_KEY ->
         pipeToolSet
           .foldLeft(Array[String]())(
             (a, b: String) =>
@@ -141,6 +141,7 @@ object PipeTransformer {
   private val ENV_PREFIX = "env_"
   private val INPUT_FORMATTER_PREFIX = "in_"
   private val OUTPUT_FORMATTER_PREFIX = "out_"
+  val LOGGING_BLOB_KEY = "pipeCmdTool"
 
   private def lookupInputFormatterFactory(name: String): Option[InputFormatterFactory] =
     synchronized {
