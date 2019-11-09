@@ -68,8 +68,10 @@ abstract class BigFileDatasource extends CreatableRelationProvider {
     }
 
     if (doSave) {
+      data.cache()
       val byteRdd = serializeDataFrame(options, data)
       SingleFileWriter.write(byteRdd, path)
+      data.unpersist()
     }
     SingleFileRelation(sqlContext, data.schema)
   }
