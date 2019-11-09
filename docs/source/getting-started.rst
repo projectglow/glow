@@ -4,8 +4,7 @@ Getting Started
 Running Locally
 ---------------
 
-Glow requires Apache Spark 2.4.2 or above. If you don't have a local Apache Spark installation,
-you can install it from PyPI:
+Glow requires Apache Spark 2.4.3. If you don't have a local Apache Spark installation, you can install it from PyPI:
 
 .. code-block:: sh
 
@@ -20,7 +19,7 @@ Install the Python frontend from pip:
   pip install glow.py
 
 and then start the `Spark shell <http://spark.apache.org/docs/latest/rdd-programming-guide.html#using-the-shell>`_
-with the Glow maven package built for the same Scala version (2.11 or 2.12) as Spark:
+with the Glow maven package:
 
 .. substitution-code-block:: sh
 

@@ -3,13 +3,9 @@ import scala.sys.process._
 import sbt.Tests._
 
 val sparkVersion = "2.4.2"
+val scalaMajorMinor = "2.11"
 
-val scala212 = "2.12.10"
-val scala211MajorMinor = "2.11"
-val scala211 = s"$scala211MajorMinor.12"
-
-ThisBuild / crossScalaVersions := List(scala212, scala211)
-ThisBuild / scalaVersion := scala212
+ThisBuild / scalaVersion := s"$scalaMajorMinor.12"
 ThisBuild / organization := "io.projectglow"
 ThisBuild / scalastyleConfig := baseDirectory.value / "scalastyle-config.xml"
 ThisBuild / publish / skip := true
@@ -98,8 +94,8 @@ lazy val dependencies = Seq(
     .exclude("org.apache.commons", "commons-collections4")
     .exclude("org.apache.commons", "commons-vfs2")
     .exclude("org.apache.hadoop", "hadoop-client")
-    .exclude("org.apache.spark", s"spark-mllib_$scala211MajorMinor")
-    .exclude("org.bdgenomics.adam", s"adam-core-spark2_$scala211MajorMinor")
+    .exclude("org.apache.spark", s"spark-mllib_$scalaMajorMinor")
+    .exclude("org.bdgenomics.adam", s"adam-core-spark2_$scalaMajorMinor")
     .exclude("org.broadinstitute", "barclay")
     .exclude("org.broadinstitute", "hdf5-java-bindings")
     .exclude("org.broadinstitute", "gatk-native-bindings")
