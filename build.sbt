@@ -287,7 +287,7 @@ releaseProcess := Seq[ReleaseStep](
   setReleaseVersion,
   writeStableReleaseVersion,
   commitReleaseVersion,
-  commitStableReleaseVersion,
+  // commitStableReleaseVersion,
   tagRelease,
   publishArtifacts,
   setNextVersion,
