@@ -12,23 +12,20 @@ import scala.sys.process._
  */
 object StableVersionPlugin extends AutoPlugin {
 
-  lazy val stableVersionFile = settingKey[File]("Stable release version file")
-  lazy val stableCommitMessage =
-    taskKey[String]("The commit message to use when setting the stable version")
-
-  stableVersionFile := baseDirectory.value / "stable-version.txt"
-  stableCommitMessage := s"Setting version to ${runtimeVersion.value}"
-
   override def requires: Plugins = ReleasePlugin
 
   override def trigger: PluginTrigger = AllRequirements
 
   object autoImport {
 
+    val stableVersionFile = settingKey[File]("Stable release version file")
+    val stableCommitMessage =
+      taskKey[String]("The commit message to use when setting the stable version")
+
     /**
      * Update the stable version file during a release.
      */
-    val updateStableVersion: ReleaseStep = updateStableVersionStep(_._1)
+    val updateStableVersion: ReleaseStep = updateStableVersionStep(_._1, stableVersionFile)
 
     /**
      * Commits the stable version file changes.
@@ -36,17 +33,27 @@ object StableVersionPlugin extends AutoPlugin {
     val commitStableVersion: ReleaseStep = commitFileStep(stableCommitMessage, stableVersionFile)
   }
 
-  private def updateStableVersionStep(selectVersion: Versions => String): ReleaseStep = {
-    st: State =>
-      val vs = st
-        .get(versions)
-        .getOrElse(
-          sys.error("No versions are set! Was this release part executed before inquireVersions?"))
-      val selected = selectVersion(vs)
+  import autoImport._
 
-      st.log.info("Writing stable version '%s'." format selected)
-      IO.writeLines(Project.extract(st).get(stableVersionFile), Seq(selected))
-      st
+  override def projectSettings: Seq[Setting[_]] = {
+    Seq(
+      stableVersionFile := baseDirectory.value / "stable-version.txt",
+      stableCommitMessage := s"Setting version to ${runtimeVersion.value}"
+    )
+  }
+
+  private def updateStableVersionStep(
+      selectVersion: Versions => String,
+      fileSettingKey: SettingKey[File]): ReleaseStep = { st: State =>
+    val vs = st
+      .get(versions)
+      .getOrElse(
+        sys.error("No versions are set! Was this release part executed before inquireVersions?"))
+    val selected = selectVersion(vs)
+
+    st.log.info("Writing stable version '%s'." format selected)
+    IO.writeLines(Project.extract(st).get(fileSettingKey), Seq(selected))
+    st
   }
 
   private def commitFileStep(
