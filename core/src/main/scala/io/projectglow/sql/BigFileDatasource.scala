@@ -21,7 +21,6 @@ import java.util.ServiceLoader
 
 import scala.collection.JavaConverters._
 
-import org.apache.commons.io.IOUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.spark.rdd.RDD
@@ -30,13 +29,14 @@ import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
 
 import io.projectglow.common.GlowLogging
+import io.projectglow.sql.util.WithUtils
 
 /**
  * Base class for big file datasources. Handles plumbing that's necessary for all such sources:
  * - Checking the save mode
  * - Uploading an RDD of byte arrays
  */
-abstract class BigFileDatasource extends CreatableRelationProvider {
+abstract class BigFileDatasource extends CreatableRelationProvider with WithUtils {
 
   /**
    * Implemented by subclasses. Must return an RDD where each partition is exactly 1 byte array.
@@ -68,10 +68,10 @@ abstract class BigFileDatasource extends CreatableRelationProvider {
     }
 
     if (doSave) {
-      data.cache()
-      val byteRdd = serializeDataFrame(options, data)
-      SingleFileWriter.write(byteRdd, path)
-      data.unpersist()
+      withCachedDataset(data) { cachedDs =>
+        val byteRdd = serializeDataFrame(options, cachedDs)
+        SingleFileWriter.write(byteRdd, path)
+      }
     }
     SingleFileRelation(sqlContext, data.schema)
   }
@@ -90,7 +90,7 @@ trait BigFileUploader {
   def upload(bytes: RDD[Array[Byte]], path: String): Unit
 }
 
-private[projectglow] object SingleFileWriter extends GlowLogging {
+private[projectglow] object SingleFileWriter extends GlowLogging with WithUtils {
 
   lazy val uploaders: Seq[BigFileUploader] = ServiceLoader
     .load(classOf[BigFileUploader])
@@ -119,16 +119,13 @@ private[projectglow] object SingleFileWriter extends GlowLogging {
   private def writeFileFromDriver(path: Path, byteRdd: RDD[Array[Byte]]): Unit = {
     val sc = byteRdd.sparkContext
     val fs = path.getFileSystem(sc.hadoopConfiguration)
-    val stream = fs.create(path)
-    try {
-      byteRdd.cache()
-      byteRdd.count()
-      byteRdd.toLocalIterator.foreach { chunk =>
-        stream.write(chunk)
+    withStream(fs.create(path)) { stream =>
+      withCachedRDD(byteRdd) { cachedRdd =>
+        cachedRdd.count()
+        cachedRdd.toLocalIterator.foreach { chunk =>
+          stream.write(chunk)
+        }
       }
-    } finally {
-      byteRdd.unpersist()
-      IOUtils.closeQuietly(stream)
     }
   }
 }

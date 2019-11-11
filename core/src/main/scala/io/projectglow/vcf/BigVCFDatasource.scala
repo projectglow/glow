@@ -56,7 +56,6 @@ object BigVCFDatasource extends HlsUsageLogging {
       options
         .get(VCFFileWriter.VCF_HEADER_KEY)
         .contains(VCFFileWriter.INFER_HEADER))) {
-      rdd.unpersist()
       throw new SparkException("Cannot infer header for empty VCF.")
     }
     rdd.mapPartitionsWithIndex {
