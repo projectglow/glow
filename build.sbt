@@ -202,7 +202,6 @@ ThisBuild / pomIncludeRepository := { _ =>
   false
 }
 ThisBuild / publishMavenStyle := true
-ThisBuild / releaseCrossBuild := true
 
 ThisBuild / bintrayOrganization := Some("projectglow")
 ThisBuild / bintrayRepository := "glow"
