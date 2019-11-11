@@ -12,8 +12,8 @@ import scala.sys.process._
  */
 object StableVersionPlugin extends AutoPlugin {
 
-  private val stableVersionFile = settingKey[File]("Stable release version file")
-  private val stableCommitMessage =
+  lazy val stableVersionFile = settingKey[File]("Stable release version file")
+  lazy val stableCommitMessage =
     taskKey[String]("The commit message to use when setting the stable version")
 
   stableVersionFile := baseDirectory.value / "stable-version.txt"
