@@ -28,15 +28,14 @@ import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
 
-import io.projectglow.common.GlowLogging
-import io.projectglow.sql.util.WithUtils
+import io.projectglow.common.{GlowLogging, WithUtils}
 
 /**
  * Base class for big file datasources. Handles plumbing that's necessary for all such sources:
  * - Checking the save mode
  * - Uploading an RDD of byte arrays
  */
-abstract class BigFileDatasource extends CreatableRelationProvider with WithUtils {
+abstract class BigFileDatasource extends CreatableRelationProvider {
 
   /**
    * Implemented by subclasses. Must return an RDD where each partition is exactly 1 byte array.
@@ -68,7 +67,7 @@ abstract class BigFileDatasource extends CreatableRelationProvider with WithUtil
     }
 
     if (doSave) {
-      withCachedDataset(data) { cachedDs =>
+      WithUtils.withCachedDataset(data) { cachedDs =>
         val byteRdd = serializeDataFrame(options, cachedDs)
         SingleFileWriter.write(byteRdd, path)
       }
@@ -90,7 +89,7 @@ trait BigFileUploader {
   def upload(bytes: RDD[Array[Byte]], path: String): Unit
 }
 
-private[projectglow] object SingleFileWriter extends GlowLogging with WithUtils {
+private[projectglow] object SingleFileWriter extends GlowLogging {
 
   lazy val uploaders: Seq[BigFileUploader] = ServiceLoader
     .load(classOf[BigFileUploader])
@@ -119,8 +118,8 @@ private[projectglow] object SingleFileWriter extends GlowLogging with WithUtils 
   private def writeFileFromDriver(path: Path, byteRdd: RDD[Array[Byte]]): Unit = {
     val sc = byteRdd.sparkContext
     val fs = path.getFileSystem(sc.hadoopConfiguration)
-    withStream(fs.create(path)) { stream =>
-      withCachedRDD(byteRdd) { cachedRdd =>
+    WithUtils.withCloseable(fs.create(path)) { stream =>
+      WithUtils.withCachedRDD(byteRdd) { cachedRdd =>
         cachedRdd.count()
         cachedRdd.toLocalIterator.foreach { chunk =>
           stream.write(chunk)
