@@ -4,7 +4,8 @@ Getting Started
 Running Locally
 ---------------
 
-Glow requires Apache Spark 2.4.3. If you don't have a local Apache Spark installation, you can install it from PyPI:
+Glow requires Apache Spark 2.4.3 (or a later version of Spark 2.4.x that is built on Scala 2.11). If you don't have a
+local Apache Spark installation, you can install it from PyPI:
 
 .. code-block:: sh
 

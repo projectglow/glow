@@ -207,73 +207,7 @@ ThisBuild / releaseCrossBuild := true
 ThisBuild / bintrayOrganization := Some("projectglow")
 ThisBuild / bintrayRepository := "glow"
 
-import sbtrelease.{Vcs, Versions}
-import ReleaseKeys.versions
 import ReleaseTransformations._
-import ReleasePlugin._
-
-// Write stable version
-lazy val stableVersionFile = settingKey[File]("Stable release version file")
-lazy val writeStableReleaseVersion = writeStableVersion(_._1)
-
-def writeStableVersion(selectVersion: Versions => String): ReleaseStep = { st: State =>
-  val vs = st
-    .get(versions)
-    .getOrElse(
-      sys.error("No versions are set! Was this release part executed before inquireVersions?"))
-  val selected = selectVersion(vs)
-
-  st.log.info("Writing stable version '%s'." format selected)
-  IO.writeLines(Project.extract(st).get(stableVersionFile), Seq(selected))
-  st
-}
-
-// Commit stable version
-lazy val stableCommitMessage =
-  taskKey[String]("The commit message to use when setting the stable version")
-lazy val commitStableReleaseVersion = commitStableVersion(stableCommitMessage)
-
-def toProcessLogger(st: State): ProcessLogger = new ProcessLogger {
-  override def err(s: => String): Unit = st.log.info(s)
-  override def out(s: => String): Unit = st.log.info(s)
-  override def buffer[T](f: => T): T = st.log.buffer(f)
-}
-
-def vcs(st: State): Vcs = {
-  Project
-    .extract(st)
-    .get(releaseVcs)
-    .getOrElse(
-      sys.error("Aborting release. Working directory is not a repository of a recognized VCS."))
-}
-
-def commitStableVersion(commitMessage: TaskKey[String]): ReleaseStep = { st: State =>
-  val log = toProcessLogger(st)
-  val file = Project.extract(st).get(stableVersionFile).getCanonicalFile
-  val base = vcs(st).baseDir.getCanonicalFile
-  val sign = Project.extract(st).get(releaseVcsSign)
-  val signOff = Project.extract(st).get(releaseVcsSignOff)
-  val relativePath = IO
-    .relativize(base, file)
-    .getOrElse(
-      "Version file [%s] is outside of this VCS repository with base directory [%s]!" format (file, base))
-
-  vcs(st).add(relativePath) !! log
-  val status = vcs(st).status.!!.trim
-
-  val newState = if (status.nonEmpty) {
-    val (state, msg) = Project.extract(st).runTask(commitMessage, st)
-    vcs(state).commit(msg, sign, signOff) ! log
-    state
-  } else {
-    // nothing to commit. this happens if the version.sbt file hasn't changed.
-    st
-  }
-  newState
-}
-
-stableVersionFile := baseDirectory.value / "stable-version.txt"
-stableCommitMessage := s"Setting version to ${runtimeVersion.value}"
 
 releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,
@@ -281,9 +215,9 @@ releaseProcess := Seq[ReleaseStep](
   runClean,
   runTest,
   setReleaseVersion,
-  writeStableReleaseVersion,
+  updateStableVersion,
   commitReleaseVersion,
-  commitStableReleaseVersion,
+  commitStableVersion,
   tagRelease,
   publishArtifacts,
   setNextVersion,
