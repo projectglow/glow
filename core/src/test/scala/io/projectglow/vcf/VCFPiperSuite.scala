@@ -31,6 +31,11 @@ class VCFPiperSuite extends GlowBaseTest {
   private val na12878 = s"$testDataHome/NA12878_21_10002403.vcf"
   private val TGP = s"$testDataHome/1000genomes-phase3-1row.vcf"
 
+  override def afterEach(): Unit = {
+    Glow.transform("pipe_cleanup", spark.emptyDataFrame)
+    super.afterEach()
+  }
+
   private def readVcf(vcf: String): DataFrame = {
     spark
       .read
@@ -70,9 +75,10 @@ class VCFPiperSuite extends GlowBaseTest {
     assert(sampleSeq == Seq("NA12878"))
 
     // Flattens INFO fields
-
     val sorSeq = df.select("INFO_SOR").as[Double].collect
     assert(sorSeq.min ~== 0.551 relTol 0.2)
+
+    df.unpersist()
   }
 
   test("Remove INFO") {
