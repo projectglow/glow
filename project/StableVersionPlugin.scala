@@ -38,7 +38,7 @@ object StableVersionPlugin extends AutoPlugin {
   override def projectSettings: Seq[Setting[_]] = {
     Seq(
       stableVersionFile := baseDirectory.value / "stable-version.txt",
-      stableCommitMessage := s"Setting version to ${runtimeVersion.value}"
+      stableCommitMessage := s"Setting stable version to ${runtimeVersion.value}"
     )
   }
 
