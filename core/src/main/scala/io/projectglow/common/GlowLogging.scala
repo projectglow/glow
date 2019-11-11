@@ -16,6 +16,6 @@
 
 package io.projectglow.common
 
-import com.typesafe.scalalogging.slf4j.LazyLogging
+import com.typesafe.scalalogging.LazyLogging
 
 trait GlowLogging extends LazyLogging
