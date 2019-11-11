@@ -78,7 +78,9 @@ class WithUtilsSuite extends GlowBaseTest {
       assert(r.count == 2)
       assert(spark.sparkContext.getPersistentRDDs.size == 1)
     }
-    assert(spark.sparkContext.getPersistentRDDs.isEmpty)
+    eventually {
+      assert(spark.sparkContext.getPersistentRDDs.isEmpty)
+    }
   }
 
   test("uncaches RDD after failed function") {
@@ -89,7 +91,9 @@ class WithUtilsSuite extends GlowBaseTest {
       }
     }
     assert(e.getMessage.contains("Non fatal exception"))
-    assert(spark.sparkContext.getPersistentRDDs.isEmpty)
+    eventually {
+      assert(spark.sparkContext.getPersistentRDDs.isEmpty)
+    }
   }
 
   test("uncaches Dataset after successful function") {
@@ -101,7 +105,9 @@ class WithUtilsSuite extends GlowBaseTest {
       assert(d.count == 2)
       assert(!spark.sharedState.cacheManager.isEmpty)
     }
-    assert(spark.sharedState.cacheManager.isEmpty)
+    eventually {
+      assert(spark.sharedState.cacheManager.isEmpty)
+    }
   }
 
   test("uncaches Dataset after failed function") {
@@ -115,6 +121,8 @@ class WithUtilsSuite extends GlowBaseTest {
       }
     }
     assert(e.getMessage.contains("Non fatal exception"))
-    assert(spark.sharedState.cacheManager.isEmpty)
+    eventually {
+      assert(spark.sharedState.cacheManager.isEmpty)
+    }
   }
 }
