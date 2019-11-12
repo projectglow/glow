@@ -21,6 +21,7 @@ import java.io.ByteArrayOutputStream
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress.CompressionCodecFactory
 import org.apache.spark.rdd.RDD
+import org.apache.spark.SparkException
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.sources.DataSourceRegister
 import org.seqdoop.hadoop_bam.util.DatabricksBGZFOutputStream
@@ -44,11 +45,19 @@ object BigVCFDatasource extends HlsUsageLogging {
 
     val dSchema = data.schema
     val rdd = data.queryExecution.toRdd
+
     val nParts = rdd.getNumPartitions
-    val serializableConf = new SerializableConfiguration(
-      VCFFileFormat.hadoopConfWithBGZ(data.sparkSession.sparkContext.hadoopConfiguration)
-    )
-    val writerFactory = new VCFOutputWriterFactory(options)
+    val conf = VCFFileFormat.hadoopConfWithBGZ(data.sparkSession.sparkContext.hadoopConfiguration)
+    val serializableConf = new SerializableConfiguration(conf)
+    val firstNonemptyPartition =
+      rdd.mapPartitions(iter => Iterator(iter.nonEmpty)).collect.indexOf(true)
+
+    if (firstNonemptyPartition == -1 && (!options.contains(VCFFileWriter.VCF_HEADER_KEY) ||
+      options
+        .get(VCFFileWriter.VCF_HEADER_KEY)
+        .contains(VCFFileWriter.INFER_HEADER))) {
+      throw new SparkException("Cannot infer header for empty VCF.")
+    }
     rdd.mapPartitionsWithIndex {
       case (idx, it) =>
         val conf = serializableConf.value
@@ -61,8 +70,9 @@ object BigVCFDatasource extends HlsUsageLogging {
         // Write an empty GZIP block iff this is the last partition
         DatabricksBGZFOutputStream.setWriteEmptyBlockOnClose(outputStream, idx == nParts - 1)
 
-        // Write the header if this is the first partition
-        val writer = new VCFFileWriter(options, dSchema, conf, outputStream, idx == 0)
+        // Write the header if this is the first nonempty partition
+        val writer =
+          new VCFFileWriter(options, dSchema, conf, outputStream, idx == firstNonemptyPartition)
 
         it.foreach { row =>
           writer.write(row)

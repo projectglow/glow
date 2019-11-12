@@ -23,6 +23,7 @@ import org.apache.spark.{DebugFilesystem, SparkConf}
 import org.scalatest.concurrent.{AbstractPatienceConfiguration, Eventually}
 import org.scalatest.time.{Milliseconds, Seconds, Span}
 import org.scalatest.{Args, FunSuite, Status, Tag}
+
 import io.projectglow.common.{GlowLogging, TestUtils}
 import io.projectglow.sql.util.BGZFCodec
 
@@ -67,7 +68,11 @@ abstract class GlowBaseTest
   }
 
   override def afterEach(): Unit = {
-    DebugFilesystem.clearOpenStreams()
+    DebugFilesystem.assertNoOpenStreams()
+    eventually {
+      assert(spark.sparkContext.getPersistentRDDs.isEmpty)
+      assert(spark.sharedState.cacheManager.isEmpty, "Cache not empty.")
+    }
     super.afterEach()
   }
 

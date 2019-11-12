@@ -35,7 +35,7 @@ import io.projectglow.common.GlowLogging
 object VCFFileWriter extends GlowLogging {
 
   val VCF_HEADER_KEY = "vcfHeader"
-  private val INFER_HEADER = "infer"
+  val INFER_HEADER = "infer"
 
   def parseHeaderFromString(s: String): VCFHeader = {
     val stringReader = new StringReader(s)
@@ -103,9 +103,12 @@ class VCFFileWriter(
     extends OutputWriter
     with GlowLogging {
 
-  private val DEFAULT_VCF_WRITER_HEADER = "infer"
   private val (headerLineSet, providedSampleIds) =
-    VCFFileWriter.parseHeaderLinesAndSamples(options, Some(DEFAULT_VCF_WRITER_HEADER), schema, conf)
+    VCFFileWriter.parseHeaderLinesAndSamples(
+      options,
+      Some(VCFFileWriter.INFER_HEADER),
+      schema,
+      conf)
   private val converter = new InternalRowToVariantContextConverter(
     schema,
     headerLineSet,
