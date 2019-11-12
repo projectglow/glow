@@ -4,7 +4,7 @@ dependencies:
   - pytest
   - pip
   - pip:
-    - pyspark==2.4.2
+    - pyspark==2.4.3
     - setuptools==41.2.0 # Python packaging
     - typeguard==2.5.0
     - twine==2.0.0 # Pypi publishing

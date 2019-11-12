@@ -39,17 +39,7 @@ class ComDatabricksBigBgenDatasource extends BigBgenDatasource with ComDatabrick
 
 object BigBgenDatasource extends HlsUsageLogging {
 
-  val BITS_PER_PROB_KEY = "bitsPerProbability"
-  val BITS_PER_PROB_DEFAULT_VALUE = "16"
-
-  val MAX_PLOIDY_KEY = "maximumInferredPloidy"
-  val MAX_PLOIDY_VALUE = "10"
-
-  val DEFAULT_PLOIDY_KEY = "defaultInferredPloidy"
-  val DEFAULT_PLOIDY_VALUE = "2"
-
-  val DEFAULT_PHASING_KEY = "defaultInferredPhasing"
-  val DEFAULT_PHASING_VALUE = "false"
+  import io.projectglow.common.BgenOptions._
 
   def serializeDataFrame(options: Map[String, String], data: DataFrame): RDD[Array[Byte]] = {
 

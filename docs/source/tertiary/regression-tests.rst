@@ -97,7 +97,7 @@ The linear regression model is fit using the QR decomposition. For performance, 
 of the covariate matrix is computed once and reused for each (``genotypes``, ``phenotypes``) pair.
 
 Logistic regression
-=================
+===================
 
 ``logistic_regression_gwas`` performs a logistic regression hypothesis test optimized for performance
 in a GWAS setting.
@@ -167,7 +167,7 @@ The function returns a struct with the following fields. The computation of each
     - Odds ratio associated with the ``genotypes`` parameter, ``NaN`` if the fit failed..
   * - ``waldConfidenceInterval``
     - ``array<double>``
-    - Wald 95% confidence interval of the odds ratio, ``NaN``s if the fit failed.
+    - Wald 95% confidence interval of the odds ratio, ``NaN`` s if the fit failed.
   * - ``pValue``
     - ``double``
     - p-value for the specified ``test``, ``NaN`` if the fit failed.
