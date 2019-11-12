@@ -181,24 +181,6 @@ abstract class VCFFileWriterSuite(val sourceName: String)
     }
   }
 
-  test("Empty DF and missing sample IDs") {
-    val tempFile = createTempVcf.toString
-
-    val ds = spark
-      .read
-      .format(readSourceName)
-      .option("includeSampleIds", false)
-      .load(NA12878)
-      .limit(0)
-
-    // No VCF rows and missing samples
-    assertThrows[SparkException](
-      ds.write
-        .format(sourceName)
-        .save(tempFile)
-    )
-  }
-
   test("Invalid validation stringency") {
     val sess = spark
     import sess.implicits._
@@ -356,10 +338,25 @@ abstract class VCFFileWriterSuite(val sourceName: String)
       getSchemaLines(writtenHeader) == VCFSchemaInferrer.headerLinesFromSchema(df.schema).toSet)
     assert(getSchemaLines(writtenHeader) == getSchemaLines(oldHeader)) // Includes descriptions
   }
-}
 
-class MultiFileVCFWriterSuite extends VCFFileWriterSuite("vcf") {
-  test("Empty file") {
+  test("Empty file with inferred header") {
+    val tempFile = createTempVcf.toString
+
+    val ds = spark
+      .read
+      .format(readSourceName)
+      .load(NA12878)
+      .limit(0)
+
+    // Cannot infer sample IDs without rows
+    assertThrows[SparkException](
+      ds.write
+        .format(sourceName)
+        .save(tempFile)
+    )
+  }
+
+  test("Empty file with determined header") {
     val sess = spark
     import sess.implicits._
 
@@ -379,6 +376,26 @@ class MultiFileVCFWriterSuite extends VCFFileWriterSuite("vcf") {
       .option("vcfRowSchema", true)
       .load(tempFile)
     assert(rewrittenDs.collect.isEmpty)
+  }
+}
+
+class MultiFileVCFWriterSuite extends VCFFileWriterSuite("vcf") {
+
+  test("Some empty partitions and infer sample IDs") {
+    val tempFile = createTempVcf.toString
+
+    val ds = spark
+      .read
+      .format(readSourceName)
+      .load(NA12878)
+      .limit(2)
+      .repartition(5)
+
+    assertThrows[SparkException](
+      ds.write
+        .format(sourceName)
+        .save(tempFile)
+    )
   }
 }
 
@@ -409,6 +426,43 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
       // Empty gzip block is at end of file
       assert(bytes.endsWith(BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK))
     }
+  }
+
+  test("Some empty partitions and by default infer sample IDs") {
+    val tempFile = createTempVcf.toString
+
+    val ds = spark
+      .read
+      .format(readSourceName)
+      .load(NA12878)
+      .limit(2)
+      .repartition(5)
+
+    ds.write
+      .format(sourceName)
+      .save(tempFile)
+
+    val rereadDs = spark.read.format("vcf").load(tempFile)
+    assert(rereadDs.sort("start").collect sameElements ds.sort("start").collect)
+  }
+
+  test("Some empty partitions and explicitly infer sample IDs") {
+    val tempFile = createTempVcf.toString
+
+    val ds = spark
+      .read
+      .format(readSourceName)
+      .load(NA12878)
+      .limit(2)
+      .repartition(5)
+
+    ds.write
+      .option("vcfHeader", "infer")
+      .format(sourceName)
+      .save(tempFile)
+
+    val rereadDs = spark.read.format("vcf").load(tempFile)
+    assert(rereadDs.sort("start").collect sameElements ds.sort("start").collect)
   }
 }
 

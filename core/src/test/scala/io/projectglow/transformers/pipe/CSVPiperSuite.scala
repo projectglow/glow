@@ -26,6 +26,11 @@ class CSVPiperSuite extends GlowBaseTest {
   private val saige = s"$testDataHome/saige_output.txt"
   private val csv = s"$testDataHome/no_header.csv"
 
+  override def afterEach(): Unit = {
+    Glow.transform("pipe_cleanup", spark.emptyDataFrame)
+    super.afterEach()
+  }
+
   def pipeCsv(
       inputDf: DataFrame,
       cmd: String,

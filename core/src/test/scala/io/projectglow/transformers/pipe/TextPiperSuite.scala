@@ -22,9 +22,15 @@ import org.apache.spark.SparkException
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 
+import io.projectglow.Glow
 import io.projectglow.sql.GlowBaseTest
 
 class TextPiperSuite extends GlowBaseTest {
+  override def afterEach(): Unit = {
+    Glow.transform("pipe_cleanup", spark.emptyDataFrame)
+    super.afterEach()
+  }
+
   def pipeText(df: DataFrame): DataFrame = {
     val options =
       Map("inputFormatter" -> "text", "outputFormatter" -> "text", "cmd" -> """["cat", "-"]""")

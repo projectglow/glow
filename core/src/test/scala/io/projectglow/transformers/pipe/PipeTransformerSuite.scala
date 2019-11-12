@@ -42,6 +42,8 @@ class PipeTransformerSuite extends GlowBaseTest {
     eventually {
       assert(sparkContext.getPersistentRDDs.size == 1) // Should cleanup the RDD cached by piping
     }
+
+    df.rdd.unpersist()
   }
 
   test("read input and output formatters from service loader") {
@@ -56,6 +58,8 @@ class PipeTransformerSuite extends GlowBaseTest {
     assert(output.schema.length == 1)
     assert(output.schema.exists(f => f.name == "animal" && f.dataType == StringType))
     assert(output.where("animal = 'monkey'").count() == 1)
+
+    Glow.transform("pipe_cleanup", df, Map.empty[String, String])
   }
 }
 

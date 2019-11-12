@@ -19,6 +19,9 @@ package io.projectglow.common
 import java.io.Closeable
 import java.util.concurrent.locks.Lock
 
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.Dataset
+
 import scala.util.control.NonFatal
 
 object WithUtils {
@@ -64,6 +67,24 @@ object WithUtils {
       f
     } finally {
       lock.unlock()
+    }
+  }
+
+  def withCachedRDD[T, U](rdd: RDD[T])(f: RDD[T] => U): U = {
+    rdd.cache()
+    try {
+      f(rdd)
+    } finally {
+      rdd.unpersist()
+    }
+  }
+
+  def withCachedDataset[T, U](ds: Dataset[T])(f: Dataset[T] => U): U = {
+    ds.cache()
+    try {
+      f(ds)
+    } finally {
+      ds.unpersist()
     }
   }
 }
