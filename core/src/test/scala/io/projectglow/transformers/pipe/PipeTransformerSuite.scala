@@ -81,6 +81,26 @@ class PipeTransformerSuite extends GlowBaseTest {
     }
     assert(e.getMessage.contains("Missing pipe output formatter"))
   }
+
+  test("could not find input formatter") {
+    val df = spark.emptyDataFrame
+    val options =
+      Map("inputFormatter" -> "fake_in", "outputFormatter" -> "dummy_out", "cmd" -> """["cat"]""")
+    val e = intercept[IllegalArgumentException] {
+      new PipeTransformer().transform(df, options)
+    }
+    assert(e.getMessage.contains("Could not find an input formatter for fake_in"))
+  }
+
+  test("could not find output formatter") {
+    val df = spark.emptyDataFrame
+    val options =
+      Map("inputFormatter" -> "dummy_in", "outputFormatter" -> "fake_out", "cmd" -> """["cat"]""")
+    val e = intercept[IllegalArgumentException] {
+      new PipeTransformer().transform(df, options)
+    }
+    assert(e.getMessage.contains("Could not find an output formatter for fake_out"))
+  }
 }
 
 class DummyInputFormatterFactory() extends InputFormatterFactory {
