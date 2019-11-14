@@ -128,4 +128,14 @@ The following options are not supported:
  - ``path`` options are ignored
  - The ``parserLib`` option is ignored. ``univocity`` is always used as the CSV parsing library.
 
+Cleanup
+=======
+
+The pipe transformer performs RDD caching to optimize performance. Spark automatically drops out old data partitions in
+a least-recently-used (LRU) fashion. If you would like to manually clean up the RDDs cached by the pipe transformer
+instead of waiting for them to fall out of the cache, use the pipe cleanup transformer on any DataFrame.
+
+To perform pipe cleanup in Python, run ``glow.transform('pipe_cleanup', df)``.
+In Scala, run ``Glow.transform("pipe_cleanup", df)``.
+
 .. notebook:: .. tertiary/pipe-transformer.html
