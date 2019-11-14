@@ -44,35 +44,35 @@ class PipeTransformer extends DataFrameTransformer with HlsUsageLogging {
     import PipeTransformer._
 
     private def getInputFormatter: InputFormatter = {
-      val inputFormatterStr = options.get(INPUT_FORMATTER_KEY)
+      val inputFormatterStr = options.getOrElse(
+        INPUT_FORMATTER_KEY,
+        throw new IllegalArgumentException("Missing pipe input formatter."))
+
       val inputFormatterOptions = options.collect {
         case (k, v) if k.startsWith(INPUT_FORMATTER_PREFIX) =>
           (k.stripPrefix(INPUT_FORMATTER_PREFIX), v)
       }
 
-      inputFormatterStr
-        .flatMap(lookupInputFormatterFactory)
-        .getOrElse {
-          throw new IllegalArgumentException(
-            s"Could not find an input formatter for $inputFormatterStr")
-        }
-        .makeInputFormatter(df, new SnakeCaseMap(inputFormatterOptions))
+      lookupInputFormatterFactory(inputFormatterStr).getOrElse {
+        throw new IllegalArgumentException(
+          s"Could not find an input formatter for $inputFormatterStr")
+      }.makeInputFormatter(df, new SnakeCaseMap(inputFormatterOptions))
     }
 
     private def getOutputFormatter: OutputFormatter = {
-      val outputFormatterStr = options.get(OUTPUT_FORMATTER_KEY)
+      val outputFormatterStr = options.getOrElse(
+        OUTPUT_FORMATTER_KEY,
+        throw new IllegalArgumentException("Missing pipe output formatter."))
+
       val outputFormatterOptions = options.collect {
         case (k, v) if k.startsWith(OUTPUT_FORMATTER_PREFIX) =>
           (k.stripPrefix(OUTPUT_FORMATTER_PREFIX), v)
       }
 
-      outputFormatterStr
-        .flatMap(lookupOutputFormatterFactory)
-        .getOrElse {
-          throw new IllegalArgumentException(
-            s"Could not find an output formatter for $outputFormatterStr")
-        }
-        .makeOutputFormatter(new SnakeCaseMap(outputFormatterOptions))
+      lookupOutputFormatterFactory(outputFormatterStr).getOrElse {
+        throw new IllegalArgumentException(
+          s"Could not find an output formatter for $outputFormatterStr")
+      }.makeOutputFormatter(new SnakeCaseMap(outputFormatterOptions))
     }
 
     private def getCmd: Seq[String] = {
