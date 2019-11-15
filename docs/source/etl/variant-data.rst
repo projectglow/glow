@@ -1,6 +1,6 @@
-==========================
-Variant I/O with Spark SQL
-==========================
+====================================
+Read / Write Variant data with Spark
+====================================
 
 Glow makes it possible to read and write variant data at scale using Spark SQL.
 
@@ -136,7 +136,7 @@ To control the behavior of the BGEN writer, you can provide the following option
 PLINK
 =====
 
-Glow provides the ability to read binary PLINK BED files with accompanying BIM and FAM files. The provided path can be a
+Glow provides the ability to read PLINK binary PED (BED) files with accompanying BIM and FAM files. The provided path can be a
 file or glob pattern.
 
 .. code-block:: py
