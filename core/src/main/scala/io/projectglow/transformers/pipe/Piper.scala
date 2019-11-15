@@ -150,18 +150,18 @@ private[projectglow] class ProcessHelper(
     }
     stderrReaderThread.start()
 
-    context.addTaskCompletionListener[Unit] { _ =>
-      if (process.isAlive) {
-        process.destroy()
-      }
-
-      if (stdinWriterThread.isAlive) {
-        stdinWriterThread.interrupt()
-      }
-      if (stderrReaderThread.isAlive) {
-        stderrReaderThread.interrupt()
-      }
-    }
+//    context.addTaskCompletionListener[Unit] { _ =>
+//      if (process.isAlive) {
+//        process.destroy()
+//      }
+//
+//      if (stdinWriterThread.isAlive) {
+//        stdinWriterThread.interrupt()
+//      }
+//      if (stderrReaderThread.isAlive) {
+//        stderrReaderThread.interrupt()
+//      }
+//    }
 
     new BufferedInputStream(process.getInputStream)
   }
