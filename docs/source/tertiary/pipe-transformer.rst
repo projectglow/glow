@@ -1,9 +1,9 @@
-==========================================================
-Parallelizing Command-Line Tools With the Pipe Transformer
-==========================================================
+=========================================================================
+Parallelizing Command-Line Bioinformatics Tools With the Pipe Transformer
+=========================================================================
 
 To use single-node tools on massive data sets, Glow includes a
-utility called the Pipe Transformer to process Spark DataFrames with command-line programs.
+utility called the Pipe Transformer to process Spark DataFrames with command-line programs or scripts.
 
 Python usage
 ============
