@@ -2,7 +2,7 @@
 Variant Quality Control
 =======================
 
-Glow includes a variety of tools for variant quality control.
+Glow provides functions for standard variant quality control steps.
 
 .. tip::
 

@@ -118,7 +118,7 @@ Parameters
 ----------
 
 The parameters for the logistic regression test are largely the same as those for linear regression. The primary
-differences are that the ``phenotypes`` values should be in the set ``[0,1]`` and that there is one additional
+differences are that the ``phenotypes`` values should be in the binary set ``[0,1]`` and that there is one additional
 parameter ``test`` to specify the hypothesis test method.
 
 .. list-table::
