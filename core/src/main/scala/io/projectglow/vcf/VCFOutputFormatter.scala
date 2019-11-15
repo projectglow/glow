@@ -27,7 +27,10 @@ import org.apache.spark.sql.catalyst.InternalRow
 import io.projectglow.common.GlowLogging
 import io.projectglow.transformers.pipe.{OutputFormatter, OutputFormatterFactory}
 
-class VCFOutputFormatter extends OutputFormatter with GlowLogging {
+class VCFOutputFormatter(stringency: ValidationStringency)
+    extends OutputFormatter
+    with GlowLogging {
+
   override def makeIterator(stream: InputStream): Iterator[Any] = {
     val codec = new VCFCodec
     val lineIterator = new HtsjdkLineIteratorImpl(new SynchronousLineReader(stream))
@@ -42,7 +45,7 @@ class VCFOutputFormatter extends OutputFormatter with GlowLogging {
     val schema = VCFSchemaInferrer.inferSchema(true, true, header)
     logger.warn("Schema is " + schema)
     val converter =
-      new VariantContextToInternalRowConverter(header, schema, ValidationStringency.LENIENT)
+      new VariantContextToInternalRowConverter(header, schema, stringency)
 
     val internalRowIter: Iterator[InternalRow] = new Iterator[InternalRow] {
       private var nextRecord: InternalRow = _
@@ -83,6 +86,7 @@ class VCFOutputFormatterFactory extends OutputFormatterFactory {
   override def name: String = "vcf"
 
   override def makeOutputFormatter(options: Map[String, String]): OutputFormatter = {
-    new VCFOutputFormatter()
+    val stringency = VCFOptionParser.getValidationStringency(options)
+    new VCFOutputFormatter(stringency)
   }
 }
