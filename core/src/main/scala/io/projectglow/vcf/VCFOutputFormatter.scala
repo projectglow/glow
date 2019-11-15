@@ -21,7 +21,6 @@ import java.io.InputStream
 import htsjdk.samtools.ValidationStringency
 import htsjdk.tribble.readers.{SynchronousLineReader, LineIteratorImpl => HtsjdkLineIteratorImpl}
 import htsjdk.variant.vcf.{VCFCodec, VCFHeader}
-
 import org.apache.spark.sql.catalyst.InternalRow
 
 import io.projectglow.common.GlowLogging
@@ -34,16 +33,12 @@ class VCFOutputFormatter(stringency: ValidationStringency)
   override def makeIterator(stream: InputStream): Iterator[Any] = {
     val codec = new VCFCodec
     val lineIterator = new HtsjdkLineIteratorImpl(new SynchronousLineReader(stream))
-    logger.warn("Making line iterator")
     if (!lineIterator.hasNext) {
       return Iterator.empty
     }
 
-    logger.warn("About to read header")
     val header = codec.readActualHeader(lineIterator).asInstanceOf[VCFHeader]
-    logger.warn("Read header")
     val schema = VCFSchemaInferrer.inferSchema(true, true, header)
-    logger.warn("Schema is " + schema)
     val converter =
       new VariantContextToInternalRowConverter(header, schema, stringency)
 
@@ -51,11 +46,8 @@ class VCFOutputFormatter(stringency: ValidationStringency)
       private var nextRecord: InternalRow = _
       private def readNextVc(): Unit = {
         while (nextRecord == null && lineIterator.hasNext) {
-          logger.warn("Reading VC")
           val decoded = codec.decode(lineIterator.next())
-          logger.warn("Decoded VC")
           if (decoded != null) {
-            logger.warn("Set next VC")
             nextRecord = converter.convertRow(decoded, isSplit = false).copy()
           }
         }
@@ -63,13 +55,11 @@ class VCFOutputFormatter(stringency: ValidationStringency)
 
       override def hasNext: Boolean = {
         readNextVc()
-        logger.warn("hasNext")
         nextRecord != null
       }
 
       override def next(): InternalRow = {
         if (hasNext) {
-          logger.warn("next")
           val ret = nextRecord
           nextRecord = null
           ret

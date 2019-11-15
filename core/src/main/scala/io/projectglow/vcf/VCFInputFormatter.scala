@@ -19,6 +19,7 @@ package io.projectglow.vcf
 import java.io.OutputStream
 
 import scala.collection.JavaConverters._
+
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.catalyst.InternalRow
 
@@ -38,24 +39,19 @@ class VCFInputFormatter(
   private var stream: OutputStream = _
 
   override def init(stream: OutputStream): Unit = {
-    logger.warn("About to init")
     this.stream = stream
     this.writer = new VCFStreamWriter(
       stream,
       converter.vcfHeader.getMetaDataInInputOrder.asScala.toSet,
       providedSampleIds,
       writeHeader = true)
-    logger.warn("Done init")
   }
 
   override def write(record: InternalRow): Unit = {
-    logger.warn("About to write")
     converter.convert(record).foreach(writer.write)
-    logger.warn("Done write")
   }
 
   override def close(): Unit = {
-    logger.info("Closing VCF input formatter")
     writer.close()
   }
 }
