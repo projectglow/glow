@@ -19,7 +19,6 @@ package io.projectglow.vcf
 import java.io.OutputStream
 
 import scala.collection.JavaConverters._
-
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.catalyst.InternalRow
 
@@ -48,11 +47,7 @@ class VCFInputFormatter(
   }
 
   override def write(record: InternalRow): Unit = {
-    val vcOpt = converter.convert(record)
-    if (vcOpt.isDefined) {
-      val vc = vcOpt.get
-      writer.write(vc)
-    }
+    converter.convert(record).foreach(writer.write)
   }
 
   override def close(): Unit = {

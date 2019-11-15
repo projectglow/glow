@@ -19,10 +19,10 @@ package io.projectglow.vcf
 import java.io.InputStream
 
 import htsjdk.samtools.ValidationStringency
-import htsjdk.tribble.readers.{AsciiLineReader, AsciiLineReaderIterator}
+import htsjdk.tribble.readers.{LineIteratorImpl => HtsjdkLineIteratorImpl, SynchronousLineReader}
 import htsjdk.variant.vcf.{VCFCodec, VCFHeader}
+
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.UnsafeProjection
 
 import io.projectglow.common.GlowLogging
 import io.projectglow.transformers.pipe.{OutputFormatter, OutputFormatterFactory}
@@ -30,7 +30,7 @@ import io.projectglow.transformers.pipe.{OutputFormatter, OutputFormatterFactory
 class VCFOutputFormatter extends OutputFormatter with GlowLogging {
   override def makeIterator(stream: InputStream): Iterator[Any] = {
     val codec = new VCFCodec
-    val lineIterator = new AsciiLineReaderIterator(AsciiLineReader.from(stream))
+    val lineIterator = new HtsjdkLineIteratorImpl(new SynchronousLineReader(stream))
     if (!lineIterator.hasNext) {
       return Iterator.empty
     }
@@ -40,8 +40,7 @@ class VCFOutputFormatter extends OutputFormatter with GlowLogging {
       new VariantContextToInternalRowConverter(header, schema, ValidationStringency.LENIENT)
 
     val internalRowIter: Iterator[InternalRow] = new Iterator[InternalRow] {
-      private val projection = UnsafeProjection.create(schema)
-      private var nextRecord: InternalRow = null
+      private var nextRecord: InternalRow = _
       private def readNextVc(): Unit = {
         while (nextRecord == null && lineIterator.hasNext) {
           val decoded = codec.decode(lineIterator.next())
@@ -57,8 +56,7 @@ class VCFOutputFormatter extends OutputFormatter with GlowLogging {
       }
 
       override def next(): InternalRow = {
-        readNextVc()
-        if (nextRecord != null) {
+        if (hasNext) {
           val ret = nextRecord
           nextRecord = null
           ret

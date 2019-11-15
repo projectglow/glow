@@ -22,12 +22,13 @@ import java.util.concurrent.atomic.AtomicReference
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.io.Source
-
 import org.apache.spark.TaskContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SQLUtils, SparkSession}
+import org.apache.spark.storage.StorageLevel
+
 import io.projectglow.common.GlowLogging
 
 /**
@@ -70,7 +71,7 @@ private[projectglow] object Piper extends GlowLogging {
       .mapPartitions { it =>
         new PipeIterator(cmd, env, it, informatter, outputformatter)
       }
-      .cache()
+      .persist(StorageLevel.MEMORY_AND_DISK)
 
     cachedRdds.synchronized {
       cachedRdds.append(schemaInternalRowRDD)
@@ -115,7 +116,7 @@ private[projectglow] class ProcessHelper(
     environment.foreach { case (k, v) => pbEnv.put(k, v) }
     process = pb.start()
 
-    new Thread(s"${ProcessHelper.STDIN_WRITER_THREAD_PREFIX} for $cmd") {
+    val stdinWriterThread = new Thread(s"${ProcessHelper.STDIN_WRITER_THREAD_PREFIX} for $cmd") {
       override def run(): Unit = {
         SQLUtils.setTaskContext(context)
         val out = process.getOutputStream
@@ -127,9 +128,10 @@ private[projectglow] class ProcessHelper(
           out.close()
         }
       }
-    }.start()
+    }
+    stdinWriterThread.start()
 
-    new Thread(s"${ProcessHelper.STDERR_READER_THREAD_PREFIX} for $cmd") {
+    val stderrReaderThread = new Thread(s"${ProcessHelper.STDERR_READER_THREAD_PREFIX} for $cmd") {
       override def run(): Unit = {
         val err = process.getErrorStream
         try {
@@ -145,7 +147,21 @@ private[projectglow] class ProcessHelper(
           err.close()
         }
       }
-    }.start()
+    }
+    stderrReaderThread.start()
+
+    context.addTaskCompletionListener[Unit] { _ =>
+      if (process.isAlive) {
+        process.destroy()
+      }
+
+      if (stdinWriterThread.isAlive) {
+        stdinWriterThread.interrupt()
+      }
+      if (stderrReaderThread.isAlive) {
+        stderrReaderThread.interrupt()
+      }
+    }
 
     new BufferedInputStream(process.getInputStream)
   }
