@@ -5,7 +5,7 @@ Liftover
 LiftOver converts genomic data between reference assemblies. The `UCSC liftOver tool`_  uses a `chain file`_ to
 perform simple coordinate conversion, for example on `BED files`_. The `Picard LiftOverVcf tool`_ also uses the new
 `reference assembly file`_ to transform variant information (eg. alleles and INFO fields).
-Glow can be used to run `coordinate liftover`_ and `variant liftover`_.
+Glow can be used to run `coordinate liftOver`_ and `variant liftOver`_.
 
 .. _`UCSC liftOver tool`: https://genome.ucsc.edu/cgi-bin/hgLiftOver
 .. _`chain file`: https://genome.ucsc.edu/goldenPath/help/chain.html
@@ -16,8 +16,8 @@ Glow can be used to run `coordinate liftover`_ and `variant liftover`_.
 Create a liftOver cluster
 ==========================
 
-For both coordinate and variant liftover, you need a chain file on every node of the cluster. On a Databricks cluster, here is an example of a 
-`cluster-scoped init script <https://docs.azuredatabricks.net/clusters/init-scripts.html#cluster-scoped-init-scripts>`_ you can use to download the required file for liftover
+For both coordinate and variant liftOver, you need a chain file on every node of the cluster. On a Databricks cluster, here is an example of a 
+`cluster-scoped init script <https://docs.azuredatabricks.net/clusters/init-scripts.html#cluster-scoped-init-scripts>`_ you can use to download the required file for liftOver
 from the b37 to the hg38 reference assembly is as follows:
 
 .. code-block:: bash
@@ -28,10 +28,10 @@ from the b37 to the hg38 reference assembly is as follows:
     mkdir /opt/liftover
     curl https://raw.githubusercontent.com/broadinstitute/gatk/master/scripts/funcotator/data_sources/gnomAD/b37ToHg38.over.chain --output /opt/liftover/b37ToHg38.over.chain
 
-Coordinate liftover
+Coordinate liftOver
 ====================
 
-To perform liftover for genomic coordinates, use the function ``lift_over_coordinates``. ``lift_over_coordinates``, which has
+To perform liftOver for genomic coordinates, use the function ``lift_over_coordinates``. ``lift_over_coordinates``, which has
 the following parameters.
 
 - chromosome: ``string``
@@ -40,7 +40,7 @@ the following parameters.
 - chain file: ``string`` (constant value, such as one created with ``lit()``)
 - minimum fraction of bases that must remap: ``double`` (optional, defaults to ``.95``)
 
-The returned ``struct`` has the following values if liftover succeeded. If not, the function returns ``null``.
+The returned ``struct`` has the following values if liftOver succeeded. If not, the function returns ``null``.
 
 - ``contigName``: ``string``
 - ``start``: ``long``
@@ -64,7 +64,7 @@ coordinates, variant liftOver performs the following transformations:
   been swapped in the new genome build
 
 Pull a target assembly reference file down to every node in the Spark cluster in addition to a chain file before
-performing variant liftover.
+performing variant liftOver.
 
 The ``lift_over_variants`` transformer operates on a DataFrame containing genetic variants and supports the following
 options:
@@ -96,9 +96,9 @@ The output DataFrame's schema consists of the input DataFrame's schema with the 
    * ``success``: ``boolean`` (true if liftOver succeeded, false otherwise)
    * ``errorMessage``: ``string`` (null if liftOver succeeded, message describing reason for liftOver failure otherwise)
 
-If liftOver succeeds, the output row contains the liftover result and ``liftOverStatus.success`` is true.
+If liftOver succeeds, the output row contains the liftOver result and ``liftOverStatus.success`` is true.
 If liftOver fails, the output row contains the original input row, the additional ``INFO`` fields are null,
-``liftOverStatus.success`` is false, and ``liftOverStatus.errorMessage`` contains the reason liftover failed.
+``liftOverStatus.success`` is false, and ``liftOverStatus.errorMessage`` contains the reason liftOver failed.
 
 .. code-block:: py
 
