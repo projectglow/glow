@@ -72,7 +72,7 @@ private[projectglow] object Piper extends GlowLogging {
       .mapPartitions { it =>
         new PipeIterator(cmd, env, it, informatter, outputformatter)
       }
-      .persist(StorageLevel.DISK_ONLY)
+    //.persist(StorageLevel.DISK_ONLY)
 
     System.err.println(schemaInternalRowRDD.toDebugString)
 
