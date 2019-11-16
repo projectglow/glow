@@ -19,7 +19,7 @@ package io.projectglow.vcf
 import java.io.InputStream
 
 import htsjdk.samtools.ValidationStringency
-import htsjdk.tribble.readers.{AsciiLineReader, AsciiLineReaderIterator, SynchronousLineReader, LineIteratorImpl => HtsjdkLineIteratorImpl}
+import htsjdk.tribble.readers.{SynchronousLineReader, LineIteratorImpl => HtsjdkLineIteratorImpl}
 import htsjdk.variant.vcf.{VCFCodec, VCFHeader}
 import org.apache.spark.sql.catalyst.InternalRow
 
@@ -32,7 +32,7 @@ class VCFOutputFormatter(stringency: ValidationStringency)
 
   override def makeIterator(stream: InputStream): Iterator[Any] = {
     val codec = new VCFCodec
-    val lineIterator = new AsciiLineReaderIterator(AsciiLineReader.from(stream)) // new HtsjdkLineIteratorImpl(new SynchronousLineReader(stream))
+    val lineIterator = new HtsjdkLineIteratorImpl(new SynchronousLineReader(stream))
     if (!lineIterator.hasNext) {
       return Iterator.empty
     }

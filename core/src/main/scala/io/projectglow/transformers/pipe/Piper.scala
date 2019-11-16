@@ -22,6 +22,7 @@ import java.util.concurrent.atomic.AtomicReference
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.io.Source
+
 import org.apache.spark.TaskContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
@@ -71,7 +72,6 @@ private[projectglow] object Piper extends GlowLogging {
       .mapPartitions { it =>
         new PipeIterator(cmd, env, it, informatter, outputformatter)
       }
-      .cache() // .persist(StorageLevel.MEMORY_AND_DISK)
 
     cachedRdds.synchronized {
       cachedRdds.append(schemaInternalRowRDD)
@@ -149,19 +149,6 @@ private[projectglow] class ProcessHelper(
       }
     }
     stderrReaderThread.start()
-
-//    context.addTaskCompletionListener[Unit] { _ =>
-//      if (process.isAlive) {
-//        process.destroy()
-//      }
-//
-//      if (stdinWriterThread.isAlive) {
-//        stdinWriterThread.interrupt()
-//      }
-//      if (stderrReaderThread.isAlive) {
-//        stderrReaderThread.interrupt()
-//      }
-//    }
 
     new BufferedInputStream(process.getInputStream)
   }
