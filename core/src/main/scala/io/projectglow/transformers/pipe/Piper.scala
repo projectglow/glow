@@ -74,7 +74,7 @@ private[projectglow] object Piper extends GlowLogging {
       }
       .persist(StorageLevel.DISK_ONLY)
 
-    logger.warn(schemaInternalRowRDD.toDebugString)
+    System.err.println(schemaInternalRowRDD.toDebugString)
 
     cachedRdds.synchronized {
       cachedRdds.append(schemaInternalRowRDD)
