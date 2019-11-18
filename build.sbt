@@ -73,7 +73,7 @@ lazy val dependencies = Seq(
   "org.slf4j" % "slf4j-api" % "1.7.25",
   "org.slf4j" % "slf4j-log4j12" % "1.7.25",
   "org.jdbi" % "jdbi" % "2.63.1",
-  "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2",
+  "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
   // Exclude extraneous GATK dependencies
   ("org.broadinstitute" % "gatk" % "4.0.11.0")
     .exclude("biz.k11i", "xgboost-predictor")
