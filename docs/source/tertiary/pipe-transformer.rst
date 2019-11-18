@@ -8,10 +8,6 @@ utility called the Pipe Transformer to process Spark DataFrames with command-lin
 Python usage
 ============
 
-.. note::
-
-  The Pipe Transformer requires Python 3.
-
 Consider a minimal case with a DataFrame containing a single column of strings. You can use the Pipe
 Transformer to reverse each of the strings in the input DataFrame using the ``rev`` Linux command:
 
@@ -21,13 +17,13 @@ Transformer to reverse each of the strings in the input DataFrame using the ``re
 
   # Create a text-only DataFrame
   df = spark.createDataFrame([['foo'], ['bar'], ['baz']], ['value'])
-  display(glow.transform('pipe', df, cmd='["rev"]', inputformatter='text', outputformatter='text'))
+  display(glow.transform('pipe', df, cmd='["rev"]', input_formatter='text', output_formatter='text'))
 
 The options in this example demonstrate how to control the basic behavior of the transformer:
 
   - ``cmd`` is a JSON-encoded array that contains the command to invoke the program
-  - ``inputformatter`` defines how each input row should be passed to the program
-  - ``outputformatter`` defines how the program output should be converted into a new DataFrame
+  - ``input_formatter`` defines how each input row should be passed to the program
+  - ``output_formatter`` defines how the program output should be converted into a new DataFrame
 
 The input DataFrame can come from any Spark data source --- Delta, Parquet, VCF, BGEN, and so on.
 
@@ -49,9 +45,9 @@ partition of the input DataFrame as VCF by choosing ``vcf`` as the input and out
     'pipe',
     df,
     cmd='["grep", "-v", "#INFO"]',
-    inputformatter='vcf',
-    in_vcfheader='infer',
-    outputformatter='vcf'
+    input_formatter='vcf',
+    in_vcf_header='infer',
+    output_formatter='vcf'
   )
 
 When you use the VCF input formatter, you must specify a method to determine the VCF header. The
@@ -69,10 +65,10 @@ String]``.
   import io.projectglow.Glow
 
   Glow.transform("pipe", df, Map(
-    "cmd" -> "[\"grep\", \"-v\", \"#INFO\"]"
+    "cmd" -> "[\"grep\", \"-v\", \"#INFO\"]",
     "inputFormatter" -> "vcf",
     "outputFormatter" -> "vcf",
-    "in_vcfHeader" -> "infer")
+    "inVcfHeader" -> "infer")
   )
 
 .. _transformer-options:
@@ -82,27 +78,29 @@ Options
 
 Option keys and values are always strings. From Python, you provide options through the ``arg_map``
 argument or as keyword args. From Scala, you provide options as a ``Map[String, String]``.
-Option names are case insensitive; for example ``inputFormatter``, ``inputformatter``, and ``INPUTFORMATTER`` are all equivalent.
+You can specify option names in snake or camel case; for example ``inputFormatter``, 
+``input_formatter``, and ``InputFormatter`` are all equivalent.
 
 .. list-table::
   :header-rows: 1
 
   * - Option
     - Description
-  * - cmd
+  * - ``cmd``
     - The command, specified as an array of strings, to invoke the piped program. The program's stdin
       receives the formatted contents of the input DataFrame, and the output DataFrame is
       constructed from its stdout. The stderr stream will appear in the executor logs.
-  * - inputFormatter
+  * - ``input_formatter``
     - Converts the input DataFrame to a format that the piped program understands. Built-in
       input formatters are ``text``, ``csv``, and ``vcf``.
-  * - outputFormatter
+  * - ``output_formatter``
     - Converts the output of the piped program back into a DataFrame. Built-in output
       formatters are ``text``, ``csv``, and ``vcf``.
-  * - env_*
-    - Options beginning with ``env_`` are interpreted as environment variables. For example,
-      providing the option ``env_ANIMAL=MONKEY`` results in an environment variable with key
-      ``ANIMAL`` and value ``MONKEY`` being provided to the piped program.
+  * - ``env_*``
+    - Options beginning with ``env_`` are interpreted as environment variables. Like other options,
+      the environment variable name is converted to lower snake case. For example,
+      providing the option ``env_aniMal=MONKEY`` results in an environment variable with key
+      ``ani_mal`` and value ``MONKEY`` being provided to the piped program.
 
 Some of the input and output formatters take additional options.
 
@@ -113,7 +111,7 @@ VCF input formatter:
 
   * - Option
     - Description
-  * - in_vcfheader
+  * - ``in_vcf_header``
     - How to determine a VCF header from the input DataFrame. Possible values:
 
       * ``infer``: Derive a VCF header from the DataFrame schema.
