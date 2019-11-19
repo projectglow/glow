@@ -15,8 +15,18 @@
 	<a href="https://join.slack.com/t/proj-glow/shared_invite/enQtNzkwNDE4MzMwMTk5LTE2M2JiMjQ1ZDgyYWNkZTFiY2QyYWE0NGI2YWY3ODY3NmEwNmU5OGQzODcxMDBlYzY2YmYzOGM1YTcyYTRhYjA">Slack</a>
 </p>
 
-Glow is an open-source toolkit for working with genomic data at biobank-scale and beyond. The
-toolkit is natively built on Apache Spark and Apache Spark SQL.
+Glow is an open-source toolkit for working with genomic data at biobank-scale and beyond.
+
+# Easy to get started
+If you’ve used Spark before, you don’t need to learn any new APIs to get started with Glow. The
+toolkit includes the building blocks that you need to perform the most common analyses right away:
+
+- Datasources for loading VCF and BGEN files into Spark DataFrames
+- Functions for performing quality control and data manipulation
+- Variant normalization and lift over
+- Regression functions
+- Integration with Spark ML libraries for population stratification
+- Utilities for piping DataFrames through command line tools
 
 # Built to scale
 Glow makes genomic data work with Spark SQL, the leading engine for working with large structured
@@ -29,17 +39,6 @@ standards. You can write queries using the native Spark SQL APIs in Python, SQL,
 The same APIs allow you to bring your genomic data together with other datasets like electronic
 health records, real world evidence, and medical images. Glow makes it easy to parallelize existing
 tools and libraries implemented as command line tools or Pandas functions.
-
-# Easy to get started
-If you’ve used Spark before, you don’t need to learn any new APIs to get started with Glow. The
-toolkit includes the building blocks that you need to perform the most common analyses right away:
-
-- Datasources for loading VCF and BGEN files into Spark DataFrames
-- Functions for performing quality control and data manipulation
-- Variant normalization and lift over
-- Regression functions
-- Integration with Spark ML libraries for population stratification
-- Utilities for piping DataFrames through command line tools
 
 [![CircleCI](https://circleci.com/gh/projectglow/glow.svg?style=svg&circle-token=7511f70b2c810a18e88b5c537b0410e82db8617d)](https://circleci.com/gh/projectglow/glow)
 [![Documentation
