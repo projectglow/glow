@@ -11,7 +11,7 @@
   <a href="https://github.com/projectglow/glow/issues">Issues</a>
   ·
   <a href="https://groups.google.com/forum/#!forum/proj-glow">Mailing list</a>
-	.
+  ·
 	<a href="https://join.slack.com/t/proj-glow/shared_invite/enQtNzkwNDE4MzMwMTk5LTE2M2JiMjQ1ZDgyYWNkZTFiY2QyYWE0NGI2YWY3ODY3NmEwNmU5OGQzODcxMDBlYzY2YmYzOGM1YTcyYTRhYjA">Slack</a>
 </p>
 
