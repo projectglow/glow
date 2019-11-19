@@ -21,6 +21,7 @@ import java.util.concurrent.locks.Lock
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.Dataset
+import org.apache.spark.storage.StorageLevel
 
 import scala.util.control.NonFatal
 
@@ -71,7 +72,7 @@ object WithUtils {
   }
 
   def withCachedRDD[T, U](rdd: RDD[T])(f: RDD[T] => U): U = {
-    rdd.cache()
+    rdd.persist(StorageLevel.MEMORY_AND_DISK)
     try {
       f(rdd)
     } finally {
@@ -80,7 +81,7 @@ object WithUtils {
   }
 
   def withCachedDataset[T, U](ds: Dataset[T])(f: Dataset[T] => U): U = {
-    ds.cache()
+    ds.persist(StorageLevel.MEMORY_AND_DISK)
     try {
       f(ds)
     } finally {
