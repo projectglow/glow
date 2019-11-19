@@ -1,11 +1,11 @@
 <p align="center">
-  <img src="static/glow_logo_horiz_color.png" width="140"/>
+  <img src="static/glow_logo_horiz_color.png" width="300px"/>
 </p>
 
 <p align="center">
 	An open-source toolkit for large-scale genomic analyes
   <br/>
-  <a href="https://glow.readthedocs.io/en/latest/?badge=latest"><strong>Explore Koalas docs »</strong></a>
+  <a href="https://glow.readthedocs.io/en/latest/?badge=latest"><strong>Explore the docs »</strong></a>
   <br/>
   <br/>
   <a href="https://github.com/projectglow/glow/issues">Issues</a>
