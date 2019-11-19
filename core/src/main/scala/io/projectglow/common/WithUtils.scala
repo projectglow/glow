@@ -72,7 +72,7 @@ object WithUtils {
   }
 
   def withCachedRDD[T, U](rdd: RDD[T])(f: RDD[T] => U): U = {
-    rdd.persist(StorageLevel.MEMORY_AND_DISK)
+    rdd.persist(StorageLevel.DISK_ONLY)
     try {
       f(rdd)
     } finally {
@@ -81,7 +81,7 @@ object WithUtils {
   }
 
   def withCachedDataset[T, U](ds: Dataset[T])(f: Dataset[T] => U): U = {
-    ds.persist(StorageLevel.MEMORY_AND_DISK)
+    ds.persist(StorageLevel.DISK_ONLY)
     try {
       f(ds)
     } finally {
