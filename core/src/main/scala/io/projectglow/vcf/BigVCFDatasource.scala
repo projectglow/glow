@@ -18,6 +18,7 @@ package io.projectglow.vcf
 
 import java.io.ByteArrayOutputStream
 
+import htsjdk.variant.variantcontext.writer.{Options, VariantContextWriter, VariantContextWriterBuilder}
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress.CompressionCodecFactory
 import org.apache.spark.rdd.RDD
@@ -25,7 +26,6 @@ import org.apache.spark.SparkException
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.sources.DataSourceRegister
 import org.seqdoop.hadoop_bam.util.DatabricksBGZFOutputStream
-
 import io.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
 import io.projectglow.sql.BigFileDatasource
 import io.projectglow.sql.util.{ComDatabricksDataSource, SerializableConfiguration}
@@ -71,13 +71,12 @@ object BigVCFDatasource extends HlsUsageLogging {
         DatabricksBGZFOutputStream.setWriteEmptyBlockOnClose(outputStream, idx == nParts - 1)
 
         // Write the header if this is the first nonempty partition
-        val writer = new VCFFileWriter(
-          options,
-          dSchema,
-          conf,
-          outputStream,
-          (firstNonemptyPartition == -1 || idx == firstNonemptyPartition)
-        )
+
+        val writer = if (firstNonemptyPartition == -1) {
+          new VCFFileWriter(options, dSchema, conf, outputStream, true)
+        } else {
+          new VCFFileWriter(options, dSchema, conf, outputStream, idx == firstNonemptyPartition)
+        }
 
         it.foreach { row =>
           writer.write(row)
