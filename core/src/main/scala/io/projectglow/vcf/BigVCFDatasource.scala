@@ -61,7 +61,8 @@ object BigVCFDatasource extends HlsUsageLogging {
         throw new SparkException("Cannot infer header for empty VCF.")
       }
       if (nParts == 0) {
-        throw new SparkException("Cannot write vcf because the DataFrame has zero partitions. " +
+        throw new SparkException(
+          "Cannot write vcf because the DataFrame has zero partitions. " +
           "Repartition to a positive number of partitions if you want to just write the header")
       }
     }
