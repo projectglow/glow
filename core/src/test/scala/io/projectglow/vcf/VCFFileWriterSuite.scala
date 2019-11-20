@@ -36,7 +36,7 @@ import io.projectglow.common.{VCFRow, WithUtils}
 import io.projectglow.sql.GlowBaseTest
 
 abstract class VCFFileWriterSuite(val sourceName: String)
-    extends GlowBaseTest
+  extends GlowBaseTest
     with VCFConverterBaseTest {
 
   lazy val NA12878 = s"$testDataHome/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf"
@@ -56,11 +56,11 @@ abstract class VCFFileWriterSuite(val sourceName: String)
   }
 
   private def writeAndRereadWithDBParser(
-      vcf: String,
-      readSampleIds: Boolean = true,
-      rereadSampleIds: Boolean = true,
-      schemaOption: (String, String),
-      partitions: Option[Int] = None): (DataFrame, DataFrame) = {
+                                          vcf: String,
+                                          readSampleIds: Boolean = true,
+                                          rereadSampleIds: Boolean = true,
+                                          schemaOption: (String, String),
+                                          partitions: Option[Int] = None): (DataFrame, DataFrame) = {
 
     val tempFile = createTempVcf.toString
 
@@ -377,7 +377,13 @@ abstract class VCFFileWriterSuite(val sourceName: String)
       .format(readSourceName)
       .option("vcfRowSchema", true)
       .load(tempFile)
+
     assert(rewrittenDs.collect.isEmpty)
+
+    val truthHeader = VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, NA12878)
+    val writtenHeader = VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, tempFile)
+
+    assert(truthHeader.getMetaDataInInputOrder.equals(writtenHeader.getMetaDataInInputOrder))
   }
 }
 
@@ -422,7 +428,7 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
       // Empty gzip block only occurs once
       assert(
         bytes.indexOfSlice(BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK) ==
-        bytes.lastIndexOfSlice(BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK)
+          bytes.lastIndexOfSlice(BlockCompressedStreamConstants.EMPTY_GZIP_BLOCK)
       )
 
       // Empty gzip block is at end of file
@@ -473,9 +479,9 @@ class VCFWriterUtilsSuite extends GlowBaseTest {
   lazy val schema = spark.read.format("vcf").load(vcf).schema
 
   private def getHeaderNoSamples(
-      options: Map[String, String],
-      defaultOpt: Option[String],
-      schema: StructType): VCFHeader = {
+                                  options: Map[String, String],
+                                  defaultOpt: Option[String],
+                                  schema: StructType): VCFHeader = {
     val (headerLines, _) = VCFFileWriter.parseHeaderLinesAndSamples(
       options,
       defaultOpt,
@@ -490,10 +496,10 @@ class VCFWriterUtilsSuite extends GlowBaseTest {
 
   private def getAllLines(header: VCFHeader): Set[VCFHeaderLine] = {
     header.getContigLines.asScala.toSet ++
-    header.getFilterLines.asScala.toSet ++
-    header.getFormatHeaderLines.asScala.toSet ++
-    header.getInfoHeaderLines.asScala.toSet ++
-    header.getOtherHeaderLines.asScala.toSet
+      header.getFilterLines.asScala.toSet ++
+      header.getFormatHeaderLines.asScala.toSet ++
+      header.getInfoHeaderLines.asScala.toSet ++
+      header.getOtherHeaderLines.asScala.toSet
   }
 
   test("fall back") {
@@ -514,7 +520,7 @@ class VCFWriterUtilsSuite extends GlowBaseTest {
     val header = getHeaderNoSamples(Map("vcfHeader" -> vcf), None, schema)
     assert(
       getAllLines(header) ==
-      getAllLines(VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, vcf)))
+        getAllLines(VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, vcf)))
   }
 
   test("use literal header") {
@@ -525,7 +531,7 @@ class VCFWriterUtilsSuite extends GlowBaseTest {
         |##contig=<ID=monkey,length=42>
         |##source=DatabricksIsCool
         |""".stripMargin.trim + // write CHROM line by itself to preserve tabs
-      "\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tNA12878\n"
+        "\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tNA12878\n"
 
     val header = getHeaderNoSamples(Map("vcfHeader" -> contents), None, schema)
     val parsed = VCFFileWriter.parseHeaderFromString(contents)
