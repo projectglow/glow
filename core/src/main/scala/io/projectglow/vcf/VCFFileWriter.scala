@@ -56,9 +56,6 @@ object VCFFileWriter extends GlowLogging {
 
   /**
    * Returns VCF header lines and sample IDs (if provided) based on the VCF header option.
-   * If inferring header lines from the schema or using default header lines, no sample IDs can
-   * be returned.
-   * If reading a VCF header from a string or a file, the sample IDs are returned.
    */
   @VisibleForTesting
   private[projectglow] def parseHeaderLinesAndSamples(
@@ -73,7 +70,12 @@ object VCFFileWriter extends GlowLogging {
     options.getOrElse(VCF_HEADER_KEY, defaultHeader.get) match {
       case INFER_HEADER =>
         logger.info("Inferring header for VCF writer")
-        (VCFSchemaInferrer.headerLinesFromSchema(schema).toSet, None)
+        val headerLines = VCFSchemaInferrer.headerLinesFromSchema(schema).toSet
+        if (options.contains("inferredSamples")) {
+          (headerLines, Some(options("inferredSamples").split("\t")))
+        } else {
+          (headerLines, None)
+        }
       case content if isCustomHeader(content) =>
         logger.info("Using provided string as VCF header")
         val header = VCFFileWriter.parseHeaderFromString(content)

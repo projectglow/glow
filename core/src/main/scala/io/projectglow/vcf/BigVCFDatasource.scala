@@ -58,7 +58,19 @@ object BigVCFDatasource extends HlsUsageLogging {
         .contains(VCFFileWriter.INFER_HEADER))) {
       throw new SparkException("Cannot infer header for empty VCF.")
     }
-    rdd.mapPartitionsWithIndex {
+
+    import data.sparkSession.implicits._
+    val inferredSamples =
+      data
+        .select("genotypes.sampleId")
+        .as[Array[String]]
+        .distinct()
+        .collect
+        .flatten
+        .distinct
+        .mkString("\t")
+
+    val samplesAndByteArrays = rdd.mapPartitionsWithIndex {
       case (idx, it) =>
         val conf = serializableConf.value
         val codec = new CompressionCodecFactory(conf)
@@ -72,7 +84,12 @@ object BigVCFDatasource extends HlsUsageLogging {
 
         // Write the header if this is the first nonempty partition
         val writer =
-          new VCFFileWriter(options, dSchema, conf, outputStream, idx == firstNonemptyPartition)
+          new VCFFileWriter(
+            options + ("inferredSamples" -> inferredSamples),
+            dSchema,
+            conf,
+            outputStream,
+            idx == firstNonemptyPartition)
 
         it.foreach { row =>
           writer.write(row)

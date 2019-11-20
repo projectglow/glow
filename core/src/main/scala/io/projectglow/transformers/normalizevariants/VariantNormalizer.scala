@@ -21,7 +21,6 @@ import java.nio.file.Paths
 
 import scala.collection.JavaConverters._
 import scala.math.min
-
 import com.google.common.annotations.VisibleForTesting
 import htsjdk.samtools.ValidationStringency
 import htsjdk.variant.variantcontext._
@@ -31,9 +30,8 @@ import org.broadinstitute.hellbender.engine.{ReferenceContext, ReferenceDataSour
 import org.broadinstitute.hellbender.tools.walkers.genotyper.GenotypeAssignmentMethod
 import org.broadinstitute.hellbender.utils.SimpleInterval
 import org.broadinstitute.hellbender.utils.variant.GATKVariantContextUtils
-
 import io.projectglow.common.GlowLogging
-import io.projectglow.vcf.{InternalRowToVariantContextConverter, VCFFileWriter, VariantContextToInternalRowConverter}
+import io.projectglow.vcf.{InternalRowToVariantContextConverter, VCFFileWriter, VCFSchemaInferrer, VariantContextToInternalRowConverter}
 
 private[projectglow] object VariantNormalizer extends GlowLogging {
 
@@ -65,16 +63,7 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
     }
 
     val schema = df.schema
-
-    val headerLineSet =
-      VCFFileWriter
-        .parseHeaderLinesAndSamples(
-          Map("vcfHeader" -> "infer"),
-          None,
-          schema,
-          df.sparkSession.sparkContext.hadoopConfiguration
-        )
-        ._1
+    val headerLineSet = VCFSchemaInferrer.headerLinesFromSchema(schema).toSet
 
     // flatmap InternalRows to (optionally split) normalized rows; coverts each InternalRow to a
     // VariantContext, performs splitting and normalization on the VariantContext, converts it
