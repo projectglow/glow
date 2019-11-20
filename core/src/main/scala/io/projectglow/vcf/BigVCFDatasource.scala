@@ -49,6 +49,8 @@ object BigVCFDatasource extends HlsUsageLogging {
     val nParts = rdd.getNumPartitions
 
     if (nParts == 0) {
+
+
       throw new SparkException("The DataFrame is empty and has zero partitions. Cannot write vcf.")
     }
 
