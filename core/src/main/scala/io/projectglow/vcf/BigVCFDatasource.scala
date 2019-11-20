@@ -47,6 +47,11 @@ object BigVCFDatasource extends HlsUsageLogging {
     val rdd = data.queryExecution.toRdd
 
     val nParts = rdd.getNumPartitions
+
+    if (nParts == 0) {
+      throw new SparkException("The DataFrame is empty and has zero partitions. Cannot write vcf.")
+    }
+
     val conf = VCFFileFormat.hadoopConfWithBGZ(data.sparkSession.sparkContext.hadoopConfiguration)
     val serializableConf = new SerializableConfiguration(conf)
     val firstNonemptyPartition =
@@ -58,6 +63,7 @@ object BigVCFDatasource extends HlsUsageLogging {
         .contains(VCFFileWriter.INFER_HEADER))) {
       throw new SparkException("Cannot infer header for empty VCF.")
     }
+
     rdd.mapPartitionsWithIndex {
       case (idx, it) =>
         val conf = serializableConf.value
