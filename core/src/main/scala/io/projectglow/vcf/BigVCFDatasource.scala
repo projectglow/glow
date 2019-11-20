@@ -71,8 +71,13 @@ object BigVCFDatasource extends HlsUsageLogging {
         DatabricksBGZFOutputStream.setWriteEmptyBlockOnClose(outputStream, idx == nParts - 1)
 
         // Write the header if this is the first nonempty partition
-        val writer =
-          new VCFFileWriter(options, dSchema, conf, outputStream, idx == firstNonemptyPartition)
+        val writer = new VCFFileWriter(
+          options,
+          dSchema,
+          conf,
+          outputStream,
+          (firstNonemptyPartition == -1 || idx == firstNonemptyPartition)
+        )
 
         it.foreach { row =>
           writer.write(row)
