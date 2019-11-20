@@ -18,7 +18,6 @@ package io.projectglow.vcf
 
 import java.io.ByteArrayOutputStream
 
-import htsjdk.variant.variantcontext.writer.{Options, VariantContextWriter, VariantContextWriterBuilder}
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress.CompressionCodecFactory
 import org.apache.spark.rdd.RDD
@@ -26,6 +25,7 @@ import org.apache.spark.SparkException
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.sources.DataSourceRegister
 import org.seqdoop.hadoop_bam.util.DatabricksBGZFOutputStream
+
 import io.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
 import io.projectglow.sql.BigFileDatasource
 import io.projectglow.sql.util.{ComDatabricksDataSource, SerializableConfiguration}
@@ -49,8 +49,6 @@ object BigVCFDatasource extends HlsUsageLogging {
     val nParts = rdd.getNumPartitions
 
     if (nParts == 0) {
-
-
       throw new SparkException("The DataFrame is empty and has zero partitions. Cannot write vcf.")
     }
 
@@ -65,7 +63,6 @@ object BigVCFDatasource extends HlsUsageLogging {
         .contains(VCFFileWriter.INFER_HEADER))) {
       throw new SparkException("Cannot infer header for empty VCF.")
     }
-
     rdd.mapPartitionsWithIndex {
       case (idx, it) =>
         val conf = serializableConf.value
