@@ -108,6 +108,8 @@ exclude_patterns = []
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
 
+# Option for numbered figure referencing
+numfig = True
 
 # -- Options for HTML output -------------------------------------------------
 
