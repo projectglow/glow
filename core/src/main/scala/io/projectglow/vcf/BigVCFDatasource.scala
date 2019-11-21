@@ -63,29 +63,36 @@ object BigVCFDatasource extends HlsUsageLogging {
       throw new SparkException("Cannot infer header for empty VCF.")
     }
 
-    val vcfHeaderValue = if (options.getOrElse(
+    val extraInferredOptions = if (options.getOrElse(
         VCFFileWriter.VCF_HEADER_KEY,
         VCFFileWriter.INFER_HEADER) == VCFFileWriter.INFER_HEADER) {
       // If we have to infer the header (explicitly or implicitly), determine all of the samples in the DataFrame and
       // write the inferred header with the samples as a glob
       import data.sparkSession.implicits._
-      val inferredSamples =
+      val distinctSampleLists =
         data
           .select("genotypes.sampleId")
           .as[Array[String]]
           .distinct()
           .collect
-          .flatten
-          .distinct
-          .sorted
-      val inferredHeaderLines = VCFSchemaInferrer.headerLinesFromSchema(data.schema).toSet
-      VCFHeaderWriter.writeHeaderAsString(
-        new VCFHeader(inferredHeaderLines.asJava, inferredSamples.toList.asJava))
+      val maxNumMissingSamples = distinctSampleLists.map { sl =>
+        sl.count(_ == null)
+      }.max
+      val inferredSamples = distinctSampleLists
+        .flatten
+        .distinct
+        .dropWhile(_ == null)
+        .sorted
+      val maybeInferredSamples = if (inferredSamples.length > 0) {
+        Map("inferredSamples" -> inferredSamples.mkString("\t"))
+      } else {
+        Map.empty
+      }
+      Map("numMissingSamples" -> maxNumMissingSamples.toString) ++ maybeInferredSamples
     } else {
-      // Otherwise, use the provided header glob/path
-      options(VCFFileWriter.VCF_HEADER_KEY)
+      // Otherwise, use the provided options
+      Map.empty
     }
-    val vcfHeaderValueBc = data.sparkSession.sparkContext.broadcast(vcfHeaderValue)
 
     rdd.mapPartitionsWithIndex {
       case (idx, it) =>
@@ -102,7 +109,7 @@ object BigVCFDatasource extends HlsUsageLogging {
         // Write the header if this is the first nonempty partition
         val writer =
           new VCFFileWriter(
-            options + (VCFFileWriter.VCF_HEADER_KEY -> vcfHeaderValueBc.value),
+            options ++ extraInferredOptions,
             dSchema,
             conf,
             outputStream,

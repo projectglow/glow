@@ -71,8 +71,16 @@ object VCFFileWriter extends GlowLogging {
       case INFER_HEADER =>
         logger.info("Inferring header for VCF writer")
         val headerLines = VCFSchemaInferrer.headerLinesFromSchema(schema).toSet
-        if (options.contains("inferredSamples")) {
-          (headerLines, Some(options("inferredSamples").split("\t")))
+        if (options.contains("inferredSamples") || options.contains("numMissingSamples")) {
+          val inferredSamples =
+            options.get("inferredSamples").map(_.split("\t")).getOrElse(Array.empty)
+          val missingSamples = options
+            .get("numMissingSamples")
+            .map { n =>
+              Array.fill(n.toInt)("")
+            }
+            .getOrElse(Array.empty)
+          (headerLines, Some(inferredSamples ++ missingSamples))
         } else {
           (headerLines, None)
         }
