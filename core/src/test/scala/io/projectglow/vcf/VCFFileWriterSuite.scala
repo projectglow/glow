@@ -28,6 +28,7 @@ import htsjdk.samtools.util.{BlockCompressedInputStream, BlockCompressedStreamCo
 import htsjdk.variant.variantcontext.writer.VCFHeaderWriter
 import htsjdk.variant.vcf.{VCFCompoundHeaderLine, VCFHeader, VCFHeaderLine}
 import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.functions.expr
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.{SparkConf, SparkException}
 import org.bdgenomics.adam.rdd.ADAMContext._
@@ -397,6 +398,39 @@ class MultiFileVCFWriterSuite extends VCFFileWriterSuite("vcf") {
         .save(tempFile)
     )
   }
+
+  test("Fails if non-matching inferred sample IDs") {
+    val tempFile = createTempVcf.toString
+
+    // Samples: HG00096	HG00097	HG00099	HG00100	HG00101
+    val ds1 = spark
+      .read
+      .format(readSourceName)
+      .load(TGP)
+      .withColumn("subsetGenotypes", expr("slice(genotypes, 1, 5)"))
+      .drop("genotypes")
+      .withColumnRenamed("subsetGenotypes", "genotypes")
+
+    // Samples: HG00099	HG00100	HG00101	HG00102
+    val ds2 = spark
+      .read
+      .format(readSourceName)
+      .load(TGP)
+      .withColumn("subsetGenotypes", expr("slice(genotypes, 3, 4)"))
+      .drop("genotypes")
+      .withColumnRenamed("subsetGenotypes", "genotypes")
+
+    val ds = ds1.union(ds2).repartition(1)
+
+    val e = intercept[SparkException] {
+      ds.write
+        .option("vcfHeader", "infer")
+        .format(sourceName)
+        .save(tempFile)
+    }
+    assert(
+      e.getCause.getMessage.contains("Inferred VCF header is missing samples found in the data"))
+  }
 }
 
 class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
@@ -463,6 +497,60 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
 
     val rereadDs = spark.read.format("vcf").load(tempFile)
     assert(rereadDs.sort("start").collect sameElements ds.sort("start").collect)
+  }
+
+  test("Unions inferred sample IDs") {
+    val tempFile = createTempVcf.toString
+
+    // Samples: HG00096	HG00097	HG00099	HG00100	HG00101
+    val ds1 = spark
+      .read
+      .format(readSourceName)
+      .load(TGP)
+      .withColumn("subsetGenotypes", expr("slice(genotypes, 1, 5)"))
+      .drop("genotypes")
+      .withColumnRenamed("subsetGenotypes", "genotypes")
+
+    // Samples: HG00099	HG00100	HG00101	HG00102
+    val ds2 = spark
+      .read
+      .format(readSourceName)
+      .load(TGP)
+      .withColumn("subsetGenotypes", expr("slice(genotypes, 3, 4)"))
+      .drop("genotypes")
+      .withColumnRenamed("subsetGenotypes", "genotypes")
+
+    val ds = ds1.union(ds2)
+
+    // Should be written with all samples with no-calls if sample is missing
+    ds.write
+      .option("vcfHeader", "infer")
+      .format(sourceName)
+      .save(tempFile)
+
+    val rereadDs =
+      spark
+        .read
+        .format("vcf")
+        .load(tempFile)
+
+    val sess = spark
+    import sess.implicits._
+
+    val sampleIdRows = rereadDs.select("genotypes.sampleId").distinct().as[Seq[String]].collect
+    assert(sampleIdRows.length == 1)
+    assert(
+      sampleIdRows.head == Seq("HG00096", "HG00097", "HG00099", "HG00100", "HG00101", "HG00102"))
+
+    val calledRereadDs = rereadDs
+      .withColumn("calledGenotypes", expr("filter(genotypes, gt -> gt.calls[0] != -1)"))
+      .drop("genotypes")
+      .withColumnRenamed("calledGenotypes", "genotypes")
+
+    assert(
+      calledRereadDs.sort("genotypes.sampleId").collect sameElements ds
+        .sort("genotypes.sampleId")
+        .collect)
   }
 }
 
