@@ -428,6 +428,7 @@ class MultiFileVCFWriterSuite extends VCFFileWriterSuite("vcf") {
         .format(sourceName)
         .save(tempFile)
     }
+
     assert(
       e.getCause.getMessage.contains("Inferred VCF header is missing samples found in the data"))
   }
@@ -506,6 +507,7 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
     val ds1 = spark
       .read
       .format(readSourceName)
+      .option("vcfRowSchema", "true")
       .load(TGP)
       .withColumn("subsetGenotypes", expr("slice(genotypes, 1, 5)"))
       .drop("genotypes")
@@ -515,12 +517,35 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
     val ds2 = spark
       .read
       .format(readSourceName)
+      .option("vcfRowSchema", "true")
       .load(TGP)
       .withColumn("subsetGenotypes", expr("slice(genotypes, 3, 4)"))
       .drop("genotypes")
       .withColumnRenamed("subsetGenotypes", "genotypes")
 
-    val ds = ds1.union(ds2)
+    // 2 missing samples
+    val ds3 = spark
+      .read
+      .format(readSourceName)
+      .option("includeSampleIds", "false")
+      .option("vcfRowSchema", "true")
+      .load(TGP)
+      .withColumn("subsetGenotypes", expr("slice(genotypes, 1, 2)"))
+      .drop("genotypes")
+      .withColumnRenamed("subsetGenotypes", "genotypes")
+
+    // 1 missing sample
+    val ds4 = spark
+      .read
+      .format(readSourceName)
+      .option("includeSampleIds", "false")
+      .option("vcfRowSchema", "true")
+      .load(TGP)
+      .withColumn("subsetGenotypes", expr("slice(genotypes, 1, 1)"))
+      .drop("genotypes")
+      .withColumnRenamed("subsetGenotypes", "genotypes")
+
+    val ds = ds1.union(ds2).union(ds3).union(ds4)
 
     // Should be written with all samples with no-calls if sample is missing
     ds.write
@@ -531,7 +556,8 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
     val rereadDs =
       spark
         .read
-        .format("vcf")
+        .format(readSourceName)
+        .option("vcfRowSchema", "true")
         .load(tempFile)
 
     val sess = spark
@@ -540,17 +566,35 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
     val sampleIdRows = rereadDs.select("genotypes.sampleId").distinct().as[Seq[String]].collect
     assert(sampleIdRows.length == 1)
     assert(
-      sampleIdRows.head == Seq("HG00096", "HG00097", "HG00099", "HG00100", "HG00101", "HG00102"))
+      sampleIdRows.head == Seq(
+        "HG00096",
+        "HG00097",
+        "HG00099",
+        "HG00100",
+        "HG00101",
+        "HG00102",
+        "sample_1",
+        "sample_2"))
 
     val calledRereadDs = rereadDs
       .withColumn("calledGenotypes", expr("filter(genotypes, gt -> gt.calls[0] != -1)"))
       .drop("genotypes")
       .withColumnRenamed("calledGenotypes", "genotypes")
 
-    assert(
-      calledRereadDs.sort("genotypes.sampleId").collect sameElements ds
-        .sort("genotypes.sampleId")
-        .collect)
+    ds.as[VCFRow].collect.zip(calledRereadDs.as[VCFRow].collect).foreach {
+      case (vc1, vc2) =>
+        var missingSampleIdx = 0
+        val gtsWithSampleIds = vc1.genotypes.map { gt =>
+          if (gt.sampleId.isEmpty) {
+            missingSampleIdx += 1
+            gt.copy(sampleId = Some(s"sample_$missingSampleIdx"))
+          } else {
+            gt
+          }
+        }
+        val vc1WithSampleIds = vc1.copy(genotypes = gtsWithSampleIds)
+        assert(vc1WithSampleIds.equals(vc2), s"VC1 $vc1WithSampleIds VC2 $vc2")
+    }
   }
 }
 
