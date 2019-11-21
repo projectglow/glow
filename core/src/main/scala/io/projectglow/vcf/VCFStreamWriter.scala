@@ -78,12 +78,15 @@ class VCFStreamWriter(
 
     val maybeReplacedVC = maybeReplaceDefaultSampleIds(vc)
 
-    if (!header.getGenotypeSamples.containsAll(maybeReplacedVC.getSampleNamesOrderedByName)) {
-      throw new IllegalArgumentException("VCF header is missing samples found in the data.")
+    if (providedSampleIds.isEmpty && !header
+        .getGenotypeSamples
+        .containsAll(maybeReplacedVC.getSampleNamesOrderedByName)) {
+      throw new IllegalArgumentException(
+        "Inferred VCF header is missing samples found in the data; please provide a complete header or VCF file path.")
     }
 
     val vcBuilder = new VariantContextBuilder(maybeReplacedVC)
-    val iterator = maybeReplacedVC.getAttributes().entrySet().iterator()
+    val iterator = maybeReplacedVC.getAttributes.entrySet().iterator()
     while (iterator.hasNext) { // parse to string, then write,
       // otherwise the write messes up double precisions
       val entry = iterator.next()

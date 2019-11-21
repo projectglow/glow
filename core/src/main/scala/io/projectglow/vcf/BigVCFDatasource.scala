@@ -18,6 +18,10 @@ package io.projectglow.vcf
 
 import java.io.ByteArrayOutputStream
 
+import scala.collection.JavaConverters._
+
+import htsjdk.variant.vcf.VCFHeader
+import htsjdk.variant.variantcontext.writer.VCFHeaderWriter
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress.CompressionCodecFactory
 import org.apache.spark.rdd.RDD
@@ -59,18 +63,31 @@ object BigVCFDatasource extends HlsUsageLogging {
       throw new SparkException("Cannot infer header for empty VCF.")
     }
 
-    import data.sparkSession.implicits._
-    val inferredSamples =
-      data
-        .select("genotypes.sampleId")
-        .as[Array[String]]
-        .distinct()
-        .collect
-        .flatten
-        .distinct
-        .mkString("\t")
+    val vcfHeaderValue = if (options.getOrElse(
+        VCFFileWriter.VCF_HEADER_KEY,
+        VCFFileWriter.INFER_HEADER) == VCFFileWriter.INFER_HEADER) {
+      // If we have to infer the header (explicitly or implicitly), determine all of the samples in the DataFrame and
+      // write the inferred header with the samples as a glob
+      import data.sparkSession.implicits._
+      val inferredSamples =
+        data
+          .select("genotypes.sampleId")
+          .as[Array[String]]
+          .distinct()
+          .collect
+          .flatten
+          .distinct
+          .sorted
+      val inferredHeaderLines = VCFSchemaInferrer.headerLinesFromSchema(data.schema).toSet
+      VCFHeaderWriter.writeHeaderAsString(
+        new VCFHeader(inferredHeaderLines.asJava, inferredSamples.toList.asJava))
+    } else {
+      // Otherwise, use the provided header glob/path
+      options(VCFFileWriter.VCF_HEADER_KEY)
+    }
+    val vcfHeaderValueBc = data.sparkSession.sparkContext.broadcast(vcfHeaderValue)
 
-    val samplesAndByteArrays = rdd.mapPartitionsWithIndex {
+    rdd.mapPartitionsWithIndex {
       case (idx, it) =>
         val conf = serializableConf.value
         val codec = new CompressionCodecFactory(conf)
@@ -85,7 +102,7 @@ object BigVCFDatasource extends HlsUsageLogging {
         // Write the header if this is the first nonempty partition
         val writer =
           new VCFFileWriter(
-            options + ("inferredSamples" -> inferredSamples),
+            options + (VCFFileWriter.VCF_HEADER_KEY -> vcfHeaderValueBc.value),
             dSchema,
             conf,
             outputStream,
