@@ -366,15 +366,18 @@ abstract class VCFFileWriterSuite(val sourceName: String)
       .sparkContext
       .emptyRDD[VCFRow]
       .toDS
+      .repartition(1)
       .write
       .option("vcfHeader", NA12878)
       .format(sourceName)
       .save(tempFile)
+
     val rewrittenDs = spark
       .read
       .format(readSourceName)
       .option("vcfRowSchema", true)
       .load(tempFile)
+
     assert(rewrittenDs.collect.isEmpty)
   }
 }
