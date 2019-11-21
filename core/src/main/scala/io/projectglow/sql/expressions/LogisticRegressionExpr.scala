@@ -47,7 +47,9 @@ case class LogisticRegressionExpr(
     .logitTests
     .getOrElse(
       test.eval().asInstanceOf[UTF8String].toString,
-      throw new IllegalArgumentException("Supported tests are currently: LRT"))
+      throw new IllegalArgumentException(
+        s"Supported tests are currently: ${LogisticRegressionGwas.logitTests.keys.mkString(", ")}")
+    )
 
   override def dataType: DataType = logitTest.resultSchema
 

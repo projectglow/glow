@@ -226,7 +226,7 @@ class LogisticRegressionSuite extends GlowBaseTest {
     TestDataAndGoldenStats(gtsAndCovariates, gtsAndCovariatesStats)
   )
 
-  private def compareLRTStats(s1: LogitTestResults, s2: LogitTestResults): Unit = {
+  private def compareLogitTestResults(s1: LogitTestResults, s2: LogitTestResults): Unit = {
 
     assert(s1.beta ~== s2.beta relTol 0.02)
     assert(s1.oddsRatio ~== s2.oddsRatio relTol 0.02)
@@ -303,7 +303,7 @@ class LogisticRegressionSuite extends GlowBaseTest {
     gridTest(s"Likelihood ratio test against R (on Spark: $onSpark)")(TEST_DATA_AND_GOLDEN_STATS) {
       testCase =>
         val ourStats = runLRT(testCase.testData, onSpark).head
-        compareLRTStats(testCase.lrtStats, ourStats)
+        compareLogitTestResults(testCase.lrtStats, ourStats)
     }
   }
 
@@ -331,13 +331,14 @@ class LogisticRegressionSuite extends GlowBaseTest {
     checkAllNan(ourStats)
   }
 
-  test("Check sample number matches between phenos and covars") {
+  private val allLogitTests = LogisticRegressionGwas.logitTests.keys.toSeq
+  gridTest("Check sample number matches between phenos and covars")(allLogitTests) { testName =>
     val fewerPhenoSamples = TestData(
       Seq(Seq(0, 1, 2, 0, 0)),
       Seq(0, 0, 1, 1, 1),
       Seq(Array(1), Array(1), Array(1), Array(1), Array(1), Array(1)))
     val ex = intercept[SparkException] {
-      runLRT(fewerPhenoSamples, true)
+      runTest(testName, fewerPhenoSamples, true)
     }
     assert(ex.getCause.isInstanceOf[IllegalArgumentException])
     assert(
@@ -346,13 +347,13 @@ class LogisticRegressionSuite extends GlowBaseTest {
         .contains("Number of samples do not match between phenotype vector and covariate matrix"))
   }
 
-  test("Check sample number matches between genos and phenos") {
+  gridTest("Check sample number matches between genos and phenos")(allLogitTests) { testName =>
     val fewerPhenoSamples = TestData(
       Seq(Seq(0, 1, 2, 0, 0)),
       Seq(0, 0, 1, 1, 1, 1),
       Seq(Array(1), Array(1), Array(1), Array(1), Array(1), Array(1)))
     val ex = intercept[SparkException] {
-      runLRT(fewerPhenoSamples, true)
+      runTest(testName, fewerPhenoSamples, true)
     }
     assert(ex.getCause.isInstanceOf[IllegalArgumentException])
     assert(
@@ -361,7 +362,7 @@ class LogisticRegressionSuite extends GlowBaseTest {
         .contains("Number of samples differs between genotype and phenotype arrays"))
   }
 
-  test("Checks for non-zero covariates") {
+  gridTest("Checks for non-zero covariates")(allLogitTests) { testName =>
     val fewerPhenoSamples = TestData(
       Seq(Seq(0, 1, 2, 0, 0, 1)),
       Seq(0, 0, 1, 1, 1, 1),
@@ -393,7 +394,7 @@ class LogisticRegressionSuite extends GlowBaseTest {
 
     Seq(interceptOnlyV1Stats, interceptOnlyV2Stats).zip(ourStats).foreach {
       case (golden, our) =>
-        compareLRTStats(golden, our)
+        compareLogitTestResults(golden, our)
     }
   }
 
@@ -422,7 +423,7 @@ class LogisticRegressionSuite extends GlowBaseTest {
       Seq(-0.1869446, 6.37896984).map(Math.exp),
       4.951873e-03
     )
-    compareLRTStats(golden, ours)
+    compareLogitTestResults(golden, ours)
   }
 
   test("multiple firth regressions") {
@@ -444,7 +445,7 @@ class LogisticRegressionSuite extends GlowBaseTest {
 
     Seq(interceptOnlyV1FirthStats, interceptOnlyV2FirthStats).zip(ourStats).foreach {
       case (golden, our) =>
-        compareLRTStats(golden, our)
+        compareLogitTestResults(golden, our)
     }
   }
 

@@ -18,15 +18,12 @@ package io.projectglow.sql.expressions
 
 import breeze.linalg._
 import breeze.numerics._
-import com.github.fommil.netlib.LAPACK
 import com.google.common.annotations.VisibleForTesting
 import org.apache.commons.math3.distribution.{ChiSquaredDistribution, NormalDistribution}
 import org.apache.spark.ml.linalg.{DenseMatrix => SparkDenseMatrix}
-import org.apache.spark.sql.Encoders
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.{ArrayData, CaseInsensitiveMap}
 import org.apache.spark.sql.types.StructType
-import org.netlib.util.intW
 
 import io.projectglow.common.GlowLogging
 
@@ -43,6 +40,10 @@ case class LogitTestResults(
     oddsRatio: Double,
     waldConfidenceInterval: Seq[Double],
     pValue: Double)
+
+object LogitTestResults {
+  val nanRow: InternalRow = InternalRow(NaN, NaN, ArrayData.toArrayData(Seq(NaN, NaN)), NaN)
+}
 
 /**
  * Some of the logic used for logistic regression is from the Hail project.
@@ -197,140 +198,4 @@ trait LogitTestWithoutNullFit extends LogitTest {
 
 trait LogitTestWithNullFit extends LogitTest {
   final override val canReuseNullFit: Boolean = true
-}
-
-object LikelihoodRatioTest extends LogitTestWithNullFit {
-  override type FitState = NewtonResult
-  override def resultSchema: StructType = Encoders.product[LogitTestResults].schema
-
-  override def fitNullModel(
-      phenotypes: Array[Double],
-      covariates: SparkDenseMatrix): NewtonResult = {
-    val nullX = new DenseMatrix(covariates.numRows, covariates.numCols, covariates.values)
-    val y = new DenseVector(phenotypes)
-    LogisticRegressionGwas.newtonIterations(nullX, y, None)
-  }
-
-  override def runTest(
-      x: DenseMatrix[Double],
-      y: DenseVector[Double],
-      nullFitOpt: Option[NewtonResult]): InternalRow = {
-    val nullFit = nullFitOpt.getOrElse(throw new IllegalArgumentException("Null fit required"))
-    val fullFit = LogisticRegressionGwas.newtonIterations(x, y, Some(nullFit.args))
-
-    if (!nullFit.converged || !fullFit.converged) {
-      return InternalRow(NaN, NaN, ArrayData.toArrayData(Seq(NaN, NaN)), NaN)
-    }
-
-    val beta = fullFit.args.b(-1)
-    LogisticRegressionGwas.makeStats(beta, fullFit.args.fisher, fullFit.logLkhd, nullFit.logLkhd)
-  }
-}
-
-case class FirthFitState(
-    b: DenseVector[Double],
-    logLkhd: Double,
-    fisher: DenseMatrix[Double],
-    converged: Boolean,
-    exploded: Boolean)
-
-object FirthTest extends LogitTestWithoutNullFit {
-  override type FitState = FirthFitState
-  override def resultSchema: StructType = Encoders.product[LogitTestResults].schema
-
-  override def runTest(
-      x: DenseMatrix[Double],
-      y: DenseVector[Double],
-      nullModelFit: Option[FirthFitState]): InternalRow = {
-    val m = x.cols
-    val m0 = m - 1
-
-    val b0 = DenseVector.zeros[Double](m0)
-    val nullFit = fitFirth(x, y, b0)
-    val b = DenseVector.zeros[Double](m)
-    b(0 until m0) := nullFit.b
-    val fullFit = fitFirth(x, y, b)
-
-    if (!nullFit.converged || !fullFit.converged) {
-      return InternalRow(NaN, NaN, ArrayData.toArrayData(Seq(NaN, NaN)), NaN)
-    }
-
-    val beta = fullFit.b(-1)
-    LogisticRegressionGwas.makeStats(beta, fullFit.fisher, fullFit.logLkhd, nullFit.logLkhd)
-  }
-
-  // Adapted from Hail's `fitFirth` method.
-  def fitFirth(
-      x: DenseMatrix[Double],
-      y: DenseVector[Double],
-      b0: DenseVector[Double],
-      maxIter: Int = 100,
-      tol: Double = 1e-6): FirthFitState = {
-
-    require(b0.length <= x.cols)
-
-    val b = b0.copy
-    val m0 = b0.length
-    var logLkhd = 0d
-    var iter = 1
-    var converged = false
-    var exploded = false
-    val mu: DenseVector[Double] = DenseVector.zeros[Double](x.rows)
-    var sqrtW: DenseVector[Double] = null
-
-    while (!converged && !exploded && iter <= maxIter) {
-      try {
-        mu := sigmoid(x(::, 0 until m0) * b)
-        sqrtW = sqrt(mu *:* (1d - mu))
-        val QR = qr.reduced(x(::, *) *:* sqrtW)
-        val h = QR.q(*, ::).map(r => r dot r)
-        val deltaB = solveUpperTriangular(
-          QR.r(0 until m0, 0 until m0),
-          QR.q(::, 0 until m0).t * (((y - mu) + (h *:* (0.5 - mu))) /:/ sqrtW))
-
-        if (deltaB(0).isNaN) {
-          exploded = true
-        } else if (max(abs(deltaB)) < tol && iter > 1) {
-          converged = true
-          logLkhd = sum(breeze.numerics.log((y *:* mu) + ((1d - y) *:* (1d - mu)))) + sum(
-              log(abs(diag(QR.r))))
-        } else {
-          iter += 1
-          b += deltaB
-        }
-      } catch {
-        case e: breeze.linalg.MatrixSingularException => exploded = true
-        case e: breeze.linalg.NotConvergedException => exploded = true
-      }
-    }
-
-    val fisher = x.t * (x(::, *) *:* (mu *:* (1d - mu)))
-    FirthFitState(b, logLkhd, fisher, converged, exploded)
-  }
-
-  // Solve an upper triangular system of equations using LAPACK.
-  // Adapted from Hail's TriSolver
-  def solveUpperTriangular(a: DenseMatrix[Double], b: DenseVector[Double]): DenseVector[Double] = {
-
-    require(a.rows == a.cols)
-    require(a.rows == b.length)
-
-    val x = DenseVector(b.toArray)
-
-    val info: Int = {
-      val info = new intW(0)
-      LAPACK
-        .getInstance()
-        .dtrtrs("U", "N", "N", a.rows, 1, a.toArray, a.rows, x.data, x.length, info) // x := A \ x
-      info.`val`
-    }
-
-    if (info > 0) {
-      throw new MatrixSingularException()
-    } else if (info < 0) {
-      throw new IllegalArgumentException()
-    }
-
-    x
-  }
 }
