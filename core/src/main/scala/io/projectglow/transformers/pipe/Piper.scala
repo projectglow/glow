@@ -72,7 +72,7 @@ private[projectglow] object Piper extends GlowLogging {
       .mapPartitions { it =>
         new PipeIterator(cmd, env, it, informatter, outputformatter)
       }
-      .persist(StorageLevel.MEMORY_AND_DISK)
+      .persist(StorageLevel.DISK)
 
     cachedRdds.synchronized {
       cachedRdds.append(schemaInternalRowRDD)
