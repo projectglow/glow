@@ -378,6 +378,7 @@ abstract class VCFFileWriterSuite(val sourceName: String)
       .load(tempFile)
     assert(rewrittenDs.collect.isEmpty)
   }
+
 }
 
 class MultiFileVCFWriterSuite extends VCFFileWriterSuite("vcf") {
@@ -428,7 +429,7 @@ class MultiFileVCFWriterSuite extends VCFFileWriterSuite("vcf") {
         .format(sourceName)
         .save(tempFile)
     }
-
+    assert(e.getCause.getCause.getCause.isInstanceOf[IllegalArgumentException])
     assert(
       e.getCause.getMessage.contains("Inferred VCF header is missing samples found in the data"))
   }

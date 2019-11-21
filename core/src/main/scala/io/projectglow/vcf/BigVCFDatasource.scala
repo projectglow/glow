@@ -66,8 +66,10 @@ object BigVCFDatasource extends HlsUsageLogging {
     val extraInferredOptions = if (options.getOrElse(
         VCFFileWriter.VCF_HEADER_KEY,
         VCFFileWriter.INFER_HEADER) == VCFFileWriter.INFER_HEADER) {
-      // If we have to infer the header (explicitly or implicitly), determine all of the samples in the DataFrame and
-      // write the inferred header with the samples as a glob
+      // If we have to infer the header (explicitly or implicitly), determine all of the samples in the DataFrame.
+      // The samples that will be written consist of the distinct set of sample IDs identified across the DataFrame,
+      // in addition to missing sample IDs. The number of missing sample IDs will be equal to the maximum number
+      // found in any given row.
       import data.sparkSession.implicits._
       val distinctSampleLists =
         data

@@ -56,6 +56,9 @@ object VCFFileWriter extends GlowLogging {
 
   /**
    * Returns VCF header lines and sample IDs (if provided) based on the VCF header option.
+   *
+   * If inferring header lines from the schema, sample IDs may not be returned.
+   * If reading a VCF header from a string or a file, the sample IDs are returned.
    */
   @VisibleForTesting
   private[projectglow] def parseHeaderLinesAndSamples(
