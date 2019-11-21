@@ -18,10 +18,11 @@ package io.projectglow.common
 
 import com.esotericsoftware.kryo.Kryo
 import org.apache.spark.serializer.KryoRegistrator
-import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 
 class GlowRegistrator extends KryoRegistrator {
   override def registerClasses(kryo: Kryo): Unit = {
-    kryo.register(classOf[GenericInternalRow])
+    kryo.register(classOf[org.apache.spark.sql.catalyst.expressions.GenericInternalRow])
+    kryo.register(classOf[org.apache.spark.sql.catalyst.util.GenericArrayData])
+    kryo.register(classOf[org.apache.spark.unsafe.types.UTF8String])
   }
 }
