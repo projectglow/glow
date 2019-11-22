@@ -66,7 +66,7 @@ class VCFInputFormatterFactory extends InputFormatterFactory {
 
   override def makeInputFormatter(df: DataFrame, options: Map[String, String]): InputFormatter = {
     val (headerLineSet, providedSampleIds) =
-      VCFFileWriter.parseHeaderLinesAndSamples(
+      VCFHeaderUtils.parseHeaderLinesAndSamples(
         options,
         None,
         df.schema,

@@ -21,18 +21,17 @@ import java.net.{URI, URISyntaxException}
 
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
-
 import com.google.common.annotations.VisibleForTesting
+import htsjdk.samtools.ValidationStringency
 import htsjdk.variant.vcf._
 import org.apache.commons.io.IOUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.datasources.OutputWriter
 import org.apache.spark.sql.types.StructType
-
 import io.projectglow.common.GlowLogging
 
-object VCFFileWriter extends GlowLogging {
+object VCFHeaderUtils extends GlowLogging {
 
   val VCF_HEADER_KEY = "vcfHeader"
   val INFER_HEADER = "infer"
@@ -108,7 +107,9 @@ object VCFFileWriter extends GlowLogging {
 }
 
 class VCFFileWriter(
-    options: Map[String, String],
+    headerLineSet: Set[VCFHeaderLine],
+    providedSampleIds: Option[Seq[String]],
+    stringency: ValidationStringency,
     schema: StructType,
     conf: Configuration,
     stream: OutputStream,
@@ -116,17 +117,8 @@ class VCFFileWriter(
     extends OutputWriter
     with GlowLogging {
 
-  private val (headerLineSet, providedSampleIds) =
-    VCFFileWriter.parseHeaderLinesAndSamples(
-      options,
-      Some(VCFFileWriter.INFER_HEADER),
-      schema,
-      conf)
-  private val converter = new InternalRowToVariantContextConverter(
-    schema,
-    headerLineSet,
-    VCFOptionParser.getValidationStringency(options)
-  )
+  private val converter =
+    new InternalRowToVariantContextConverter(schema, headerLineSet, stringency)
   converter.validate()
   private val writer = new VCFStreamWriter(stream, headerLineSet, providedSampleIds, writeHeader)
 

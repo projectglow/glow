@@ -18,16 +18,13 @@ package io.projectglow.vcf
 
 import java.io.ByteArrayOutputStream
 
-import scala.collection.JavaConverters._
-
-import htsjdk.variant.vcf.VCFHeader
-import htsjdk.variant.variantcontext.writer.VCFHeaderWriter
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress.CompressionCodecFactory
 import org.apache.spark.rdd.RDD
 import org.apache.spark.SparkException
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.sources.DataSourceRegister
+import org.apache.spark.sql.types.{ArrayType, StructType}
 import org.seqdoop.hadoop_bam.util.DatabricksBGZFOutputStream
 
 import io.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
@@ -47,7 +44,7 @@ class ComDatabricksBigVCFDatasource extends BigVCFDatasource with ComDatabricksD
 object BigVCFDatasource extends HlsUsageLogging {
   def serializeDataFrame(options: Map[String, String], data: DataFrame): RDD[Array[Byte]] = {
 
-    val dSchema = data.schema
+    val schema = data.schema
     val rdd = data.queryExecution.toRdd
 
     val nParts = rdd.getNumPartitions
@@ -56,45 +53,20 @@ object BigVCFDatasource extends HlsUsageLogging {
     val firstNonemptyPartition =
       rdd.mapPartitions(iter => Iterator(iter.nonEmpty)).collect.indexOf(true)
 
-    if (firstNonemptyPartition == -1 && (!options.contains(VCFFileWriter.VCF_HEADER_KEY) ||
+    if (firstNonemptyPartition == -1 && (!options.contains(VCFHeaderUtils.VCF_HEADER_KEY) ||
       options
-        .get(VCFFileWriter.VCF_HEADER_KEY)
-        .contains(VCFFileWriter.INFER_HEADER))) {
+        .get(VCFHeaderUtils.VCF_HEADER_KEY)
+        .contains(VCFHeaderUtils.INFER_HEADER))) {
       throw new SparkException("Cannot infer header for empty VCF.")
     }
 
-    val extraInferredOptions = if (options.getOrElse(
-        VCFFileWriter.VCF_HEADER_KEY,
-        VCFFileWriter.INFER_HEADER) == VCFFileWriter.INFER_HEADER) {
-      // If we have to infer the header (explicitly or implicitly), determine all of the samples in the DataFrame.
-      // The samples that will be written consist of the distinct set of sample IDs identified across the DataFrame,
-      // in addition to missing sample IDs. The number of missing sample IDs will be equal to the maximum number
-      // found in any given row.
-      import data.sparkSession.implicits._
-      val distinctSampleLists =
-        data
-          .select("genotypes.sampleId")
-          .as[Array[String]]
-          .distinct()
-          .collect
-      val maxNumMissingSamples = distinctSampleLists.map { sl =>
-        sl.count(_ == null)
-      }.max
-      val inferredSamples = distinctSampleLists
-        .flatten
-        .distinct
-        .dropWhile(_ == null)
-        .sorted
-      val maybeInferredSamples = if (inferredSamples.length > 0) {
-        Map("inferredSamples" -> inferredSamples.mkString("\t"))
-      } else {
-        Map.empty
-      }
-      Map("numMissingSamples" -> maxNumMissingSamples.toString) ++ maybeInferredSamples
-    } else {
-      // Otherwise, use the provided options
-      Map.empty
-    }
+    val (headerLineSet, providedSampleIdsOpt) = VCFHeaderUtils.parseHeaderLinesAndSamples(
+      options,
+      Some(VCFHeaderUtils.INFER_HEADER),
+      schema,
+      conf)
+    val maybeInferredSampleIds = providedSampleIdsOpt.getOrElse(inferSampleIds(data))
+    val validationStringency = VCFOptionParser.getValidationStringency(options)
 
     rdd.mapPartitionsWithIndex {
       case (idx, it) =>
@@ -111,8 +83,10 @@ object BigVCFDatasource extends HlsUsageLogging {
         // Write the header if this is the first nonempty partition
         val writer =
           new VCFFileWriter(
-            options ++ extraInferredOptions,
-            dSchema,
+            headerLineSet,
+            Some(maybeInferredSampleIds),
+            validationStringency,
+            schema,
             conf,
             outputStream,
             idx == firstNonemptyPartition)
@@ -133,5 +107,65 @@ object BigVCFDatasource extends HlsUsageLogging {
 
         Iterator(baos.toByteArray)
     }
+  }
+
+  /**
+   * Infer sample IDs from a genomic DataFrame.
+   *
+   * - If there are no genotypes, there are no sample IDs.
+   * - If there are genotypes and sample IDs are...
+   *     - Missing, the number of missing sample IDs is the number of genotypes per row (must be the same per row).
+   *     - Present, the number of missing sample IDs is set to the number of null samples per row (must be the same).
+   *       The non-missing sample IDs are found by unifying non-null sample IDs across all rows.
+   *
+   * Missing sample IDs are represented by an empty String, as that is the default VariantContext sample ID. They will
+   * be replaced with defaults by [[VCFStreamWriter.replaceEmptySampleIds]].
+   */
+  def inferSampleIds(data: DataFrame): Seq[String] = {
+    val genotypeSchemaOpt = data
+      .schema
+      .find(_.name == "genotypes")
+      .map(_.asInstanceOf[ArrayType].elementType.asInstanceOf[StructType])
+    if (genotypeSchemaOpt.isEmpty) {
+      return Seq.empty
+    }
+
+    import data.sparkSession.implicits._
+    val hasSampleIds = genotypeSchemaOpt.get.exists(_.name == "sampleId")
+    if (hasSampleIds) {
+      val distinctSampleLists = data
+        .select("genotypes.sampleId")
+        .distinct()
+        .as[Array[String]]
+        .collect
+
+      val numMissingSampleList = distinctSampleLists.map { sl =>
+        sl.count(_ == null)
+      }.distinct
+
+      val inferredSamples = distinctSampleLists
+        .flatten
+        .distinct
+        .dropWhile(_ == null)
+        .sorted
+
+      inferredSamples ++ getMissingSamples(numMissingSampleList)
+    } else {
+      val numMissingSampleList = data
+        .select("size(genotypes)")
+        .distinct()
+        .as[Int]
+        .collect
+
+      getMissingSamples(numMissingSampleList)
+    }
+  }
+
+  def getMissingSamples(numMissingSamplesList: Seq[Int]): Seq[String] = {
+    if (numMissingSamplesList.length > 1) {
+      throw new IllegalArgumentException(
+        "Rows contain varying number of missing samples; cannot infer VCF header.")
+    }
+    Array.fill(numMissingSamplesList.head)("")
   }
 }
