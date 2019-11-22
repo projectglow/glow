@@ -50,7 +50,7 @@ class VCFOutputFormatter(stringency: ValidationStringency)
         while (nextRecord == null && lineIterator.hasNext) {
           val decoded = codec.decode(lineIterator.next())
           if (decoded != null) {
-            nextRecord = projection.apply(converter.convertRow(decoded, isSplit = false))
+            nextRecord = projection(converter.convertRow(decoded, isSplit = false))
           }
         }
       }
