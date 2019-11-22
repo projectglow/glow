@@ -19,6 +19,7 @@ package io.projectglow.sql.expressions
 import scala.collection.mutable
 import scala.util.hashing.MurmurHash3
 
+import breeze.linalg.{DenseMatrix => BreezeDenseMatrix, DenseVector}
 import org.apache.spark.ml.linalg.DenseMatrix
 import org.apache.spark.sql.SQLUtils
 import org.apache.spark.sql.catalyst.InternalRow
@@ -38,13 +39,17 @@ case class LogisticRegressionExpr(
     with CodegenFallback
     with ImplicitCastInputTypes {
 
+  override def prettyName: String = "logistic_regression_gwas"
+
   private val matrixUDT = SQLUtils.newMatrixUDT()
 
   private lazy val logitTest = LogisticRegressionGwas
     .logitTests
     .getOrElse(
       test.eval().asInstanceOf[UTF8String].toString,
-      throw new IllegalArgumentException("Supported tests are currently: LRT"))
+      throw new IllegalArgumentException(
+        s"Supported tests are currently: ${LogisticRegressionGwas.logitTests.keys.mkString(", ")}")
+    )
 
   override def dataType: DataType = logitTest.resultSchema
 
@@ -62,14 +67,19 @@ case class LogisticRegressionExpr(
     }
   }
 
-  private val nullFitMap: mutable.Map[Int, NewtonResult] = mutable.Map.empty
+  private val nullFitMap: mutable.Map[Int, logitTest.FitState] = mutable.Map.empty
   // For each phenotype, save the null model fit of the covariate matrix since it's the same for every genotype
-  private def fitNullModel(phenotypes: Array[Double], covariates: DenseMatrix): NewtonResult = {
+  private def fitNullModel(
+      phenotypes: Array[Double],
+      covariates: DenseMatrix): Option[logitTest.FitState] = {
+    if (!logitTest.canReuseNullFit) {
+      return None
+    }
     val phenoHash = MurmurHash3.arrayHash(phenotypes)
     if (!nullFitMap.contains(phenoHash)) {
-      nullFitMap.put(phenoHash, LogisticRegressionGwas.fitNullModel(phenotypes, covariates))
+      nullFitMap.put(phenoHash, logitTest.fitNullModel(phenotypes, covariates))
     }
-    nullFitMap(phenoHash)
+    nullFitMap.get(phenoHash)
   }
 
   override protected def nullSafeEval(
@@ -80,14 +90,27 @@ case class LogisticRegressionExpr(
 
     val genotypeArray = genotypes.asInstanceOf[ArrayData].toDoubleArray
     val phenotypeArray = phenotypes.asInstanceOf[ArrayData].toDoubleArray
+    require(
+      genotypeArray.length == phenotypeArray.length,
+      "Number of samples differs between genotype and phenotype arrays")
     val covariateMatrix = matrixUDT.deserialize(covariates.asInstanceOf[InternalRow]).toDense
+    require(
+      covariateMatrix.numRows == phenotypeArray.length,
+      "Number of samples do not match between phenotype vector and covariate matrix"
+    )
+
+    lazy val fullX =
+      new BreezeDenseMatrix[Double](
+        covariateMatrix.numRows,
+        covariateMatrix.numCols + 1,
+        covariateMatrix.values ++ genotypeArray)
+    lazy val y = new DenseVector(phenotypeArray)
 
     val nullFitNewtonResult = fitNullModel(phenotypeArray, covariateMatrix)
-    LogisticRegressionGwas.logisticRegressionGwas(
-      genotypeArray,
-      phenotypeArray,
-      covariateMatrix,
-      nullFitNewtonResult,
-      logitTest)
+    logitTest.runTest(
+      fullX,
+      y,
+      nullFitNewtonResult
+    )
   }
 }
