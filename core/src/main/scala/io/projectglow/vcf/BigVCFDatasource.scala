@@ -125,7 +125,7 @@ object BigVCFDatasource extends HlsUsageLogging {
     val genotypeSchemaOpt = data
       .schema
       .find(_.name == "genotypes")
-      .map(_.asInstanceOf[ArrayType].elementType.asInstanceOf[StructType])
+      .map(_.dataType.asInstanceOf[ArrayType].elementType.asInstanceOf[StructType])
     if (genotypeSchemaOpt.isEmpty) {
       return Seq.empty
     }
