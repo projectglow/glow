@@ -29,7 +29,6 @@ import htsjdk.variant.variantcontext.writer.VCFHeaderWriter
 import htsjdk.variant.vcf.{VCFCompoundHeaderLine, VCFHeader, VCFHeaderLine}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.expr
-import org.apache.spark.sql.types.StructType
 import org.apache.spark.{SparkConf, SparkException}
 import org.bdgenomics.adam.rdd.ADAMContext._
 
@@ -596,71 +595,5 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
         val vc1WithSampleIds = vc1.copy(genotypes = gtsWithSampleIds)
         assert(vc1WithSampleIds.equals(vc2), s"VC1 $vc1WithSampleIds VC2 $vc2")
     }
-  }
-}
-
-class VCFWriterUtilsSuite extends GlowBaseTest {
-  val vcf = s"$testDataHome/NA12878_21_10002403.vcf"
-  lazy val schema = spark.read.format("vcf").load(vcf).schema
-
-  private def getHeaderNoSamples(
-      options: Map[String, String],
-      defaultOpt: Option[String],
-      schema: StructType): VCFHeader = {
-    val (headerLines, _) = VCFFileWriter.parseHeaderLinesAndSamples(
-      options,
-      defaultOpt,
-      schema,
-      spark.sparkContext.hadoopConfiguration)
-    new VCFHeader(headerLines.asJava)
-  }
-
-  private def getSchemaLines(header: VCFHeader): Set[VCFCompoundHeaderLine] = {
-    header.getInfoHeaderLines.asScala.toSet ++ header.getFormatHeaderLines.asScala.toSet
-  }
-
-  private def getAllLines(header: VCFHeader): Set[VCFHeaderLine] = {
-    header.getContigLines.asScala.toSet ++
-    header.getFilterLines.asScala.toSet ++
-    header.getFormatHeaderLines.asScala.toSet ++
-    header.getInfoHeaderLines.asScala.toSet ++
-    header.getOtherHeaderLines.asScala.toSet
-  }
-
-  test("fall back") {
-    val oldHeader = VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, vcf)
-    val header = getHeaderNoSamples(Map.empty, Some("infer"), schema)
-    assert(getSchemaLines(header) == VCFSchemaInferrer.headerLinesFromSchema(schema).toSet)
-    assert(getSchemaLines(header) == getSchemaLines(oldHeader))
-  }
-
-  test("infer header") {
-    val oldHeader = VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, vcf)
-    val header = getHeaderNoSamples(Map("vcfHeader" -> "infer"), None, schema)
-    assert(getSchemaLines(header) == VCFSchemaInferrer.headerLinesFromSchema(schema).toSet)
-    assert(getSchemaLines(header) == getSchemaLines(oldHeader))
-  }
-
-  test("use header path") {
-    val header = getHeaderNoSamples(Map("vcfHeader" -> vcf), None, schema)
-    assert(
-      getAllLines(header) ==
-      getAllLines(VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, vcf)))
-  }
-
-  test("use literal header") {
-    val contents =
-      """
-        |##fileformat=VCFv4.2
-        |##FORMAT=<ID=PL,Number=G,Type=Integer,Description="">
-        |##contig=<ID=monkey,length=42>
-        |##source=DatabricksIsCool
-        |""".stripMargin.trim + // write CHROM line by itself to preserve tabs
-      "\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tNA12878\n"
-
-    val header = getHeaderNoSamples(Map("vcfHeader" -> contents), None, schema)
-    val parsed = VCFFileWriter.parseHeaderFromString(contents)
-    assert(getAllLines(header).nonEmpty)
-    assert(getAllLines(header) == getAllLines(parsed))
   }
 }

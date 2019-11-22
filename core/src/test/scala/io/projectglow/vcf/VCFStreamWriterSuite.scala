@@ -48,7 +48,7 @@ class VCFStreamWriterSuite extends GlowBaseTest {
     writer.close()
 
     val outputVcf = stream.toString
-    val outputHeader = VCFFileWriter.parseHeaderFromString(outputVcf)
+    val outputHeader = VCFHeaderUtils.parseHeaderFromString(outputVcf)
     assert(outputHeader.getGenotypeSamples.asScala == Seq("SampleA", "SampleB"))
   }
 
@@ -67,7 +67,7 @@ class VCFStreamWriterSuite extends GlowBaseTest {
     writer.close()
 
     val outputVcf = stream.toString
-    val outputHeader = VCFFileWriter.parseHeaderFromString(outputVcf)
+    val outputHeader = VCFHeaderUtils.parseHeaderFromString(outputVcf)
     assert(outputHeader.getGenotypeSamples.asScala == Seq("SampleA", "SampleB"))
   }
 
@@ -82,7 +82,7 @@ class VCFStreamWriterSuite extends GlowBaseTest {
     writer.close()
 
     val outputVcf = stream.toString
-    val outputHeader = VCFFileWriter.parseHeaderFromString(outputVcf)
+    val outputHeader = VCFHeaderUtils.parseHeaderFromString(outputVcf)
     assert(
       outputHeader.getGenotypeSamples.asScala == Seq("SampleA", "sample_1", "SampleB", "sample_2"))
   }
