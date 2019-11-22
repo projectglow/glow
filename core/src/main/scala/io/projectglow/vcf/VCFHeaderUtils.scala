@@ -55,7 +55,7 @@ object VCFHeaderUtils extends GlowLogging {
   /**
    * Returns VCF header lines and sample IDs (if provided) based on the VCF header option.
    *
-   * If inferring header lines from the schema, sample IDs may not be returned.
+   * If inferring header lines from the schema, no sample IDs can be returned.
    * If reading a VCF header from a string or a file, the sample IDs are returned.
    */
   @VisibleForTesting
@@ -72,35 +72,16 @@ object VCFHeaderUtils extends GlowLogging {
       case INFER_HEADER =>
         logger.info("Inferring header for VCF writer")
         val headerLines = VCFSchemaInferrer.headerLinesFromSchema(schema).toSet
-        if (options.contains("inferredSamples") || options.contains("numMissingSamples")) {
-          val inferredSamples =
-            options.get("inferredSamples").map(_.split("\t")).getOrElse(Array.empty)
-          val missingSamples = options
-            .get("numMissingSamples")
-            .map { n =>
-              Array.fill(n.toInt)("")
-            }
-            .getOrElse(Array.empty)
-          (headerLines, Some(inferredSamples ++ missingSamples))
-        } else {
-          (headerLines, None)
-        }
+        (headerLines, None)
       case content if isCustomHeader(content) =>
         logger.info("Using provided string as VCF header")
         val header = parseHeaderFromString(content)
         (header.getMetaDataInInputOrder.asScala.toSet, Some(header.getGenotypeSamples.asScala))
       case path => // Input is a path
         logger.info(s"Attempting to parse VCF header from path $path")
-        try {
-          // Verify that string is a valid URI
-          new URI(path)
-          val header = VCFMetadataLoader
-            .readVcfHeader(conf, path)
-          (header.getMetaDataInInputOrder.asScala.toSet, Some(header.getGenotypeSamples.asScala))
-        } catch {
-          case _: URISyntaxException =>
-            throw new IllegalArgumentException(s"Could not parse VCF header from path $path")
-        }
+        // Verify that string is a valid URI
+        val header = VCFMetadataLoader.readVcfHeader(conf, path)
+        (header.getMetaDataInInputOrder.asScala.toSet, Some(header.getGenotypeSamples.asScala))
     }
   }
 }

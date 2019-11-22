@@ -16,8 +16,11 @@
 
 package io.projectglow.vcf
 
+import java.io.FileNotFoundException
+
 import scala.collection.JavaConverters._
 
+import htsjdk.tribble.TribbleException
 import htsjdk.variant.vcf.VCFHeader
 import org.apache.spark.sql.types.StructType
 
@@ -84,5 +87,24 @@ class VCFHeaderUtilsSuite extends GlowBaseTest {
     val parsed = VCFHeaderUtils.parseHeaderFromString(contents)
     assert(getAllLines(header).nonEmpty)
     assert(getAllLines(header) == getAllLines(parsed))
+  }
+
+  test("no vcf header arg and no default header") {
+    val e = intercept[IllegalArgumentException] {
+      getHeaderNoSamples(Map.empty, None, schema)
+    }
+    assert(e.getMessage.contains("Must specify a method to determine VCF header"))
+  }
+
+  test("invalid path") {
+    assertThrows[FileNotFoundException] {
+      getHeaderNoSamples(Map("vcfHeader" -> "fake.vcf"), None, schema)
+    }
+  }
+
+  test("invalid VCF") {
+    assertThrows[TribbleException] {
+      getHeaderNoSamples(Map("vcfHeader" -> s"$testDataHome/no_header.csv"), None, schema)
+    }
   }
 }

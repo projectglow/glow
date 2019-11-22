@@ -27,8 +27,11 @@ object VCFMetadataLoader {
   // https://github.com/bigdatagenomics/adam/blob/master/adam-core/src/main/scala/org/bdgenomics/adam/rdd/ADAMContext.scala
   def readVcfHeader(config: Configuration, pathName: String): VCFHeader = {
     val is = WrapSeekable.openPath(config, new Path(pathName))
-    val header = VCFHeaderReader.readHeaderFrom(is)
-    is.close()
-    header
+    try {
+      val header = VCFHeaderReader.readHeaderFrom(is)
+      header
+    } finally {
+      is.close()
+    }
   }
 }
