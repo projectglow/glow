@@ -438,7 +438,7 @@ class VariantContextToInternalRowConverter(
           val hlOpt = Option(header.getFormatHeaderLine(key))
           if (hlOpt.isEmpty && !formatKeysParsedWithoutHeader.contains(key)) {
             provideWarning(
-              s"Key $key found in field INFO but isn't " +
+              s"Key $key found in field FORMAT but isn't " +
               s"defined in the VCFHeader."
             )
             formatKeysParsedWithoutHeader.add(key)

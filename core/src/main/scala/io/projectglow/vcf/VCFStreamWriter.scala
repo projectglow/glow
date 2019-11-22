@@ -78,7 +78,7 @@ class VCFStreamWriter(
 
     val maybeReplacedVC = maybeReplaceDefaultSampleIds(vc)
     val vcBuilder = new VariantContextBuilder(maybeReplacedVC)
-    val iterator = maybeReplacedVC.getAttributes().entrySet().iterator()
+    val iterator = maybeReplacedVC.getAttributes.entrySet().iterator()
     while (iterator.hasNext) { // parse to string, then write,
       // otherwise the write messes up double precisions
       val entry = iterator.next()
