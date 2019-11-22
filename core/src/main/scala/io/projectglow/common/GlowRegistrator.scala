@@ -21,7 +21,7 @@ import org.apache.spark.serializer.KryoRegistrator
 
 class GlowRegistrator extends KryoRegistrator {
   override def registerClasses(kryo: Kryo): Unit = {
-    kryo.register(classOf[org.apache.spark.sql.catalyst.expressions.GenericInternalRow])
+    kryo.register(classOf[org.apache.spark.sql.catalyst.expressions.UnsafeRow])
     kryo.register(classOf[org.apache.spark.sql.catalyst.util.GenericArrayData])
     kryo.register(classOf[org.apache.spark.unsafe.types.UTF8String])
   }

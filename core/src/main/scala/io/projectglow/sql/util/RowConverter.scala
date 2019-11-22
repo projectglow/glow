@@ -17,7 +17,7 @@
 package io.projectglow.sql.util
 
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
+import org.apache.spark.sql.catalyst.expressions.{GenericInternalRow, UnsafeRow}
 import org.apache.spark.sql.types.StructType
 
 /**
@@ -30,7 +30,7 @@ import org.apache.spark.sql.types.StructType
 class RowConverter[T](schema: StructType, fieldConverters: Array[RowConverter.Updater[T]]) {
 
   def apply(record: T): InternalRow = {
-    val nullRow = new GenericInternalRow(schema.length)
+    val nullRow = new UnsafeRow(schema.length)
     apply(record, nullRow)
   }
 
