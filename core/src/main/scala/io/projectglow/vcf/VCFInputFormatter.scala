@@ -52,6 +52,7 @@ class VCFInputFormatter(
   }
 
   override def close(): Unit = {
+    logger.info("Closing VCF input formatter")
     writer.close()
   }
 }
