@@ -43,4 +43,13 @@ object RegressionTestUtils {
       input.head.length,
       input(0).indices.flatMap(i => input.map(_(i))).toArray)
   }
+
+  def testDataToRows(testData: TestData): Seq[RegressionRow] = {
+    testData.genotypes.map { g =>
+      RegressionRow(
+        g.toArray,
+        testData.phenotypes.toArray,
+        twoDArrayToSparkMatrix(testData.covariates.toArray))
+    }
+  }
 }
