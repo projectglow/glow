@@ -22,9 +22,9 @@ import htsjdk.samtools.ValidationStringency
 import htsjdk.tribble.readers.{SynchronousLineReader, LineIteratorImpl => HtsjdkLineIteratorImpl}
 import htsjdk.variant.vcf.{VCFCodec, VCFHeader}
 import org.apache.spark.sql.catalyst.InternalRow
-
 import io.projectglow.common.GlowLogging
 import io.projectglow.transformers.pipe.{OutputFormatter, OutputFormatterFactory}
+import org.apache.spark.sql.catalyst.expressions.UnsafeProjection
 
 class VCFOutputFormatter(stringency: ValidationStringency)
     extends OutputFormatter
@@ -41,6 +41,7 @@ class VCFOutputFormatter(stringency: ValidationStringency)
     val schema = VCFSchemaInferrer.inferSchema(true, true, header)
     val converter =
       new VariantContextToInternalRowConverter(header, schema, stringency)
+    val projection = UnsafeProjection.create(schema)
 
     val internalRowIter: Iterator[InternalRow] = new Iterator[InternalRow] {
       private var nextRecord: InternalRow = _
@@ -48,7 +49,7 @@ class VCFOutputFormatter(stringency: ValidationStringency)
         while (nextRecord == null && lineIterator.hasNext) {
           val decoded = codec.decode(lineIterator.next())
           if (decoded != null) {
-            nextRecord = converter.convertRow(decoded, isSplit = false).copy()
+            nextRecord = projection.apply(converter.convertRow(decoded, isSplit = false))
           }
         }
       }
