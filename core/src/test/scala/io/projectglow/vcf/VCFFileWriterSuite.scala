@@ -21,7 +21,6 @@ import java.nio.file.{Files, Path, Paths}
 import java.util.stream.Collectors
 
 import scala.collection.JavaConverters._
-
 import com.google.common.io.ByteStreams
 import htsjdk.samtools.ValidationStringency
 import htsjdk.samtools.util.{BlockCompressedInputStream, BlockCompressedStreamConstants}
@@ -31,8 +30,7 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.expr
 import org.apache.spark.{SparkConf, SparkException}
 import org.bdgenomics.adam.rdd.ADAMContext._
-
-import io.projectglow.common.{VCFRow, WithUtils}
+import io.projectglow.common.{VCFRow, VariantSchemas, WithUtils}
 import io.projectglow.sql.GlowBaseTest
 
 abstract class VCFFileWriterSuite(val sourceName: String)
@@ -179,27 +177,6 @@ abstract class VCFFileWriterSuite(val sourceName: String)
     orderedDs1.as[VCFRow].collect.zip(orderedDs2.as[VCFRow].collect).foreach {
       case (vc1, vc2) => assert(vc1.equals(vc2), s"VC1 $vc1 VC2 $vc2")
     }
-  }
-
-  test("Invalid validation stringency") {
-    val sess = spark
-    import sess.implicits._
-
-    val tempFile = createTempVcf.toString
-
-    val ds = spark
-      .read
-      .format(readSourceName)
-      .option("includeSampleIds", true)
-      .option("vcfRowSchema", true)
-      .load(NA12878)
-      .as[VCFRow]
-    assertThrows[SparkException](
-      ds.write
-        .format(sourceName)
-        .option("validationStringency", "fakeStringency")
-        .save(tempFile)
-    )
   }
 
   test("Corrupted header lines are not written") {
@@ -382,6 +359,27 @@ abstract class VCFFileWriterSuite(val sourceName: String)
 
 class MultiFileVCFWriterSuite extends VCFFileWriterSuite("vcf") {
 
+  test("Invalid validation stringency") {
+    val sess = spark
+    import sess.implicits._
+
+    val tempFile = createTempVcf.toString
+
+    val ds = spark
+      .read
+      .format(readSourceName)
+      .option("includeSampleIds", true)
+      .option("vcfRowSchema", true)
+      .load(NA12878)
+      .as[VCFRow]
+    assertThrows[SparkException](
+      ds.write
+        .format(sourceName)
+        .option("validationStringency", "fakeStringency")
+        .save(tempFile)
+    )
+  }
+
   test("Some empty partitions and infer sample IDs") {
     val tempFile = createTempVcf.toString
 
@@ -435,6 +433,28 @@ class MultiFileVCFWriterSuite extends VCFFileWriterSuite("vcf") {
 }
 
 class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
+
+  test("Invalid validation stringency") {
+    val sess = spark
+    import sess.implicits._
+
+    val tempFile = createTempVcf.toString
+
+    val ds = spark
+      .read
+      .format(readSourceName)
+      .option("includeSampleIds", true)
+      .option("vcfRowSchema", true)
+      .load(NA12878)
+      .as[VCFRow]
+    assertThrows[IllegalArgumentException](
+      ds.write
+        .format(sourceName)
+        .option("validationStringency", "fakeStringency")
+        .save(tempFile)
+    )
+  }
+
   test("Check BGZF") {
     val df = spark
       .read
@@ -500,60 +520,45 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
     assert(rereadDs.sort("start").collect sameElements ds.sort("start").collect)
   }
 
-  test("Unions inferred sample IDs") {
+  def sliceInferredSampleIds(
+      start: Int,
+      numPresentSampleIds: Int,
+      numMissingSampleIds: Int): DataFrame = {
+    val presentSampleIds = spark
+      .read
+      .format(readSourceName)
+      .option("vcfRowSchema", "true")
+      .load(TGP)
+      .withColumn("genotypesWithSampleIds", expr(s"slice(genotypes, $start, $numPresentSampleIds)"))
+      .drop("genotypes")
+
+    val missingSampleIds = spark
+      .read
+      .format(readSourceName)
+      .option("includeSampleIds", "false")
+      .option("vcfRowSchema", "true")
+      .load(TGP)
+      .withColumn(
+        "genotypesWithoutSampleIds",
+        expr(s"slice(genotypes, $start, $numMissingSampleIds)"))
+      .drop("genotypes", "attributes")
+
+    presentSampleIds
+      .join(missingSampleIds, VariantSchemas.vcfBaseSchema.map(_.name))
+      .withColumn("genotypes", expr("concat(genotypesWithSampleIds, genotypesWithoutSampleIds)"))
+      .drop("genotypesWithSampleIds", "genotypesWithoutSampleIds")
+  }
+
+  def checkWithInferredSampleIds(df: DataFrame, expectedSampleIds: Seq[String]): Unit = {
     val tempFile = createTempVcf.toString
 
-    // Samples: HG00096	HG00097	HG00099	HG00100	HG00101
-    val ds1 = spark
-      .read
-      .format(readSourceName)
-      .option("vcfRowSchema", "true")
-      .load(TGP)
-      .withColumn("subsetGenotypes", expr("slice(genotypes, 1, 5)"))
-      .drop("genotypes")
-      .withColumnRenamed("subsetGenotypes", "genotypes")
-
-    // Samples: HG00099	HG00100	HG00101	HG00102
-    val ds2 = spark
-      .read
-      .format(readSourceName)
-      .option("vcfRowSchema", "true")
-      .load(TGP)
-      .withColumn("subsetGenotypes", expr("slice(genotypes, 3, 4)"))
-      .drop("genotypes")
-      .withColumnRenamed("subsetGenotypes", "genotypes")
-
-    // 2 missing samples
-    val ds3 = spark
-      .read
-      .format(readSourceName)
-      .option("includeSampleIds", "false")
-      .option("vcfRowSchema", "true")
-      .load(TGP)
-      .withColumn("subsetGenotypes", expr("slice(genotypes, 1, 2)"))
-      .drop("genotypes")
-      .withColumnRenamed("subsetGenotypes", "genotypes")
-
-    // 1 missing sample
-    val ds4 = spark
-      .read
-      .format(readSourceName)
-      .option("includeSampleIds", "false")
-      .option("vcfRowSchema", "true")
-      .load(TGP)
-      .withColumn("subsetGenotypes", expr("slice(genotypes, 1, 1)"))
-      .drop("genotypes")
-      .withColumnRenamed("subsetGenotypes", "genotypes")
-
-    val ds = ds1.union(ds2).union(ds3).union(ds4)
-
     // Should be written with all samples with no-calls if sample is missing
-    ds.write
+    df.write
       .option("vcfHeader", "infer")
       .format(sourceName)
       .save(tempFile)
 
-    val rereadDs =
+    val rereadDf =
       spark
         .read
         .format(readSourceName)
@@ -563,25 +568,16 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
     val sess = spark
     import sess.implicits._
 
-    val sampleIdRows = rereadDs.select("genotypes.sampleId").distinct().as[Seq[String]].collect
+    val sampleIdRows = rereadDf.select("genotypes.sampleId").distinct().as[Seq[String]].collect
     assert(sampleIdRows.length == 1)
-    assert(
-      sampleIdRows.head == Seq(
-        "HG00096",
-        "HG00097",
-        "HG00099",
-        "HG00100",
-        "HG00101",
-        "HG00102",
-        "sample_1",
-        "sample_2"))
+    assert(sampleIdRows.head == expectedSampleIds)
 
-    val calledRereadDs = rereadDs
+    val calledRereadDf = rereadDf
       .withColumn("calledGenotypes", expr("filter(genotypes, gt -> gt.calls[0] != -1)"))
       .drop("genotypes")
       .withColumnRenamed("calledGenotypes", "genotypes")
 
-    ds.as[VCFRow].collect.zip(calledRereadDs.as[VCFRow].collect).foreach {
+    df.as[VCFRow].collect.zip(calledRereadDf.as[VCFRow].collect).foreach {
       case (vc1, vc2) =>
         var missingSampleIdx = 0
         val gtsWithSampleIds = vc1.genotypes.map { gt =>
@@ -595,5 +591,79 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
         val vc1WithSampleIds = vc1.copy(genotypes = gtsWithSampleIds)
         assert(vc1WithSampleIds.equals(vc2), s"VC1 $vc1WithSampleIds VC2 $vc2")
     }
+  }
+
+  test("Unions inferred sample IDs") {
+    // Samples: HG00096	HG00097	HG00099	HG00100	HG00101
+    val ds1 = sliceInferredSampleIds(1, 5, 0)
+    // Samples: HG00099	HG00100	HG00101	HG00102
+    val ds2 = sliceInferredSampleIds(3, 4, 0)
+
+    checkWithInferredSampleIds(
+      ds1.union(ds2),
+      Seq("HG00096", "HG00097", "HG00099", "HG00100", "HG00101", "HG00102"))
+  }
+
+  test("Matching number of missing sample IDs") {
+    // 3 missing samples
+    val ds1 = sliceInferredSampleIds(1, 0, 3)
+    val ds2 = sliceInferredSampleIds(2, 0, 3)
+    checkWithInferredSampleIds(ds1.union(ds2), Seq("sample_1", "sample_2", "sample_3"))
+  }
+
+  test("Inferred and missing sample IDs") {
+    // 3 missing samples
+    val ds1 = sliceInferredSampleIds(1, 3, 2)
+    val ds2 = sliceInferredSampleIds(2, 3, 2)
+    checkWithInferredSampleIds(
+      ds1.union(ds2),
+      Seq("HG00096", "HG00097", "HG00099", "HG00100", "sample_1", "sample_2"))
+  }
+
+  test("Non-matching number of missing sample IDs") {
+    // 2 missing samples
+    val ds1 = sliceInferredSampleIds(1, 3, 2)
+    // 4 missing samples
+    val ds2 = sliceInferredSampleIds(2, 4, 1)
+    val e = intercept[IllegalArgumentException] {
+      ds1.union(ds2).write.format(sourceName).save(createTempVcf.toString)
+    }
+    assert(e.getMessage.contains("Rows contain varying number of missing samples"))
+  }
+
+  test("No genotypes column") {
+    val tempFile = createTempVcf.toString
+
+    val df = spark
+      .read
+      .format(readSourceName)
+      .load(TGP)
+      .drop("genotypes")
+    df.write.format(sourceName).save(tempFile)
+
+    val rereadDf = spark.read.format(readSourceName).load(tempFile)
+    assert(!rereadDf.schema.contains("genotypes"))
+  }
+
+  test("No sample IDs column") {
+    val sess = spark
+    import sess.implicits._
+
+    val tempFile = createTempVcf.toString
+
+    val df = spark
+      .read
+      .format(readSourceName)
+      .option("includeSampleIds", "false")
+      .load(TGP)
+      .withColumn("subsetGenotypes", expr("slice(genotypes, 1, 3)"))
+      .drop("genotypes")
+      .withColumnRenamed("subsetGenotypes", "genotypes")
+    df.write.format(sourceName).save(tempFile)
+
+    val rereadDf = spark.read.format(readSourceName).load(tempFile)
+    val sampleIds = rereadDf.select("genotypes.sampleId").distinct().as[Seq[String]].collect
+    assert(sampleIds.length == 1)
+    assert(sampleIds.head == Seq("sample_1", "sample_2", "sample_3"))
   }
 }

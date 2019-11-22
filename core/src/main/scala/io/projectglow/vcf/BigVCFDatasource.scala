@@ -146,13 +146,13 @@ object BigVCFDatasource extends HlsUsageLogging {
       val inferredSamples = distinctSampleLists
         .flatten
         .distinct
-        .dropWhile(_ == null)
+        .filter(_ != null)
         .sorted
 
       inferredSamples ++ getMissingSamples(numMissingSampleList)
     } else {
       val numMissingSampleList = data
-        .select("size(genotypes)")
+        .selectExpr("size(genotypes)")
         .distinct()
         .as[Int]
         .collect
