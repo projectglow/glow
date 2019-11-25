@@ -494,6 +494,7 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
     val writtenHeader = VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, tempFile)
 
     assert(truthHeader.getMetaDataInInputOrder.equals(writtenHeader.getMetaDataInInputOrder))
+    assert(truthHeader.getGenotypeSamples == writtenHeader.getGenotypeSamples)
   }
 
   test("Bigvcf 0 partitions exception check") {
