@@ -67,6 +67,21 @@ case class AddStructFields(struct: Expression, newFields: Seq[Expression])
 }
 
 /**
+ * Expression that rearranges and/or subsets an array by an array of indices.
+ *
+ * The logic of this expression is implemented in [[HLSReplaceExpressionsRule]].
+ */
+case class PermuteArray(dataArray: Expression, indexArray: Expression)
+    extends Expression
+    with Unevaluable {
+
+  override def nullable: Boolean = true
+  override def children: Seq[Expression] = Seq(dataArray, indexArray)
+  override def dataType: DataType = dataArray.dataType
+
+}
+
+/**
  * Explodes a matrix by row. Each row of the input matrix will be output as an array of doubles.
  *
  * If the input expression is null or has 0 rows, the output will be empty.
