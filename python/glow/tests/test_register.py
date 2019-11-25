@@ -5,17 +5,19 @@ import glow as glow
 
 
 def test_no_register(spark):
-    df = spark.read.format("vcf") \
-        .load("test-data/1kg_sample.vcf")
+    row_one = Row(Row(str_col='foo', int_col=1, bool_col=True))
+    row_two = Row(Row(str_col='bar', int_col=2, bool_col=False))
+    df = spark.createDataFrame([row_one, row_two], schema=['base_col'])
     with pytest.raises(AnalysisException):
-        df.selectExpr("expand_struct(dp_summary_stats(genotypes))")
+        df.selectExpr("add_struct_fields(base_col, 'float_col', 3.14, 'rev_str_col', reverse(base_col.str_col))").head()
 
 
 def test_register(spark):
     glow.register(spark)
-    df = spark.read.format("vcf") \
-        .load("test-data/1kg_sample.vcf")
-    stats = df.selectExpr("expand_struct(dp_summary_stats(genotypes))") \
-            .select("min", "max") \
-            .head()
-    assert stats.asDict() == Row(min=1.0, max=23).asDict()
+    row_one = Row(Row(str_col='foo', int_col=1, bool_col=True))
+    row_two = Row(Row(str_col='bar', int_col=2, bool_col=False))
+    df = spark.createDataFrame([row_one, row_two], schema=['base_col'])
+    added_col_row = df.selectExpr("add_struct_fields(base_col, 'float_col', 3.14, 'rev_str_col', reverse(base_col.str_col)) as added_col") \
+                      .filter("added_col.str_col = 'foo'") \
+                      .head()
+    assert added_col_row.added_col.rev_str_col == 'oof'

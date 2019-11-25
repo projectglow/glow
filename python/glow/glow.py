@@ -37,9 +37,10 @@ def register(session: SparkSession):
     """
     register(session)
 
-    Register SQL extensions for a Spark session.
+    Register SQL extensions and inject the relevant rules for a Spark session.
 
     :param session: Spark session
     """
     assert check_argument_types()
     session._jvm.io.projectglow.sql.SqlExtensionProvider.register(session._jsparkSession)
+    session._jvm.io.projectglow.sql.GlowSQLExtensions().apply(session._jsparkSession.extensions())
