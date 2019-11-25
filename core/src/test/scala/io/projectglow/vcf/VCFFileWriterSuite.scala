@@ -495,6 +495,25 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
 
     assert(truthHeader.getMetaDataInInputOrder.equals(writtenHeader.getMetaDataInInputOrder))
   }
+
+  test("Bigvcf 0 partitions exception check") {
+    val sess = spark
+    import sess.implicits._
+
+    val tempFile = createTempVcf.toString
+
+    assertThrows[SparkException](
+      spark
+        .sparkContext
+        .emptyRDD[VCFRow]
+        .toDS
+        .write
+        .option("vcfHeader", NA12878)
+        .format(sourceName)
+        .save(tempFile)
+    )
+  }
+
 }
 
 class VCFWriterUtilsSuite extends GlowBaseTest {
