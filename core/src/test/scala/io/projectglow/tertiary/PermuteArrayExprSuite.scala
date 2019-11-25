@@ -1,9 +1,25 @@
+/*
+ * Copyright 2019 The Glow Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.projectglow.tertiary
 
 import io.projectglow.sql.GlowBaseTest
 import org.apache.spark.sql.functions.{lit, when}
 
-class PermuteArrayExprSuite extends GlowBaseTest{
+class PermuteArrayExprSuite extends GlowBaseTest {
 
   private lazy val sess = spark
 
@@ -11,31 +27,41 @@ class PermuteArrayExprSuite extends GlowBaseTest{
     val dataArray = Array(5, 6, 7, 8)
     val indexArray = Array(1, 2)
     val aRow = spark.range(1).select(lit(dataArray) as "dataArray", lit(indexArray) as "indexArray")
-    val permutedData = aRow.selectExpr("permute_array(dataArray,indexArray) as permutedData")
+    val permutedData = aRow
+      .selectExpr("permute_array(dataArray,indexArray) as permutedData")
       .take(1)
-      .map(r => r.getAs[Seq[Int]]("permutedData")).head
-    assert(permutedData == indexArray.map(i => dataArray(i-1)).toSeq)
+      .map(r => r.getAs[Seq[Int]]("permutedData"))
+      .head
+    assert(permutedData == indexArray.map(i => dataArray(i - 1)).toSeq)
   }
 
   test(testName = "null indices") {
     import sess.implicits._
     val dataArray = Array(5, 6, 7, 8)
-    val aRow = spark.range(1).select(lit(dataArray) as "dataArray", lit(null).cast("array<int>") as "indexArray")
-    val nullCheck = aRow.selectExpr("permute_array(dataArray,indexArray) as permutedData")
+    val aRow = spark
+      .range(1)
+      .select(lit(dataArray) as "dataArray", lit(null).cast("array<int>") as "indexArray")
+    val nullCheck = aRow
+      .selectExpr("permute_array(dataArray,indexArray) as permutedData")
       .withColumn("nullCheck", when($"permutedData".isNull, lit(true)).otherwise(lit(false)))
       .take(1)
-      .map(r => r.getAs[Boolean]("nullCheck")).head
+      .map(r => r.getAs[Boolean]("nullCheck"))
+      .head
     assert(nullCheck)
   }
 
   test(testName = "null data") {
     import sess.implicits._
     val indexArray = Array(3, 2)
-    val aRow = spark.range(1).select(lit(null).cast("array<double>") as "dataArray", lit(indexArray) as "indexArray")
-    val nullCheck = aRow.selectExpr("permute_array(dataArray,indexArray) as permutedData")
+    val aRow = spark
+      .range(1)
+      .select(lit(null).cast("array<double>") as "dataArray", lit(indexArray) as "indexArray")
+    val nullCheck = aRow
+      .selectExpr("permute_array(dataArray,indexArray) as permutedData")
       .withColumn("nullCheck", when($"permutedData".isNull, lit(true)).otherwise(lit(false)))
       .take(1)
-      .map(r => r.getAs[Boolean]("nullCheck")).head
+      .map(r => r.getAs[Boolean]("nullCheck"))
+      .head
     assert(nullCheck)
   }
 
@@ -44,10 +70,12 @@ class PermuteArrayExprSuite extends GlowBaseTest{
     val dataArray = Array(5, 6, 7, 8)
     val indexArray = Array(2, 3, 4, 5)
     val aRow = spark.range(1).select(lit(dataArray) as "dataArray", lit(indexArray) as "indexArray")
-    val nullCheck = aRow.selectExpr("permute_array(dataArray,indexArray) as permutedData")
+    val nullCheck = aRow
+      .selectExpr("permute_array(dataArray,indexArray) as permutedData")
       .withColumn("nullCheck", when($"permutedData".isNull, lit(true)).otherwise(lit(false)))
       .take(1)
-      .map(r => r.getAs[Boolean]("nullCheck")).head
+      .map(r => r.getAs[Boolean]("nullCheck"))
+      .head
     assert(nullCheck)
   }
 
@@ -56,10 +84,12 @@ class PermuteArrayExprSuite extends GlowBaseTest{
     val dataArray = Array(5, 6, 7, 8)
     val indexArray = Array(0, 1, 2, 3)
     val aRow = spark.range(1).select(lit(dataArray) as "dataArray", lit(indexArray) as "indexArray")
-    val nullCheck = aRow.selectExpr("permute_array(dataArray,indexArray) as permutedData")
+    val nullCheck = aRow
+      .selectExpr("permute_array(dataArray,indexArray) as permutedData")
       .withColumn("nullCheck", when($"permutedData".isNull, lit(true)).otherwise(lit(false)))
       .take(1)
-      .map(r => r.getAs[Boolean]("nullCheck")).head
+      .map(r => r.getAs[Boolean]("nullCheck"))
+      .head
     assert(nullCheck)
   }
 
@@ -67,9 +97,11 @@ class PermuteArrayExprSuite extends GlowBaseTest{
     val dataArray = Array(5, 6, 7, 8)
     val indexArray = Array.empty[Int]
     val aRow = spark.range(1).select(lit(dataArray) as "dataArray", lit(indexArray) as "indexArray")
-    val permutedData = aRow.selectExpr("permute_array(dataArray,indexArray) as permutedData")
+    val permutedData = aRow
+      .selectExpr("permute_array(dataArray,indexArray) as permutedData")
       .take(1)
-      .map(r => r.getAs[Seq[Int]]("permutedData")).head
+      .map(r => r.getAs[Seq[Int]]("permutedData"))
+      .head
     assert(permutedData.isEmpty)
   }
 
@@ -78,10 +110,12 @@ class PermuteArrayExprSuite extends GlowBaseTest{
     val dataArray = Array.empty[String]
     val indexArray = Array(0, 1, 2, 3, 4)
     val aRow = spark.range(1).select(lit(dataArray) as "dataArray", lit(indexArray) as "indexArray")
-    val nullCheck = aRow.selectExpr("permute_array(dataArray,indexArray) as permutedData")
+    val nullCheck = aRow
+      .selectExpr("permute_array(dataArray,indexArray) as permutedData")
       .withColumn("nullCheck", when($"permutedData".isNull, lit(true)).otherwise(lit(false)))
       .take(1)
-      .map(r => r.getAs[Boolean]("nullCheck")).head
+      .map(r => r.getAs[Boolean]("nullCheck"))
+      .head
     assert(nullCheck)
   }
 
