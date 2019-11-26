@@ -17,6 +17,7 @@
 package io.projectglow.vcf
 
 import java.io.{Closeable, OutputStream}
+import java.util.{HashSet => JHashSet}
 
 import scala.collection.JavaConverters._
 
@@ -57,6 +58,7 @@ class VCFStreamWriter(
     }
     new VCFHeader(headerLineSet.asJava, nonMissingSamples.asJava)
   }.getOrElse(new VCFHeader(headerLineSet.asJava))
+  private var sampleSet: JHashSet[String] = new JHashSet(header.getGenotypeSamples)
 
   private val writer: VariantContextWriter = new VariantContextWriterBuilder()
     .clearOptions()
@@ -78,9 +80,7 @@ class VCFStreamWriter(
 
     val maybeReplacedVC = maybeReplaceDefaultSampleIds(vc)
 
-    if (providedSampleIds.isEmpty && !header
-        .getGenotypeSamples
-        .containsAll(maybeReplacedVC.getGenotypes.asScala.map(_.getSampleName).asJava)) {
+    if (providedSampleIds.isEmpty && !sampleSet.containsAll(maybeReplacedVC.getSampleNames)) {
       throw new IllegalArgumentException(
         "Inferred VCF header is missing samples found in the data; please provide a complete header or VCF file path.")
     }
@@ -126,6 +126,7 @@ class VCFStreamWriter(
       } else {
         header = new VCFHeader(header.getMetaDataInInputOrder, maybeMissingSamples.asJava)
       }
+      sampleSet = new JHashSet(header.getGenotypeSamples)
       headerHasSetSampleIds = true
     }
   }
