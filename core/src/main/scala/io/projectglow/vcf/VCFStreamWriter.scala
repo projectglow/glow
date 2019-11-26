@@ -80,7 +80,7 @@ class VCFStreamWriter(
 
     if (providedSampleIds.isEmpty && !header
         .getGenotypeSamples
-        .containsAll(maybeReplacedVC.getSampleNamesOrderedByName)) {
+        .containsAll(maybeReplacedVC.getSampleNames)) {
       throw new IllegalArgumentException(
         "Inferred VCF header is missing samples found in the data; please provide a complete header or VCF file path.")
     }
