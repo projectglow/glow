@@ -117,15 +117,14 @@ class VCFStreamWriter(
   // any empty sample IDs.
   private def maybeSetHeaderSampleIds(vc: VariantContext): Unit = {
     if (!headerHasSetSampleIds) {
-      if (vc.getSampleNamesOrderedByName.asScala.exists(_.isEmpty)) {
+      val maybeMissingSamples = vc.getGenotypes.asScala.map(_.getSampleName)
+      if (maybeMissingSamples.exists(_.isEmpty)) {
         val nonMissingSamples =
-          VCFStreamWriter.replaceEmptySampleIds(vc.getGenotypes.asScala.map(_.getSampleName))
+          VCFStreamWriter.replaceEmptySampleIds(maybeMissingSamples)
         headerHasDefaultSampleIds = true
         header = new VCFHeader(header.getMetaDataInInputOrder, nonMissingSamples.asJava)
       } else {
-        header = new VCFHeader(
-          header.getMetaDataInInputOrder,
-          vc.getGenotypes.asScala.map(_.getSampleName).asJava)
+        header = new VCFHeader(header.getMetaDataInInputOrder, maybeMissingSamples.asJava)
       }
       headerHasSetSampleIds = true
     }
