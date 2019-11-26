@@ -343,15 +343,18 @@ abstract class VCFFileWriterSuite(val sourceName: String)
       .sparkContext
       .emptyRDD[VCFRow]
       .toDS
+      .repartition(1)
       .write
       .option("vcfHeader", NA12878)
       .format(sourceName)
       .save(tempFile)
+
     val rewrittenDs = spark
       .read
       .format(readSourceName)
       .option("vcfRowSchema", true)
       .load(tempFile)
+
     assert(rewrittenDs.collect.isEmpty)
   }
 
@@ -518,6 +521,47 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
 
     val rereadDs = spark.read.format("vcf").load(tempFile)
     assert(rereadDs.sort("start").collect sameElements ds.sort("start").collect)
+  }
+
+  test("Bigvcf header check for empty file with determined header") {
+    val sess = spark
+    import sess.implicits._
+
+    val tempFile = createTempVcf.toString
+
+    spark
+      .sparkContext
+      .emptyRDD[VCFRow]
+      .toDS
+      .repartition(1)
+      .write
+      .option("vcfHeader", NA12878)
+      .format(sourceName)
+      .save(tempFile)
+
+    val truthHeader = VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, NA12878)
+    val writtenHeader = VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, tempFile)
+
+    assert(truthHeader.getMetaDataInInputOrder.equals(writtenHeader.getMetaDataInInputOrder))
+    assert(truthHeader.getGenotypeSamples == writtenHeader.getGenotypeSamples)
+  }
+
+  test("Bigvcf 0 partitions exception check") {
+    val sess = spark
+    import sess.implicits._
+
+    val tempFile = createTempVcf.toString
+
+    assertThrows[SparkException](
+      spark
+        .sparkContext
+        .emptyRDD[VCFRow]
+        .toDS
+        .write
+        .option("vcfHeader", NA12878)
+        .format(sourceName)
+        .save(tempFile)
+    )
   }
 
   def sliceInferredSampleIds(

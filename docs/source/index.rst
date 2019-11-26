@@ -13,6 +13,7 @@ machine learning, enabling the scale of the cloud for genomics workflows.
    etl/index
    tertiary/index
    troubleshooting
+   blogs/index
    additional-resources
 
 .. modules

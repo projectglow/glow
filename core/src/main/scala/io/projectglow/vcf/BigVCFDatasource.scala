@@ -48,6 +48,13 @@ object BigVCFDatasource extends HlsUsageLogging {
     val rdd = data.queryExecution.toRdd
 
     val nParts = rdd.getNumPartitions
+
+    if (nParts == 0) {
+      throw new SparkException(
+        "Cannot write vcf because the DataFrame has zero partitions. " +
+        "Repartition to a positive number of partitions if you want to just write the header")
+    }
+
     val conf = VCFFileFormat.hadoopConfWithBGZ(data.sparkSession.sparkContext.hadoopConfiguration)
     val serializableConf = new SerializableConfiguration(conf)
     val firstNonemptyPartition =
@@ -81,6 +88,8 @@ object BigVCFDatasource extends HlsUsageLogging {
         DatabricksBGZFOutputStream.setWriteEmptyBlockOnClose(outputStream, idx == nParts - 1)
 
         // Write the header if this is the first nonempty partition
+        val partitionWithHeader = if (firstNonemptyPartition == -1) 0 else firstNonemptyPartition
+
         val writer =
           new VCFFileWriter(
             headerLineSet,
@@ -89,7 +98,7 @@ object BigVCFDatasource extends HlsUsageLogging {
             schema,
             conf,
             outputStream,
-            idx == firstNonemptyPartition)
+            idx == partitionWithHeader)
 
         it.foreach { row =>
           writer.write(row)

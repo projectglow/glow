@@ -102,7 +102,7 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
 
     // record vcfWrite event in the log along with its compression coded
     val logOptions = Map(
-      VCFOptions.COMPRESSION -> options.get(VCFOptions.COMPRESSION).getOrElse("None")
+      VCFOptions.COMPRESSION -> options.getOrElse(VCFOptions.COMPRESSION, "None")
     )
     recordHlsUsage(
       HlsMetricDefinitions.EVENT_HLS_USAGE,
@@ -177,7 +177,7 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
         hadoopFs,
         partitionedFile,
         serializableConf.value,
-        !filters.isEmpty,
+        filters.nonEmpty,
         useIndex,
         filteredSimpleInterval
       )
@@ -192,7 +192,7 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
           val reader = new HadoopLineIterator(
             partitionedFile.filePath,
             startPos,
-            (endPos - startPos),
+            endPos - startPos,
             None,
             serializableConf.value
           )
