@@ -39,6 +39,7 @@ jobs:
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             cd docs
             make linkcheck
+            make doctest
 
       - store_artifacts:
           path: ~/glow/unit-tests.log
