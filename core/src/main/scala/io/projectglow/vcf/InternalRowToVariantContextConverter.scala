@@ -16,7 +16,7 @@
 
 package io.projectglow.vcf
 
-import java.util.{ArrayList => JArrayList}
+import java.util.{ArrayList => JArrayList, TreeMap => JTreeMap}
 
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
@@ -197,7 +197,10 @@ class InternalRowToVariantContextConverter(
     }
 
     array => {
-      val ctx = GenotypesContext.create(array.numElements())
+      val ctx = GenotypesContext.create(
+        new JArrayList[Genotype](array.numElements()),
+        new JTreeMap[String, Integer](),
+        new JArrayList[String]())
       var i = 0
       while (i < array.numElements()) {
         var j = 0
