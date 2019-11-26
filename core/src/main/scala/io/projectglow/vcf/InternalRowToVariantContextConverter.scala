@@ -197,10 +197,7 @@ class InternalRowToVariantContextConverter(
     }
 
     array => {
-      val ctx = GenotypesContext.create(
-        new JArrayList[Genotype](array.numElements()),
-        new JTreeMap[String, Integer](),
-        new JArrayList[String]())
+      val ctx = GenotypesContext.create(array.numElements())
       var i = 0
       while (i < array.numElements()) {
         var j = 0
