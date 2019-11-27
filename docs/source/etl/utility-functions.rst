@@ -54,7 +54,7 @@ whose parameter structs require a certain schema.
 .. testoutput::
    :hide:
 
-   Row(added_col=Row(str_col='foo', int_col=1, bool_col=True, float_col=3.14, rev_str_col='oof'))
+   Row(added_col=Row(bool_col=True, int_col=1, str_col='foo', float_col=Decimal('3.14'), rev_str_col='oof'))
 
 
 - ``expand_struct``: explode a struct into columns

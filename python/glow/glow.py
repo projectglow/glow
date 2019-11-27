@@ -43,3 +43,4 @@ def register(session: SparkSession):
     """
     assert check_argument_types()
     session._jvm.io.projectglow.sql.SqlExtensionProvider.register(session._jsparkSession)
+    session._jvm.io.projectglow.sql.GlowSQLExtensions().apply(session._jsparkSession.extensions())

@@ -4,6 +4,7 @@ dependencies:
   - pytest
   - pip
   - pip:
+    - numpy
     - pyspark==2.4.3
     - setuptools==41.2.0 # Python packaging
     - typeguard==2.5.0
