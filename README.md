@@ -15,7 +15,7 @@
 	<a href="https://join.slack.com/t/proj-glow/shared_invite/enQtNzkwNDE4MzMwMTk5LTE2M2JiMjQ1ZDgyYWNkZTFiY2QyYWE0NGI2YWY3ODY3NmEwNmU5OGQzODcxMDBlYzY2YmYzOGM1YTcyYTRhYjA">Slack</a>
 </p>
 
-Glow is an open-source toolkit for working with genomic data at biobank-scale and beyond.
+Glow is an open-source toolkit to enable bioinformatics at biobank-scale and beyond.
 
 # Easy to get started
 The toolkit includes the building blocks that you need to perform the most common analyses right away:
@@ -37,7 +37,7 @@ Spark ecosystem.
 Glow works with datasets in common file formats like VCF, BGEN, and Plink as well as
 high-performance big data
 standards. You can write queries using the native Spark SQL APIs in Python, SQL, R, Java, and Scala.
-The same APIs allow you to bring your genomic data together with other datasets like electronic
+The same APIs allow you to bring your genomic data together with other datasets such as electronic
 health records, real world evidence, and medical images. Glow makes it easy to parallelize existing
 tools and libraries implemented as command line tools or Pandas functions.
 
@@ -68,6 +68,20 @@ To test a specific suite:
 testOnly *VCFDataSourceSuite
 ```
 
+To run Python tests, you must [install conda](https://docs.conda.io/en/latest/miniconda.html) and
+activate the environmet in `python/environment.yml`. 
+```
+conda env create -f python/environment.yml
+conda activate  glow
+```
+
+
+You can then run tests from sbt:
+```
+python/test
+```
+These tests will run with the same Spark classpath as the Scala tests.
+
 If you use IntelliJ, you'll want to set up [scalafmt on save](https://scalameta.org/scalafmt/docs/installation.html).
 
 To test or testOnly in remote debug mode with IntelliJ IDEA set the remote debug configuration in IntelliJ to 'Attach to remote JVM' mode and a specific port number (here the default port number 5005 is used) and then modify the definition of options in groupByHash function in build.sbt to
@@ -75,10 +89,3 @@ To test or testOnly in remote debug mode with IntelliJ IDEA set the remote debug
 val options = ForkOptions().withRunJVMOptions(Vector("-Xmx1024m")).withRunJVMOptions(Vector("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"))
 ```
 
-To run Python tests, you must install and activate the conda environment in
-`python/environment.yml`. You can then run tests from sbt:
-```
-python/test
-```
-
-These tests will run with the same Spark classpath as the Scala tests.
