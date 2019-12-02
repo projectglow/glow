@@ -2,6 +2,13 @@
 Parallelizing Command-Line Tools With the Pipe Transformer
 ==========================================================
 
+.. testsetup::
+
+    from pyspark.sql import SparkSession
+    spark = SparkSession.builder.config('spark.jars.packages', 'io.projectglow:glow_2.11:0.1.2').getOrCreate()
+
+    import glow
+
 To use single-node tools on massive data sets, Glow includes a
 utility called the Pipe Transformer to process Spark DataFrames with command-line programs.
 
@@ -11,13 +18,20 @@ Python usage
 Consider a minimal case with a DataFrame containing a single column of strings. You can use the Pipe
 Transformer to reverse each of the strings in the input DataFrame using the ``rev`` Linux command:
 
-.. code-block:: py
+.. testcode::
 
-  import glow
+    # Create a text-only DataFrame
+    df = spark.createDataFrame([['foo'], ['bar'], ['baz']], ['value'])
+    rev_df = glow.transform('pipe', df, cmd='["rev"]', input_formatter='text', output_formatter='text')
 
-  # Create a text-only DataFrame
-  df = spark.createDataFrame([['foo'], ['bar'], ['baz']], ['value'])
-  display(glow.transform('pipe', df, cmd='["rev"]', input_formatter='text', output_formatter='text'))
+.. testcode::
+   :hide:
+
+   print(rev_df.head())
+
+.. testoutput::
+
+    Row(text='oof')
 
 The options in this example demonstrate how to control the basic behavior of the transformer:
 
@@ -33,22 +47,31 @@ Integrating with bioinformatics tools
 To integrate with tools for genomic data, you can configure the Pipe Transformer to write each
 partition of the input DataFrame as VCF by choosing ``vcf`` as the input and output formatter.
 
-.. code-block:: py
+.. testcode::
 
-  import glow
+    path = "../test-data/NA12878_21_10002403.vcf"
 
-  df = spark.read.format("vcf")\
-    .load("/databricks-datasets/genomics/1kg-vcfs")\
-    .limit(1000)
+.. testcode::
 
-  glow.transform(
-    'pipe',
-    df,
-    cmd='["grep", "-v", "#INFO"]',
-    input_formatter='vcf',
-    in_vcf_header='infer',
-    output_formatter='vcf'
-  )
+    df = spark.read.format("vcf").load(path)
+
+    info_free_df = glow.transform(
+        'pipe',
+        df,
+        cmd='["grep", "-v", "#INFO"]',
+        input_formatter='vcf',
+        in_vcf_header='infer',
+        output_formatter='vcf'
+    )
+
+.. testcode::
+   :hide:
+
+   print([f for f in info_free_df.schema.fieldNames() if f.startswith('INFO_')])
+
+.. testoutput::
+
+   []
 
 When you use the VCF input formatter, you must specify a method to determine the VCF header. The
 simplest option is ``infer``, which instructs the Pipe Transformer to derive a VCF header from the

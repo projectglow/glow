@@ -2,6 +2,16 @@
 Genome-wide Association Study Regression Tests
 ==============================================
 
+.. testsetup::
+
+    from pyspark.sql import SparkSession
+    spark = SparkSession.builder.config('spark.jars.packages', 'io.projectglow:glow_2.11:0.1.2').getOrCreate()
+
+    import glow
+    glow.register(spark)
+
+    path = '../test-data/1000G.phase3.broad.withGenotypes.chr20.10100000.vcf'
+
 Glow contains functions for performing simple regression analyses used in
 genome-wide association studies (GWAS).
 
@@ -14,32 +24,42 @@ in a GWAS setting.
 Example
 -------
 
-.. code-block:: py
+.. testcode::
 
   from pyspark.ml.linalg import DenseMatrix
   import pyspark.sql.functions as fx
   import numpy as np
 
   # Read in VCF file
-  df = spark.read.format('vcf')\
-    .option("splitToBiallelic", True)\
-    .load('/databricks-datasets/genomics/1kg-vcfs')\
-    .limit(10).cache()
+  df = spark.read.format('vcf') \
+    .option("splitToBiallelic", True) \
+    .load(path) \
+    .cache()
 
   # Generate random phenotypes and an intercept-only covariate matrix
   n_samples = df.select(fx.size('genotypes')).first()[0]
   covariates = DenseMatrix(n_samples, 1, np.ones(n_samples))
+  np.random.seed(500)
   phenotypes = np.random.random(n_samples).tolist()
-  covariates_and_phenotypes = spark.createDataFrame([[covariates, phenotypes.tolist()]],
+  covariates_and_phenotypes = spark.createDataFrame([[covariates, phenotypes]],
     ['covariates', 'phenotypes'])
 
   # Run linear regression test
-  display(df.crossJoin(covariates_and_phenotypes).selectExpr(
+  lin_reg_df = df.crossJoin(covariates_and_phenotypes).selectExpr(
     'contigName',
-    'start'
-    'names'
+    'start',
+    'names',
     # genotype_states returns the number of alt alleles for each sample
-    'expand_struct(linear_regression_gwas(genotype_states(genotypes), phenotypes, covariates))'))
+    'expand_struct(linear_regression_gwas(genotype_states(genotypes), phenotypes, covariates))')
+
+.. testcode::
+   :hide:
+
+   print(lin_reg_df.head())
+
+.. testoutput::
+
+    Row(contigName='20', start=10000053, names=[], beta=-0.012268942487586866, standardError=0.03986890589124242, pValue=0.7583114855349732)
 
 
 Parameters
@@ -105,13 +125,22 @@ in a GWAS setting.
 Example
 -------
 
-.. code-block:: py
+.. testcode::
 
-  display(df.crossJoin(covariates_and_phenotypes).selectExpr(
+  log_reg_df = df.crossJoin(covariates_and_phenotypes).selectExpr(
     'contigName',
-    'start'
-    'names'
-    'expand_struct(logistic_regression_gwas(genotype_states(genotypes), phenotypes, covariates, \'LRT\'))'))
+    'start',
+    'names',
+    'expand_struct(logistic_regression_gwas(genotype_states(genotypes), phenotypes, covariates, \'LRT\'))')
+
+.. testcode::
+   :hide:
+
+   print(log_reg_df.head())
+
+.. testoutput::
+
+   Row(contigName='20', start=10000053, names=[], beta=-0.04909334516505058, oddsRatio=0.9520922523419953, waldConfidenceInterval=[0.5523036168612923, 1.6412705426792646], pValue=0.8161087491239676)
 
 
 Parameters
