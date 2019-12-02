@@ -24,6 +24,7 @@ import org.scalatest.concurrent.{AbstractPatienceConfiguration, Eventually}
 import org.scalatest.time.{Milliseconds, Seconds, Span}
 import org.scalatest.{Args, FunSuite, Status, Tag}
 
+import io.projectglow.Glow
 import io.projectglow.common.{GlowLogging, TestUtils}
 import io.projectglow.sql.util.BGZFCodec
 
@@ -46,15 +47,13 @@ abstract class GlowBaseTest
         "spark.hadoop.io.compression.codecs",
         classOf[BGZFCodec].getCanonicalName
       )
-      .set("spark.sql.extensions", classOf[GlowSQLExtensions].getCanonicalName)
-
   }
 
   override def initializeSession(): Unit = ()
 
   override protected implicit def spark: SparkSession = {
     val sess = SparkSession.builder().config(sparkConf).master("local[2]").getOrCreate()
-    SqlExtensionProvider.register(sess)
+    Glow.register(sess)
     SparkSession.setActiveSession(sess)
     Log.setGlobalLogLevel(Log.LogLevel.ERROR)
     sess

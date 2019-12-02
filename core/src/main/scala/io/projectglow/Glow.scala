@@ -19,10 +19,10 @@ package io.projectglow
 import java.util.ServiceLoader
 
 import scala.collection.JavaConverters._
-
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, SQLUtils, SparkSession}
 
 import io.projectglow.common.Named
+import io.projectglow.sql.{GlowSQLExtensions, SqlExtensionProvider}
 import io.projectglow.transformers.util.{SnakeCaseMap, StringUtils}
 
 /**
@@ -33,6 +33,13 @@ import io.projectglow.transformers.util.{SnakeCaseMap, StringUtils}
  * generic methods with stringly-typed arguments to reduce language-specific maintenance burden.
  */
 class GlowBase {
+
+  def register(spark: SparkSession): Unit = {
+    new GlowSQLExtensions().apply(SQLUtils.getSessionExtensions(spark))
+    SqlExtensionProvider.registerFunctions(
+      spark.sessionState.conf,
+      spark.sessionState.functionRegistry)
+  }
 
   /**
    * Apply a named transformation to a DataFrame of genomic data. All parameters apart from the
