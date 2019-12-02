@@ -18,23 +18,24 @@
 Glow is an open-source toolkit for working with genomic data at biobank-scale and beyond.
 
 # Easy to get started
-If you’ve used Spark before, you don’t need to learn any new APIs to get started with Glow. The
-toolkit includes the building blocks that you need to perform the most common analyses right away:
+The toolkit includes the building blocks that you need to perform the most common analyses right away:
 
-- Datasources for loading VCF and BGEN files into Spark DataFrames
-- Functions for performing quality control and data manipulation
+- Load VCF, BGEN, and Plink files into distributed DataFrames
+- Perform quality control and data manipulation with built-in functions
 - Variant normalization and lift over
-- Regression functions
-- Integration with Spark ML libraries for population stratification
-- Utilities for piping DataFrames through command line tools
+- Perform genome-wide association studies
+- Integrate with Spark ML libraries for population stratification
+- Parallelize command line tools to scala existing workflows
 
 # Built to scale
-Glow makes genomic data work with Spark SQL, the leading engine for working with large structured
+Glow makes genomic data work with Spark, the leading engine for working with large structured
 datasets. It fits natively into the ecosystem of tools that have enabled thousands of organizations
-to scale their workflows to petabytes of data.
+to scale their workflows to petabytes of data. Glow bridges the gap between bioinformatics and the
+Spark ecosystem.
 
 # Flexible
-Glow works with datasets in common file formats like VCF or BGEN as well as common big data
+Glow works with datasets in common file formats like VCF, BGEN, and Plink as well as
+high-performance big data
 standards. You can write queries using the native Spark SQL APIs in Python, SQL, R, Java, and Scala.
 The same APIs allow you to bring your genomic data together with other datasets like electronic
 health records, real world evidence, and medical images. Glow makes it easy to parallelize existing
