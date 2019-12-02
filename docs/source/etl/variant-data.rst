@@ -30,11 +30,11 @@ the DataFrame API using Python, R, Scala, or SQL.
 .. testcode::
    :hide:
 
-   input_vcf_path = "../test-data/test.chr17.vcf"
+   path = "../test-data/test.chr17.vcf"
 
 .. testcode::
 
-   df = spark.read.format("vcf").load(input_vcf_path)
+   df = spark.read.format("vcf").load(path)
 
 .. testcode::
    :hide:
@@ -133,9 +133,23 @@ BGEN
 
 Glow provides the ability to read BGEN files, including those distributed by the UK Biobank project.
 
-.. code-block:: py
+.. testcode::
+   :hide:
 
-  df = spark.read.format("bgen").load(path)
+   path = "../test-data/bgen/example.8bits.bgen"
+
+.. testcode::
+
+   df = spark.read.format("bgen").load(path)
+
+.. testcode::
+   :hide:
+
+   print(df.select("contigName", "start").head())
+
+.. testoutput::
+
+   Row(contigName='01', start=1999)
 
 As with the VCF reader, the provided path can be a file, directory, or glob pattern. If ``.bgi``
 index files are located in the same directory as the data files, the reader uses the indexes to
@@ -154,9 +168,19 @@ The schema of the resulting DataFrame matches that of the VCF reader.
 
 You can use the ``DataFrameWriter`` API to save a single BGEN file, which you can then read with other tools.
 
-.. code-block:: py
+.. testcode::
+   :hide:
 
-  df.write.format("bigbgen").save(path)
+   path = "../test-data/doc-test-bigbgen.bgen"
+
+.. testcode::
+
+   df.write.format("bigbgen").save(path)
+
+.. testcode::
+   :hide:
+
+   os.remove(path)
 
 If the genotype arrays are missing ploidy and/or phasing information, the BGEN writer infers the values using the
 provided values for ploidy, phasing, or ``posteriorProbabilities`` in the genotype arrays. You can provide the value for ploidy
@@ -184,21 +208,26 @@ PLINK
 Glow provides the ability to read binary PLINK BED files with accompanying BIM and FAM files. The provided path can be a
 file or glob pattern.
 
+.. testcode::
+   :hide:
+
+   prefix = "../test-data/plink/five-samples-five-variants/bed-bim-fam/test"
+
 .. code-block:: py
 
-  df = spark.read.format("plink").load("prefix.bed")
+  df = spark.read.format("plink").load("{prefix}.bed".format(prefix=prefix))
 
 The schema of the resulting DataFrame matches that of the VCF reader. The accompanying variant and sample information
-files must be located at ``prefix.bim`` and ``prefix.fam``.
+files must be located at ``{prefix}.bim`` and ``{prefix}.fam``.
 
 +------------------+---------+-------------+-----------------------------------------------------------------------------------------------------+
 | Parameter        | Type    | Default     | Description                                                                                         |
 +==================+=========+=============+=====================================================================================================+
 | includeSampleIds | boolean | true        | If true, each genotype includes the name of the sample ID it belongs to.                            |
 +------------------+---------+-------------+-----------------------------------------------------------------------------------------------------+
-| bimDelimiter     | string  | " " (space) | Whitespace delimiter in the ``prefix.bim`` file.                                                    |
+| bimDelimiter     | string  | " " (space) | Whitespace delimiter in the ``{prefix}.bim`` file.                                                    |
 +------------------+---------+-------------+-----------------------------------------------------------------------------------------------------+
-| famDelimiter     | string  | "\\t" (tab) | Whitespace delimiter in the ``prefix.fam`` file.                                                    |
+| famDelimiter     | string  | "\\t" (tab) | Whitespace delimiter in the ``{prefix}.fam`` file.                                                    |
 +------------------+---------+-------------+-----------------------------------------------------------------------------------------------------+
 | mergeFidIid      | boolean | true        | If true, sets the sample ID to the family ID and individual ID merged with an underscore delimiter. |
 |                  |         |             | If false, sets the sample ID to the individual ID.                                                  |
