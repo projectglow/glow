@@ -2,6 +2,16 @@
 Variant I/O with Spark SQL
 ==========================
 
+.. testsetup::
+
+    from pyspark.sql import SparkSession
+    spark = SparkSession.builder.config('spark.jars.packages', 'io.projectglow:glow_2.11:0.1.2').getOrCreate()
+
+    import glob
+    import os
+    import shutil
+
+
 Glow makes it possible to read and write variant data at scale using Spark SQL.
 
 .. tip::
@@ -17,9 +27,24 @@ VCF
 You can use Spark to read VCF files just like any other file format that Spark supports through
 the DataFrame API using Python, R, Scala, or SQL.
 
-.. code-block:: py
+.. testcode::
+   :hide:
 
-  df = spark.read.format("vcf").load(path)
+   input_vcf_path = "../test-data/test.chr17.vcf"
+
+.. testcode::
+
+   df = spark.read.format("vcf").load(input_vcf_path)
+
+.. testcode::
+   :hide:
+
+   print(df.select("contigName", "start").head())
+
+.. testoutput::
+
+    Row(contigName='17', start=504217)
+
 
 The returned DataFrame has a schema that mirrors a single row of a VCF. Information that applies to an entire
 variant (SNV or indel), such as the contig name, start and end positions, and INFO attributes,
@@ -49,9 +74,19 @@ You can control the behavior of the VCF reader with a few parameters. All parame
 
 You can save a DataFrame as a VCF file, which you can then read with other tools. To write a DataFrame as a single VCF file specify the format ``"bigvcf"``:
 
-.. code-block:: py
+.. testcode::
+   :hide:
 
-  df.write.format("bigvcf").save(<path-to-file>)
+   path = "../test-data/doc-test-bigvcf.vcf"
+
+.. testcode::
+
+   df.write.format("bigvcf").save(path)
+
+.. testcode::
+   :hide:
+
+   os.remove(path)
 
 The file extension of the output path determines which, if any, compression codec should be used.
 For instance, writing to a path such as ``/genomics/my_vcf.vcf.bgz`` will cause the output file to be
@@ -59,9 +94,19 @@ block gzipped.
 
 If you'd rather save a sharded VCF where each partition saves to a separate file:
 
-.. code-block:: py
+.. testcode::
+   :hide:
 
-  df.write.format("vcf").save(path)
+   path = "../test-data/doc-test-vcf.vcf"
+
+.. testcode::
+
+   df.write.format("vcf").save(path)
+
+.. testcode::
+   :hide:
+
+   shutil.rmtree(path)
 
 To control the behavior of the sharded VCF writer, you can provide the following option:
 
