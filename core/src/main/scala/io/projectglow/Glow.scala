@@ -19,6 +19,7 @@ package io.projectglow
 import java.util.ServiceLoader
 
 import scala.collection.JavaConverters._
+
 import org.apache.spark.sql.{DataFrame, SQLUtils, SparkSession}
 
 import io.projectglow.common.Named
