@@ -44,6 +44,9 @@ jobs:
           path: ~/glow/unit-tests.log
           destination: unit-tests.log
 
+      - store_test_results:
+          path: ~/glow/core/target/test-reports
+
       - codecov/upload:
           file: "core/target/scala-2.11/scoverage-report/scoverage.xml"
 
