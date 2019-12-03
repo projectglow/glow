@@ -6,7 +6,7 @@ jobs:
     working_directory: ~/glow
     docker:
       - image: circleci/openjdk:8
-    parallelism: 4
+    parallelism: 2
 
     steps:
       - checkout
