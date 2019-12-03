@@ -40,23 +40,41 @@ Each of these functions returns a map from sample ID to a struct containing metr
     - ``genotypes`` array with a ``conditionalQuality`` field
     - A struct with ``min``, ``max``, ``mean``, and ``stddev``
 
-Computing custom sample QC metrics
+Computing user-defined sample QC metrics
 ----------------------------------
 
-Glow provides two ways to compute per-sample statistics not provided by the built-in QC functions.
+In addition to the built-in QC functions discussed above, Glow provides two ways to compute
+user-defined per-sample statistics.
+
+``aggregate_by_index``
+~~~~~~~~~~~~~~~~~~~~~~
 
 First, you can aggregate over each sample in a genotypes array using the ``aggregate_by_index``
 function.
 
-``aggregate_by_index(array<T>, U, function<U, T, U>, function<U, U, U>, function<U, V>)``
+``aggregate_by_index(array, initial_state, update_function, merge_function, eval_function)``
 
-The function takes the following positional arguments:
+.. list-table::
+  :header-rows: 1
 
-- ``genotypes (array<T>)``: An ``array``-typed column. There are no requirements on the element datatype. This array is expected to be the same length for each row in the input DataFrame. The output of ``aggregate_by_index`` is an array with the same length as each input row.
-- ``initialState (U)``: The initial aggregation state for each sample.
-- ``updateFunction (<U, T> -> U)``: A function that returns a new single sample aggregation state given the current aggregation state and a new data element.
-- ``mergeFunction (<U, U> -> U)``: A function that combines two single sample aggregation states. This function is necessary since the aggregation is computed in a distributed manner across all nodes in the cluster.
-- ``evalFunction (U -> V)`` (optional): A function that returns the output for a sample given that sample's aggregation state. This function is optional. If it is not specified, the aggregation state will be returned.
+  * - Name
+    - Type
+    - Description
+  * - ``array``
+    - ``array<T>``
+    - An ``array``-typed column. There are no requirements on the element datatype. This array is expected to be the same length for each row in the input DataFrame. The output of ``aggregate_by_index`` is an array with the same length as each input row.
+  * - ``initial_state``
+    - ``U``
+    - The initial aggregation state for each sample.
+  * - ``update_function``
+    - ``<U, T> -> U``
+    - A function that returns a new single sample aggregation state given the current aggregation state and a new data element.
+  * - ``merge_function``
+    - ``<U, U> -> U``
+    - A function that combines two single sample aggregation states. This function is necessary since the aggregation is computed in a distributed manner across all nodes in the cluster.
+  * - ``eval_function`` (optional)
+    - ``U -> V``
+    - A function that returns the output for a sample given that sample's aggregation state. This function is optional. If it is not specified, the aggregation state will be returned.
 
 For example, this code snippet uses ``aggregate_by_index`` to compute the mean for each array
 position:
@@ -69,6 +87,9 @@ position:
     (state, element) -> (state.col1 + element, state.col2 + 1),
     (state1, state2) -> (state1.col1 + state2.col1, state1.col2 + state2.col2),
     state -> state.col1 / state.col2)
+
+Explode and aggregate
+~~~~~~~~~~~~~~~~~~~~~
 
 If your dataset is not in a normalized, pVCF-esque shape, or if you want the aggregation output in a
 table rather than a single array, you can explode the ``genotypes`` array and use any of the
