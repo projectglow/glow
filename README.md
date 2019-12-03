@@ -22,10 +22,10 @@ The toolkit includes the building blocks that you need to perform the most commo
 
 - Load VCF, BGEN, and Plink files into distributed DataFrames
 - Perform quality control and data manipulation with built-in functions
-- Variant normalization and lift over
+- Variant normalization and liftOver
 - Perform genome-wide association studies
 - Integrate with Spark ML libraries for population stratification
-- Parallelize command line tools to scala existing workflows
+- Parallelize command line tools to scale existing workflows
 
 # Built to scale
 Glow makes genomic data work with Spark, the leading engine for working with large structured
