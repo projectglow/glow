@@ -6,6 +6,8 @@ jobs:
     working_directory: ~/glow
     docker:
       - image: circleci/openjdk:8
+    parallelism: 4
+
     steps:
       - checkout
 
@@ -14,7 +16,7 @@ jobs:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}
 
       - run:
-          name: install dependencies
+          name: Install dependencies
           command: |
             export PATH=$HOME/conda/bin:$PATH
             if [ ! -d "/home/circleci/conda" ]; then
@@ -26,14 +28,14 @@ jobs:
             fi
 
       - run:
-          name: run Scala and Python tests
+          name: Run Scala and Python tests
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             sbt coverage test coverageReport exit
 
       - run:
-          name: run docs tests
+          name: Run docs tests
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
