@@ -27,4 +27,5 @@ docs/build
 
 # Logs
 adam.log
+core-test-names.log
 unit-tests.log
