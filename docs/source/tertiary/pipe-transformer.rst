@@ -12,26 +12,47 @@ Parallelizing Command-Line Tools With the Pipe Transformer
 To use single-node tools on massive data sets, Glow includes a
 utility called the Pipe Transformer to process Spark DataFrames with command-line programs.
 
-Python usage
-============
+Usage
+=====
 
 Consider a minimal case with a DataFrame containing a single column of strings. You can use the Pipe
 Transformer to reverse each of the strings in the input DataFrame using the ``rev`` Linux command:
 
-.. testcode::
+.. tabs::
 
-    # Create a text-only DataFrame
-    df = spark.createDataFrame([['foo'], ['bar'], ['baz']], ['value'])
-    rev_df = glow.transform('pipe', df, cmd='["rev"]', input_formatter='text', output_formatter='text')
+    .. tab:: Python
 
-.. testcode::
-   :hide:
+        Provide options through the ``arg_map`` argument or as keyword args.
 
-   print(rev_df.head())
+        .. testcode::
 
-.. testoutput::
+            # Create a text-only DataFrame
+            df = spark.createDataFrame([['foo'], ['bar'], ['baz']], ['value'])
+            rev_df = glow.transform('pipe', df, cmd='["rev"]', input_formatter='text', output_formatter='text')
 
-    Row(text='oof')
+        .. testcode::
+           :hide:
+
+           print(rev_df.head())
+
+        .. testoutput::
+
+            Row(text='oof')
+
+    .. tab:: Scala
+
+        Provide options as a ``Map[String, String]``.
+
+        .. code-block:: scala
+
+            import io.projectglow.Glow
+
+            Glow.transform("pipe", df, Map(
+                "cmd" -> "[\"grep\", \"-v\", \"#INFO\"]",
+                "inputFormatter" -> "vcf",
+                "outputFormatter" -> "vcf",
+                "inVcfHeader" -> "infer")
+            )
 
 The options in this example demonstrate how to control the basic behavior of the transformer:
 
@@ -77,32 +98,15 @@ When you use the VCF input formatter, you must specify a method to determine the
 simplest option is ``infer``, which instructs the Pipe Transformer to derive a VCF header from the
 DataFrame schema.
 
-Scala usage
-===========
 
-You can also invoke the Pipe Transformer from Scala. You specify options as a ``Map[String,
-String]``.
-
-.. code-block:: scala
-
-  import io.projectglow.Glow
-
-  Glow.transform("pipe", df, Map(
-    "cmd" -> "[\"grep\", \"-v\", \"#INFO\"]",
-    "inputFormatter" -> "vcf",
-    "outputFormatter" -> "vcf",
-    "inVcfHeader" -> "infer")
-  )
 
 .. _transformer-options:
 
 Options
 =======
 
-Option keys and values are always strings. From Python, you provide options through the ``arg_map``
-argument or as keyword args. From Scala, you provide options as a ``Map[String, String]``.
-You can specify option names in snake or camel case; for example ``inputFormatter``, 
-``input_formatter``, and ``InputFormatter`` are all equivalent.
+Option keys and values are always strings. You can specify option names in snake or camel case; for example
+``inputFormatter``, ``input_formatter``, and ``InputFormatter`` are all equivalent.
 
 .. list-table::
   :header-rows: 1
@@ -158,7 +162,18 @@ instead of waiting for them to fall out of the cache, use the pipe cleanup trans
 cleanup until the pipe transformer results have been materialized, such as by being written to a
 `Delta Lake table <https://delta.io>`_.
 
-To perform pipe cleanup in Python, run ``glow.transform('pipe_cleanup', df)``.
-In Scala, run ``Glow.transform("pipe_cleanup", df)``.
+.. tabs::
+
+    .. tab:: Python
+
+        .. code-block:: py
+
+          glow.transform('pipe_cleanup', df)
+
+    .. tab:: Scala
+
+        .. code-block:: scala
+
+            Glow.transform("pipe_cleanup", df)
 
 .. notebook:: .. tertiary/pipe-transformer.html
