@@ -40,11 +40,15 @@ Glow requires Apache Spark 2.4.3 (or a later version of Spark 2.4.x that is buil
         And now your notebook is glowing! To access the Glow functions, you need to register them with the
         Spark session.
 
+        .. invisible-code-block: python
+
+          path = 'test-data/test.chr17.vcf'
+
         .. code-block:: python
 
           import glow
           glow.register(spark)
-          df = spark.read.format('vcf').load('example.vcf')
+          df = spark.read.format('vcf').load(path)
 
     .. tab:: Scala
 
@@ -64,7 +68,8 @@ Glow requires Apache Spark 2.4.3 (or a later version of Spark 2.4.x that is buil
 
           import io.projectglow.Glow
           Glow.register(spark)
-          val df = spark.read.format("vcf").load("example.vcf")
+          val df = spark.read.format("vcf").load(path)
+
 
 Running in the cloud
 --------------------
