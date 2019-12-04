@@ -79,6 +79,7 @@ extensions = [
     'sphinx.ext.githubpages',
     'notebook',
     'sphinx_substitution_extensions',
+    'sphinx_tabs.tabs',
 ]
 
 # Add any paths that contain templates here, relative to this directory.

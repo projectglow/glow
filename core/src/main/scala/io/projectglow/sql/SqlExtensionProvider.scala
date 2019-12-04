@@ -41,10 +41,6 @@ class GlowSQLExtensions extends (SparkSessionExtensions => Unit) {
 
 object SqlExtensionProvider {
 
-  final def register(session: SparkSession): Unit = {
-    registerFunctions(session.sessionState.conf, session.sessionState.functionRegistry)
-  }
-
   def registerFunctions(conf: SQLConf, functionRegistry: FunctionRegistry): Unit = {
     functionRegistry.registerFunction(
       FunctionIdentifier("add_struct_fields"),

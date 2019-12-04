@@ -4,42 +4,67 @@ Getting Started
 Running Locally
 ---------------
 
-Glow requires Apache Spark 2.4.3 (or a later version of Spark 2.4.x that is built on Scala 2.11). If you don't have a
-local Apache Spark installation, you can install it from PyPI:
+Glow requires Apache Spark 2.4.3 (or a later version of Spark 2.4.x that is built on Scala 2.11).
 
-.. code-block:: sh
+.. tabs::
 
-  pip install pyspark==2.4.3
+    .. tab:: Python
 
-or `download a specific distribution <https://spark.apache.org/downloads.html>`_.
+        If you don't have a local Apache Spark installation, you can install it from PyPI:
 
-Install the Python frontend from pip:
+        .. code-block:: sh
 
-.. code-block:: sh
+          pip install pyspark==2.4.3
 
-  pip install glow.py
+        or `download a specific distribution <https://spark.apache.org/downloads.html>`_.
 
-and then start the `Spark shell <http://spark.apache.org/docs/latest/rdd-programming-guide.html#using-the-shell>`_
-with the Glow maven package:
+        Install the Python frontend from pip:
 
-.. substitution-code-block:: sh
+        .. code-block:: sh
 
-  ./bin/pyspark --packages io.projectglow:glow_2.11:|mvn-version|
+          pip install glow.py
 
-To start a Jupyter notebook instead of a shell:
+        and then start the `Spark shell <http://spark.apache.org/docs/latest/rdd-programming-guide.html#using-the-shell>`_
+        with the Glow maven package:
 
-.. substitution-code-block:: sh
+        .. substitution-code-block:: sh
 
-  PYSPARK_DRIVER_PYTHON=jupyter PYSPARK_DRIVER_PYTHON_OPTS=notebook ./bin/pyspark --packages io.projectglow:glow_2.11:|mvn-version|
+          ./bin/pyspark --packages io.projectglow:glow_2.11:|mvn-version|
 
-And now your notebook is glowing! To access the Glow functions, you need to register them with the
-Spark session.
+        To start a Jupyter notebook instead of a shell:
 
-.. code-block:: python
+        .. substitution-code-block:: sh
 
-  import glow
-  glow.register(spark)
-  df = spark.read.format('vcf').load('my_first.vcf')
+          PYSPARK_DRIVER_PYTHON=jupyter PYSPARK_DRIVER_PYTHON_OPTS=notebook ./bin/pyspark --packages io.projectglow:glow_2.11:|mvn-version|
+
+        And now your notebook is glowing! To access the Glow functions, you need to register them with the
+        Spark session.
+
+        .. code-block:: python
+
+          import glow
+          glow.register(spark)
+          df = spark.read.format('vcf').load('example.vcf')
+
+    .. tab:: Scala
+
+        If you don't have a local Apache Spark installation,
+        `download a specific distribution <https://spark.apache.org/downloads.html>`_.
+
+        Start the `Spark shell <http://spark.apache.org/docs/latest/rdd-programming-guide.html#using-the-shell>`_
+        with the Glow maven package:
+
+        .. substitution-code-block:: sh
+
+          ./bin/spark-shell --packages io.projectglow:glow_2.11:|mvn-version|
+
+        To access the Glow functions, you need to register them with the Spark session.
+
+        .. code-block:: scala
+
+          import io.projectglow.Glow
+          Glow.register(spark)
+          val df = spark.read.format("vcf").load("example.vcf")
 
 Running in the cloud
 --------------------
