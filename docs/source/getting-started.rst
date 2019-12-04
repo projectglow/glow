@@ -58,8 +58,7 @@ Glow requires Apache Spark 2.4.3 (or a later version of Spark 2.4.x that is buil
 
           ./bin/spark-shell --packages io.projectglow:glow_2.11:|mvn-version|
 
-        And now your notebook is glowing! To access the Glow functions, you need to register them with the
-        Spark session.
+        To access the Glow functions, you need to register them with the Spark session.
 
         .. code-block:: scala
 
