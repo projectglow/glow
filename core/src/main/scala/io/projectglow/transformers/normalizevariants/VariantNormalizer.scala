@@ -31,7 +31,8 @@ import org.broadinstitute.hellbender.engine.{ReferenceContext, ReferenceDataSour
 import org.broadinstitute.hellbender.tools.walkers.genotyper.GenotypeAssignmentMethod
 import org.broadinstitute.hellbender.utils.SimpleInterval
 import org.broadinstitute.hellbender.utils.variant.GATKVariantContextUtils
-import io.projectglow.common.{GlowLogging, VariantSchemas}
+import io.projectglow.common.GlowLogging
+import io.projectglow.common.VariantSchemas._
 import io.projectglow.vcf.{InternalRowToVariantContextConverter, VCFFileWriter, VariantContextToInternalRowConverter}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types._
@@ -82,149 +83,100 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
     // VariantContext, performs splitting and normalization on the VariantContext, converts it
     // back to InternalRow(s)
 
-
-    val mapped = df.queryExecution.toRdd.mapPartitions { it =>
-      val vcfHeader = new VCFHeader(headerLineSet.asJava)
-
-      val variantContextToInternalRowConverter =
-        new VariantContextToInternalRowConverter(
-          vcfHeader,
-          schema,
-          validationStringency
-        )
-
-      val internalRowToVariantContextConverter =
-        new InternalRowToVariantContextConverter(
-          schema,
-          headerLineSet,
-          validationStringency
-        )
-
-      internalRowToVariantContextConverter.validate()
-
-      val refGenomeDataSource = if (doNormalize) {
-        Option(ReferenceDataSource.of(Paths.get(refGenomePathString.get)))
-      } else {
-        None
-      }
-
-      it.flatMap { row =>
-
-        val internalRowArrayAfterMaybeSplit: Array[InternalRow] = if (splitToBiallelic) {
-          Array(row)
-        } else {
-          Array(row)
-        }
-
-        val isFromSplit = internalRowArrayAfterMaybeSplit.length > 1
-
-        if (doNormalize) {
-          internalRowArrayAfterMaybeSplit.map { row =>
-            internalRowToVariantContextConverter.convert(row) match {
-
-              case Some(vc) =>
-                variantContextToInternalRowConverter.convertRow(VariantNormalizer.normalizeVC(vc, refGenomeDataSource.get), isFromSplit)
-              case None => row
-            }
-          }
-        } else {
-          internalRowArrayAfterMaybeSplit
-        }
-      }
+    val dfAfterMaybeSplit = if (splitToBiallelic) {
+      splitVariants(df)
+    } else {
+      df
     }
-    SQLUtils.internalCreateDataFrame(df.sparkSession, mapped, schema, false)
+
+    val rddAfterMaybeNormalize = if (doNormalize) {
+      dfAfterMaybeSplit.queryExecution.toRdd.mapPartitions { it =>
+        val vcfHeader = new VCFHeader(headerLineSet.asJava)
+
+        val variantContextToInternalRowConverter =
+          new VariantContextToInternalRowConverter(
+            vcfHeader,
+            schema,
+            validationStringency
+          )
+
+        val internalRowToVariantContextConverter =
+          new InternalRowToVariantContextConverter(
+            schema,
+            headerLineSet,
+            validationStringency
+          )
+
+        internalRowToVariantContextConverter.validate()
+
+        val refGenomeDataSource = Option(ReferenceDataSource.of(Paths.get(refGenomePathString.get)))
+
+        it.map { row =>
+          val isFromSplit = false
+          internalRowToVariantContextConverter.convert(row) match {
+
+            case Some(vc) =>
+              variantContextToInternalRowConverter
+                .convertRow(VariantNormalizer.normalizeVC(vc, refGenomeDataSource.get), isFromSplit)
+            case None => row
+          }
+        }
+      }
+    } else {
+      dfAfterMaybeSplit.queryExecution.toRdd
+    }
+
+    SQLUtils.internalCreateDataFrame(df.sparkSession, rddAfterMaybeNormalize, schema, false)
   }
 
+  /**
+   * Generates a new DataFrame by splitting the variants in the input DataFrame
+   *
+   * @param inputDf
+   * @return a Stream of split vc's
+   */
+  def splitVariants(inputDf: DataFrame): DataFrame = {
 
-  def splitVariants(variantDf: DataFrame): DataFrame = {
+    val variantDf = if (inputDf.schema.fieldNames.contains("attributes")) {
+      // TODO: What to do when INFO fields are not flattened?
+      inputDf // WIP
+    } else {
+      inputDf
+    }
 
-    val columnAdditionFunctions: Seq[DataFrame => DataFrame] = variantDf.schema
-      .filter(field =>
-        field.name.startsWith("INFO_") &&
+    val columnAdditionFunctions: Seq[DataFrame => DataFrame] = variantDf
+      .schema
+      .filter(
+        field =>
+          field.name.startsWith("INFO_") &&
           (field.dataType match {
             case ArrayType(_, _) => true
             case _ => false
-          })
-      )
+          }))
       .map(field =>
         (f: DataFrame) => {
-          f.withColumn(s"${field.name}_ArraySize", size(col(field.name)))
-        }
-      )
+          f.withColumn(
+            field.name,
+            when(
+              size(col(field.name)) === size(col(alternateAllelesField.name)),
+              expr(s"${field.name}[altAllelePos]")))
+        })
 
-
-    val explodedDf = columnAdditionFunctions.foldLeft(
-      variantDf
-        .withColumn("numberOfAltAlleles", size(col(VariantSchemas.alternateAllelesField.name)))
-        .select(col("*"), posexplode(col(VariantSchemas.alternateAllelesField.name)).as(Array("pos", "splitAlleles")))
-        .withColumn("splitAlleles", array(col("splitAlleles")))
-    )((df, fn) => fn(df))
-
-    // explodedAlternateAlleleDf.replaceColumn("alternateAlleles", "splitAlleles")
-
-    explodedDf
-  }
-
-
-  implicit class DataFrameWithColumnReplacement(df: DataFrame) {
-    def replaceColumn(originalColumnName: String, replacementColumnName: String): DataFrame = {
-      val reorderedColumnNames = df.columns.filter(_ != replacementColumnName).map(name => if (name.contains(".")) s"`${name}`" else name)
-      val originalColumnIdx = reorderedColumnNames.indexOf(originalColumnName)
-      reorderedColumnNames.update(originalColumnIdx, replacementColumnName)
-      df.select(reorderedColumnNames.head, reorderedColumnNames.tail: _*)
-        .withColumnRenamed(replacementColumnName, originalColumnName)
-    }
-  }
-
-
-
-  /**
-   * Splits a vc to bi-alleleic using gatk splitting function
-   *
-   * @param vc
-   * @return a Stream of split vc's
-   */
-  /*
-  private def splitVariant(row: InternalRow): Array[InternalRow] = {
-
-    if (VariantSchemas.contigNameField.name <= 2) {
-      Array(vc)
-    } else {
-      val splitVcs = new Array[VariantContext](vc.getNAlleles -1)
-      for (i <- 1 to vc.getNAlleles - 1) {
-        val newAlleles = Seq(vc.getReference(), vc.getAlternateAllele(i))
-        splitVcs(i) = new VariantContextBuilder(vc)
-          .alleles(newAlleles.asJava)
-          .make
-      }
-      splitVcs
-    }
-
-
-
-    } else {
-      val alleles = vc.getAlleles.asScala
-      if (alleles.exists(_.isSymbolic)) {
-        // if any of the alleles is symbolic, do nothing
-        vc
-      } else {
-        // Create ReferenceDataSource of the reference genome and the AlleleBlock and pass
-        // to realignAlleles
-
-        updateVCWithNewAlleles(
-          vc,
-          realignAlleles(
-            AlleleBlock(alleles, vc.getStart, vc.getEnd),
-            refGenomeDataSource,
-            vc.getContig
-          )
-        )
-
-      }
-    }
+    columnAdditionFunctions
+      .foldLeft(
+        variantDf
+          .withColumn(
+            splitFromMultiAllelicField.name,
+            when(size(col(alternateAllelesField.name)) > 1, true).otherwise(false))
+          .select(
+            col("*"),
+            posexplode(col(alternateAllelesField.name)).as(Array("altAllelePos", "splitAlleles")))
+      )((df, fn) => fn(df))
+      .withColumn(alternateAllelesField.name, array(col("splitAlleles")))
+      .drop("altAllelePos", "splitAlleles")
 
   }
-*/
+
   /**
    * Encapsulates all alleles, start, and end of a variant to used by the VC normalizer
    *
