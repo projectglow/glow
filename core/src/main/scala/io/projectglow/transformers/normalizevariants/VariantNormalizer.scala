@@ -28,13 +28,10 @@ import htsjdk.variant.vcf.VCFHeader
 import org.apache.spark.sql.{DataFrame, SQLUtils}
 import org.apache.spark.sql.functions._
 import org.broadinstitute.hellbender.engine.{ReferenceContext, ReferenceDataSource}
-import org.broadinstitute.hellbender.tools.walkers.genotyper.GenotypeAssignmentMethod
 import org.broadinstitute.hellbender.utils.SimpleInterval
-import org.broadinstitute.hellbender.utils.variant.GATKVariantContextUtils
 import io.projectglow.common.GlowLogging
 import io.projectglow.common.VariantSchemas._
 import io.projectglow.vcf.{InternalRowToVariantContextConverter, VCFFileWriter, VariantContextToInternalRowConverter}
-import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.functions.expr
 
@@ -78,10 +75,6 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
           df.sparkSession.sparkContext.hadoopConfiguration
         )
         ._1
-
-    // flatmap InternalRows to (optionally split) normalized rows; coverts each InternalRow to a
-    // VariantContext, performs splitting and normalization on the VariantContext, converts it
-    // back to InternalRow(s)
 
     val dfAfterMaybeSplit = if (splitToBiallelic) {
       splitVariants(df)
