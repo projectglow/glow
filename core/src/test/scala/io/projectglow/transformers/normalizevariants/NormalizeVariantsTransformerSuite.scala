@@ -21,6 +21,8 @@ import org.apache.spark.SparkConf
 import io.projectglow.Glow
 import io.projectglow.common.GlowLogging
 import io.projectglow.sql.GlowBaseTest
+import io.projectglow.transformers.normalizevariants.VariantNormalizer._
+
 
 class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
 
@@ -237,6 +239,20 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
       Option(gatkTestReference),
       Option("splitAndNormalize"))
 
+  }
+
+
+  test("splitVariants") {
+
+
+    val dfOriginal = spark
+      .read
+      .format(sourceName)
+      .load(vtTestVcfMultiAllelic)
+
+
+    dfOriginal.show()
+    splitVariants(dfOriginal).show()
   }
 
 }
