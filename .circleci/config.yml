@@ -28,12 +28,11 @@ jobs:
             fi
 
       - run:
-          name: Run Python tests and parallelized Scala tests
+          name: Run parallelized Scala tests
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            sbt printTests
-            sbt coverage "testOnly $(circleci tests split --split-by=timings --timings-type=classname core-test-names.log | tr '\n' ' ') --" python/test coverageReport exit
+            sbt printTests coverage "testOnly $(circleci tests split --split-by=timings --timings-type=classname core-test-names.log | tr '\n' ' ') --" coverageReport exit
 
       - run:
           name: Run Python tests
