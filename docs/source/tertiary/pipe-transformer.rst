@@ -40,8 +40,6 @@ Transformer to reverse each of the strings in the input DataFrame using the ``re
 
         .. code-block:: scala
 
-            import io.projectglow.Glow
-
             Glow.transform("pipe", df, Map(
                 "cmd" -> "[\"grep\", \"-v\", \"#INFO\"]",
                 "inputFormatter" -> "vcf",

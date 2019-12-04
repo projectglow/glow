@@ -68,7 +68,7 @@ Glow requires Apache Spark 2.4.3 (or a later version of Spark 2.4.x that is buil
 
           import io.projectglow.Glow
           Glow.register(spark)
-          val df = spark.read.format("vcf").load("example.vcf")
+          val df = spark.read.format("vcf").load(path)
 
 
 Running in the cloud

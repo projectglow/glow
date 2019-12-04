@@ -13,8 +13,8 @@ def spark():
         .config("spark.kryoserializer.buffer.max", "2047m") \
         .config("spark.kryo.registrationRequired", "false") \
         .config(
-        "spark.hadoop.io.compression.codecs",
-        "org.seqdoop.hadoop_bam.util.BGZFCodec,org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec") \
+            "spark.hadoop.io.compression.codecs",
+            "org.seqdoop.hadoop_bam.util.BGZFCodec,org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec") \
         .getOrCreate()
     yield sess
     sess.stop()
