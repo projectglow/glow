@@ -12,23 +12,25 @@ Glow provides the ``normalize_variants`` transformer to be applied on a variant 
   * The variant normalization algorithm used by the ``normlize_variants`` transformer follows the same logic as the one used in well-known normalization tools such as `bcftools norm <http://www.htslib.org/doc/bcftools.html#norm>`_ or `vt normalize <https://genome.sph.umich.edu/wiki/Vt#Normalization>`_ tools. This normalization logic is different from the one use by GATK's `LeftAlignAndTrimVariants <https://software.broadinstitute.org/gatk/documentation/tooldocs/3.8-0/org_broadinstitute_gatk_tools_walkers_variantutils_LeftAlignAndTrimVariants.php>`_, which sometimes yields incorrect normalization (see `Variant Normalization <https://genome.sph.umich.edu/wiki/Variant_Normalization>`_ for more details).
   * The splitting logic is the same as the one used in GATK's `LeftAlignAndTrimVariants <https://software.broadinstitute.org/gatk/documentation/tooldocs/3.8-0/org_broadinstitute_gatk_tools_walkers_variantutils_LeftAlignAndTrimVariants.php>`_ tool using ``--splitMultiallelics`` option. In splitting a multiallelic variant, this transformer recalculates the GT blocks for the resulting biallelic variants if possible, and drops all VCF INFO fields, except for AC, AN, and AF, which are recalculated based on the newly calculated GT blocks, if any, and otherwise dropped.
 
-Python usage
-============
-Assuming ``df_original`` is a variable of type DataFrame which contains the genomic variant records, and ``ref_genome_path`` is a variable of type String containing the path to the reference genome file, a minimal example of using this transformer for normalization in Python is:
+Usage
+=====
 
-.. code-block:: py
+Assuming ``df_original`` is a variable of type DataFrame which contains the genomic variant records, and ``ref_genome_path`` is a variable of type String containing the path to the reference genome file, a minimal example of using this transformer for normalization is:
 
-  import glow
-  df_normalized = glow.transform("normalize_variants", df_original, reference_genome_path=ref_genome_path)
+.. tabs::
 
-Scala usage
-===========
-The same can be done in Scala as follows:
+    .. tab:: Python
 
-.. code-block:: scala
+        .. code-block:: py
+            import glow
+            df_normalized = glow.transform("normalize_variants", df_original, reference_genome_path=ref_genome_path)
 
-    import io.projectglow.Glow
-    df_normalized = Glow.transform("normalize_variants", df_original, Map("reference_genome_path" -> ref_genome_path))
+    .. tab:: Scala
+
+        .. code-block:: scala
+
+            import io.projectglow.Glow
+            df_normalized = Glow.transform("normalize_variants", df_original, Map("reference_genome_path" -> ref_genome_path))
 
 Options
 =======
