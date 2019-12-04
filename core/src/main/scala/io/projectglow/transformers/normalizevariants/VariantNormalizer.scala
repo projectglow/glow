@@ -82,6 +82,7 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
       df
     }
 
+    // TODO: Implement normalization without using VariantContext
     val rddAfterMaybeNormalize = if (doNormalize) {
       dfAfterMaybeSplit.queryExecution.toRdd.mapPartitions { it =>
         val vcfHeader = new VCFHeader(headerLineSet.asJava)
