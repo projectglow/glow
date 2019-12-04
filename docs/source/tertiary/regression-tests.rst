@@ -2,15 +2,12 @@
 Genome-wide Association Study Regression Tests
 ==============================================
 
-.. testsetup::
-
-    from pyspark.sql import SparkSession
-    spark = SparkSession.builder.config('spark.jars.packages', 'io.projectglow:glow_2.11:0.1.2').getOrCreate()
+.. invisible-code-block: python
 
     import glow
     glow.register(spark)
 
-    path = '../test-data/1000G.phase3.broad.withGenotypes.chr20.10100000.vcf'
+    path = 'test-data/1000G.phase3.broad.withGenotypes.chr20.10100000.vcf'
 
 Glow contains functions for performing simple regression analyses used in
 genome-wide association studies (GWAS).
@@ -24,7 +21,7 @@ in a GWAS setting.
 Example
 -------
 
-.. testcode::
+.. code-block:: python
 
   from pyspark.ml.linalg import DenseMatrix
   import pyspark.sql.functions as fx
@@ -52,14 +49,10 @@ Example
     # genotype_states returns the number of alt alleles for each sample
     'expand_struct(linear_regression_gwas(genotype_states(genotypes), phenotypes, covariates))')
 
-.. testcode::
-   :hide:
+.. invisible-code-block: python
 
-   print(lin_reg_df.head())
-
-.. testoutput::
-
-    Row(contigName='20', start=10000053, names=[], beta=-0.012268942487586866, standardError=0.03986890589124242, pValue=0.7583114855349732)
+   from pyspark.sql import Row
+   assert rows_equal(lin_reg_df.head(), Row(contigName='20', start=10000053, names=[], beta=-0.012268942487586866, standardError=0.03986890589124242, pValue=0.7583114855349732))
 
 
 Parameters
@@ -125,7 +118,7 @@ in a GWAS setting.
 Example
 -------
 
-.. testcode::
+.. code-block:: python
 
   log_reg_df = df.crossJoin(covariates_and_phenotypes).selectExpr(
     'contigName',
@@ -133,14 +126,9 @@ Example
     'names',
     'expand_struct(logistic_regression_gwas(genotype_states(genotypes), phenotypes, covariates, \'LRT\'))')
 
-.. testcode::
-   :hide:
+.. invisible-code-block: python
 
-   print(log_reg_df.head())
-
-.. testoutput::
-
-   Row(contigName='20', start=10000053, names=[], beta=-0.04909334516505058, oddsRatio=0.9520922523419953, waldConfidenceInterval=[0.5523036168612923, 1.6412705426792646], pValue=0.8161087491239676)
+   assert rows_equal(log_reg_df.head(), Row(contigName='20', start=10000053, names=[], beta=-0.04909334516505058, oddsRatio=0.9520922523419953, waldConfidenceInterval=[0.5523036168612923, 1.6412705426792646], pValue=0.8161087491239676))
 
 
 Parameters

@@ -2,15 +2,12 @@
 Variant Normalization (with Optional Splitting)
 ===============================================
 
-.. testsetup::
-
-    from pyspark.sql import SparkSession
-    spark = SparkSession.builder.config('spark.jars.packages', 'io.projectglow:glow_2.11:0.1.2').getOrCreate()
+.. invisible-code-block: python
 
     import glow
     glow.register(spark)
 
-    test_dir = '../test-data/variantnormalizer-test/'
+    test_dir = 'test-data/variantnormalizer-test/'
     df_original = spark.read.format('vcf').load(test_dir + 'test_left_align_hg38_altered.vcf')
     ref_genome_path = test_dir + 'Homo_sapiens_assembly38.20.21_altered.fasta'
 
@@ -35,24 +32,20 @@ Assuming ``df_original`` is a variable of type DataFrame which contains the geno
     .. tab:: Python
 
         .. code-block:: python
-            import glow
+
             df_normalized = glow.transform("normalize_variants", df_original, reference_genome_path=ref_genome_path)
 
-        .. testcode::
-           :hide:
+        .. invisible-code-block: python
 
-           print(df_normalized.head())
+            from pyspark.sql import Row
 
-        .. testoutput::
-
-           Row(contigName='chr20', start=268, end=269, names=[], referenceAllele='A', alternateAlleles=['ATTTGAGATCTTCCCTCTTTTCTAATATAAACACATAAAGCTCTGTTTCCTTCTAGGTAACTGG'], qual=30.0, filters=[], splitFromMultiAllelic=False, INFO_AN=4, INFO_AF=[1.0], INFO_AC=[1], genotypes=[Row(sampleId='CHMI_CHMI3_WGS2', alleleDepths=None, phased=False, calls=[1, 1]), Row(sampleId='CHMI_CHMI3_WGS3', alleleDepths=None, phased=False, calls=[1, 1])])
-
+            expected_normalized_variant = Row(contigName='chr20', start=268, end=269, names=[], referenceAllele='A', alternateAlleles=['ATTTGAGATCTTCCCTCTTTTCTAATATAAACACATAAAGCTCTGTTTCCTTCTAGGTAACTGG'], qual=30.0, filters=[], splitFromMultiAllelic=False, INFO_AN=4, INFO_AF=[1.0], INFO_AC=[1], genotypes=[Row(sampleId='CHMI_CHMI3_WGS2', alleleDepths=None, phased=False, calls=[1, 1]), Row(sampleId='CHMI_CHMI3_WGS3', alleleDepths=None, phased=False, calls=[1, 1])])
+            assert rows_equal(df_normalized.head(), expected_normalized_variant)
 
     .. tab:: Scala
 
         .. code-block:: scala
 
-            import io.projectglow.Glow
             df_normalized = Glow.transform("normalize_variants", df_original, Map("reference_genome_path" -> ref_genome_path))
 
 Options

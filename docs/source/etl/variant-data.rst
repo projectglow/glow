@@ -2,14 +2,15 @@
 Variant I/O with Spark SQL
 ==========================
 
-.. testsetup::
+.. invisible-code-block: python
 
-    from pyspark.sql import SparkSession
-    spark = SparkSession.builder.config('spark.jars.packages', 'io.projectglow:glow_2.11:0.1.2').getOrCreate()
-
+    from pyspark.sql import Row
     import glob
     import os
     import shutil
+
+    import glow
+    glow.register(spark)
 
 
 Glow makes it possible to read and write variant data at scale using Spark SQL.
@@ -27,23 +28,17 @@ VCF
 You can use Spark to read VCF files just like any other file format that Spark supports through
 the DataFrame API using Python, R, Scala, or SQL.
 
-.. testcode::
-   :hide:
+.. invisible-code-block: python
 
-   path = "../test-data/test.chr17.vcf"
+   path = "test-data/test.chr17.vcf"
 
-.. testcode::
+.. code-block:: python
 
    df = spark.read.format("vcf").load(path)
 
-.. testcode::
-   :hide:
+.. invisible-code-block: python
 
-   print(df.select("contigName", "start").head())
-
-.. testoutput::
-
-    Row(contigName='17', start=504217)
+   assert rows_equal(df.select("contigName", "start").head(), Row(contigName='17', start=504217))
 
 
 The returned DataFrame has a schema that mirrors a single row of a VCF. Information that applies to an entire
@@ -74,17 +69,15 @@ You can control the behavior of the VCF reader with a few parameters. All parame
 
 You can save a DataFrame as a VCF file, which you can then read with other tools. To write a DataFrame as a single VCF file specify the format ``"bigvcf"``:
 
-.. testcode::
-   :hide:
+.. invisible-code-block: python
 
-   path = "../test-data/doc-test-bigvcf.vcf"
+   path = "test-data/doc-test-bigvcf.vcf"
 
-.. testcode::
+.. code-block:: python
 
    df.write.format("bigvcf").save(path)
 
-.. testcode::
-   :hide:
+.. invisible-code-block: python
 
    os.remove(path)
 
@@ -94,17 +87,15 @@ block gzipped.
 
 If you'd rather save a sharded VCF where each partition saves to a separate file:
 
-.. testcode::
-   :hide:
+.. invisible-code-block: python
 
-   path = "../test-data/doc-test-vcf.vcf"
+   path = "test-data/doc-test-vcf.vcf"
 
-.. testcode::
+.. code-block:: python
 
    df.write.format("vcf").save(path)
 
-.. testcode::
-   :hide:
+.. invisible-code-block: python
 
    shutil.rmtree(path)
 
@@ -133,23 +124,17 @@ BGEN
 
 Glow provides the ability to read BGEN files, including those distributed by the UK Biobank project.
 
-.. testcode::
-   :hide:
+.. invisible-code-block: python
 
-   path = "../test-data/bgen/example.8bits.bgen"
+   path = "test-data/bgen/example.8bits.bgen"
 
-.. testcode::
+.. code-block:: python
 
    df = spark.read.format("bgen").load(path)
 
-.. testcode::
-   :hide:
+.. invisible-code-block: python
 
-   print(df.select("contigName", "start").head())
-
-.. testoutput::
-
-   Row(contigName='01', start=1999)
+   assert rows_equal(df.select("contigName", "start").head(), Row(contigName='01', start=1999))
 
 As with the VCF reader, the provided path can be a file, directory, or glob pattern. If ``.bgi``
 index files are located in the same directory as the data files, the reader uses the indexes to
@@ -168,17 +153,15 @@ The schema of the resulting DataFrame matches that of the VCF reader.
 
 You can use the ``DataFrameWriter`` API to save a single BGEN file, which you can then read with other tools.
 
-.. testcode::
-   :hide:
+.. invisible-code-block: python
 
-   path = "../test-data/doc-test-bigbgen.bgen"
+   path = "test-data/doc-test-bigbgen.bgen"
 
-.. testcode::
+.. code-block:: python
 
    df.write.format("bigbgen").save(path)
 
-.. testcode::
-   :hide:
+.. invisible-code-block: python
 
    os.remove(path)
 
@@ -208,14 +191,17 @@ PLINK
 Glow provides the ability to read binary PLINK BED files with accompanying BIM and FAM files. The provided path can be a
 file or glob pattern.
 
-.. testcode::
-   :hide:
+.. invisible-code-block: python
 
-   prefix = "../test-data/plink/five-samples-five-variants/bed-bim-fam/test"
+   prefix = "test-data/plink/five-samples-five-variants/bed-bim-fam/test"
 
-.. code-block:: py
+.. code-block:: python
 
-  df = spark.read.format("plink").load("{prefix}.bed".format(prefix=prefix))
+   df = spark.read.format("plink").load("{prefix}.bed".format(prefix=prefix))
+
+.. invisible-code-block: python
+
+  assert rows_equal(df.select("contigName", "start").head(), Row(contigName='1', start=9))
 
 The schema of the resulting DataFrame matches that of the VCF reader. The accompanying variant and sample information
 files must be located at ``{prefix}.bim`` and ``{prefix}.fam``.
