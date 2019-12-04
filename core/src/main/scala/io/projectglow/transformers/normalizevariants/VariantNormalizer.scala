@@ -137,11 +137,21 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
       inputDf
     }
 
-    val columnAdditionFunctions: Seq[DataFrame => DataFrame] = variantDf
+    // Add/replace splitFromMultiAllelic column and explode alternateAlleles column
+    val dfAfterAltAlleleSplit = variantDf
+      .withColumn(
+        splitFromMultiAllelicField.name,
+        when(size(col(alternateAllelesField.name)) > 1, true).otherwise(false))
+      .select(
+        col("*"),
+        posexplode(col(alternateAllelesField.name)).as(Array("altAllelePos", "splitAlleles")))
+
+    // Seq of functions to be applied on ArrayTyped INFO fields to split them if necessary
+    val infoFieldsSplittingFunctions: Seq[DataFrame => DataFrame] = variantDf
       .schema
       .filter(
         field =>
-          field.name.startsWith("INFO_") &&
+          field.name.startsWith(infoFieldPrefix) &&
           (field.dataType match {
             case ArrayType(_, _) => true
             case _ => false
@@ -155,18 +165,15 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
               expr(s"${field.name}[altAllelePos]")))
         })
 
-    columnAdditionFunctions
+    // Update INFO fields by applying splitting functions.
+    infoFieldsSplittingFunctions
       .foldLeft(
-        variantDf
-          .withColumn(
-            splitFromMultiAllelicField.name,
-            when(size(col(alternateAllelesField.name)) > 1, true).otherwise(false))
-          .select(
-            col("*"),
-            posexplode(col(alternateAllelesField.name)).as(Array("altAllelePos", "splitAlleles")))
+        dfAfterAltAlleleSplit
       )((df, fn) => fn(df))
-      .withColumn(alternateAllelesField.name, array(col("splitAlleles")))
-      .drop("altAllelePos", "splitAlleles")
+      .withColumn(alternateAllelesField.name, array(col("splitAlleles"))) // replace alternateAlleles with splitAlleles
+      .drop("altAllelePos", "splitAlleles") // drop helper columns
+
+    // TODO: Update genotypes
 
   }
 
