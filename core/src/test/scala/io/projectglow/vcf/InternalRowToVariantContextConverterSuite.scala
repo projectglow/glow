@@ -40,11 +40,13 @@ class InternalRowToVariantContextConverterSuite extends GlowBaseTest {
     new InternalRowToVariantContextConverter(
       toggleNullability(df.schema, true),
       headerLines,
+      false,
       ValidationStringency.STRICT).validate()
 
     new InternalRowToVariantContextConverter(
       toggleNullability(df.schema, false),
       headerLines,
+      false,
       ValidationStringency.STRICT).validate()
   }
 

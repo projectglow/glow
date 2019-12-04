@@ -122,10 +122,9 @@ object BigVCFDatasource extends HlsUsageLogging {
    * Infer sample IDs from a genomic DataFrame.
    *
    * - If there are no genotypes, there are no sample IDs.
-   * - If there are genotypes and sample IDs are...
-   *     - Missing, the number of missing sample IDs is the number of genotypes per row (must be the same per row).
-   *     - Present, the number of missing sample IDs is set to the number of null samples per row (must be the same).
-   *       The non-missing sample IDs are found by unifying non-null sample IDs across all rows.
+   * - If there are genotypes and sample IDs are all...
+   *     - Missing, the sample IDs are inferred from the number of genotypes per row (must be the same per row).
+   *     - Present, the sample IDs are found by unifying non-null sample IDs across all rows.
    *
    * Missing sample IDs are represented by an empty String, as that is the default VariantContext sample ID. They will
    * be replaced with defaults by [[VCFStreamWriter.replaceEmptySampleIds]].
@@ -147,10 +146,6 @@ object BigVCFDatasource extends HlsUsageLogging {
         .distinct()
         .as[Array[String]]
         .collect
-
-      val numMissingSampleList = distinctSampleLists.map { sl =>
-        sl.count(_ == null)
-      }.distinct
 
       val inferredSamples = distinctSampleLists
         .flatten

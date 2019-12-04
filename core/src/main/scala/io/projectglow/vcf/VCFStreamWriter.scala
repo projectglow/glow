@@ -17,23 +17,18 @@
 package io.projectglow.vcf
 
 import java.io.{Closeable, OutputStream}
-import java.util.{HashSet => JHashSet}
+import java.util.{HashSet => JHashSet, Set => JSet}
 
 import scala.collection.JavaConverters._
 
 import htsjdk.variant.variantcontext.writer.{Options, VariantContextWriter, VariantContextWriterBuilder}
-import htsjdk.variant.variantcontext.{GenotypeBuilder, VariantContext, VariantContextBuilder}
+import htsjdk.variant.variantcontext.{VariantContext, VariantContextBuilder}
 import htsjdk.variant.vcf.{VCFHeader, VCFHeaderLine}
 
 /**
  * This internal row -> variant context stream writer maintains a header whose sample IDs are set
  * exactly once - priority is given to sample IDs provided in the constructor, with the first
  * written variant context used for sample inference if needed.
- *
- * Upon setting the header sample IDs, any empty sample IDs are replaced with defaults.
- *
- * If default header sample IDs were used, any written variant context's empty sample IDs are also
- * replaced with defaults.
  */
 class VCFStreamWriter(
     stream: OutputStream,
@@ -46,19 +41,11 @@ class VCFStreamWriter(
   // Header should be set or written exactly once
   var headerHasBeenSetOrWritten = false
 
-  private var headerHasDefaultSampleIds = false
-  private var headerHasSetSampleIds = false
+  private var headerHasSetSampleIds = providedSampleIds.isDefined
   private var header: VCFHeader = providedSampleIds.map { sList =>
-    headerHasSetSampleIds = true
-    val nonMissingSamples = if (sList.exists(_.isEmpty)) {
-      headerHasDefaultSampleIds = true
-      VCFStreamWriter.replaceEmptySampleIds(sList)
-    } else {
-      sList
-    }
-    new VCFHeader(headerLineSet.asJava, nonMissingSamples.asJava)
+    new VCFHeader(headerLineSet.asJava, sList.asJava)
   }.getOrElse(new VCFHeader(headerLineSet.asJava))
-  private var sampleSet: JHashSet[String] = new JHashSet(header.getGenotypeSamples)
+  private var sampleSet: JSet[String] = new JHashSet(header.getGenotypeSamples)
 
   private val writer: VariantContextWriter = new VariantContextWriterBuilder()
     .clearOptions()
@@ -78,15 +65,13 @@ class VCFStreamWriter(
       headerHasBeenSetOrWritten = true
     }
 
-    val maybeReplacedVC = maybeReplaceDefaultSampleIds(vc)
-
-    if (providedSampleIds.isEmpty && !sampleSet.containsAll(maybeReplacedVC.getSampleNames)) {
+    if (providedSampleIds.isEmpty && !sampleSet.containsAll(vc.getSampleNames)) {
       throw new IllegalArgumentException(
         "Inferred VCF header is missing samples found in the data; please provide a complete header or VCF file path.")
     }
 
-    val vcBuilder = new VariantContextBuilder(maybeReplacedVC)
-    val iterator = maybeReplacedVC.getAttributes.entrySet().iterator()
+    val vcBuilder = new VariantContextBuilder(vc)
+    val iterator = vc.getAttributes.entrySet().iterator()
     while (iterator.hasNext) { // parse to string, then write,
       // otherwise the write messes up double precisions
       val entry = iterator.next()
@@ -117,38 +102,9 @@ class VCFStreamWriter(
   // any empty sample IDs.
   private def maybeSetHeaderSampleIds(vc: VariantContext): Unit = {
     if (!headerHasSetSampleIds) {
-      val maybeMissingSamples = vc.getGenotypes.asScala.map(_.getSampleName)
-      if (maybeMissingSamples.exists(_.isEmpty)) {
-        val nonMissingSamples =
-          VCFStreamWriter.replaceEmptySampleIds(maybeMissingSamples)
-        headerHasDefaultSampleIds = true
-        header = new VCFHeader(header.getMetaDataInInputOrder, nonMissingSamples.asJava)
-      } else {
-        header = new VCFHeader(header.getMetaDataInInputOrder, maybeMissingSamples.asJava)
-      }
-      sampleSet = new JHashSet(header.getGenotypeSamples)
+      sampleSet = vc.getSampleNames
+      header = new VCFHeader(header.getMetaDataInInputOrder, sampleSet)
       headerHasSetSampleIds = true
-    }
-  }
-
-  // Replaces any empty sample IDs in a variant context to be written if default sample IDs were
-  // used to replace empty sample IDs in the header.
-  private def maybeReplaceDefaultSampleIds(vc: VariantContext): VariantContext = {
-    if (headerHasDefaultSampleIds) {
-      var missingSampleIdx = 0
-      val gtSeq = vc.getGenotypes.asScala.map { gt =>
-        if (gt.getSampleName.isEmpty) {
-          missingSampleIdx += 1
-          val gtBuilder = new GenotypeBuilder(gt)
-          gtBuilder.name(s"sample_$missingSampleIdx").make
-        } else {
-          gt
-        }
-      }
-      val vcBuilder = new VariantContextBuilder(vc)
-      vcBuilder.genotypes(gtSeq.asJava).make
-    } else {
-      vc
     }
   }
 }

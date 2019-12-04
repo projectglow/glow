@@ -38,7 +38,7 @@ class VCFFileWriter(
     with GlowLogging {
 
   private val converter =
-    new InternalRowToVariantContextConverter(schema, headerLineSet, stringency)
+    new InternalRowToVariantContextConverter(schema, headerLineSet, true, stringency)
   converter.validate()
   private val writer = new VCFStreamWriter(stream, headerLineSet, providedSampleIds, writeHeader)
 

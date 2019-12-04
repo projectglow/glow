@@ -85,6 +85,7 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
         new InternalRowToVariantContextConverter(
           schema,
           headerLineSet,
+          false,
           validationStringency
         )
 
