@@ -2,14 +2,10 @@
 Utility Functions
 =================
 
-.. testsetup::
-
-    from pyspark.sql import SparkSession
-    spark = SparkSession.builder.config('spark.jars.packages', 'io.projectglow:glow_2.11:0.1.2').getOrCreate()
+.. invisible-code-block: python
 
     import glow
     glow.register(spark)
-
 
 Glow includes a variety of utility functions for performing basic data manipulation.
 
@@ -21,7 +17,7 @@ whose parameter structs require a certain schema.
 
 - ``subset_struct``: subset fields from a struct
 
-.. testcode::
+.. code-block:: python
 
     from pyspark.sql import Row
     row_one = Row(Row(str_col='foo', int_col=1, bool_col=True))
@@ -29,49 +25,33 @@ whose parameter structs require a certain schema.
     base_df = spark.createDataFrame([row_one, row_two], schema=['base_col'])
     subsetted_df = base_df.selectExpr("subset_struct(base_col, 'str_col', 'bool_col') as subsetted_col")
 
-.. testcode::
-   :hide:
+.. invisible-code-block: python
 
-   print(subsetted_df.head())
-
-.. testoutput::
-   :hide:
-
-   Row(subsetted_col=Row(str_col='foo', bool_col=True))
+   assert rows_equal(subsetted_df.head().subsetted_col, Row(str_col='foo', bool_col=True))
 
 
 - ``add_struct_fields``: append fields to a struct
 
-.. testcode::
+.. code-block:: python
 
     added_df = base_df.selectExpr("add_struct_fields(base_col, 'float_col', 3.14, 'rev_str_col', reverse(base_col.str_col)) as added_col")
 
-.. testcode::
-   :hide:
+.. invisible-code-block: python
 
-   print(added_df.head())
-
-.. testoutput::
-   :hide:
-
-   Row(added_col=Row(bool_col=True, int_col=1, str_col='foo', float_col=Decimal('3.14'), rev_str_col='oof'))
+   from decimal import Decimal
+   expected_added_col = Row(bool_col=True, int_col=1, str_col='foo', float_col=Decimal('3.14'), rev_str_col='oof')
+   assert rows_equal(added_df.head().added_col, expected_added_col)
 
 
 - ``expand_struct``: explode a struct into columns
 
-.. testcode::
+.. code-block:: python
 
     expanded_df = base_df.selectExpr("expand_struct(base_col)")
 
-.. testcode::
-   :hide:
+.. invisible-code-block: python
 
-   print(expanded_df.head())
-
-.. testoutput::
-   :hide:
-
-   Row(bool_col=True, int_col=1, str_col='foo')
+   assert rows_equal(expanded_df.head(), Row(bool_col=True, int_col=1, str_col='foo'))
 
 
 Spark ML transformations
@@ -82,40 +62,30 @@ libraries such as MLlib.
 
 - ``array_to_dense_vector``: transform from an array to a dense vector
 
-.. testcode::
+.. code-block:: python
 
     array_df = spark.createDataFrame([Row([1.0, 2.0, 3.0]), Row([4.1, 5.1, 6.1])], schema=['array_col'])
     dense_df = array_df.selectExpr('array_to_dense_vector(array_col) as dense_vector_col')
 
-.. testcode::
-   :hide:
+.. invisible-code-block: python
 
-   print(dense_df.head())
-
-.. testoutput::
-   :hide:
-
-   Row(dense_vector_col=DenseVector([1.0, 2.0, 3.0]))
+   from pyspark.ml.linalg import DenseVector
+   assert dense_df.head().dense_vector_col == DenseVector([1.0, 2.0, 3.0])
 
 - ``array_to_sparse_vector``: transform from an array to a sparse vector
 
-.. testcode::
+.. code-block:: python
 
    sparse_df = array_df.selectExpr('array_to_sparse_vector(array_col) as sparse_vector_col')
 
-.. testcode::
-   :hide:
+.. invisible-code-block: python
 
-   print(sparse_df.head())
-
-.. testoutput::
-   :hide:
-
-   Row(sparse_vector_col=SparseVector(3, {0: 1.0, 1: 2.0, 2: 3.0}))
+   from pyspark.ml.linalg import SparseVector
+   assert sparse_df.head().sparse_vector_col == SparseVector(3, {0: 1.0, 1: 2.0, 2: 3.0})
 
 - ``vector_to_array``: transform from a vector to a double array
 
-.. testcode::
+.. code-block:: python
 
     from pyspark.ml.linalg import SparseVector
     row_one = Row(vector_col=SparseVector(3, [0, 2], [1.0, 3.0]))
@@ -123,33 +93,22 @@ libraries such as MLlib.
     vector_df = spark.createDataFrame([row_one, row_two])
     array_df = vector_df.selectExpr('vector_to_array(vector_col) as array_col')
 
-.. testcode::
-   :hide:
+.. invisible-code-block: python
 
-   print(array_df.head())
+   assert array_df.head().array_col == [1.0, 0.0, 3.0]
 
-.. testoutput::
-   :hide:
-
-   Row(array_col=[1.0, 0.0, 3.0])
 
 - ``explode_matrix``: explode a Spark ML matrix such that each row becomes an array of doubles
 
-.. testcode::
+.. code-block:: python
 
     from pyspark.ml.linalg import DenseMatrix
     matrix_df = spark.createDataFrame(Row([DenseMatrix(2, 3, range(6))]), schema=['matrix_col'])
     array_df = matrix_df.selectExpr('explode_matrix(matrix_col) as array_col')
 
-.. testcode::
-   :hide:
+.. invisible-code-block: python
 
-   print(array_df.head())
-
-.. testoutput::
-   :hide:
-
-   Row(array_col=[0.0, 2.0, 4.0])
+   assert array_df.head().array_col == [0.0, 2.0, 4.0]
 
 Variant data transformations
 ============================
@@ -160,7 +119,7 @@ Glow supports numeric transformations on variant data for downstream calculation
   calls (or ``-1`` if any calls are missing); the sum is equivalent to the number of alternate alleles for biallelic
   variants.
 
-.. testcode::
+.. code-block:: python
 
     from pyspark.sql.types import *
 
@@ -171,34 +130,22 @@ Glow supports numeric transformations on variant data for downstream calculation
     genotypes_df = spark.createDataFrame([missing_and_hom_ref, het_and_hom_alt], StructType([genotypes_schema]))
     num_alt_alleles_df = genotypes_df.selectExpr('genotype_states(genotypes_col) as num_alt_alleles_col')
 
-.. testcode::
-   :hide:
+.. invisible-code-block: python
 
-   print(num_alt_alleles_df.head())
-
-.. testoutput::
-   :hide:
-
-   Row(num_alt_alleles_col=[-1, 0])
+   assert num_alt_alleles_df.head().num_alt_alleles_col == [-1, 0]
 
 - ``hard_calls``: get hard calls from genotype probabilities. These are determined based on the number of alternate
   alleles for the variant, whether the probabilities are phased (true for haplotypes and false for genotypes), and a
   call threshold (if not provided, this defaults to ``0.9``). If no calls have a probability above the threshold, the
   call is set to ``-1``.
 
-.. testcode::
+.. code-block:: python
 
     unphased_above_threshold = Row(probabilities=[0.0, 0.0, 0.0, 1.0, 0.0, 0.0], num_alts=2, phased=False)
     phased_below_threshold = Row(probabilities=[0.1, 0.9, 0.8, 0.2], num_alts=1, phased=True)
     uncalled_df = spark.createDataFrame([unphased_above_threshold, phased_below_threshold])
     hard_calls_df = uncalled_df.selectExpr('hard_calls(probabilities, num_alts, phased, 0.95) as calls')
 
-.. testcode::
-   :hide:
+.. invisible-code-block: python
 
-   print(hard_calls_df.head())
-
-.. testoutput::
-   :hide:
-
-   Row(calls=[2, 0])
+   assert hard_calls_df.head().calls == [2, 0]

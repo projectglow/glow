@@ -112,8 +112,9 @@ lazy val dependencies = Seq(
   // Test dependencies
   "org.scalatest" %% "scalatest" % "3.0.3" % "test",
   "org.mockito" % "mockito-all" % "1.9.5" % "test",
-  "org.apache.spark" %% "spark-core" % sparkVersion % "test" classifier "tests",
   "org.apache.spark" %% "spark-catalyst" % sparkVersion % "test" classifier "tests",
+  "org.apache.spark" %% "spark-core" % sparkVersion % "test" classifier "tests",
+  "org.apache.spark" %% "spark-mllib" % sparkVersion % "test" classifier "tests",
   "org.apache.spark" %% "spark-sql" % sparkVersion % "test" classifier "tests",
   "org.bdgenomics.adam" %% "adam-apis-spark2" % "0.29.0" % "test",
   "org.bdgenomics.bdg-formats" % "bdg-formats" % "0.14.0" % "test",

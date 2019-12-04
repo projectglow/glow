@@ -35,11 +35,15 @@ To start a Jupyter notebook instead of a shell:
 And now your notebook is glowing! To access the Glow functions, you need to register them with the
 Spark session.
 
+.. invisible-code-block: python
+
+  path = 'test-data/test.chr17.vcf'
+
 .. code-block:: python
 
   import glow
   glow.register(spark)
-  df = spark.read.format('vcf').load('my_first.vcf')
+  df = spark.read.format('vcf').load(path)
 
 Running in the cloud
 --------------------

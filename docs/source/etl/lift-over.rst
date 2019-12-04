@@ -2,18 +2,14 @@
 Liftover
 =========
 
-.. testsetup::
-
-    from pyspark.sql import SparkSession
-    spark = SparkSession.builder.config('spark.jars.packages', 'io.projectglow:glow_2.11:0.1.2').getOrCreate()
+.. invisible-code-block: python
 
     import glow
     glow.register(spark)
 
-    input_df = spark.read.format('vcf').load('../test-data/combined.chr20_18210071_18210093.g.vcf')
-    chain_file = '../test-data/liftover/hg38ToHg19.over.chain.gz'
-    reference_file = '../test-data/liftover/hg19.chr20.fa.gz'
-
+    input_df = spark.read.format('vcf').load('test-data/combined.chr20_18210071_18210093.g.vcf')
+    chain_file = 'test-data/liftover/hg38ToHg19.over.chain.gz'
+    reference_file = 'test-data/liftover/hg19.chr20.fa.gz'
 
 Liftover tools convert genomic data between reference assemblies. The `UCSC liftOver tool`_  uses a `chain file`_ to
 perform simple coordinate conversion, for example on `BED files`_. The `Picard LiftOverVcf tool`_ also uses the new
@@ -60,21 +56,16 @@ The returned ``struct`` has the following values if liftover succeeded. If not, 
 - ``start``: ``long``
 - ``end``: ``long``
 
-.. testcode::
+.. code-block:: python
 
     from pyspark.sql.functions import expr
     liftover_expr = "lift_over_coordinates(contigName, start, end, '{chain_file}', .99)".format(chain_file=chain_file)
     output_df = input_df.withColumn('lifted', expr(liftover_expr))
 
-.. testcode::
-   :hide:
+.. invisible-code-block: python
 
-   print(output_df.select('lifted').head())
-
-.. testoutput::
-   :hide:
-
-   Row(lifted=Row(contigName='chr20', start=18190714, end=18190715))
+    from pyspark.sql import Row
+    assert rows_equal(output_df.select('lifted').head().lifted, Row(contigName='chr20', start=18190714, end=18190715))
 
 Variant liftover
 =================
@@ -123,19 +114,15 @@ If liftover succeeds, the output row contains the liftover result and ``liftOver
 If liftover fails, the output row contains the original input row, the additional ``INFO`` fields are null,
 ``liftOverStatus.success`` is false, and ``liftOverStatus.errorMessage`` contains the reason liftover failed.
 
-.. testcode::
+.. code-block:: python
 
     output_df = glow.transform('lift_over_variants', input_df, chain_file=chain_file, reference_file=reference_file)
 
-.. testcode::
-   :hide:
+.. invisible-code-block: python
 
-   print(output_df.select('contigName', 'start', 'end', 'INFO_SwappedAlleles', 'INFO_ReverseComplementedAlleles', 'liftOverStatus').head())
-
-.. testoutput::
-   :hide:
-
-   Row(contigName='chr20', start=18190714, end=18190715, INFO_SwappedAlleles=None, INFO_ReverseComplementedAlleles=None, liftOverStatus=Row(success=True, errorMessage=None))
+   lifted_variant = output_df.select('contigName', 'start', 'end', 'INFO_SwappedAlleles', 'INFO_ReverseComplementedAlleles', 'liftOverStatus').head()
+   expected_variant = Row(contigName='chr20', start=18190714, end=18190715, INFO_SwappedAlleles=None, INFO_ReverseComplementedAlleles=None, liftOverStatus=Row(errorMessage=None, success=True))
+   assert rows_equal(lifted_variant, expected_variant)
 
 .. notebook:: .. etl/lift-over.html
   :title: Liftover notebook
