@@ -153,52 +153,51 @@ def currentGitHash(dir: File): String = {
   ).!!.trim
 }
 
+lazy val sparkClasspath = taskKey[String]("sparkClasspath")
+lazy val sparkHome = taskKey[String]("sparkHome")
+
+lazy val pythonSettings = Seq(
+  sparkClasspath := (fullClasspath in Test).value.files.map(_.getCanonicalPath).mkString(":"),
+  sparkHome := (ThisBuild / baseDirectory).value.absolutePath,
+  publish / skip := true
+)
+
 lazy val python =
   (project in file("python"))
     .dependsOn(core % "test->test")
     .settings(
+      pythonSettings,
       unmanagedSourceDirectories in Compile := {
         Seq(baseDirectory.value / "glow")
       },
       test in Test := {
         // Pass the test classpath to pyspark so that we run the same bits as the Scala tests
-        val classpath = (fullClasspath in Test)
-          .value
-          .files
-          .map(_.getCanonicalPath)
-          .mkString(":")
         val ret = Process(
           Seq("pytest", "python"),
           None,
-          "SPARK_CLASSPATH" -> classpath,
-          "SPARK_HOME" -> (ThisBuild / baseDirectory).value.absolutePath
+          "SPARK_CLASSPATH" -> sparkClasspath.value,
+          "SPARK_HOME" -> sparkHome.value
         ).!
         require(ret == 0, "Python tests failed")
-      },
-      publish / skip := true
+      }
     )
 
 lazy val docs =
   (project in file("docs"))
     .dependsOn(core % "test->test")
     .settings(
+      pythonSettings,
       test in Test := {
         // Pass the test classpath to pyspark so that we run the same bits as the Scala tests
-        val classpath = (fullClasspath in Test)
-          .value
-          .files
-          .map(_.getCanonicalPath)
-          .mkString(":")
         val ret = Process(
           Seq("pytest", "docs"),
           None,
-          "SPARK_CLASSPATH" -> classpath,
-          "SPARK_HOME" -> (ThisBuild / baseDirectory).value.absolutePath,
+          "SPARK_CLASSPATH" -> sparkClasspath.value,
+          "SPARK_HOME" -> sparkHome.value,
           "PYTHONPATH" -> ((ThisBuild / baseDirectory).value / "python" / "glow").absolutePath
         ).!
         require(ret == 0, "Docs tests failed")
-      },
-      publish / skip := true
+      }
     )
 
 // List tests to parallelize on CircleCI
