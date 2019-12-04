@@ -178,6 +178,16 @@ lazy val python =
       publish / skip := true
     )
 
+// List tests to parallelize on CircleCI
+lazy val printTests =
+  taskKey[Unit]("Print full class names of Scala tests to core-test-names.log.")
+
+printTests := {
+  IO.writeLines(
+    baseDirectory.value / "core-test-names.log",
+    (definedTestNames in Test in core).value.sorted)
+}
+
 // Publish to Bintray
 ThisBuild / description := "An open-source toolkit for large-scale genomic analysis"
 ThisBuild / homepage := Some(url("https://projectglow.io"))
