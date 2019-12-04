@@ -163,7 +163,7 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
             field.name,
             when(
               size(col(field.name)) === size(col(alternateAllelesField.name)),
-              expr(s"${field.name}[altAllelePos]")))
+              array(expr(s"${field.name}[altAllelePos]"))).otherwise(col(field.name)))
         })
 
     // Update INFO fields by applying splitting functions.
