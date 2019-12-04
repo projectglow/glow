@@ -36,7 +36,7 @@ import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
 import org.apache.spark.sql.types.{StructField, StructType}
 
-import io.projectglow.common.{CommonOptions, GlowLogging, VariantSchemas, WithUtils}
+import io.projectglow.common.{CommonOptions, GlowLogging, VariantSchemas}
 import io.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
 import io.projectglow.sql.util.SerializableConfiguration
 
@@ -175,12 +175,12 @@ object PlinkFileFormat extends HlsUsageLogging {
     val prefixPath = getPrefixPath(bedPath)
     val famPath = new Path(prefixPath + FAM_FILE_EXTENSION)
     val hadoopFs = famPath.getFileSystem(hadoopConf)
+    val stream = hadoopFs.open(famPath)
+    val lines = IOUtils.lineIterator(stream, "UTF-8").asScala
+    val filteredLines = CSVUtils.filterCommentAndEmpty(lines, parsedOptions)
+    val parser = new CsvParser(parsedOptions.asParserSettings)
 
-    WithUtils.withCloseable(hadoopFs.open(famPath)) { stream =>
-      val lines = IOUtils.lineIterator(stream, "UTF-8").asScala
-      val filteredLines = CSVUtils.filterCommentAndEmpty(lines, parsedOptions)
-      val parser = new CsvParser(parsedOptions.asParserSettings)
-
+    try {
       filteredLines.map { l =>
         val sampleLine = parser.parseRecord(l)
         require(
@@ -194,6 +194,8 @@ object PlinkFileFormat extends HlsUsageLogging {
           individualId
         }
       }.toArray
+    } finally {
+      stream.close()
     }
   }
 
@@ -221,23 +223,23 @@ object PlinkFileFormat extends HlsUsageLogging {
     val prefixPath = getPrefixPath(bedPath)
     val bimPath = new Path(prefixPath + BIM_FILE_EXTENSION)
     val hadoopFs = bimPath.getFileSystem(hadoopConf)
+    val stream = hadoopFs.open(bimPath)
+    val lines = IOUtils.lineIterator(stream, "UTF-8").asScala
+    val filteredLines = CSVUtils
+      .filterCommentAndEmpty(lines, parsedOptions)
+      .slice(firstVariant, firstVariant + numVariants)
+    val univocityParser = new UnivocityParser(bimSchema, bimSchema, parsedOptions)
 
-    WithUtils.withCloseable(hadoopFs.open(bimPath)) { stream =>
-      val lines = IOUtils.lineIterator(stream, "UTF-8").asScala
-      val filteredLines = CSVUtils
-        .filterCommentAndEmpty(lines, parsedOptions)
-        .slice(firstVariant, firstVariant + numVariants)
-      val univocityParser = new UnivocityParser(bimSchema, bimSchema, parsedOptions)
-
-      try {
-        val variantIterator =
-          UnivocityParserUtils.parseIterator(filteredLines, univocityParser, bimSchema)
-        variantIterator.map(_.copy).toArray
-      } catch {
-        case e: Exception =>
-          throw new IllegalArgumentException(
-            s"Failed while parsing BIM file $bimPath: ${e.getMessage}")
-      }
+    try {
+      val variantIterator =
+        UnivocityParserUtils.parseIterator(filteredLines, univocityParser, bimSchema)
+      variantIterator.map(_.copy).toArray
+    } catch {
+      case e: Exception =>
+        throw new IllegalArgumentException(
+          s"Failed while parsing BIM file $bimPath: ${e.getMessage}")
+    } finally {
+      stream.close()
     }
   }
 
