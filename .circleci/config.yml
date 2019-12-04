@@ -36,13 +36,20 @@ jobs:
             sbt coverage "testOnly $(circleci tests split --split-by=timings --timings-type=classname core-test-names.log | tr '\n' ' ') --" python/test coverageReport exit
 
       - run:
+          name: Run Python tests
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            sbt python/test exit
+
+      - run:
           name: Run docs tests
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             cd docs
             make linkcheck
-            make doctest
+            sbt docs/test exit
 
       - store_artifacts:
           path: ~/glow/unit-tests.log

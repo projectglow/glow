@@ -177,6 +177,29 @@ lazy val python =
       publish / skip := true
     )
 
+lazy val docs =
+  (project in file("docs"))
+    .dependsOn(core % "test->test")
+    .settings(
+      test in Test := {
+        // Pass the test classpath to pyspark so that we run the same bits as the Scala tests
+        val classpath = (fullClasspath in Test)
+          .value
+          .files
+          .map(_.getCanonicalPath)
+          .mkString(":")
+        val ret = Process(
+          Seq("pytest", "docs"),
+          None,
+          "SPARK_CLASSPATH" -> classpath,
+          "SPARK_HOME" -> (ThisBuild / baseDirectory).value.absolutePath,
+          "PYTHONPATH" -> ((ThisBuild / baseDirectory).value / "python" / "glow").absolutePath
+        ).!
+        require(ret == 0, "Docs tests failed")
+      },
+      publish / skip := true
+    )
+
 // List tests to parallelize on CircleCI
 lazy val printTests =
   taskKey[Unit]("Print full class names of Scala tests to core-test-names.log.")
