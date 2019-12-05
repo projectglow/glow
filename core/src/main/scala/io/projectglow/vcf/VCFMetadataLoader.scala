@@ -31,4 +31,5 @@ object VCFMetadataLoader {
     WithUtils.withCloseable(WrapSeekable.openPath(config, new Path(pathName))) { is =>
       VCFHeaderReader.readHeaderFrom(is)
     }
+  }
 }
