@@ -54,9 +54,7 @@ case class AddStructFields(struct: Expression, newFields: Seq[Expression])
     with Unevaluable {
 
   override def nullable: Boolean = true
-
   override def children: Seq[Expression] = struct +: newFields
-
   override def dataType: DataType = {
     var base = struct.dataType.asInstanceOf[StructType]
     newFields.grouped(2).foreach {
@@ -72,7 +70,6 @@ case class AddStructFields(struct: Expression, newFields: Seq[Expression])
  * Explodes a matrix by row. Each row of the input matrix will be output as an array of doubles.
  *
  * If the input expression is null or has 0 rows, the output will be empty.
- *
  * @param matrixExpr The matrix to explode. May be dense or sparse.
  */
 case class ExplodeMatrix(matrixExpr: Expression)
@@ -100,7 +97,6 @@ case class ExplodeMatrix(matrixExpr: Expression)
     var rowIdx = 0
     new Iterator[InternalRow] {
       override def hasNext: Boolean = rowIdx < matrix.numRows
-
       override def next(): InternalRow = {
         var colIdx = 0
         val arr = new Array[Any](matrix.numCols)
@@ -120,9 +116,7 @@ case class ArrayToSparseVector(child: Expression)
     with ImplicitCastInputTypes {
 
   override def inputTypes: Seq[SQLUtils.ADT] = Seq(ArrayType(DoubleType))
-
   override def dataType: DataType = ArrayToSparseVector.vectorType
-
   override def nullSafeEval(input: Any): Any = ArrayToSparseVector.fromDoubleArray(input)
 
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
@@ -131,8 +125,8 @@ case class ArrayToSparseVector(child: Expression)
       ev,
       c => {
         s"""
-           |${ev.value} =
-           |io.projectglow.sql.expressions.ArrayToSparseVector.fromDoubleArray($c);
+         |${ev.value} =
+         |io.projectglow.sql.expressions.ArrayToSparseVector.fromDoubleArray($c);
        """.stripMargin
       }
     )
@@ -153,9 +147,7 @@ case class ArrayToDenseVector(child: Expression)
     with ImplicitCastInputTypes {
 
   override def inputTypes: Seq[SQLUtils.ADT] = Seq(ArrayType(DoubleType))
-
   override def dataType: DataType = ArrayToDenseVector.vectorType
-
   override def nullSafeEval(input: Any): Any = ArrayToDenseVector.fromDoubleArray(input)
 
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
@@ -164,8 +156,8 @@ case class ArrayToDenseVector(child: Expression)
       ev,
       c => {
         s"""
-           |${ev.value} =
-           |io.projectglow.sql.expressions.ArrayToDenseVector.fromDoubleArray($c);
+         |${ev.value} =
+         |io.projectglow.sql.expressions.ArrayToDenseVector.fromDoubleArray($c);
        """.stripMargin
       }
     )
@@ -183,11 +175,8 @@ object ArrayToDenseVector {
 
 case class VectorToArray(child: Expression) extends UnaryExpression with ImplicitCastInputTypes {
   override def inputTypes: Seq[SQLUtils.ADT] = Seq(VectorToArray.vectorType)
-
   override def dataType: DataType = ArrayType(DoubleType)
-
   override def nullSafeEval(input: Any): Any = VectorToArray.toDoubleArray(input)
-
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
     nullSafeCodeGen(ctx, ev, c => {
       s"""
@@ -200,7 +189,6 @@ case class VectorToArray(child: Expression) extends UnaryExpression with Implici
 
 object VectorToArray {
   lazy val vectorType = SQLUtils.newVectorUDT()
-
   def toDoubleArray(input: Any): ArrayData = {
     new GenericArrayData(vectorType.deserialize(input).toArray)
   }
