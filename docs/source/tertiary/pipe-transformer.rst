@@ -2,22 +2,50 @@
 Parallelizing Command-Line Tools With the Pipe Transformer
 ==========================================================
 
+.. invisible-code-block: python
+
+    import glow
+    glow.register(spark)
+
+    path = 'test-data/NA12878_21_10002403.vcf'
+
 To use single-node tools on massive data sets, Glow includes a
 utility called the Pipe Transformer to process Spark DataFrames with command-line programs.
 
-Python usage
-============
+Usage
+=====
 
 Consider a minimal case with a DataFrame containing a single column of strings. You can use the Pipe
 Transformer to reverse each of the strings in the input DataFrame using the ``rev`` Linux command:
 
-.. code-block:: py
+.. tabs::
 
-  import glow
+    .. tab:: Python
 
-  # Create a text-only DataFrame
-  df = spark.createDataFrame([['foo'], ['bar'], ['baz']], ['value'])
-  display(glow.transform('pipe', df, cmd='["rev"]', input_formatter='text', output_formatter='text'))
+        Provide options through the ``arg_map`` argument or as keyword args.
+
+        .. code-block:: python
+
+            # Create a text-only DataFrame
+            df = spark.createDataFrame([['foo'], ['bar'], ['baz']], ['value'])
+            rev_df = glow.transform('pipe', df, cmd='["rev"]', input_formatter='text', output_formatter='text')
+
+        .. invisible-code-block: python
+
+           assert rev_df.head().text == 'oof'
+
+    .. tab:: Scala
+
+        Provide options as a ``Map[String, String]``.
+
+        .. code-block:: scala
+
+            Glow.transform("pipe", df, Map(
+                "cmd" -> "[\"grep\", \"-v\", \"#INFO\"]",
+                "inputFormatter" -> "vcf",
+                "outputFormatter" -> "vcf",
+                "inVcfHeader" -> "infer")
+            )
 
 The options in this example demonstrate how to control the basic behavior of the transformer:
 
@@ -33,53 +61,34 @@ Integrating with bioinformatics tools
 To integrate with tools for genomic data, you can configure the Pipe Transformer to write each
 partition of the input DataFrame as VCF by choosing ``vcf`` as the input and output formatter.
 
-.. code-block:: py
+.. code-block:: python
 
-  import glow
+    df = spark.read.format("vcf").load(path)
 
-  df = spark.read.format("vcf")\
-    .load("/databricks-datasets/genomics/1kg-vcfs")\
-    .limit(1000)
+    info_free_df = glow.transform(
+        'pipe',
+        df,
+        cmd='["grep", "-v", "#INFO"]',
+        input_formatter='vcf',
+        in_vcf_header='infer',
+        output_formatter='vcf'
+    )
 
-  glow.transform(
-    'pipe',
-    df,
-    cmd='["grep", "-v", "#INFO"]',
-    input_formatter='vcf',
-    in_vcf_header='infer',
-    output_formatter='vcf'
-  )
+.. invisible-code-block: python
+
+   assert [f for f in info_free_df.schema.fieldNames() if f.startswith('INFO_')] == []
 
 When you use the VCF input formatter, you must specify a method to determine the VCF header. The
 simplest option is ``infer``, which instructs the Pipe Transformer to derive a VCF header from the
 DataFrame schema.
-
-Scala usage
-===========
-
-You can also invoke the Pipe Transformer from Scala. You specify options as a ``Map[String,
-String]``.
-
-.. code-block:: scala
-
-  import io.projectglow.Glow
-
-  Glow.transform("pipe", df, Map(
-    "cmd" -> "[\"grep\", \"-v\", \"#INFO\"]",
-    "inputFormatter" -> "vcf",
-    "outputFormatter" -> "vcf",
-    "inVcfHeader" -> "infer")
-  )
 
 .. _transformer-options:
 
 Options
 =======
 
-Option keys and values are always strings. From Python, you provide options through the ``arg_map``
-argument or as keyword args. From Scala, you provide options as a ``Map[String, String]``.
-You can specify option names in snake or camel case; for example ``inputFormatter``, 
-``input_formatter``, and ``InputFormatter`` are all equivalent.
+Option keys and values are always strings. You can specify option names in snake or camel case; for example
+``inputFormatter``, ``input_formatter``, and ``InputFormatter`` are all equivalent.
 
 .. list-table::
   :header-rows: 1
@@ -135,7 +144,18 @@ instead of waiting for them to fall out of the cache, use the pipe cleanup trans
 cleanup until the pipe transformer results have been materialized, such as by being written to a
 `Delta Lake table <https://delta.io>`_.
 
-To perform pipe cleanup in Python, run ``glow.transform('pipe_cleanup', df)``.
-In Scala, run ``Glow.transform("pipe_cleanup", df)``.
+.. tabs::
+
+    .. tab:: Python
+
+        .. code-block:: py
+
+            glow.transform('pipe_cleanup', df)
+
+    .. tab:: Scala
+
+        .. code-block:: scala
+
+            Glow.transform("pipe_cleanup", df)
 
 .. notebook:: .. tertiary/pipe-transformer.html

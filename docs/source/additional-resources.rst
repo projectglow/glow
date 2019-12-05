@@ -11,8 +11,8 @@ on Databricks. `Try Databricks for free <https://databricks.com/try-databricks>`
 following the
 `Databricks documentation <https://docs.databricks.com/notebooks/notebooks-manage.html#import-a-notebook>`_.
 
-Blog posts
-----------
+External blog posts
+-------------------
 
 - `Scaling Genomic Workflows with Spark SQL BGEN and VCF Readers
   <https://databricks.com/blog/2019/06/26/scaling-genomic-workflows-with-spark-sql-bgen-and-vcf-readers.html>`_

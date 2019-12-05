@@ -112,8 +112,9 @@ lazy val dependencies = Seq(
   // Test dependencies
   "org.scalatest" %% "scalatest" % "3.0.3" % "test",
   "org.mockito" % "mockito-all" % "1.9.5" % "test",
-  "org.apache.spark" %% "spark-core" % sparkVersion % "test" classifier "tests",
   "org.apache.spark" %% "spark-catalyst" % sparkVersion % "test" classifier "tests",
+  "org.apache.spark" %% "spark-core" % sparkVersion % "test" classifier "tests",
+  "org.apache.spark" %% "spark-mllib" % sparkVersion % "test" classifier "tests",
   "org.apache.spark" %% "spark-sql" % sparkVersion % "test" classifier "tests",
   "org.bdgenomics.adam" %% "adam-apis-spark2" % "0.29.0" % "test",
   "org.bdgenomics.bdg-formats" % "bdg-formats" % "0.14.0" % "test",
@@ -152,30 +153,62 @@ def currentGitHash(dir: File): String = {
   ).!!.trim
 }
 
+lazy val sparkClasspath = taskKey[String]("sparkClasspath")
+lazy val sparkHome = taskKey[String]("sparkHome")
+
+lazy val pythonSettings = Seq(
+  sparkClasspath := (fullClasspath in Test).value.files.map(_.getCanonicalPath).mkString(":"),
+  sparkHome := (ThisBuild / baseDirectory).value.absolutePath,
+  publish / skip := true
+)
+
 lazy val python =
   (project in file("python"))
     .dependsOn(core % "test->test")
     .settings(
+      pythonSettings,
       unmanagedSourceDirectories in Compile := {
         Seq(baseDirectory.value / "glow")
       },
       test in Test := {
         // Pass the test classpath to pyspark so that we run the same bits as the Scala tests
-        val classpath = (fullClasspath in Test)
-          .value
-          .files
-          .map(_.getCanonicalPath)
-          .mkString(":")
         val ret = Process(
           Seq("pytest", "python"),
           None,
-          "SPARK_CLASSPATH" -> classpath,
-          "SPARK_HOME" -> (ThisBuild / baseDirectory).value.absolutePath
+          "SPARK_CLASSPATH" -> sparkClasspath.value,
+          "SPARK_HOME" -> sparkHome.value
         ).!
         require(ret == 0, "Python tests failed")
-      },
-      publish / skip := true
+      }
     )
+
+lazy val docs =
+  (project in file("docs"))
+    .dependsOn(core % "test->test")
+    .settings(
+      pythonSettings,
+      test in Test := {
+        // Pass the test classpath to pyspark so that we run the same bits as the Scala tests
+        val ret = Process(
+          Seq("pytest", "docs"),
+          None,
+          "SPARK_CLASSPATH" -> sparkClasspath.value,
+          "SPARK_HOME" -> sparkHome.value,
+          "PYTHONPATH" -> ((ThisBuild / baseDirectory).value / "python" / "glow").absolutePath
+        ).!
+        require(ret == 0, "Docs tests failed")
+      }
+    )
+
+// List tests to parallelize on CircleCI
+lazy val printTests =
+  taskKey[Unit]("Print full class names of Scala tests to core-test-names.log.")
+
+printTests := {
+  IO.writeLines(
+    baseDirectory.value / "core-test-names.log",
+    (definedTestNames in Test in core).value.sorted)
+}
 
 // Publish to Bintray
 ThisBuild / description := "An open-source toolkit for large-scale genomic analysis"

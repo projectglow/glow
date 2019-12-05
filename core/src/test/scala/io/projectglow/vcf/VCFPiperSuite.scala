@@ -16,9 +16,13 @@
 
 package io.projectglow.vcf
 
+import java.nio.file.Files
+
 import scala.collection.JavaConverters._
 
+import org.apache.commons.io.FileUtils
 import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.functions.lit
 import org.apache.spark.{SparkException, TaskContext}
 
 import io.projectglow.Glow
@@ -245,6 +249,50 @@ class VCFPiperSuite extends GlowBaseTest {
         val vc1WithSampleIds = vc1.copy(genotypes = gtsWithSampleIds)
         assert(vc1WithSampleIds.equals(vc2), s"VC1 $vc1WithSampleIds VC2 $vc2")
     }
+  }
+
+  test("input validation stringency") {
+    val inputDf = spark
+      .read
+      .format("vcf")
+      .load(TGP)
+      .withColumn("INFO_fake", lit("foobar"))
+
+    val options = Map(
+      "inputFormatter" -> "vcf",
+      "outputFormatter" -> "vcf",
+      "inVcfHeader" -> TGP,
+      "inValidationStringency" -> "STRICT",
+      "cmd" -> s"""["cat", "-"]"""
+    )
+    assertThrows[IllegalArgumentException](Glow.transform("pipe", inputDf, options))
+  }
+
+  test("output validation stringency") {
+    val row = Seq("1", "1", "id", "C", "T,GT", "1", ".", "AC=monkey").mkString("\t")
+
+    val file = Files.createTempFile("test-vcf", ".vcf")
+    val header =
+      s"""##fileformat=VCFv4.2
+         |##INFO=<ID=AC,Number=1,Type=Integer,Description="">
+         |#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO
+        """.stripMargin
+    FileUtils.writeStringToFile(file.toFile, header + row)
+
+    val inputDf = spark
+      .read
+      .format("vcf")
+      .load(TGP)
+
+    val options = Map(
+      "inputFormatter" -> "vcf",
+      "outputFormatter" -> "vcf",
+      "inVcfHeader" -> "infer",
+      "outValidationStringency" -> "STRICT",
+      "cmd" -> s"""["cat", "$file"]"""
+    )
+    val e = intercept[SparkException](Glow.transform("pipe", inputDf, options))
+    assert(e.getCause.isInstanceOf[IllegalArgumentException])
   }
 }
 

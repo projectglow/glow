@@ -2,6 +2,17 @@
 Variant I/O with Spark SQL
 ==========================
 
+.. invisible-code-block: python
+
+    from pyspark.sql import Row
+    import glob
+    import os
+    import shutil
+
+    import glow
+    glow.register(spark)
+
+
 Glow makes it possible to read and write variant data at scale using Spark SQL.
 
 .. tip::
@@ -17,9 +28,18 @@ VCF
 You can use Spark to read VCF files just like any other file format that Spark supports through
 the DataFrame API using Python, R, Scala, or SQL.
 
-.. code-block:: py
+.. invisible-code-block: python
 
-  df = spark.read.format("vcf").load(path)
+   path = "test-data/test.chr17.vcf"
+
+.. code-block:: python
+
+   df = spark.read.format("vcf").load(path)
+
+.. invisible-code-block: python
+
+   assert rows_equal(df.select("contigName", "start").head(), Row(contigName='17', start=504217))
+
 
 The returned DataFrame has a schema that mirrors a single row of a VCF. Information that applies to an entire
 variant (SNV or indel), such as the contig name, start and end positions, and INFO attributes,
@@ -49,9 +69,17 @@ You can control the behavior of the VCF reader with a few parameters. All parame
 
 You can save a DataFrame as a VCF file, which you can then read with other tools. To write a DataFrame as a single VCF file specify the format ``"bigvcf"``:
 
-.. code-block:: py
+.. invisible-code-block: python
 
-  df.write.format("bigvcf").save(<path-to-file>)
+   path = "test-data/doc-test-bigvcf.vcf"
+
+.. code-block:: python
+
+   df.write.format("bigvcf").save(path)
+
+.. invisible-code-block: python
+
+   os.remove(path)
 
 The file extension of the output path determines which, if any, compression codec should be used.
 For instance, writing to a path such as ``/genomics/my_vcf.vcf.bgz`` will cause the output file to be
@@ -59,9 +87,17 @@ block gzipped.
 
 If you'd rather save a sharded VCF where each partition saves to a separate file:
 
-.. code-block:: py
+.. invisible-code-block: python
 
-  df.write.format("vcf").save(path)
+   path = "test-data/doc-test-vcf.vcf"
+
+.. code-block:: python
+
+   df.write.format("vcf").save(path)
+
+.. invisible-code-block: python
+
+   shutil.rmtree(path)
 
 To control the behavior of the sharded VCF writer, you can provide the following option:
 
@@ -88,9 +124,17 @@ BGEN
 
 Glow provides the ability to read BGEN files, including those distributed by the UK Biobank project.
 
-.. code-block:: py
+.. invisible-code-block: python
 
-  df = spark.read.format("bgen").load(path)
+   path = "test-data/bgen/example.8bits.bgen"
+
+.. code-block:: python
+
+   df = spark.read.format("bgen").load(path)
+
+.. invisible-code-block: python
+
+   assert rows_equal(df.select("contigName", "start").head(), Row(contigName='01', start=1999))
 
 As with the VCF reader, the provided path can be a file, directory, or glob pattern. If ``.bgi``
 index files are located in the same directory as the data files, the reader uses the indexes to
@@ -109,9 +153,17 @@ The schema of the resulting DataFrame matches that of the VCF reader.
 
 You can use the ``DataFrameWriter`` API to save a single BGEN file, which you can then read with other tools.
 
-.. code-block:: py
+.. invisible-code-block: python
 
-  df.write.format("bigbgen").save(path)
+   path = "test-data/doc-test-bigbgen.bgen"
+
+.. code-block:: python
+
+   df.write.format("bigbgen").save(path)
+
+.. invisible-code-block: python
+
+   os.remove(path)
 
 If the genotype arrays are missing ploidy and/or phasing information, the BGEN writer infers the values using the
 provided values for ploidy, phasing, or ``posteriorProbabilities`` in the genotype arrays. You can provide the value for ploidy
@@ -139,21 +191,30 @@ PLINK
 Glow provides the ability to read binary PLINK BED files with accompanying BIM and FAM files. The provided path can be a
 file or glob pattern.
 
-.. code-block:: py
+.. invisible-code-block: python
 
-  df = spark.read.format("plink").load("prefix.bed")
+   prefix = "test-data/plink/five-samples-five-variants/bed-bim-fam/test"
+
+.. code-block:: python
+
+   df = spark.read.format("plink").load("{prefix}.bed".format(prefix=prefix))
+
+.. invisible-code-block: python
+
+  assert rows_equal(df.select("contigName", "start").head(), Row(contigName='1', start=9))
 
 The schema of the resulting DataFrame matches that of the VCF reader. The accompanying variant and sample information
-files must be located at ``prefix.bim`` and ``prefix.fam``.
+files must be located at ``{prefix}.bim`` and ``{prefix}.fam``.
 
+<<<<<<< HEAD
 +----------------------+---------+-----------------+-----------------------------------------------------------------------------------------------------+
 | Parameter            | Type    | Default         | Description                                                                                         |
 +======================+=========+=================+=====================================================================================================+
 | ``includeSampleIds`` | boolean | ``true``        | If true, each genotype includes the name of the sample ID it belongs to.                            |
 +----------------------+---------+-----------------+-----------------------------------------------------------------------------------------------------+
-| ``bimDelimiter``     | string  | `` `` (space)   | Whitespace delimiter in the ``prefix.bim`` file.                                                    |
+| ``bimDelimiter``     | string  | `` `` (space)   | Whitespace delimiter in the ``{prefix}.bim`` file.                                                  |
 +----------------------+---------+-----------------+-----------------------------------------------------------------------------------------------------+
-| ``famDelimiter``     | string  | ``\t`` (tab)    | Whitespace delimiter in the ``prefix.fam`` file.                                                    |
+| ``famDelimiter``     | string  | ``\t`` (tab)    | Whitespace delimiter in the ``{prefix}.fam`` file.                                                  |
 +----------------------+---------+-----------------+-----------------------------------------------------------------------------------------------------+
 | ``mergeFidIid``      | boolean | ``true``        | If true, sets the sample ID to the family ID and individual ID merged with an underscore delimiter. |
 |                      |         |                 | If false, sets the sample ID to the individual ID.                                                  |

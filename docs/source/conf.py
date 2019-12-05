@@ -8,26 +8,9 @@
 
 # -- Path setup --------------------------------------------------------------
 
-from unittest import mock
 import imp
 import os
 import sys
-
-# These lines added to enable Sphinx to work without installing.
-MOCK_MODULES = [
-    "py4j",
-    "py4j.java_gateway",
-    "py4j.protocol",
-    "pyspark",
-    "pyspark.rdd",
-    "pyspark.sql",
-    "pyspark.sql.utils",
-    "pytest",
-    "typeguard"
-]
-
-for mod_name in MOCK_MODULES:
-    sys.modules[mod_name] = mock.Mock()
 
 sys.path.insert(0, os.path.abspath('.'))
 sys.path.append(os.path.abspath('../extensions'))
@@ -79,6 +62,7 @@ extensions = [
     'sphinx.ext.githubpages',
     'notebook',
     'sphinx_substitution_extensions',
+    'sphinx_tabs.tabs',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -108,6 +92,8 @@ exclude_patterns = []
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
 
+# Option for numbered figure referencing
+numfig = True
 
 # -- Options for HTML output -------------------------------------------------
 
@@ -224,10 +210,3 @@ intersphinx_mapping = {'https://docs.python.org/': None}
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
-
-# -- Linkcheck options -------------------------------------------------------
-
-linkcheck_ignore = [
-    # Currently experiencing server issues
-    r'https://databricks.com*',
-]

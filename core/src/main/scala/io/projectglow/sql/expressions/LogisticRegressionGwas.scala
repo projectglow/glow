@@ -21,26 +21,29 @@ import breeze.numerics._
 import com.google.common.annotations.VisibleForTesting
 import org.apache.commons.math3.distribution.{ChiSquaredDistribution, NormalDistribution}
 import org.apache.spark.ml.linalg.{DenseMatrix => SparkDenseMatrix}
-import org.apache.spark.sql.Encoders
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.util.ArrayData
+import org.apache.spark.sql.catalyst.util.{ArrayData, CaseInsensitiveMap}
 import org.apache.spark.sql.types.StructType
 
 import io.projectglow.common.GlowLogging
 
 /**
- * Statistics returned upon performing a likelihood ratio test.
+ * Statistics returned upon performing a logit test.
  *
  * @param beta Log-odds associated with the genotype, NaN if the null/full model fit failed
  * @param oddsRatio Odds ratio associated with the genotype, NaN if the null/full model fit failed
  * @param waldConfidenceInterval Wald 95% confidence interval of the odds ratio, NaN if the null/full model fit failed
- * @param pValue P-value for the specified test, NaN if the null/full model fit failed
+ * @param pValue P-value for the specified test, NaN if the null/full model fit failed. Determined using the profile likelihood method.
  */
-case class LikelihoodRatioTestStats(
+case class LogitTestResults(
     beta: Double,
     oddsRatio: Double,
     waldConfidenceInterval: Seq[Double],
     pValue: Double)
+
+object LogitTestResults {
+  val nanRow: InternalRow = InternalRow(NaN, NaN, ArrayData.toArrayData(Seq(NaN, NaN)), NaN)
+}
 
 /**
  * Some of the logic used for logistic regression is from the Hail project.
@@ -48,18 +51,22 @@ case class LikelihoodRatioTestStats(
  * The Hail project is under an MIT license: https://github.com/hail-is/hail/blob/master/LICENSE.
  */
 object LogisticRegressionGwas extends GlowLogging {
-  val logitTests: Map[String, LogitTest] = Map("LRT" -> LikelihoodRatioTest)
+  val logitTests: Map[String, LogitTest] = CaseInsensitiveMap(
+    Map(
+      "lrt" -> LikelihoodRatioTest,
+      "firth" -> FirthTest
+    ))
   val zScore: Double = new NormalDistribution().inverseCumulativeProbability(.975) // Two-sided 95% confidence
 
   @VisibleForTesting
   private[projectglow] def newtonIterations(
       X: DenseMatrix[Double],
       y: DenseVector[Double],
-      nullFitOpt: Option[NewtonArguments],
+      nullFitOpt: Option[NewtonIterationsState],
       maxIter: Int = 25,
       tolerance: Double = 1e-6): NewtonResult = {
 
-    val args = new NewtonArguments(X, y, nullFitOpt)
+    val args = new NewtonIterationsState(X, y, nullFitOpt)
 
     var iter = 1
     var converged = false
@@ -93,50 +100,39 @@ object LogisticRegressionGwas extends GlowLogging {
     NewtonResult(args, logLkhd, iter, converged, exploded)
   }
 
-  def logisticRegressionGwas(
-      genotypes: Array[Double],
-      phenotypes: Array[Double],
-      covariates: SparkDenseMatrix,
-      nullFit: NewtonResult,
-      logitTest: LogitTest): InternalRow = {
+  /**
+   * Generate an [[InternalRow]] with [[LogitTestResults]] schema based on the outputs of a
+   * logit test.
+   */
+  private[projectglow] def makeStats(
+      beta: Double,
+      fisher: DenseMatrix[Double],
+      fullFitLogLkhd: Double,
+      nullFitLogLkhd: Double): InternalRow = {
+    val oddsRatio = math.exp(beta)
 
-    require(
-      genotypes.length == phenotypes.length,
-      "Number of samples differs between genotype and phenotype arrays")
-    lazy val fullX =
-      new DenseMatrix(covariates.numRows, covariates.numCols + 1, covariates.values ++ genotypes)
-    lazy val y = new DenseVector(phenotypes)
+    val covarianceMatrix = inv(fisher)
+    val variance = diag(covarianceMatrix)
+    val standardError = math.sqrt(variance(-1))
+    val halfWidth = LogisticRegressionGwas.zScore * standardError
+    val waldConfidenceInterval = Array(beta - halfWidth, beta + halfWidth).map(math.exp)
 
-    logitTest match {
-      case nullFitTest: LogitTestWithNullModelFit => nullFitTest.runTest(nullFit)
-      case nullAndFullFitTest: LogitTestWithNullAndFullModelFit =>
-        val fullFitOpt = if (nullFit.converged) {
-          Some(newtonIterations(fullX, y, Some(nullFit.args)))
-        } else {
-          None
-        }
-        nullAndFullFitTest.runTest(nullFit, fullFitOpt)
-    }
-  }
+    val chi2 = 2 * (fullFitLogLkhd - nullFitLogLkhd)
+    val df = 1
+    val chi2Dist = new ChiSquaredDistribution(df)
+    val pValue = 1 - chi2Dist.cumulativeProbability(Math.abs(chi2)) // 1-sided p-value
 
-  def fitNullModel(phenotypes: Array[Double], covariates: SparkDenseMatrix): NewtonResult = {
-    val nullX = new DenseMatrix(covariates.numRows, covariates.numCols, covariates.values)
-    val y = new DenseVector(phenotypes)
-    newtonIterations(nullX, y, None)
+    InternalRow(beta, oddsRatio, ArrayData.toArrayData(waldConfidenceInterval), pValue)
   }
 }
 
-class NewtonArguments(
+class NewtonIterationsState(
     X: DenseMatrix[Double],
     y: DenseVector[Double],
-    nullFitArgsOpt: Option[NewtonArguments]) {
+    nullFitArgsOpt: Option[NewtonIterationsState]) {
 
-  require(
-    y.length == X.rows,
-    "Number of samples do not match between phenotype vector and covariate matrix")
-
-  val n: Int = X.rows
-  val m: Int = X.cols
+  val n = X.rows
+  val m = X.cols
   val b: DenseVector[Double] = DenseVector.zeros[Double](m)
   val mu: DenseVector[Double] = DenseVector.zeros[Double](n)
   val score: DenseVector[Double] = DenseVector.zeros[Double](m)
@@ -173,48 +169,33 @@ class NewtonArguments(
 }
 
 case class NewtonResult(
-    args: NewtonArguments,
+    args: NewtonIterationsState,
     logLkhd: Double,
     nIter: Int,
     converged: Boolean,
     exploded: Boolean)
 
 trait LogitTest extends Serializable {
+  type FitState
   def resultSchema: StructType
+  def canReuseNullFit: Boolean
+  def fitNullModel(phenotypes: Array[Double], covariates: SparkDenseMatrix): FitState
+  def runTest(
+      x: DenseMatrix[Double],
+      y: DenseVector[Double],
+      nullModelFit: Option[FitState]): InternalRow
 }
 
-trait LogitTestWithNullModelFit extends LogitTest {
-  def runTest(nullFit: NewtonResult): InternalRow
-}
+trait LogitTestWithoutNullFit extends LogitTest {
+  final override val canReuseNullFit: Boolean = false
 
-trait LogitTestWithNullAndFullModelFit extends LogitTest {
-  // fullFitOpt is None iff nullFit fails to converge
-  def runTest(nullFit: NewtonResult, fullFitOpt: Option[NewtonResult]): InternalRow
-}
-
-object LikelihoodRatioTest extends LogitTestWithNullAndFullModelFit {
-  override def resultSchema: StructType = Encoders.product[LikelihoodRatioTestStats].schema
-  override def runTest(nullFit: NewtonResult, fullFitOpt: Option[NewtonResult]): InternalRow = {
-    if (!nullFit.converged || !fullFitOpt.get.converged) {
-      return InternalRow(NaN, NaN, ArrayData.toArrayData(Seq(NaN, NaN)), NaN)
-    }
-
-    val fullFit = fullFitOpt.get
-
-    val beta = fullFit.args.b(-1)
-    val oddsRatio = math.exp(beta)
-
-    val covarianceMatrix = inv(fullFit.args.fisher)
-    val variance = diag(covarianceMatrix)
-    val standardError = math.sqrt(variance(-1))
-    val halfWidth = LogisticRegressionGwas.zScore * standardError
-    val waldConfidenceInterval = Array(beta - halfWidth, beta + halfWidth).map(math.exp)
-
-    val chi2 = 2 * (fullFit.logLkhd - nullFit.logLkhd)
-    val df = fullFit.args.m - nullFit.args.m
-    val chi2Dist = new ChiSquaredDistribution(df)
-    val pValue = 1 - chi2Dist.cumulativeProbability(Math.abs(chi2)) // 1-sided p-value
-
-    InternalRow(beta, oddsRatio, ArrayData.toArrayData(waldConfidenceInterval), pValue)
+  final override def fitNullModel(
+      phenotypes: Array[Double],
+      covariates: SparkDenseMatrix): FitState = {
+    throw new IllegalArgumentException("Test does not support null model fit")
   }
+}
+
+trait LogitTestWithNullFit extends LogitTest {
+  final override val canReuseNullFit: Boolean = true
 }
