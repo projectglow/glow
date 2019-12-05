@@ -6,6 +6,8 @@ jobs:
     working_directory: ~/glow
     docker:
       - image: circleci/openjdk:8
+    parallelism: 2
+
     steps:
       - checkout
 
@@ -14,7 +16,7 @@ jobs:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}
 
       - run:
-          name: install dependencies
+          name: Install dependencies
           command: |
             export PATH=$HOME/conda/bin:$PATH
             if [ ! -d "/home/circleci/conda" ]; then
@@ -26,23 +28,34 @@ jobs:
             fi
 
       - run:
-          name: run Scala and Python tests
+          name: Run parallelized Scala tests
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            sbt coverage test coverageReport exit
+            sbt printTests coverage "testOnly $(circleci tests split --split-by=timings --timings-type=classname core-test-names.log | tr '\n' ' ') --" coverageReport exit
 
       - run:
-          name: run docs tests
+          name: Run Python tests
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            sbt python/test exit
+
+      - run:
+          name: Run docs tests
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             cd docs
             make linkcheck
+            sbt docs/test exit
 
       - store_artifacts:
           path: ~/glow/unit-tests.log
           destination: unit-tests.log
+
+      - store_test_results:
+          path: ~/glow/core/target/test-reports
 
       - codecov/upload:
           file: "core/target/scala-2.11/scoverage-report/scoverage.xml"

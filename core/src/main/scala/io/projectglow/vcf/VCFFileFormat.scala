@@ -237,11 +237,9 @@ object VCFFileFormat {
       } else {
         new PositionalBufferedStream(is)
       }
-
       val vcfCodec = new VCFCodec()
       val reader = new AsciiLineReaderIterator(AsciiLineReader.from(wrappedStream))
-      val header = vcfCodec
-        .readActualHeader(reader)
+      val header = vcfCodec.readActualHeader(reader)
       (header.asInstanceOf[VCFHeader], vcfCodec)
     }
   }
