@@ -34,6 +34,7 @@ import io.projectglow.common.VariantSchemas._
 import io.projectglow.vcf.{InternalRowToVariantContextConverter, VCFFileWriter, VariantContextToInternalRowConverter}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.functions.expr
+import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 
 private[projectglow] object VariantNormalizer extends GlowLogging {
 
@@ -147,16 +148,11 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
         col("*"),
         posexplode(col(alternateAllelesField.name)).as(Array("altAllelePos", "splitAlleles")))
 
-    // Seq of functions to be applied on ArrayTyped INFO fields to split them if necessary
+    // Seq of functions to be applied on ArrayTyped INFO fields to split them if their size is equal to number of alternate alleles
     val infoFieldsSplittingFunctions: Seq[DataFrame => DataFrame] = variantDf
       .schema
-      .filter(
-        field =>
-          field.name.startsWith(infoFieldPrefix) &&
-          (field.dataType match {
-            case ArrayType(_, _) => true
-            case _ => false
-          }))
+      .filter(field =>
+        field.name.startsWith(infoFieldPrefix) && field.dataType.isInstanceOf[ArrayType])
       .map(field =>
         (f: DataFrame) => {
           f.withColumn(
@@ -166,8 +162,10 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
               array(expr(s"${field.name}[altAllelePos]"))).otherwise(col(field.name)))
         })
 
+    // val genotypesFieldFunctions = Seq[DataFrame => DataFrame] = variantDf.
+
     // Update INFO fields by applying splitting functions.
-    infoFieldsSplittingFunctions
+    var dfAfterInfoSplit = infoFieldsSplittingFunctions
       .foldLeft(
         dfAfterAltAlleleSplit
       )((df, fn) => fn(df))
@@ -175,7 +173,48 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
       .drop("altAllelePos", "splitAlleles") // drop helper columns
 
     // TODO: Update genotypes
+    val gSchema = variantDf
+      .schema
+      .fields
+      .find(_.name == "genotypes")
+      .get
+      .dataType
+      .asInstanceOf[ArrayType]
+      .elementType
+      .asInstanceOf[StructType]
 
+    val genotypesSplittingFunctions: Seq[DataFrame => DataFrame] = gSchema
+      .fields
+      .foldLeft(Seq[DataFrame => DataFrame]())(
+        (fSeq, gf) => {
+          fSeq ++ {
+            gf match {
+              case f if f.dataType.isInstanceOf[ArrayType] =>
+                if (Set(
+                    genotypeLikelihoodsField.name,
+                    phredLikelihoodsField.name,
+                    posteriorProbabilitiesField.name).contains(gf.name)) {
+                  Seq(_: DataFrame => _)
+                } else if (gf.name == callsField) {
+                  Seq(_: DataFrame => _)
+                }
+              case _ => Seq()
+
+            }
+          }.asInstanceOf[Seq[DataFrame => DataFrame]]
+        }
+      )
+
+    for (i <- 0 to dfAfterInfoSplit
+        .limit(1)
+        .select(size(col("genotypes")))
+        .collect()(0)
+        .getInt(0)) {
+      // dfAfterInfoSplit = dfAfterInfoSplit.withColumn(s"genotypes_${i}", expr(s"(genotypes[$i])"))
+      dfAfterInfoSplit = dfAfterInfoSplit.select(col("*"), expr(s"expand_struct(genotypes[$i])"))
+    }
+
+    dfAfterInfoSplit
   }
 
   /**
