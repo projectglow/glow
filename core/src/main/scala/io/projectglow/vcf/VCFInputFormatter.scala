@@ -70,7 +70,6 @@ class VCFInputFormatterFactory extends InputFormatterFactory {
     val rowConverter = new InternalRowToVariantContextConverter(
       df.schema,
       headerLineSet,
-      true,
       VCFOptionParser.getValidationStringency(options)
     )
     rowConverter.validate()

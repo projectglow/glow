@@ -35,19 +35,17 @@ import io.projectglow.common.{GenotypeFields, GlowLogging, HasStringency, Varian
 /**
  * Converts internal rows with the provided schema into HTSJDK variant context.
  *
- * @param rowSchema               The schema of the rows that will be converted by this instance. The schema
- *                                must match the provided rows exactly.
- * @param headerLineSet           VCF header lines used for validation. The header is only used to provide
- *                                warnings or validation errors if the fields in the data either don't exist
- *                                in the header or have incompatible types. These warnings/errors can be
- *                                useful if downstream calculations depend on certain fields being present.
- * @param replaceMissingSampleIds Whether to replace missing sample IDs. Should be true if writing to VCF.
- * @param stringency              How seriously to treat validation errors vs the VCF header.
+ * @param rowSchema     The schema of the rows that will be converted by this instance. The schema
+ *                      must match the provided rows exactly.
+ * @param headerLineSet VCF header lines used for validation. The header is only used to provide
+ *                      warnings or validation errors if the fields in the data either don't exist
+ *                      in the header or have incompatible types. These warnings/errors can be
+ *                      useful if downstream calculations depend on certain fields being present.
+ * @param stringency    How seriously to treat validation errors vs the VCF header.
  */
 class InternalRowToVariantContextConverter(
     rowSchema: StructType,
     headerLineSet: Set[VCFHeaderLine],
-    replaceMissingSampleIds: Boolean,
     val stringency: ValidationStringency)
     extends GlowLogging
     with HasStringency
@@ -203,12 +201,7 @@ class InternalRowToVariantContextConverter(
       var i = 0
       while (i < array.numElements()) {
         var j = 0
-        val sampleId = if (replaceMissingSampleIds) {
-          s"sample_${i + 1}"
-        } else {
-          ""
-        }
-        val builder = new GenotypeBuilder(sampleId)
+        val builder = new GenotypeBuilder("")
         val row = array.getStruct(i, gtFields.length)
         while (j < fns.length) {
           if (!row.isNullAt(j)) {

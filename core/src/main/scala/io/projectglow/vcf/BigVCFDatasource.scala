@@ -174,6 +174,6 @@ object BigVCFDatasource extends HlsUsageLogging {
       throw new IllegalArgumentException(
         "Rows contain varying number of missing samples; cannot infer sample IDs.")
     }
-    (1 to missingSampleLists.head).map(idx => s"sample_$idx")
+    Array.fill(missingSampleLists.head)("")
   }
 }

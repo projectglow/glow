@@ -400,22 +400,29 @@ class MultiFileVCFWriterSuite extends VCFFileWriterSuite("vcf") {
     )
   }
 
-  test("Fails if non-matching inferred sample IDs") {
+  def testInferredSampleIds(
+      row1HasSamples: Boolean,
+      row2HasSamples: Boolean,
+      errorMsg: String): Unit = {
     val tempFile = createTempVcf.toString
 
-    // Samples: HG00096	HG00097	HG00099	HG00100	HG00101
+    // Samples: HG00096 HG00097	HG00099
     val ds1 = spark
       .read
       .format(readSourceName)
+      .option("includeSampleIds", row1HasSamples)
+      .option("vcfRowSchema", true)
       .load(TGP)
-      .withColumn("subsetGenotypes", expr("slice(genotypes, 1, 5)"))
+      .withColumn("subsetGenotypes", expr("slice(genotypes, 1, 3)"))
       .drop("genotypes")
       .withColumnRenamed("subsetGenotypes", "genotypes")
 
-    // Samples: HG00099	HG00100	HG00101	HG00102
+    // Samples: HG00099 HG00100	HG00101	HG00102
     val ds2 = spark
       .read
       .format(readSourceName)
+      .option("includeSampleIds", row2HasSamples)
+      .option("vcfRowSchema", true)
       .load(TGP)
       .withColumn("subsetGenotypes", expr("slice(genotypes, 3, 4)"))
       .drop("genotypes")
@@ -430,8 +437,19 @@ class MultiFileVCFWriterSuite extends VCFFileWriterSuite("vcf") {
         .save(tempFile)
     }
     assert(e.getCause.getCause.getCause.isInstanceOf[IllegalArgumentException])
-    assert(
-      e.getCause.getMessage.contains("Inferred VCF header is missing samples found in the data"))
+    assert(e.getCause.getMessage.contains(errorMsg))
+  }
+
+  test("Fails if missing sample IDs not inferred") {
+    testInferredSampleIds(true, false, "Inferred VCF header contains no missing sample names")
+  }
+
+  test("Fails if non-matching present inferred sample IDs") {
+    testInferredSampleIds(true, true, "Inferred VCF header is missing samples found in the data")
+  }
+
+  test("Fails if non-matching missing inferred sample IDs") {
+    testInferredSampleIds(false, false, "Inferred VCF header is missing samples found in the data")
   }
 }
 

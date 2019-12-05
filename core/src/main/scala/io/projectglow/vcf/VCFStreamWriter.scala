@@ -17,19 +17,13 @@
 package io.projectglow.vcf
 
 import java.io.{Closeable, OutputStream}
-import java.util.{HashSet => JHashSet, Set => JSet}
+import java.util.{ArrayList => JArrayList, HashSet => JHashSet, Set => JSet}
 
 import scala.collection.JavaConverters._
-
 import htsjdk.variant.variantcontext.writer.{Options, VariantContextWriter, VariantContextWriterBuilder}
-import htsjdk.variant.variantcontext.{VariantContext, VariantContextBuilder}
+import htsjdk.variant.variantcontext.{Genotype, GenotypeBuilder, VariantContext, VariantContextBuilder}
 import htsjdk.variant.vcf.{VCFHeader, VCFHeaderLine}
 
-/**
- * This internal row -> variant context stream writer maintains a header whose sample IDs are set
- * exactly once - priority is given to sample IDs provided in the constructor, with the first
- * written variant context used for sample inference if needed.
- */
 class VCFStreamWriter(
     stream: OutputStream,
     headerLineSet: Set[VCFHeaderLine],
@@ -41,11 +35,14 @@ class VCFStreamWriter(
   // Header should be set or written exactly once
   var headerHasBeenSetOrWritten = false
 
-  private var headerHasSetSampleIds = providedSampleIds.isDefined
-  private var header: VCFHeader = providedSampleIds.map { sList =>
-    new VCFHeader(headerLineSet.asJava, sList.asJava)
-  }.getOrElse(new VCFHeader(headerLineSet.asJava))
-  private var sampleSet: JSet[String] = new JHashSet(header.getGenotypeSamples)
+  // Header variables must stay in sync
+  private var headerHasReplacedMissingSamples: Boolean = false
+  private var headerHasSetSamples: Boolean = false
+  private var header: VCFHeader = new VCFHeader(headerLineSet.asJava)
+  if (providedSampleIds.isDefined) {
+    setHeaderSamples(providedSampleIds.get)
+  }
+  private var headerSampleSet: JSet[String] = new JHashSet[String](header.getGenotypeSamples)
 
   private val writer: VariantContextWriter = new VariantContextWriterBuilder()
     .clearOptions()
@@ -55,21 +52,6 @@ class VCFStreamWriter(
     .build
 
   def write(vc: VariantContext): Unit = {
-    if (!headerHasBeenSetOrWritten) {
-      maybeSetHeaderSampleIds(vc)
-      if (writeHeader) {
-        writer.writeHeader(header)
-      } else {
-        writer.setHeader(header)
-      }
-      headerHasBeenSetOrWritten = true
-    }
-
-    if (providedSampleIds.isEmpty && !sampleSet.containsAll(vc.getSampleNames)) {
-      throw new IllegalArgumentException(
-        "Inferred VCF header is missing samples found in the data; please provide a complete header or VCF file path.")
-    }
-
     val vcBuilder = new VariantContextBuilder(vc)
     val iterator = vc.getAttributes.entrySet().iterator()
     while (iterator.hasNext) { // parse to string, then write,
@@ -78,6 +60,41 @@ class VCFStreamWriter(
       vcBuilder.attribute(
         entry.getKey,
         VariantContextToVCFRowConverter.parseObjectAsString(entry.getValue))
+    }
+
+    if (!headerHasBeenSetOrWritten) {
+      if (!headerHasSetSamples) {
+        setHeaderSamples(vc.getGenotypes.asScala.map(_.getSampleName))
+      }
+      if (writeHeader) {
+        writer.writeHeader(header)
+      } else {
+        writer.setHeader(header)
+      }
+      headerHasBeenSetOrWritten = true
+    }
+
+    val vcBuilderNotMissingSamples = if (headerHasReplacedMissingSamples) {
+      // Don't bother inferring missing sample IDs unless we did so for the header
+      if (vcBuilder.getGenotypes.size != headerSampleSet.size) {
+        throw new IllegalArgumentException(
+          "Number of missing sample names does not match between VCF header and row to write.")
+      }
+      VCFStreamWriter.replaceMissingSampleIds(vcBuilder)
+    } else {
+      // Mismatched samples can only happen with the sharded VCF writer
+      if (vcBuilder.getGenotypes.getSampleNames.asScala.exists(_.isEmpty)) {
+        throw new IllegalArgumentException(
+          "Inferred VCF header contains no missing sample names, but rows to write are missing sample names.")
+      }
+      vcBuilder
+    }
+
+    if (providedSampleIds.isEmpty && !headerSampleSet.containsAll(
+        vcBuilderNotMissingSamples.getGenotypes.getSampleNames)) {
+      // Mismatched samples can only happen with the sharded VCF writer
+      throw new IllegalArgumentException(
+        "Inferred VCF header is missing samples found in the data; please provide a complete header or VCF file path.")
     }
 
     writer.add(vcBuilder.make)
@@ -98,13 +115,53 @@ class VCFStreamWriter(
     writer.close()
   }
 
-  // Sets header with the sample IDs from a variant context (maintaining genotype order).
-  private def maybeSetHeaderSampleIds(vc: VariantContext): Unit = {
-    if (!headerHasSetSampleIds) {
-      sampleSet = vc.getSampleNames
-      val sampleList = vc.getGenotypes.asScala.map(_.getSampleName).asJava
-      header = new VCFHeader(header.getMetaDataInInputOrder, sampleList)
-      headerHasSetSampleIds = true
+  // Sets the header with sample IDs.
+  private def setHeaderSamples(sList: Seq[String]): Unit = {
+    header = if (sList.exists(_.isEmpty)) {
+      headerHasReplacedMissingSamples = true
+      new VCFHeader(
+        header.getMetaDataInInputOrder,
+        VCFStreamWriter.setReplacedMissingSampleIds(sList).asJava)
+    } else {
+      new VCFHeader(header.getMetaDataInInputOrder, sList.asJava)
     }
+    headerSampleSet = new JHashSet[String](header.getGenotypeSamples)
+    headerHasSetSamples = true
+  }
+
+}
+
+object VCFStreamWriter {
+
+  private def setReplacedMissingSampleIds(sampleList: Seq[String]): Seq[String] = {
+    sampleList.indices.map { idx =>
+      if (sampleList(idx) != "") {
+        throw new IllegalArgumentException(
+          "Cannot mix present and missing sample names when inferring header sample IDs.")
+      }
+      "sample_" + (idx + 1)
+    }
+  }
+
+  private def replaceMissingSampleIds(vcBuilder: VariantContextBuilder): VariantContextBuilder = {
+    val oldGts = vcBuilder.getGenotypes
+    val numGts = oldGts.size()
+    val newGts = new JArrayList[Genotype](numGts)
+    var i = 0
+    while (i < numGts) {
+      val oldGt = oldGts.get(i)
+      if (oldGt.getSampleName != "") {
+        throw new IllegalArgumentException(
+          "Header sample IDs were inferred from missing sample IDs, cannot mix present and missing sample IDs.")
+      }
+      val newGt = if (oldGt.getSampleName == "") {
+        new GenotypeBuilder(oldGt).name("sample_" + (i + 1)).make
+      } else {
+        oldGt
+      }
+      newGts.add(newGt)
+      i += 1
+    }
+    vcBuilder.genotypes(newGts)
   }
 }

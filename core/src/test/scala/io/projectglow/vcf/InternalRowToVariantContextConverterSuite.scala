@@ -46,13 +46,11 @@ class InternalRowToVariantContextConverterSuite extends GlowBaseTest {
     new InternalRowToVariantContextConverter(
       toggleNullability(df.schema, true),
       headerLines,
-      false,
       ValidationStringency.STRICT).validate()
 
     new InternalRowToVariantContextConverter(
       toggleNullability(df.schema, false),
       headerLines,
-      false,
       ValidationStringency.STRICT).validate()
   }
 
@@ -65,29 +63,5 @@ class InternalRowToVariantContextConverterSuite extends GlowBaseTest {
       StructType(fields).asInstanceOf[T]
     case mt: MapType => mt.copy(valueContainsNull = nullable).asInstanceOf[T]
     case other => other
-  }
-
-  test("default sample IDs") {
-    val df = spark.read.format("vcf").option("includeSampleIds", "false").load(combined)
-    val rdd = df.queryExecution.toRdd
-    val converter = new InternalRowToVariantContextConverter(
-      df.schema,
-      combinedHeaderLines,
-      true,
-      ValidationStringency.STRICT)
-    val vc = converter.convert(rdd.take(1).head).get
-    assert(vc.getGenotypes.asScala.map(_.getSampleName) == Seq("sample_1", "sample_2", "sample_3"))
-  }
-
-  test("no default sample IDs") {
-    val df = spark.read.format("vcf").option("includeSampleIds", "false").load(combined)
-    val rdd = df.queryExecution.toRdd
-    val converter = new InternalRowToVariantContextConverter(
-      df.schema,
-      combinedHeaderLines,
-      false,
-      ValidationStringency.STRICT)
-    val vc = converter.convert(rdd.take(1).head).get
-    assert(vc.getGenotypes.asScala.map(_.getSampleName) == Seq("", "", ""))
   }
 }
