@@ -36,7 +36,7 @@ class VCFRowToVariantContextConverterSuite extends GlowBaseTest with VCFConverte
   lazy val GVCF = s"$testDataHome/NA12878_21_10002403.g.vcf"
 
   lazy val defaultHeader = new VCFHeader(VCFRowHeaderLines.allHeaderLines.toSet.asJava)
-  lazy val defaultConverter = new VCFRowToVariantContextConverter(defaultHeader)
+  lazy val defaultConverter = new VCFRowToVariantContextConverter(defaultHeader, false)
 
   lazy val vcfRow: VCFRow = defaultVcfRow.copy(referenceAllele = "A", end = defaultVcfRow.start + 1)
 
@@ -51,7 +51,7 @@ class VCFRowToVariantContextConverterSuite extends GlowBaseTest with VCFConverte
     import sess.implicits._
 
     val header = VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, vcf)
-    val converter = new VCFRowToVariantContextConverter(header)
+    val converter = new VCFRowToVariantContextConverter(header, false)
 
     val sparkVcfRowList = spark
       .read
@@ -257,7 +257,7 @@ class VCFRowToVariantContextConverterSuite extends GlowBaseTest with VCFConverte
     val setVcfRow = vcfRow.copy(attributes = Map("Key" -> "Value"))
 
     val strictConverter =
-      new VCFRowToVariantContextConverter(defaultHeader, ValidationStringency.STRICT)
+      new VCFRowToVariantContextConverter(defaultHeader, false, ValidationStringency.STRICT)
     assertThrows[IllegalArgumentException](strictConverter.convert(setVcfRow))
   }
 
@@ -266,7 +266,25 @@ class VCFRowToVariantContextConverterSuite extends GlowBaseTest with VCFConverte
     val setVcfRow = vcfRow.copy(genotypes = Seq(genotypeField))
 
     val strictConverter =
-      new VCFRowToVariantContextConverter(defaultHeader, ValidationStringency.STRICT)
+      new VCFRowToVariantContextConverter(defaultHeader, false, ValidationStringency.STRICT)
     assertThrows[IllegalArgumentException](strictConverter.convert(setVcfRow))
+  }
+
+  test("Replace missing sample IDs") {
+    val setVcfRow =
+      vcfRow.copy(genotypes = Array.fill(3)(defaultGenotypeFields))
+    val converter =
+      new VCFRowToVariantContextConverter(defaultHeader, true)
+    val vc = converter.convert(setVcfRow)
+    assert(vc.getGenotypes.asScala.map(_.getSampleName) == Seq("sample_1", "sample_2", "sample_3"))
+  }
+
+  test("Do not replace missing sample IDs") {
+    val setVcfRow =
+      vcfRow.copy(genotypes = Array.fill(3)(defaultGenotypeFields))
+    val converter =
+      new VCFRowToVariantContextConverter(defaultHeader, false)
+    val vc = converter.convert(setVcfRow)
+    assert(vc.getGenotypes.asScala.map(_.getSampleName) == Array.fill(3)("").toSeq)
   }
 }

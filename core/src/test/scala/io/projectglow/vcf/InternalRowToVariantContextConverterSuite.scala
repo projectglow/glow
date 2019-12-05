@@ -25,8 +25,14 @@ import io.projectglow.sql.GlowBaseTest
 
 class InternalRowToVariantContextConverterSuite extends GlowBaseTest {
   lazy val NA12878 = s"$testDataHome/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf"
+  lazy val combined = s"$testDataHome/combined.chr20_18210071_18210093.g.vcf"
   lazy val header = VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, NA12878)
   lazy val headerLines = header.getMetaDataInInputOrder.asScala.toSet
+  lazy val combinedHeaderLines = VCFMetadataLoader
+    .readVcfHeader(sparkContext.hadoopConfiguration, combined)
+    .getMetaDataInInputOrder
+    .asScala
+    .toSet
 
   private val optionsSeq = Seq(
     Map("flattenInfoFields" -> "true", "includeSampleIds" -> "true"),
@@ -59,5 +65,29 @@ class InternalRowToVariantContextConverterSuite extends GlowBaseTest {
       StructType(fields).asInstanceOf[T]
     case mt: MapType => mt.copy(valueContainsNull = nullable).asInstanceOf[T]
     case other => other
+  }
+
+  test("default sample IDs") {
+    val df = spark.read.format("vcf").option("includeSampleIds", "false").load(combined)
+    val rdd = df.queryExecution.toRdd
+    val converter = new InternalRowToVariantContextConverter(
+      df.schema,
+      combinedHeaderLines,
+      true,
+      ValidationStringency.STRICT)
+    val vc = converter.convert(rdd.take(1).head).get
+    assert(vc.getGenotypes.asScala.map(_.getSampleName) == Seq("sample_1", "sample_2", "sample_3"))
+  }
+
+  test("no default sample IDs") {
+    val df = spark.read.format("vcf").option("includeSampleIds", "false").load(combined)
+    val rdd = df.queryExecution.toRdd
+    val converter = new InternalRowToVariantContextConverter(
+      df.schema,
+      combinedHeaderLines,
+      false,
+      ValidationStringency.STRICT)
+    val vc = converter.convert(rdd.take(1).head).get
+    assert(vc.getGenotypes.asScala.map(_.getSampleName) == Seq("", "", ""))
   }
 }

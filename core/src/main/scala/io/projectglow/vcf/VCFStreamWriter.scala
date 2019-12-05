@@ -98,28 +98,13 @@ class VCFStreamWriter(
     writer.close()
   }
 
-  // Sets header with the sample IDs from a variant context (maintaining genotype order), replacing
-  // any empty sample IDs.
+  // Sets header with the sample IDs from a variant context (maintaining genotype order).
   private def maybeSetHeaderSampleIds(vc: VariantContext): Unit = {
     if (!headerHasSetSampleIds) {
       sampleSet = vc.getSampleNames
-      header = new VCFHeader(header.getMetaDataInInputOrder, sampleSet)
+      val sampleList = vc.getGenotypes.asScala.map(_.getSampleName).asJava
+      header = new VCFHeader(header.getMetaDataInInputOrder, sampleList)
       headerHasSetSampleIds = true
-    }
-  }
-}
-
-object VCFStreamWriter {
-  // If any sample IDs are empty, replaces them with defaults.
-  def replaceEmptySampleIds(sampleList: Seq[String]): Seq[String] = {
-    var missingSampleIdx = 0
-    sampleList.map { s =>
-      if (s.isEmpty) {
-        missingSampleIdx += 1
-        s"sample_$missingSampleIdx"
-      } else {
-        s
-      }
     }
   }
 }

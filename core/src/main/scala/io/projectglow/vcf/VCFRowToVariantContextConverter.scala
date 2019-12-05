@@ -30,6 +30,7 @@ import io.projectglow.common.VCFRow
  */
 class VCFRowToVariantContextConverter(
     vcfHeader: VCFHeader,
+    replaceMissingSampleIds: Boolean,
     stringency: ValidationStringency = ValidationStringency.LENIENT)
     extends Serializable {
 
@@ -39,6 +40,7 @@ class VCFRowToVariantContextConverter(
     new InternalRowToVariantContextConverter(
       VCFRow.schema,
       vcfHeader.getMetaDataInInputOrder.asScala.toSet,
+      replaceMissingSampleIds,
       stringency)
 
   def convert(vcfRow: VCFRow): HtsjdkVariantContext = {

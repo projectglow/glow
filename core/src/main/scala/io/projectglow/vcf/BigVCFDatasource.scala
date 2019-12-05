@@ -125,9 +125,6 @@ object BigVCFDatasource extends HlsUsageLogging {
    * - If there are genotypes and sample IDs are all...
    *     - Missing, the sample IDs are inferred from the number of genotypes per row (must be the same per row).
    *     - Present, the sample IDs are found by unifying non-null sample IDs across all rows.
-   *
-   * Missing sample IDs are represented by an empty String, as that is the default VariantContext sample ID. They will
-   * be replaced with defaults by [[VCFStreamWriter.replaceEmptySampleIds]].
    */
   def inferSampleIds(data: DataFrame): Seq[String] = {
     val genotypeSchemaOpt = data
@@ -135,41 +132,48 @@ object BigVCFDatasource extends HlsUsageLogging {
       .find(_.name == "genotypes")
       .map(_.dataType.asInstanceOf[ArrayType].elementType.asInstanceOf[StructType])
     if (genotypeSchemaOpt.isEmpty) {
+      logger.warn("No genotypes column, no sample IDs will be inferred.")
       return Seq.empty
     }
+    val genotypeSchema = genotypeSchemaOpt.get
 
     import data.sparkSession.implicits._
-    val hasSampleIds = genotypeSchemaOpt.get.exists(_.name == "sampleId")
+    val hasSampleIds = genotypeSchema.exists(_.name == "sampleId")
     if (hasSampleIds) {
-      val distinctSampleLists = data
+      val sampleLists = data
         .select("genotypes.sampleId")
         .distinct()
         .as[Array[String]]
         .collect
+      val distinctSampleIds = sampleLists.flatten.distinct
 
-      val inferredSamples = distinctSampleLists
-        .flatten
-        .distinct
-        .filter(_ != null)
-        .sorted
-
-      inferredSamples ++ getMissingSamples(numMissingSampleList)
+      if (distinctSampleIds.contains(null)) {
+        if (distinctSampleIds.length > 1) {
+          throw new IllegalArgumentException(
+            s"Cannot mix missing and non-missing sample IDs: ${distinctSampleIds.mkString(",")}.")
+        }
+        logger.warn("Detected missing sample IDs, inferring sample IDs.")
+        inferSampleIds(sampleLists.map(_.length))
+      } else {
+        distinctSampleIds.sorted
+      }
     } else {
+      logger.warn("No sample ID column, inferring sample IDs.")
       val numMissingSampleList = data
         .selectExpr("size(genotypes)")
         .distinct()
         .as[Int]
         .collect
 
-      getMissingSamples(numMissingSampleList)
+      inferSampleIds(numMissingSampleList)
     }
   }
 
-  def getMissingSamples(numMissingSamplesList: Seq[Int]): Seq[String] = {
-    if (numMissingSamplesList.length > 1) {
+  def inferSampleIds(missingSampleLists: Seq[Int]): Seq[String] = {
+    if (missingSampleLists.length > 1) {
       throw new IllegalArgumentException(
-        "Rows contain varying number of missing samples; cannot infer VCF header.")
+        "Rows contain varying number of missing samples; cannot infer sample IDs.")
     }
-    Array.fill(numMissingSamplesList.head)("")
+    (1 to missingSampleLists.head).map(idx => s"sample_$idx")
   }
 }

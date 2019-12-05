@@ -655,20 +655,23 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
     checkWithInferredSampleIds(ds1.union(ds2), Seq("sample_1", "sample_2", "sample_3"))
   }
 
-  test("Inferred and missing sample IDs") {
+  test("Mixed inferred and missing sample IDs") {
     // 3 missing samples
     val ds1 = sliceInferredSampleIds(1, 3, 2)
     val ds2 = sliceInferredSampleIds(2, 3, 2)
-    checkWithInferredSampleIds(
-      ds1.union(ds2),
-      Seq("HG00096", "HG00097", "HG00099", "HG00100", "sample_1", "sample_2"))
+
+    val tempFile = createTempVcf.toString
+    val e = intercept[IllegalArgumentException] {
+      ds1.union(ds2).write.option("vcfHeader", "infer").format(sourceName).save(tempFile)
+    }
+    assert(e.getMessage.contains("Cannot mix missing and non-missing sample IDs"))
   }
 
   test("Non-matching number of missing sample IDs") {
     // 2 missing samples
-    val ds1 = sliceInferredSampleIds(1, 3, 2)
+    val ds1 = sliceInferredSampleIds(1, 0, 2)
     // 4 missing samples
-    val ds2 = sliceInferredSampleIds(2, 4, 1)
+    val ds2 = sliceInferredSampleIds(2, 0, 1)
     val e = intercept[IllegalArgumentException] {
       ds1.union(ds2).write.format(sourceName).save(createTempVcf.toString)
     }
