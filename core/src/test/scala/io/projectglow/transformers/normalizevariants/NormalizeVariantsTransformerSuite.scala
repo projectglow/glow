@@ -243,9 +243,6 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
 
   test("splitVariants") {
 
-    val testSeq = Seq(1, 2, 3)
-    val mapped = testSeq.map(f => if (f > 2) None else f)
-
     val dfOriginal = spark
       .read
       .format(sourceName)
