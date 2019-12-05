@@ -10,7 +10,9 @@ Sample Quality Control
 You can calculate quality control statistics on your variant data using Spark SQL functions, which
 can be expressed in Python, R, Scala, or SQL.
 
-Each of these functions returns a map from sample ID to a struct containing metrics for that sample and assumes that the same samples appear in the same order in each row.
+Each of these functions returns an array of structs containing metrics for one sample. If sample ids
+are including in the input DataFrame, they will be propagated to the output. The functions assume
+that the genotypes in each row of the input DataFrame contain the same samples in the same order.
 
 .. list-table::
   :header-rows: 1
@@ -18,7 +20,7 @@ Each of these functions returns a map from sample ID to a struct containing metr
   * - Functions
     - Arguments
     - Return
-  * - sample_call_summary_stats
+  * - ``sample_call_summary_stats``
     - ``referenceAllele`` string, ``alternateAlleles`` array of strings, ``genotypes`` array ``calls``
     - A struct containing the following summary stats:
 
@@ -38,10 +40,10 @@ Each of these functions returns a map from sample ID to a struct containing metr
       * ``rTiTv``: Ratio of transitions to tranversions (``nTransition / nTransversion``)
       * ``rInsertionDeletion``: Ratio of insertions to deletions (``nInsertion / nDeletion``)
       * ``rHetHomVar``: Ratio of heterozygous to homozygous variant calls (``nHet / nHomVar``)
-  * - sample_dp_summary_stats
+  * - ``sample_dp_summary_stats``
     - ``genotypes`` array with a ``depth`` field
     - A struct with ``min``, ``max``, ``mean``, and ``stddev``
-  * - sample_gq_summary_stats
+  * - ``sample_gq_summary_stats``
     - ``genotypes`` array with a ``conditionalQuality`` field
     - A struct with ``min``, ``max``, ``mean``, and ``stddev``
 
