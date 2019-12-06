@@ -67,19 +67,25 @@ case class LogisticRegressionExpr(
     }
   }
 
-  private val nullFitMap: mutable.Map[Int, logitTest.FitState] = mutable.Map.empty
   // For each phenotype, save the null model fit of the covariate matrix since it's the same for every genotype
-  private def fitNullModel(
+  private val nullFitMap: mutable.Map[Int, logitTest.FitState] = mutable.Map.empty
+  private var fitState: logitTest.FitState = _
+
+  private def getFitState(
       phenotypes: Array[Double],
-      covariates: DenseMatrix): Option[logitTest.FitState] = {
+      covariates: DenseMatrix): logitTest.FitState = {
     if (!logitTest.canReuseNullFit) {
-      return None
+      if (fitState == null) {
+        fitState = logitTest.init(phenotypes, covariates)
+      }
+      return fitState
     }
+
     val phenoHash = MurmurHash3.arrayHash(phenotypes)
     if (!nullFitMap.contains(phenoHash)) {
-      nullFitMap.put(phenoHash, logitTest.fitNullModel(phenotypes, covariates))
+      nullFitMap.put(phenoHash, logitTest.init(phenotypes, covariates))
     }
-    nullFitMap.get(phenoHash)
+    nullFitMap(phenoHash)
   }
 
   override protected def nullSafeEval(
@@ -94,22 +100,16 @@ case class LogisticRegressionExpr(
       genotypeArray.length == phenotypeArray.length,
       "Number of samples differs between genotype and phenotype arrays")
     val covariateMatrix = matrixUDT.deserialize(covariates.asInstanceOf[InternalRow]).toDense
+    require(covariateMatrix.numCols > 0, "Covariate matrix must have at least one column")
     require(
       covariateMatrix.numRows == phenotypeArray.length,
       "Number of samples do not match between phenotype vector and covariate matrix"
     )
 
-    lazy val fullX =
-      new BreezeDenseMatrix[Double](
-        covariateMatrix.numRows,
-        covariateMatrix.numCols + 1,
-        covariateMatrix.values ++ genotypeArray)
-    lazy val y = new DenseVector(phenotypeArray)
-
-    val nullFitNewtonResult = fitNullModel(phenotypeArray, covariateMatrix)
+    val nullFitNewtonResult = getFitState(phenotypeArray, covariateMatrix)
     logitTest.runTest(
-      fullX,
-      y,
+      new DenseVector[Double](genotypeArray),
+      new DenseVector[Double](phenotypeArray),
       nullFitNewtonResult
     )
   }
