@@ -17,7 +17,7 @@
 package io.projectglow.vcf
 
 import java.io.{Closeable, OutputStream}
-import java.util.{ArrayList => JArrayList}
+import java.util.{ArrayList => JArrayList, HashSet => JHashSet}
 
 import scala.collection.JavaConverters._
 
@@ -38,6 +38,7 @@ class VCFStreamWriter(
 
   val inferSampleIds: Boolean = sampleIdsMissingOpt.isEmpty
   var header: VCFHeader = _
+  var headerSampleSet: JHashSet[String] = _
   var replaceSampleIds: Boolean = _
 
   private val writer: VariantContextWriter = new VariantContextWriterBuilder()
@@ -72,6 +73,7 @@ class VCFStreamWriter(
             throw new IllegalArgumentException("Cannot mix missing and non-missing sample IDs.")
         }
       }
+      headerSampleSet = new JHashSet(sampleIds.asJava)
       header = new VCFHeader(headerLineSet.asJava, sampleIds.asJava)
       replaceSampleIds = missing
       if (writeHeader) {
@@ -109,7 +111,7 @@ class VCFStreamWriter(
         val gtSample = vcSamples(i)
         if (gtSample == "") {
           throw new IllegalArgumentException("Cannot mix missing and non-missing sample IDs.")
-        } else if (!header.getGenotypeSamples.contains(gtSample)) {
+        } else if (!headerSampleSet.contains(gtSample)) {
           throw new IllegalArgumentException(
             "Found sample ID in row that was not present in the header.")
         }
