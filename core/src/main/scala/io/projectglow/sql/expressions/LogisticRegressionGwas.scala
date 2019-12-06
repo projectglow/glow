@@ -62,6 +62,7 @@ object LogisticRegressionGwas extends GlowLogging {
   private[projectglow] def newtonIterations(
       X: DenseMatrix[Double],
       y: DenseVector[Double],
+      hessianPlaceHolder: DenseMatrix[Double],
       args: NewtonIterationsState,
       maxIter: Int = 25,
       tolerance: Double = 1e-6): NewtonResult = {
@@ -82,11 +83,14 @@ object LogisticRegressionGwas extends GlowLogging {
           converged = true
         } else {
           iter += 1
+          X(::, *)
           args.b += deltaB // Parameter update
           args.mu := X * args.b // Fitted probability
           sigmoid.inPlace(args.mu)
           args.score := X.t * (y - args.mu) // Gradient
-          args.fisher := X.t * (X(::, *) *:* (args.mu *:* (1d - args.mu))) // Hessian
+          hessianPlaceHolder := X
+          hessianPlaceHolder(::, *) :*= (args.mu *:* (1d - args.mu))
+          args.fisher := X.t * hessianPlaceHolder // Hessian
         }
       } catch {
         case _: breeze.linalg.MatrixSingularException => exploded = true
@@ -176,6 +180,7 @@ object NewtonIterationsState {
 
 case class LRTFitState(
     x: DenseMatrix[Double],
+    hessian: DenseMatrix[Double],
     nullFit: NewtonResult,
     placeholderState: NewtonIterationsState
 )
