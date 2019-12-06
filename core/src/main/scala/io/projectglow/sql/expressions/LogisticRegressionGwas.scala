@@ -98,7 +98,9 @@ object LogisticRegressionGwas extends GlowLogging {
       }
     }
 
-    val logLkhd = sum(breeze.numerics.log((y *:* args.mu) + ((1d - y) *:* (1d - args.mu))))
+    val statistic = (y *:* args.mu) + ((1d - y) *:* (1d - args.mu))
+    breeze.numerics.log.inPlace(statistic)
+    val logLkhd = sum(statistic)
 
     NewtonResult(args, logLkhd, iter, converged, exploded)
   }
