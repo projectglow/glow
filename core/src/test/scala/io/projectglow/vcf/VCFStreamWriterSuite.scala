@@ -47,10 +47,7 @@ class VCFStreamWriterSuite extends GlowBaseTest {
     assert(e.getMessage.contains("Cannot mix missing and non-missing sample IDs"))
   }
 
-  def checkInfer(
-      firstRowSampleIds: Seq[String],
-      secondRowSampleIds: Seq[String],
-      errorMsg: String): Unit = {
+  def checkInfer(firstRowSampleIds: Seq[String], secondRowSampleIds: Seq[String]): Unit = {
     val stream = new ByteArrayOutputStream()
     val writer =
       new VCFStreamWriter(stream, headerLines, None, true)
@@ -66,33 +63,28 @@ class VCFStreamWriterSuite extends GlowBaseTest {
     val e = intercept[IllegalArgumentException] {
       writer.write(vcBuilder.genotypes(secondGts).make)
     }
-    assert(e.getMessage.contains(errorMsg))
+    assert(
+      e.getMessage.contains("Cannot infer sample ids because they are not the same in every row"))
   }
 
   test("Check for new sample IDs") {
-    checkInfer(
-      actualSampleIds,
-      Seq("SampleC"),
-      "Found sample ID in row that was not present in the header")
+    checkInfer(actualSampleIds, Seq("SampleC"))
   }
 
   test("Saw present sample IDs when inferred missing") {
-    checkInfer(Seq("", "", ""), actualSampleIds, "Cannot mix missing and non-missing sample IDs")
+    checkInfer(Seq("", "", ""), actualSampleIds)
   }
 
   test("Saw present sample IDs when inferred missing, same number of samples") {
-    checkInfer(Seq("", ""), actualSampleIds, "Cannot mix missing and non-missing sample IDs")
+    checkInfer(Seq("", ""), actualSampleIds)
   }
 
   test("Number of missing does not match") {
-    checkInfer(
-      Seq("", "", ""),
-      Seq("", ""),
-      "Number of genotypes in row does not match number of injected missing header samples.")
+    checkInfer(Seq("", "", ""), Seq("", ""))
   }
 
   test("Unexpected missing sample ID") {
-    checkInfer(actualSampleIds, Seq("", ""), "Cannot mix missing and non-missing sample IDs.")
+    checkInfer(actualSampleIds, Seq("", ""))
   }
 
   test("Don't write header with VC if told not to") {
