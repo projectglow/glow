@@ -73,17 +73,17 @@ case class LogisticRegressionExpr(
 
   private def getFitState(
       phenotypes: Array[Double],
-      covariates: DenseMatrix): logitTest.FitState = {
+      covariates: Any): logitTest.FitState = {
     if (!logitTest.canReuseNullFit) {
       if (fitState == null) {
-        fitState = logitTest.init(phenotypes, covariates)
+        fitState = logitTest.init(phenotypes, matrixUDT.deserialize(covariates).toDense)
       }
       return fitState
     }
 
     val phenoHash = MurmurHash3.arrayHash(phenotypes)
     if (!nullFitMap.contains(phenoHash)) {
-      nullFitMap.put(phenoHash, logitTest.init(phenotypes, covariates))
+      nullFitMap.put(phenoHash, logitTest.init(phenotypes, matrixUDT.deserialize(covariates).toDense))
     }
     nullFitMap(phenoHash)
   }
@@ -94,19 +94,21 @@ case class LogisticRegressionExpr(
       covariates: Any,
       test: Any): Any = {
 
+    val covariatesStruct = covariates.asInstanceOf[InternalRow]
+    val covariateRows = covariatesStruct.getInt(1)
+    val covariateCols = covariatesStruct.getInt(2)
     val genotypeArray = genotypes.asInstanceOf[ArrayData].toDoubleArray
     val phenotypeArray = phenotypes.asInstanceOf[ArrayData].toDoubleArray
     require(
       genotypeArray.length == phenotypeArray.length,
       "Number of samples differs between genotype and phenotype arrays")
-    val covariateMatrix = matrixUDT.deserialize(covariates.asInstanceOf[InternalRow]).toDense
-    require(covariateMatrix.numCols > 0, "Covariate matrix must have at least one column")
+    require(covariateCols > 0, "Covariate matrix must have at least one column")
     require(
-      covariateMatrix.numRows == phenotypeArray.length,
+      covariateRows == phenotypeArray.length,
       "Number of samples do not match between phenotype vector and covariate matrix"
     )
 
-    val nullFitNewtonResult = getFitState(phenotypeArray, covariateMatrix)
+    val nullFitNewtonResult = getFitState(phenotypeArray, covariates)
     logitTest.runTest(
       new DenseVector[Double](genotypeArray),
       new DenseVector[Double](phenotypeArray),
