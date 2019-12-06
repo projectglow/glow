@@ -16,7 +16,7 @@
 
 package io.projectglow.vcf
 
-import java.util.{ArrayList => JArrayList, TreeMap => JTreeMap}
+import java.util.{ArrayList => JArrayList}
 
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal

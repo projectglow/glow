@@ -25,6 +25,21 @@ import htsjdk.variant.variantcontext.writer.{Options, VariantContextWriter, Vari
 import htsjdk.variant.variantcontext.{Genotype, GenotypeBuilder, VariantContext, VariantContextBuilder}
 import htsjdk.variant.vcf.{VCFHeader, VCFHeaderLine}
 
+/**
+ * This internal row -> variant context stream writer maintains a header that is set exactly once. The sample IDs are
+ * set by [[sampleIdsMissingOpt]] if provided, or inferred from the first written row otherwise.
+ *
+ * If missing sample IDs were used to set the header, sample IDs in all rows to be written will be replaced with those
+ * from the header.
+ * If all sample IDs are present when setting the header, sample IDs in written rows will not be replaced.
+ * Mixed missing/present sample IDs are not permitted.
+ *
+ *
+ * @param stream The stream to write to
+ * @param headerLineSet Header lines used to set the VCF header
+ * @param sampleIdsMissingOpt Sample IDs (and if any were missing) if pre-determined, None otherwise
+ * @param writeHeader Whether to write the header in this stream
+ */
 class VCFStreamWriter(
     stream: OutputStream,
     headerLineSet: Set[VCFHeaderLine],

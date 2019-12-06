@@ -21,6 +21,7 @@ import java.nio.file.{Files, Path, Paths}
 import java.util.stream.Collectors
 
 import scala.collection.JavaConverters._
+
 import com.google.common.io.ByteStreams
 import htsjdk.samtools.ValidationStringency
 import htsjdk.samtools.util.{BlockCompressedInputStream, BlockCompressedStreamConstants}
@@ -30,6 +31,7 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.expr
 import org.apache.spark.{SparkConf, SparkException}
 import org.bdgenomics.adam.rdd.ADAMContext._
+
 import io.projectglow.common.{VCFRow, VariantSchemas, WithUtils}
 import io.projectglow.sql.GlowBaseTest
 

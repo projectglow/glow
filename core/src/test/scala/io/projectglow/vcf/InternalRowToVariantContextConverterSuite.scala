@@ -25,14 +25,8 @@ import io.projectglow.sql.GlowBaseTest
 
 class InternalRowToVariantContextConverterSuite extends GlowBaseTest {
   lazy val NA12878 = s"$testDataHome/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf"
-  lazy val combined = s"$testDataHome/combined.chr20_18210071_18210093.g.vcf"
   lazy val header = VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, NA12878)
   lazy val headerLines = header.getMetaDataInInputOrder.asScala.toSet
-  lazy val combinedHeaderLines = VCFMetadataLoader
-    .readVcfHeader(sparkContext.hadoopConfiguration, combined)
-    .getMetaDataInInputOrder
-    .asScala
-    .toSet
 
   private val optionsSeq = Seq(
     Map("flattenInfoFields" -> "true", "includeSampleIds" -> "true"),
