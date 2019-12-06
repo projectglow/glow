@@ -22,7 +22,7 @@ import scala.collection.JavaConverters._
 
 import htsjdk.tribble.TribbleException.InvalidHeader
 import htsjdk.variant.variantcontext.{Allele, GenotypeBuilder, VariantContextBuilder}
-import htsjdk.variant.vcf.{VCFCodec, VCFHeader, VCFHeaderLine}
+import htsjdk.variant.vcf.{VCFCodec, VCFHeader}
 import org.apache.commons.io.IOUtils
 
 import io.projectglow.sql.GlowBaseTest
@@ -30,85 +30,69 @@ import io.projectglow.sql.GlowBaseTest
 class VCFStreamWriterSuite extends GlowBaseTest {
   val refA: Allele = Allele.create("A", true)
   val altT: Allele = Allele.create("T", false)
+  val header =
+    new VCFHeader(VCFRowHeaderLines.allHeaderLines.toSet.asJava, Seq("SampleA", "SampleB").asJava)
 
-  def getHeaderLines(vcf: String): Set[VCFHeaderLine] = {
-    val header = VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, vcf)
-    header.getMetaDataInInputOrder.asScala.toSet
+  def checkOn(sampleIds: Seq[String], replaceSampleIds: Boolean, errorMsg: String): Unit = {
+    val stream = new ByteArrayOutputStream()
+    val writer = new VCFStreamWriter(stream, header, true, replaceSampleIds, true)
+    val gts = sampleIds.map { s =>
+      new GenotypeBuilder(s).alleles(Seq(refA, altT).asJava).make
+    }
+    val vc = new VariantContextBuilder().chr("1").alleles("A", "T").genotypes(gts.asJava).make
+    val e = intercept[IllegalArgumentException] {
+      writer.write(vc)
+    }
+    assert(e.getMessage.contains(errorMsg))
+    writer.close()
   }
 
-  test("If not provided, infer from row") {
+  def checkOff(sampleIds: Seq[String], replaceSampleIds: Boolean): Unit = {
     val stream = new ByteArrayOutputStream()
-    val writer = new VCFStreamWriter(stream, VCFRowHeaderLines.allHeaderLines.toSet, None, true)
-
-    val gtA = new GenotypeBuilder("SampleA").alleles(Seq(refA, refA).asJava).make
-    val gtB = new GenotypeBuilder("SampleB").alleles(Seq(refA, refA).asJava).make
-    val vc = new VariantContextBuilder().chr("1").alleles("A").genotypes(gtA, gtB).make
-
+    val writer = new VCFStreamWriter(stream, header, false, replaceSampleIds, true)
+    val gts = sampleIds.map { s =>
+      new GenotypeBuilder(s).alleles(Seq(refA, altT).asJava).make
+    }
+    val vc = new VariantContextBuilder().chr("1").alleles("A", "T").genotypes(gts.asJava).make
     writer.write(vc)
     writer.close()
-
-    val outputVcf = stream.toString
-    val outputHeader = VCFHeaderUtils.parseHeaderFromString(outputVcf)
-    assert(outputHeader.getGenotypeSamples.asScala == Seq("SampleA", "SampleB"))
   }
 
-  test("If provided, don't infer from row") {
-    val stream = new ByteArrayOutputStream()
-    val writer = new VCFStreamWriter(
-      stream,
-      VCFRowHeaderLines.allHeaderLines.toSet,
-      Some(Seq("SampleA", "SampleB")),
-      true)
-
-    val gt = new GenotypeBuilder("SampleC").make
-    val vc = new VariantContextBuilder().chr("1").alleles("A").genotypes(gt).make
-
-    writer.write(vc)
-    writer.close()
-
-    val outputVcf = stream.toString
-    val outputHeader = VCFHeaderUtils.parseHeaderFromString(outputVcf)
-    assert(outputHeader.getGenotypeSamples.asScala == Seq("SampleA", "SampleB"))
+  def checkOnAndOff(sampleIds: Seq[String], replaceSampleIds: Boolean, errorMsg: String): Unit = {
+    // Check for thrown exception if checkNewSampleIds is true
+    checkOn(sampleIds, replaceSampleIds, errorMsg)
+    // Should not fail if check if false
+    checkOff(sampleIds, replaceSampleIds)
   }
 
-  test("Throw if find new samples when inferring from rows") {
-    val stream = new ByteArrayOutputStream()
-    val writer = new VCFStreamWriter(stream, VCFRowHeaderLines.allHeaderLines.toSet, None, true)
-
-    val gtA = new GenotypeBuilder("SampleA").alleles(Seq(refA, altT).asJava).make
-    val gtB = new GenotypeBuilder("SampleB").alleles(Seq(refA, refA).asJava).make
-    val gtC = new GenotypeBuilder("SampleC").alleles(Seq(altT).asJava).make
-    val vcAB = new VariantContextBuilder()
-      .chr("1")
-      .alleles(Seq(refA, altT).asJava)
-      .genotypes(gtA, gtB)
-      .make
-    val vcABC = new VariantContextBuilder()
-      .chr("2")
-      .alleles(Seq(refA, altT).asJava)
-      .genotypes(gtA, gtB, gtC)
-      .make
-
-    writer.write(vcAB)
-    val e = intercept[IllegalArgumentException] { writer.write(vcABC) }
-    assert(e.getMessage.contains("Inferred VCF header is missing samples"))
-    writer.close()
+  test("Check for new sample IDs") {
+    checkOnAndOff(
+      Seq("SampleC"),
+      false,
+      "Found sample ID in row that was not present in the header")
   }
 
-  test("Missing samples") {
-    val stream = new ByteArrayOutputStream()
-    val writer = new VCFStreamWriter(stream, VCFRowHeaderLines.allHeaderLines.toSet, None, true)
+  test("Check for new sample IDs works for missing sample IDs") {
+    checkOnAndOff(
+      Seq(""),
+      false,
+      "Found missing sample ID in row that was not injected in the header")
+  }
 
-    assertThrows[IllegalStateException](writer.close())
+  test("Number of missing matches") {
+    checkOnAndOff(
+      Seq(""),
+      true,
+      "Number of genotypes in row does not match number of injected missing header samples.")
+  }
+
+  test("Unexpected present sample ID") {
+    checkOnAndOff(Seq("", "SampleC"), true, "Cannot mix missing and non-missing sample IDs.")
   }
 
   test("Don't write header with VC if told not to") {
     val stream = new ByteArrayOutputStream()
-    val writer = new VCFStreamWriter(
-      stream,
-      VCFRowHeaderLines.allHeaderLines.toSet,
-      Some(Seq("SampleA", "SampleB")),
-      false)
+    val writer = new VCFStreamWriter(stream, header, false, false, false)
     val vc = new VariantContextBuilder().chr("1").alleles("A").make
 
     writer.write(vc)
@@ -122,11 +106,7 @@ class VCFStreamWriterSuite extends GlowBaseTest {
 
   test("Don't write header for empty stream if told not to") {
     val stream = new ByteArrayOutputStream()
-    val writer = new VCFStreamWriter(
-      stream,
-      VCFRowHeaderLines.allHeaderLines.toSet,
-      Some(Seq("SampleA", "SampleB")),
-      false)
+    val writer = new VCFStreamWriter(stream, header, false, false, false)
 
     writer.close()
     assert(stream.size == 0)

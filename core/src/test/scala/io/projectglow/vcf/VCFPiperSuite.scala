@@ -104,17 +104,19 @@ class VCFPiperSuite extends GlowBaseTest {
     assert(outputDf.isEmpty)
   }
 
-  private val baseTextOptions = Map("inputFormatter" -> "vcf", "outputFormatter" -> "text")
   test("environment variables") {
     import sess.implicits._
 
-    val options = baseTextOptions ++ Map(
-        "in_vcfHeader" -> "infer",
-        "cmd" -> """["printenv"]""",
-        "env_animal" -> "monkey",
-        "env_a" -> "b",
-        "env_c" -> "D",
-        "envE" -> "F")
+    val options = Map(
+      "inputFormatter" -> "vcf",
+      "outputFormatter" -> "text",
+      "in_vcfHeader" -> "infer",
+      "cmd" -> """["printenv"]""",
+      "env_animal" -> "monkey",
+      "env_a" -> "b",
+      "env_c" -> "D",
+      "envE" -> "F"
+    )
     val df = readVcf(na12878)
     val output = Glow
       .transform("pipe", df, options)
@@ -128,20 +130,37 @@ class VCFPiperSuite extends GlowBaseTest {
   }
 
   test("empty partition") {
+    val sess = spark
+    import sess.implicits._
+
     val df = readVcf(na12878).repartition(8)
     assert(df.count == 4)
 
-    val options = baseTextOptions ++ Map("cmd" -> """["wc", "-l"]""", "in_vcfHeader" -> na12878)
+    val options = Map(
+      "inputFormatter" -> "vcf",
+      "outputFormatter" -> "vcf",
+      "cmd" -> """["cat"]""",
+      "inVcfHeader" -> na12878)
     val output = Glow.transform("pipe", df, options)
-    assert(output.count() == 8)
+    val outputSampleIds = output.select("genotypes.sampleId").as[Seq[String]].collect
+    assert(outputSampleIds sameElements Array.fill(4)(Seq("NA12878")).toSeq)
   }
 
-  test("empty partition and missing samples") {
+  test("empty partition and infer samples") {
+    val sess = spark
+    import sess.implicits._
+
     val df = readVcf(na12878).repartition(8)
     assert(df.count == 4)
 
-    val options = baseTextOptions ++ Map("cmd" -> """["wc", "-l"]""", "in_vcfHeader" -> "infer")
-    assertThrows[SparkException](Glow.transform("pipe", df, options))
+    val options = Map(
+      "inputFormatter" -> "vcf",
+      "outputFormatter" -> "vcf",
+      "cmd" -> """["cat"]""",
+      "inVcfHeader" -> "infer")
+    val output = Glow.transform("pipe", df, options)
+    val outputSampleIds = output.select("genotypes.sampleId").as[Seq[String]].collect
+    assert(outputSampleIds sameElements Array.fill(4)(Seq("NA12878")))
   }
 
   test("stdin and stderr threads are cleaned up for successful commands") {

@@ -24,7 +24,6 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.SparkException
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.sources.DataSourceRegister
-import org.apache.spark.sql.types.{ArrayType, StructType}
 import org.seqdoop.hadoop_bam.util.DatabricksBGZFOutputStream
 
 import io.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
@@ -72,7 +71,11 @@ object BigVCFDatasource extends HlsUsageLogging {
       Some(VCFHeaderUtils.INFER_HEADER),
       schema,
       conf)
-    val maybeInferredSampleIds = providedSampleIdsOpt.getOrElse(inferSampleIds(data))
+    val sampleIdsInjectedMissing = if (providedSampleIdsOpt.isDefined) {
+      (providedSampleIdsOpt.get, false)
+    } else {
+      VCFWriterUtils.inferSampleIdsAndInjectMissing(data)
+    }
     val validationStringency = VCFOptionParser.getValidationStringency(options)
 
     rdd.mapPartitionsWithIndex {
@@ -93,7 +96,7 @@ object BigVCFDatasource extends HlsUsageLogging {
         val writer =
           new VCFFileWriter(
             headerLineSet,
-            Some(maybeInferredSampleIds),
+            Some(sampleIdsInjectedMissing),
             validationStringency,
             schema,
             conf,
@@ -116,64 +119,5 @@ object BigVCFDatasource extends HlsUsageLogging {
 
         Iterator(baos.toByteArray)
     }
-  }
-
-  /**
-   * Infer sample IDs from a genomic DataFrame.
-   *
-   * - If there are no genotypes, there are no sample IDs.
-   * - If there are genotypes and sample IDs are all...
-   *     - Missing, the sample IDs are inferred from the number of genotypes per row (must be the same per row).
-   *     - Present, the sample IDs are found by unifying non-null sample IDs across all rows.
-   */
-  def inferSampleIds(data: DataFrame): Seq[String] = {
-    val genotypeSchemaOpt = data
-      .schema
-      .find(_.name == "genotypes")
-      .map(_.dataType.asInstanceOf[ArrayType].elementType.asInstanceOf[StructType])
-    if (genotypeSchemaOpt.isEmpty) {
-      logger.warn("No genotypes column, no sample IDs will be inferred.")
-      return Seq.empty
-    }
-    val genotypeSchema = genotypeSchemaOpt.get
-
-    import data.sparkSession.implicits._
-    val hasSampleIds = genotypeSchema.exists(_.name == "sampleId")
-    if (hasSampleIds) {
-      val sampleLists = data
-        .select("genotypes.sampleId")
-        .distinct()
-        .as[Array[String]]
-        .collect
-      val distinctSampleIds = sampleLists.flatten.distinct
-
-      if (distinctSampleIds.contains(null)) {
-        if (distinctSampleIds.length > 1) {
-          throw new IllegalArgumentException(
-            s"Cannot mix missing and non-missing sample IDs: ${distinctSampleIds.mkString(",")}.")
-        }
-        logger.warn("Detected missing sample IDs, inferring sample IDs.")
-        inferSampleIds(sampleLists.map(_.length))
-      } else {
-        distinctSampleIds.sorted
-      }
-    } else {
-      logger.warn("No sample ID column, inferring sample IDs.")
-      val numMissingSampleList = data
-        .selectExpr("size(genotypes)")
-        .distinct()
-        .as[Int]
-        .collect
-
-      inferSampleIds(numMissingSampleList)
-    }
-  }
-
-  def inferSampleIds(missingSampleLists: Seq[Int]): Seq[String] = {
-    if (missingSampleLists.length > 1) {
-      throw new IllegalArgumentException(
-        "Rows contain varying number of missing samples; cannot infer sample IDs.")
-    }
-    Array.fill(missingSampleLists.head)("")
   }
 }

@@ -22,6 +22,7 @@ import scala.collection.JavaConverters._
 
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.catalyst.InternalRow
+import htsjdk.variant.vcf.VCFHeader
 
 import io.projectglow.common.GlowLogging
 import io.projectglow.transformers.pipe.{InputFormatter, InputFormatterFactory}
@@ -31,7 +32,8 @@ import io.projectglow.transformers.pipe.{InputFormatter, InputFormatterFactory}
  */
 class VCFInputFormatter(
     converter: InternalRowToVariantContextConverter,
-    providedSampleIds: Option[Seq[String]])
+    sampleIds: Seq[String],
+    injectedMissing: Boolean)
     extends InputFormatter
     with GlowLogging {
 
@@ -40,11 +42,8 @@ class VCFInputFormatter(
 
   override def init(stream: OutputStream): Unit = {
     this.stream = stream
-    this.writer = new VCFStreamWriter(
-      stream,
-      converter.vcfHeader.getMetaDataInInputOrder.asScala.toSet,
-      providedSampleIds,
-      writeHeader = true)
+    val header = new VCFHeader(converter.vcfHeader.getMetaDataInInputOrder, sampleIds.asJava)
+    this.writer = new VCFStreamWriter(stream, header, false, injectedMissing, writeHeader = true)
   }
 
   override def write(record: InternalRow): Unit = {
@@ -61,7 +60,7 @@ class VCFInputFormatterFactory extends InputFormatterFactory {
   override def name: String = "vcf"
 
   override def makeInputFormatter(df: DataFrame, options: Map[String, String]): InputFormatter = {
-    val (headerLineSet, providedSampleIds) =
+    val (headerLineSet, providedSampleIdsOpt) =
       VCFHeaderUtils.parseHeaderLinesAndSamples(
         options,
         None,
@@ -73,6 +72,13 @@ class VCFInputFormatterFactory extends InputFormatterFactory {
       VCFOptionParser.getValidationStringency(options)
     )
     rowConverter.validate()
-    new VCFInputFormatter(rowConverter, providedSampleIds)
+
+    val (sampleIds, injectedMissing) = if (providedSampleIdsOpt.isDefined) {
+      (providedSampleIdsOpt.get, false)
+    } else {
+      VCFWriterUtils.inferSampleIdsAndInjectMissing(df)
+    }
+
+    new VCFInputFormatter(rowConverter, sampleIds, injectedMissing)
   }
 }

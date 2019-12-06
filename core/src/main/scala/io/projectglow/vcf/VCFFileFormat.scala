@@ -553,10 +553,16 @@ private[projectglow] class VCFOutputWriterFactory(options: Map[String, String])
         Some(VCFHeaderUtils.INFER_HEADER),
         dataSchema,
         context.getConfiguration)
+    val sampleIdsMissingOpt = if (providedSampleIds.isDefined) {
+      Some(providedSampleIds.get, false)
+    } else {
+      None
+    }
+
     val stringency = VCFOptionParser.getValidationStringency(options)
     new VCFFileWriter(
       headerLineSet,
-      providedSampleIds,
+      sampleIdsMissingOpt,
       stringency,
       dataSchema,
       context.getConfiguration,

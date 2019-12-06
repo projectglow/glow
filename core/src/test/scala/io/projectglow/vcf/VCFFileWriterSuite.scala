@@ -358,6 +358,41 @@ abstract class VCFFileWriterSuite(val sourceName: String)
     assert(rewrittenDs.collect.isEmpty)
   }
 
+  test("No genotypes column") {
+    val tempFile = createTempVcf.toString
+
+    val df = spark
+      .read
+      .format(readSourceName)
+      .load(TGP)
+      .drop("genotypes")
+    df.write.format(sourceName).save(tempFile)
+
+    val rereadDf = spark.read.format(readSourceName).load(tempFile)
+    assert(!rereadDf.schema.contains("genotypes"))
+  }
+
+  test("No sample IDs column") {
+    val sess = spark
+    import sess.implicits._
+
+    val tempFile = createTempVcf.toString
+
+    val df = spark
+      .read
+      .format(readSourceName)
+      .option("includeSampleIds", "false")
+      .load(TGP)
+      .withColumn("subsetGenotypes", expr("slice(genotypes, 1, 3)"))
+      .drop("genotypes")
+      .withColumnRenamed("subsetGenotypes", "genotypes")
+    df.write.format(sourceName).save(tempFile)
+
+    val rereadDf = spark.read.format(readSourceName).load(tempFile)
+    val sampleIds = rereadDf.select("genotypes.sampleId").distinct().as[Seq[String]].collect
+    assert(sampleIds.length == 1)
+    assert(sampleIds.head == Seq("sample_1", "sample_2", "sample_3"))
+  }
 }
 
 class MultiFileVCFWriterSuite extends VCFFileWriterSuite("vcf") {
@@ -440,16 +475,26 @@ class MultiFileVCFWriterSuite extends VCFFileWriterSuite("vcf") {
     assert(e.getCause.getMessage.contains(errorMsg))
   }
 
-  test("Fails if missing sample IDs not inferred") {
-    testInferredSampleIds(true, false, "Inferred VCF header contains no missing sample names")
+  test("Fails if inferred present sample IDs but row missing sample IDs") {
+    testInferredSampleIds(
+      true,
+      false,
+      "Found missing sample ID in row that was not injected in the header")
   }
 
-  test("Fails if non-matching present inferred sample IDs") {
-    testInferredSampleIds(true, true, "Inferred VCF header is missing samples found in the data")
+  test("Fails if inferred present sample IDs but row has different sample IDs") {
+    testInferredSampleIds(true, true, "Found sample ID in row that was not present in the header")
   }
 
-  test("Fails if non-matching missing inferred sample IDs") {
-    testInferredSampleIds(false, false, "Inferred VCF header is missing samples found in the data")
+  test("Fails if injected missing sample IDs don't match number of samples") {
+    testInferredSampleIds(
+      false,
+      false,
+      "Number of genotypes in row does not match number of injected missing header samples")
+  }
+
+  test("Fails if injected missing sample IDs but has sample IDs") {
+    testInferredSampleIds(false, true, "Cannot mix missing and non-missing sample IDs")
   }
 }
 
@@ -694,41 +739,5 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
       ds1.union(ds2).write.format(sourceName).save(createTempVcf.toString)
     }
     assert(e.getMessage.contains("Rows contain varying number of missing samples"))
-  }
-
-  test("No genotypes column") {
-    val tempFile = createTempVcf.toString
-
-    val df = spark
-      .read
-      .format(readSourceName)
-      .load(TGP)
-      .drop("genotypes")
-    df.write.format(sourceName).save(tempFile)
-
-    val rereadDf = spark.read.format(readSourceName).load(tempFile)
-    assert(!rereadDf.schema.contains("genotypes"))
-  }
-
-  test("No sample IDs column") {
-    val sess = spark
-    import sess.implicits._
-
-    val tempFile = createTempVcf.toString
-
-    val df = spark
-      .read
-      .format(readSourceName)
-      .option("includeSampleIds", "false")
-      .load(TGP)
-      .withColumn("subsetGenotypes", expr("slice(genotypes, 1, 3)"))
-      .drop("genotypes")
-      .withColumnRenamed("subsetGenotypes", "genotypes")
-    df.write.format(sourceName).save(tempFile)
-
-    val rereadDf = spark.read.format(readSourceName).load(tempFile)
-    val sampleIds = rereadDf.select("genotypes.sampleId").distinct().as[Seq[String]].collect
-    assert(sampleIds.length == 1)
-    assert(sampleIds.head == Seq("sample_1", "sample_2", "sample_3"))
   }
 }
