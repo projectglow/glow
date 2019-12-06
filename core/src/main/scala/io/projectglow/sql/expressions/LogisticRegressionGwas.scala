@@ -54,7 +54,7 @@ object LogisticRegressionGwas extends GlowLogging {
   val logitTests: Map[String, LogitTest] = CaseInsensitiveMap(
     Map(
       "lrt" -> LikelihoodRatioTest,
-      "firth" -> FirthNewtonArgs
+      "firth" -> FirthTest
     ))
   val zScore: Double = new NormalDistribution().inverseCumulativeProbability(.975) // Two-sided 95% confidence
 
