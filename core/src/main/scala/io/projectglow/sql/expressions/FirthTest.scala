@@ -80,7 +80,8 @@ object FirthTest extends LogitTest {
 
     while (!converged && !exploded && iter <= maxIter) {
       try {
-        args.mu := sigmoid(x(::, 0 until m0) * args.b)
+        args.mu := x(::, 0 until m0) * args.b
+        sigmoid.inPlace(args.mu)
         args.sqrtW := sqrt(args.mu *:* (1d - args.mu))
         val QR = qr.reduced(x(::, *) *:* args.sqrtW)
         val h = QR.q(*, ::).map(r => r dot r)

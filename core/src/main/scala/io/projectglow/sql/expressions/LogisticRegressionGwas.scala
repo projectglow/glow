@@ -83,7 +83,8 @@ object LogisticRegressionGwas extends GlowLogging {
         } else {
           iter += 1
           args.b += deltaB // Parameter update
-          args.mu := sigmoid(X * args.b) // Fitted probability
+          args.mu := X * args.b // Fitted probability
+          sigmoid.inPlace(args.mu)
           args.score := X.t * (y - args.mu) // Gradient
           args.fisher := X.t * (X(::, *) *:* (args.mu *:* (1d - args.mu))) // Hessian
         }
@@ -141,7 +142,8 @@ object NewtonIterationsState {
     val m = X.cols
     val avg = sum(y) / n
     state.b(0) = math.log(avg / (1 - avg))
-    state.mu := sigmoid(X * state.b)
+    state.mu := X * state.b
+    sigmoid.inPlace(state.mu)
     state.score := X.t * (y - state.mu)
     state.fisher := X.t * (X(::, *) *:* (state.mu *:* (1d - state.mu)))
   }
@@ -161,7 +163,8 @@ object NewtonIterationsState {
     val X1 = X(::, r1)
 
     state.b(r0) := nullFitArgs.b
-    state.mu := sigmoid(X * state.b)
+    state.mu := X * state.b
+    sigmoid.inPlace(state.mu)
     state.score(r0) := nullFitArgs.score
     state.score(r1) := X1.t * (y - state.mu)
     state.fisher(r0, r0) := nullFitArgs.fisher
