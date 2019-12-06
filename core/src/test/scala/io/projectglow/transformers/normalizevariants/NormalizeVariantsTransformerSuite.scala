@@ -249,10 +249,12 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
       .options(Map("flattenInfoFields" -> "true"))
       .load(vtTestVcfMultiAllelic)
 
-    dfOriginal.show()
+    dfOriginal.show(false)
     val dfSplit = splitVariants(dfOriginal)
+
     dfSplit.show(false)
-    dfSplit.printSchema()
+  //  dfOriginal.printSchema()
+
 
   }
 
