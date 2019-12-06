@@ -25,7 +25,7 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
 import org.netlib.util.intW
 
-object FirthNewtonArgs extends LogitTest {
+object FirthTest extends LogitTest {
   override def canReuseNullFit: Boolean = false
   override type FitState = FirthFitState
   override val resultSchema: StructType = Encoders.product[LogitTestResults].schema
