@@ -51,12 +51,12 @@ object VCFWriterUtils extends GlowLogging {
         .as[Array[String]]
         .collect
       val distinctSampleIds = sampleLists.flatten.distinct
-      val presentSampleIds = distinctSampleIds.filterNot(sampleIsMissing)
+      val numPresentSampleIds = distinctSampleIds.count(!sampleIsMissing(_))
       val numSampleIds = distinctSampleIds.length
 
-      presentSampleIds.length match {
+      numPresentSampleIds match {
         case 0 => (injectMissingSampleIds(sampleLists.map(_.length)), true)
-        case `numSampleIds` => (presentSampleIds.sorted, false)
+        case `numSampleIds` => (distinctSampleIds.sorted, false)
         case _ =>
           throw new IllegalArgumentException("Cannot mix missing and non-missing sample IDs.")
       }
