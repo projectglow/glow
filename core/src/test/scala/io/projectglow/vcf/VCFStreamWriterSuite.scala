@@ -97,7 +97,11 @@ class VCFStreamWriterSuite extends GlowBaseTest {
 
   test("Don't write header with VC if told not to") {
     val stream = new ByteArrayOutputStream()
-    val writer = new VCFStreamWriter(stream, headerLines, Some(actualSampleIds, false), false)
+    val writer = new VCFStreamWriter(
+      stream,
+      headerLines,
+      Some(SampleIdsFromMissing.presentSamples(actualSampleIds)),
+      false)
     val vc = new VariantContextBuilder().chr("1").alleles("A").make
 
     writer.write(vc)
@@ -111,7 +115,11 @@ class VCFStreamWriterSuite extends GlowBaseTest {
 
   test("Don't write header for empty stream if told not to") {
     val stream = new ByteArrayOutputStream()
-    val writer = new VCFStreamWriter(stream, headerLines, Some(actualSampleIds, false), false)
+    val writer = new VCFStreamWriter(
+      stream,
+      headerLines,
+      Some(SampleIdsFromMissing.presentSamples(actualSampleIds)),
+      false)
 
     writer.close()
     assert(stream.size == 0)

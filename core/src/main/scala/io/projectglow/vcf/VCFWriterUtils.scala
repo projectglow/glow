@@ -23,6 +23,15 @@ import io.projectglow.common.GlowLogging
 
 object VCFWriterUtils extends GlowLogging {
 
+  def throwMixedSamplesFailure(): Unit = {
+    throw new IllegalArgumentException("Cannot mix missing and non-missing sample IDs.")
+  }
+
+  def throwSampleInferenceFailure(): Unit = {
+    throw new IllegalArgumentException(
+      "Cannot infer sample ids because they are not the same in every row.")
+  }
+
   /**
    * Infer sample IDs from a genomic DataFrame.
    *
@@ -31,62 +40,68 @@ object VCFWriterUtils extends GlowLogging {
    *     - Missing, the sample IDs are injected from the number of genotypes per row (must be the same per row).
    *     - Present, the sample IDs are found by unifying sample IDs across all rows.
    */
-  def inferSampleIdsAndInjectMissing(data: DataFrame): (Seq[String], Boolean) = {
+  def inferSampleIdsAndInjectMissing(data: DataFrame): SampleIdsFromMissing = {
     val genotypeSchemaOpt = data
       .schema
       .find(_.name == "genotypes")
       .map(_.dataType.asInstanceOf[ArrayType].elementType.asInstanceOf[StructType])
     if (genotypeSchemaOpt.isEmpty) {
-      logger.warn("No genotypes column, no sample IDs will be inferred.")
-      return (Seq.empty, false)
+      logger.info("No genotypes column, no sample IDs will be inferred.")
+      return SampleIdsFromMissing.noSamples
     }
     val genotypeSchema = genotypeSchemaOpt.get
 
     import data.sparkSession.implicits._
     val hasSampleIdsColumn = genotypeSchema.exists(_.name == "sampleId")
+
     if (hasSampleIdsColumn) {
-      val sampleLists = data
-        .select("genotypes.sampleId")
+      val distinctSampleIds = data
+        .selectExpr("explode(genotypes.sampleId)")
         .distinct()
-        .as[Array[String]]
+        .as[String]
         .collect
-      val distinctSampleIds = sampleLists.flatten.distinct
       val numPresentSampleIds = distinctSampleIds.count(!sampleIsMissing(_))
-      val numSampleIds = distinctSampleIds.length
 
-      numPresentSampleIds match {
-        case 0 => (injectMissingSampleIds(sampleLists.map(_.length)), true)
-        case `numSampleIds` => (distinctSampleIds.sorted, false)
-        case _ =>
-          throw new IllegalArgumentException("Cannot mix missing and non-missing sample IDs.")
+      if (numPresentSampleIds > 0) {
+        if (numPresentSampleIds < distinctSampleIds.length) {
+          throwMixedSamplesFailure()
+        }
+        return SampleIdsFromMissing.presentSamples(distinctSampleIds)
       }
-    } else {
-      val numMissingSampleList = data
-        .selectExpr("size(genotypes)")
-        .distinct()
-        .as[Int]
-        .collect
-
-      (injectMissingSampleIds(numMissingSampleList), true)
     }
+
+    val numGenotypesPerRow = data
+      .selectExpr("size(genotypes)")
+      .distinct()
+      .as[Int]
+      .collect
+
+    if (numGenotypesPerRow.length > 1) {
+      throw new IllegalArgumentException(
+        "Rows contain varying number of missing samples; cannot infer sample IDs.")
+    }
+    logger.warn("Detected missing sample IDs, inferring sample IDs.")
+    SampleIdsFromMissing.missingSamples(numGenotypesPerRow.headOption.getOrElse(0))
   }
 
   def sampleIsMissing(s: String): Boolean = {
     s == null || s.isEmpty
   }
+}
 
-  def injectMissingSampleIds(missingSampleLists: Seq[Int]): Seq[String] = {
-    logger.warn("Detected missing sample IDs, inferring sample IDs.")
-    if (missingSampleLists.length > 1) {
-      throw new IllegalArgumentException(
-        "Rows contain varying number of missing samples; cannot infer sample IDs.")
-    }
-    getMissingSampleIds(missingSampleLists.head)
+case class SampleIdsFromMissing(sampleIds: Seq[String], fromMissing: Boolean)
+
+object SampleIdsFromMissing {
+  val noSamples = SampleIdsFromMissing(Seq.empty, fromMissing = false)
+
+  def presentSamples(presentSampleIds: Seq[String]): SampleIdsFromMissing = {
+    SampleIdsFromMissing(presentSampleIds.sorted, fromMissing = false)
   }
 
-  def getMissingSampleIds(numMissingSamples: Int): Seq[String] = {
-    (1 to numMissingSamples).map { idx =>
+  def missingSamples(numMissingSamples: Int): SampleIdsFromMissing = {
+    val injectedMissingSamples = (1 to numMissingSamples).map { idx =>
       "sample_" + idx
     }
+    SampleIdsFromMissing(injectedMissingSamples, true)
   }
 }

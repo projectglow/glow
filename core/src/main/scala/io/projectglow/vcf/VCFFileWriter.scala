@@ -24,11 +24,12 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.datasources.OutputWriter
 import org.apache.spark.sql.types.StructType
+
 import io.projectglow.common.GlowLogging
 
 class VCFFileWriter(
     headerLineSet: Set[VCFHeaderLine],
-    sampleIdsMissingOpt: Option[(Seq[String], Boolean)],
+    sampleIdsFromMissingOpt: Option[SampleIdsFromMissing],
     stringency: ValidationStringency,
     schema: StructType,
     conf: Configuration,
@@ -41,7 +42,7 @@ class VCFFileWriter(
     new InternalRowToVariantContextConverter(schema, headerLineSet, stringency)
   converter.validate()
   private val writer: VCFStreamWriter =
-    new VCFStreamWriter(stream, headerLineSet, sampleIdsMissingOpt, writeHeader)
+    new VCFStreamWriter(stream, headerLineSet, sampleIdsFromMissingOpt, writeHeader)
 
   override def write(row: InternalRow): Unit = {
     converter.convert(row).foreach(writer.write)

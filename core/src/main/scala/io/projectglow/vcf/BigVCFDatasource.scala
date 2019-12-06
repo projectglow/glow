@@ -59,10 +59,9 @@ object BigVCFDatasource extends HlsUsageLogging {
     val firstNonemptyPartition =
       rdd.mapPartitions(iter => Iterator(iter.nonEmpty)).collect.indexOf(true)
 
-    if (firstNonemptyPartition == -1 && (!options.contains(VCFHeaderUtils.VCF_HEADER_KEY) ||
-      options
+    if (firstNonemptyPartition == -1 && options
         .get(VCFHeaderUtils.VCF_HEADER_KEY)
-        .contains(VCFHeaderUtils.INFER_HEADER))) {
+        .forall(_ == VCFHeaderUtils.INFER_HEADER)) {
       throw new SparkException("Cannot infer header for empty VCF.")
     }
 
@@ -71,8 +70,8 @@ object BigVCFDatasource extends HlsUsageLogging {
       Some(VCFHeaderUtils.INFER_HEADER),
       schema,
       conf)
-    val sampleIdsInjectedMissing = if (providedSampleIdsOpt.isDefined) {
-      (providedSampleIdsOpt.get, false)
+    val sampleIdsFromMissing = if (providedSampleIdsOpt.isDefined) {
+      SampleIdsFromMissing.presentSamples(providedSampleIdsOpt.get)
     } else {
       VCFWriterUtils.inferSampleIdsAndInjectMissing(data)
     }
@@ -96,7 +95,7 @@ object BigVCFDatasource extends HlsUsageLogging {
         val writer =
           new VCFFileWriter(
             headerLineSet,
-            Some(sampleIdsInjectedMissing),
+            Some(sampleIdsFromMissing),
             validationStringency,
             schema,
             conf,

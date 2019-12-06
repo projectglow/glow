@@ -42,7 +42,7 @@ class VCFInputFormatter(
   override def init(stream: OutputStream): Unit = {
     this.stream = stream
     val sampleIdsMissingOpt = if (providedSampleIdsOpt.isDefined) {
-      Some(providedSampleIdsOpt.get, false)
+      Some(SampleIdsFromMissing.presentSamples(providedSampleIdsOpt.get))
     } else {
       None
     }

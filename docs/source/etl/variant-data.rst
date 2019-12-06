@@ -120,10 +120,11 @@ For both the single and sharded VCF writer, you can use the following option to 
 
 .. _infer-vcf-samples:
 
-If the header is inferred from the DataFrame, the sample IDs are derived from the rows. If there are missing sample IDs,
-they will be represented as ``sample_n``, for which ``n`` reflects the index of the sample in a row.
+If the header is inferred from the DataFrame, the sample IDs are derived from the rows. If the sample IDs are missing,
+they will be represented as ``sample_n``, for which ``n`` reflects the index of the sample in a row. In this case,
+there must be the same number of samples in each row.
 
-- For the single VCF writer, the inferred sample IDs are the distinct set of all sample IDs from the DataFrame.
+- For the big VCF writer, the inferred sample IDs are the distinct set of all sample IDs from the DataFrame.
 - For the sharded VCF writer, the sample IDs are inferred from the first row of each partition. If the rows do not
   contain the same samples, provide a complete header of a filesystem path to a VCF file.
 

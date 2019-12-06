@@ -289,7 +289,7 @@ abstract class VCFFileWriterSuite(val sourceName: String)
     header.getInfoHeaderLines.asScala.toSet ++ header.getFormatHeaderLines.asScala.toSet
   }
 
-  test("Provided header") {
+  test("Provided header is sorted") {
     val headerLine1 = new VCFHeaderLine("fakeHeaderKey", "fakeHeaderValue")
     val headerLine2 = new VCFHeaderLine("secondFakeHeaderKey", "secondFakeHeaderValue")
     val headerLines = Set(headerLine1, headerLine2)
@@ -299,7 +299,7 @@ abstract class VCFFileWriterSuite(val sourceName: String)
       writeVcfHeader(spark.read.format(readSourceName).load(NA12878), Some(vcfHeader))
 
     assert(headerLines.subsetOf(writtenHeader.getMetaDataInInputOrder.asScala))
-    assert(writtenHeader.getGenotypeSamples.asScala == Seq("sample1", "NA12878"))
+    assert(writtenHeader.getGenotypeSamples.asScala == Seq("NA12878", "sample1"))
   }
 
   test("Path header") {
@@ -437,10 +437,7 @@ class MultiFileVCFWriterSuite extends VCFFileWriterSuite("vcf") {
     )
   }
 
-  def testInferredSampleIds(
-      row1HasSamples: Boolean,
-      row2HasSamples: Boolean,
-      errorMsg: String): Unit = {
+  def testInferredSampleIds(row1HasSamples: Boolean, row2HasSamples: Boolean): Unit = {
     val tempFile = createTempVcf.toString
 
     // Samples: HG00096 HG00097	HG00099
@@ -474,26 +471,26 @@ class MultiFileVCFWriterSuite extends VCFFileWriterSuite("vcf") {
         .save(tempFile)
     }
     assert(e.getCause.getCause.getCause.isInstanceOf[IllegalArgumentException])
-    assert(e.getCause.getMessage.contains(errorMsg))
+    assert(
+      e.getCause
+        .getMessage
+        .contains("Cannot infer sample ids because they are not the same in every row"))
   }
 
   test("Fails if inferred present sample IDs but row missing sample IDs") {
-    testInferredSampleIds(true, false, "Cannot mix missing and non-missing sample IDs")
+    testInferredSampleIds(true, false)
   }
 
   test("Fails if inferred present sample IDs but row has different sample IDs") {
-    testInferredSampleIds(true, true, "Found sample ID in row that was not present in the header")
+    testInferredSampleIds(true, true)
   }
 
   test("Fails if injected missing sample IDs don't match number of samples") {
-    testInferredSampleIds(
-      false,
-      false,
-      "Number of genotypes in row does not match number of injected missing header samples")
+    testInferredSampleIds(false, false)
   }
 
   test("Fails if injected missing sample IDs but has sample IDs") {
-    testInferredSampleIds(false, true, "Cannot mix missing and non-missing sample IDs")
+    testInferredSampleIds(false, true)
   }
 }
 
@@ -674,10 +671,12 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
     val sess = spark
     import sess.implicits._
 
+    // Make sure there is only one set of sample IDs and they match the expected ones
     val sampleIdRows = rereadDf.select("genotypes.sampleId").distinct().as[Seq[String]].collect
     assert(sampleIdRows.length == 1)
     assert(sampleIdRows.head == expectedSampleIds)
 
+    // Compare the called genotypes
     val calledRereadDf = rereadDf
       .withColumn("calledGenotypes", expr("filter(genotypes, gt -> gt.calls[0] != -1)"))
       .drop("genotypes")

@@ -555,8 +555,8 @@ private[projectglow] class VCFOutputWriterFactory(options: Map[String, String])
         Some(VCFHeaderUtils.INFER_HEADER),
         dataSchema,
         context.getConfiguration)
-    val sampleIdsMissingOpt = if (providedSampleIds.isDefined) {
-      Some(providedSampleIds.get, false)
+    val sampleIdsFromMissingOpt = if (providedSampleIds.isDefined) {
+      Some(SampleIdsFromMissing.presentSamples(providedSampleIds.get))
     } else {
       None
     }
@@ -564,7 +564,7 @@ private[projectglow] class VCFOutputWriterFactory(options: Map[String, String])
     val stringency = VCFOptionParser.getValidationStringency(options)
     new VCFFileWriter(
       headerLineSet,
-      sampleIdsMissingOpt,
+      sampleIdsFromMissingOpt,
       stringency,
       dataSchema,
       context.getConfiguration,
