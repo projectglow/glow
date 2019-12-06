@@ -59,12 +59,12 @@ The ``normalize_variants`` transformer has the following options:
      - Type
      - Possible values and description
    * - ``mode``
-     - String
+     - string
      - | ``normalize``: Only normalizes the variants (if user does not pass the option, ``normalize`` is assumed as default)
        | ``split_and_normalize``: Split multiallelic variants to biallelic variants and normalize them
        | ``split``: Only split the multiallelic variants to biallelic without normalizing
-   * - referenceGenomePath
-     - String
+   * - ``referenceGenomePath``
+     - string
      - Path to the reference genome ``.fasta`` or ``.fa`` file (required for normalization)
 
        **Notes**:

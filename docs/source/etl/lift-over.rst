@@ -89,13 +89,13 @@ options:
   * - Parameter
     - Default
     - Description
-  * - chain_file
+  * - ``chain_file``
     - n/a
     - The path of the chain file.
-  * - reference_file
+  * - ``reference_file``
     - n/a
     - The path of the target reference file.
-  * - min_match_ratio
+  * - ``min_match_ratio``
     - .95
     - Minimum fraction of bases that must remap.
 
