@@ -63,10 +63,10 @@ class VCFStreamWriter(
         sampleIdsMissingOpt.get
       } else {
         val vcSamples = vcBuilder.getGenotypes.asScala.map(_.getSampleName)
-        val numPresentSamples = vcSamples.count(_.isEmpty)
-        val numAllSamples = vcSamples.length
+        val numPresentSamples = vcSamples.count(!_.isEmpty)
+        val numAllSamples = vcSamples.size
         numPresentSamples match {
-          case 0 => (VCFWriterUtils.getMissingSampleIds(vcSamples.length), true)
+          case 0 => (VCFWriterUtils.getMissingSampleIds(numAllSamples), true)
           case `numAllSamples` => (vcSamples.sorted, false)
           case _ =>
             throw new IllegalArgumentException("Cannot mix missing and non-missing sample IDs.")
@@ -108,8 +108,7 @@ class VCFStreamWriter(
       while (i < vcSamples.size) {
         val gtSample = vcSamples(i)
         if (gtSample == "") {
-          throw new IllegalArgumentException(
-            "Found missing sample ID in row that was not injected in the header.")
+          throw new IllegalArgumentException("Cannot mix missing and non-missing sample IDs.")
         } else if (!header.getGenotypeSamples.contains(gtSample)) {
           throw new IllegalArgumentException(
             "Found sample ID in row that was not present in the header.")
