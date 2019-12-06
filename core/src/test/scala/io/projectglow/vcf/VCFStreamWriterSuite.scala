@@ -22,7 +22,7 @@ import scala.collection.JavaConverters._
 
 import htsjdk.tribble.TribbleException.InvalidHeader
 import htsjdk.variant.variantcontext.{Allele, GenotypeBuilder, VariantContextBuilder}
-import htsjdk.variant.vcf.{VCFCodec, VCFHeader}
+import htsjdk.variant.vcf.{VCFCodec, VCFHeader, VCFHeaderLine}
 import org.apache.commons.io.IOUtils
 
 import io.projectglow.sql.GlowBaseTest
@@ -30,69 +30,74 @@ import io.projectglow.sql.GlowBaseTest
 class VCFStreamWriterSuite extends GlowBaseTest {
   val refA: Allele = Allele.create("A", true)
   val altT: Allele = Allele.create("T", false)
-  val header =
-    new VCFHeader(VCFRowHeaderLines.allHeaderLines.toSet.asJava, Seq("SampleA", "SampleB").asJava)
+  val headerLines: Set[VCFHeaderLine] = VCFRowHeaderLines.allHeaderLines.toSet
+  val actualSampleIds: Seq[String] = Seq("SampleA", "SampleB")
 
-  def checkOn(sampleIds: Seq[String], replaceSampleIds: Boolean, errorMsg: String): Unit = {
+  test("VC to infer from has mixed missing and non-missing") {
     val stream = new ByteArrayOutputStream()
-    val writer = new VCFStreamWriter(stream, header, true, replaceSampleIds, true)
-    val gts = sampleIds.map { s =>
+    val writer =
+      new VCFStreamWriter(stream, headerLines, None, true)
+    val gts = Seq("", "SampleA", "").map { s =>
       new GenotypeBuilder(s).alleles(Seq(refA, altT).asJava).make
-    }
-    val vc = new VariantContextBuilder().chr("1").alleles("A", "T").genotypes(gts.asJava).make
+    }.asJava
+    val vcBuilder = new VariantContextBuilder().chr("1").alleles("A", "T")
     val e = intercept[IllegalArgumentException] {
-      writer.write(vc)
+      writer.write(vcBuilder.genotypes(gts).make)
+    }
+    assert(e.getMessage.contains("Cannot mix missing and non-missing sample IDs"))
+  }
+
+  def checkInfer(
+      firstRowSampleIds: Seq[String],
+      secondRowSampleIds: Seq[String],
+      errorMsg: String): Unit = {
+    val stream = new ByteArrayOutputStream()
+    val writer =
+      new VCFStreamWriter(stream, headerLines, None, true)
+    val firstGts = firstRowSampleIds.map { s =>
+      new GenotypeBuilder(s).alleles(Seq(refA, altT).asJava).make
+    }.asJava
+    val vcBuilder = new VariantContextBuilder().chr("1").alleles("A", "T")
+    writer.write(vcBuilder.genotypes(firstGts).make)
+
+    val secondGts = secondRowSampleIds.map { s =>
+      new GenotypeBuilder(s).alleles(Seq(refA, altT).asJava).make
+    }.asJava
+    val e = intercept[IllegalArgumentException] {
+      writer.write(vcBuilder.genotypes(secondGts).make)
     }
     assert(e.getMessage.contains(errorMsg))
-    writer.close()
-  }
-
-  def checkOff(sampleIds: Seq[String], replaceSampleIds: Boolean): Unit = {
-    val stream = new ByteArrayOutputStream()
-    val writer = new VCFStreamWriter(stream, header, false, replaceSampleIds, true)
-    val gts = sampleIds.map { s =>
-      new GenotypeBuilder(s).alleles(Seq(refA, altT).asJava).make
-    }
-    val vc = new VariantContextBuilder().chr("1").alleles("A", "T").genotypes(gts.asJava).make
-    writer.write(vc)
-    writer.close()
-  }
-
-  def checkOnAndOff(sampleIds: Seq[String], replaceSampleIds: Boolean, errorMsg: String): Unit = {
-    // Check for thrown exception if checkNewSampleIds is true
-    checkOn(sampleIds, replaceSampleIds, errorMsg)
-    // Should not fail if check if false
-    checkOff(sampleIds, replaceSampleIds)
   }
 
   test("Check for new sample IDs") {
-    checkOnAndOff(
+    checkInfer(
+      actualSampleIds,
       Seq("SampleC"),
-      false,
       "Found sample ID in row that was not present in the header")
   }
 
-  test("Check for new sample IDs works for missing sample IDs") {
-    checkOnAndOff(
-      Seq(""),
-      false,
-      "Found missing sample ID in row that was not injected in the header")
+  test("Saw present sample IDs when inferred missing") {
+    checkInfer(Seq("", "", ""), actualSampleIds, "Cannot mix missing and non-missing sample IDs")
   }
 
-  test("Number of missing matches") {
-    checkOnAndOff(
-      Seq(""),
-      true,
+  test("Saw present sample IDs when inferred missing, same number of samples") {
+    checkInfer(Seq("", ""), actualSampleIds, "Cannot mix missing and non-missing sample IDs")
+  }
+
+  test("Number of missing does not match") {
+    checkInfer(
+      Seq("", "", ""),
+      Seq("", ""),
       "Number of genotypes in row does not match number of injected missing header samples.")
   }
 
-  test("Unexpected present sample ID") {
-    checkOnAndOff(Seq("", "SampleC"), true, "Cannot mix missing and non-missing sample IDs.")
+  test("Unexpected missing sample ID") {
+    checkInfer(actualSampleIds, Seq("", ""), "Cannot mix missing and non-missing sample IDs.")
   }
 
   test("Don't write header with VC if told not to") {
     val stream = new ByteArrayOutputStream()
-    val writer = new VCFStreamWriter(stream, header, false, false, false)
+    val writer = new VCFStreamWriter(stream, headerLines, Some(actualSampleIds, false), false)
     val vc = new VariantContextBuilder().chr("1").alleles("A").make
 
     writer.write(vc)
@@ -106,9 +111,18 @@ class VCFStreamWriterSuite extends GlowBaseTest {
 
   test("Don't write header for empty stream if told not to") {
     val stream = new ByteArrayOutputStream()
-    val writer = new VCFStreamWriter(stream, header, false, false, false)
+    val writer = new VCFStreamWriter(stream, headerLines, Some(actualSampleIds, false), false)
 
     writer.close()
     assert(stream.size == 0)
+  }
+
+  test("Empty partition") {
+    val stream = new ByteArrayOutputStream()
+    val writer = new VCFStreamWriter(stream, headerLines, None, true)
+    val e = intercept[IllegalStateException] {
+      writer.close()
+    }
+    assert(e.getMessage.contains("Cannot infer header for empty partition"))
   }
 }

@@ -476,10 +476,7 @@ class MultiFileVCFWriterSuite extends VCFFileWriterSuite("vcf") {
   }
 
   test("Fails if inferred present sample IDs but row missing sample IDs") {
-    testInferredSampleIds(
-      true,
-      false,
-      "Found missing sample ID in row that was not injected in the header")
+    testInferredSampleIds(true, false, "Cannot mix missing and non-missing sample IDs")
   }
 
   test("Fails if inferred present sample IDs but row has different sample IDs") {

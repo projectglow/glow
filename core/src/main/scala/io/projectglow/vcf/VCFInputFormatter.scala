@@ -32,8 +32,7 @@ import io.projectglow.transformers.pipe.{InputFormatter, InputFormatterFactory}
  */
 class VCFInputFormatter(
     converter: InternalRowToVariantContextConverter,
-    sampleIds: Seq[String],
-    injectedMissing: Boolean)
+    providedSampleIdsOpt: Option[Seq[String]])
     extends InputFormatter
     with GlowLogging {
 
@@ -42,8 +41,16 @@ class VCFInputFormatter(
 
   override def init(stream: OutputStream): Unit = {
     this.stream = stream
-    val header = new VCFHeader(converter.vcfHeader.getMetaDataInInputOrder, sampleIds.asJava)
-    this.writer = new VCFStreamWriter(stream, header, false, injectedMissing, writeHeader = true)
+    val sampleIdsMissingOpt = if (providedSampleIdsOpt.isDefined) {
+      Some(providedSampleIdsOpt.get, false)
+    } else {
+      None
+    }
+    this.writer = new VCFStreamWriter(
+      stream,
+      converter.vcfHeader.getMetaDataInInputOrder.asScala.toSet,
+      sampleIdsMissingOpt,
+      writeHeader = true)
   }
 
   override def write(record: InternalRow): Unit = {
@@ -73,12 +80,6 @@ class VCFInputFormatterFactory extends InputFormatterFactory {
     )
     rowConverter.validate()
 
-    val (sampleIds, injectedMissing) = if (providedSampleIdsOpt.isDefined) {
-      (providedSampleIdsOpt.get, false)
-    } else {
-      VCFWriterUtils.inferSampleIdsAndInjectMissing(df)
-    }
-
-    new VCFInputFormatter(rowConverter, sampleIds, injectedMissing)
+    new VCFInputFormatter(rowConverter, providedSampleIdsOpt)
   }
 }

@@ -18,8 +18,6 @@ package io.projectglow.vcf
 
 import java.io.OutputStream
 
-import scala.collection.JavaConverters._
-
 import htsjdk.samtools.ValidationStringency
 import htsjdk.variant.vcf._
 import org.apache.hadoop.conf.Configuration
@@ -42,43 +40,14 @@ class VCFFileWriter(
   private val converter =
     new InternalRowToVariantContextConverter(schema, headerLineSet, stringency)
   converter.validate()
-  private var writer: VCFStreamWriter = if (sampleIdsMissingOpt.isDefined) {
-    val (sampleIds, missing) = sampleIdsMissingOpt.get
-    val header = new VCFHeader(headerLineSet.asJava, sampleIds.asJava)
-    new VCFStreamWriter(stream, header, sampleIdsMissingOpt.isEmpty, missing, writeHeader)
-  } else {
-    null
-  }
+  private val writer: VCFStreamWriter =
+    new VCFStreamWriter(stream, headerLineSet, sampleIdsMissingOpt, writeHeader)
 
   override def write(row: InternalRow): Unit = {
-    val vcOpt = converter.convert(row)
-    if (vcOpt.isDefined) {
-      val vc = vcOpt.get
-      if (writer == null) {
-        val vcSamples = vc.getGenotypes.asScala.map(_.getSampleName)
-        val presentSamples = vcSamples.filterNot(VCFWriterUtils.sampleIsMissing)
-        val numSamples = vcSamples.length
-
-        val (sampleIds, missing) = presentSamples.length match {
-          case 0 => (VCFWriterUtils.getMissingSampleIds(vcSamples.length), true)
-          case `numSamples` => (vcSamples.sorted, false)
-          case _ =>
-            throw new IllegalArgumentException("Cannot mix missing and non-missing sample IDs.")
-        }
-        val header = new VCFHeader(headerLineSet.asJava, sampleIds.asJava)
-        writer =
-          new VCFStreamWriter(stream, header, sampleIdsMissingOpt.isEmpty, missing, writeHeader)
-      }
-      writer.write(vc)
-    }
+    converter.convert(row).foreach(writer.write)
   }
 
   override def close(): Unit = {
-    if (writer == null) {
-      throw new IllegalStateException(
-        "Cannot infer header for empty partition; " +
-        "we suggest calling coalesce or repartition to remove empty partitions.")
-    }
     writer.close()
   }
 }
