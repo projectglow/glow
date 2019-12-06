@@ -54,7 +54,7 @@ object LogisticRegressionGwas extends GlowLogging {
   val logitTests: Map[String, LogitTest] = CaseInsensitiveMap(
     Map(
       "lrt" -> LikelihoodRatioTest,
-      "firth" -> FirthTest
+      "firth" -> FirthNewtonArgs
     ))
   val zScore: Double = new NormalDistribution().inverseCumulativeProbability(.975) // Two-sided 95% confidence
 
@@ -62,11 +62,9 @@ object LogisticRegressionGwas extends GlowLogging {
   private[projectglow] def newtonIterations(
       X: DenseMatrix[Double],
       y: DenseVector[Double],
-      nullFitOpt: Option[NewtonIterationsState],
+      args: NewtonIterationsState,
       maxIter: Int = 25,
       tolerance: Double = 1e-6): NewtonResult = {
-
-    val args = new NewtonIterationsState(X, y, nullFitOpt)
 
     var iter = 1
     var converged = false
@@ -126,29 +124,34 @@ object LogisticRegressionGwas extends GlowLogging {
   }
 }
 
-class NewtonIterationsState(
-    X: DenseMatrix[Double],
-    y: DenseVector[Double],
-    nullFitArgsOpt: Option[NewtonIterationsState]) {
+class NewtonIterationsState(numRows: Int, numCols: Int) {
+  val b: DenseVector[Double] = DenseVector.zeros[Double](numCols)
+  val mu: DenseVector[Double] = DenseVector.zeros[Double](numRows)
+  val score: DenseVector[Double] = DenseVector.zeros[Double](numCols)
+  val fisher: DenseMatrix[Double] = DenseMatrix.zeros[Double](numCols, numCols)
+}
 
-  val n = X.rows
-  val m = X.cols
-  val b: DenseVector[Double] = DenseVector.zeros[Double](m)
-  val mu: DenseVector[Double] = DenseVector.zeros[Double](n)
-  val score: DenseVector[Double] = DenseVector.zeros[Double](m)
-  val fisher: DenseMatrix[Double] = DenseMatrix.zeros[Double](m, m)
+object NewtonIterationsState {
+  def initFromMatrix(
+      state: NewtonIterationsState,
+      X: DenseMatrix[Double],
+      y: DenseVector[Double]): Unit = {
 
-  if (nullFitArgsOpt.isEmpty) {
-    require(X.cols > 0, "Covariate matrix must have at least one column")
-
+    val n = X.rows
+    val m = X.cols
     val avg = sum(y) / n
-    b(0) = math.log(avg / (1 - avg))
-    mu := sigmoid(X * b)
-    score := X.t * (y - mu)
-    fisher := X.t * (X(::, *) *:* (mu *:* (1d - mu)))
-  } else {
-    // Warm-start from null model fit
-    val nullFitArgs = nullFitArgsOpt.get
+    state.b(0) = math.log(avg / (1 - avg))
+    state.mu := sigmoid(X * state.b)
+    state.score := X.t * (y - state.mu)
+    state.fisher := X.t * (X(::, *) *:* (state.mu *:* (1d - state.mu)))
+  }
+
+  def initFromMatrixAndNullFit(
+      state: NewtonIterationsState,
+      X: DenseMatrix[Double],
+      y: DenseVector[Double],
+      nullFitArgs: NewtonIterationsState): Unit = {
+
     val m0 = nullFitArgs.b.length
 
     val r0 = 0 until m0
@@ -157,16 +160,22 @@ class NewtonIterationsState(
     val X0 = X(::, r0)
     val X1 = X(::, r1)
 
-    b(r0) := nullFitArgs.b
-    mu := sigmoid(X * b)
-    score(r0) := nullFitArgs.score
-    score(r1) := X1.t * (y - mu)
-    fisher(r0, r0) := nullFitArgs.fisher
-    fisher(r0, r1) := X0.t * (X1(::, *) *:* (mu *:* (1d - mu)))
-    fisher(r1, r0) := fisher(r0, r1).t
-    fisher(r1, r1) := X1.t * (X1(::, *) *:* (mu *:* (1d - mu)))
+    state.b(r0) := nullFitArgs.b
+    state.mu := sigmoid(X * state.b)
+    state.score(r0) := nullFitArgs.score
+    state.score(r1) := X1.t * (y - state.mu)
+    state.fisher(r0, r0) := nullFitArgs.fisher
+    state.fisher(r0, r1) := X0.t * (X1(::, *) *:* (state.mu *:* (1d - state.mu)))
+    state.fisher(r1, r0) := state.fisher(r0, r1).t
+    state.fisher(r1, r1) := X1.t * (X1(::, *) *:* (state.mu *:* (1d - state.mu)))
   }
 }
+
+case class LRTFitState(
+    x: DenseMatrix[Double],
+    nullFit: NewtonResult,
+    placeholderState: NewtonIterationsState
+)
 
 case class NewtonResult(
     args: NewtonIterationsState,
@@ -179,23 +188,9 @@ trait LogitTest extends Serializable {
   type FitState
   def resultSchema: StructType
   def canReuseNullFit: Boolean
-  def fitNullModel(phenotypes: Array[Double], covariates: SparkDenseMatrix): FitState
+  def init(phenotypes: Array[Double], covariates: SparkDenseMatrix): FitState
   def runTest(
-      x: DenseMatrix[Double],
-      y: DenseVector[Double],
-      nullModelFit: Option[FitState]): InternalRow
-}
-
-trait LogitTestWithoutNullFit extends LogitTest {
-  final override val canReuseNullFit: Boolean = false
-
-  final override def fitNullModel(
-      phenotypes: Array[Double],
-      covariates: SparkDenseMatrix): FitState = {
-    throw new IllegalArgumentException("Test does not support null model fit")
-  }
-}
-
-trait LogitTestWithNullFit extends LogitTest {
-  final override val canReuseNullFit: Boolean = true
+      genotypes: DenseVector[Double],
+      phenotypes: DenseVector[Double],
+      fitState: FitState): InternalRow
 }
