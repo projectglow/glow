@@ -137,7 +137,6 @@ Example
 .. invisible-code-block: python
 
    assert rows_equal(log_reg_df.head(), Row(contigName='20', start=10000053, names=[], beta=-0.04909334516505058, oddsRatio=0.9520922523419953, waldConfidenceInterval=[0.5523036168612923, 1.6412705426792646], pValue=0.8161087491239676))
-   print(firth_log_reg_df.head())
    assert rows_equal(firth_log_reg_df.head(), Row(contigName='20', start=10000053, names=[], beta=-0.04737592899383216, oddsRatio=0.9537287958835796, waldConfidenceInterval=[0.5532645977026418, 1.644057147112848], pValue=0.8205226692490032))
 
 
@@ -179,7 +178,8 @@ Return
 ------
 
 The function returns a struct with the following fields. The computation of each value matches the
-`glm R package <https://www.rdocumentation.org/packages/stats/versions/3.6.1/topics/glm>`_ or the
+`glm R package <https://www.rdocumentation.org/packages/stats/versions/3.6.1/topics/glm>`_ for the
+likelihood ratio test and the
 `logistf R package <https://cran.r-project.org/web/packages/logistf/logistf.pdf>`_ for the Firth
 test.
 
