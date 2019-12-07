@@ -156,7 +156,7 @@ case class ArrayToDenseVector(child: Expression)
       ev,
       c => {
         s"""
-         |${ev.value} =
+         |${ev.value} = 
          |io.projectglow.sql.expressions.ArrayToDenseVector.fromDoubleArray($c);
        """.stripMargin
       }
