@@ -81,6 +81,9 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
   lazy val vtTestVcfMultiAllelic =
     s"$testFolder/01_IN_altered_multiallelic.vcf"
 
+  lazy val vtTestVcfMultiAllelic1 =
+    s"$testFolder/CEUTrio.HiSeq.WGS.b37.NA12878.20.21-onlyMultShortINFO-altered.vcf"
+
   lazy val vtTestVcfMultiAllelicExpectedSplit =
     s"$testFolder/01_IN_altered_multiallelic_gatksplit.vcf"
 
@@ -247,15 +250,35 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
       .read
       .format(sourceName)
       .options(Map("flattenInfoFields" -> "true"))
-      .load(vtTestVcfMultiAllelic)
+      .load(vtTestVcfMultiAllelic1)
 
     dfOriginal.show(false)
     val dfSplit = splitVariants(dfOriginal)
 
-    dfSplit.show(false)
-  //  dfOriginal.printSchema()
+    dfSplit
+      .write
+      .format("bigvcf")
+      .save(
+        s"/Users/kiavash.kianfar/Google%20Drive/TAMUOngoing/Research/Databricks/NormalizationInvestigation/Tests/split.vcf")
 
+    dfSplit.show(false)
+    //  dfOriginal.printSchema()
 
   }
 
+  test("helper functions") {
+
+    val numAlleles = 5
+    val ploidy = 6
+
+    // scalastyle:off
+    println(alleleFirstAppearanceIdxArray(numAlleles, ploidy).mkString(","))
+
+    (0 to numAlleles - 1).foreach { a =>
+      println(genotypeLikelihoodsSplitIdxArray(numAlleles, ploidy, a).mkString(","))
+    }
+
+    // scalastyle:on
+
+  }
 }

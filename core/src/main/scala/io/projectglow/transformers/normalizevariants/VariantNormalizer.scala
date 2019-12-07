@@ -176,28 +176,23 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
       )((df, fn) => fn(df))
       .withColumn(alternateAllelesField.name, array(col("splitAlleles"))) // replace alternateAlleles with splitAlleles
       .drop("splitAlleleIdx", "splitAlleles") // drop helper columns
-*/
-
+     */
 
     val dfAfterInfoSplit = variantDf
       .schema
-      .filter(field => field.name.startsWith(infoFieldPrefix) && field.dataType.isInstanceOf[ArrayType])
+      .filter(field =>
+        field.name.startsWith(infoFieldPrefix) && field.dataType.isInstanceOf[ArrayType])
       .foldLeft(
         dfAfterAltAlleleSplit
       )(
-        (df, field) => df.withColumn(
-          field.name,
-          when(
-            size(col(field.name)) === size(col(alternateAllelesField.name)),
-            array(expr(s"${field.name}[splitAlleleIdx]"))).otherwise(col(field.name)
+        (df, field) =>
+          df.withColumn(
+            field.name,
+            when(
+              size(col(field.name)) === size(col(alternateAllelesField.name)),
+              array(expr(s"${field.name}[splitAlleleIdx]"))).otherwise(col(field.name))
           )
-        )
-      ).withColumn(alternateAllelesField.name, array(col("splitAlleles"))) // replace alternateAlleles with splitAlleles
- //     .drop("splitAlleleIdx", "splitAlleles") // drop helper columns
-
-
-
-
+      )
 
     // TODO: Update genotypes
     val gSchema = variantDf
@@ -210,37 +205,43 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
       .elementType
       .asInstanceOf[StructType]
 
-
     // pull out gt field
-    val withExtractedFields = gSchema.fields.foldLeft(dfAfterInfoSplit)((df, field) => df.withColumn(field.name, expr(s"transform(genotypes, g -> g.${field.name})")))
+    val withExtractedFields = gSchema
+      .fields
+      .foldLeft(dfAfterInfoSplit)((df, field) =>
+        df.withColumn(field.name, expr(s"transform(genotypes, g -> g.${field.name})")))
       // .withColumn(sampleIdField.name, expr(s"transform(genotypes, g -> g.${sampleIdField.name})"))
       // .withColumn(phasedField.name, expr(s"transform(genotypes, g -> g.${phasedField.name})"))
       // .withColumn(callsField.name, expr(s"transform(genotypes, g -> g.${callsField.name})"))
-      // .withColumn("test", expr(s"arrays_zip(${gSchema.fieldNames.mkString(",")})"))// .withColumn("calls", expr("transform(calls, c -> transform(c, x -> x + 1))"))
-      // .drop(sampleIdField.name, phasedField.name, callsField.name)
-        .drop("genotypes")
+      .drop("genotypes")
 
-    val dfAfterGenotypesSplit = gSchema.fields
+    val dfAfterGenotypesSplit = gSchema
+      .fields
       .foldLeft(withExtractedFields)(
-        (df, field) => {
+        (df, field) =>
           field match {
+            case f
+                if structFieldsEqualExceptNullability(genotypeLikelihoodsField, f) |
+                structFieldsEqualExceptNullability(phredLikelihoodsField, f) |
+                structFieldsEqualExceptNullability(posteriorProbabilitiesField, f) =>
+              df
+            case f if structFieldsEqualExceptNullability(callsField, f) =>
+              df.withColumn(
+                f.name,
+                expr(
+                  s"transform(${f.name}, c -> transform(c, x -> if(x == 0, x, if(x == splitAlleleIdx + 1, 1, -1))))"))
             case f if f.dataType.isInstanceOf[ArrayType] =>
-              if (Set(
-                genotypeLikelihoodsField.name,
-                phredLikelihoodsField.name,
-                posteriorProbabilitiesField.name).contains(field.name)) {
-                df
-              } else if (field.name == callsField.name) {
-                df.withColumn(field.name, expr(s"transform(${field.name}, c -> transform(c, x -> if(x == 0, x, if(x == splitAlleleIdx + 1, 1, -1))))"))
-              } else {
-                df
-              }
+              df.withColumn(
+                f.name,
+                expr(
+                  s"transform(${f.name}, c -> if(size(c) == size(${alternateAllelesField.name}) + 1, array(c[0], c[splitAlleleIdx + 1]), null))"))
             case _ => df
           }
-        }
-      )
+      ) // .withColumn(alternateAllelesField.name, array(col("splitAlleles"))) // replace alternateAlleles with splitAlleles
+    //     .drop("splitAlleleIdx", "splitAlleles") // drop helper columns
 
-
+    // .withColumn("genotypes", expr(s"arrays_zip(${gSchema.fieldNames.mkString(",")})"))// .withColumn("calls", expr("transform(calls, c -> transform(c, x -> x + 1))"))
+    // .drop(gSchema.fieldNames: _*)
 
     /*
 
@@ -252,9 +253,67 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
       // dfAfterInfoSplit = dfAfterInfoSplit.withColumn(s"genotypes_${i}", expr(s"(genotypes[$i])"))
       dfAfterInfoSplit = dfAfterInfoSplit.select(col("*"), expr(s"expand_struct(genotypes[$i])"))
     }
-    */
+     */
 
     dfAfterGenotypesSplit
+  }
+
+  @VisibleForTesting
+  private[normalizevariants] def genotypeLikelihoodsSplitIdxArray(
+      numAlleles: Int,
+      ploidy: Int,
+      alleleIdx: Int): Array[Int] = {
+
+    if (ploidy == 1) {
+      Array(alleleIdx)
+    } else {
+      val firstAppIdxArray = alleleFirstAppearanceIdxArray(numAlleles, ploidy)
+      var idxArray = (firstAppIdxArray(alleleIdx) to firstAppIdxArray(alleleIdx + 1) - 1).toArray
+      var tempNumAllele = alleleIdx + 2
+
+      while (tempNumAllele <= numAlleles) {
+        idxArray ++= genotypeLikelihoodsSplitIdxArray(tempNumAllele, ploidy - 1, alleleIdx).map(e =>
+          e + firstAppIdxArray(tempNumAllele - 1))
+        tempNumAllele += 1
+      }
+      idxArray
+    }
+  }
+
+  @VisibleForTesting
+  private[normalizevariants] def alleleFirstAppearanceIdxArray(
+      numAlleles: Int,
+      ploidy: Int): Array[Int] = {
+    0 +: (1 to numAlleles).toArray.map(i => choose(i + ploidy - 1, ploidy))
+  }
+
+  @VisibleForTesting
+  private[normalizevariants] def choose(n: Int, r: Int): Int = {
+    if (r > n) {
+      0
+    } else if (r == n) {
+      1
+    } else if (r == 0) {
+      1
+    } else {
+
+      val sr = if (r > (n >> 1)) {
+        n - r
+      } else {
+        r
+      }
+
+      var num = n
+      var denum = 1
+      var i = 1
+
+      while (i < sr) {
+        num *= n - i
+        denum *= i + 1
+        i += 1
+      }
+      num / denum
+    }
   }
 
   /**
