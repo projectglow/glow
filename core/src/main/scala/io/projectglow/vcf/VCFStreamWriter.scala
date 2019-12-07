@@ -34,7 +34,6 @@ import htsjdk.variant.vcf.{VCFHeader, VCFHeaderLine}
  * If all sample IDs are present when setting the header, sample IDs in written rows will not be replaced.
  * Mixed missing/present sample IDs are not permitted.
  *
- *
  * @param stream The stream to write to
  * @param headerLineSet Header lines used to set the VCF header
  * @param sampleIdInfoOpt Sample IDs (and if any were missing) if pre-determined, None otherwise
@@ -89,29 +88,25 @@ class VCFStreamWriter(
   // Replace genotypes' missing sample IDs with those from the header
   def replaceMissingSampleIds(vcBuilder: VariantContextBuilder): VariantContextBuilder = {
     val oldGts = vcBuilder.getGenotypes
-    if (inferSampleIds && oldGts.size != header.getNGenotypeSamples) {
-      VCFWriterUtils.throwSampleInferenceFailure()
-    }
     val newGts = new JArrayList[Genotype](oldGts.size)
     var i = 0
     while (i < oldGts.size) {
       val oldGt = oldGts.get(i)
-      if (inferSampleIds && !oldGt.getSampleName.isEmpty) {
-        VCFWriterUtils.throwSampleInferenceFailure()
+      val newGt = if (oldGt.getSampleName.isEmpty && i < header.getGenotypeSamples.size) {
+        new GenotypeBuilder(oldGt).name(header.getGenotypeSamples.get(i)).make
+      } else {
+        oldGt
       }
-      val newGt = new GenotypeBuilder(oldGt).name(header.getGenotypeSamples.get(i)).make
       newGts.add(newGt)
       i += 1
     }
     vcBuilder.genotypes(newGts)
   }
 
-  // Check that genotype sample IDs are a subset of those from the header
+  // Check that genotype sample IDs are the same as those in the header
   def checkInferredSampleIds(vcBuilder: VariantContextBuilder): VariantContextBuilder = {
-    vcBuilder.getGenotypes.asScala.foreach { gt =>
-      if (!headerSampleSet.contains(gt.getSampleName)) {
-        VCFWriterUtils.throwSampleInferenceFailure()
-      }
+    if (!vcBuilder.getGenotypes.getSampleNames.equals(headerSampleSet)) {
+      VCFWriterUtils.throwSampleInferenceFailure()
     }
     vcBuilder
   }
@@ -136,12 +131,16 @@ class VCFStreamWriter(
       }
     }
 
-    val checkedVcBuilder = if (replaceSampleIds) {
+    val replacedVcBuilder = if (replaceSampleIds) {
       replaceMissingSampleIds(vcBuilder)
-    } else if (inferSampleIds) {
-      checkInferredSampleIds(vcBuilder)
     } else {
       vcBuilder
+    }
+
+    val checkedVcBuilder = if (inferSampleIds) {
+      checkInferredSampleIds(replacedVcBuilder)
+    } else {
+      replacedVcBuilder
     }
 
     writer.add(checkedVcBuilder.make)

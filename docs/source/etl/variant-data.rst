@@ -125,8 +125,9 @@ they will be represented as ``sample_n``, for which ``n`` reflects the index of 
 there must be the same number of samples in each row.
 
 - For the big VCF writer, the inferred sample IDs are the distinct set of all sample IDs from the DataFrame.
-- For the sharded VCF writer, the sample IDs are inferred from the first row of each partition. If the rows do not
-  contain the same samples, provide a complete header of a filesystem path to a VCF file.
+- For the sharded VCF writer, the sample IDs are inferred from the first row of each partition and must be the same
+  for each row. If the rows do not contain the same samples, provide a complete header of a filesystem path to a VCF
+  file.
 
 BGEN
 ====
