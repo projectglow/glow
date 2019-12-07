@@ -27,7 +27,7 @@ import htsjdk.variant.vcf.{VCFHeader, VCFHeaderLine}
 
 /**
  * This internal row -> variant context stream writer maintains a header that is set exactly once. The sample IDs are
- * set by [[sampleIdsFromMissingOpt]] if provided, or inferred from the first written row otherwise.
+ * set by [[sampleIdInfoOpt]] if provided, or inferred from the first written row otherwise.
  *
  * If missing sample IDs were used to set the header, sample IDs in all rows to be written will be replaced with those
  * from the header.
@@ -37,13 +37,13 @@ import htsjdk.variant.vcf.{VCFHeader, VCFHeaderLine}
  *
  * @param stream The stream to write to
  * @param headerLineSet Header lines used to set the VCF header
- * @param sampleIdsFromMissingOpt Sample IDs (and if any were missing) if pre-determined, None otherwise
+ * @param sampleIdInfoOpt Sample IDs (and if any were missing) if pre-determined, None otherwise
  * @param writeHeader Whether to write the header in this stream
  */
 class VCFStreamWriter(
     stream: OutputStream,
     headerLineSet: Set[VCFHeaderLine],
-    sampleIdsFromMissingOpt: Option[SampleIdsFromMissing],
+    sampleIdInfoOpt: Option[SampleIdInfo],
     writeHeader: Boolean)
     extends Closeable
     with Serializable {
@@ -51,7 +51,7 @@ class VCFStreamWriter(
   // Header should be set or written exactly once
   var headerHasBeenSetOrWritten = false
 
-  val inferSampleIds: Boolean = sampleIdsFromMissingOpt.isEmpty
+  val inferSampleIds: Boolean = sampleIdInfoOpt.isEmpty
   var header: VCFHeader = _
   var headerSampleSet: JHashSet[String] = _
   var replaceSampleIds: Boolean = _
@@ -64,8 +64,8 @@ class VCFStreamWriter(
     .build
 
   def setHeader(vcBuilder: VariantContextBuilder): Unit = {
-    val samplesIdsFromMissing = if (!inferSampleIds) {
-      sampleIdsFromMissingOpt.get
+    val sampleIdInfo = if (!inferSampleIds) {
+      sampleIdInfoOpt.get
     } else {
       val vcSamples = vcBuilder.getGenotypes.asScala.map(_.getSampleName)
       val numTotalSamples = vcSamples.length
@@ -75,15 +75,15 @@ class VCFStreamWriter(
         if (numPresentSamples < numTotalSamples) {
           VCFWriterUtils.throwMixedSamplesFailure()
         }
-        SampleIdsFromMissing.presentSamples(vcSamples)
+        SampleIdInfo.fromSamples(vcSamples)
       } else {
-        SampleIdsFromMissing.missingSamples(numTotalSamples)
+        SampleIdInfo.fromNumberMissing(numTotalSamples)
       }
     }
-    val sampleIds = samplesIdsFromMissing.sampleIds.asJava
+    val sampleIds = sampleIdInfo.sampleIds.asJava
     headerSampleSet = new JHashSet(sampleIds)
     header = new VCFHeader(headerLineSet.asJava, sampleIds)
-    replaceSampleIds = samplesIdsFromMissing.fromMissing
+    replaceSampleIds = sampleIdInfo.fromMissing
   }
 
   // Replace genotypes' missing sample IDs with those from the header
@@ -106,7 +106,7 @@ class VCFStreamWriter(
     vcBuilder.genotypes(newGts)
   }
 
-  // Check that sample IDs match those from the header
+  // Check that genotype sample IDs are a subset of those from the header
   def checkInferredSampleIds(vcBuilder: VariantContextBuilder): VariantContextBuilder = {
     vcBuilder.getGenotypes.asScala.foreach { gt =>
       if (!headerSampleSet.contains(gt.getSampleName)) {
@@ -156,7 +156,7 @@ class VCFStreamWriter(
           "Cannot infer header for empty partition; " +
           "we suggest calling coalesce or repartition to remove empty partitions.")
       }
-      header = new VCFHeader(headerLineSet.asJava, sampleIdsFromMissingOpt.get.sampleIds.asJava)
+      header = new VCFHeader(headerLineSet.asJava, sampleIdInfoOpt.get.sampleIds.asJava)
       writer.writeHeader(header)
       headerHasBeenSetOrWritten = true
     }

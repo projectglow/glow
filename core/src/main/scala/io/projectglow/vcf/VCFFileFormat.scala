@@ -556,7 +556,7 @@ private[projectglow] class VCFOutputWriterFactory(options: Map[String, String])
         dataSchema,
         context.getConfiguration)
     val sampleIdsFromMissingOpt = if (providedSampleIds.isDefined) {
-      Some(SampleIdsFromMissing.presentSamples(providedSampleIds.get))
+      Some(SampleIdInfo.fromSamples(providedSampleIds.get))
     } else {
       None
     }

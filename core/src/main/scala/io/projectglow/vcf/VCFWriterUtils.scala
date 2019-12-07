@@ -40,14 +40,14 @@ object VCFWriterUtils extends GlowLogging {
    *     - Missing, the sample IDs are injected from the number of genotypes per row (must be the same per row).
    *     - Present, the sample IDs are found by unifying sample IDs across all rows.
    */
-  def inferSampleIdsAndInjectMissing(data: DataFrame): SampleIdsFromMissing = {
+  def inferSampleIdsAndInjectMissing(data: DataFrame): SampleIdInfo = {
     val genotypeSchemaOpt = data
       .schema
       .find(_.name == "genotypes")
       .map(_.dataType.asInstanceOf[ArrayType].elementType.asInstanceOf[StructType])
     if (genotypeSchemaOpt.isEmpty) {
       logger.info("No genotypes column, no sample IDs will be inferred.")
-      return SampleIdsFromMissing.noSamples
+      return SampleIdInfo.noSamples
     }
     val genotypeSchema = genotypeSchemaOpt.get
 
@@ -66,7 +66,7 @@ object VCFWriterUtils extends GlowLogging {
         if (numPresentSampleIds < distinctSampleIds.length) {
           throwMixedSamplesFailure()
         }
-        return SampleIdsFromMissing.presentSamples(distinctSampleIds)
+        return SampleIdInfo.fromSamples(distinctSampleIds)
       }
     }
 
@@ -81,7 +81,7 @@ object VCFWriterUtils extends GlowLogging {
         "Rows contain varying number of missing samples; cannot infer sample IDs.")
     }
     logger.warn("Detected missing sample IDs, inferring sample IDs.")
-    SampleIdsFromMissing.missingSamples(numGenotypesPerRow.headOption.getOrElse(0))
+    SampleIdInfo.fromNumberMissing(numGenotypesPerRow.headOption.getOrElse(0))
   }
 
   def sampleIsMissing(s: String): Boolean = {
@@ -89,19 +89,19 @@ object VCFWriterUtils extends GlowLogging {
   }
 }
 
-case class SampleIdsFromMissing(sampleIds: Seq[String], fromMissing: Boolean)
+case class SampleIdInfo(sampleIds: Seq[String], fromMissing: Boolean)
 
-object SampleIdsFromMissing {
-  val noSamples = SampleIdsFromMissing(Seq.empty, fromMissing = false)
+object SampleIdInfo {
+  val noSamples = SampleIdInfo(Seq.empty, fromMissing = false)
 
-  def presentSamples(presentSampleIds: Seq[String]): SampleIdsFromMissing = {
-    SampleIdsFromMissing(presentSampleIds.sorted, fromMissing = false)
+  def fromSamples(presentSampleIds: Seq[String]): SampleIdInfo = {
+    SampleIdInfo(presentSampleIds.sorted, fromMissing = false)
   }
 
-  def missingSamples(numMissingSamples: Int): SampleIdsFromMissing = {
+  def fromNumberMissing(numMissingSamples: Int): SampleIdInfo = {
     val injectedMissingSamples = (1 to numMissingSamples).map { idx =>
       "sample_" + idx
     }
-    SampleIdsFromMissing(injectedMissingSamples, true)
+    SampleIdInfo(injectedMissingSamples, true)
   }
 }

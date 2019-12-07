@@ -92,7 +92,7 @@ class VCFStreamWriterSuite extends GlowBaseTest {
     val writer = new VCFStreamWriter(
       stream,
       headerLines,
-      Some(SampleIdsFromMissing.presentSamples(actualSampleIds)),
+      Some(SampleIdInfo.fromSamples(actualSampleIds)),
       false)
     val vc = new VariantContextBuilder().chr("1").alleles("A").make
 
@@ -110,7 +110,7 @@ class VCFStreamWriterSuite extends GlowBaseTest {
     val writer = new VCFStreamWriter(
       stream,
       headerLines,
-      Some(SampleIdsFromMissing.presentSamples(actualSampleIds)),
+      Some(SampleIdInfo.fromSamples(actualSampleIds)),
       false)
 
     writer.close()

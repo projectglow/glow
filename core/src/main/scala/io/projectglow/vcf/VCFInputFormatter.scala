@@ -22,7 +22,6 @@ import scala.collection.JavaConverters._
 
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.catalyst.InternalRow
-import htsjdk.variant.vcf.VCFHeader
 
 import io.projectglow.common.GlowLogging
 import io.projectglow.transformers.pipe.{InputFormatter, InputFormatterFactory}
@@ -42,7 +41,7 @@ class VCFInputFormatter(
   override def init(stream: OutputStream): Unit = {
     this.stream = stream
     val sampleIdsMissingOpt = if (providedSampleIdsOpt.isDefined) {
-      Some(SampleIdsFromMissing.presentSamples(providedSampleIdsOpt.get))
+      Some(SampleIdInfo.fromSamples(providedSampleIdsOpt.get))
     } else {
       None
     }

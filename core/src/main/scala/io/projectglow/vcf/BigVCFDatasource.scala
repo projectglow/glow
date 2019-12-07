@@ -71,7 +71,7 @@ object BigVCFDatasource extends HlsUsageLogging {
       schema,
       conf)
     val sampleIdsFromMissing = if (providedSampleIdsOpt.isDefined) {
-      SampleIdsFromMissing.presentSamples(providedSampleIdsOpt.get)
+      SampleIdInfo.fromSamples(providedSampleIdsOpt.get)
     } else {
       VCFWriterUtils.inferSampleIdsAndInjectMissing(data)
     }
