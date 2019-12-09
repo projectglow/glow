@@ -29,7 +29,7 @@ import io.projectglow.common.GlowLogging
 
 class VCFFileWriter(
     headerLineSet: Set[VCFHeaderLine],
-    sampleIdInfoOpt: Option[SampleIdInfo],
+    sampleIdInfo: SampleIdInfo,
     stringency: ValidationStringency,
     schema: StructType,
     conf: Configuration,
@@ -42,7 +42,7 @@ class VCFFileWriter(
     new InternalRowToVariantContextConverter(schema, headerLineSet, stringency)
   converter.validate()
   private val writer: VCFStreamWriter =
-    new VCFStreamWriter(stream, headerLineSet, sampleIdInfoOpt, writeHeader)
+    new VCFStreamWriter(stream, headerLineSet, sampleIdInfo, writeHeader)
 
   override def write(row: InternalRow): Unit = {
     converter.convert(row).foreach(writer.write)

@@ -63,7 +63,7 @@ object VCFHeaderUtils extends GlowLogging {
       options: Map[String, String],
       defaultHeader: Option[String],
       schema: StructType,
-      conf: Configuration): (Set[VCFHeaderLine], Option[Seq[String]]) = {
+      conf: Configuration): (Set[VCFHeaderLine], SampleIdInfo) = {
 
     require(
       options.contains(VCF_HEADER_KEY) || defaultHeader.isDefined,
@@ -72,16 +72,16 @@ object VCFHeaderUtils extends GlowLogging {
       case INFER_HEADER =>
         logger.info("Inferring header for VCF writer")
         val headerLines = VCFSchemaInferrer.headerLinesFromSchema(schema).toSet
-        (headerLines, None)
+        (headerLines, InferSampleIds)
       case content if isCustomHeader(content) =>
         logger.info("Using provided string as VCF header")
         val header = parseHeaderFromString(content)
-        (header.getMetaDataInInputOrder.asScala.toSet, Some(header.getGenotypeSamples.asScala))
+        (header.getMetaDataInInputOrder.asScala.toSet, SampleIds(header.getGenotypeSamples.asScala))
       case path => // Input is a path
         logger.info(s"Attempting to parse VCF header from path $path")
         // Verify that string is a valid URI
         val header = VCFMetadataLoader.readVcfHeader(conf, path)
-        (header.getMetaDataInInputOrder.asScala.toSet, Some(header.getGenotypeSamples.asScala))
+        (header.getMetaDataInInputOrder.asScala.toSet, SampleIds(header.getGenotypeSamples.asScala))
     }
   }
 }

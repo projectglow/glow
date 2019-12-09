@@ -65,15 +65,15 @@ object BigVCFDatasource extends HlsUsageLogging {
       throw new SparkException("Cannot infer header for empty VCF.")
     }
 
-    val (headerLineSet, providedSampleIdsOpt) = VCFHeaderUtils.parseHeaderLinesAndSamples(
+    val (headerLineSet, providedSampleIds) = VCFHeaderUtils.parseHeaderLinesAndSamples(
       options,
       Some(VCFHeaderUtils.INFER_HEADER),
       schema,
       conf)
-    val sampleIdsFromMissing = if (providedSampleIdsOpt.isDefined) {
-      SampleIdInfo.fromSamples(providedSampleIdsOpt.get)
+    val sampleIdInfo = if (providedSampleIds.isInstanceOf[SampleIds]) {
+      providedSampleIds
     } else {
-      VCFWriterUtils.inferSampleIdsAndInjectMissing(data)
+      VCFWriterUtils.inferSampleIds(data)
     }
     val validationStringency = VCFOptionParser.getValidationStringency(options)
 
@@ -95,7 +95,7 @@ object BigVCFDatasource extends HlsUsageLogging {
         val writer =
           new VCFFileWriter(
             headerLineSet,
-            Some(sampleIdsFromMissing),
+            sampleIdInfo,
             validationStringency,
             schema,
             conf,

@@ -36,7 +36,7 @@ class VCFStreamWriterSuite extends GlowBaseTest {
   test("VC to infer from has mixed missing and non-missing") {
     val stream = new ByteArrayOutputStream()
     val writer =
-      new VCFStreamWriter(stream, headerLines, None, true)
+      new VCFStreamWriter(stream, headerLines, InferSampleIds, true)
     val gts = Seq("", "SampleA", "").map { s =>
       new GenotypeBuilder(s).alleles(Seq(refA, altT).asJava).make
     }.asJava
@@ -50,7 +50,7 @@ class VCFStreamWriterSuite extends GlowBaseTest {
   def checkInfer(firstRowSampleIds: Seq[String], secondRowSampleIds: Seq[String]): Unit = {
     val stream = new ByteArrayOutputStream()
     val writer =
-      new VCFStreamWriter(stream, headerLines, None, true)
+      new VCFStreamWriter(stream, headerLines, InferSampleIds, true)
     val firstGts = firstRowSampleIds.map { s =>
       new GenotypeBuilder(s).alleles(Seq(refA, altT).asJava).make
     }.asJava
@@ -89,11 +89,8 @@ class VCFStreamWriterSuite extends GlowBaseTest {
 
   test("Don't write header with VC if told not to") {
     val stream = new ByteArrayOutputStream()
-    val writer = new VCFStreamWriter(
-      stream,
-      headerLines,
-      Some(SampleIdInfo.fromSamples(actualSampleIds)),
-      false)
+    val writer =
+      new VCFStreamWriter(stream, headerLines, SampleIds(actualSampleIds), false)
     val vc = new VariantContextBuilder().chr("1").alleles("A").make
 
     writer.write(vc)
@@ -107,11 +104,7 @@ class VCFStreamWriterSuite extends GlowBaseTest {
 
   test("Don't write header for empty stream if told not to") {
     val stream = new ByteArrayOutputStream()
-    val writer = new VCFStreamWriter(
-      stream,
-      headerLines,
-      Some(SampleIdInfo.fromSamples(actualSampleIds)),
-      false)
+    val writer = new VCFStreamWriter(stream, headerLines, SampleIds(actualSampleIds), false)
 
     writer.close()
     assert(stream.size == 0)
@@ -119,7 +112,7 @@ class VCFStreamWriterSuite extends GlowBaseTest {
 
   test("Empty partition") {
     val stream = new ByteArrayOutputStream()
-    val writer = new VCFStreamWriter(stream, headerLines, None, true)
+    val writer = new VCFStreamWriter(stream, headerLines, InferSampleIds, true)
     val e = intercept[IllegalStateException] {
       writer.close()
     }
