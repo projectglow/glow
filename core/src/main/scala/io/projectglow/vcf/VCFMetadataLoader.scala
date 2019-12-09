@@ -21,14 +21,15 @@ import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.seqdoop.hadoop_bam.util.{VCFHeaderReader, WrapSeekable}
 
+import io.projectglow.common.WithUtils
+
 object VCFMetadataLoader {
 
   // From ADAMContext, see:
   // https://github.com/bigdatagenomics/adam/blob/master/adam-core/src/main/scala/org/bdgenomics/adam/rdd/ADAMContext.scala
   def readVcfHeader(config: Configuration, pathName: String): VCFHeader = {
-    val is = WrapSeekable.openPath(config, new Path(pathName))
-    val header = VCFHeaderReader.readHeaderFrom(is)
-    is.close()
-    header
+    WithUtils.withCloseable(WrapSeekable.openPath(config, new Path(pathName))) { is =>
+      VCFHeaderReader.readHeaderFrom(is)
+    }
   }
 }

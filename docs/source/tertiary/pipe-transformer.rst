@@ -123,12 +123,14 @@ VCF input formatter:
   * - ``in_vcf_header``
     - How to determine a VCF header from the input DataFrame. Possible values:
 
-      * ``infer``: Derive a VCF header from the DataFrame schema.
+      * ``infer``: Derive a VCF header from the DataFrame schema. The inference behavior matches that of the
+        :ref:`sharded VCF writer <infer-vcf-samples>`.
       * The complete contents of a VCF header starting with ``##``
       * A Hadoop filesystem path to a VCF file. The header from this file is used as the VCF header for each partition.
 
 The CSV input and output formatters accept most of the same options as the CSV data source.
-You must prefix options to the input formatter with ``in_``, and options to the output formatter with ``out_``. For example, ``in_quote`` sets the quote character when writing the input DataFrame to the piped program.
+You must prefix options to the input formatter with ``in_``, and options to the output formatter with ``out_``. For
+example, ``in_quote`` sets the quote character when writing the input DataFrame to the piped program.
 
 The following options are not supported:
 

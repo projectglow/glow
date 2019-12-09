@@ -28,11 +28,10 @@ import htsjdk.samtools.util.{BlockCompressedInputStream, BlockCompressedStreamCo
 import htsjdk.variant.variantcontext.writer.VCFHeaderWriter
 import htsjdk.variant.vcf.{VCFCompoundHeaderLine, VCFHeader, VCFHeaderLine}
 import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.functions.expr
 import org.apache.spark.{SparkConf, SparkException}
-import org.bdgenomics.adam.rdd.ADAMContext._
 
-import io.projectglow.common.{VCFRow, WithUtils}
+import io.projectglow.common.{VCFRow, VariantSchemas, WithUtils}
 import io.projectglow.sql.GlowBaseTest
 
 abstract class VCFFileWriterSuite(val sourceName: String)
@@ -181,49 +180,6 @@ abstract class VCFFileWriterSuite(val sourceName: String)
     }
   }
 
-  test("Invalid validation stringency") {
-    val sess = spark
-    import sess.implicits._
-
-    val tempFile = createTempVcf.toString
-
-    val ds = spark
-      .read
-      .format(readSourceName)
-      .option("includeSampleIds", true)
-      .option("vcfRowSchema", true)
-      .load(NA12878)
-      .as[VCFRow]
-    assertThrows[SparkException](
-      ds.write
-        .format(sourceName)
-        .option("validationStringency", "fakeStringency")
-        .save(tempFile)
-    )
-  }
-
-  test("Corrupted header lines are not written") {
-    val sc = spark.sparkContext
-    val sess = spark
-
-    val tempFile = createTempVcf.toString
-
-    val headerLine = new VCFHeaderLine("fakeHeaderKey", "fakeHeaderValue")
-    val extraHeader = new VCFHeader(Set(headerLine).asJava)
-    val extraHeaderStr = VCFHeaderWriter.writeHeaderAsString(extraHeader)
-    sess
-      .read
-      .format(readSourceName)
-      .load(NA12878)
-      .write
-      .format(sourceName)
-      .option("vcfHeader", extraHeaderStr.substring(0, extraHeaderStr.length - 10))
-      .save(tempFile)
-
-    val vcRdd = sc.loadVcf(tempFile)
-    assert(!vcRdd.headerLines.contains(headerLine))
-  }
-
   test("Strict validation stringency") {
     val tempFile = createTempVcf.toString
 
@@ -310,7 +266,7 @@ abstract class VCFFileWriterSuite(val sourceName: String)
     header.getInfoHeaderLines.asScala.toSet ++ header.getFormatHeaderLines.asScala.toSet
   }
 
-  test("Provided header") {
+  test("Provided header is sorted") {
     val headerLine1 = new VCFHeaderLine("fakeHeaderKey", "fakeHeaderValue")
     val headerLine2 = new VCFHeaderLine("secondFakeHeaderKey", "secondFakeHeaderValue")
     val headerLines = Set(headerLine1, headerLine2)
@@ -320,7 +276,7 @@ abstract class VCFFileWriterSuite(val sourceName: String)
       writeVcfHeader(spark.read.format(readSourceName).load(NA12878), Some(vcfHeader))
 
     assert(headerLines.subsetOf(writtenHeader.getMetaDataInInputOrder.asScala))
-    assert(writtenHeader.getGenotypeSamples.asScala == Seq("sample1", "NA12878"))
+    assert(writtenHeader.getGenotypeSamples.asScala == Seq("NA12878", "sample1"))
   }
 
   test("Path header") {
@@ -380,9 +336,83 @@ abstract class VCFFileWriterSuite(val sourceName: String)
 
     assert(rewrittenDs.collect.isEmpty)
   }
+
+  test("No genotypes column") {
+    val tempFile = createTempVcf.toString
+
+    val df = spark
+      .read
+      .format(readSourceName)
+      .load(TGP)
+      .drop("genotypes")
+    df.write.format(sourceName).save(tempFile)
+
+    val rereadDf = spark.read.format(readSourceName).load(tempFile)
+    assert(!rereadDf.schema.contains("genotypes"))
+  }
+
+  test("No sample IDs column") {
+    val sess = spark
+    import sess.implicits._
+
+    val tempFile = createTempVcf.toString
+
+    val df = spark
+      .read
+      .format(readSourceName)
+      .option("includeSampleIds", "false")
+      .load(TGP)
+      .withColumn("subsetGenotypes", expr("slice(genotypes, 1, 3)"))
+      .drop("genotypes")
+      .withColumnRenamed("subsetGenotypes", "genotypes")
+    df.write.format(sourceName).save(tempFile)
+
+    val rereadDf = spark.read.format(readSourceName).load(tempFile)
+    val sampleIds = rereadDf.select("genotypes.sampleId").distinct().as[Seq[String]].collect
+    assert(sampleIds.length == 1)
+    assert(sampleIds.head == Seq("sample_1", "sample_2", "sample_3"))
+  }
 }
 
 class MultiFileVCFWriterSuite extends VCFFileWriterSuite("vcf") {
+
+  test("Corrupted header lines are not written") {
+    val tempFile = createTempVcf.toString
+
+    val extraHeaderStr = VCFHeaderWriter.writeHeaderAsString(new VCFHeader())
+    val e = intercept[SparkException] {
+      spark
+        .read
+        .format(readSourceName)
+        .load(NA12878)
+        .write
+        .format(sourceName)
+        .option("vcfHeader", extraHeaderStr.substring(0, extraHeaderStr.length - 10))
+        .save(tempFile)
+    }
+    assert(e.getCause.getMessage.contains("Unable to parse VCF header"))
+  }
+
+  test("Invalid validation stringency") {
+    val sess = spark
+    import sess.implicits._
+
+    val tempFile = createTempVcf.toString
+
+    val ds = spark
+      .read
+      .format(readSourceName)
+      .option("includeSampleIds", true)
+      .option("vcfRowSchema", true)
+      .load(NA12878)
+      .as[VCFRow]
+    assertThrows[SparkException](
+      ds.write
+        .format(sourceName)
+        .option("validationStringency", "fakeStringency")
+        .save(tempFile)
+    )
+  }
 
   test("Some empty partitions and infer sample IDs") {
     val tempFile = createTempVcf.toString
@@ -400,9 +430,104 @@ class MultiFileVCFWriterSuite extends VCFFileWriterSuite("vcf") {
         .save(tempFile)
     )
   }
+
+  def testInferredSampleIds(row1HasSamples: Boolean, row2HasSamples: Boolean): Unit = {
+    val tempFile = createTempVcf.toString
+
+    // Samples: HG00096 HG00097	HG00099
+    val ds1 = spark
+      .read
+      .format(readSourceName)
+      .option("includeSampleIds", row1HasSamples)
+      .option("vcfRowSchema", true)
+      .load(TGP)
+      .withColumn("subsetGenotypes", expr("slice(genotypes, 1, 3)"))
+      .drop("genotypes")
+      .withColumnRenamed("subsetGenotypes", "genotypes")
+
+    // Samples: HG00099 HG00100	HG00101	HG00102
+    val ds2 = spark
+      .read
+      .format(readSourceName)
+      .option("includeSampleIds", row2HasSamples)
+      .option("vcfRowSchema", true)
+      .load(TGP)
+      .withColumn("subsetGenotypes", expr("slice(genotypes, 3, 4)"))
+      .drop("genotypes")
+      .withColumnRenamed("subsetGenotypes", "genotypes")
+
+    val ds = ds1.union(ds2).repartition(1)
+
+    val e = intercept[SparkException] {
+      ds.write
+        .option("vcfHeader", "infer")
+        .format(sourceName)
+        .save(tempFile)
+    }
+    assert(e.getCause.getCause.getCause.isInstanceOf[IllegalArgumentException])
+    assert(
+      e.getCause
+        .getMessage
+        .contains("Cannot infer sample ids because they are not the same in every row"))
+  }
+
+  test("Fails if inferred present sample IDs but row missing sample IDs") {
+    testInferredSampleIds(true, false)
+  }
+
+  test("Fails if inferred present sample IDs but row has different sample IDs") {
+    testInferredSampleIds(true, true)
+  }
+
+  test("Fails if injected missing sample IDs don't match number of samples") {
+    testInferredSampleIds(false, false)
+  }
+
+  test("Fails if injected missing sample IDs but has sample IDs") {
+    testInferredSampleIds(false, true)
+  }
 }
 
 class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
+
+  test("Corrupted header lines are not written") {
+    val tempFile = createTempVcf.toString
+
+    val extraHeaderStr = VCFHeaderWriter.writeHeaderAsString(new VCFHeader())
+    val e = intercept[IllegalArgumentException] {
+      spark
+        .read
+        .format(readSourceName)
+        .load(NA12878)
+        .write
+        .format(sourceName)
+        .option("vcfHeader", extraHeaderStr.substring(0, extraHeaderStr.length - 10))
+        .save(tempFile)
+    }
+    assert(e.getMessage.contains("Unable to parse VCF header"))
+  }
+
+  test("Invalid validation stringency") {
+    val sess = spark
+    import sess.implicits._
+
+    val tempFile = createTempVcf.toString
+
+    val ds = spark
+      .read
+      .format(readSourceName)
+      .option("includeSampleIds", true)
+      .option("vcfRowSchema", true)
+      .load(NA12878)
+      .as[VCFRow]
+    assertThrows[IllegalArgumentException](
+      ds.write
+        .format(sourceName)
+        .option("validationStringency", "fakeStringency")
+        .save(tempFile)
+    )
+  }
+
   test("Check BGZF") {
     val df = spark
       .read
@@ -484,12 +609,6 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
       .format(sourceName)
       .save(tempFile)
 
-    val rewrittenDs = spark
-      .read
-      .format(readSourceName)
-      .option("vcfRowSchema", true)
-      .load(tempFile)
-
     val truthHeader = VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, NA12878)
     val writtenHeader = VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, tempFile)
 
@@ -515,70 +634,119 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
     )
   }
 
-}
+  def sliceInferredSampleIds(
+      start: Int,
+      numPresentSampleIds: Int,
+      numMissingSampleIds: Int): DataFrame = {
+    val presentSampleIds = spark
+      .read
+      .format(readSourceName)
+      .option("vcfRowSchema", "true")
+      .load(TGP)
+      .withColumn("genotypesWithSampleIds", expr(s"slice(genotypes, $start, $numPresentSampleIds)"))
+      .drop("genotypes")
 
-class VCFWriterUtilsSuite extends GlowBaseTest {
-  val vcf = s"$testDataHome/NA12878_21_10002403.vcf"
-  lazy val schema = spark.read.format("vcf").load(vcf).schema
+    val missingSampleIds = spark
+      .read
+      .format(readSourceName)
+      .option("includeSampleIds", "false")
+      .option("vcfRowSchema", "true")
+      .load(TGP)
+      .withColumn(
+        "genotypesWithoutSampleIds",
+        expr(s"slice(genotypes, $start, $numMissingSampleIds)"))
+      .drop("genotypes", "attributes")
 
-  private def getHeaderNoSamples(
-      options: Map[String, String],
-      defaultOpt: Option[String],
-      schema: StructType): VCFHeader = {
-    val (headerLines, _) = VCFFileWriter.parseHeaderLinesAndSamples(
-      options,
-      defaultOpt,
-      schema,
-      spark.sparkContext.hadoopConfiguration)
-    new VCFHeader(headerLines.asJava)
+    presentSampleIds
+      .join(missingSampleIds, VariantSchemas.vcfBaseSchema.map(_.name))
+      .withColumn("genotypes", expr("concat(genotypesWithSampleIds, genotypesWithoutSampleIds)"))
+      .drop("genotypesWithSampleIds", "genotypesWithoutSampleIds")
   }
 
-  private def getSchemaLines(header: VCFHeader): Set[VCFCompoundHeaderLine] = {
-    header.getInfoHeaderLines.asScala.toSet ++ header.getFormatHeaderLines.asScala.toSet
+  def checkWithInferredSampleIds(df: DataFrame, expectedSampleIds: Seq[String]): Unit = {
+    val tempFile = createTempVcf.toString
+
+    // Should be written with all samples with no-calls if sample is missing
+    df.write
+      .option("vcfHeader", "infer")
+      .format(sourceName)
+      .save(tempFile)
+
+    val rereadDf =
+      spark
+        .read
+        .format(readSourceName)
+        .option("vcfRowSchema", "true")
+        .load(tempFile)
+
+    val sess = spark
+    import sess.implicits._
+
+    // Make sure there is only one set of sample IDs and they match the expected ones
+    val sampleIdRows = rereadDf.select("genotypes.sampleId").distinct().as[Seq[String]].collect
+    assert(sampleIdRows.length == 1)
+    assert(sampleIdRows.head == expectedSampleIds)
+
+    // Compare the called genotypes
+    val calledRereadDf = rereadDf
+      .withColumn("calledGenotypes", expr("filter(genotypes, gt -> gt.calls[0] != -1)"))
+      .drop("genotypes")
+      .withColumnRenamed("calledGenotypes", "genotypes")
+
+    df.as[VCFRow].collect.zip(calledRereadDf.as[VCFRow].collect).foreach {
+      case (vc1, vc2) =>
+        var missingSampleIdx = 0
+        val gtsWithSampleIds = vc1.genotypes.map { gt =>
+          if (gt.sampleId.isEmpty) {
+            missingSampleIdx += 1
+            gt.copy(sampleId = Some(s"sample_$missingSampleIdx"))
+          } else {
+            gt
+          }
+        }
+        val vc1WithSampleIds = vc1.copy(genotypes = gtsWithSampleIds)
+        assert(vc1WithSampleIds.equals(vc2), s"VC1 $vc1WithSampleIds VC2 $vc2")
+    }
   }
 
-  private def getAllLines(header: VCFHeader): Set[VCFHeaderLine] = {
-    header.getContigLines.asScala.toSet ++
-    header.getFilterLines.asScala.toSet ++
-    header.getFormatHeaderLines.asScala.toSet ++
-    header.getInfoHeaderLines.asScala.toSet ++
-    header.getOtherHeaderLines.asScala.toSet
+  test("Unions inferred sample IDs") {
+    // Samples: HG00096	HG00097	HG00099	HG00100	HG00101
+    val ds1 = sliceInferredSampleIds(1, 5, 0)
+    // Samples: HG00099	HG00100	HG00101	HG00102
+    val ds2 = sliceInferredSampleIds(3, 4, 0)
+
+    checkWithInferredSampleIds(
+      ds1.union(ds2),
+      Seq("HG00096", "HG00097", "HG00099", "HG00100", "HG00101", "HG00102"))
   }
 
-  test("fall back") {
-    val oldHeader = VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, vcf)
-    val header = getHeaderNoSamples(Map.empty, Some("infer"), schema)
-    assert(getSchemaLines(header) == VCFSchemaInferrer.headerLinesFromSchema(schema).toSet)
-    assert(getSchemaLines(header) == getSchemaLines(oldHeader))
+  test("Matching number of missing sample IDs") {
+    // 3 missing samples
+    val ds1 = sliceInferredSampleIds(1, 0, 3)
+    val ds2 = sliceInferredSampleIds(2, 0, 3)
+    checkWithInferredSampleIds(ds1.union(ds2), Seq("sample_1", "sample_2", "sample_3"))
   }
 
-  test("infer header") {
-    val oldHeader = VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, vcf)
-    val header = getHeaderNoSamples(Map("vcfHeader" -> "infer"), None, schema)
-    assert(getSchemaLines(header) == VCFSchemaInferrer.headerLinesFromSchema(schema).toSet)
-    assert(getSchemaLines(header) == getSchemaLines(oldHeader))
+  test("Mixed inferred and missing sample IDs") {
+    // 3 missing samples
+    val ds1 = sliceInferredSampleIds(1, 3, 2)
+    val ds2 = sliceInferredSampleIds(2, 3, 2)
+
+    val tempFile = createTempVcf.toString
+    val e = intercept[IllegalArgumentException] {
+      ds1.union(ds2).write.option("vcfHeader", "infer").format(sourceName).save(tempFile)
+    }
+    assert(e.getMessage.contains("Cannot mix missing and non-missing sample IDs"))
   }
 
-  test("use header path") {
-    val header = getHeaderNoSamples(Map("vcfHeader" -> vcf), None, schema)
-    assert(
-      getAllLines(header) ==
-      getAllLines(VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, vcf)))
-  }
-
-  test("use literal header") {
-    val contents =
-      """
-        |##fileformat=VCFv4.2
-        |##FORMAT=<ID=PL,Number=G,Type=Integer,Description="">
-        |##contig=<ID=monkey,length=42>
-        |##source=DatabricksIsCool
-        |""".stripMargin.trim + // write CHROM line by itself to preserve tabs
-      "\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tNA12878\n"
-
-    val header = getHeaderNoSamples(Map("vcfHeader" -> contents), None, schema)
-    val parsed = VCFFileWriter.parseHeaderFromString(contents)
-    assert(getAllLines(header).nonEmpty)
-    assert(getAllLines(header) == getAllLines(parsed))
+  test("Non-matching number of missing sample IDs") {
+    // 2 missing samples
+    val ds1 = sliceInferredSampleIds(1, 0, 2)
+    // 4 missing samples
+    val ds2 = sliceInferredSampleIds(2, 0, 1)
+    val e = intercept[IllegalArgumentException] {
+      ds1.union(ds2).write.format(sourceName).save(createTempVcf.toString)
+    }
+    assert(e.getMessage.contains("Rows contain varying number of missing samples"))
   }
 }
