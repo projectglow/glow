@@ -42,7 +42,7 @@ object VCFHeaderUtils extends GlowLogging {
       codec.readActualHeader(lineIterator).asInstanceOf[VCFHeader]
     } catch {
       case NonFatal(e) =>
-        throw new IllegalArgumentException(s"Wasn't able to parse VCF header in\n$s\n$e")
+        throw new IllegalArgumentException(s"Unable to parse VCF header \n$s\n$e")
     }
   }
 

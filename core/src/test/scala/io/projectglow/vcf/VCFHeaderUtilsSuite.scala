@@ -92,7 +92,7 @@ class VCFHeaderUtilsSuite extends GlowBaseTest {
     // no #CHROM line
     val e =
       intercept[IllegalArgumentException](VCFHeaderUtils.parseHeaderFromString(vcfMetadataLines))
-    assert(e.getMessage.contains("Wasn't able to parse VCF header"))
+    assert(e.getMessage.contains("Unable to parse VCF header"))
   }
 
   test("no vcf header arg and no default header") {

@@ -30,7 +30,6 @@ import htsjdk.variant.vcf.{VCFCompoundHeaderLine, VCFHeader, VCFHeaderLine}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.expr
 import org.apache.spark.{SparkConf, SparkException}
-import org.bdgenomics.adam.rdd.ADAMContext._
 
 import io.projectglow.common.{VCFRow, VariantSchemas, WithUtils}
 import io.projectglow.sql.GlowBaseTest
@@ -179,28 +178,6 @@ abstract class VCFFileWriterSuite(val sourceName: String)
     orderedDs1.as[VCFRow].collect.zip(orderedDs2.as[VCFRow].collect).foreach {
       case (vc1, vc2) => assert(vc1.equals(vc2), s"VC1 $vc1 VC2 $vc2")
     }
-  }
-
-  test("Corrupted header lines are not written") {
-    val sc = spark.sparkContext
-    val sess = spark
-
-    val tempFile = createTempVcf.toString
-
-    val headerLine = new VCFHeaderLine("fakeHeaderKey", "fakeHeaderValue")
-    val extraHeader = new VCFHeader(Set(headerLine).asJava)
-    val extraHeaderStr = VCFHeaderWriter.writeHeaderAsString(extraHeader)
-    sess
-      .read
-      .format(readSourceName)
-      .load(NA12878)
-      .write
-      .format(sourceName)
-      .option("vcfHeader", extraHeaderStr.substring(0, extraHeaderStr.length - 10))
-      .save(tempFile)
-
-    val vcRdd = sc.loadVcf(tempFile)
-    assert(!vcRdd.headerLines.contains(headerLine))
   }
 
   test("Strict validation stringency") {
@@ -399,6 +376,23 @@ abstract class VCFFileWriterSuite(val sourceName: String)
 
 class MultiFileVCFWriterSuite extends VCFFileWriterSuite("vcf") {
 
+  test("Corrupted header lines are not written") {
+    val tempFile = createTempVcf.toString
+
+    val extraHeaderStr = VCFHeaderWriter.writeHeaderAsString(new VCFHeader())
+    val e = intercept[SparkException] {
+      spark
+        .read
+        .format(readSourceName)
+        .load(NA12878)
+        .write
+        .format(sourceName)
+        .option("vcfHeader", extraHeaderStr.substring(0, extraHeaderStr.length - 10))
+        .save(tempFile)
+    }
+    assert(e.getCause.getMessage.contains("Unable to parse VCF header"))
+  }
+
   test("Invalid validation stringency") {
     val sess = spark
     import sess.implicits._
@@ -495,6 +489,23 @@ class MultiFileVCFWriterSuite extends VCFFileWriterSuite("vcf") {
 }
 
 class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
+
+  test("Corrupted header lines are not written") {
+    val tempFile = createTempVcf.toString
+
+    val extraHeaderStr = VCFHeaderWriter.writeHeaderAsString(new VCFHeader())
+    val e = intercept[IllegalArgumentException] {
+      spark
+        .read
+        .format(readSourceName)
+        .load(NA12878)
+        .write
+        .format(sourceName)
+        .option("vcfHeader", extraHeaderStr.substring(0, extraHeaderStr.length - 10))
+        .save(tempFile)
+    }
+    assert(e.getMessage.contains("Unable to parse VCF header"))
+  }
 
   test("Invalid validation stringency") {
     val sess = spark
