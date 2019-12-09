@@ -120,15 +120,24 @@ Example
 
 .. code-block:: python
 
+  # Likelihood ratio test
   log_reg_df = df.crossJoin(covariates_and_phenotypes).selectExpr(
     'contigName',
     'start',
     'names',
     'expand_struct(logistic_regression_gwas(genotype_states(genotypes), phenotypes, covariates, \'LRT\'))')
 
+  # Firth test
+  firth_log_reg_df = df.crossJoin(covariates_and_phenotypes).selectExpr(
+    'contigName',
+    'start',
+    'names',
+    'expand_struct(logistic_regression_gwas(genotype_states(genotypes), phenotypes, covariates, \'Firth\'))')
+
 .. invisible-code-block: python
 
    assert rows_equal(log_reg_df.head(), Row(contigName='20', start=10000053, names=[], beta=-0.04909334516505058, oddsRatio=0.9520922523419953, waldConfidenceInterval=[0.5523036168612923, 1.6412705426792646], pValue=0.8161087491239676))
+   assert rows_equal(firth_log_reg_df.head(), Row(contigName='20', start=10000053, names=[], beta=-0.04737592899383216, oddsRatio=0.9537287958835796, waldConfidenceInterval=[0.5532645977026418, 1.644057147112848], pValue=0.8205226692490032))
 
 
 Parameters
@@ -162,13 +171,17 @@ parameter ``test`` to specify the hypothesis test method.
       ``covariates`` parameters.
   * - ``test``
     - ``string``
-    - The hypothesis test method to use. Currently the only supported method is the likelihood ratio test (``LRT``).
+    - The hypothesis test method to use. Currently likelihood ratio (``LRT``) and Firth 
+      (``Firth``) tests are supported.
 
 Return
 ------
 
 The function returns a struct with the following fields. The computation of each value matches the
-`glm R package <https://www.rdocumentation.org/packages/stats/versions/3.6.1/topics/glm>`_.
+`glm R package <https://www.rdocumentation.org/packages/stats/versions/3.6.1/topics/glm>`_ for the
+likelihood ratio test and the
+`logistf R package <https://cran.r-project.org/web/packages/logistf/logistf.pdf>`_ for the Firth
+test.
 
 .. list-table::
   :header-rows: 1
@@ -187,7 +200,8 @@ The function returns a struct with the following fields. The computation of each
     - Wald 95% confidence interval of the odds ratio, ``NaN`` s if the fit failed.
   * - ``pValue``
     - ``double``
-    - p-value for the specified ``test``, ``NaN`` if the fit failed.
+    - p-value for the specified ``test``. For the Firth test, this value is computed using the
+      profile likelihood method. ``NaN`` if the fit failed.
 
 Implementation details
 ----------------------
