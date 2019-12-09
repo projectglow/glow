@@ -17,7 +17,6 @@
 package io.projectglow.vcf
 
 import java.io.StringReader
-import java.net.{URI, URISyntaxException}
 
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
@@ -43,8 +42,7 @@ object VCFHeaderUtils extends GlowLogging {
       codec.readActualHeader(lineIterator).asInstanceOf[VCFHeader]
     } catch {
       case NonFatal(e) =>
-        logger.warn(s"Wasn't able to parse VCF header in $s. $e")
-        new VCFHeader()
+        throw new IllegalArgumentException(s"Wasn't able to parse VCF header in\n$s\n$e")
     }
   }
 

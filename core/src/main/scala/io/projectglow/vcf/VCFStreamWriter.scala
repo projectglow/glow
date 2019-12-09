@@ -36,7 +36,7 @@ import htsjdk.variant.vcf.{VCFHeader, VCFHeaderLine}
  *
  * @param stream The stream to write to
  * @param headerLineSet Header lines used to set the VCF header
- * @param sampleIdInfo Sample IDs may be predetermined or inferred
+ * @param sampleIdInfo Sample IDs, which may be predetermined or must be inferred
  * @param writeHeader Whether to write the header in this stream
  */
 class VCFStreamWriter(

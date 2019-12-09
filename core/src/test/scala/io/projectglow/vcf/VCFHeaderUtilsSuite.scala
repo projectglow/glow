@@ -28,7 +28,14 @@ import io.projectglow.sql.GlowBaseTest
 
 class VCFHeaderUtilsSuite extends GlowBaseTest {
   val vcf = s"$testDataHome/NA12878_21_10002403.vcf"
-  lazy val schema = spark.read.format("vcf").load(vcf).schema
+  lazy val schema: StructType = spark.read.format("vcf").load(vcf).schema
+  lazy val vcfMetadataLines: String =
+    """
+      |##fileformat=VCFv4.2
+      |##FORMAT=<ID=PL,Number=G,Type=Integer,Description="">
+      |##contig=<ID=monkey,length=42>
+      |##source=DatabricksIsCool
+      |""".stripMargin.trim // write CHROM line by itself to preserve tabs
 
   private def getHeaderNoSamples(
       options: Map[String, String],
@@ -74,19 +81,18 @@ class VCFHeaderUtilsSuite extends GlowBaseTest {
   }
 
   test("use literal header") {
-    val contents =
-      """
-        |##fileformat=VCFv4.2
-        |##FORMAT=<ID=PL,Number=G,Type=Integer,Description="">
-        |##contig=<ID=monkey,length=42>
-        |##source=DatabricksIsCool
-        |""".stripMargin.trim + // write CHROM line by itself to preserve tabs
-      "\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tNA12878\n"
-
+    val contents = vcfMetadataLines + "\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tNA12878\n"
     val header = getHeaderNoSamples(Map("vcfHeader" -> contents), None, schema)
     val parsed = VCFHeaderUtils.parseHeaderFromString(contents)
     assert(getAllLines(header).nonEmpty)
     assert(getAllLines(header) == getAllLines(parsed))
+  }
+
+  test("throw on bad literal header") {
+    // no #CHROM line
+    val e =
+      intercept[IllegalArgumentException](VCFHeaderUtils.parseHeaderFromString(vcfMetadataLines))
+    assert(e.getMessage.contains("Wasn't able to parse VCF header"))
   }
 
   test("no vcf header arg and no default header") {
