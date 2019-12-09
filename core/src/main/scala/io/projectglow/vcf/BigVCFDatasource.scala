@@ -73,7 +73,7 @@ object BigVCFDatasource extends HlsUsageLogging {
     val sampleIdInfo = if (providedSampleIds.isInstanceOf[SampleIds]) {
       providedSampleIds
     } else {
-      VCFWriterUtils.inferSampleIds(data)
+      VCFWriterUtils.inferSampleIdsIfPresent(data)
     }
     val validationStringency = VCFOptionParser.getValidationStringency(options)
 

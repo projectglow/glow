@@ -40,7 +40,7 @@ object VCFWriterUtils extends GlowLogging {
    *   - Present, the sample IDs are found by unifying sample IDs across all rows.
    *   - Missing, checks that the rows have the same number of genotypes.
    */
-  def inferSampleIds(data: DataFrame): SampleIdInfo = {
+  def inferSampleIdsIfPresent(data: DataFrame): SampleIdInfo = {
     val genotypeSchemaOpt = data
       .schema
       .find(_.name == "genotypes")
