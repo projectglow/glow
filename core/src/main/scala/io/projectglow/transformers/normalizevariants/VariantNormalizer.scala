@@ -33,7 +33,7 @@ import org.broadinstitute.hellbender.utils.SimpleInterval
 import org.broadinstitute.hellbender.utils.variant.GATKVariantContextUtils
 
 import io.projectglow.common.GlowLogging
-import io.projectglow.vcf.{InternalRowToVariantContextConverter, VCFFileWriter, VariantContextToInternalRowConverter}
+import io.projectglow.vcf.{InternalRowToVariantContextConverter, VCFSchemaInferrer, VariantContextToInternalRowConverter}
 
 private[projectglow] object VariantNormalizer extends GlowLogging {
 
@@ -65,16 +65,7 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
     }
 
     val schema = df.schema
-
-    val headerLineSet =
-      VCFFileWriter
-        .parseHeaderLinesAndSamples(
-          Map("vcfHeader" -> "infer"),
-          None,
-          schema,
-          df.sparkSession.sparkContext.hadoopConfiguration
-        )
-        ._1
+    val headerLineSet = VCFSchemaInferrer.headerLinesFromSchema(schema).toSet
 
     // flatmap InternalRows to (optionally split) normalized rows; coverts each InternalRow to a
     // VariantContext, performs splitting and normalization on the VariantContext, converts it

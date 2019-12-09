@@ -43,7 +43,7 @@ class ComDatabricksBigVCFDatasource extends BigVCFDatasource with ComDatabricksD
 object BigVCFDatasource extends HlsUsageLogging {
   def serializeDataFrame(options: Map[String, String], data: DataFrame): RDD[Array[Byte]] = {
 
-    val dSchema = data.schema
+    val schema = data.schema
     val rdd = data.queryExecution.toRdd
 
     val nParts = rdd.getNumPartitions
@@ -59,12 +59,24 @@ object BigVCFDatasource extends HlsUsageLogging {
     val firstNonemptyPartition =
       rdd.mapPartitions(iter => Iterator(iter.nonEmpty)).collect.indexOf(true)
 
-    if (firstNonemptyPartition == -1 && (!options.contains(VCFFileWriter.VCF_HEADER_KEY) ||
-      options
-        .get(VCFFileWriter.VCF_HEADER_KEY)
-        .contains(VCFFileWriter.INFER_HEADER))) {
+    if (firstNonemptyPartition == -1 && options
+        .get(VCFHeaderUtils.VCF_HEADER_KEY)
+        .forall(_ == VCFHeaderUtils.INFER_HEADER)) {
       throw new SparkException("Cannot infer header for empty VCF.")
     }
+
+    val (headerLineSet, providedSampleIds) = VCFHeaderUtils.parseHeaderLinesAndSamples(
+      options,
+      Some(VCFHeaderUtils.INFER_HEADER),
+      schema,
+      conf)
+    val sampleIdInfo = if (providedSampleIds.isInstanceOf[SampleIds]) {
+      providedSampleIds
+    } else {
+      VCFWriterUtils.inferSampleIdsIfPresent(data)
+    }
+    val validationStringency = VCFOptionParser.getValidationStringency(options)
+
     rdd.mapPartitionsWithIndex {
       case (idx, it) =>
         val conf = serializableConf.value
@@ -81,7 +93,14 @@ object BigVCFDatasource extends HlsUsageLogging {
         val partitionWithHeader = if (firstNonemptyPartition == -1) 0 else firstNonemptyPartition
 
         val writer =
-          new VCFFileWriter(options, dSchema, conf, outputStream, idx == partitionWithHeader)
+          new VCFFileWriter(
+            headerLineSet,
+            sampleIdInfo,
+            validationStringency,
+            schema,
+            conf,
+            outputStream,
+            idx == partitionWithHeader)
 
         it.foreach { row =>
           writer.write(row)

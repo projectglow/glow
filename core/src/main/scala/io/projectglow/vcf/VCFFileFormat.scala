@@ -549,8 +549,18 @@ private[projectglow] class VCFOutputWriterFactory(options: Map[String, String])
       context: TaskAttemptContext): OutputWriter = {
     val outputStream = CodecStreams.createOutputStream(context, new Path(path))
     DatabricksBGZFOutputStream.setWriteEmptyBlockOnClose(outputStream, true)
+    val (headerLineSet, sampleIdInfo) =
+      VCFHeaderUtils.parseHeaderLinesAndSamples(
+        options,
+        Some(VCFHeaderUtils.INFER_HEADER),
+        dataSchema,
+        context.getConfiguration)
+
+    val stringency = VCFOptionParser.getValidationStringency(options)
     new VCFFileWriter(
-      options,
+      headerLineSet,
+      sampleIdInfo,
+      stringency,
       dataSchema,
       context.getConfiguration,
       outputStream,
