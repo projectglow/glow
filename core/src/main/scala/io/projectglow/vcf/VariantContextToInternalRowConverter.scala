@@ -430,8 +430,8 @@ class VariantContextToInternalRowConverter(
   private def updateOtherFields(genotype: HTSJDKGenotype, row: InternalRow, offset: Int): Unit = {
     val excludedFields = GenotypeFields.aliases.keySet
     val extendedAttributes = genotype.getExtendedAttributes
-    val keys = new Array[UTF8String](extendedAttributes.size)
-    val values = new Array[UTF8String](extendedAttributes.size)
+    val keys = new Array[Any](extendedAttributes.size)
+    val values = new Array[Any](extendedAttributes.size)
     val it = extendedAttributes.keySet.iterator
     var i = 0
     while (it.hasNext) {
@@ -515,9 +515,9 @@ class VariantContextToInternalRowConverter(
       case s: String => string2list(converter)(s)
     }
 
-  private def shortenArray[T](arr: Array[T], i: Int)(implicit m: ClassTag[T]): Array[T] = {
+  private def shortenArray(arr: Array[Any], i: Int): Array[Any] = {
     if (i < arr.length) {
-      val out = new Array[T](i)
+      val out = new Array[Any](i)
       Array.copy(arr, 0, out, 0, i)
       out
     } else {
