@@ -58,8 +58,11 @@ class VariantContextToInternalRowConverter(
   private val formatKeysParsedWithoutHeader = new JHashSet[String]()
 
   private def makeConverter(forSplit: Boolean) = {
-    val fns = schema.map { field =>
-      val fn: RowConverter.Updater[VariantContext] = field match {
+    val fns = new Array[RowConverter.Updater[VariantContext]](schema.length)
+    var i = 0
+    while (i < fns.length) {
+      val field = schema(i)
+      fns(i) = field match {
         case f if structFieldsEqualExceptNullability(f, contigNameField) => updateContigName
         case f if structFieldsEqualExceptNullability(f, startField) => updateStart
         case f if structFieldsEqualExceptNullability(f, endField) => updateEnd
@@ -93,15 +96,17 @@ class VariantContextToInternalRowConverter(
           )
           (_, _, _) => ()
       }
-      fn
+      i += 1
     }
-    new RowConverter[VariantContext](schema, fns.toArray)
+    new RowConverter[VariantContext](schema, fns)
   }
 
   private def makeGenotypeConverter(
       gSchema: StructType): RowConverter[(JMap[Allele, Int], HTSJDKGenotype)] = {
-    val fns = gSchema.map { field =>
-      val fn: RowConverter.Updater[(JMap[Allele, Int], HTSJDKGenotype)] = field match {
+    val fns = new Array[RowConverter.Updater[(JMap[Allele, Int], HTSJDKGenotype)]](gSchema.length)
+    var i = 0
+    while (i < fns.length) {
+      fns(i) = gSchema(i) match {
         case f if structFieldsEqualExceptNullability(f, phasedField) =>
           (el, r, i) => updateGTPhased(el._2, r, i)
         case f if structFieldsEqualExceptNullability(f, callsField) =>
@@ -124,9 +129,9 @@ class VariantContextToInternalRowConverter(
           val realName = GenotypeFields.reverseAliases.getOrElse(f.name, f.name)
           (el, r, i) => updateFormatField(el._2, realName, f.dataType, r, i)
       }
-      fn
+      i += 1
     }
-    new RowConverter[(JMap[Allele, Int], HTSJDKGenotype)](gSchema, fns.toArray)
+    new RowConverter[(JMap[Allele, Int], HTSJDKGenotype)](gSchema, fns)
   }
 
   private val splitConverter = makeConverter(true)
