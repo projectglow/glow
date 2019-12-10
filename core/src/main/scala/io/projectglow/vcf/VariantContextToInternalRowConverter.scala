@@ -73,22 +73,13 @@ class VariantContextToInternalRowConverter(
         case f if structFieldsEqualExceptNullability(f, filtersField) => updateFilters
         case f if structFieldsEqualExceptNullability(f, attributesField) => updateAttributes
         case f if structFieldsEqualExceptNullability(f, splitFromMultiAllelicField) =>
-          (vc, row, i) => row.update(i, forSplit)
+          (_, row, i) => row.update(i, forSplit)
         case f if f.name.startsWith(VariantSchemas.infoFieldPrefix) =>
           (vc, row, i) => updateInfoField(vc, field, row, i)
         case f if f.name == VariantSchemas.genotypesFieldName =>
           val gSchema = field.dataType.asInstanceOf[ArrayType].elementType.asInstanceOf[StructType]
           val gConverter = makeGenotypeConverter(gSchema)
-          (vc: VariantContext, row: InternalRow, i: Int) => {
-            val alleleMap = buildAlleleMap(vc)
-            val output = new Array[Any](vc.getGenotypes.size())
-            var j = 0
-            while (j < output.length) {
-              output(j) = gConverter((alleleMap, vc.getGenotype(j)))
-              j += 1
-            }
-            row.update(i, new GenericArrayData(output))
-          }
+          (vc, row, i) => updateGenotypes(vc, gConverter, row, i)
         case f =>
           logger.info(
             s"Column $f cannot be derived from VCF records. It will be null for each " +
@@ -134,8 +125,8 @@ class VariantContextToInternalRowConverter(
     new RowConverter[(JMap[Allele, Int], HTSJDKGenotype)](gSchema, fns)
   }
 
-  private val splitConverter = makeConverter(true)
-  private val nonSplitConverter = makeConverter(false)
+  private lazy val splitConverter = makeConverter(true)
+  private lazy val nonSplitConverter = makeConverter(false)
 
   def convertRow(vc: VariantContext, isSplit: Boolean): InternalRow = {
     if (isSplit) {
@@ -305,6 +296,21 @@ class VariantContextToInternalRowConverter(
         row.update(idx, value)
       }
     }
+  }
+
+  private def updateGenotypes(
+      vc: VariantContext,
+      gConverter: RowConverter[(JMap[Allele, Int], HTSJDKGenotype)],
+      row: InternalRow,
+      idx: Int): Unit = {
+    val alleleMap = buildAlleleMap(vc)
+    val output = new Array[Any](vc.getGenotypes.size())
+    var j = 0
+    while (j < output.length) {
+      output(j) = gConverter((alleleMap, vc.getGenotype(j)))
+      j += 1
+    }
+    row.update(idx, new GenericArrayData(output))
   }
 
   private def updateSampleId(g: HTSJDKGenotype, row: InternalRow, offset: Int): Unit = {
