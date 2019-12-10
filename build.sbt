@@ -34,6 +34,8 @@ def groupByHash(tests: Seq[TestDefinition]) = {
       case (i, tests) =>
         val options = ForkOptions()
           .withRunJVMOptions(Vector("-Dspark.ui.enabled=false", "-Xmx1024m"))
+        val options = ForkOptions().withRunJVMOptions(Vector("-Xmx1024m")).withRunJVMOptions(Vector("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"))
+
         new Group(i.toString, tests, SubProcess(options))
     }
     .toSeq

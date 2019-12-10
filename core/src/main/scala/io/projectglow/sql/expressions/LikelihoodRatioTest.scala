@@ -31,7 +31,7 @@ object LikelihoodRatioTest extends LogitTest {
     val nullX = new DenseMatrix(covariates.numRows, covariates.numCols, covariates.values)
     val y = new DenseVector(phenotypes)
     val nullFitState = new NewtonIterationsState(covariates.numRows, covariates.numCols)
-    NewtonIterationsState.initFromMatrix(nullFitState, nullX, y)
+    nullFitState.initFromMatrix(nullX, y)
     val nullFit = LogisticRegressionGwas.newtonIterations(nullX, y, nullX.copy, nullFitState)
     val fullFitState = new NewtonIterationsState(covariates.numRows, covariates.numCols + 1)
     val x = DenseMatrix.horzcat(nullX, DenseMatrix.zeros[Double](covariates.numRows, 1))
@@ -43,14 +43,13 @@ object LikelihoodRatioTest extends LogitTest {
       phenotypes: DenseVector[Double],
       fitState: LRTFitState): InternalRow = {
     fitState.x(::, -1) := genotypes
-    NewtonIterationsState.initFromMatrixAndNullFit(
-      fitState.placeholderState,
+    fitState.newtonState.initFromMatrixAndNullFit(
       fitState.x,
       phenotypes,
       fitState.nullFit.args)
 
     val fullFit =
-      LogisticRegressionGwas.newtonIterations(fitState.x, phenotypes, fitState.hessian, fitState.placeholderState)
+      LogisticRegressionGwas.newtonIterations(fitState.x, phenotypes, fitState.hessian, fitState.newtonState)
 
     if (!fitState.nullFit.converged || !fullFit.converged) {
       return LogitTestResults.nanRow
@@ -64,3 +63,10 @@ object LikelihoodRatioTest extends LogitTest {
       fitState.nullFit.logLkhd)
   }
 }
+
+case class LRTFitState(
+  x: DenseMatrix[Double],
+  hessian: DenseMatrix[Double],
+  nullFit: NewtonResult,
+  newtonState: NewtonIterationsState
+)

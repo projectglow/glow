@@ -136,29 +136,23 @@ class NewtonIterationsState(numRows: Int, numCols: Int) {
   val mu: DenseVector[Double] = DenseVector.zeros[Double](numRows)
   val score: DenseVector[Double] = DenseVector.zeros[Double](numCols)
   val fisher: DenseMatrix[Double] = DenseMatrix.zeros[Double](numCols, numCols)
-}
 
-object NewtonIterationsState {
   def initFromMatrix(
-      state: NewtonIterationsState,
-      X: DenseMatrix[Double],
-      y: DenseVector[Double]): Unit = {
+    X: DenseMatrix[Double],
+    y: DenseVector[Double]): Unit = {
 
-    val n = X.rows
-    val m = X.cols
-    val avg = sum(y) / n
-    state.b(0) = math.log(avg / (1 - avg))
-    state.mu := X * state.b
-    sigmoid.inPlace(state.mu)
-    state.score := X.t * (y - state.mu)
-    state.fisher := X.t * (X(::, *) *:* (state.mu *:* (1d - state.mu)))
+    val avg = sum(y) / X.rows
+    b(0) = math.log(avg / (1 - avg))
+    mu := X * b
+    sigmoid.inPlace(mu)
+    score := X.t * (y - mu)
+    fisher := X.t * (X(::, *) *:* (mu *:* (1d - mu)))
   }
 
   def initFromMatrixAndNullFit(
-      state: NewtonIterationsState,
-      X: DenseMatrix[Double],
-      y: DenseVector[Double],
-      nullFitArgs: NewtonIterationsState): Unit = {
+    X: DenseMatrix[Double],
+    y: DenseVector[Double],
+    nullFitArgs: NewtonIterationsState): Unit = {
 
     val m0 = nullFitArgs.b.length
 
@@ -168,24 +162,18 @@ object NewtonIterationsState {
     val X0 = X(::, r0)
     val X1 = X(::, r1)
 
-    state.b(r0) := nullFitArgs.b
-    state.mu := X * state.b
-    sigmoid.inPlace(state.mu)
-    state.score(r0) := nullFitArgs.score
-    state.score(r1) := X1.t * (y - state.mu)
-    state.fisher(r0, r0) := nullFitArgs.fisher
-    state.fisher(r0, r1) := X0.t * (X1(::, *) *:* (state.mu *:* (1d - state.mu)))
-    state.fisher(r1, r0) := state.fisher(r0, r1).t
-    state.fisher(r1, r1) := X1.t * (X1(::, *) *:* (state.mu *:* (1d - state.mu)))
+    b(r0) := nullFitArgs.b
+    mu := X * b
+    sigmoid.inPlace(mu)
+    score(r0) := nullFitArgs.score
+    score(r1) := X1.t * (y - mu)
+    fisher(r0, r0) := nullFitArgs.fisher
+    fisher(r0, r1) := X0.t * (X1(::, *) *:* (mu *:* (1d - mu)))
+    fisher(r1, r0) := fisher(r0, r1).t
+    fisher(r1, r1) := X1.t * (X1(::, *) *:* (mu *:* (1d - mu)))
   }
 }
 
-case class LRTFitState(
-    x: DenseMatrix[Double],
-    hessian: DenseMatrix[Double],
-    nullFit: NewtonResult,
-    placeholderState: NewtonIterationsState
-)
 
 case class NewtonResult(
     args: NewtonIterationsState,

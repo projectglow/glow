@@ -152,6 +152,7 @@ class FirthNewtonArgs(numRows: Int, numCols: Int) {
 }
 
 case class FirthFitState(
+    // The last column of x will be rewritten with the genotypes for each new row
     x: DenseMatrix[Double],
     nullFitArgs: FirthNewtonArgs,
     fullFitArgs: FirthNewtonArgs
