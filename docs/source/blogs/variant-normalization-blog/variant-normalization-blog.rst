@@ -143,7 +143,7 @@ Using Glow ``normalize_variants`` transformer, computational biologists and bioi
 
 Try it!
 -------
-Our `normalize_variants <https://glow.readthedocs.io/en/latest/tertiary/variant-normalization.html>`_ transformer makes it easy to normalize (and split) large variant datasets with a very small amount of code . Learn more about other feature of Glow `here <https://glow.readthedocs.io/en/latest/index.html>`_.
+Our `normalize_variants <https://glow.readthedocs.io/en/latest/etl/variant-normalization.html>`_ transformer makes it easy to normalize (and split) large variant datasets with a very small amount of code . Learn more about other feature of Glow `here <https://glow.readthedocs.io/en/latest/index.html>`_.
 
 
 References
