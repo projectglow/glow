@@ -73,5 +73,5 @@ The ``normalize_variants`` transformer has the following options:
        * This option is not required for the ``split`` mode as the reference genome is only used for normalization.
 
 
-.. notebook:: .. tertiary/normalizevariants-transformer.html
+.. notebook:: .. etl/normalizevariants-transformer.html
   :title: Variant normalization notebook
