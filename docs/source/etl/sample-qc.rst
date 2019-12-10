@@ -48,7 +48,7 @@ that the genotypes in each row of the input DataFrame contain the same samples i
     - A struct with ``min``, ``max``, ``mean``, and ``stddev``
 
 Computing user-defined sample QC metrics
-----------------------------------
+----------------------------------------
 
 In addition to the built-in QC functions discussed above, Glow provides two ways to compute
 user-defined per-sample statistics.
