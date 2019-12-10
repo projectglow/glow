@@ -465,8 +465,8 @@ class VariantContextToInternalRowConverter(
     row.update(
       offset,
       new ArrayBasedMapData(
-        new GenericArrayData(keys.take(i)),
-        new GenericArrayData(values.take(i)))
+        new GenericArrayData(shortenArray(keys, i)),
+        new GenericArrayData(shortenArray(values, i)))
     )
   }
 
@@ -487,7 +487,7 @@ class VariantContextToInternalRowConverter(
         i += 1
       }
     }
-    out.take(i)
+    shortenArray(out, i)
   }
 
   private def obj2any[T <: AnyRef: ClassTag](converter: String => T)(obj: Object): T = obj match {
@@ -514,6 +514,16 @@ class VariantContextToInternalRowConverter(
         arr
       case s: String => string2list(converter)(s)
     }
+
+  private def shortenArray[T](arr: Array[T], i: Int)(implicit m: ClassTag[T]): Array[T] = {
+    if (i < arr.length) {
+      val out = new Array[T](i)
+      Array.copy(arr, 0, out, 0, i)
+      out
+    } else {
+      arr
+    }
+  }
 }
 
 object FieldTypes {
