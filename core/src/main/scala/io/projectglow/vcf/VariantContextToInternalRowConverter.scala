@@ -238,10 +238,11 @@ class VariantContextToInternalRowConverter(
   }
 
   private def updateAttributes(vc: VariantContext, row: InternalRow, idx: Int): Unit = {
-    val keys = mutable.ListBuffer[UTF8String]()
-    val values = mutable.ListBuffer[UTF8String]()
     val htsjdkAttributes = vc.getAttributes
-    val attKeyIterator = htsjdkAttributes.keySet.iterator
+    val attKeyIterator = htsjdkAttributes.keySet().iterator
+    val keys = new Array[UTF8String](htsjdkAttributes.size)
+    val values = new Array[UTF8String](htsjdkAttributes.size)
+    var i = 0
     while (attKeyIterator.hasNext) {
       val attKey = attKeyIterator.next()
       tryWithWarning(attKey, FieldTypes.INFO) {
@@ -254,11 +255,12 @@ class VariantContextToInternalRowConverter(
           )
           infoKeysParsedWithoutHeader.add(attKey)
         }
-        keys.append(UTF8String.fromString(attKey))
+        keys(i) = UTF8String.fromString(attKey)
         val valueStr =
           VariantContextToVCFRowConverter.parseObjectAsString(obj2any(identity)(attVal))
-        values.append(UTF8String.fromString(valueStr))
+        values(i) = UTF8String.fromString(valueStr)
       }
+      i += 1
     }
     row.update(idx, new ArrayBasedMapData(new GenericArrayData(keys), new GenericArrayData(values)))
   }
@@ -428,9 +430,11 @@ class VariantContextToInternalRowConverter(
 
   private def updateOtherFields(genotype: HTSJDKGenotype, row: InternalRow, offset: Int): Unit = {
     val excludedFields = GenotypeFields.aliases.keySet
-    val keys = mutable.ListBuffer[UTF8String]()
-    val values = mutable.ListBuffer[UTF8String]()
-    val it = genotype.getExtendedAttributes.keySet().iterator()
+    val extendedAttributes = genotype.getExtendedAttributes
+    val keys = new Array[UTF8String](extendedAttributes.size)
+    val values = new Array[UTF8String](extendedAttributes.size)
+    val it = extendedAttributes.keySet.iterator
+    var i = 0
     while (it.hasNext) {
       val key = it.next()
       if (!excludedFields.contains(key)) {
@@ -447,8 +451,9 @@ class VariantContextToInternalRowConverter(
             obj2any(identity)(genotype.getExtendedAttribute(key))
           )
           if (valueStr.nonEmpty) {
-            keys.append(UTF8String.fromString(key))
-            values.append(UTF8String.fromString(valueStr))
+            keys(i) = UTF8String.fromString(key)
+            values(i) = UTF8String.fromString(valueStr)
+            i += 1
           } else {
             provideWarning(
               s"Key $key has empty value $valueStr, but FLAG is not supported in FORMAT fields."
@@ -457,9 +462,12 @@ class VariantContextToInternalRowConverter(
         }
       }
     }
+
     row.update(
       offset,
-      new ArrayBasedMapData(new GenericArrayData(keys), new GenericArrayData(values))
+      new ArrayBasedMapData(
+        new GenericArrayData(keys.take(i)),
+        new GenericArrayData(values.take(i)))
     )
   }
 
