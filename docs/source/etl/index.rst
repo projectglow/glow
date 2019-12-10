@@ -15,4 +15,5 @@ Glow offers functionalities to perform genomic variant data ETL, manipulation, a
    variant-qc
    sample-qc
    lift-over
+   variant-normalization
    utility-functions
