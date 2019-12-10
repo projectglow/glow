@@ -34,9 +34,7 @@ import io.projectglow.common.VariantSchemas._
 import io.projectglow.vcf.{InternalRowToVariantContextConverter, VCFFileWriter, VariantContextToInternalRowConverter}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.functions.expr
-import org.apache.spark.sql.SQLImplicits
 import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
-import org.apache.spark.sql.catalyst.InternalRow
 
 private[projectglow] object VariantNormalizer extends GlowLogging {
 
@@ -129,16 +127,15 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
   /**
    * Generates a new DataFrame by splitting the variants in the input DataFrame
    *
-   * @param inputDf
+   * @param variantDf
    * @return a Stream of split vc's
    */
-  def splitVariants(inputDf: DataFrame): DataFrame = {
+  def splitVariants(variantDf: DataFrame): DataFrame = {
 
-    val variantDf = if (inputDf.schema.fieldNames.contains("attributes")) {
-      // TODO: What to do when INFO fields are not flattened?
-      inputDf // WIP
-    } else {
-      inputDf
+    if (variantDf.schema.fieldNames.contains("attributes")) {
+      // TODO: Unflattened INFO field splitting
+      logger.warn(
+        "The variant splitting transformer does not split unflattened INFO fields within the attributes column.")
     }
 
     // Add/replace splitFromMultiAllelic column and explode alternateAlleles column
@@ -149,35 +146,11 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
       )
       .select(
         col("*"),
-        posexplode(col(alternateAllelesField.name)).as(Array("splitAlleleIdx", "splitAlleles"))
+        posexplode(col(alternateAllelesField.name))
+          .as(Array(splitAlleleIdxColumnName, splitAllelesColumnName))
       )
 
-    /*
-    // Seq of functions to be applied on ArrayTyped INFO fields to split them if their size is equal to number of alternate alleles
-    val infoFieldsSplittingFunctions: Seq[DataFrame => DataFrame] = variantDf
-      .schema
-      .filter(field =>
-        field.name.startsWith(infoFieldPrefix) && field.dataType.isInstanceOf[ArrayType])
-      .map(field =>
-        (f: DataFrame) => {
-          f.withColumn(
-            field.name,
-            when(
-              size(col(field.name)) === size(col(alternateAllelesField.name)),
-              array(expr(s"${field.name}[splitAlleleIdx]"))).otherwise(col(field.name)))
-        })
-
-    // val genotypesFieldFunctions = Seq[DataFrame => DataFrame] = variantDf.
-
-    // Update INFO fields by applying splitting functions.
-    var dfAfterInfoSplit = infoFieldsSplittingFunctions
-      .foldLeft(
-        dfAfterAltAlleleSplit
-      )((df, fn) => fn(df))
-      .withColumn(alternateAllelesField.name, array(col("splitAlleles"))) // replace alternateAlleles with splitAlleles
-      .drop("splitAlleleIdx", "splitAlleles") // drop helper columns
-     */
-
+    // Split INFO fields if their size is equal to number of alternate alleles
     val dfAfterInfoSplit = variantDf
       .schema
       .filter(field =>
@@ -190,7 +163,7 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
             field.name,
             when(
               size(col(field.name)) === size(col(alternateAllelesField.name)),
-              array(expr(s"${field.name}[splitAlleleIdx]"))).otherwise(col(field.name))
+              array(expr(s"${field.name}[$splitAlleleIdxColumnName]"))).otherwise(col(field.name))
           )
       )
 
@@ -198,7 +171,7 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
     val gSchema = variantDf
       .schema
       .fields
-      .find(_.name == "genotypes")
+      .find(_.name == genotypesFieldName)
       .get
       .dataType
       .asInstanceOf[ArrayType]
@@ -209,11 +182,17 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
     val withExtractedFields = gSchema
       .fields
       .foldLeft(dfAfterInfoSplit)((df, field) =>
-        df.withColumn(field.name, expr(s"transform(genotypes, g -> g.${field.name})")))
-      // .withColumn(sampleIdField.name, expr(s"transform(genotypes, g -> g.${sampleIdField.name})"))
-      // .withColumn(phasedField.name, expr(s"transform(genotypes, g -> g.${phasedField.name})"))
-      // .withColumn(callsField.name, expr(s"transform(genotypes, g -> g.${callsField.name})"))
-      .drop("genotypes")
+        df.withColumn(field.name, expr(s"transform(${genotypesFieldName}, g -> g.${field.name})")))
+      .drop(genotypesFieldName)
+
+    variantDf
+      .sqlContext
+      .udf
+      .register(
+        "likelihoodSplitUdf",
+        (numAlleles: Int, ploidy: Int, alleleIdx: Int) =>
+          refAltGTLikelihoodSplitIdxArray(numAlleles, ploidy, alleleIdx)
+      )
 
     val dfAfterGenotypesSplit = gSchema
       .fields
@@ -221,62 +200,66 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
         (df, field) =>
           field match {
             case f
-                if structFieldsEqualExceptNullability(genotypeLikelihoodsField, f) |
+              if structFieldsEqualExceptNullability(genotypeLikelihoodsField, f) |
                 structFieldsEqualExceptNullability(phredLikelihoodsField, f) |
                 structFieldsEqualExceptNullability(posteriorProbabilitiesField, f) =>
-              df
+              df.withColumn(
+                f.name,
+                expr(
+                  s"""transform(${f.name}, c ->
+                     | filter(
+                     | transform(
+                     | c, (x, idx) -> if (array_contains(
+                     | likelihoodSplitUdf(size(${alternateAllelesField.name}) +1,
+                     | size(${callsField.name}[0]), $splitAlleleIdxColumnName + 1), idx), x, null)),
+                     | x -> !isnull(x)))""".stripMargin
+                )
+              )
+
             case f if structFieldsEqualExceptNullability(callsField, f) =>
               df.withColumn(
                 f.name,
                 expr(
-                  s"transform(${f.name}, c -> transform(c, x -> if(x == 0, x, if(x == splitAlleleIdx + 1, 1, -1))))"))
+                  s"transform(${f.name}, " +
+                    s"c -> transform(c, x -> if(x == 0, x, if(x == $splitAlleleIdxColumnName + 1, 1, -1))))"))
+
             case f if f.dataType.isInstanceOf[ArrayType] =>
               df.withColumn(
                 f.name,
                 expr(
-                  s"transform(${f.name}, c -> if(size(c) == size(${alternateAllelesField.name}) + 1, array(c[0], c[splitAlleleIdx + 1]), null))"))
+                  s"transform(${f.name}, c -> if(size(c) == size(${alternateAllelesField.name}) + 1," +
+                    s" array(c[0], c[$splitAlleleIdxColumnName + 1]), null))")
+              )
             case _ => df
           }
-      ) // .withColumn(alternateAllelesField.name, array(col("splitAlleles"))) // replace alternateAlleles with splitAlleles
-    //     .drop("splitAlleleIdx", "splitAlleles") // drop helper columns
-
-    // .withColumn("genotypes", expr(s"arrays_zip(${gSchema.fieldNames.mkString(",")})"))// .withColumn("calls", expr("transform(calls, c -> transform(c, x -> x + 1))"))
-    // .drop(gSchema.fieldNames: _*)
-
-    /*
-
-    for (i <- 0 to dfAfterInfoSplit
-        .limit(1)
-        .select(size(col("genotypes")))
-        .collect()(0)
-        .getInt(0)) {
-      // dfAfterInfoSplit = dfAfterInfoSplit.withColumn(s"genotypes_${i}", expr(s"(genotypes[$i])"))
-      dfAfterInfoSplit = dfAfterInfoSplit.select(col("*"), expr(s"expand_struct(genotypes[$i])"))
-    }
-     */
+      )
+      .withColumn(alternateAllelesField.name, array(col(splitAllelesColumnName))) // replace alternateAlleles with splitAlleles
+      .drop(splitAlleleIdxColumnName, splitAllelesColumnName) // drop helper columns
+      .withColumn(genotypesFieldName, expr(s"arrays_zip(${gSchema.fieldNames.mkString(",")})"))
+      .drop(gSchema.fieldNames: _*)
 
     dfAfterGenotypesSplit
   }
 
   @VisibleForTesting
-  private[normalizevariants] def genotypeLikelihoodsSplitIdxArray(
+  private[normalizevariants] def refAltGTLikelihoodSplitIdxArray(
       numAlleles: Int,
       ploidy: Int,
-      alleleIdx: Int): Array[Int] = {
+      altAlleleIdx: Int): Array[Int] = {
+
+    if (altAlleleIdx < 1) {
+      throw new IllegalArgumentException("The alternate allele index must be at least 1.")
+    }
 
     if (ploidy == 1) {
-      Array(alleleIdx)
+      Array(0, altAlleleIdx)
     } else {
       val firstAppIdxArray = alleleFirstAppearanceIdxArray(numAlleles, ploidy)
-      var idxArray = (firstAppIdxArray(alleleIdx) to firstAppIdxArray(alleleIdx + 1) - 1).toArray
-      var tempNumAllele = alleleIdx + 2
+      val tempNumAllele = altAlleleIdx + 1
 
-      while (tempNumAllele <= numAlleles) {
-        idxArray ++= genotypeLikelihoodsSplitIdxArray(tempNumAllele, ploidy - 1, alleleIdx).map(e =>
-          e + firstAppIdxArray(tempNumAllele - 1))
-        tempNumAllele += 1
-      }
-      idxArray
+      Array(0) ++ refAltGTLikelihoodSplitIdxArray(tempNumAllele, ploidy - 1, altAlleleIdx)
+        .map(e => e + firstAppIdxArray(tempNumAllele - 1))
+
     }
   }
 
@@ -284,11 +267,11 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
   private[normalizevariants] def alleleFirstAppearanceIdxArray(
       numAlleles: Int,
       ploidy: Int): Array[Int] = {
-    0 +: (1 to numAlleles).toArray.map(i => choose(i + ploidy - 1, ploidy))
+    0 +: (1 to numAlleles).toArray.map(i => nChooseR(i + ploidy - 1, ploidy))
   }
 
   @VisibleForTesting
-  private[normalizevariants] def choose(n: Int, r: Int): Int = {
+  private[normalizevariants] def nChooseR(n: Int, r: Int): Int = {
     if (r > n) {
       0
     } else if (r == n) {
@@ -549,5 +532,7 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
   }
 
   private val PAD_WINDOW_SIZE = 100
+  private val splitAlleleIdxColumnName = "splitAlleleIdx"
+  private val splitAllelesColumnName = "splitAlleles"
 
 }

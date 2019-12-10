@@ -268,14 +268,14 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
 
   test("helper functions") {
 
-    val numAlleles = 5
-    val ploidy = 6
+    val numAlleles = 3
+    val ploidy = 2
 
     // scalastyle:off
     println(alleleFirstAppearanceIdxArray(numAlleles, ploidy).mkString(","))
 
-    (0 to numAlleles - 1).foreach { a =>
-      println(genotypeLikelihoodsSplitIdxArray(numAlleles, ploidy, a).mkString(","))
+    (1 to numAlleles - 1).foreach { a =>
+      println(refAltGTLikelihoodSplitIdxArray(numAlleles, ploidy, a).mkString(","))
     }
 
     // scalastyle:on
