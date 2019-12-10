@@ -16,10 +16,9 @@
 
 package io.projectglow.vcf
 
-import java.util.{HashMap => JHashMap, List => JList, Map => JMap}
+import java.util.{HashMap => JHashMap, HashSet => JHashSet, List => JList, Map => JMap}
 
 import scala.collection.JavaConverters._
-import scala.collection.mutable
 import scala.reflect.ClassTag
 import scala.util.control.NonFatal
 
@@ -55,8 +54,8 @@ class VariantContextToInternalRowConverter(
 
   import io.projectglow.common.VariantSchemas._
 
-  private val infoKeysParsedWithoutHeader = mutable.HashSet.empty[String]
-  private val formatKeysParsedWithoutHeader = mutable.HashSet.empty[String]
+  private val infoKeysParsedWithoutHeader = new JHashSet[String]()
+  private val formatKeysParsedWithoutHeader = new JHashSet[String]()
 
   private def makeConverter(forSplit: Boolean) = {
     val fns = schema.map { field =>
@@ -479,15 +478,16 @@ class VariantContextToInternalRowConverter(
   private def string2list[T <: AnyRef: ClassTag](converter: String => T)(s: String): Array[Any] = {
     val split = s.split(VCFConstants.INFO_FIELD_ARRAY_SEPARATOR_CHAR)
     var i = 0
-    val out = mutable.ArrayBuffer[Any]()
-    while (i < split.length) {
-      val converted = string2any(converter)(split(i))
+    val out = new Array[Any](split.length)
+    val it = split.iterator
+    while (it.hasNext) {
+      val converted = string2any(converter)(it.next)
       if (converted != null) {
-        out.append(converted)
+        out(i) = converted
+        i += 1
       }
-      i += 1
     }
-    out.toArray
+    out.take(i)
   }
 
   private def obj2any[T <: AnyRef: ClassTag](converter: String => T)(obj: Object): T = obj match {
