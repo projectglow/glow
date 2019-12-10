@@ -8,5 +8,3 @@
 ##INFO=<ID=FLIPPED_AF,Number=A,Type=Float,Description="Flipped Allele Frequency, for testing">
 ##INFO=<ID=MAX_AF,Number=A,Type=Float,Description="Maximal Allele Frequency">
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
-chr1	1	.	C	T	100	MismatchedRefAllele	AF=0.2;AttemptedLocus=chr1:540-540;FLIPPED_AF=0.8;MAX_AF=1.0
-chr1	61	.	A	T	100	MismatchedRefAllele	AF=0.0;AttemptedLocus=chr1:480-480;FLIPPED_AF=1.0;MAX_AF=0.1

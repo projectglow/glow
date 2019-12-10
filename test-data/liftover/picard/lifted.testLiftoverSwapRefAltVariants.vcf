@@ -7,3 +7,5 @@
 ##contig=<ID=chr1,length=540>
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
 chr1	301	.	CA	C	100	PASS	AF=1.0;MAX_AF=0.0;ReverseComplementedAlleles
+chr1	480	.	A	T	100	PASS	AF=1.00;FLIPPED_AF=1.0;ReverseComplementedAlleles;SwappedAlleles
+chr1	540	.	A	G	100	PASS	AF=0.800;FLIPPED_AF=0.8;ReverseComplementedAlleles;SwappedAlleles
