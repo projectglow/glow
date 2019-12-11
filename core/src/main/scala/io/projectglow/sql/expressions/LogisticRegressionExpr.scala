@@ -37,6 +37,7 @@ case class LogisticRegressionExpr(
     test: Expression)
     extends QuaternaryExpression
     with CodegenFallback
+    with CodegenBelow
     with ImplicitCastInputTypes {
 
   override def prettyName: String = "logistic_regression_gwas"

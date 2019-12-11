@@ -193,3 +193,5 @@ object VectorToArray {
     new GenericArrayData(vectorType.deserialize(input).toArray)
   }
 }
+
+trait CodegenBelow
