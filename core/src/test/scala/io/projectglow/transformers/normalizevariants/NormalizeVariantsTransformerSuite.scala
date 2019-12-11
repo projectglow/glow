@@ -84,6 +84,9 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
   lazy val vtTestVcfMultiAllelic1 =
     s"$testFolder/CEUTrio.HiSeq.WGS.b37.NA12878.20.21-onlyMultShortINFO-altered.vcf"
 
+  lazy val vtTestVcfMultiAllelic2 =
+    s"$testFolder/01_IN_altered_multiallelic_new.vcf"
+
   lazy val vtTestVcfMultiAllelicExpectedSplit =
     s"$testFolder/01_IN_altered_multiallelic_gatksplit.vcf"
 
@@ -250,7 +253,7 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
       .read
       .format(sourceName)
       .options(Map("flattenInfoFields" -> "true"))
-      .load(vtTestVcfMultiAllelic1)
+      .load(vtTestVcfMultiAllelic2)
 
     dfOriginal.show(false)
     val dfSplit = splitVariants(dfOriginal)
@@ -259,7 +262,7 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
       .write
       .format("bigvcf")
       .save(
-        s"/Users/kiavash.kianfar/Google%20Drive/TAMUOngoing/Research/Databricks/NormalizationInvestigation/Tests/split.vcf")
+        s"/Users/kiavash.kianfar/Google%20Drive/TAMUOngoing/Research/Databricks/NormalizationInvestigation/Tests/split2.vcf")
 
     dfSplit.show(false)
     //  dfOriginal.printSchema()
