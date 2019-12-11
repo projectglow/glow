@@ -113,15 +113,7 @@ class VCFStreamWriter(
   }
 
   def write(vc: VariantContext): Unit = {
-    val vcBuilder = new VariantContextBuilder(vc)
-    val iterator = vc.getAttributes.entrySet().iterator()
-    while (iterator.hasNext) { // parse to string, then write,
-      // otherwise the write messes up double precisions
-      val entry = iterator.next()
-      vcBuilder.attribute(
-        entry.getKey,
-        VariantContextToVCFRowConverter.parseObjectAsString(entry.getValue))
-    }
+    val vcBuilder = VCFWriterUtils.convertVcAttributesToStrings(vc)
 
     if (header == null) {
       setHeader(vcBuilder)
