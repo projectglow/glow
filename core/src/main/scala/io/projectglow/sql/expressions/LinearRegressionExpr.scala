@@ -29,6 +29,7 @@ case class LinearRegressionExpr(
     covariates: Expression)
     extends TernaryExpression
     with CodegenFallback
+    with CodegenBelow
     with ImplicitCastInputTypes {
 
   private val matrixUDT = SQLUtils.newMatrixUDT()
