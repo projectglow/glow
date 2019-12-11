@@ -11,6 +11,5 @@ Perform population-scale statistical analyses of genetic variants.
    :maxdepth: 2
 
    pipe-transformer
-   variant-normalization
    pandas-udf
    regression-tests
