@@ -175,7 +175,7 @@ class PlinkReaderSuite extends GlowBaseTest {
         .sort("contigName")
         .collect
     }
-    checkExceptionContains[java.lang.IllegalArgumentException](e, "Failed while parsing BIM file")
+    checkExceptionContains[IllegalArgumentException](e, "Failed while parsing BIM file")
   }
 
   test("Wrong FAM delimiter") {
@@ -275,11 +275,9 @@ class PlinkReaderSuite extends GlowBaseTest {
         .load(s"$bedBimFam/test.bed")
         .collect()
     }
-    assert(e.getCause.isInstanceOf[IllegalArgumentException])
-    assert(
-      e.getCause
-        .getMessage
-        .contains("Value for mergeFidIid must be [true, false]. Provided: hello"))
+    checkExceptionContains[IllegalArgumentException](
+      e,
+      "Value for mergeFidIid must be [true, false]. Provided: hello")
   }
 
   test("PLINK file format does not support writing") {
