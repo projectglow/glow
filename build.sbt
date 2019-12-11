@@ -34,7 +34,6 @@ def groupByHash(tests: Seq[TestDefinition]) = {
       case (i, tests) =>
         val options = ForkOptions()
           .withRunJVMOptions(Vector("-Dspark.ui.enabled=false", "-Xmx1024m"))
-        val options = ForkOptions().withRunJVMOptions(Vector("-Xmx1024m")).withRunJVMOptions(Vector("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"))
 
         new Group(i.toString, tests, SubProcess(options))
     }
@@ -140,7 +139,8 @@ lazy val core = (project in file("core"))
       "io.netty" % "netty" % "3.9.9.Final",
       "io.netty" % "netty-all" % "4.1.17.Final",
       "com.github.samtools" % "htsjdk" % "2.20.3"
-    )
+    ),
+    unmanagedBase := new File("/Users/hhd/databricks/work/breeze/math/target/scala-2.11/")
   )
 
 /**
