@@ -91,21 +91,17 @@
 ##INFO=<ID=AN,Number=1,Type=Integer,Description="Total number of alleles in called genotypes">
 ##INFO=<ID=refseq.name,Number=1,Type=String,Description="RefSeq name">
 ##INFO=<ID=refseq.positionType,Number=1,Type=String,Description="RefSeq genome type position">
-##FORMAT=<ID=AD,Number=R,Type=Integer,Description="Allelic depths for the ref and alt alleles in the order listed">
-##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Approximate read depth (reads with MQ=255 or with bad mates are filtered)">
-##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
-##FORMAT=<ID=PL,Number=G,Type=Integer,Description="Normalized, Phred-scaled likelihoods for genotypes as defined in the VCF specification">
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	SAMPLE1	SAMPLE2	SAMPLE3	SAMPLE4
-20	101	.	A	ACCA,TCGG	.	PASS	VC=INDEL;AC=2,2;AF=0.25,0.25;AN=8;refseq.name=NM_144628;refseq.positionType=intron	GT	0/1	1/2	0/1	0/2
-20	302	.	C	CTTGT,CTTGTCC	.	PASS	VC=INDEL;AC=2,2;AF=0.25,0.25;AN=8;refseq.name=NM_080489;refseq.positionType=intron	GT	0/1	0/2	0/1	1/2
-20	503	.	T	TGTC	.	PASS	VC=INDEL;AC=4;AF=0.5;AN=8	GT	0/1	0/1	0/1	1/1
-20	704	.	GAA	G	.	PASS	VC=INDEL;AC=4;AF=0.5;AN=8;refseq.name=NM_001083910;refseq.positionType=intron	GT	0/1	1/1	1/1	0/1
-20	905	.	G	GT	.	PASS	VC=INDEL;AC=4;AF=0.5;AN=8	GT	0/1	0/1	1/1	1/1
+20	101	.	A	ACCA,TCGG	.	PASS	VC=INDEL;AC=2,2;AF=0.25,0.25;AN=8;refseq.name=NM_144628;refseq.positionType=intron	GT	0/1	0/2	0/1	0/2
+20	302	.	C	CTTGT,CTTGTCC	.	PASS	VC=INDEL;AC=2,2;AF=0.25,0.25;AN=8;refseq.name=NM_080489;refseq.positionType=intron	GT	0/1	0/2	0/1	0/2
+20	503	.	T	TGTC	.	PASS	VC=INDEL;AC=4;AF=0.5;AN=8	GT	0/1	0/1	0/1	0/1
+20	704	.	GAA	G	.	PASS	VC=INDEL;AC=4;AF=0.5;AN=8;refseq.name=NM_001083910;refseq.positionType=intron	GT	0/1	0/1	0/1	0/1
+20	905	.	G	GT	.	PASS	VC=INDEL;AC=4;AF=0.5;AN=8	GT	0/1	0/1	0/1	0/1
 20	1106	.	T	TA,TTA,TTTA	.	PASS	VC=INDEL;AC=2,1,2;AF=0.25,0.125,0.25;AN=8	GT	0/1	0/2	0/3	1/3
-20	1307	.	A	AA,AAA,AAAA,AAAAA	.	PASS	VC=INDEL;AC=1,1,1,1;AF=0.125,0.125,0.125,0.125;AN=8	GT	0/1	0/2	2/3	1/4
-20	1508	.	CT	T,CTTT	.	PASS	VC=INDEL;AC=2,2;AF=0.25,0.25;AN=8;refseq.name=NM_002836;refseq.positionType=intron	GT	0/1	1/2	0/1	2/2
+20	1307	.	A	AA,AAA,AAAA,AAAAA	.	PASS	VC=INDEL;AC=1,1,1,1;AF=0.125,0.125,0.125,0.125;AN=8	GT	0/1	0/2	0/3	0/4
+20	1508	.	CT	T,CTTT	.	PASS	VC=INDEL;AC=2,2;AF=0.25,0.25;AN=8;refseq.name=NM_002836;refseq.positionType=intron	GT	0/1	0/2	0/1	0/2
 20	1709	.	TCAAA	TCA,T	.	PASS	VC=INDEL;AC=2,2;AF=0.25,0.25;AN=8;refseq.name=NM_001501;refseq.positionType=intron	GT	0/1	0/2	0/1	0/2
 20	1910	.	TCTTT	T,TCT	.	PASS	VC=INDEL;AC=2,2;AF=0.25,0.25;AN=8;refseq.name=NM_001009984;refseq.positionType=intron	GT	0/1	0/2	0/1	0/2
-20	2111	.	T	TT,TTT	.	PASS	VC=INDEL;AC=2,2;AF=0.25,0.25;AN=8	GT	0/1	1/2	0/1	1/2
-20	2312	.	GCTCCCAGGCTACAGAAAGATGATGGAG	G,TCCCAGGCTACAGAAAGATGATG	.	PASS	VC=INDEL;AC=2,2;AF=0.25,0.25;AN=8;	GT	1/2	1/2	0/1	1/2
+20	2111	.	T	TT,TTT	.	PASS	VC=INDEL;AC=2,2;AF=0.25,0.25;AN=8	GT	0/1	0/2	0/1	0/2
+20	2312	.	GCTCCCAGGCTACAGAAAGATGATGGAG	G,TCCCAGGCTACAGAAAGATGATG	.	PASS	VC=INDEL;AC=2,2;AF=0.25,0.25;AN=8;	GT	0/1	0/2	0/1	0/2

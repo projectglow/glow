@@ -92,7 +92,6 @@
 ##INFO=<ID=DB,Number=0,Type=Flag,Description="dbSNP Membership">
 ##INFO=<ID=refseq.name,Number=1,Type=String,Description="RefSeq name">
 ##INFO=<ID=refseq.positionType,Number=1,Type=String,Description="RefSeq genome type position">
-##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
 20	101	.	A	ACCA	.	PASS	VC=INDEL;AC=24;AF=0.08;AN=316;refseq.name=NM_144628;refseq.positionType=intron
 20	302	.	C	CTTGT	.	PASS	VC=INDEL;AC=28;AF=0.1;AN=276;refseq.name=NM_080489;refseq.positionType=intron

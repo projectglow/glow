@@ -84,8 +84,8 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
     }
 
     // TODO: Implement normalization without using VariantContext
-    val rddAfterMaybeNormalize = if (doNormalize) {
-      dfAfterMaybeSplit.queryExecution.toRdd.mapPartitions { it =>
+    val dfAfterMaybeNormalize = if (doNormalize) {
+      val rddAfterNormalize = dfAfterMaybeSplit.queryExecution.toRdd.mapPartitions { it =>
         val vcfHeader = new VCFHeader(headerLineSet.asJava)
 
         val variantContextToInternalRowConverter =
@@ -117,11 +117,15 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
           }
         }
       }
+
+      SQLUtils.internalCreateDataFrame(df.sparkSession, rddAfterNormalize, schema, false)
+
     } else {
-      dfAfterMaybeSplit.queryExecution.toRdd
+      dfAfterMaybeSplit
     }
 
-    SQLUtils.internalCreateDataFrame(df.sparkSession, rddAfterMaybeNormalize, schema, false)
+    dfAfterMaybeNormalize
+
   }
 
   /**
@@ -207,12 +211,15 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
       .elementType
       .asInstanceOf[StructType]
 
+
     // pull out gt field
     val withExtractedFields = gSchema
       .fields
       .foldLeft(variantDf)((df, field) =>
         df.withColumn(field.name, expr(s"transform(${genotypesFieldName}, g -> g.${field.name})")))
       .drop(genotypesFieldName)
+
+    withExtractedFields.show()
 
     gSchema
       .fields
@@ -253,9 +260,9 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
             case _ => df
           }
       )
-      .withColumn(genotypesFieldName, expr(s"arrays_zip(${gSchema.fieldNames.mkString(",")})"))
+      .withColumn(genotypesFieldName, arrays_zip(gSchema.fieldNames.map(col(_)): _*))
+      //.withColumn(genotypesFieldName, when(!isnull(col(genotypesFieldName)), lit(1)).otherwise(lit(2)))
       .drop(gSchema.fieldNames: _*)
-
   }
 
   @VisibleForTesting

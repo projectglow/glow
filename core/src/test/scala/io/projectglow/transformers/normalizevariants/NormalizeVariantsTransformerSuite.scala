@@ -21,7 +21,6 @@ import org.apache.spark.SparkConf
 import io.projectglow.Glow
 import io.projectglow.common.GlowLogging
 import io.projectglow.sql.GlowBaseTest
-import org.apache.spark.sql.functions._
 import io.projectglow.transformers.normalizevariants.VariantNormalizer._
 
 class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
@@ -41,20 +40,21 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
     s"$testFolder/test_left_align_hg38_altered.vcf"
 
   lazy val gatkTestVcfExpectedSplit =
-    s"$testFolder/test_left_align_hg38_altered_gatksplit.vcf"
+    s"$testFolder/test_left_align_hg38_altered_vtdecompose.vcf"
 
   lazy val gatkTestVcfExpectedNormalized =
     s"$testFolder/test_left_align_hg38_altered_bcftoolsnormalized.vcf"
 
   lazy val gatkTestVcfExpectedSplitNormalized =
-    s"$testFolder/test_left_align_hg38_altered_gatksplit_bcftoolsnormalized.vcf"
+    s"$testFolder/test_left_align_hg38_altered_vtdecompose_bcftoolsnormalized.vcf"
+
 
   // These files are similar to above but contain symbolic variants.
   lazy val gatkTestVcfSymbolic =
     s"$testFolder/test_left_align_hg38_altered_symbolic.vcf"
 
   lazy val gatkTestVcfSymbolicExpectedSplit =
-    s"$testFolder/test_left_align_hg38_altered_symbolic_gatksplit.vcf"
+    s"$testFolder/test_left_align_hg38_altered_symbolic_vtdecompose.vcf"
 
   lazy val gatkTestVcfSymbolicExpectedNormalized =
     s"$testFolder/test_left_align_hg38_altered_symbolic_bcftoolsnormalized.vcf"
@@ -75,26 +75,26 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
   lazy val vtTestVcfBiallelic =
     s"$testFolder/01_IN_altered_biallelic.vcf"
 
+  lazy val vtTestVcfBiallelicExpectedSplit =
+    s"$testFolder/01_IN_altered_biallelic_vtdecompose.vcf"
+
   lazy val vtTestVcfBiallelicExpectedNormalized =
     s"$testFolder/01_IN_altered_biallelic_bcftoolsnormalized.vcf"
 
+  lazy val vtTestVcfBiallelicExpectedSplitNormalized =
+    s"$testFolder/01_IN_altered_biallelic_vtdecompose_bcftoolsnormalized.vcf"
+
   lazy val vtTestVcfMultiAllelic =
-    s"$testFolder/01_IN_altered_multiallelic.vcf"
-
-  lazy val vtTestVcfMultiAllelic1 =
-    s"$testFolder/CEUTrio.HiSeq.WGS.b37.NA12878.20.21-onlyMultShortINFO-altered.vcf"
-
-  lazy val vtTestVcfMultiAllelic2 =
     s"$testFolder/01_IN_altered_multiallelic_new.vcf"
 
   lazy val vtTestVcfMultiAllelicExpectedSplit =
-    s"$testFolder/01_IN_altered_multiallelic_gatksplit.vcf"
+    s"$testFolder/01_IN_altered_multiallelic_new_vtdecompose.vcf"
 
   lazy val vtTestVcfMultiAllelicExpectedNormalized =
-    s"$testFolder/01_IN_altered_multiallelic_bcftoolsnormalized.vcf"
+    s"$testFolder/01_IN_altered_multiallelic_new_bcftoolsnormalized.vcf"
 
   lazy val vtTestVcfMultiAllelicExpectedSplitNormalized =
-    s"$testFolder/01_IN_altered_multiallelic_gatksplit_bcftoolsnormalized.vcf"
+    s"$testFolder/01_IN_altered_multiallelic_new_vtdecomopse_bcftoolsnormalized.vcf"
 
   override def sparkConf: SparkConf = {
     super
@@ -132,6 +132,8 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
       .format(sourceName)
       .load(originalVCFFileName)
 
+    dfOriginal.show()
+
     val dfNormalized = Glow
       .transform(
         "normalize_variants",
@@ -140,7 +142,7 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
       )
       .orderBy("contigName", "start", "end")
 
-    dfNormalized.rdd.count()
+    dfNormalized.show()
 
     val dfExpected = spark
       .read
@@ -148,10 +150,12 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
       .load(expectedVCFFileName)
       .orderBy("contigName", "start", "end")
 
-    dfExpected.rdd.count()
+    dfExpected.show()
 
+    val dfNormalizedColumns = dfNormalized.columns.map(name => if (name.contains(".")) s"`${name}`" else name)
     assert(dfNormalized.count() == dfExpected.count())
     dfExpected
+      .select(dfNormalizedColumns.head, dfNormalizedColumns.tail: _*) // make order of columns the same
       .drop("splitFromMultiAllelic")
       .collect
       .zip(dfNormalized.drop("splitFromMultiAllelic").collect)
@@ -201,15 +205,26 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
 
   test("normalization transform no-normalize-do-split") {
 
-    testNormalizedvsExpected(vtTestVcfBiallelic, vtTestVcfBiallelic, None, Option("split"))
+    testNormalizedvsExpected(
+      vtTestVcfBiallelic,
+      vtTestVcfBiallelicExpectedSplit,
+      None,
+      Option("split")
+    )
 
     testNormalizedvsExpected(
       vtTestVcfMultiAllelic,
       vtTestVcfMultiAllelicExpectedSplit,
       None,
-      Option("split"))
+      Option("split")
+    )
 
-    testNormalizedvsExpected(gatkTestVcf, gatkTestVcfExpectedSplit, None, Option("split"))
+    testNormalizedvsExpected(
+      gatkTestVcf,
+      gatkTestVcfExpectedSplit,
+      None,
+      Option("split")
+    )
 
     testNormalizedvsExpected(
       gatkTestVcfSymbolic,
@@ -253,7 +268,7 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
       .read
       .format(sourceName)
       .options(Map("flattenInfoFields" -> "true"))
-      .load(vtTestVcfMultiAllelic2)
+      .load(vtTestVcfMultiAllelic)
 
     dfOriginal.show(false)
     val dfSplit = splitVariants(dfOriginal)
