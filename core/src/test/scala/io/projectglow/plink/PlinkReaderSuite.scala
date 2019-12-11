@@ -175,7 +175,7 @@ class PlinkReaderSuite extends GlowBaseTest {
         .sort("contigName")
         .collect
     }
-    checkExceptionContains[IllegalArgumentException](e, "Failed while parsing BIM file")
+    checkExceptionContains[java.lang.IllegalArgumentException](e, "Failed while parsing BIM file")
   }
 
   test("Wrong FAM delimiter") {
