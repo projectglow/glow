@@ -16,6 +16,7 @@
 
 package io.projectglow.vcf
 
+import htsjdk.variant.variantcontext.{VariantContext, VariantContextBuilder}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.{ArrayType, StructType}
 
@@ -87,6 +88,19 @@ object VCFWriterUtils extends GlowLogging {
 
   def sampleIsMissing(s: String): Boolean = {
     s == null || s.isEmpty
+  }
+
+  def convertVcAttributesToStrings(vc: VariantContext): VariantContextBuilder = {
+    val vcBuilder = new VariantContextBuilder(vc)
+    val iterator = vc.getAttributes.entrySet().iterator()
+    while (iterator.hasNext) { // parse to string, then write,
+      // otherwise the write messes up double precisions
+      val entry = iterator.next()
+      vcBuilder.attribute(
+        entry.getKey,
+        VariantContextToVCFRowConverter.parseObjectAsString(entry.getValue))
+    }
+    vcBuilder
   }
 }
 
