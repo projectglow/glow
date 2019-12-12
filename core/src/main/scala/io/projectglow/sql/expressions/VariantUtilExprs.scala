@@ -19,7 +19,7 @@ package io.projectglow.sql.expressions
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, CodegenFallback, ExprCode}
-import org.apache.spark.sql.catalyst.expressions.{Expression, ImplicitCastInputTypes, UnaryExpression}
+import org.apache.spark.sql.catalyst.expressions.{Expression, ImplicitCastInputTypes, UnaryExpression, Unevaluable}
 import org.apache.spark.sql.catalyst.util.{ArrayData, GenericArrayData}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
@@ -34,30 +34,6 @@ import io.projectglow.sql.util.ExpectsGenotypeFields
  * The functions are exposed to the user as Catalyst expressions.
  */
 object VariantUtilExprs {
-  def genotypeStates(genotypes: ArrayData, genotypesSize: Int, genotypesIdx: Int): ArrayData = {
-    val output = new Array[Int](genotypes.numElements())
-    var i = 0
-    while (i < output.length) {
-      val calls = genotypes
-        .getStruct(i, genotypesSize)
-        .getArray(genotypesIdx)
-      var sum = 0
-      var j = 0
-      while (j < calls.numElements() && sum >= 0) {
-        if (calls.getInt(j) >= 0) {
-          sum += calls.getInt(j)
-        } else {
-          sum = -1 // missing
-        }
-        j += 1
-      }
-      output(i) = if (j == 0) -1 else sum
-      i += 1
-    }
-
-    new GenericArrayData(output)
-  }
-
   def isSnp(refAllele: UTF8String, altAllele: UTF8String): Boolean = {
     if (refAllele.numChars() != altAllele.numChars()) {
       return false
@@ -164,34 +140,10 @@ object VariantType {
  * of the calls array for the sample at that position if no calls are missing, or -1 if any calls
  * are missing.
  */
-case class GenotypeStates(genotypes: Expression)
+case class GenotypeStates(child: Expression)
     extends UnaryExpression
-    with ExpectsGenotypeFields {
-
-  override def genotypesExpr: Expression = genotypes
-
-  override def genotypeFieldsRequired: Seq[StructField] = Seq(VariantSchemas.callsField)
-
-  override def child: Expression = genotypes
-
+    with Unevaluable {
   override def dataType: DataType = ArrayType(IntegerType)
-
-  override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    val fn = "io.projectglow.sql.expressions.VariantUtilExprs.genotypeStates"
-    nullSafeCodeGen(ctx, ev, calls => {
-      s"""
-         |${ev.value} = $fn($calls, $genotypeStructSize, ${genotypeFieldIndices.head});
-       """.stripMargin
-    })
-  }
-
-  override def nullSafeEval(input: Any): Any = {
-    VariantUtilExprs.genotypeStates(
-      input.asInstanceOf[ArrayData],
-      genotypeStructSize,
-      genotypeFieldIndices.head
-    )
-  }
 }
 
 /**
