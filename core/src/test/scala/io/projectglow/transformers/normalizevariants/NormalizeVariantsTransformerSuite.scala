@@ -48,7 +48,6 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
   lazy val gatkTestVcfExpectedSplitNormalized =
     s"$testFolder/test_left_align_hg38_altered_vtdecompose_bcftoolsnormalized.vcf"
 
-
   // These files are similar to above but contain symbolic variants.
   lazy val gatkTestVcfSymbolic =
     s"$testFolder/test_left_align_hg38_altered_symbolic.vcf"
@@ -60,7 +59,7 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
     s"$testFolder/test_left_align_hg38_altered_symbolic_bcftoolsnormalized.vcf"
 
   lazy val gatkTestVcfSymbolicExpectedSplitNormalized =
-    s"$testFolder/test_left_align_hg38_altered_symbolic_gatksplit_bcftoolsnormalized.vcf"
+    s"$testFolder/test_left_align_hg38_altered_symbolic_vtdecompose_bcftoolsnormalized.vcf"
 
   // vt test files
   // The base of vcfs and reference in these test files were taken from vt
@@ -94,7 +93,7 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
     s"$testFolder/01_IN_altered_multiallelic_new_bcftoolsnormalized.vcf"
 
   lazy val vtTestVcfMultiAllelicExpectedSplitNormalized =
-    s"$testFolder/01_IN_altered_multiallelic_new_vtdecomopse_bcftoolsnormalized.vcf"
+    s"$testFolder/01_IN_altered_multiallelic_new_vtdecompose_bcftoolsnormalized.vcf"
 
   override def sparkConf: SparkConf = {
     super
@@ -132,8 +131,6 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
       .format(sourceName)
       .load(originalVCFFileName)
 
-    dfOriginal.show()
-
     val dfNormalized = Glow
       .transform(
         "normalize_variants",
@@ -142,17 +139,14 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
       )
       .orderBy("contigName", "start", "end")
 
-    dfNormalized.show()
-
     val dfExpected = spark
       .read
       .format(sourceName)
       .load(expectedVCFFileName)
       .orderBy("contigName", "start", "end")
 
-    dfExpected.show()
-
-    val dfNormalizedColumns = dfNormalized.columns.map(name => if (name.contains(".")) s"`${name}`" else name)
+    val dfNormalizedColumns =
+      dfNormalized.columns.map(name => if (name.contains(".")) s"`${name}`" else name)
     assert(dfNormalized.count() == dfExpected.count())
     dfExpected
       .select(dfNormalizedColumns.head, dfNormalizedColumns.tail: _*) // make order of columns the same
@@ -240,63 +234,48 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
       vtTestVcfBiallelic,
       vtTestVcfBiallelicExpectedNormalized,
       Option(vtTestReference),
-      Option("splitAndNormalize"))
+      Option("split_and_normalize"))
 
     testNormalizedvsExpected(
       vtTestVcfMultiAllelic,
       vtTestVcfMultiAllelicExpectedSplitNormalized,
       Option(vtTestReference),
-      Option("splitAndNormalize"))
+      Option("split_and_normalize"))
 
     testNormalizedvsExpected(
       gatkTestVcf,
       gatkTestVcfExpectedSplitNormalized,
       Option(gatkTestReference),
-      Option("splitAndNormalize"))
+      Option("split_and_normalize"))
 
     testNormalizedvsExpected(
       gatkTestVcfSymbolic,
       gatkTestVcfSymbolicExpectedSplitNormalized,
       Option(gatkTestReference),
-      Option("splitAndNormalize"))
+      Option("split_and_normalize"))
 
   }
 
-  test("splitVariants") {
+  // TODO: Generalized the following tests and add more unit tests
 
-    val dfOriginal = spark
-      .read
-      .format(sourceName)
-      .options(Map("flattenInfoFields" -> "true"))
-      .load(vtTestVcfMultiAllelic)
-
-    dfOriginal.show(false)
-    val dfSplit = splitVariants(dfOriginal)
-
-    dfSplit
-      .write
-      .format("bigvcf")
-      .save(
-        s"/Users/kiavash.kianfar/Google%20Drive/TAMUOngoing/Research/Databricks/NormalizationInvestigation/Tests/split2.vcf")
-
-    dfSplit.show(false)
-    //  dfOriginal.printSchema()
-
-  }
-
-  test("helper functions") {
+  test("alleleFirstAppearanceIdxArray") {
 
     val numAlleles = 3
     val ploidy = 2
 
-    // scalastyle:off
-    println(alleleFirstAppearanceIdxArray(numAlleles, ploidy).mkString(","))
-
-    (1 to numAlleles - 1).foreach { a =>
-      println(refAltGTLikelihoodSplitIdxArray(numAlleles, ploidy, a).mkString(","))
-    }
-
-    // scalastyle:on
+    assert(alleleFirstAppearanceIdxArray(numAlleles, ploidy) === Array(0, 1, 3))
 
   }
+
+  test("refAltColexOrderIdxArray") {
+
+    val numAlleles = 3
+    val ploidy = 2
+    assert(
+      (1 to numAlleles - 1).foldLeft(Array[Int]())(
+        (a, n) => a ++ refAltColexOrderIdxArray(numAlleles, ploidy, n)
+      ) === Array(0, 1, 2, 0, 3, 5)
+    )
+  }
+
 }

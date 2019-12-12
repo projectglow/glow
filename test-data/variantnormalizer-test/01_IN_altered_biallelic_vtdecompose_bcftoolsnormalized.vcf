@@ -1,0 +1,292 @@
+##fileformat=VCFv4.0
+##FILTER=<ID=PASS,Description="All filters passed">
+##contig=<ID=1,length=249250621,assembly=b37>
+##contig=<ID=2,length=243199373,assembly=b37>
+##contig=<ID=3,length=198022430,assembly=b37>
+##contig=<ID=4,length=191154276,assembly=b37>
+##contig=<ID=5,length=180915260,assembly=b37>
+##contig=<ID=6,length=171115067,assembly=b37>
+##contig=<ID=7,length=159138663,assembly=b37>
+##contig=<ID=8,length=146364022,assembly=b37>
+##contig=<ID=9,length=141213431,assembly=b37>
+##contig=<ID=10,length=135534747,assembly=b37>
+##contig=<ID=11,length=135006516,assembly=b37>
+##contig=<ID=12,length=133851895,assembly=b37>
+##contig=<ID=13,length=115169878,assembly=b37>
+##contig=<ID=14,length=107349540,assembly=b37>
+##contig=<ID=15,length=102531392,assembly=b37>
+##contig=<ID=16,length=90354753,assembly=b37>
+##contig=<ID=17,length=81195210,assembly=b37>
+##contig=<ID=18,length=78077248,assembly=b37>
+##contig=<ID=19,length=59128983,assembly=b37>
+##contig=<ID=20,length=63025520,assembly=b37>
+##contig=<ID=21,length=48129895,assembly=b37>
+##contig=<ID=22,length=51304566,assembly=b37>
+##contig=<ID=X,length=155270560,assembly=b37>
+##contig=<ID=Y,length=59373566,assembly=b37>
+##contig=<ID=MT,length=16569,assembly=b37>
+##contig=<ID=GL000207.1,length=4262,assembly=b37>
+##contig=<ID=GL000226.1,length=15008,assembly=b37>
+##contig=<ID=GL000229.1,length=19913,assembly=b37>
+##contig=<ID=GL000231.1,length=27386,assembly=b37>
+##contig=<ID=GL000210.1,length=27682,assembly=b37>
+##contig=<ID=GL000239.1,length=33824,assembly=b37>
+##contig=<ID=GL000235.1,length=34474,assembly=b37>
+##contig=<ID=GL000201.1,length=36148,assembly=b37>
+##contig=<ID=GL000247.1,length=36422,assembly=b37>
+##contig=<ID=GL000245.1,length=36651,assembly=b37>
+##contig=<ID=GL000197.1,length=37175,assembly=b37>
+##contig=<ID=GL000203.1,length=37498,assembly=b37>
+##contig=<ID=GL000246.1,length=38154,assembly=b37>
+##contig=<ID=GL000249.1,length=38502,assembly=b37>
+##contig=<ID=GL000196.1,length=38914,assembly=b37>
+##contig=<ID=GL000248.1,length=39786,assembly=b37>
+##contig=<ID=GL000244.1,length=39929,assembly=b37>
+##contig=<ID=GL000238.1,length=39939,assembly=b37>
+##contig=<ID=GL000202.1,length=40103,assembly=b37>
+##contig=<ID=GL000234.1,length=40531,assembly=b37>
+##contig=<ID=GL000232.1,length=40652,assembly=b37>
+##contig=<ID=GL000206.1,length=41001,assembly=b37>
+##contig=<ID=GL000240.1,length=41933,assembly=b37>
+##contig=<ID=GL000236.1,length=41934,assembly=b37>
+##contig=<ID=GL000241.1,length=42152,assembly=b37>
+##contig=<ID=GL000243.1,length=43341,assembly=b37>
+##contig=<ID=GL000242.1,length=43523,assembly=b37>
+##contig=<ID=GL000230.1,length=43691,assembly=b37>
+##contig=<ID=GL000237.1,length=45867,assembly=b37>
+##contig=<ID=GL000233.1,length=45941,assembly=b37>
+##contig=<ID=GL000204.1,length=81310,assembly=b37>
+##contig=<ID=GL000198.1,length=90085,assembly=b37>
+##contig=<ID=GL000208.1,length=92689,assembly=b37>
+##contig=<ID=GL000191.1,length=106433,assembly=b37>
+##contig=<ID=GL000227.1,length=128374,assembly=b37>
+##contig=<ID=GL000228.1,length=129120,assembly=b37>
+##contig=<ID=GL000214.1,length=137718,assembly=b37>
+##contig=<ID=GL000221.1,length=155397,assembly=b37>
+##contig=<ID=GL000209.1,length=159169,assembly=b37>
+##contig=<ID=GL000218.1,length=161147,assembly=b37>
+##contig=<ID=GL000220.1,length=161802,assembly=b37>
+##contig=<ID=GL000213.1,length=164239,assembly=b37>
+##contig=<ID=GL000211.1,length=166566,assembly=b37>
+##contig=<ID=GL000199.1,length=169874,assembly=b37>
+##contig=<ID=GL000217.1,length=172149,assembly=b37>
+##contig=<ID=GL000216.1,length=172294,assembly=b37>
+##contig=<ID=GL000215.1,length=172545,assembly=b37>
+##contig=<ID=GL000205.1,length=174588,assembly=b37>
+##contig=<ID=GL000219.1,length=179198,assembly=b37>
+##contig=<ID=GL000224.1,length=179693,assembly=b37>
+##contig=<ID=GL000223.1,length=180455,assembly=b37>
+##contig=<ID=GL000195.1,length=182896,assembly=b37>
+##contig=<ID=GL000212.1,length=186858,assembly=b37>
+##contig=<ID=GL000222.1,length=186861,assembly=b37>
+##contig=<ID=GL000200.1,length=187035,assembly=b37>
+##contig=<ID=GL000193.1,length=189789,assembly=b37>
+##contig=<ID=GL000194.1,length=191469,assembly=b37>
+##contig=<ID=GL000225.1,length=211173,assembly=b37>
+##contig=<ID=GL000192.1,length=547496,assembly=b37>
+##FilterLiftedVariants="analysis_type=FilterLiftedVariants input_file=[] sample_metadata=[] read_buffer_size=null phone_home=STANDARD read_filter=[] intervals=null excludeIntervals=null reference_sequence=/local/sequence/reference/BWA_ref/hg19/hg19.fasta rodBind=[/local/scratch/xyliu/0.915136538286792.sorted.vcf] rodToIntervalTrackName=null BTI_merge_rule=UNION DBSNP=null downsampling_type=null downsample_to_fraction=null downsample_to_coverage=null baq=OFF baqGapOpenPenalty=40.0 performanceLog=null useOriginalQualities=false defaultBaseQualities=-1 validation_strictness=SILENT unsafe=null num_threads=1 interval_merging=ALL read_group_black_list=null processingTracker=null restartProcessingTracker=false processingTrackerStatusFile=null processingTrackerID=-1 allow_intervals_with_unindexed_bam=false enable_experimental_low_memory_sharding=false logging_level=INFO log_to_file=null quiet_output_mode=false debug_mode=false help=false out=org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub NO_HEADER=org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub sites_only=org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub"
+##INFO=<ID=VC,Number=1,Type=String,Description="Variation Class">
+##INFO=<ID=AC,Number=.,Type=Integer,Description="Allele count in genotypes, for each ALT allele, in the same order as listed">
+##INFO=<ID=AF,Number=.,Type=Float,Description="Allele Frequency, for each ALT allele, in the same order as listed">
+##INFO=<ID=AN,Number=1,Type=Integer,Description="Total number of alleles in called genotypes">
+##INFO=<ID=DB,Number=0,Type=Flag,Description="dbSNP Membership">
+##INFO=<ID=refseq.name,Number=1,Type=String,Description="RefSeq name">
+##INFO=<ID=refseq.positionType,Number=1,Type=String,Description="RefSeq genome type position">
+##INFO=<ID=OLD_MULTIALLELIC,Number=1,Type=String,Description="Original chr:pos:ref:alt encoding">
+##bcftools_normVersion=1.9-210-gf1f261b+htslib-1.9-271-g6738132
+##bcftools_normCommand=norm -f 20_altered.fasta -o 01_IN_altered_biallelic_vtdecompose_bcftoolsnormalized.vcf 01_IN_altered_biallelic_vtdecompose.vcf; Date=Wed Dec 11 14:43:44 2019
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+20	98	.	T	TCCA	.	PASS	VC=INDEL;AC=24;AF=0.08;AN=316;refseq.name=NM_144628;refseq.positionType=intron
+20	302	.	C	CTTGT	.	PASS	VC=INDEL;AC=28;AF=0.1;AN=276;refseq.name=NM_080489;refseq.positionType=intron
+20	503	.	T	TGTC	.	PASS	VC=INDEL;AC=56;AF=0.18;AN=316
+20	704	.	GAA	G	.	PASS	VC=INDEL;AC=3;AF=0.01;AN=312;refseq.name=NM_001083910;refseq.positionType=intron
+20	905	.	G	GT	.	PASS	VC=INDEL;AC=199;AF=0.63;AN=316
+20	1106	.	T	TA	.	PASS	VC=INDEL;AC=223;AF=0.71;AN=316
+20	1305	.	T	TA	.	PASS	VC=INDEL;AC=223;AF=0.71;AN=316
+20	1508	.	CT	C	.	PASS	VC=INDEL;AC=118;AF=0.38;AN=314;refseq.name=NM_002836;refseq.positionType=intron
+20	1709	.	TCAAA	T	.	PASS	VC=INDEL;AC=31;AF=0.1;AN=306;refseq.name=NM_001501;refseq.positionType=intron
+20	1906	.	GCTTT	G	.	PASS	VC=INDEL;AC=58;AF=0.18;AN=316;refseq.name=NM_001009984;refseq.positionType=intron
+20	2110	.	A	AT	.	PASS	VC=INDEL;AC=130;AF=0.47;AN=274
+20	2308	.	GGGAGCTCCCAGGCTACAGAAAGATGAT	G	.	PASS	VC=INDEL;AC=174;AF=0.55;AN=314
+20	2513	.	GTTCT	G	.	PASS	VC=INDEL;AC=61;AF=0.2;AN=304;refseq.name=NM_003818;refseq.positionType=intron
+20	2714	.	T	TATA	.	PASS	VC=INDEL;AC=202;AF=0.75;AN=268
+20	2915	.	TCAG	T	.	PASS	VC=INDEL;AC=51;AF=0.16;AN=316;refseq.name=NM_144773;refseq.positionType=intron
+20	3116	.	T	TG	.	PASS	VC=INDEL;AC=136;AF=0.43;AN=316
+20	3317	.	G	GC	.	PASS	VC=INDEL;AC=69;AF=0.23;AN=300;refseq.name=NM_001819;refseq.positionType=intron
+20	3517	.	G	GC	.	PASS	VC=INDEL;AC=68;AF=0.22;AN=304;refseq.name=NM_001819;refseq.positionType=intron
+20	3719	.	C	CTT	.	PASS	VC=INDEL;AC=52;AF=0.17;AN=314
+20	3920	.	GC	G	.	PASS	VC=INDEL;AC=49;AF=0.2;AN=250
+20	4121	.	T	TTGTC	.	PASS	VC=INDEL;AC=307;AF=0.97;AN=316
+20	4314	.	CTTTG	C	.	PASS	VC=INDEL;AC=118;AF=0.37;AN=316
+20	4520	.	CA	C	.	PASS	VC=INDEL;AC=122;AF=0.39;AN=316;refseq.name=NM_015192;refseq.positionType=intron
+20	4723	.	CT	C	.	PASS	VC=INDEL;AC=13;AF=0.04;AN=298;refseq.name=NM_015192;refseq.positionType=intron
+20	4921	.	A	AT	.	PASS	VC=INDEL;AC=110;AF=0.35;AN=314
+20	5126	.	TGTATCTGTCCA	T	.	PASS	VC=INDEL;AC=46;AF=0.15;AN=314;refseq.name=NM_000933;refseq.positionType=intron
+20	5327	.	GGGTTTGAT	G	.	PASS	VC=INDEL;AC=77;AF=0.25;AN=306;refseq.name=NM_000933;refseq.positionType=intron
+20	5528	.	A	AAGCAC	.	PASS	VC=INDEL;AC=101;AF=0.42;AN=238
+20	5729	.	C	CT	.	PASS	VC=INDEL;AC=265;AF=0.84;AN=316
+20	5926	.	TAAGTC	T	.	PASS	VC=INDEL;AC=29;AF=0.09;AN=316
+20	6131	.	C	CA	.	PASS	VC=INDEL;AC=171;AF=0.54;AN=316
+20	6332	.	TCA	T	.	PASS	VC=INDEL;AC=79;AF=0.32;AN=250
+20	6533	.	A	ATT	.	PASS	VC=INDEL;AC=8;AF=0.03;AN=314
+20	6734	.	C	CT	.	PASS	VC=INDEL;AC=8;AF=0.03;AN=316
+20	6935	.	G	GT	.	PASS	VC=INDEL;AC=316;AF=1;AN=316;refseq.name=NM_018327;refseq.positionType=intron
+20	7136	.	AATGT	A	.	PASS	VC=INDEL;AC=54;AF=0.18;AN=296
+20	7333	.	C	CTTG	.	PASS	VC=INDEL;AC=142;AF=0.45;AN=316;refseq.name=NM_017714;refseq.positionType=intron
+20	7538	.	C	CAT	.	PASS	VC=INDEL;AC=75;AF=0.24;AN=312;refseq.name=NM_080676;refseq.positionType=intron
+20	7739	.	T	TATC	.	PASS	VC=INDEL;AC=150;AF=0.7;AN=214;refseq.name=NM_080676;refseq.positionType=intron
+20	7936	.	GAGCCTAAA	G	.	PASS	VC=INDEL;AC=160;AF=0.51;AN=312;refseq.name=NM_080676;refseq.positionType=intron
+20	8140	.	TGGTG	T	.	PASS	VC=INDEL;AC=156;AF=0.51;AN=306;refseq.name=NM_080676;refseq.positionType=intron
+20	8342	.	C	CT	.	PASS	VC=INDEL;AC=274;AF=0.89;AN=308;refseq.name=NM_080676;refseq.positionType=intron
+20	8543	.	GTTCT	G	.	PASS	VC=INDEL;AC=80;AF=0.25;AN=316;refseq.name=NM_080676;refseq.positionType=intron
+20	8744	.	ATCTGAAG	A	.	PASS	VC=INDEL;AC=155;AF=0.51;AN=306;refseq.name=NM_080676;refseq.positionType=intron
+20	8942	.	ATCTGAAG	A	.	PASS	VC=INDEL;AC=157;AF=0.5;AN=312;refseq.name=NM_080676;refseq.positionType=intron
+20	9146	.	CAGCTGAGCGCAG	C	.	PASS	VC=INDEL;AC=0;AF=0;AN=316;refseq.name=NM_024704;refseq.positionType=intron
+20	9347	.	TGAG	T	.	PASS	VC=INDEL;AC=18;AF=0.06;AN=316;refseq.name=NM_024704;refseq.positionType=intron
+20	9548	.	C	CCAGT	.	PASS	VC=INDEL;AC=137;AF=0.43;AN=316;refseq.name=NM_024704;refseq.positionType=intron
+20	9749	.	AAC	A	.	PASS	VC=INDEL;AC=45;AF=0.14;AN=316;refseq.name=NM_024704;refseq.positionType=intron
+20	9950	.	C	CT	.	PASS	VC=INDEL;AC=0;AF=0;AN=316
+20	10143	.	TCTAAACCCTCTC	T	.	PASS	VC=INDEL;AC=61;AF=0.21;AN=294;refseq.name=NM_001042576;refseq.positionType=intron
+20	10352	.	GAA	G	.	PASS	VC=INDEL;AC=74;AF=0.23;AN=316;refseq.name=NM_020536;refseq.positionType=intron
+20	10553	.	GAATA	G	.	PASS	VC=INDEL;AC=91;AF=0.29;AN=316;refseq.name=NM_006363;refseq.positionType=promoter
+20	10753	.	GAATA	G	.	PASS	VC=INDEL;AC=91;AF=0.29;AN=316;refseq.name=NM_006363;refseq.positionType=promoter
+20	10954	.	ATC	A	.	PASS	VC=INDEL;AC=81;AF=0.27;AN=304;refseq.name=NM_080820;refseq.positionType=intron
+20	11156	.	CT	C	.	PASS	VC=INDEL;AC=88;AF=0.28;AN=314;refseq.name=NM_080820;refseq.positionType=intron
+20	11354	.	ACCCTC	A	.	PASS	VC=INDEL;AC=14;AF=0.04;AN=316
+20	11558	.	C	CAT	.	PASS	VC=INDEL;AC=3;AF=0.01;AN=316;refseq.name=NM_020689;refseq.positionType=intron
+20	11759	.	T	TAGCTCCCAACA	.	PASS	VC=INDEL;AC=213;AF=0.95;AN=224;refseq.name=NM_020689;refseq.positionType=intron
+20	11960	.	GA	G	.	PASS	VC=INDEL;AC=215;AF=0.68;AN=316;refseq.name=NM_020689;refseq.positionType=intron
+20	12161	.	GT	G	.	PASS	VC=INDEL;AC=41;AF=0.13;AN=312
+20	12362	.	C	CA	.	PASS	VC=INDEL;AC=36;AF=0.11;AN=316;refseq.name=NM_018993;refseq.positionType=intron
+20	12558	.	T	TAAAC	.	PASS	VC=INDEL;AC=31;AF=0.1;AN=306;refseq.name=NM_016652;refseq.positionType=exon
+20	12761	.	ACT	A	.	PASS	VC=INDEL;AC=15;AF=0.05;AN=316;refseq.name=NM_016652;refseq.positionType=exon
+20	12960	.	A	ATAAT	.	PASS	VC=INDEL;AC=214;AF=0.69;AN=312;refseq.name=NM_016652;refseq.positionType=intron
+20	13165	.	CT	C	.	PASS	VC=INDEL;AC=227;AF=0.8;AN=282;refseq.name=NM_015585;refseq.positionType=intron
+20	13364	.	A	ATC	.	PASS	VC=INDEL;AC=188;AF=0.64;AN=296
+20	13566	.	TCTA	T	.	PASS	VC=INDEL;AC=136;AF=0.43;AN=316
+20	13769	.	ATATC	A	.	PASS	VC=INDEL;AC=186;AF=0.59;AN=314
+20	13970	.	C	CT	.	PASS	VC=INDEL;AC=147;AF=0.6;AN=246
+20	14170	.	C	CT	.	PASS	VC=INDEL;AC=171;AF=0.58;AN=296
+20	14370	.	CTGTAA	C	.	PASS	VC=INDEL;AC=1;AF=0;AN=316
+20	14571	.	T	TG	.	PASS	VC=INDEL;AC=23;AF=0.09;AN=256
+20	14774	.	GT	G	.	PASS	VC=INDEL;AC=197;AF=0.62;AN=316
+20	14972	.	T	TCTC	.	PASS	VC=INDEL;AC=40;AF=0.16;AN=250
+20	15176	.	A	AGAAG	.	PASS	VC=INDEL;AC=225;AF=0.71;AN=316
+20	15372	.	A	AGAAG	.	PASS	VC=INDEL;AC=225;AF=0.71;AN=316
+20	15578	.	CTT	C	.	PASS	VC=INDEL;AC=72;AF=0.23;AN=316
+20	15778	.	CA	C	.	PASS	VC=INDEL;AC=88;AF=0.28;AN=312
+20	15980	.	G	GCGGC	.	PASS	VC=INDEL;AC=30;AF=0.1;AN=294
+20	16181	.	GCTC	G	.	PASS	VC=INDEL;AC=4;AF=0.01;AN=316
+20	16374	.	CCAGGATG	C	.	PASS	VC=INDEL;AC=68;AF=0.31;AN=220
+20	16583	.	C	CTT	.	PASS	VC=INDEL;AC=315;AF=1;AN=316;refseq.name=NM_003650;refseq.positionType=intron
+20	16784	.	GCCACGTCTCTTCTC	G	.	PASS	VC=INDEL;AC=71;AF=0.23;AN=314;refseq.name=NM_001114089;refseq.positionType=intron
+20	16985	.	T	TCTC	.	PASS	VC=INDEL;AC=184;AF=0.59;AN=314;refseq.name=NM_002862;refseq.positionType=intron
+20	17186	.	GCTCCCA	G	.	PASS	VC=INDEL;AC=316;AF=1;AN=316;refseq.name=NM_025176;refseq.positionType=exon
+20	17385	.	TAG	T	.	PASS	VC=INDEL;AC=2;AF=0.01;AN=316
+20	17586	.	CTG	C	.	PASS	VC=INDEL;AC=121;AF=0.39;AN=314;refseq.name=NM_030789;refseq.positionType=intron
+20	17789	.	CCA	C	.	PASS	VC=INDEL;AC=103;AF=0.35;AN=294
+20	17990	.	CATT	C	.	PASS	VC=INDEL;AC=143;AF=0.47;AN=306;refseq.name=NM_014742;refseq.positionType=intron
+20	18188	.	CATT	C	.	PASS	VC=INDEL;AC=144;AF=0.47;AN=306;refseq.name=NM_014742;refseq.positionType=intron
+20	18392	.	TA	T	.	PASS	VC=INDEL;AC=98;AF=0.32;AN=304
+20	18593	.	T	TG	.	PASS	VC=INDEL;AC=197;AF=0.63;AN=314
+20	18794	.	C	CCT	.	PASS	VC=INDEL;AC=269;AF=0.85;AN=316
+20	18995	.	A	ATACT	.	PASS	VC=INDEL;AC=266;AF=0.84;AN=316;refseq.name=NM_007367;refseq.positionType=intron
+20	19195	.	AG	A	.	PASS	VC=INDEL;AC=153;AF=0.49;AN=314;refseq.name=NM_000687;refseq.positionType=intron
+20	19397	.	C	CAGAA	.	PASS	VC=INDEL;AC=204;AF=0.65;AN=316;refseq.name=NM_015638;refseq.positionType=intron
+20	19596	.	C	CAGA	.	PASS	VC=INDEL;AC=200;AF=0.65;AN=306;refseq.name=NM_015638;refseq.positionType=intron
+20	19798	.	T	TGGACA	.	PASS	VC=INDEL;AC=193;AF=0.62;AN=310;refseq.name=NM_015474;refseq.positionType=intron
+20	20000	.	C	CTT	.	PASS	VC=INDEL;AC=176;AF=0.56;AN=314
+20	20197	.	A	AGGTGCAG	.	PASS	VC=INDEL;AC=109;AF=0.51;AN=212;refseq.name=NM_005417;refseq.positionType=intron
+20	20402	.	GGTCCAC	G	.	PASS	VC=INDEL;AC=32;AF=0.14;AN=236
+20	20603	.	CTT	C	.	PASS	VC=INDEL;AC=34;AF=0.11;AN=316;refseq.name=NM_021215;refseq.positionType=intron
+20	20803	.	CTT	C	.	PASS	VC=INDEL;AC=34;AF=0.11;AN=316;refseq.name=NM_021215;refseq.positionType=intron
+20	21005	.	A	ACT	.	PASS	VC=INDEL;AC=84;AF=0.27;AN=314;refseq.name=NM_004613;refseq.positionType=intron
+20	21206	.	AT	A	.	PASS	VC=INDEL;AC=193;AF=0.61;AN=316
+20	21404	.	A	AAT	.	PASS	VC=INDEL;AC=14;AF=0.04;AN=316
+20	21607	.	AACTCTAGCGAG	A	.	PASS	VC=INDEL;AC=57;AF=0.19;AN=306;refseq.name=NM_024855;refseq.positionType=intron
+20	21809	.	AT	A	.	PASS	VC=INDEL;AC=114;AF=0.36;AN=316;refseq.name=NM_024855;refseq.positionType=intron
+20	22009	.	AT	A	.	PASS	VC=INDEL;AC=114;AF=0.36;AN=316;refseq.name=NM_024855;refseq.positionType=intron
+20	22211	.	A	AC	.	PASS	VC=INDEL;AC=55;AF=0.22;AN=254
+20	22409	.	CAAG	C	.	PASS	VC=INDEL;AC=7;AF=0.02;AN=316
+20	22613	.	G	GATGGA	.	PASS	VC=INDEL;AC=81;AF=0.34;AN=236
+20	22806	.	CTGAT	C	.	PASS	VC=INDEL;AC=268;AF=0.86;AN=312
+20	23011	.	TA	T	.	PASS	VC=INDEL;AC=87;AF=0.28;AN=306
+20	23215	.	TTC	T	.	PASS	VC=INDEL;AC=9;AF=0.03;AN=316
+20	23417	.	TG	T	.	PASS	VC=INDEL;AC=1;AF=0;AN=250
+20	23618	.	AG	A	.	PASS	VC=INDEL;AC=277;AF=0.89;AN=310
+20	23816	.	CAG	C	.	PASS	VC=INDEL;AC=101;AF=0.32;AN=316;refseq.name=NM_015035;refseq.positionType=intron
+20	24020	.	TATG	T	.	PASS	VC=INDEL;AC=2;AF=0.01;AN=316
+20	24219	.	CA	C	.	PASS	VC=INDEL;AC=0;AF=0;AN=316;refseq.name=NM_133170;refseq.positionType=intron
+20	24422	.	G	GTT	.	PASS	VC=INDEL;AC=101;AF=0.32;AN=316;refseq.name=NM_133170;refseq.positionType=intron
+20	24620	.	G	GTT	.	PASS	VC=INDEL;AC=101;AF=0.32;AN=316;refseq.name=NM_133170;refseq.positionType=intron
+20	24824	.	CAA	C	.	PASS	VC=INDEL;AC=65;AF=0.21;AN=316;refseq.name=NM_133170;refseq.positionType=intron
+20	25025	.	GT	G	.	PASS	VC=INDEL;AC=4;AF=0.01;AN=278
+20	25226	.	T	TA	.	PASS	VC=INDEL;AC=0;AF=0;AN=316
+20	25427	.	C	CAG	.	PASS	VC=INDEL;AC=147;AF=0.47;AN=314;refseq.name=NM_001098797;refseq.positionType=intron
+20	25626	.	C	CAG	.	PASS	VC=INDEL;AC=148;AF=0.47;AN=314;refseq.name=NM_001098797;refseq.positionType=intron
+20	25821	.	CCACCAA	C	.	PASS	VC=INDEL;AC=74;AF=0.3;AN=248;refseq.name=NM_001098797;refseq.positionType=intron
+20	26028	.	TTACTC	T	.	PASS	VC=INDEL;AC=1;AF=0;AN=316;refseq.name=NM_003404;refseq.positionType=intron
+20	26231	.	A	AGT	.	PASS	VC=INDEL;AC=70;AF=0.22;AN=314
+20	26432	.	C	CTA	.	PASS	VC=INDEL;AC=30;AF=0.1;AN=312;refseq.name=NM_007019;refseq.positionType=intron
+20	26633	.	AGATGATATT	A	.	PASS	VC=INDEL;AC=35;AF=0.11;AN=316
+20	26834	.	T	TAACA	.	PASS	VC=INDEL;AC=19;AF=0.06;AN=312;refseq.name=NM_012408;refseq.positionType=intron
+20	27033	.	TAG	T	.	PASS	VC=INDEL;AC=188;AF=0.66;AN=284;refseq.name=NM_012408;refseq.positionType=intron
+20	27235	.	CT	C	.	PASS	VC=INDEL;AC=35;AF=0.17;AN=206;refseq.name=NM_012408;refseq.positionType=intron
+20	27436	.	A	ACTC	.	PASS	VC=INDEL;AC=219;AF=0.69;AN=316
+20	27638	.	T	TTA	.	PASS	VC=INDEL;AC=191;AF=0.66;AN=290
+20	27838	.	T	TTA	.	PASS	VC=INDEL;AC=199;AF=0.66;AN=300
+20	28040	.	GATGAGCTCTAA	G	.	PASS	VC=INDEL;AC=197;AF=0.63;AN=314
+20	28240	.	GATGAGCTCTAA	G	.	PASS	VC=INDEL;AC=196;AF=0.62;AN=314
+20	28442	.	CCAA	C	.	PASS	VC=INDEL;AC=6;AF=0.02;AN=310;refseq.name=NM_001316;refseq.positionType=intron
+20	28643	.	AG	A	.	PASS	VC=INDEL;AC=93;AF=0.34;AN=270;refseq.name=NM_005985;refseq.positionType=intron
+20	28843	.	A	AG	.	PASS	VC=INDEL;AC=242;AF=0.79;AN=308
+20	29041	.	C	CTA	.	PASS	VC=INDEL;AC=89;AF=0.28;AN=316;refseq.name=NM_032521;refseq.positionType=intron
+20	29244	.	AAGGTGTCAACAAAT	A	.	PASS	VC=INDEL;AC=267;AF=0.84;AN=316;refseq.name=NM_012340;refseq.positionType=intron
+20	29445	.	CT	C	.	PASS	VC=INDEL;AC=316;AF=1;AN=316;refseq.name=NM_012340;refseq.positionType=intron
+20	29648	.	TG	T	.	PASS	VC=INDEL;AC=79;AF=0.25;AN=316;refseq.name=NM_199427;refseq.positionType=intron
+20	29847	.	G	GTC	.	PASS	VC=INDEL;AC=79;AF=0.25;AN=314;refseq.name=NM_199427;refseq.positionType=intron
+20	30050	.	G	GGAATGTCAGCC	.	PASS	VC=INDEL;AC=316;AF=1;AN=316
+20	30251	.	CCT	C	.	PASS	VC=INDEL;AC=36;AF=0.11;AN=314
+20	30452	.	AC	A	.	PASS	VC=INDEL;AC=0;AF=0;AN=296
+20	30653	.	ATTCCAAATCC	A	.	PASS	VC=INDEL;AC=26;AF=0.08;AN=316
+20	30854	.	C	CTT	.	PASS	VC=INDEL;AC=246;AF=0.78;AN=316
+20	31051	.	GCT	G	.	PASS	VC=INDEL;AC=0;AF=0;AN=316
+20	31256	.	AC	A	.	PASS	VC=INDEL;AC=27;AF=0.09;AN=316;refseq.name=NM_173485;refseq.positionType=intron
+20	31453	.	T	TC	.	PASS	VC=INDEL;AC=53;AF=0.18;AN=290;refseq.name=NM_173485;refseq.positionType=intron
+20	31657	.	T	TA	.	PASS	VC=INDEL;AC=174;AF=0.58;AN=300;refseq.name=NM_000782;refseq.positionType=intron
+20	31859	.	AG	A	.	PASS	VC=INDEL;AC=118;AF=0.38;AN=312
+20	32060	.	TATAG	T	.	PASS	VC=INDEL;AC=201;AF=0.64;AN=316
+20	32261	.	AAC	A	.	PASS	VC=INDEL;AC=80;AF=0.25;AN=316
+20	32462	.	T	TAA	.	PASS	VC=INDEL;AC=186;AF=0.59;AN=316
+20	32660	.	G	GTCTC	.	PASS	VC=INDEL;AC=191;AF=0.65;AN=296
+20	32864	.	A	ACACT	.	PASS	VC=INDEL;AC=36;AF=0.17;AN=214
+20	33064	.	T	TAA	.	PASS	VC=INDEL;AC=147;AF=0.55;AN=266
+20	33266	.	T	TTATTTCCA	.	PASS	VC=INDEL;AC=0;AF=0;AN=314
+20	33467	.	GTT	G	.	PASS	VC=INDEL;AC=61;AF=0.22;AN=278
+20	33667	.	GTT	G	.	PASS	VC=INDEL;AC=63;AF=0.23;AN=276
+20	33866	.	AGAG	A	.	PASS	VC=INDEL;AC=64;AF=0.2;AN=316
+20	34068	.	AGAGCTCT	A	.	PASS	VC=INDEL;AC=38;AF=0.12;AN=312
+20	34271	.	CAG	C	.	PASS	VC=INDEL;AC=132;AF=0.55;AN=238
+20	34470	.	A	AT	.	PASS	VC=INDEL;AC=7;AF=0.02;AN=286
+20	34673	.	TTTG	T	.	PASS	VC=INDEL;AC=2;AF=0.01;AN=224
+20	34874	.	C	CT	.	PASS	VC=INDEL;AC=0;AF=0;AN=312
+20	35075	.	T	TTA	.	PASS	VC=INDEL;AC=111;AF=0.38;AN=292
+20	35273	.	T	TTA	.	PASS	VC=INDEL;AC=113;AF=0.38;AN=296
+20	35471	.	G	GAAACC	.	PASS	VC=INDEL;AC=190;AF=0.61;AN=314
+20	35678	.	T	TCATGATGCCAAG	.	PASS	VC=INDEL;AC=65;AF=0.21;AN=316;refseq.name=NM_000114;refseq.positionType=intron
+20	35877	.	A	AT	.	PASS	VC=INDEL;AC=1;AF=0;AN=316
+20	36080	.	AC	A	.	PASS	VC=INDEL;AC=13;AF=0.04;AN=312;refseq.name=NM_014258;refseq.positionType=intron
+20	36280	.	CTACTGA	C	.	PASS	VC=INDEL;AC=0;AF=0;AN=314
+20	36482	.	G	GT	.	PASS	VC=INDEL;AC=9;AF=0.03;AN=308
+20	36683	.	C	CAGGGAACCAAGCGAGGGAGATTCAGACCCTGCCT	.	PASS	VC=INDEL;AC=105;AF=0.35;AN=302
+20	36879	.	CTTTG	C	.	PASS	VC=INDEL;AC=246;AF=0.78;AN=316
+20	37081	.	C	CATT	.	PASS	VC=INDEL;AC=46;AF=0.15;AN=316;refseq.name=NM_001794;refseq.positionType=intron
+20	37285	.	CTT	C	.	PASS	VC=INDEL;AC=35;AF=0.11;AN=316;refseq.name=NM_001794;refseq.positionType=intron
+20	37487	.	TGTC	T	.	PASS	VC=INDEL;AC=310;AF=1;AN=310;refseq.name=NM_001794;refseq.positionType=intron
+20	37688	.	TC	T	.	PASS	VC=INDEL;AC=7;AF=0.03;AN=262;refseq.name=NM_001794;refseq.positionType=intron
+20	37889	.	C	CCA	.	PASS	VC=INDEL;AC=0;AF=0;AN=314;refseq.name=NM_001794;refseq.positionType=intron
+20	38083	.	TGTCCACACC	T	.	PASS	VC=INDEL;AC=100;AF=0.5;AN=202;refseq.name=NM_198935;refseq.positionType=intron
+20	38291	.	C	CTT	.	PASS	VC=INDEL;AC=186;AF=0.6;AN=310;refseq.name=NM_025219;refseq.positionType=promoter
+20	38492	.	C	CAT	.	PASS	VC=INDEL;AC=26;AF=0.11;AN=240
+20	38693	.	CAT	C	.	PASS	VC=INDEL;AC=46;AF=0.21;AN=218
+20	38894	.	AGC	A	.	PASS	VC=INDEL;AC=0;AF=0;AN=316;refseq.name=NM_004535;refseq.positionType=intron
