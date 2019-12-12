@@ -134,8 +134,8 @@ class VariantContextToInternalRowConverter(
     new RowConverter[(JMap[Allele, Int], HTSJDKGenotype)](gSchema, fns)
   }
 
-  private lazy val splitConverter = makeConverter(true)
-  private lazy val nonSplitConverter = makeConverter(false)
+  private val splitConverter = makeConverter(true)
+  private val nonSplitConverter = makeConverter(false)
 
   def convertRow(vc: VariantContext, isSplit: Boolean): InternalRow = {
     if (isSplit) {
