@@ -231,27 +231,26 @@ class LogisticRegressionSuite extends GlowBaseTest {
     assert(s1.pValue ~== s2.pValue relTol 0.02)
   }
 
-//  private def runNewtonIterations(testData: TestData): NewtonResult = {
-//    val state = LikelihoodRatioTest.
-//    LogisticRegressionGwas.newtonIterations(
-//      twoDArrayToBreezeMatrix(testData.covariates.toArray),
-//      DenseVector(testData.phenotypes.toArray),
-//      None)
-//  }
-//
-//  test("Does not converge in case of complete separation") {
-//    val nonConvergedNewton = runNewtonIterations(completeSeparation)
-//    assert(!nonConvergedNewton.converged)
-//    assert(!nonConvergedNewton.exploded)
-//    assert(nonConvergedNewton.nIter == 26)
-//  }
-//
-//  test("Explodes in case of linearly dependent covariates") {
-//    val nonConvergedNewton = runNewtonIterations(linearlyDependentCovariates)
-//    assert(!nonConvergedNewton.converged)
-//    assert(nonConvergedNewton.exploded)
-//    assert(nonConvergedNewton.nIter == 1)
-//  }
+  private def runNewtonIterations(testData: TestData): NewtonResult = {
+    val fitState = LikelihoodRatioTest.init(
+      testData.phenotypes.toArray,
+      twoDArrayToSparkMatrix(testData.covariates.toArray))
+    fitState.nullFit
+  }
+
+  test("Does not converge in case of complete separation") {
+    val nonConvergedNewton = runNewtonIterations(completeSeparation)
+    assert(!nonConvergedNewton.converged)
+    assert(!nonConvergedNewton.exploded)
+    assert(nonConvergedNewton.nIter == 26)
+  }
+
+  test("Explodes in case of linearly dependent covariates") {
+    val nonConvergedNewton = runNewtonIterations(linearlyDependentCovariates)
+    assert(!nonConvergedNewton.converged)
+    assert(nonConvergedNewton.exploded)
+    assert(nonConvergedNewton.nIter == 1)
+  }
 
   test("Throw error if test is not foldable") {
     val rows = admitStudents.genotypes.map { g =>

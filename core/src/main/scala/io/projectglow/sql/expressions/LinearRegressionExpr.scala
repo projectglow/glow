@@ -27,10 +27,7 @@ import org.apache.spark.sql.types._
 object LinearRegressionExpr {
   val matrixUDT = SQLUtils.newMatrixUDT()
   val state = new ThreadLocal[CovariateQRContext]
-  def doLinearRegression(
-    genotypes: Any,
-    phenotypes: Any,
-    covariates: Any): InternalRow = {
+  def doLinearRegression(genotypes: Any, phenotypes: Any, covariates: Any): InternalRow = {
 
     if (state.get() == null) {
       // Save the QR factorization of the covariate matrix since it's the same for every row
@@ -70,10 +67,14 @@ case class LinearRegressionExpr(
   }
 
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    nullSafeCodeGen(ctx, ev, (genotypes, phenotypes, covariates) => {
-      s"""
+    nullSafeCodeGen(
+      ctx,
+      ev,
+      (genotypes, phenotypes, covariates) => {
+        s"""
          |${ev.value} = io.projectglow.sql.expressions.LinearRegressionExpr.doLinearRegression($genotypes, $phenotypes, $covariates);
        """.stripMargin
-    })
+      }
+    )
   }
 }

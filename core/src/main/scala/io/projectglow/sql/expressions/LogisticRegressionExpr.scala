@@ -43,10 +43,8 @@ class LogisticRegressionState(testStr: String) {
   val nullFitMap: mutable.Map[Int, logitTest.FitState] = mutable.Map.empty
   val matrixUDT = SQLUtils.newMatrixUDT()
 
-  def getFitState(
-    phenotypes: Array[Double],
-    covariates: Any): logitTest.FitState = {
-    if (!logitTest.canReuseNullFit) {
+  def getFitState(phenotypes: Array[Double], covariates: Any): logitTest.FitState = {
+    if (!logitTest.fitStatePerPhenotype) {
       if (fitState == null) {
         fitState = logitTest.init(phenotypes, matrixUDT.deserialize(covariates).toDense)
       }
@@ -55,7 +53,9 @@ class LogisticRegressionState(testStr: String) {
 
     val phenoHash = MurmurHash3.arrayHash(phenotypes)
     if (!nullFitMap.contains(phenoHash)) {
-      nullFitMap.put(phenoHash, logitTest.init(phenotypes, matrixUDT.deserialize(covariates).toDense))
+      nullFitMap.put(
+        phenoHash,
+        logitTest.init(phenotypes, matrixUDT.deserialize(covariates).toDense))
     }
     nullFitMap(phenoHash)
   }
@@ -93,11 +93,13 @@ object LogisticRegressionExpr {
     )
 
     val nullFitNewtonResult = state.getFitState(phenotypeArray, covariates)
-    state.logitTest.runTest(
-      new DenseVector[Double](genotypeArray),
-      new DenseVector[Double](phenotypeArray),
-      nullFitNewtonResult
-    )
+    state
+      .logitTest
+      .runTest(
+        new DenseVector[Double](genotypeArray),
+        new DenseVector[Double](phenotypeArray),
+        nullFitNewtonResult
+      )
   }
 }
 
@@ -148,11 +150,15 @@ case class LogisticRegressionExpr(
   }
 
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    nullSafeCodeGen(ctx, ev, (genotypes, phenotypes, covariates, _) => {
-      s"""
+    nullSafeCodeGen(
+      ctx,
+      ev,
+      (genotypes, phenotypes, covariates, _) => {
+        s"""
          |
          |${ev.value} = io.projectglow.sql.expressions.LogisticRegressionExpr.doLogisticRegression("$testStr", $genotypes, $phenotypes, $covariates);
        """.stripMargin
-    })
+      }
+    )
   }
 }

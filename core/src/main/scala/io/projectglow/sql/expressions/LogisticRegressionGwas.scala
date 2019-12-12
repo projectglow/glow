@@ -137,9 +137,7 @@ class NewtonIterationsState(numRows: Int, numCols: Int) {
   val score: DenseVector[Double] = DenseVector.zeros[Double](numCols)
   val fisher: DenseMatrix[Double] = DenseMatrix.zeros[Double](numCols, numCols)
 
-  def initFromMatrix(
-    X: DenseMatrix[Double],
-    y: DenseVector[Double]): Unit = {
+  def initFromMatrix(X: DenseMatrix[Double], y: DenseVector[Double]): Unit = {
 
     val avg = sum(y) / X.rows
     b(0) = math.log(avg / (1 - avg))
@@ -150,9 +148,9 @@ class NewtonIterationsState(numRows: Int, numCols: Int) {
   }
 
   def initFromMatrixAndNullFit(
-    X: DenseMatrix[Double],
-    y: DenseVector[Double],
-    nullFitArgs: NewtonIterationsState): Unit = {
+      X: DenseMatrix[Double],
+      y: DenseVector[Double],
+      nullFitArgs: NewtonIterationsState): Unit = {
 
     val m0 = nullFitArgs.b.length
 
@@ -174,7 +172,6 @@ class NewtonIterationsState(numRows: Int, numCols: Int) {
   }
 }
 
-
 case class NewtonResult(
     args: NewtonIterationsState,
     logLkhd: Double,
@@ -182,11 +179,31 @@ case class NewtonResult(
     converged: Boolean,
     exploded: Boolean)
 
+/** Base trait for logistic regression tests */
 trait LogitTest extends Serializable {
+
+  /**
+   * Type for the state that the test maintains between variants.
+   */
   type FitState
+
   def resultSchema: StructType
-  def canReuseNullFit: Boolean
+
+  /**
+   * If true, the [[FitState]] uses per-phenotype information and must be refit for each phenotype.
+   * If false, the [[FitState]] only depends on the `covariates`
+   * @return
+   */
+  def fitStatePerPhenotype: Boolean
+
+  /**
+   * Initializes a [[FitState]] for a (covariate matrix, phenotype array) pair.
+   *
+   * As much memory allocation as possible should be performed in this step to avoid allocations
+   * in the per-row fit.
+   */
   def init(phenotypes: Array[Double], covariates: SparkDenseMatrix): FitState
+
   def runTest(
       genotypes: DenseVector[Double],
       phenotypes: DenseVector[Double],

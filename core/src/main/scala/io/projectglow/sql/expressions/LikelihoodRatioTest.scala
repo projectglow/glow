@@ -24,7 +24,7 @@ import org.apache.spark.sql.types.StructType
 
 object LikelihoodRatioTest extends LogitTest {
   override type FitState = LRTFitState
-  override def canReuseNullFit: Boolean = true
+  override def fitStatePerPhenotype: Boolean = true
   override val resultSchema: StructType = Encoders.product[LogitTestResults].schema
 
   override def init(phenotypes: Array[Double], covariates: SparkDenseMatrix): LRTFitState = {
@@ -43,13 +43,14 @@ object LikelihoodRatioTest extends LogitTest {
       phenotypes: DenseVector[Double],
       fitState: LRTFitState): InternalRow = {
     fitState.x(::, -1) := genotypes
-    fitState.newtonState.initFromMatrixAndNullFit(
-      fitState.x,
-      phenotypes,
-      fitState.nullFit.args)
+    fitState.newtonState.initFromMatrixAndNullFit(fitState.x, phenotypes, fitState.nullFit.args)
 
     val fullFit =
-      LogisticRegressionGwas.newtonIterations(fitState.x, phenotypes, fitState.hessian, fitState.newtonState)
+      LogisticRegressionGwas.newtonIterations(
+        fitState.x,
+        phenotypes,
+        fitState.hessian,
+        fitState.newtonState)
 
     if (!fitState.nullFit.converged || !fullFit.converged) {
       return LogitTestResults.nanRow
@@ -65,8 +66,8 @@ object LikelihoodRatioTest extends LogitTest {
 }
 
 case class LRTFitState(
-  x: DenseMatrix[Double],
-  hessian: DenseMatrix[Double],
-  nullFit: NewtonResult,
-  newtonState: NewtonIterationsState
+    x: DenseMatrix[Double],
+    hessian: DenseMatrix[Double],
+    nullFit: NewtonResult,
+    newtonState: NewtonIterationsState
 )
