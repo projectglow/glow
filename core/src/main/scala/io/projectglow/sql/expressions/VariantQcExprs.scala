@@ -18,7 +18,7 @@ package io.projectglow.sql.expressions
 
 import org.apache.spark.sql.catalyst.analysis.UnresolvedExtractValue
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCode}
-import org.apache.spark.sql.catalyst.expressions.{ArrayTransform, Cast, CreateNamedStruct, ExpectsInputTypes, Expression, GenericInternalRow, LambdaFunction, Literal, NamedLambdaVariable, UnaryExpression, UnresolvedNamedLambdaVariable}
+import org.apache.spark.sql.catalyst.expressions.{ArrayTransform, Cast, CreateNamedStruct, ExpectsInputTypes, Expression, GenericInternalRow, LambdaFunction, Literal, NamedLambdaVariable, UnaryExpression, Unevaluable, UnresolvedNamedLambdaVariable}
 import org.apache.spark.sql.catalyst.util.{ArrayData, GenericArrayData}
 import org.apache.spark.sql.catalyst.{InternalRow, ScalaReflection}
 import org.apache.spark.sql.types._
@@ -38,15 +38,13 @@ object VariantQcExprs extends GlowLogging {
    * Performs a two-sided test of the Hardy-Weinberg equilibrium. Returns the expected het frequency
    * as well as the associated p value.
    * @param genotypes an array of structs with the schema required by [[CallStats]]
-   * @param genotypeIdx the position of the genotype struct (with calls and phasing info) within
-   *                     the element struct of the genotypes array
    * @return a row with the schema of [[HardyWeinbergStruct]]
    */
   def hardyWeinberg(
       genotypes: ArrayData,
-      genotypesSize: Int,
-      genotypeIdx: Int): GenericInternalRow = {
-    val callStats = callStatsBase(genotypes, genotypesSize, genotypeIdx)
+    genotypesSize: Int,
+    genotypesIdx: Int): GenericInternalRow = {
+    val callStats = callStatsBase(genotypes, genotypesSize, genotypesIdx)
 
     val nHomRef = if (callStats.nHomozygous.nonEmpty) callStats.nHomozygous.head else 0
     val nHomAlt = if (callStats.nHomozygous.length > 1) callStats.nHomozygous(1) else 0
@@ -60,18 +58,10 @@ object VariantQcExprs extends GlowLogging {
     new GenericInternalRow(output.asInstanceOf[Array[Any]])
   }
 
-  /**
-   * Calculates a variety of summary stats on the calls for a given site. This method returns
-   * a case class so that the output can be used easily from other QC functions as well as
-   * returned directly to the user.
-   *
-   * @param genotypes an array of structs with the schema defined in [[CallStats.requiredSchema]]
-   * @param genotypesIdx the position of the calls within the element struct of the genotypes array
-   */
   def callStatsBase(
-      genotypes: ArrayData,
-      genotypesSize: Int,
-      genotypesIdx: Int): CallStatsStruct = {
+    genotypes: ArrayData,
+    genotypesSize: Int,
+    genotypesIdx: Int): CallStatsStruct = {
     var i = 0
     var nCalled = 0
     var nUncalled = 0
@@ -84,28 +74,28 @@ object VariantQcExprs extends GlowLogging {
       val calls = genotypes
         .getStruct(i, genotypesSize)
         .getArray(genotypesIdx)
-        .toIntArray()
       var isHet = false
       var isUncalled = false
       var lastAllele = -1
       var isNonRef = false
       var j = 0
-      while (j < calls.length) {
-        if (calls(j) == -1) {
+      while (j < calls.numElements()) {
+        val call = calls.getInt(j)
+        if (call == -1) {
           isUncalled = true
         } else {
-          while (alleleCounts.size - 1 < calls(j)) {
+          while (alleleCounts.size - 1 < call) {
             alleleCounts.add(0)
           }
-          alleleCounts.set(calls(j), alleleCounts.get(calls(j)) + 1)
+          alleleCounts.set(call, alleleCounts.get(call) + 1)
           alleleN += 1
 
-          if (lastAllele != -1 && calls(j) != lastAllele) {
+          if (lastAllele != -1 && call != lastAllele) {
             isHet = true
           }
-          lastAllele = calls(j)
+          lastAllele = call
 
-          if (calls(j) > 0) {
+          if (call > 0) {
             isNonRef = true
           }
 
@@ -165,8 +155,108 @@ object VariantQcExprs extends GlowLogging {
     )
   }
 
-  def callStats(genotypes: ArrayData, genotypesSize: Int, genotypeIdx: Int): InternalRow = {
-    val base = callStatsBase(genotypes, genotypesSize, genotypeIdx)
+  /**
+   * Calculates a variety of summary stats on the calls for a given site. This method returns
+   * a case class so that the output can be used easily from other QC functions as well as
+   * returned directly to the user.
+   *
+   * @param genotypes an array of structs with the schema defined in [[CallStats.requiredSchema]]
+   */
+  def callStatsBase(
+      genotypes: ArrayData): CallStatsStruct = {
+    var i = 0
+    var nCalled = 0
+    var nUncalled = 0
+    var nHet = 0
+    var nNonRef = 0
+    val homozygotes = new java.util.ArrayList[Integer](2)
+    val alleleCounts = new java.util.ArrayList[Integer](2)
+    var alleleN = 0
+    while (i < genotypes.numElements()) {
+      val calls = genotypes.getArray(i)
+      var isHet = false
+      var isUncalled = false
+      var lastAllele = -1
+      var isNonRef = false
+      var j = 0
+      while (j < calls.numElements()) {
+        val call = calls.getInt(j)
+        if (call == -1) {
+          isUncalled = true
+        } else {
+          while (alleleCounts.size - 1 < call) {
+            alleleCounts.add(0)
+          }
+          alleleCounts.set(call, alleleCounts.get(call) + 1)
+          alleleN += 1
+
+          if (lastAllele != -1 && call != lastAllele) {
+            isHet = true
+          }
+          lastAllele = call
+
+          if (call > 0) {
+            isNonRef = true
+          }
+
+        }
+        j += 1
+      }
+
+      if (isNonRef) {
+        nNonRef += 1
+      }
+
+      if (j == 0 || isUncalled) {
+        nUncalled += 1
+      } else {
+        nCalled += 1
+      }
+
+      if (isHet) {
+        nHet += 1
+      } else if (lastAllele != -1) {
+        while (homozygotes.size - 1 < lastAllele) {
+          homozygotes.add(0)
+        }
+        homozygotes.set(lastAllele, homozygotes.get(lastAllele) + 1)
+      }
+      i += 1
+    }
+
+    val homozygotesArr = new Array[Int](homozygotes.size())
+    var idx = 0
+    // Unfortunately, we have a build an array ourselves instead of calling List.toArray
+    // because of issues with primitive boxing
+    while (idx < homozygotes.size()) {
+      homozygotesArr(idx) = homozygotes.get(idx)
+      idx += 1
+    }
+
+    val alleleFrequency = new Array[Double](alleleCounts.size())
+    val alleleCountsArr = new Array[Int](alleleCounts.size())
+    idx = 0
+    while (idx < alleleCounts.size()) {
+      alleleCountsArr(idx) = alleleCounts.get(idx)
+      alleleFrequency(idx) = alleleCounts.get(idx).toDouble / alleleN
+      idx += 1
+    }
+
+    CallStatsStruct(
+      nCalled.toDouble / (nCalled + nUncalled),
+      nCalled,
+      nUncalled,
+      nHet,
+      homozygotesArr,
+      nNonRef,
+      alleleN,
+      alleleCountsArr,
+      alleleFrequency
+    )
+  }
+
+  def callStats(genotypes: ArrayData): InternalRow = {
+    val base = callStatsBase(genotypes)
     new GenericInternalRow(
       Array(
         base.callRate,
@@ -271,30 +361,28 @@ object HardyWeinberg {
 
 case class HardyWeinbergStruct(hetFreqHwe: Double, pValueHwe: Double)
 
-case class CallStats(genotypes: Expression) extends UnaryExpression with ExpectsGenotypeFields {
+case class CallStatsBase(child: Expression) extends UnaryExpression with Unevaluable {
+  def dataType: DataType = CallStats.schema
+}
+
+case class CallStats(genotypes: Expression) extends UnaryExpression with ExpectsInputTypes {
   lazy val dataType: DataType = CallStats.schema
 
-  override def genotypesExpr: Expression = genotypes
-
-  override def genotypeFieldsRequired: Seq[StructField] = Seq(VariantSchemas.callsField)
-
   override def child: Expression = genotypes
+
+  override def inputTypes: Seq[DataType] = Seq(ArrayType(ArrayType(IntegerType)))
 
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
     val fn = "io.projectglow.sql.expressions.VariantQcExprs.callStats"
     nullSafeCodeGen(ctx, ev, calls => {
       s"""
-         |${ev.value} = $fn($calls, $genotypeStructSize, ${genotypeFieldIndices.head});
+         |${ev.value} = $fn($calls);
        """.stripMargin
     })
   }
 
   override def nullSafeEval(input: Any): Any = {
-    VariantQcExprs.callStats(
-      input.asInstanceOf[ArrayData],
-      genotypeStructSize,
-      genotypeFieldIndices.head
-    )
+    VariantQcExprs.callStats(input.asInstanceOf[ArrayData])
   }
 }
 

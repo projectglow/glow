@@ -75,7 +75,7 @@ object SqlExtensionProvider {
 
     functionRegistry.registerFunction(
       FunctionIdentifier("call_summary_stats"),
-      exprs => CallStats(exprs.head)
+      exprs => CallStatsBase(exprs.head)
     )
 
     functionRegistry.registerFunction(

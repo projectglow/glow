@@ -46,6 +46,15 @@ object HLSReplaceExpressionsRule extends Rule[LogicalPlan] {
       val arr = GetArrayStructFields(genotypes, VariantSchemas.callsField, idx, gSchema.length, gArray.containsNull)
       GenotypeStates(arr)
 
+    case CallStatsBase(genotypes) =>
+      val gArray = genotypes.dataType.asInstanceOf[ArrayType]
+      val gSchema = gArray.elementType.asInstanceOf[StructType]
+
+      val idx = gSchema
+        .indexWhere(SQLUtils.structFieldsEqualExceptNullability(_, VariantSchemas.callsField))
+      val arr = GetArrayStructFields(genotypes, VariantSchemas.callsField, idx, gSchema.length, gArray.containsNull)
+      CallStats(arr)
+
   }
 }
 
