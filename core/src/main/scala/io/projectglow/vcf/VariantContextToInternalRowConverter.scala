@@ -79,7 +79,16 @@ class VariantContextToInternalRowConverter(
         case f if f.name == VariantSchemas.genotypesFieldName =>
           val gSchema = field.dataType.asInstanceOf[ArrayType].elementType.asInstanceOf[StructType]
           val gConverter = makeGenotypeConverter(gSchema)
-          (vc, row, i) => updateGenotypes(vc, gConverter, row, i)
+          (vc: VariantContext, row: InternalRow, i: Int) => {
+            val alleleMap = buildAlleleMap(vc)
+            val output = new Array[Any](vc.getGenotypes.size())
+            var j = 0
+            while (j < output.length) {
+              output(j) = gConverter((alleleMap, vc.getGenotype(j)))
+              j += 1
+            }
+            row.update(i, new GenericArrayData(output))
+          }
         case f =>
           logger.info(
             s"Column $f cannot be derived from VCF records. It will be null for each " +
@@ -296,21 +305,6 @@ class VariantContextToInternalRowConverter(
         row.update(idx, value)
       }
     }
-  }
-
-  private def updateGenotypes(
-      vc: VariantContext,
-      gConverter: RowConverter[(JMap[Allele, Int], HTSJDKGenotype)],
-      row: InternalRow,
-      idx: Int): Unit = {
-    val alleleMap = buildAlleleMap(vc)
-    val output = new Array[Any](vc.getGenotypes.size())
-    var j = 0
-    while (j < output.length) {
-      output(j) = gConverter((alleleMap, vc.getGenotype(j)))
-      j += 1
-    }
-    row.update(idx, new GenericArrayData(output))
   }
 
   private def updateSampleId(g: HTSJDKGenotype, row: InternalRow, offset: Int): Unit = {
