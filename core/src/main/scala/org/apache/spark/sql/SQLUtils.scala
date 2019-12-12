@@ -75,4 +75,8 @@ object SQLUtils {
   def anyDataType: ADT = AnyDataType
 
   type ADT = AbstractDataType
+
+  def getSessionExtensions(session: SparkSession): SparkSessionExtensions = {
+    session.extensions
+  }
 }

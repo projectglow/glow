@@ -29,9 +29,7 @@ import io.projectglow.transformers.pipe.{InputFormatter, InputFormatterFactory}
 /**
  * An input formatter that writes rows as VCF records.
  */
-class VCFInputFormatter(
-    converter: InternalRowToVariantContextConverter,
-    providedSampleIds: Option[Seq[String]])
+class VCFInputFormatter(converter: InternalRowToVariantContextConverter, sampleIdInfo: SampleIdInfo)
     extends InputFormatter
     with GlowLogging {
 
@@ -43,7 +41,7 @@ class VCFInputFormatter(
     this.writer = new VCFStreamWriter(
       stream,
       converter.vcfHeader.getMetaDataInInputOrder.asScala.toSet,
-      providedSampleIds,
+      sampleIdInfo,
       writeHeader = true)
   }
 
@@ -61,8 +59,8 @@ class VCFInputFormatterFactory extends InputFormatterFactory {
   override def name: String = "vcf"
 
   override def makeInputFormatter(df: DataFrame, options: Map[String, String]): InputFormatter = {
-    val (headerLineSet, providedSampleIds) =
-      VCFFileWriter.parseHeaderLinesAndSamples(
+    val (headerLineSet, sampleIdInfo) =
+      VCFHeaderUtils.parseHeaderLinesAndSamples(
         options,
         None,
         df.schema,
@@ -73,6 +71,7 @@ class VCFInputFormatterFactory extends InputFormatterFactory {
       VCFOptionParser.getValidationStringency(options)
     )
     rowConverter.validate()
-    new VCFInputFormatter(rowConverter, providedSampleIds)
+
+    new VCFInputFormatter(rowConverter, sampleIdInfo)
   }
 }

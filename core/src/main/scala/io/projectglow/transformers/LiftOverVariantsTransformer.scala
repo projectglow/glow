@@ -39,7 +39,7 @@ import picard.vcf.LiftoverVcf
 import io.projectglow.DataFrameTransformer
 import io.projectglow.common.{GlowLogging, VariantSchemas}
 import io.projectglow.sql.expressions.LiftOverCoordinatesExpr
-import io.projectglow.vcf.{InternalRowToVariantContextConverter, VCFSchemaInferrer, VariantContextToInternalRowConverter}
+import io.projectglow.vcf.{InternalRowToVariantContextConverter, VCFSchemaInferrer, VCFWriterUtils, VariantContextToInternalRowConverter}
 
 /**
  * Performs lift over from a variant on the reference sequence to a query sequence. Similar to
@@ -246,6 +246,15 @@ object LiftOverVariantsTransformer extends GlowLogging {
     val refStr = refSeq.getBaseString.substring(outputVc.getStart - 1, outputVc.getEnd)
 
     if (outputVc.getReference.getBaseString.toLowerCase != refStr.toLowerCase) {
+      if (outputVc.isBiallelic && outputVc.isSNP && refStr.equalsIgnoreCase(
+          outputVc.getAlternateAllele(0).getBaseString)) {
+        val swappedRefAlt =
+          LiftoverUtils.swapRefAlt(
+            VCFWriterUtils.convertVcAttributesToStrings(outputVc).make,
+            LiftoverUtils.DEFAULT_TAGS_TO_REVERSE,
+            LiftoverUtils.DEFAULT_TAGS_TO_DROP)
+        return (Some(swappedRefAlt), None)
+      }
       val attemptedLocus = s"${outputVc.getContig}:${outputVc.getStart}-${outputVc.getEnd}"
       return (
         None,

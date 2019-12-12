@@ -54,7 +54,7 @@ The ``normalize_variants`` transformer brings unprecedented scalability and simp
 The underlying normalization algorithm and its accuracy
 -------------------------------------------------------
 
-There are several single-node tools for variant normalization that use different normalization algorithms. Widely used tools for variant normalization include `vt normalize <https://genome.sph.umich.edu/wiki/Vt>`_, `bcftools norm <http://www.htslib.org/doc/bcftools.html#norm>`_, and the GATK’s `LeftAlignAndTrimVariants <https://software.broadinstitute.org/gatk/documentation/tooldocs/3.8-0/org_broadinstitute_gatk_tools_walkers_variantutils_LeftAlignAndTrimVariants.php>`_.
+There are several single-node tools for variant normalization that use different normalization algorithms. Widely used tools for variant normalization include `vt normalize <https://genome.sph.umich.edu/wiki/Vt>`_, `bcftools norm <https://www.htslib.org/doc/bcftools.1.html#norm>`_, and the GATK’s `LeftAlignAndTrimVariants <https://software.broadinstitute.org/gatk/documentation/tooldocs/3.8-0/org_broadinstitute_gatk_tools_walkers_variantutils_LeftAlignAndTrimVariants.php>`_.
 
 Based on our own investigation and also as indicated by :ref:`Bayat et al. <Bayat>` and :ref:`Tan et al. <Tan>`, the GATK’s LeftAlignAndTrimVariants algorithm frequently fails to completely left-align some variants. For example, we noticed that on the `test_left_align_hg38.vcf <https://github.com/broadinstitute/gatk/tree/master/src/test/resources/org/broadinstitute/hellbender/tools/walkers/variantutils/LeftAlignAndTrimVariants>`_ test file from GATK itself, applying LeftAlignAndTrimVariants results in an incorrect normalization of 3 of the 16 variants in the file, including the variants at positions ``chr20:63669973``, ``chr20:64012187``, and ``chr21:13255301``. These variants are normalized correctly using ``vt normalize`` and ``bcftools norm``.
 
@@ -143,7 +143,7 @@ Using Glow ``normalize_variants`` transformer, computational biologists and bioi
 
 Try it!
 -------
-Our `normalize_variants <https://glow.readthedocs.io/en/latest/tertiary/variant-normalization.html>`_ transformer makes it easy to normalize (and split) large variant datasets with a very small amount of code . Learn more about other feature of Glow `here <https://glow.readthedocs.io/en/latest/index.html>`_.
+Our `normalize_variants <https://glow.readthedocs.io/en/latest/etl/variant-normalization.html>`_ transformer makes it easy to normalize (and split) large variant datasets with a very small amount of code . Learn more about other feature of Glow `here <https://glow.readthedocs.io/en/latest/index.html>`_.
 
 
 References

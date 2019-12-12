@@ -17,10 +17,10 @@ You can calculate quality control statistics on your variant data using Spark SQ
   * - Function
     - Arguments
     - Return
-  * - hardy_weinberg
+  * - ``hardy_weinberg``
     - The ``genotypes`` array. This function assumes that the variant has been converted to a biallelic representation.
     - A struct with two elements: the expected heterozygous frequency according to Hardy-Weinberg equilibrium and the associated p-value.
-  * - call_summary_stats
+  * - ``call_summary_stats``
     - The ``genotypes`` array
     - A struct containing the following summary stats:
 
@@ -32,10 +32,10 @@ You can calculate quality control statistics on your variant data using Spark SQ
       * ``nNonRef``: The number of samples that are not hom-ref
       * ``nAllelesCalled``: An array with the number of times each allele was seen
       * ``alleleFrequencies``: An array with the frequency for each allele
-  * - dp_summary_stats
+  * - ``dp_summary_stats``
     - The ``genotypes`` array
     - A struct containing the min, max, mean, and sample standard deviation for genotype depth (DP in VCF v4.2 specificiation) across all samples
-  * - gq_summary_stats
+  * - ``gq_summary_stats``
     - The ``genotypes`` array
     - A struct containing the min, max, mean, and sample standard deviation for genotype quality (GQ in VCF v4.2 specification) across all samples
 

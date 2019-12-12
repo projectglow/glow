@@ -33,6 +33,30 @@ class PlinkReaderSuite extends GlowBaseTest {
   private val bedBimFam = s"$fiveSamplesFiveVariants/bed-bim-fam"
   private val sourceName = "plink"
 
+  /**
+   * Checks if an exception with an expected type and message exists in a stack of exceptions.
+   *
+   * @param exception The top of the exception stack
+   * @param msg Message contained in the exception
+   * @tparam T Expected exception type
+   * @return True if found, False otherwise
+   */
+  def checkExceptionContains[T <: Throwable](exception: Throwable, msg: String = ""): Boolean = {
+    var e = exception
+    while (true) {
+      if (e.isInstanceOf[T] && e.getMessage.contains(msg)) {
+        return true
+      } else {
+        if (e.getCause != null) {
+          e = e.getCause
+        } else {
+          return false
+        }
+      }
+    }
+    false
+  }
+
   test("Read PLINK files") {
     val sess = spark
     import sess.implicits._
@@ -125,7 +149,7 @@ class PlinkReaderSuite extends GlowBaseTest {
     val e = intercept[SparkException] {
       df.collect()
     }
-    assert(e.getCause.isInstanceOf[FileNotFoundException])
+    checkExceptionContains[FileNotFoundException](e)
     DebugFilesystem.assertNoOpenStreams()
   }
 
@@ -137,7 +161,7 @@ class PlinkReaderSuite extends GlowBaseTest {
     val e = intercept[SparkException] {
       df.collect()
     }
-    assert(e.getCause.isInstanceOf[FileNotFoundException])
+    checkExceptionContains[FileNotFoundException](e)
     DebugFilesystem.assertNoOpenStreams()
   }
 
@@ -151,7 +175,7 @@ class PlinkReaderSuite extends GlowBaseTest {
         .sort("contigName")
         .collect
     }
-    assert(e.getCause.getMessage.contains("Failed while parsing BIM file"))
+    checkExceptionContains[IllegalArgumentException](e, "Failed while parsing BIM file")
   }
 
   test("Wrong FAM delimiter") {
@@ -221,7 +245,7 @@ class PlinkReaderSuite extends GlowBaseTest {
         .load(s"$fiveSamplesFiveVariants/malformed/test.bed")
         .collect()
     }
-    assert(e.getCause.isInstanceOf[EOFException])
+    checkExceptionContains[EOFException](e)
   }
 
   test("Use IID only for sample ID") {
@@ -251,11 +275,9 @@ class PlinkReaderSuite extends GlowBaseTest {
         .load(s"$bedBimFam/test.bed")
         .collect()
     }
-    assert(e.getCause.isInstanceOf[IllegalArgumentException])
-    assert(
-      e.getCause
-        .getMessage
-        .contains("Value for mergeFidIid must be [true, false]. Provided: hello"))
+    checkExceptionContains[IllegalArgumentException](
+      e,
+      "Value for mergeFidIid must be [true, false]. Provided: hello")
   }
 
   test("PLINK file format does not support writing") {

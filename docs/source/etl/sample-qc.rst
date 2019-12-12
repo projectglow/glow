@@ -2,10 +2,17 @@
 Sample Quality Control
 ======================
 
+.. invisible-code-block: python
+
+    import glow
+    glow.register(spark)
+
 You can calculate quality control statistics on your variant data using Spark SQL functions, which
 can be expressed in Python, R, Scala, or SQL.
 
-Each of these functions returns a map from sample ID to a struct containing metrics for that sample and assumes that the same samples appear in the same order in each row.
+Each of these functions returns an array of structs containing metrics for one sample. If sample ids
+are including in the input DataFrame, they will be propagated to the output. The functions assume
+that the genotypes in each row of the input DataFrame contain the same samples in the same order.
 
 .. list-table::
   :header-rows: 1
@@ -13,7 +20,7 @@ Each of these functions returns a map from sample ID to a struct containing metr
   * - Functions
     - Arguments
     - Return
-  * - sample_call_summary_stats
+  * - ``sample_call_summary_stats``
     - ``referenceAllele`` string, ``alternateAlleles`` array of strings, ``genotypes`` array ``calls``
     - A struct containing the following summary stats:
 
@@ -33,15 +40,15 @@ Each of these functions returns a map from sample ID to a struct containing metr
       * ``rTiTv``: Ratio of transitions to tranversions (``nTransition / nTransversion``)
       * ``rInsertionDeletion``: Ratio of insertions to deletions (``nInsertion / nDeletion``)
       * ``rHetHomVar``: Ratio of heterozygous to homozygous variant calls (``nHet / nHomVar``)
-  * - sample_dp_summary_stats
+  * - ``sample_dp_summary_stats``
     - ``genotypes`` array with a ``depth`` field
     - A struct with ``min``, ``max``, ``mean``, and ``stddev``
-  * - sample_gq_summary_stats
+  * - ``sample_gq_summary_stats``
     - ``genotypes`` array with a ``conditionalQuality`` field
     - A struct with ``min``, ``max``, ``mean``, and ``stddev``
 
 Computing user-defined sample QC metrics
-----------------------------------
+----------------------------------------
 
 In addition to the built-in QC functions discussed above, Glow provides two ways to compute
 user-defined per-sample statistics.
@@ -88,6 +95,17 @@ position:
     (state1, state2) -> (state1.col1 + state2.col1, state1.col2 + state2.col2),
     state -> state.col1 / state.col2)
 
+.. invisible-code-block: python
+
+  import pyspark.sql.functions as fx
+  df = spark.range(1000).withColumn("array_col", fx.expr("transform(array_repeat(0, 1000), (el, idx) -> id + el + idx)"))
+  agg_expr = "aggregate_by_index(array_col, (0d, 0l), (state, el) -> (state.col1 + el, state.col2 + 1), (state1, state2) -> (state1.col1 + state2.col1, state1.col2 + state2.col2), state -> state.col1 / state.col2) as mean_by_position"
+  agged = df.selectExpr(agg_expr)
+  expected_means = agged.head().mean_by_position
+
+  assert expected_means[0] == 499.5
+  assert expected_means[-1] == 1498.5
+
 Explode and aggregate
 ~~~~~~~~~~~~~~~~~~~~~
 
@@ -96,7 +114,11 @@ table rather than a single array, you can explode the ``genotypes`` array and us
 aggregation functions built into Spark. For example, this code snippet computes the number of sites
 with a non-reference allele for each sample:
 
-.. code-block:: py
+.. invisible-code-block: python
+
+  df = spark.read.format('vcf').load('test-data/combined.chr20_18210071_18210093.g.vcf')
+
+.. code-block:: python
   
   import pyspark.sql.functions as fx
   exploded_df = df.withColumn("genotype", fx.explode("genotypes"))\
@@ -106,5 +128,10 @@ with a non-reference allele for each sample:
     .agg(fx.count(fx.lit(1)))\
     .orderBy("sampleId", "hasNonRef")
   
+.. invisible-code-block: python
+
+  from pyspark.sql import Row
+  expected_agg = Row(sampleId='HG00096', count=22, hasNonRef=False)
+  assert rows_equal(agg.withColumnRenamed('count(1)', 'count').head(), expected_agg)
 
 .. notebook:: .. etl/sample-qc-demo.html

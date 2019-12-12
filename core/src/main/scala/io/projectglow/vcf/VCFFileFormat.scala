@@ -237,12 +237,12 @@ object VCFFileFormat {
       } else {
         new PositionalBufferedStream(is)
       }
-
-      val vcfCodec = new VCFCodec()
-      val reader = new AsciiLineReaderIterator(AsciiLineReader.from(wrappedStream))
-      val header = vcfCodec
-        .readActualHeader(reader)
-      (header.asInstanceOf[VCFHeader], vcfCodec)
+      WithUtils.withCloseable(wrappedStream) { ws =>
+        val vcfCodec = new VCFCodec()
+        val reader = new AsciiLineReaderIterator(AsciiLineReader.from(ws))
+        val header = vcfCodec.readActualHeader(reader)
+        (header.asInstanceOf[VCFHeader], vcfCodec)
+      }
     }
   }
 
@@ -549,8 +549,18 @@ private[projectglow] class VCFOutputWriterFactory(options: Map[String, String])
       context: TaskAttemptContext): OutputWriter = {
     val outputStream = CodecStreams.createOutputStream(context, new Path(path))
     DatabricksBGZFOutputStream.setWriteEmptyBlockOnClose(outputStream, true)
+    val (headerLineSet, sampleIdInfo) =
+      VCFHeaderUtils.parseHeaderLinesAndSamples(
+        options,
+        Some(VCFHeaderUtils.INFER_HEADER),
+        dataSchema,
+        context.getConfiguration)
+
+    val stringency = VCFOptionParser.getValidationStringency(options)
     new VCFFileWriter(
-      options,
+      headerLineSet,
+      sampleIdInfo,
+      stringency,
       dataSchema,
       context.getConfiguration,
       outputStream,

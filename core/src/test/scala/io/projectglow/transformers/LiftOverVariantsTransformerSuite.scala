@@ -186,7 +186,7 @@ class LiftOverVariantsTransformerSuite extends GlowBaseTest with VCFConverterBas
   Seq(
     "testLiftoverBiallelicIndels.vcf", // No failures
     "testLiftoverMultiallelicIndels.vcf", // ReverseComplementedIndel
-    "testLiftoverFailingVariants.vcf" // MismatchedRefAllele
+    "testLiftoverSwapRefAltVariants.vcf" // SwappedRefAlt
   ).foreach {
     case baseVcf =>
       test(s"Liftover reverse strand $baseVcf") {
