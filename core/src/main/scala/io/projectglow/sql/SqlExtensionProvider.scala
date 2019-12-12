@@ -95,7 +95,7 @@ object SqlExtensionProvider {
 
     functionRegistry.registerFunction(
       FunctionIdentifier("genotype_states"),
-      exprs => GenotypeStates(exprs.head)
+      exprs => GenotypeStatesBase(exprs.head)
     )
 
     functionRegistry.registerFunction(

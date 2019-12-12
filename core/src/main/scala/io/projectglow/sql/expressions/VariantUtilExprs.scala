@@ -19,7 +19,7 @@ package io.projectglow.sql.expressions
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, CodegenFallback, ExprCode}
-import org.apache.spark.sql.catalyst.expressions.{Expression, ImplicitCastInputTypes, UnaryExpression, Unevaluable}
+import org.apache.spark.sql.catalyst.expressions.{Expression, ImplicitCastInputTypes, UnaryExpression, Unevaluable, UnsafeArrayData}
 import org.apache.spark.sql.catalyst.util.{ArrayData, GenericArrayData}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
@@ -34,6 +34,28 @@ import io.projectglow.sql.util.ExpectsGenotypeFields
  * The functions are exposed to the user as Catalyst expressions.
  */
 object VariantUtilExprs {
+  def genotypeStates(genotypes: ArrayData): ArrayData = {
+    val output = new Array[Int](genotypes.numElements())
+    var i = 0
+    while (i < output.length) {
+      var sum = 0
+      var j = 0
+      val calls = genotypes.getArray(i)
+      while (j < calls.numElements() && sum >= 0) {
+        if (calls.getInt(j) >= 0) {
+          sum += calls.getInt(j)
+        } else {
+          sum = -1 // missing
+        }
+        j += 1
+      }
+      output(i) = if (j == 0) -1 else sum
+      i += 1
+    }
+
+    UnsafeArrayData.fromPrimitiveArray(output)
+  }
+
   def isSnp(refAllele: UTF8String, altAllele: UTF8String): Boolean = {
     if (refAllele.numChars() != altAllele.numChars()) {
       return false
@@ -135,15 +157,41 @@ object VariantType {
   case object Unknown extends VariantType
 }
 
+case class GenotypeStatesBase(child: Expression)
+  extends UnaryExpression
+  with Unevaluable {
+
+  override def prettyName: String = "genotype_states"
+
+  override def dataType: DataType = ArrayType(IntegerType)
+}
 /**
  * Converts a complex genotype array into an array of ints, where each element is the sum
  * of the calls array for the sample at that position if no calls are missing, or -1 if any calls
  * are missing.
  */
-case class GenotypeStates(child: Expression)
-    extends UnaryExpression
-    with Unevaluable {
+case class GenotypeStates(genotypes: Expression)
+  extends UnaryExpression
+  with ImplicitCastInputTypes {
+
+  override def child: Expression = genotypes
+
+  override def inputTypes: Seq[DataType] = Seq(ArrayType(ArrayType(IntegerType)))
+
   override def dataType: DataType = ArrayType(IntegerType)
+
+  override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
+    val fn = "io.projectglow.sql.expressions.VariantUtilExprs.genotypeStates"
+    nullSafeCodeGen(ctx, ev, calls => {
+      s"""
+         |${ev.value} = $fn($calls);
+       """.stripMargin
+    })
+  }
+
+  override def nullSafeEval(input: Any): Any = {
+    VariantUtilExprs.genotypeStates(input.asInstanceOf[ArrayData])
+  }
 }
 
 /**

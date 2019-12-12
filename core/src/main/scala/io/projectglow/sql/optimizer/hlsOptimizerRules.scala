@@ -16,15 +16,15 @@
 
 package io.projectglow.sql.optimizer
 
-import org.apache.spark.sql.{AnalysisException, SQLUtils}
+import org.apache.spark.sql.SQLUtils
 import org.apache.spark.sql.catalyst.expressions.aggregate.{AggregateExpression, Complete}
-import org.apache.spark.sql.catalyst.expressions.{Add, ArrayAggregate, ArrayTransform, CaseWhen, CreateNamedStruct, EqualNullSafe, EqualTo, GetArrayStructFields, GetStructField, If, LambdaFunction, Literal, Size, UnresolvedNamedLambdaVariable}
+import org.apache.spark.sql.catalyst.expressions.{CreateNamedStruct, GetArrayStructFields, GetStructField, Literal}
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.rules.Rule
-import org.apache.spark.sql.types.{ArrayType, StructField, StructType}
+import org.apache.spark.sql.types.{ArrayType, StructType}
 
 import io.projectglow.common.VariantSchemas
-import io.projectglow.sql.expressions.{AddStructFields, AggregateByIndex, GenotypeStates, UnwrappedAggregateFunction}
+import io.projectglow.sql.expressions._
 
 /**
  * Simple optimization rule that handles expression rewrites
@@ -37,29 +37,15 @@ object HLSReplaceExpressionsRule extends Rule[LogicalPlan] {
         Seq(Literal(baseType(idx).name), GetStructField(struct, idx))
       }
       CreateNamedStruct(baseFields ++ newFields)
-    case GenotypeStates(genotypes) =>
+    case GenotypeStatesBase(genotypes) =>
       val gArray = genotypes.dataType.asInstanceOf[ArrayType]
       val gSchema = gArray.elementType.asInstanceOf[StructType]
 
       val idx = gSchema
         .indexWhere(SQLUtils.structFieldsEqualExceptNullability(_, VariantSchemas.callsField))
       val arr = GetArrayStructFields(genotypes, VariantSchemas.callsField, idx, gSchema.length, gArray.containsNull)
-      val elementArg = UnresolvedNamedLambdaVariable(Seq("el"))
-      val stateArg = UnresolvedNamedLambdaVariable(Seq("state"))
-      val branches = Seq(
-        (EqualTo(elementArg, Literal(-1)), Literal(-1)),
-        (EqualTo(stateArg, Literal(-1)), Literal(-1))
-      )
-      val elseCase = Add(stateArg, elementArg)
-      val callArrayArg = UnresolvedNamedLambdaVariable(Seq("callEl"))
-      val agg = ArrayAggregate(
-        callArrayArg,
-        Literal(0),
-        LambdaFunction(CaseWhen(branches, elseCase), Seq(stateArg, elementArg)),
-        LambdaFunction.identity)
-      ArrayTransform(
-        arr,
-        LambdaFunction(If(EqualTo(Size(callArrayArg), Literal(0)), Literal(-1), agg), Seq(callArrayArg)))
+      GenotypeStates(arr)
+
   }
 }
 
