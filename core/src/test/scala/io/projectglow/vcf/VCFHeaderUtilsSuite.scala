@@ -17,11 +17,15 @@
 package io.projectglow.vcf
 
 import java.io.FileNotFoundException
+import java.nio.file.Files
 
 import scala.collection.JavaConverters._
 
 import htsjdk.tribble.TribbleException
-import htsjdk.variant.vcf.VCFHeader
+import htsjdk.variant.vcf.{VCFFormatHeaderLine, VCFHeader, VCFHeaderLineCount, VCFHeaderLineType, VCFInfoHeaderLine}
+import org.apache.commons.io.FileUtils
+import org.apache.hadoop.fs.{FileStatus, Path}
+import org.apache.spark.SparkException
 import org.apache.spark.sql.types.StructType
 
 import io.projectglow.sql.GlowBaseTest
@@ -58,6 +62,25 @@ class VCFHeaderUtilsSuite extends GlowBaseTest {
     header.getFormatHeaderLines.asScala.toSet ++
     header.getInfoHeaderLines.asScala.toSet ++
     header.getOtherHeaderLines.asScala.toSet
+
+  private def writeVCFHeaders(contents: Seq[String], nSamples: Int = 1): Seq[FileStatus] = {
+    val dir = Files.createTempDirectory(this.getClass.getSimpleName)
+    val paths = contents.indices.map(idx => dir.resolve(idx.toString))
+    contents.zip(paths).foreach {
+      case (s, path) =>
+        val sampleIds = Range(0, nSamples).map(i => s"s$i").mkString("\t")
+        val fullContents =
+          s"""
+           |##fileformat=VCFv4.2
+           |${s.trim}
+           |#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t$sampleIds
+         """.stripMargin
+        FileUtils.writeStringToFile(path.toFile, StringContext.treatEscapes(fullContents.trim()))
+    }
+    new Path(dir.toString)
+      .getFileSystem(spark.sparkContext.hadoopConfiguration)
+      .listStatus(new Path(dir.toString))
+  }
 
   test("fall back") {
     val oldHeader = VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, vcf)
@@ -112,5 +135,54 @@ class VCFHeaderUtilsSuite extends GlowBaseTest {
     assertThrows[TribbleException] {
       getHeaderNoSamples(Map("vcfHeader" -> s"$testDataHome/no_header.csv"), None, schema)
     }
+  }
+
+  test("merge header lines") {
+    val file1 =
+      s"""
+         |##FORMAT=<ID=AD,Number=R,Type=Integer,Description="">
+         |##INFO=<ID=animal,Number=1,Type=String,Description="monkey">
+       """.stripMargin
+    val file2 =
+      s"""
+         |##FORMAT=<ID=DP,Number=1,Type=Integer,Description="">
+         |##INFO=<ID=color,Number=G,Type=String,Description="">
+       """.stripMargin
+    val paths = writeVCFHeaders(Seq(file1, file2))
+    val lines = VCFHeaderUtils.readHeaderLines(spark, paths)
+    val expectedLines = Set(
+      new VCFInfoHeaderLine("animal", 1, VCFHeaderLineType.String, "monkey"),
+      new VCFInfoHeaderLine("color", VCFHeaderLineCount.G, VCFHeaderLineType.String, ""),
+      new VCFFormatHeaderLine("AD", VCFHeaderLineCount.R, VCFHeaderLineType.Integer, ""),
+      new VCFFormatHeaderLine("DP", 1, VCFHeaderLineType.Integer, "")
+    )
+    assert(lines.toSet == expectedLines)
+  }
+
+  test("verify that lines are compatible") {
+    val file1 =
+      s"""
+         |##INFO=<ID=animal,Number=1,Type=String,Description="monkey">
+       """.stripMargin
+    val file2 =
+      s"""
+         |##INFO=<ID=animal,Number=2,Type=String,Description="monkey">
+       """.stripMargin
+    val paths = writeVCFHeaders(Seq(file1, file2))
+    val ex = intercept[SparkException](VCFHeaderUtils.readHeaderLines(spark, paths))
+    assert(ex.getCause.isInstanceOf[IllegalArgumentException])
+  }
+
+  test("all format and info lines with same id and different types") {
+    val file1 =
+      s"""
+         |##INFO=<ID=animal,Number=1,Type=String,Description="monkey">
+       """.stripMargin
+    val file2 =
+      s"""
+         |##FORMAT=<ID=animal,Number=2,Type=String,Description="monkey">
+       """.stripMargin
+    val paths = writeVCFHeaders(Seq(file1, file2))
+    VCFHeaderUtils.readHeaderLines(spark, paths) // no exception
   }
 }
