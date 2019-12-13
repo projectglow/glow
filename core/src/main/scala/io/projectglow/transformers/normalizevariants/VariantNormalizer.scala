@@ -19,23 +19,22 @@ package io.projectglow.transformers.normalizevariants
 import java.io.File
 import java.nio.file.Paths
 
-import scala.collection.JavaConverters._
-import scala.math.min
 import com.google.common.annotations.VisibleForTesting
 import htsjdk.samtools.ValidationStringency
 import htsjdk.variant.variantcontext._
 import htsjdk.variant.vcf.VCFHeader
-import org.apache.spark.sql.{DataFrame, SQLUtils}
-import org.apache.spark.sql.functions._
-import org.broadinstitute.hellbender.engine.{ReferenceContext, ReferenceDataSource}
-import org.broadinstitute.hellbender.utils.SimpleInterval
 import io.projectglow.common.GlowLogging
 import io.projectglow.common.VariantSchemas._
-import org.apache.spark.sql.types._
-import org.apache.spark.sql.functions.expr
-import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 import io.projectglow.vcf.{InternalRowToVariantContextConverter, VCFSchemaInferrer, VariantContextToInternalRowConverter}
+import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.types._
+import org.apache.spark.sql.{DataFrame, SQLUtils}
+import org.broadinstitute.hellbender.engine.{ReferenceContext, ReferenceDataSource}
+import org.broadinstitute.hellbender.utils.SimpleInterval
 
+import scala.collection.JavaConverters._
+import scala.math.min
 
 private[projectglow] object VariantNormalizer extends GlowLogging {
 
@@ -134,7 +133,8 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
    * @param variantDf
    * @return dataframe of split variants
    */
-  def splitVariants(variantDf: DataFrame): DataFrame = {
+  @VisibleForTesting
+  private[normalizevariants] def splitVariants(variantDf: DataFrame): DataFrame = {
 
     if (variantDf.schema.fieldNames.contains("attributes")) {
       // TODO: Unflattened INFO field splitting
@@ -152,9 +152,9 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
       .withColumn(
         infoFieldPrefix + oldMultiallelicFieldName,
         when(
-          expr(s"${splitFromMultiAllelicField.name} == true"),
+          col(splitFromMultiAllelicField.name),
           concat(
-            col(s"${contigNameField.name}"),
+            col(contigNameField.name),
             lit(":"),
             expr(s"${startField.name} + 1"),
             lit(":"),
@@ -194,7 +194,8 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
    * @param variantDf
    * @return dataframe with split info fields
    */
-  private def splitInfoFields(variantDf: DataFrame): DataFrame = {
+  @VisibleForTesting
+  private[normalizevariants] def splitInfoFields(variantDf: DataFrame): DataFrame = {
     variantDf
       .schema
       .filter(field =>
@@ -220,18 +221,28 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
    * @param variantDf
    * @return dataframe with split genotype subfields
    */
-  private def splitGenotypeFields(variantDf: DataFrame): DataFrame = {
+  @VisibleForTesting
+  private[normalizevariants] def splitGenotypeFields(variantDf: DataFrame): DataFrame = {
 
     // get genotypes schema
-    val gSchema = variantDf
+    val genotypesFieldDataType = variantDf
       .schema
       .fields
       .find(_.name == genotypesFieldName)
       .get
       .dataType
-      .asInstanceOf[ArrayType]
-      .elementType
-      .asInstanceOf[StructType]
+
+    if (!genotypesFieldDataType.isInstanceOf[ArrayType]) {
+      throw new ClassCastException("Genotypes field is not of ArrayType.")
+    }
+
+    val genotypesFieldElementType = genotypesFieldDataType.asInstanceOf[ArrayType].elementType
+
+    if (!genotypesFieldElementType.isInstanceOf[StructType]) {
+      throw new ClassCastException("Genotypes field element is not of StructType.")
+    }
+
+    val gSchema = genotypesFieldElementType.asInstanceOf[StructType]
 
     // pull out genotypes subfields as new columns
     val withExtractedFields = gSchema
@@ -240,8 +251,8 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
         df.withColumn(field.name, expr(s"transform(${genotypesFieldName}, g -> g.${field.name})")))
       .drop(genotypesFieldName)
 
-    // update pulled out genotypes columns, zip them back together as the new genotypes column,
-    // and drop the pulled out columns
+    // update pulled-out genotypes columns, zip them back together as the new genotypes column,
+    // and drop the pulled-out columns
     gSchema
       .fields
       .foldLeft(withExtractedFields)(
@@ -323,42 +334,28 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
       ploidy: Int,
       altAlleleIdx: Int): Array[Int] = {
 
-    if (altAlleleIdx < 1) {
-      throw new IllegalArgumentException("The alternate allele index must be at least 1.")
+    if (ploidy < 1) {
+      throw new IllegalArgumentException("Ploidy must be at least 1.")
+    }
+    if (numAlleles < 2) {
+      throw new IllegalArgumentException(
+        "Number of alleles must be at least 2 (one REF and at least one ALT).")
+    }
+    if (altAlleleIdx > numAlleles - 1 || altAlleleIdx < 1) {
+      throw new IllegalArgumentException(
+        "Alternate allele index must be at least 1 and at most one less than number of alleles.")
     }
 
     if (ploidy == 1) {
       Array(0, altAlleleIdx)
     } else {
-      val firstAppIdxArray = alleleFirstAppearanceIdxArray(numAlleles, ploidy)
-      val tempNumAllele = altAlleleIdx + 1
 
-      Array(0) ++ refAltColexOrderIdxArray(tempNumAllele, ploidy - 1, altAlleleIdx)
-        .map(e => e + firstAppIdxArray(tempNumAllele - 1))
-
+      Array(0) ++ refAltColexOrderIdxArray(altAlleleIdx + 1, ploidy - 1, altAlleleIdx)
+        .map(e =>
+          e +
+          nChooseR(altAlleleIdx + ploidy - 1, ploidy) // The index at which allele altAlleleIdx appears for the first time in the colex order.
+        )
     }
-  }
-
-  /**
-   * Given total number of (ref and alt) alleles (numAlleles) and ploidy, generates an array of indices of genotypes
-   * in which each of the alleles appear for the first time in the colex ordering of all possible genotypes.
-   *
-   * Example:
-   * Assume numAlleles = 3 (say A,B,C) and ploidy = 2
-   * Therefore, colex ordering of all possible genotypes is: AA, AB, BB, AC, BC, CC
-   * and alleleFirstAppearanceIdxArray(3, 2) = Array(0, 1, 3) because alleles A, B, and C appear for the first time
-   * at positions 0, 1, and 3 in the order, respectively.
-   *
-   * @param numAlleles : total number of alleles (ref and alt)
-   * @param ploidy     : ploidy
-   * @return array of indices of genotypes in which each of the alleles 0 to numAlleles - 1 appear for the first time
-   *         in the colex ordering of all possible genotypes.
-   */
-  @VisibleForTesting
-  private[normalizevariants] def alleleFirstAppearanceIdxArray(
-      numAlleles: Int,
-      ploidy: Int): Array[Int] = {
-    0 +: (1 to numAlleles - 1).toArray.map(i => nChooseR(i + ploidy - 1, ploidy))
   }
 
   /** calculates n choose r
@@ -629,8 +626,13 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
   }
 
   private val PAD_WINDOW_SIZE = 100
-  private val splitAlleleIdxFieldName = "splitAlleleIdx"
-  private val splitAllelesFieldName = "splitAlleles"
+
+  @VisibleForTesting
+  private[normalizevariants] val splitAlleleIdxFieldName = "splitAlleleIdx"
+
+  @VisibleForTesting
+  private[normalizevariants] val splitAllelesFieldName = "splitAlleles"
+
   private val oldMultiallelicFieldName = "OLD_MULTIALLELIC"
 
 }

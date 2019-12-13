@@ -256,26 +256,4 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
 
   }
 
-  // TODO: Generalized the following tests and add more unit tests
-
-  test("alleleFirstAppearanceIdxArray") {
-
-    val numAlleles = 3
-    val ploidy = 2
-
-    assert(alleleFirstAppearanceIdxArray(numAlleles, ploidy) === Array(0, 1, 3))
-
-  }
-
-  test("refAltColexOrderIdxArray") {
-
-    val numAlleles = 3
-    val ploidy = 2
-    assert(
-      (1 to numAlleles - 1).foldLeft(Array[Int]())(
-        (a, n) => a ++ refAltColexOrderIdxArray(numAlleles, ploidy, n)
-      ) === Array(0, 1, 2, 0, 3, 5)
-    )
-  }
-
 }
