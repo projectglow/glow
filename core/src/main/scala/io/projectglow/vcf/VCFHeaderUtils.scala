@@ -22,12 +22,15 @@ import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 
 import com.google.common.annotations.VisibleForTesting
-import htsjdk.variant.vcf.{VCFCodec, VCFHeader, VCFHeaderLine}
+import htsjdk.variant.vcf.{VCFCodec, VCFCompoundHeaderLine, VCFFormatHeaderLine, VCFHeader, VCFHeaderLine, VCFInfoHeaderLine}
 import org.apache.commons.io.IOUtils
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.FileStatus
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.StructType
 
 import io.projectglow.common.GlowLogging
+import io.projectglow.sql.util.SerializableConfiguration
 
 object VCFHeaderUtils extends GlowLogging {
 
@@ -81,5 +84,33 @@ object VCFHeaderUtils extends GlowLogging {
         val header = VCFMetadataLoader.readVcfHeader(conf, path)
         (header.getMetaDataInInputOrder.asScala.toSet, SampleIds(header.getGenotypeSamples.asScala))
     }
+  }
+
+  def readHeaderLines(spark: SparkSession, files: Seq[FileStatus]): Seq[VCFCompoundHeaderLine] = {
+    val serializableConf = new SerializableConfiguration(spark.sessionState.newHadoopConf())
+
+    val filePaths = files.map(_.getPath.toString)
+    spark
+      .sparkContext
+      .parallelize(filePaths)
+      .flatMap { path =>
+        val (header, _) = VCFFileFormat.createVCFCodec(path, serializableConf.value)
+        val infoHeaderLines = header.getInfoHeaderLines.asScala
+        val formatHeaderLines = header.getFormatHeaderLines.asScala
+        infoHeaderLines ++ formatHeaderLines
+      }
+      .keyBy(line => (line.getClass.getName, line.getID))
+      .reduceByKey {
+        case (line1, line2) =>
+          if (line1.equalsExcludingDescription(line2)) {
+            line1
+          } else {
+            throw new IllegalArgumentException(
+              s"Found incompatible header lines: $line1 " +
+              s"and $line2. Header lines with the same ID must have the same count and type.")
+          }
+      }
+      .values
+      .collect()
   }
 }
