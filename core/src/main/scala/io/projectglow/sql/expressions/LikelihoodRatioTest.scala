@@ -45,6 +45,10 @@ object LikelihoodRatioTest extends LogitTest {
     fitState.x(::, -1) := genotypes
     fitState.newtonState.initFromMatrixAndNullFit(fitState.x, phenotypes, fitState.nullFit.args)
 
+    if (!fitState.nullFit.converged) {
+      return LogitTestResults.nanRow
+    }
+
     val fullFit =
       LogisticRegressionGwas.newtonIterations(
         fitState.x,
@@ -52,7 +56,7 @@ object LikelihoodRatioTest extends LogitTest {
         fitState.hessian,
         fitState.newtonState)
 
-    if (!fitState.nullFit.converged || !fullFit.converged) {
+    if (!fullFit.converged) {
       return LogitTestResults.nanRow
     }
 

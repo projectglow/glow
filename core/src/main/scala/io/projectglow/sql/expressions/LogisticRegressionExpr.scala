@@ -39,8 +39,12 @@ class LogisticRegressionState(testStr: String) {
       throw new IllegalArgumentException(
         s"Supported tests are currently: ${LogisticRegressionGwas.logitTests.keys.mkString(", ")}")
     )
-  var fitState: logitTest.FitState = _
+
+  // If the null fit can be reused for each phenotype, we put the mapping in this map
   val nullFitMap: mutable.Map[Int, logitTest.FitState] = mutable.Map.empty
+  // If the fit state is just allocations because the null fit can't be reused, we put the
+  // singleton here
+  var fitState: logitTest.FitState = _
   val matrixUDT = SQLUtils.newMatrixUDT()
 
   def getFitState(phenotypes: Array[Double], covariates: Any): logitTest.FitState = {
@@ -92,13 +96,13 @@ object LogisticRegressionExpr {
       "Number of samples do not match between phenotype vector and covariate matrix"
     )
 
-    val nullFitNewtonResult = state.getFitState(phenotypeArray, covariates)
+    val nullFitState = state.getFitState(phenotypeArray, covariates)
     state
       .logitTest
       .runTest(
         new DenseVector[Double](genotypeArray),
         new DenseVector[Double](phenotypeArray),
-        nullFitNewtonResult
+        nullFitState
       )
   }
 }

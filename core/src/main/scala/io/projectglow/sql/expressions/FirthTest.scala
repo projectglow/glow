@@ -49,11 +49,16 @@ object FirthTest extends LogitTest {
     fitState.x(::, -1) := genotypes
     fitState.nullFitArgs.clear()
     val nullFit = fitFirth(fitState.x, phenotypes, fitState.nullFitArgs)
+
+    if (!nullFit.converged) {
+      return LogitTestResults.nanRow
+    }
+
     fitState.fullFitArgs.clear()
     fitState.fullFitArgs.initFromNullFit(nullFit.fitState)
     val fullFit = fitFirth(fitState.x, phenotypes, fitState.fullFitArgs)
 
-    if (!nullFit.converged || !fullFit.converged) {
+    if (!fullFit.converged) {
       return LogitTestResults.nanRow
     }
 

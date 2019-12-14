@@ -83,7 +83,6 @@ object LogisticRegressionGwas extends GlowLogging {
           converged = true
         } else {
           iter += 1
-          X(::, *)
           args.b += deltaB // Parameter update
           args.mu := X * args.b // Fitted probability
           sigmoid.inPlace(args.mu)
