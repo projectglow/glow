@@ -33,12 +33,7 @@ import org.apache.spark.unsafe.types.UTF8String
 
 class LogisticRegressionState(testStr: String) {
   val logitTest = LogisticRegressionGwas
-    .logitTests
-    .getOrElse(
-      testStr,
-      throw new IllegalArgumentException(
-        s"Supported tests are currently: ${LogisticRegressionGwas.logitTests.keys.mkString(", ")}")
-    )
+    .logitTests(testStr) // we check before evaluation that this is a valid test
 
   // If the null fit can be reused for each phenotype, we put the mapping in this map
   val nullFitMap: mutable.Map[Int, logitTest.FitState] = mutable.Map.empty
