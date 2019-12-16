@@ -16,19 +16,36 @@
 
 package io.projectglow.sql.expressions
 
+import org.apache.spark.TaskContext
 import org.apache.spark.sql.SQLUtils
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
+import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, CodegenFallback, ExprCode}
 import org.apache.spark.sql.catalyst.expressions.{Expression, ImplicitCastInputTypes, TernaryExpression}
 import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.sql.types._
 
+object LinearRegressionExpr {
+  val matrixUDT = SQLUtils.newMatrixUDT()
+  val state = new ThreadLocal[CovariateQRContext]
+  def doLinearRegression(genotypes: Any, phenotypes: Any, covariates: Any): InternalRow = {
+
+    if (state.get() == null) {
+      // Save the QR factorization of the covariate matrix since it's the same for every row
+      state.set(ComputeQR.computeQR(matrixUDT.deserialize(covariates).toDense))
+      TaskContext.get().addTaskCompletionListener(_ => state.remove())
+    }
+
+    LinearRegressionGwas.linearRegressionGwas(
+      genotypes.asInstanceOf[ArrayData],
+      phenotypes.asInstanceOf[ArrayData],
+      state.get())
+  }
+}
 case class LinearRegressionExpr(
     genotypes: Expression,
     phenotypes: Expression,
     covariates: Expression)
     extends TernaryExpression
-    with CodegenFallback
     with ImplicitCastInputTypes {
 
   private val matrixUDT = SQLUtils.newMatrixUDT()
@@ -45,20 +62,19 @@ case class LinearRegressionExpr(
 
   override def children: Seq[Expression] = Seq(genotypes, phenotypes, covariates)
 
-  private var qrFactorization: CovariateQRContext = _
-  // Save the QR factorization of the covariate matrix since it's the same for every row
-  private def getCovariateQR(covariates: InternalRow): CovariateQRContext = {
-    if (qrFactorization == null) {
-      qrFactorization = ComputeQR.computeQR(matrixUDT.deserialize(covariates).toDense)
-    }
-    qrFactorization
+  override protected def nullSafeEval(genotypes: Any, phenotypes: Any, covariates: Any): Any = {
+    LinearRegressionExpr.doLinearRegression(genotypes, phenotypes, covariates)
   }
 
-  override protected def nullSafeEval(genotypes: Any, phenotypes: Any, covariates: Any): Any = {
-    val covariateQR = getCovariateQR(covariates.asInstanceOf[InternalRow])
-    LinearRegressionGwas.linearRegressionGwas(
-      genotypes.asInstanceOf[ArrayData],
-      phenotypes.asInstanceOf[ArrayData],
-      covariateQR)
+  override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
+    nullSafeCodeGen(
+      ctx,
+      ev,
+      (genotypes, phenotypes, covariates) => {
+        s"""
+         |${ev.value} = io.projectglow.sql.expressions.LinearRegressionExpr.doLinearRegression($genotypes, $phenotypes, $covariates);
+       """.stripMargin
+      }
+    )
   }
 }
