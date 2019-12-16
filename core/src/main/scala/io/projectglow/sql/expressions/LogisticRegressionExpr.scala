@@ -149,7 +149,6 @@ case class LogisticRegressionExpr(
       phenotypes: Any,
       covariates: Any,
       test: Any): Any = {
-    throw new RuntimeException()
     LogisticRegressionExpr.doLogisticRegression(testStr, genotypes, phenotypes, covariates)
   }
 
