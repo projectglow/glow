@@ -19,74 +19,90 @@ package io.projectglow.sql.expressions
 import breeze.linalg.{*, diag, max, qr, sum, DenseMatrix, DenseVector, MatrixSingularException}
 import breeze.numerics.{abs, log, sigmoid, sqrt}
 import com.github.fommil.netlib.LAPACK
+import org.apache.spark.ml.linalg.{DenseMatrix => SparkDenseMatrix}
 import org.apache.spark.sql.Encoders
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
 import org.netlib.util.intW
 
-object FirthTest extends LogitTestWithoutNullFit {
+object FirthTest extends LogitTest {
+  override def fitStatePerPhenotype: Boolean = false
   override type FitState = FirthFitState
   override val resultSchema: StructType = Encoders.product[LogitTestResults].schema
 
+  override def init(phenotypes: Array[Double], covariates: SparkDenseMatrix): FirthFitState = {
+
+    val covariateX =
+      new DenseMatrix[Double](covariates.numRows, covariates.numCols, covariates.values)
+    FirthFitState(
+      DenseMatrix.horzcat(covariateX, DenseMatrix.zeros[Double](covariateX.rows, 1)),
+      new FirthNewtonArgs(covariates.numRows, covariates.numCols),
+      new FirthNewtonArgs(covariates.numRows, covariates.numCols + 1)
+    )
+  }
+
   override def runTest(
-      x: DenseMatrix[Double],
-      y: DenseVector[Double],
-      nullModelFit: Option[FirthFitState]): InternalRow = {
-    val m = x.cols
-    val m0 = m - 1
+      genotypes: DenseVector[Double],
+      phenotypes: DenseVector[Double],
+      fitState: FirthFitState): InternalRow = {
 
-    val b0 = DenseVector.zeros[Double](m0)
-    val nullFit = fitFirth(x, y, b0)
-    val b = DenseVector.zeros[Double](m)
-    b(0 until m0) := nullFit.b
-    val fullFit = fitFirth(x, y, b)
+    fitState.x(::, -1) := genotypes
+    fitState.nullFitArgs.clear()
+    val nullFit = fitFirth(fitState.x, phenotypes, fitState.nullFitArgs)
 
-    if (!nullFit.converged || !fullFit.converged) {
+    if (!nullFit.converged) {
       return LogitTestResults.nanRow
     }
 
-    val beta = fullFit.b(-1)
-    LogisticRegressionGwas.makeStats(beta, fullFit.fisher, fullFit.logLkhd, nullFit.logLkhd)
+    fitState.fullFitArgs.clear()
+    fitState.fullFitArgs.initFromNullFit(nullFit.fitState)
+    val fullFit = fitFirth(fitState.x, phenotypes, fitState.fullFitArgs)
+
+    if (!fullFit.converged) {
+      return LogitTestResults.nanRow
+    }
+
+    val beta = fullFit.fitState.b(-1)
+    val fisher = fitState
+        .x
+        .t * (fitState.x(::, *) *:* (fullFit.fitState.mu *:* (1d - fullFit.fitState.mu)))
+    LogisticRegressionGwas.makeStats(beta, fisher, fullFit.logLkhd, nullFit.logLkhd)
   }
 
   // Adapted from Hail's `fitFirth` method.
   def fitFirth(
       x: DenseMatrix[Double],
       y: DenseVector[Double],
-      b0: DenseVector[Double],
+      args: FirthNewtonArgs,
       maxIter: Int = 100,
-      tol: Double = 1e-6): FirthFitState = {
+      tol: Double = 1e-6): FirthFit = {
 
-    require(b0.length <= x.cols)
-
-    val b = b0.copy
-    val m0 = b0.length
+    val m0 = args.b.length
     var logLkhd = 0d
     var iter = 1
     var converged = false
     var exploded = false
-    val mu: DenseVector[Double] = DenseVector.zeros[Double](x.rows)
-    var sqrtW: DenseVector[Double] = null
 
     while (!converged && !exploded && iter <= maxIter) {
       try {
-        mu := sigmoid(x(::, 0 until m0) * b)
-        sqrtW = sqrt(mu *:* (1d - mu))
-        val QR = qr.reduced(x(::, *) *:* sqrtW)
+        args.mu := x(::, 0 until m0) * args.b
+        sigmoid.inPlace(args.mu)
+        args.sqrtW := sqrt(args.mu *:* (1d - args.mu))
+        val QR = qr.reduced(x(::, *) *:* args.sqrtW)
         val h = QR.q(*, ::).map(r => r dot r)
         val deltaB = solveUpperTriangular(
           QR.r(0 until m0, 0 until m0),
-          QR.q(::, 0 until m0).t * (((y - mu) + (h *:* (0.5 - mu))) /:/ sqrtW))
+          QR.q(::, 0 until m0).t * (((y - args.mu) + (h *:* (0.5 - args.mu))) /:/ args.sqrtW))
 
         if (deltaB(0).isNaN) {
           exploded = true
         } else if (max(abs(deltaB)) < tol && iter > 1) {
           converged = true
-          logLkhd = sum(breeze.numerics.log((y *:* mu) + ((1d - y) *:* (1d - mu)))) + sum(
+          logLkhd = sum(breeze.numerics.log((y *:* args.mu) + ((1d - y) *:* (1d - args.mu)))) + sum(
               log(abs(diag(QR.r))))
         } else {
           iter += 1
-          b += deltaB
+          args.b += deltaB
         }
       } catch {
         case e: breeze.linalg.MatrixSingularException => exploded = true
@@ -94,8 +110,7 @@ object FirthTest extends LogitTestWithoutNullFit {
       }
     }
 
-    val fisher = x.t * (x(::, *) *:* (mu *:* (1d - mu)))
-    FirthFitState(b, logLkhd, fisher, converged, exploded)
+    FirthFit(args, logLkhd, converged, exploded)
   }
 
   // Solve an upper triangular system of equations using LAPACK.
@@ -124,9 +139,32 @@ object FirthTest extends LogitTestWithoutNullFit {
     x
   }
 }
+
+class FirthNewtonArgs(numRows: Int, numCols: Int) {
+  val b = DenseVector.zeros[Double](numCols)
+  val mu = DenseVector.zeros[Double](numRows)
+  val sqrtW = DenseVector.zeros[Double](numRows)
+
+  def clear(): Unit = {
+    b := 0d
+    mu := 0d
+    sqrtW := 0d
+  }
+
+  def initFromNullFit(nullFit: FirthNewtonArgs): Unit = {
+    b(0 until nullFit.b.length) := nullFit.b
+  }
+}
+
 case class FirthFitState(
-    b: DenseVector[Double],
+    // The last column of x will be rewritten with the genotypes for each new row
+    x: DenseMatrix[Double],
+    nullFitArgs: FirthNewtonArgs,
+    fullFitArgs: FirthNewtonArgs
+)
+
+case class FirthFit(
+    fitState: FirthNewtonArgs,
     logLkhd: Double,
-    fisher: DenseMatrix[Double],
     converged: Boolean,
     exploded: Boolean)
