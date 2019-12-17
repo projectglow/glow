@@ -103,7 +103,7 @@ object VCFHeaderUtils extends GlowLogging {
 
   /**
    * Find the unique header lines from an RDD of VCF headers. If there are incompatible lines,
-   * meaning that lines with the same ID but different types or counts, an
+   * meaning lines with the same ID but different types or counts, an
    * [[IllegalArgumentException]] is thrown.
    */
   def getUniqueHeaderLines(headers: RDD[VCFHeader]): Seq[VCFCompoundHeaderLine] = {
