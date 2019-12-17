@@ -71,7 +71,8 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
     codecFactory.getCodec(path) match {
       case null => true
       case _: BGZFEnhancedGzipCodec =>
-        VCFFileFormat.isValidBGZ(path, sparkSession.sparkContext.hadoopConfiguration)
+        options.get(VCFOptions.IS_BGZF).exists(_.toBoolean) ||
+          VCFFileFormat.isValidBGZ(path, sparkSession.sparkContext.hadoopConfiguration)
       case c => c.isInstanceOf[SplittableCompressionCodec]
     }
   }

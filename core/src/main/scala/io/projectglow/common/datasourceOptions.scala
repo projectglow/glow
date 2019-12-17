@@ -27,6 +27,7 @@ object VCFOptions {
   val VCF_ROW_SCHEMA = "vcfRowSchema"
   val USE_TABIX_INDEX = "useTabixIndex"
   val USE_FILTER_PARSER = "useFilterParser"
+  val IS_BGZF = "isBgzf"
 
   // Writer-only options
   val COMPRESSION = "compression"

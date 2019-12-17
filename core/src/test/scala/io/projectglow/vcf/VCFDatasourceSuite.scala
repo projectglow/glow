@@ -29,7 +29,7 @@ import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Dataset}
 import org.apache.spark.{SparkConf, SparkException}
 
-import io.projectglow.common.{GenotypeFields, VCFRow}
+import io.projectglow.common.{GenotypeFields, VCFOptions, VCFRow}
 import io.projectglow.sql.GlowBaseTest
 
 class VCFDatasourceSuite extends GlowBaseTest {
@@ -539,6 +539,13 @@ class VCFDatasourceSuite extends GlowBaseTest {
 
     assert(vcfFormat.isSplitable(spark, Map.empty, bgzPath))
     assert(csvFormat.isSplitable(spark, Map.empty, bgzPath))
+  }
+
+  test("isBgzf option") {
+    val vcfFormat = new VCFFileFormat()
+    val path = new Path(s"$testDataHome/vcf/1row_not_bgz.vcf.gz")
+    assert(!vcfFormat.isSplitable(spark, Map.empty, path))
+    assert(vcfFormat.isSplitable(spark, Map(VCFOptions.IS_BGZF -> "true"), path))
   }
 
   test("Tolerate lower-case nan's") {
