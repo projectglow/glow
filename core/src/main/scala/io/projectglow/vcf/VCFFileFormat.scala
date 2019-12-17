@@ -459,23 +459,16 @@ private[vcf] object SchemaDelegate {
   private def readHeaders(
       spark: SparkSession,
       files: Seq[FileStatus]): (Seq[VCFInfoHeaderLine], Seq[VCFFormatHeaderLine]) = {
-    val serializableConf = new SerializableConfiguration(spark.sessionState.newHadoopConf())
-
-    val filePaths = files.map(_.getPath.toString)
-    spark
-      .sparkContext
-      .parallelize(filePaths)
-      .map { path =>
-        val (header, _) = VCFFileFormat.createVCFCodec(path, serializableConf.value)
-        val infoHeaderLines = header.getInfoHeaderLines.asScala.toSet
-        val formatHeaderLines = header.getFormatHeaderLines.asScala.toSet
-        (infoHeaderLines, formatHeaderLines)
+    VCFHeaderUtils
+      .readHeaderLines(spark, files)
+      .partition {
+        case _: VCFInfoHeaderLine => true
+        case _: VCFFormatHeaderLine => false
+        case _ =>
+          throw new IllegalArgumentException(
+            "Header line is neither an INFO nor a FORMAT header line")
       }
-      .collect()
-      .foldLeft((Seq.empty[VCFInfoHeaderLine], Seq.empty[VCFFormatHeaderLine])) {
-        case ((allInfo, allFormat), (info, format)) =>
-          (allInfo ++ info, allFormat ++ format)
-      }
+      .asInstanceOf[(Seq[VCFInfoHeaderLine], Seq[VCFFormatHeaderLine])]
   }
 
   private class VCFRowSchemaDelegate(stringency: ValidationStringency, includeSampleIds: Boolean)

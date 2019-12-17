@@ -22,30 +22,56 @@ import org.apache.spark.sql.Encoders
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
 
-object LikelihoodRatioTest extends LogitTestWithNullFit {
-  override type FitState = NewtonResult
+object LikelihoodRatioTest extends LogitTest {
+  override type FitState = LRTFitState
+  override def fitStatePerPhenotype: Boolean = true
   override val resultSchema: StructType = Encoders.product[LogitTestResults].schema
 
-  override def fitNullModel(
-      phenotypes: Array[Double],
-      covariates: SparkDenseMatrix): NewtonResult = {
+  override def init(phenotypes: Array[Double], covariates: SparkDenseMatrix): LRTFitState = {
     val nullX = new DenseMatrix(covariates.numRows, covariates.numCols, covariates.values)
     val y = new DenseVector(phenotypes)
-    LogisticRegressionGwas.newtonIterations(nullX, y, None)
+    val nullFitState = new NewtonIterationsState(covariates.numRows, covariates.numCols)
+    nullFitState.initFromMatrix(nullX, y)
+    val nullFit = LogisticRegressionGwas.newtonIterations(nullX, y, nullX.copy, nullFitState)
+    val fullFitState = new NewtonIterationsState(covariates.numRows, covariates.numCols + 1)
+    val x = DenseMatrix.horzcat(nullX, DenseMatrix.zeros[Double](covariates.numRows, 1))
+    LRTFitState(x, x.copy, nullFit, fullFitState)
   }
 
   override def runTest(
-      x: DenseMatrix[Double],
-      y: DenseVector[Double],
-      nullFitOpt: Option[NewtonResult]): InternalRow = {
-    val nullFit = nullFitOpt.getOrElse(throw new IllegalArgumentException("Null fit required"))
-    val fullFit = LogisticRegressionGwas.newtonIterations(x, y, Some(nullFit.args))
+      genotypes: DenseVector[Double],
+      phenotypes: DenseVector[Double],
+      fitState: LRTFitState): InternalRow = {
+    fitState.x(::, -1) := genotypes
+    fitState.newtonState.initFromMatrixAndNullFit(fitState.x, phenotypes, fitState.nullFit.args)
 
-    if (!nullFit.converged || !fullFit.converged) {
+    if (!fitState.nullFit.converged) {
+      return LogitTestResults.nanRow
+    }
+
+    val fullFit =
+      LogisticRegressionGwas.newtonIterations(
+        fitState.x,
+        phenotypes,
+        fitState.hessian,
+        fitState.newtonState)
+
+    if (!fullFit.converged) {
       return LogitTestResults.nanRow
     }
 
     val beta = fullFit.args.b(-1)
-    LogisticRegressionGwas.makeStats(beta, fullFit.args.fisher, fullFit.logLkhd, nullFit.logLkhd)
+    LogisticRegressionGwas.makeStats(
+      beta,
+      fullFit.args.fisher,
+      fullFit.logLkhd,
+      fitState.nullFit.logLkhd)
   }
 }
+
+case class LRTFitState(
+    x: DenseMatrix[Double],
+    hessian: DenseMatrix[Double],
+    nullFit: NewtonResult,
+    newtonState: NewtonIterationsState
+)

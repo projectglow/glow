@@ -22,12 +22,17 @@ import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 
 import com.google.common.annotations.VisibleForTesting
-import htsjdk.variant.vcf.{VCFCodec, VCFHeader, VCFHeaderLine}
+import htsjdk.variant.vcf.{VCFCodec, VCFCompoundHeaderLine, VCFHeader, VCFHeaderLine}
 import org.apache.commons.io.IOUtils
 import org.apache.hadoop.conf.Configuration
+import org.apache.hadoop.fs.FileStatus
+import org.apache.spark
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.StructType
 
 import io.projectglow.common.GlowLogging
+import io.projectglow.sql.util.SerializableConfiguration
 
 object VCFHeaderUtils extends GlowLogging {
 
@@ -81,5 +86,52 @@ object VCFHeaderUtils extends GlowLogging {
         val header = VCFMetadataLoader.readVcfHeader(conf, path)
         (header.getMetaDataInInputOrder.asScala.toSet, SampleIds(header.getGenotypeSamples.asScala))
     }
+  }
+
+  def createHeaderRDD(spark: SparkSession, files: Seq[FileStatus]): RDD[VCFHeader] = {
+    val serializableConf = new SerializableConfiguration(spark.sessionState.newHadoopConf())
+
+    val filePaths = files.map(_.getPath.toString)
+    spark
+      .sparkContext
+      .parallelize(filePaths)
+      .map { path =>
+        val (header, _) = VCFFileFormat.createVCFCodec(path, serializableConf.value)
+        header
+      }
+  }
+
+  /**
+   * Find the unique header lines from an RDD of VCF headers. If there are incompatible lines,
+   * meaning lines with the same ID but different types or counts, an
+   * [[IllegalArgumentException]] is thrown.
+   */
+  def getUniqueHeaderLines(headers: RDD[VCFHeader]): Seq[VCFCompoundHeaderLine] = {
+    headers.flatMap { header =>
+        val infoHeaderLines = header.getInfoHeaderLines.asScala
+        val formatHeaderLines = header.getFormatHeaderLines.asScala
+        infoHeaderLines ++ formatHeaderLines
+      }
+      .keyBy(line => (line.getClass.getName, line.getID))
+      .reduceByKey {
+        case (line1, line2) =>
+          if (line1.equalsExcludingDescription(line2)) {
+            line1
+          } else {
+            throw new IllegalArgumentException(
+              s"Found incompatible header lines: $line1 " +
+              s"and $line2. Header lines with the same ID must have the same count and type.")
+          }
+      }
+      .values
+      .collect()
+  }
+
+  /**
+   * A convenience function to parse the headers from a set of VCF files and return the unique
+   * header lines.
+   */
+  def readHeaderLines(spark: SparkSession, files: Seq[FileStatus]): Seq[VCFCompoundHeaderLine] = {
+    getUniqueHeaderLines(createHeaderRDD(spark, files))
   }
 }
