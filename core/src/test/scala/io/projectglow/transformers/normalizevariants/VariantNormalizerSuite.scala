@@ -116,6 +116,183 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
     )
   }
 
+  test("test splitVariants") {
+
+    // Read the test vcf
+    val dfOriginal = spark
+      .read
+      .format(sourceName)
+      .load(vtTestVcfMultiAllelic)
+      .orderBy("contigName", "start", "end")
+
+    // apply splitVariants
+    val dfSplitVariants = splitVariants(dfOriginal)
+      .orderBy("contigName", "start", "end")
+
+    // read the vt decomposed version of test vcf
+    val dfExpected = spark
+      .read
+      .format(sourceName)
+      .load(vtTestVcfMultiAllelicExpectedSplit)
+      .orderBy("contigName", "start", "end")
+
+    assert(dfSplitVariants.count() == dfExpected.count())
+
+    val dfSplitVariantsColumns = dfSplitVariants
+      .columns
+      .filter(f => f != splitFromMultiAllelicField.name)
+      .map(name => if (name.contains(".")) s"`${name}`" else name)
+
+    // Check if genotypes column after splitting is the same as vt decompose
+
+    assert(dfSplitVariantsColumns.length == dfExpected.columns.length - 1)
+
+    dfExpected
+      .select(dfSplitVariantsColumns.head, dfSplitVariantsColumns.tail: _*)
+      .collect
+      .zip(
+        dfSplitVariants
+          .select(dfSplitVariantsColumns.head, dfSplitVariantsColumns.tail: _*)
+          .collect)
+      .foreach {
+        case (rowExp, rowSplit) =>
+          assert(rowExp.equals(rowSplit), s"Expected\n$rowExp\nSplit\n$rowSplit")
+      }
+  }
+
+  test("test splitInfoFields") {
+
+    // Read the test vcf and posexplode
+    val dfOriginal = spark
+      .read
+      .format(sourceName)
+      .load(vtTestVcfMultiAllelic)
+      .withColumn(
+        splitFromMultiAllelicField.name,
+        when(size(col(alternateAllelesField.name)) > 1, lit(true)).otherwise(lit(false))
+      )
+      .select(
+        col("*"),
+        posexplode(col(alternateAllelesField.name))
+          .as(Array(splitAlleleIdxFieldName, splitAllelesFieldName))
+      )
+      .orderBy("contigName", "start", "end")
+
+    // apply splitInfoFields
+    val dfSplitInfo = splitInfoFields(dfOriginal)
+      .orderBy("contigName", "start", "end")
+
+    // read the vt decomposed version of test vcf
+    val dfExpected = spark
+      .read
+      .format(sourceName)
+      .load(vtTestVcfMultiAllelicExpectedSplit)
+      .orderBy("contigName", "start", "end")
+
+    assert(dfSplitInfo.count() == dfExpected.count())
+    assert(dfSplitInfo.count() == dfOriginal.count())
+
+// Check if Info Columns after splitting are the same as vt decompose
+    val dfOriginalInfoColumns = dfOriginal
+      .columns
+      .filter(_.startsWith(infoFieldPrefix))
+      .map(name => if (name.contains(".")) s"`${name}`" else name)
+
+    dfExpected
+      .select(dfOriginalInfoColumns.head, dfOriginalInfoColumns.tail: _*) // make order of columns the same
+      .collect
+      .zip(
+        dfSplitInfo
+          .select(dfOriginalInfoColumns.head, dfOriginalInfoColumns.tail: _*) // make order of columns the same
+          .collect)
+      .foreach {
+        case (rowExp, rowSplit) =>
+          assert(rowExp.equals(rowSplit), s"Expected\n$rowExp\nSplit\n$rowSplit")
+      }
+
+    // Check if other columns after splitting are the same as original
+    val dfOriginalNonInfoColumns = dfOriginal
+      .columns
+      .filter(!_.startsWith(infoFieldPrefix))
+      .map(name => if (name.contains(".")) s"`${name}`" else name)
+
+    dfOriginal
+      .select(dfOriginalNonInfoColumns.head, dfOriginalNonInfoColumns.tail: _*) // make order of columns the same
+      .collect
+      .zip(
+        dfSplitInfo
+          .select(dfOriginalNonInfoColumns.head, dfOriginalNonInfoColumns.tail: _*) // make order of columns the same
+          .collect)
+      .foreach {
+        case (rowOrig, rowSplit) =>
+          assert(rowOrig.equals(rowSplit), s"Expected\n$rowOrig\nNormalized\n$rowSplit")
+      }
+  }
+
+  test("test splitGenotypeFields") {
+
+    // Read the test vcf and posexplode
+    val dfOriginal = spark
+      .read
+      .format(sourceName)
+      .load(vtTestVcfMultiAllelic)
+      .withColumn(
+        splitFromMultiAllelicField.name,
+        when(size(col(alternateAllelesField.name)) > 1, lit(true)).otherwise(lit(false))
+      )
+      .select(
+        col("*"),
+        posexplode(col(alternateAllelesField.name))
+          .as(Array(splitAlleleIdxFieldName, splitAllelesFieldName))
+      )
+      .orderBy("contigName", "start", "end")
+
+    // apply splitGenotypeFields
+    val dfSplitGenotype = splitGenotypeFields(dfOriginal)
+      .orderBy("contigName", "start", "end")
+
+    // read the vt decomposed version of test vcf
+    val dfExpected = spark
+      .read
+      .format(sourceName)
+      .load(vtTestVcfMultiAllelicExpectedSplit)
+      .orderBy("contigName", "start", "end")
+
+    assert(dfSplitGenotype.count() == dfExpected.count())
+    assert(dfSplitGenotype.count() == dfOriginal.count())
+
+    // Check if genotypes column after splitting is the same as vt decompose
+    dfExpected
+      .select(genotypesFieldName)
+      .collect
+      .zip(
+        dfSplitGenotype
+          .select(genotypesFieldName)
+          .collect)
+      .foreach {
+        case (rowExp, rowSplit) =>
+          assert(rowExp.equals(rowSplit), s"Expected\n$rowExp\nSplit\n$rowSplit")
+      }
+
+    // Check if other columns after splitting are the same as original
+    val dfOriginalNonInfoColumns = dfOriginal
+      .columns
+      .filter(!_.startsWith(infoFieldPrefix))
+      .map(name => if (name.contains(".")) s"`${name}`" else name)
+
+    dfOriginal
+      .drop(genotypesFieldName) // make order of columns the same
+      .collect
+      .zip(
+        dfSplitGenotype
+          .drop(genotypesFieldName)
+          .collect)
+      .foreach {
+        case (rowOrig, rowSplit) =>
+          assert(rowOrig.equals(rowSplit), s"Expected\n$rowOrig\nNormalized\n$rowSplit")
+      }
+  }
+
   def testRefAltColexOrderIdxArray(
       numAlleles: Int,
       ploidy: Int,
@@ -133,7 +310,7 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
     }
   }
 
-  test("refAltColexOrderIdxArray") {
+  test("test refAltColexOrderIdxArray") {
     testRefAltColexOrderIdxArray(1, 2, 1, Array())
     testRefAltColexOrderIdxArray(2, 0, 1, Array())
     testRefAltColexOrderIdxArray(2, 2, 0, Array())
@@ -171,69 +348,28 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
 
   }
 
-  test("test splitInfoFields") {
-
-    val dfOriginal = spark
-      .read
-      .format(sourceName)
-      .load(vtTestVcfMultiAllelic)
-      .withColumn(
-        splitFromMultiAllelicField.name,
-        when(size(col(alternateAllelesField.name)) > 1, lit(true)).otherwise(lit(false))
-      )
-      .select(
-        col("*"),
-        posexplode(col(alternateAllelesField.name))
-          .as(Array(splitAlleleIdxFieldName, splitAllelesFieldName))
-      )
-      .orderBy("contigName", "start", "end")
-
-    val dfSplitInfo = splitInfoFields(dfOriginal)
-      .orderBy("contigName", "start", "end")
-
-    val dfExpected = spark
-      .read
-      .format(sourceName)
-      .load(vtTestVcfMultiAllelicExpectedSplit)
-      .orderBy("contigName", "start", "end")
-
-    val dfOriginalInfoColumns = dfOriginal
-      .columns
-      .filter(_.startsWith(infoFieldPrefix))
-      .map(name => if (name.contains(".")) s"`${name}`" else name)
-
-    val dfOriginalNonInfoColumns = dfOriginal
-      .columns
-      .filter(!_.startsWith(infoFieldPrefix))
-      .map(name => if (name.contains(".")) s"`${name}`" else name)
-
-    assert(dfSplitInfo.count() == dfExpected.count())
-    assert(dfSplitInfo.count() == dfOriginal.count())
-
-    dfExpected
-      .select(dfOriginalInfoColumns.head, dfOriginalInfoColumns.tail: _*) // make order of columns the same
-      .collect
-      .zip(
-        dfSplitInfo
-          .select(dfOriginalInfoColumns.head, dfOriginalInfoColumns.tail: _*) // make order of columns the same
-          .collect)
-      .foreach {
-        case (rowExp, rowSplit) =>
-          assert(rowExp.equals(rowSplit), s"Expected\n$rowExp\nSplit\n$rowSplit")
+  def testNChooseR(n: Int, r: Int, expected: Option[Int]): Unit = {
+    if (n <= 0 || r < 0) {
+      try {
+        nChooseR(n, r)
+      } catch {
+        case _: IllegalArgumentException => succeed
+        case _: Throwable => fail()
       }
+    } else {
+      assert(nChooseR(n, r) == expected.get)
+    }
+  }
 
-    dfOriginal
-      .select(dfOriginalNonInfoColumns.head, dfOriginalNonInfoColumns.tail: _*) // make order of columns the same
-      .collect
-      .zip(
-        dfSplitInfo
-          .select(dfOriginalNonInfoColumns.head, dfOriginalNonInfoColumns.tail: _*) // make order of columns the same
-          .collect)
-      .foreach {
-        case (rowOrig, rowSplit) =>
-          assert(rowOrig.equals(rowSplit), s"Expected\n$rowOrig\nNormalized\n$rowSplit")
-      }
-
+  test("test nChooseR") {
+    testNChooseR(-1, -2, None)
+    testNChooseR(-1, 0, None)
+    testNChooseR(0, -1, None)
+    testNChooseR(0, 0, Some(0))
+    testNChooseR(0, 1, Some(0))
+    testNChooseR(1, 0, Some(1))
+    testNChooseR(5, 5, Some(1))
+    testNChooseR(10, 5, Some(252))
   }
 
 }

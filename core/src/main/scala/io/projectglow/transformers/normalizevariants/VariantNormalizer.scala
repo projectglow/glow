@@ -74,6 +74,9 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
       df
     }
 
+    val splitFromMultiallelicColumnIdx =
+      dfAfterMaybeSplit.schema.fieldNames.indexOf(splitFromMultiAllelicField.name)
+
     // TODO: Implement normalization without using VariantContext
     val dfAfterMaybeNormalize = if (doNormalize) {
       val rddAfterNormalize = {
@@ -106,7 +109,7 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
         val refGenomeDataSource = Option(ReferenceDataSource.of(Paths.get(refGenomePathString.get)))
 
         it.map { row =>
-          val isFromSplit = false
+          val isFromSplit = row.getBoolean(splitFromMultiallelicColumnIdx)
           internalRowToVariantContextConverter.convert(row) match {
 
             case Some(vc) =>
@@ -170,16 +173,6 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
 
     // Split INFO fields
     val dfAfterInfoSplit = splitInfoFields(dfAfterAltAlleleSplit)
-
-    // register the udf that genotypes splitter uses
-    variantDf
-      .sqlContext
-      .udf
-      .register(
-        "likelihoodSplitUdf",
-        (numAlleles: Int, ploidy: Int, alleleIdx: Int) =>
-          refAltColexOrderIdxArray(numAlleles, ploidy, alleleIdx)
-      )
 
     // split genotypes fields, update alternateAlleles field, and drop the columns resulting from posexplode
     splitGenotypeFields(dfAfterInfoSplit)
@@ -250,6 +243,16 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
       .foldLeft(variantDf)((df, field) =>
         df.withColumn(field.name, expr(s"transform(${genotypesFieldName}, g -> g.${field.name})")))
       .drop(genotypesFieldName)
+
+    // register the udf that genotypes splitter uses
+    withExtractedFields
+      .sqlContext
+      .udf
+      .register(
+        "likelihoodSplitUdf",
+        (numAlleles: Int, ploidy: Int, alleleIdx: Int) =>
+          refAltColexOrderIdxArray(numAlleles, ploidy, alleleIdx)
+      )
 
     // update pulled-out genotypes columns, zip them back together as the new genotypes column,
     // and drop the pulled-out columns
@@ -366,6 +369,9 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
    */
   @VisibleForTesting
   private[normalizevariants] def nChooseR(n: Int, r: Int): Int = {
+    if (r < 0 || n <= 0) {
+      throw new IllegalArgumentException("n must be positive and r must be non-negative.")
+    }
     if (r > n) {
       0
     } else if (r == n) {
@@ -633,6 +639,7 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
   @VisibleForTesting
   private[normalizevariants] val splitAllelesFieldName = "splitAlleles"
 
-  private val oldMultiallelicFieldName = "OLD_MULTIALLELIC"
+  @VisibleForTesting
+  private[normalizevariants] val oldMultiallelicFieldName = "OLD_MULTIALLELIC"
 
 }

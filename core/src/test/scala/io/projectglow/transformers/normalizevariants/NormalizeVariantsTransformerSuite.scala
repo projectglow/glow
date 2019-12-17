@@ -147,7 +147,9 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
 
     val dfNormalizedColumns =
       dfNormalized.columns.map(name => if (name.contains(".")) s"`${name}`" else name)
+
     assert(dfNormalized.count() == dfExpected.count())
+
     dfExpected
       .select(dfNormalizedColumns.head, dfNormalizedColumns.tail: _*) // make order of columns the same
       .drop("splitFromMultiAllelic")
