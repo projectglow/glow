@@ -149,7 +149,7 @@ class VCFHeaderUtilsSuite extends GlowBaseTest {
          |##INFO=<ID=color,Number=G,Type=String,Description="">
        """.stripMargin
     val paths = writeVCFHeaders(Seq(file1, file2))
-    val lines = VCFHeaderUtils.readHeaderLines(spark, paths)
+    val lines = VCFHeaderUtils.getUniqueHeaderLines(spark, paths)
     val expectedLines = Set(
       new VCFInfoHeaderLine("animal", 1, VCFHeaderLineType.String, "monkey"),
       new VCFInfoHeaderLine("color", VCFHeaderLineCount.G, VCFHeaderLineType.String, ""),
@@ -169,7 +169,7 @@ class VCFHeaderUtilsSuite extends GlowBaseTest {
          |##INFO=<ID=animal,Number=2,Type=String,Description="monkey">
        """.stripMargin
     val paths = writeVCFHeaders(Seq(file1, file2))
-    val ex = intercept[SparkException](VCFHeaderUtils.readHeaderLines(spark, paths))
+    val ex = intercept[SparkException](VCFHeaderUtils.getUniqueHeaderLines(spark, paths))
     assert(ex.getCause.isInstanceOf[IllegalArgumentException])
   }
 
@@ -183,6 +183,6 @@ class VCFHeaderUtilsSuite extends GlowBaseTest {
          |##FORMAT=<ID=animal,Number=2,Type=String,Description="monkey">
        """.stripMargin
     val paths = writeVCFHeaders(Seq(file1, file2))
-    VCFHeaderUtils.readHeaderLines(spark, paths) // no exception
+    VCFHeaderUtils.getUniqueHeaderLines(spark, paths) // no exception
   }
 }
