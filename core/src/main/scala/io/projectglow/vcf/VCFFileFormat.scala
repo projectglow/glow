@@ -55,8 +55,6 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
   /**
    * This is very similar to [[TextBasedFileFormat.isSplitable()]], but with additional check
    * for files that may or may not be block gzipped.
-   *
-   * The check for BGZIP compression is adapted from [[org.seqdoop.hadoop_bam.VCFInputFormat]].
    */
   override def isSplitable(
       sparkSession: SparkSession,
@@ -68,6 +66,8 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
       )
     }
 
+    // Note: we check if a file is gzipped vs block gzipped during reading, so this will be true
+    // for .gz files even if they aren't actually splittable
     codecFactory.getCodec(path).isInstanceOf[SplittableCompressionCodec]
   }
 

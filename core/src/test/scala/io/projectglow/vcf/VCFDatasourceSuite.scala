@@ -477,7 +477,7 @@ class VCFDatasourceSuite extends GlowBaseTest {
     val path = s"$testDataHome/vcf/1row_not_bgz.vcf.gz"
     val key = "spark.sql.files.maxPartitionBytes"
     val conf = Map("spark.sql.files.maxPartitionBytes" -> "10")
-    withConf(conf) {
+    withSparkConf(conf) {
       assert(spark.read.format(sourceName).load(path).count() == 1)
     }
   }
