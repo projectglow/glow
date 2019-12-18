@@ -68,12 +68,7 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
       )
     }
 
-    codecFactory.getCodec(path) match {
-      case null => true
-      case _: BGZFEnhancedGzipCodec =>
-        VCFFileFormat.isValidBGZ(path, sparkSession.sparkContext.hadoopConfiguration)
-      case c => c.isInstanceOf[SplittableCompressionCodec]
-    }
+    codecFactory.getCodec(path).isInstanceOf[SplittableCompressionCodec]
   }
 
   override def inferSchema(
@@ -163,17 +158,17 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
       TabixIndexHelper.makeFilteredInterval(filters, useFilterParser, useIndex)
 
     partitionedFile => {
+      val path = new Path(partitionedFile.filePath)
+      val hadoopFs = path.getFileSystem(serializableConf.value)
 
       // In case of a partitioned file that only contains part of the header, codec.readActualHeader
       // will throw an error for a malformed header. We therefore allow the header reader to read
       // past the boundaries of the partitions; it will throw/return when done reading the header.
-      val path = new Path(partitionedFile.filePath)
       val (header, codec) = VCFFileFormat.createVCFCodec(path.toString, serializableConf.value)
-      val hadoopFs = path.getFileSystem(serializableConf.value)
 
       // Get the file offset=(startPos,endPos) that must be read from this partitionedFile.
       // Currently only one offset is generated for each partitionedFile.
-      val offset = TabixIndexHelper.filteredVariantBlockRange(
+      val offset = TabixIndexHelper.getFileRangeToRead(
         hadoopFs,
         partitionedFile,
         serializableConf.value,
@@ -274,6 +269,19 @@ object VCFFileFormat {
     WithUtils.withCloseable(fs.open(path)) { is =>
       val buffered = new BufferedInputStream(is)
       BlockCompressedInputStream.isValidFile(buffered)
+    }
+  }
+
+  /**
+   * Checks whether a file is gzipped (not block gzipped).
+   */
+  def isGzip(split: PartitionedFile, conf: Configuration): Boolean = {
+    val path = new Path(split.filePath)
+    val compressionCodec = new CompressionCodecFactory(hadoopConfWithBGZ(conf)).getCodec(path)
+    if (compressionCodec.isInstanceOf[BGZFEnhancedGzipCodec]) {
+      !isValidBGZ(path, conf)
+    } else {
+      false
     }
   }
 }

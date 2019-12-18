@@ -85,6 +85,19 @@ abstract class GlowBaseTest
     }
     res
   }
+
+  protected def withConf[T](configs: Map[String, String])(f: => T): T = {
+    val initialConfigValues = configs.keys.map(k => (k, spark.conf.getOption(k)))
+    try {
+      configs.foreach { case (k, v) => spark.conf.set(k, v) }
+      f
+    } finally {
+      initialConfigValues.foreach {
+        case (k, Some(v)) => spark.conf.set(k, v)
+        case (k, None) => spark.conf.unset(k)
+      }
+    }
+  }
 }
 
 /**

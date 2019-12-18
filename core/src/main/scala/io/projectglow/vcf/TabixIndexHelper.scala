@@ -420,12 +420,13 @@ object TabixIndexHelper extends GlowLogging {
     }
   }
 
-  /** Performs all the checks needed to use tabix index
+  /**
+   * Performs all the checks needed to use tabix index
    * If a check fails generates appropriate message
    * Otherwise generates block range by querying tabix index based
    * on the filteredSimpleInterval produces by makeFilteredInterval.
    */
-  def filteredVariantBlockRange(
+  def getFileRangeToRead(
       hadoopFs: FileSystem,
       file: PartitionedFile,
       conf: Configuration,
@@ -437,10 +438,18 @@ object TabixIndexHelper extends GlowLogging {
 
     val path = new Path(file.filePath)
     val indexFile = new Path(file.filePath + VCFFileFormat.INDEX_SUFFIX)
+    val isGzip = VCFFileFormat.isGzip(file, conf)
 
     filteredSimpleInterval match {
       case Some(interval) =>
-        if (!hasFilter) {
+        if (isGzip && file.start == 0) {
+          logger.info("Reading gzip file from beginning to end")
+          val fileLength = hadoopFs.getFileStatus(path).getLen
+          Some((0, fileLength))
+        } else if (isGzip) {
+          logger.info("Skipping gzip file because task starts in the middle of the file")
+          None
+        } else if (!hasFilter) {
           Some((file.start, file.start + file.length))
         } else if (!useIndex) {
           logger.info("Tabix index use disabled by the user...")
