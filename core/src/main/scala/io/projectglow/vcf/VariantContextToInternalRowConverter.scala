@@ -22,6 +22,7 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.reflect.ClassTag
 import scala.util.control.NonFatal
+
 import htsjdk.samtools.ValidationStringency
 import htsjdk.tribble.util.ParsingUtils
 import htsjdk.variant.variantcontext.{Allele, VariantContext, Genotype => HTSJDKGenotype}
@@ -31,6 +32,7 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, GenericArrayData}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
+
 import io.projectglow.common.{GenotypeFields, GlowLogging, HasStringency, VariantSchemas}
 import io.projectglow.sql.util.RowConverter
 

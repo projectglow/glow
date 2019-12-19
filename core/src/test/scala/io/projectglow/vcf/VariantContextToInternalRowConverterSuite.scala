@@ -23,9 +23,10 @@ import scala.collection.JavaConverters._
 import htsjdk.samtools.ValidationStringency
 import htsjdk.variant.variantcontext.{Allele, VariantContextBuilder}
 import htsjdk.variant.vcf.{VCFHeader, VCFHeaderLine, VCFHeaderLineType, VCFInfoHeaderLine}
-import io.projectglow.sql.GlowBaseTest
 import org.apache.spark.sql.types.StringType
 import org.apache.spark.unsafe.types.UTF8String
+
+import io.projectglow.sql.GlowBaseTest
 
 class VariantContextToInternalRowConverterSuite extends GlowBaseTest {
 
