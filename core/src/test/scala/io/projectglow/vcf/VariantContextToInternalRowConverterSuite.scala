@@ -16,8 +16,6 @@
 
 package io.projectglow.vcf
 
-import java.util.Arrays
-
 import scala.collection.JavaConverters._
 
 import htsjdk.samtools.ValidationStringency
