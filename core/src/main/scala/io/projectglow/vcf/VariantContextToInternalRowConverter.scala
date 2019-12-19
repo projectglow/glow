@@ -22,16 +22,14 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.reflect.ClassTag
 import scala.util.control.NonFatal
-
 import htsjdk.samtools.ValidationStringency
 import htsjdk.variant.variantcontext.{Allele, VariantContext, Genotype => HTSJDKGenotype}
-import htsjdk.variant.vcf.{VCFConstants, VCFHeader}
+import htsjdk.variant.vcf.{VCFConstants, VCFHeader, VCFUtils}
 import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, GenericArrayData}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
-
 import io.projectglow.common.{GenotypeFields, GlowLogging, HasStringency, VariantSchemas}
 import io.projectglow.sql.util.RowConverter
 
@@ -306,9 +304,9 @@ class VariantContextToInternalRowConverter(
             if (strings.size == 1 && strings
                 .get(0)
                 .indexOf(VCFConstants.INFO_FIELD_ARRAY_SEPARATOR) > -1) {
-              makeArray(strings.asScala.toArray, UTF8String.fromString)
-            } else {
               getAttributeArray(vc, realName, UTF8String.fromString)
+            } else {
+              makeArray(strings.asScala.toArray, UTF8String.fromString)
             }
           new GenericArrayData(strList)
         case ArrayType(IntegerType, _) =>
@@ -316,7 +314,7 @@ class VariantContextToInternalRowConverter(
             vc.getAttributeAsIntList(realName, 0).asScala
           } catch {
             case _: NumberFormatException =>
-              getAttributeArray(vc, realName, _.toInt)
+              getAttributeArray(vc, realName, Integer.valueOf)
           }
           new GenericArrayData(intList)
         case ArrayType(DoubleType, _) =>
@@ -324,7 +322,7 @@ class VariantContextToInternalRowConverter(
             vc.getAttributeAsDoubleList(realName, 0).asScala
           } catch {
             case _: NumberFormatException =>
-              getAttributeArray(vc, realName, _.toDouble)
+              getAttributeArray(vc, realName, VCFUtils.parseVcfDouble)
           }
           new GenericArrayData(doubleList)
       }
