@@ -302,11 +302,14 @@ class VariantContextToInternalRowConverter(
         case BooleanType => true: java.lang.Boolean
         case ArrayType(StringType, _) =>
           val strings = vc.getAttributeAsStringList(realName, "")
-          val strList = if (strings.size > 1) {
-            makeArray(strings.asScala.toArray, UTF8String.fromString)
-          } else {
-            getAttributeArray(vc, realName, UTF8String.fromString)
-          }
+          val strList =
+            if (strings.size == 1 && strings
+                .get(0)
+                .indexOf(VCFConstants.INFO_FIELD_ARRAY_SEPARATOR) > -1) {
+              makeArray(strings.asScala.toArray, UTF8String.fromString)
+            } else {
+              getAttributeArray(vc, realName, UTF8String.fromString)
+            }
           new GenericArrayData(strList)
         case ArrayType(IntegerType, _) =>
           val intList = try {
