@@ -23,6 +23,7 @@ import scala.collection.mutable
 import scala.reflect.ClassTag
 import scala.util.control.NonFatal
 import htsjdk.samtools.ValidationStringency
+import htsjdk.tribble.util.ParsingUtils
 import htsjdk.variant.variantcontext.{Allele, VariantContext, Genotype => HTSJDKGenotype}
 import htsjdk.variant.vcf.{VCFConstants, VCFHeader, VCFUtils}
 import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
@@ -261,11 +262,11 @@ class VariantContextToInternalRowConverter(
     row.update(idx, new ArrayBasedMapData(new GenericArrayData(keys), new GenericArrayData(values)))
   }
 
-  private def makeArray(strings: Array[String], parseFn: String => Any): Array[Any] = {
-    val arr = new Array[Any](strings.length)
+  private def makeArray(strings: JList[String], parseFn: String => Any): Array[Any] = {
+    val arr = new Array[Any](strings.size)
     var i = 0
     while (i < arr.length) {
-      arr(i) = parseFn(strings(i))
+      arr(i) = parseFn(strings.get(i))
       i += 1
     }
     arr
@@ -276,8 +277,10 @@ class VariantContextToInternalRowConverter(
       vc: VariantContext,
       key: String,
       parseFn: String => Any): Array[Any] = {
-    val strArray = vc.getAttributeAsString(key, "").split(VCFConstants.INFO_FIELD_ARRAY_SEPARATOR)
-    makeArray(strArray, parseFn)
+    val strList = ParsingUtils.split(
+      vc.getAttributeAsString(key, ""),
+      VCFConstants.INFO_FIELD_ARRAY_SEPARATOR_CHAR)
+    makeArray(strList, parseFn)
   }
 
   private def updateInfoField(
@@ -306,7 +309,7 @@ class VariantContextToInternalRowConverter(
                 .indexOf(VCFConstants.INFO_FIELD_ARRAY_SEPARATOR) > -1) {
               getAttributeArray(vc, realName, UTF8String.fromString)
             } else {
-              makeArray(strings.asScala.toArray, UTF8String.fromString)
+              makeArray(strings, UTF8String.fromString)
             }
           new GenericArrayData(strList)
         case ArrayType(IntegerType, _) =>
