@@ -24,8 +24,9 @@ import scala.reflect.ClassTag
 import scala.util.control.NonFatal
 
 import htsjdk.samtools.ValidationStringency
+import htsjdk.tribble.util.ParsingUtils
 import htsjdk.variant.variantcontext.{Allele, VariantContext, Genotype => HTSJDKGenotype}
-import htsjdk.variant.vcf.{VCFConstants, VCFHeader}
+import htsjdk.variant.vcf.{VCFConstants, VCFHeader, VCFUtils}
 import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, GenericArrayData}
@@ -263,6 +264,27 @@ class VariantContextToInternalRowConverter(
     row.update(idx, new ArrayBasedMapData(new GenericArrayData(keys), new GenericArrayData(values)))
   }
 
+  private def makeArray(strings: JList[String], parseFn: String => Any): Array[Any] = {
+    val arr = new Array[Any](strings.size)
+    var i = 0
+    while (i < arr.length) {
+      arr(i) = parseFn(strings.get(i))
+      i += 1
+    }
+    arr
+  }
+
+  // Fall back on parsing a comma-separated list
+  private def getAttributeArray(
+      vc: VariantContext,
+      key: String,
+      parseFn: String => Any): Array[Any] = {
+    val strList = ParsingUtils.split(
+      vc.getAttributeAsString(key, ""),
+      VCFConstants.INFO_FIELD_ARRAY_SEPARATOR_CHAR)
+    makeArray(strList, parseFn)
+  }
+
   private def updateInfoField(
       vc: VariantContext,
       field: StructField,
@@ -283,17 +305,31 @@ class VariantContextToInternalRowConverter(
         case BooleanType => true: java.lang.Boolean
         case ArrayType(StringType, _) =>
           val strings = vc.getAttributeAsStringList(realName, "")
-          val arr = new Array[Any](strings.size)
-          var i = 0
-          while (i < strings.size) {
-            arr(i) = UTF8String.fromString(strings.get(i))
-            i += 1
-          }
-          new GenericArrayData(arr)
+          val strList =
+            if (strings.size == 1 && strings
+                .get(0)
+                .indexOf(VCFConstants.INFO_FIELD_ARRAY_SEPARATOR) > -1) {
+              getAttributeArray(vc, realName, UTF8String.fromString)
+            } else {
+              makeArray(strings, UTF8String.fromString)
+            }
+          new GenericArrayData(strList)
         case ArrayType(IntegerType, _) =>
-          new GenericArrayData(vc.getAttributeAsIntList(realName, 0).asScala)
+          val intList = try {
+            vc.getAttributeAsIntList(realName, 0).asScala
+          } catch {
+            case _: NumberFormatException =>
+              getAttributeArray(vc, realName, Integer.valueOf)
+          }
+          new GenericArrayData(intList)
         case ArrayType(DoubleType, _) =>
-          new GenericArrayData(vc.getAttributeAsDoubleList(realName, 0).asScala)
+          val doubleList = try {
+            vc.getAttributeAsDoubleList(realName, 0).asScala
+          } catch {
+            case _: NumberFormatException =>
+              getAttributeArray(vc, realName, VCFUtils.parseVcfDouble)
+          }
+          new GenericArrayData(doubleList)
       }
       if (value != null) {
         row.update(idx, value)
