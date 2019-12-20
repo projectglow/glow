@@ -473,10 +473,13 @@ class VCFDatasourceSuite extends GlowBaseTest {
     assert(rowIter.isEmpty)
   }
 
-  test("gzip'd files are not considered to be splittable") {
-    val fileFormat = new VCFFileFormat()
+  test("gzip splits are only read if they contain the beginning of the file") {
     val path = s"$testDataHome/vcf/1row_not_bgz.vcf.gz"
-    assert(!fileFormat.isSplitable(spark, Map.empty, new Path(path)))
+    val key = "spark.sql.files.maxPartitionBytes"
+    val conf = Map("spark.sql.files.maxPartitionBytes" -> "10")
+    withSparkConf(conf) {
+      assert(spark.read.format(sourceName).load(path).count() == 1)
+    }
   }
 
   test("misnumbered fields") {
