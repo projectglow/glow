@@ -18,7 +18,7 @@ package io.projectglow.transformers
 
 import org.apache.spark.SparkException
 import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.functions
+import org.apache.spark.sql.functions.monotonically_increasing_id
 import org.apache.spark.sql.types.{LongType, StringType, StructType}
 import picard.vcf.LiftoverVcf
 
@@ -75,8 +75,8 @@ class LiftOverVariantsTransformerSuite extends GlowBaseTest with VCFConverterBas
     val liftedRows = liftedDf.collect()
     val picardLiftedRows = picardLiftedDf.orderBy("contigName", "start").collect()
 
-    assert(liftedDf.schema == picardLiftedDf.schema)
     assert(liftedRows.length == picardLiftedRows.length)
+
     liftedRows.zip(picardLiftedRows).foreach { case (r1, r2) => assert(r1 == r2) }
 
     val failedRows = failedDf.collect()
@@ -151,7 +151,7 @@ class LiftOverVariantsTransformerSuite extends GlowBaseTest with VCFConverterBas
     import sess.implicits._
 
     val inputDf = readVcf(s"$testDataHome/liftover/unlifted.test.vcf")
-      .withColumn("id", functions.monotonically_increasing_id)
+      .withColumn("id", monotonically_increasing_id)
     val outputDf = Glow
       .transform(
         "lift_over_variants",
@@ -261,25 +261,12 @@ class LiftOverVariantsTransformerSuite extends GlowBaseTest with VCFConverterBas
   }
 
   test("Reverse complemented bases don't match new reference") {
-    val inputDf = readVcf(s"$testDataHome/liftover/unlifted.swapRefAltAndArrays.vcf")
-    val outputDf = Glow
-      .transform(
-        "lift_over_variants",
-        inputDf,
-        Map(
-          "chainFile" -> s"$picardTestDataHome/test.over.chain",
-          "referenceFile" -> s"$picardTestDataHome/dummy.reference.fasta")
-      )
-      .orderBy("start")
-  }
-
-  test("Arrays flipped during ref/alt swap") {
     compareLiftedVcf(
-      s"$testDataHome/liftover/unlifted.swapRefAltAndArrays.vcf",
-      s"$testDataHome/liftover/lifted.swapRefAltAndArrays.vcf",
-      s"$testDataHome/liftover/failed.swapRefAltAndArrays.vcf",
+      s"$picardTestDataHome/testLiftoverBiallelicIndels.vcf",
+      s"$picardTestDataHome/lifted.mismatchRefSeq.testLiftoverBiallelicIndels.vcf",
+      s"$picardTestDataHome/failed.mismatchRefSeq.testLiftoverBiallelicIndels.vcf",
       s"$picardTestDataHome/test.over.chain",
-      s"$picardTestDataHome/dummy.reference.fasta",
+      s"$picardTestDataHome/dummy2.reference.fasta",
       Some(1.0)
     )
   }
