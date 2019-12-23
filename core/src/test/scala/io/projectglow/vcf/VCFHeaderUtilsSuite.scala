@@ -63,7 +63,7 @@ class VCFHeaderUtilsSuite extends GlowBaseTest {
     header.getInfoHeaderLines.asScala.toSet ++
     header.getOtherHeaderLines.asScala.toSet
 
-  private def writeVCFHeaders(contents: Seq[String], nSamples: Int = 1): Seq[FileStatus] = {
+  private def writeVCFHeaders(contents: Seq[String], nSamples: Int = 1): Seq[String] = {
     val dir = Files.createTempDirectory(this.getClass.getSimpleName)
     val paths = contents.indices.map(idx => dir.resolve(idx.toString))
     contents.zip(paths).foreach {
@@ -77,9 +77,7 @@ class VCFHeaderUtilsSuite extends GlowBaseTest {
          """.stripMargin
         FileUtils.writeStringToFile(path.toFile, StringContext.treatEscapes(fullContents.trim()))
     }
-    new Path(dir.toString)
-      .getFileSystem(spark.sparkContext.hadoopConfiguration)
-      .listStatus(new Path(dir.toString))
+    paths.map(_.toString)
   }
 
   test("fall back") {
