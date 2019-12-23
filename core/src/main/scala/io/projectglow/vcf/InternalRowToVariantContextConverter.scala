@@ -16,7 +16,6 @@
 
 package io.projectglow.vcf
 
-import java.lang.{Boolean => JBoolean}
 import java.util.{ArrayList => JArrayList}
 
 import scala.collection.JavaConverters._
@@ -458,21 +457,22 @@ class InternalRowToVariantContextConverter(
       )
       formatKeysParsedWithoutHeader.add(field.name)
     }
-    genotype.attribute(realName, parseField(field, row, offset))
+    genotype.attribute(realName, fieldToString(field, row, offset))
   }
 
-  private def parseField(field: StructField, row: InternalRow, offset: Int): Object = {
-    val value = field.dataType match {
+  private def fieldToString(field: StructField, row: InternalRow, offset: Int): String = {
+    val valueToConvert = field.dataType match {
       case dt: ArrayType =>
         row.getArray(offset).toObjectArray(dt.elementType)
       case dt =>
         row.get(offset, dt)
     }
-    value match {
-      case null => VCFConstants.MISSING_VALUE_v4
-      case "" => VCFConstants.MISSING_VALUE_v4
-      case _: JBoolean => VCFConstants.MISSING_VALUE_v4
-      case _ => value
+    val base = VariantContextToVCFRowConverter.parseObjectAsString(valueToConvert)
+    if (base.isEmpty) {
+      // Missing values are represented by '.' instead of empty strings
+      VCFConstants.MISSING_VALUE_v4
+    } else {
+      base
     }
   }
 }
