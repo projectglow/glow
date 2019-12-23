@@ -701,10 +701,16 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     val fileLength = fs.getFileStatus(path).getLen
     val partitionedFile = PartitionedFile(InternalRow.empty, oneRowGzipVcf, 0, 2)
     val interval = Some(new SimpleInterval("0", 1, 2))
-    assert(TabixIndexHelper.getFileRangeToRead(fs, partitionedFile, conf, false, false, interval).contains((0l, fileLength)))
+    assert(
+      TabixIndexHelper
+        .getFileRangeToRead(fs, partitionedFile, conf, false, false, interval)
+        .contains((0L, fileLength)))
 
     val partitionedFileWithoutStart = partitionedFile.copy(start = 1)
-    assert(TabixIndexHelper.getFileRangeToRead(fs, partitionedFileWithoutStart, conf, false, false, interval).isEmpty)
+    assert(
+      TabixIndexHelper
+        .getFileRangeToRead(fs, partitionedFileWithoutStart, conf, false, false, interval)
+        .isEmpty)
   }
 
   /**
