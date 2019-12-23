@@ -468,7 +468,7 @@ private[vcf] object SchemaDelegate {
       spark: SparkSession,
       files: Seq[FileStatus]): (Seq[VCFInfoHeaderLine], Seq[VCFFormatHeaderLine]) = {
     VCFHeaderUtils
-      .readHeaderLines(spark, files)
+      .readHeaderLines(spark, files.map(_.getPath.toString))
       .partition {
         case _: VCFInfoHeaderLine => true
         case _: VCFFormatHeaderLine => false
