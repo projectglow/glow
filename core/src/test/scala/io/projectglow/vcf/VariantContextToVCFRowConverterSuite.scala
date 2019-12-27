@@ -195,7 +195,11 @@ class VariantContextToVCFRowConverterSuite extends GlowBaseTest with VCFConverte
       expectedAlleleCounts = Some(Seq(41, 42, 43)),
       mappingQuality = Some(5),
       alleleDepths = Some(Seq(10, 11, 12)),
-      otherFields = Map("IntKey" -> "150", "DoubleKey" -> "1.5", "StringKey" -> "gtStringVal")
+      otherFields = Map(
+        "BoolKey" -> "false",
+        "IntKey" -> "150",
+        "DoubleKey" -> "1.5",
+        "StringKey" -> "gtStringVal")
     )
     val convertedGt2 = defaultGenotypeFields.copy(
       sampleId = Some("sample2"),
@@ -214,7 +218,7 @@ class VariantContextToVCFRowConverterSuite extends GlowBaseTest with VCFConverte
       attributes = Map(
         "NullKey" -> "",
         "MissingKey" -> "",
-        "BoolKey" -> "",
+        "BoolKey" -> "true",
         "IntKey" -> "50",
         "DoubleKey" -> "0.5",
         "StringKey" -> "stringVal"
