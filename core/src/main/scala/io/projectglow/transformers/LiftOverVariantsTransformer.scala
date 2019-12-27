@@ -343,7 +343,7 @@ object LiftOverVariantsTransformer extends GlowLogging {
       formatFieldsToSwap.foreach { k =>
         if (genotype.hasExtendedAttribute(k)) {
           val arrList =
-            JArrays.asList(genotype.getExtendedAttribute(k).asInstanceOf[Array[Object]]: _*)
+            JArrays.asList(genotype.getExtendedAttribute(k).asInstanceOf[Array[AnyRef]]: _*)
           Collections.reverse(arrList)
           gb.attribute(k, arrList)
         }
