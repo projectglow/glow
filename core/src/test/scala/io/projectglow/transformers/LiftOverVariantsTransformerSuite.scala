@@ -119,6 +119,7 @@ class LiftOverVariantsTransformerSuite extends GlowBaseTest with VCFConverterBas
       referenceFile: String = REFERENCE_FILE,
       minMatchOpt: Option[Double] = None): Unit = {
     val inputDf = readVcf(testVcf)
+
     val picardLiftedDf = readVcf(picardLiftedVcf)
     val picardFailedDf = readVcf(picardFailedVcf)
     liftOverAndCompare(
@@ -261,16 +262,14 @@ class LiftOverVariantsTransformerSuite extends GlowBaseTest with VCFConverterBas
   }
 
   test("Reverse complemented bases don't match new reference") {
-    val inputDf = readVcf(s"$testDataHome/liftover/unlifted.swapRefAltAndArrays.vcf")
-    val outputDf = Glow
-      .transform(
-        "lift_over_variants",
-        inputDf,
-        Map(
-          "chainFile" -> s"$picardTestDataHome/test.over.chain",
-          "referenceFile" -> s"$picardTestDataHome/dummy.reference.fasta")
-      )
-      .orderBy("start")
+    compareLiftedVcf(
+      s"$picardTestDataHome/testLiftoverBiallelicIndels.vcf",
+      s"$picardTestDataHome/lifted.mismatchRefSeq.testLiftoverBiallelicIndels.vcf",
+      s"$picardTestDataHome/failed.mismatchRefSeq.testLiftoverBiallelicIndels.vcf",
+      s"$picardTestDataHome/test.over.chain",
+      s"$picardTestDataHome/dummy2.reference.fasta",
+      Some(1.0)
+    )
   }
 
   test("Arrays flipped during ref/alt swap") {

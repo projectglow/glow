@@ -216,8 +216,8 @@ object LiftOverVariantsTransformer extends GlowLogging {
       liftOver: LiftOver,
       minMatchRatio: Double,
       refSeqMap: Map[String, ReferenceSequence],
-      attributesToSwap: Seq[String],
-      extendedAttributesToSwap: Seq[String]): (Option[VariantContext], Option[String]) = {
+      infoFieldsToSwap: Seq[String],
+      formatFieldsToSwap: Seq[String]): (Option[VariantContext], Option[String]) = {
 
     val inputInterval = new Interval(
       inputVc.getContig,
@@ -260,7 +260,7 @@ object LiftOverVariantsTransformer extends GlowLogging {
       if (outputVc.isBiallelic && outputVc.isSNP && refStr.equalsIgnoreCase(
           outputVc.getAlternateAllele(0).getBaseString)) {
         val swappedArrayFields =
-          swapRefAlt(outputVc, attributesToSwap, extendedAttributesToSwap)
+          swapRefAlt(outputVc, infoFieldsToSwap, formatFieldsToSwap)
         return (Some(swappedArrayFields), None)
       }
       val attemptedLocus = s"${outputVc.getContig}:${outputVc.getStart}-${outputVc.getEnd}"
@@ -273,11 +273,11 @@ object LiftOverVariantsTransformer extends GlowLogging {
     (Some(outputVc), None)
   }
 
-  // Includes the same functionality as [[LiftoverUtils.swapRefAlt]]; also reverses INFO/FORMAT array-based fields
+  // Includes the same functionality as [[LiftoverUtils.swapRefAlt]]; also reverses array-based INFO/FORMAT fields
   def swapRefAlt(
       vc: VariantContext,
-      attributesToSwap: Seq[String],
-      extendedAttributesToSwap: Seq[String]): VariantContext = {
+      infoFieldsToSwap: Seq[String],
+      formatFieldsToSwap: Seq[String]): VariantContext = {
     val vcb = new VariantContextBuilder(vc)
     vcb.attribute(LiftoverUtils.SWAPPED_ALLELES, true)
     vcb.alleles(vc.getAlleles.get(1).getBaseString, vc.getAlleles.get(0).getBaseString)
@@ -288,20 +288,23 @@ object LiftOverVariantsTransformer extends GlowLogging {
     alleleMap.put(vc.getAlleles.get(0), vcb.getAlleles.get(1))
     alleleMap.put(vc.getAlleles.get(1), vcb.getAlleles.get(0))
 
-    attributesToSwap.foreach { k =>
-      if (LiftoverUtils.DEFAULT_TAGS_TO_DROP.contains(k)) {
-        vcb.rmAttribute(k)
-      } else if (vc.hasAttribute(k)) {
-        val v = if (LiftoverUtils.DEFAULT_TAGS_TO_REVERSE.contains(k)) {
-          vc.getAttributeAsDoubleList(k, 0).asScala.map(1 - _).toList.asJava
-        } else {
-          // Reverse array-based INFO fields
-          val arrList = vc.getAttributeAsList(k)
-          Collections.reverse(arrList)
-          arrList
-        }
-        vcb.attribute(k, v)
+    // Drop INFO field MAX_AF
+    LiftoverUtils.DEFAULT_TAGS_TO_DROP.asScala.foreach { k =>
+      vcb.rmAttribute(k)
+    }
+
+    // Invert INFO field AF
+    LiftoverUtils.DEFAULT_TAGS_TO_REVERSE.asScala.foreach { k =>
+      if (vc.hasAttribute(k)) {
+        vcb.attribute(k, vc.getAttributeAsDoubleList(k, 0).asScala.map(1 - _).toList.asJava)
       }
+    }
+
+    // Reverse other array-based INFO fields
+    infoFieldsToSwap.foreach { k =>
+      val arrList = vc.getAttributeAsList(k)
+      Collections.reverse(arrList)
+      vcb.attribute(k, arrList)
     }
 
     val swappedGenotypes = GenotypesContext.create(vc.getGenotypes().size())
@@ -337,7 +340,7 @@ object LiftOverVariantsTransformer extends GlowLogging {
       }
 
       // Reverse array-based FORMAT fields
-      extendedAttributesToSwap.foreach { k =>
+      formatFieldsToSwap.foreach { k =>
         if (genotype.hasExtendedAttribute(k)) {
           val arrList =
             JArrays.asList(genotype.getExtendedAttribute(k).asInstanceOf[Array[Object]]: _*)
@@ -381,7 +384,14 @@ object LiftOverVariantsTransformer extends GlowLogging {
   def getAttributesToSwap(variantSchema: StructType): Seq[String] = {
     val infoFields = variantSchema.flatMap { f =>
       if (f.name.startsWith(VariantSchemas.infoFieldPrefix)) {
-        Some(f.copy(name = f.name.substring(VariantSchemas.infoFieldPrefix.length)))
+        val name = f.name.substring(VariantSchemas.infoFieldPrefix.length)
+        if (LiftoverUtils
+            .DEFAULT_TAGS_TO_DROP
+            .contains(name) || LiftoverUtils.DEFAULT_TAGS_TO_REVERSE.contains(name)) {
+          None
+        } else {
+          Some(f.copy(name = f.name.substring(VariantSchemas.infoFieldPrefix.length)))
+        }
       } else {
         None
       }
@@ -389,19 +399,15 @@ object LiftOverVariantsTransformer extends GlowLogging {
     getArrayFields(infoFields)
   }
 
-  // Get array-basd FORMAT fields
+  // Get array-based FORMAT fields
   def getExtendedAttributesToSwap(variantSchema: StructType): Seq[String] = {
-    val genotypeFieldOpt = variantSchema
-      .fields
-      .find(_.name == VariantSchemas.genotypesFieldName)
+    val genotypeSchemaOpt = InternalRowToVariantContextConverter.getGenotypeSchema(variantSchema)
 
-    if (genotypeFieldOpt.isEmpty) {
+    if (genotypeSchemaOpt.isEmpty) {
       return Seq.empty
     }
 
-    val genotypeField =
-      genotypeFieldOpt.get.dataType.asInstanceOf[ArrayType].elementType.asInstanceOf[StructType]
-    val formatFields = genotypeField.flatMap { f =>
+    val formatFields = genotypeSchemaOpt.get.flatMap { f =>
       val name = GenotypeFields.reverseAliases.getOrElse(f.name, f.name)
       // Special cases: FT, GT, GQ, DP, AD and PL are not included in the extended attributes
       if (Genotype.PRIMARY_KEYS.contains(name)) {

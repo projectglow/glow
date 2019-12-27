@@ -17,10 +17,8 @@
 package io.projectglow.vcf
 
 import scala.collection.JavaConverters._
-
 import htsjdk.samtools.ValidationStringency
-import org.apache.spark.sql.types.{ArrayType, DataType, MapType, StructType}
-
+import org.apache.spark.sql.types.{ArrayType, DataType, MapType, StringType, StructField, StructType}
 import io.projectglow.sql.GlowBaseTest
 
 class InternalRowToVariantContextConverterSuite extends GlowBaseTest {
@@ -57,5 +55,36 @@ class InternalRowToVariantContextConverterSuite extends GlowBaseTest {
       StructType(fields).asInstanceOf[T]
     case mt: MapType => mt.copy(valueContainsNull = nullable).asInstanceOf[T]
     case other => other
+  }
+
+  test("find genotype schema") {
+    val df = spark.read.format("vcf").load(NA12878)
+    val dfSchema = df.schema
+    val (header, _) = VCFFileFormat.createVCFCodec(NA12878, spark.sessionState.newHadoopConf())
+    val actualGenotypeSchema =
+      VCFSchemaInferrer.inferGenotypeSchema(true, header.getFormatHeaderLines.asScala.toSeq)
+    assert(
+      InternalRowToVariantContextConverter.getGenotypeSchema(dfSchema).get == actualGenotypeSchema)
+  }
+
+  test("no genotype schema") {
+    val schema = StructType(Seq.empty)
+    assert(InternalRowToVariantContextConverter.getGenotypeSchema(schema).isEmpty)
+  }
+
+  test("genotype schema is not array") {
+    val schema = StructType(Seq(StructField("genotypes", StringType)))
+    val e = intercept[IllegalArgumentException] {
+      InternalRowToVariantContextConverter.getGenotypeSchema(schema)
+    }
+    assert(e.getMessage.contains("`genotypes` column must be an array of structs"))
+  }
+
+  test("genotype schema of arrays does not contain structs") {
+    val schema = StructType(Seq(StructField("genotypes", ArrayType(StringType))))
+    val e = intercept[IllegalArgumentException] {
+      InternalRowToVariantContextConverter.getGenotypeSchema(schema)
+    }
+    assert(e.getMessage.contains("`genotypes` column must be an array of structs"))
   }
 }

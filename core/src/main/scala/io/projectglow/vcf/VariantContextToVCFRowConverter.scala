@@ -16,7 +16,7 @@
 
 package io.projectglow.vcf
 
-import java.lang.{Boolean => JBoolean, Iterable => JIterable}
+import java.lang.{Iterable => JIterable}
 
 import scala.collection.mutable
 
@@ -34,7 +34,6 @@ object VariantContextToVCFRowConverter {
     obj match {
       case null => ""
       case VCFConstants.MISSING_VALUE_v4 => ""
-      case _: JBoolean => ""
       case intArray: Array[Int] => intArray.mkString(VCFConstants.INFO_FIELD_ARRAY_SEPARATOR)
       case doubleArray: Array[Double] =>
         doubleArray

@@ -16,7 +16,6 @@
 
 package io.projectglow.vcf
 
-import java.lang.{Boolean => JBoolean}
 import java.util.{ArrayList => JArrayList}
 
 import scala.collection.JavaConverters._
@@ -55,9 +54,7 @@ class InternalRowToVariantContextConverter(
   import io.projectglow.common.VariantSchemas._
 
   private val alleles = scala.collection.mutable.ArrayBuffer[Allele]()
-  private val genotypeSchema = rowSchema
-    .find(_.name == "genotypes")
-    .map(_.dataType.asInstanceOf[ArrayType].elementType.asInstanceOf[StructType])
+  private val genotypeSchema = InternalRowToVariantContextConverter.getGenotypeSchema(rowSchema)
   private val infoKeysParsedWithoutHeader = scala.collection.mutable.HashSet.empty[String]
   private val formatKeysParsedWithoutHeader = scala.collection.mutable.HashSet.empty[String]
 
@@ -461,7 +458,7 @@ class InternalRowToVariantContextConverter(
     genotype.attribute(realName, parseField(field, row, offset))
   }
 
-  private def parseField(field: StructField, row: InternalRow, offset: Int): Object = {
+  private def parseField(field: StructField, row: InternalRow, offset: Int): AnyRef = {
     val value = field.dataType match {
       case dt: ArrayType =>
         row.getArray(offset).toObjectArray(dt.elementType)
@@ -471,8 +468,21 @@ class InternalRowToVariantContextConverter(
     value match {
       case null => VCFConstants.MISSING_VALUE_v4
       case "" => VCFConstants.MISSING_VALUE_v4
-      case _: JBoolean => VCFConstants.MISSING_VALUE_v4
       case _ => value
+    }
+  }
+}
+
+object InternalRowToVariantContextConverter {
+  def getGenotypeSchema(rowSchema: StructType): Option[StructType] = {
+    try {
+      rowSchema
+        .find(_.name == VariantSchemas.genotypesFieldName)
+        .map(_.dataType.asInstanceOf[ArrayType].elementType.asInstanceOf[StructType])
+    } catch {
+      case e: ClassCastException =>
+        throw new IllegalArgumentException(
+          "`genotypes` column must be an array of structs: " + e.getMessage)
     }
   }
 }
