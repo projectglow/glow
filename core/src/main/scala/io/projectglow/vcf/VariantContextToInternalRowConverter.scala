@@ -29,6 +29,7 @@ import htsjdk.variant.variantcontext.{Allele, VariantContext, Genotype => HTSJDK
 import htsjdk.variant.vcf.{VCFConstants, VCFHeader, VCFUtils}
 import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, GenericArrayData}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
@@ -332,7 +333,7 @@ class VariantContextToInternalRowConverter(
           new GenericArrayData(doubleList)
         case a: ArrayType if a.elementType.isInstanceOf[StructType] =>
           val effList = vc.getAttributeAsString(realName, "").split(",").map { eff =>
-            eff.split("|").map(UTF8String.fromString)
+            new GenericInternalRow(eff.split("\\|").map(UTF8String.fromString(_).asInstanceOf[Any]))
           }
           new GenericArrayData(effList)
       }

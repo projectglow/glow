@@ -571,6 +571,21 @@ class VCFDatasourceSuite extends GlowBaseTest {
       assert(q1 ~== q2 relTol 0.2)
     }
   }
+
+  test("Parse CSQ") {
+    val csqs = spark
+      .read
+      .format(sourceName)
+      .load(s"$testDataHome/vcf/vep.vcf")
+      .withColumn("allele", expr("INFO_CSQ.Allele"))
+      .withColumn("consequence", expr("INFO_CSQ.Consequence"))
+      .withColumn("impact", expr("INFO_CSQ.IMPACT"))
+      .select("allele", "consequence", "impact")
+      .collect()
+    assert(csqs.length == 1)
+    val csq = csqs.head
+    assert(csq.toSeq == Seq(Seq("C"), Seq("missense_variant"), Seq("MODERATE")))
+  }
 }
 
 // For testing only: schema based on CEUTrio VCF header
