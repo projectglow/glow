@@ -332,10 +332,14 @@ class VariantContextToInternalRowConverter(
           }
           new GenericArrayData(doubleList)
         case a: ArrayType if a.elementType.isInstanceOf[StructType] =>
-          val effList = vc.getAttributeAsString(realName, "").split(",").map { eff =>
-            new GenericInternalRow(eff.split("\\|").map(UTF8String.fromString(_).asInstanceOf[Any]))
+          // CSQ
+          val effects = vc.getAttributeAsString(realName, "").split(",").map { effect =>
+            val annotations = effect.split("\\|").map { ann =>
+              UTF8String.fromString(ann).asInstanceOf[Any]
+            }
+            new GenericInternalRow(annotations)
           }
-          new GenericArrayData(effList)
+          new GenericArrayData(effects)
       }
       if (value != null) {
         row.update(idx, value)

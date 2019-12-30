@@ -318,13 +318,23 @@ class InternalRowToVariantContextConverter(
     vc
   }
 
-  private def createEffectString(schema: StructType, row: InternalRow, offset: Int): String = {
-    val effects = row.getArray(offset)
+  private def createAnnotation(schema: StructType, effects: ArrayData): String = {
     val strBuilder = new StringBuilder()
     var i = 0
     while (i < effects.numElements()) {
-      strBuilder.append(effects.getStruct(i, schema.size).toSeq(schema).mkString(","))
-      i += 0
+      val effect = effects.getStruct(i, schema.size)
+      var j = 0
+      while (j < schema.size) {
+        strBuilder.append(effect.getUTF8String(j))
+        if (j < schema.size - 1) {
+          strBuilder.append("|")
+        }
+        j += 1
+      }
+      if (i < effects.numElements() - 1) {
+        strBuilder.append(",")
+      }
+      i += 1
     }
     strBuilder.toString
   }
@@ -344,7 +354,7 @@ class InternalRowToVariantContextConverter(
       realName,
       field.dataType match {
         case dt: ArrayType if dt.elementType.isInstanceOf[StructType] =>
-          createEffectString(dt.elementType.asInstanceOf[StructType], row, offset)
+          createAnnotation(dt.elementType.asInstanceOf[StructType], row.getArray(offset)) // CSQ
         case dt: ArrayType => row.getArray(offset).toObjectArray(dt.elementType)
         case dt => row.get(offset, dt)
       }
