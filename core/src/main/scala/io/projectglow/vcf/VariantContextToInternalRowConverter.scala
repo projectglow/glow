@@ -330,6 +330,11 @@ class VariantContextToInternalRowConverter(
               getAttributeArray(vc, realName, VCFUtils.parseVcfDouble)
           }
           new GenericArrayData(doubleList)
+        case a: ArrayType if a.elementType.isInstanceOf[StructType] =>
+          val effList = vc.getAttributeAsString(realName, "").split(",").map { eff =>
+            eff.split("|").map(UTF8String.fromString)
+          }
+          new GenericArrayData(effList)
       }
       if (value != null) {
         row.update(idx, value)

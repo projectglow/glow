@@ -318,6 +318,17 @@ class InternalRowToVariantContextConverter(
     vc
   }
 
+  private def createEffectString(schema: StructType, row: InternalRow, offset: Int): String = {
+    val effects = row.getArray(offset)
+    val strBuilder = new StringBuilder()
+    var i = 0
+    while (i < effects.numElements()) {
+      strBuilder.append(effects.getStruct(i, schema.size).toSeq(schema).mkString(","))
+      i += 0
+    }
+    strBuilder.toString
+  }
+
   private def updateInfoField(
       field: StructField,
       vc: VariantContextBuilder,
@@ -329,10 +340,15 @@ class InternalRowToVariantContextConverter(
     // correct reciprocal conversion between vc and InternalRow using
     // InternalRowToVariantContextConverter and VariantContextToInternalRowConverter. When using
     // in writing to file these fields are converted to strings in VCFStreamWriter.
-    vc.attribute(realName, field.dataType match {
-      case dt: ArrayType => row.getArray(offset).toObjectArray(dt.elementType)
-      case dt => row.get(offset, dt)
-    })
+    vc.attribute(
+      realName,
+      field.dataType match {
+        case dt: ArrayType if dt.elementType.isInstanceOf[StructType] =>
+          createEffectString(dt.elementType.asInstanceOf[StructType], row, offset)
+        case dt: ArrayType => row.getArray(offset).toObjectArray(dt.elementType)
+        case dt => row.get(offset, dt)
+      }
+    )
   }
 
   private def updateSampleId(

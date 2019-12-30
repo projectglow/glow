@@ -146,7 +146,7 @@ object VCFSchemaInferrer {
 
   def typesForHeader(line: VCFCompoundHeaderLine): Seq[DataType] = {
     if (particularSchemas.contains(line.getID)) {
-      return particularSchemas(line.getID)
+      return particularSchemas(line.getID)(line.getDescription)
     }
 
     val primitiveType = line.getType match {
@@ -177,6 +177,7 @@ object VCFSchemaInferrer {
     case DoubleType => VCFHeaderLineType.Float
     case IntegerType => VCFHeaderLineType.Integer
     case BooleanType => VCFHeaderLineType.Flag
+    case at: ArrayType if at.elementType.isInstanceOf[StructType] => VCFHeaderLineType.String
     case ArrayType(innerType, _) => vcfDataType(innerType)
   }
 
@@ -258,9 +259,19 @@ object VCFSchemaInferrer {
       .toSeq
   }
 
+  private def getGtSchema(description: String): Seq[DataType] = {
+    Seq(VariantSchemas.phasedField.dataType, VariantSchemas.callsField.dataType)
+  }
+
+  private def getCsqSchema(description: String): Seq[DataType] = {
+    val fieldNames = description.split(" ").last.split("\\|")
+    Seq(ArrayType(StructType(fieldNames.map(StructField(_, StringType)))))
+  }
+
   // Fields for which the schema cannot be inferred from the VCF header
-  private val particularSchemas: Map[String, Seq[DataType]] = Map(
-    "GT" -> Seq(VariantSchemas.phasedField.dataType, VariantSchemas.callsField.dataType)
+  private val particularSchemas: Map[String, String => Seq[DataType]] = Map(
+    "GT" -> getGtSchema,
+    "CSQ" -> getCsqSchema
   )
 
   // Public constants

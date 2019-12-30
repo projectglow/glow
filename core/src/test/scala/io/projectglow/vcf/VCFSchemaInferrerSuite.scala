@@ -217,4 +217,31 @@ class VCFSchemaInferrerSuite extends GlowBaseTest {
     val expected = Seq(new VCFFormatHeaderLine("GT", 1, VCFHeaderLineType.String, "Genotype"))
     assert(VCFSchemaInferrer.headerLinesFromSchema(schema) == expected)
   }
+
+  test("CSQ") {
+    val description = "Consequence annotations from Ensembl VEP. Format: Allele|Consequence|IMPACT"
+    val csqHeaderLine =
+      new VCFInfoHeaderLine(
+        "CSQ",
+        VCFHeaderLineCount.UNBOUNDED,
+        VCFHeaderLineType.String,
+        description)
+
+    val inferredSchema = VCFSchemaInferrer.inferSchema(true, true, Seq(csqHeaderLine), Seq.empty)
+    val csqField = inferredSchema.fields.find(_.name == "INFO_CSQ").get
+    assert(csqField.metadata.getString("vcf_header_count") == "UNBOUNDED")
+    assert(csqField.metadata.getString("vcf_header_description") == description)
+    assert(
+      csqField.dataType ==
+      ArrayType(
+        StructType(
+          Seq(
+            StructField("Allele", StringType),
+            StructField("Consequence", StringType),
+            StructField("IMPACT", StringType)))))
+
+    val inferredHeaderLines = VCFSchemaInferrer.headerLinesFromSchema(inferredSchema)
+    assert(inferredHeaderLines.length == 1)
+    assert(inferredHeaderLines.head == csqHeaderLine)
+  }
 }
