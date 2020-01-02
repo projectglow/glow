@@ -177,7 +177,9 @@ object VCFSchemaInferrer {
     case DoubleType => VCFHeaderLineType.Float
     case IntegerType => VCFHeaderLineType.Integer
     case BooleanType => VCFHeaderLineType.Flag
-    case at: ArrayType if at.elementType.isInstanceOf[StructType] => VCFHeaderLineType.String
+    case at: ArrayType if at.elementType.isInstanceOf[StructType] =>
+      // Annotation (eg. CSQ, ANN)
+      VCFHeaderLineType.String
     case ArrayType(innerType, _) => vcfDataType(innerType)
   }
 
