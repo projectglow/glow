@@ -573,18 +573,47 @@ class VCFDatasourceSuite extends GlowBaseTest {
   }
 
   test("Parse CSQ") {
-    val csqs = spark
+    val vcf = spark
       .read
       .format(sourceName)
       .load(s"$testDataHome/vcf/vep.vcf")
+
+    val csqs = vcf
       .withColumn("allele", expr("INFO_CSQ.Allele"))
       .withColumn("consequence", expr("INFO_CSQ.Consequence"))
       .withColumn("impact", expr("INFO_CSQ.IMPACT"))
-      .select("allele", "consequence", "impact")
+      .withColumn("intron", expr("INFO_CSQ.INTRON"))
+      .withColumn("protein_position", expr("INFO_CSQ.Protein_position"))
+      .select("allele", "consequence", "impact", "intron", "protein_position")
       .collect()
     assert(csqs.length == 1)
     val csq = csqs.head
-    assert(csq.toSeq == Seq(Seq("C"), Seq("missense_variant"), Seq("MODERATE")))
+    assert(csq.toSeq == Seq(Seq("C"), Seq("missense_variant"), Seq("MODERATE"), Seq(""), Seq("84")))
+  }
+
+  test("Parse ANN") {
+    val vcf = spark
+      .read
+      .format(sourceName)
+      .load(s"$testDataHome/vcf/snpeff.vcf")
+
+    val anns = vcf
+      .withColumn("allele", expr("INFO_ANN.Allele"))
+      .withColumn("annotation", expr("INFO_ANN.Annotation"))
+      .withColumn("impact", expr("INFO_ANN.Annotation_Impact"))
+      .withColumn("rank", expr("INFO_ANN.Rank"))
+      .withColumn("msg", expr("INFO_ANN.`ERRORS / WARNINGS / INFO`"))
+      .select("allele", "annotation", "impact", "rank", "msg")
+      .collect()
+    assert(anns.length == 1)
+    val ann = anns.head
+    assert(
+      ann.toSeq == Seq(
+        Seq("C", "C"),
+        Seq("3_prime_UTR_variant", "downstream_gene_variant"),
+        Seq("MODIFIER", "MODIFIER"),
+        Seq("1/1", ""),
+        Seq("", "")))
   }
 }
 

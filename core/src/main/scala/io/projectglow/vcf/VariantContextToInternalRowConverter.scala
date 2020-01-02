@@ -332,13 +332,18 @@ class VariantContextToInternalRowConverter(
           }
           new GenericArrayData(doubleList)
         case a: ArrayType if a.elementType.isInstanceOf[StructType] =>
-          // CSQ
-          val effects = vc.getAttributeAsString(realName, "").split(",").map { effect =>
-            val annotations = effect.split("\\|").map { ann =>
-              UTF8String.fromString(ann).asInstanceOf[Any]
+          // Annotation (eg. CSQ, ANN)
+          val structSize = a.elementType.asInstanceOf[StructType].size
+          val effects = vc
+            .getAttributeAsStringList(realName, "")
+            .asScala
+            .map { effect =>
+              // Providing a limit to the splitter preserves empty annotations
+              val annotations = effect.split("\\|", structSize).map { ann =>
+                UTF8String.fromString(ann).asInstanceOf[Any]
+              }
+              new GenericInternalRow(annotations)
             }
-            new GenericInternalRow(annotations)
-          }
           new GenericArrayData(effects)
       }
       if (value != null) {

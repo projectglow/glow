@@ -244,4 +244,46 @@ class VCFSchemaInferrerSuite extends GlowBaseTest {
     assert(inferredHeaderLines.length == 1)
     assert(inferredHeaderLines.head == csqHeaderLine)
   }
+
+  test("ANN") {
+    val description =
+      "Functional annotations: 'Allele | Annotation | Annotation_Impact | Gene_Name | Gene_ID | Feature_Type | " +
+      "Feature_ID | Transcript_BioType | Rank | HGVS.c | HGVS.p | cDNA.pos / cDNA.length | CDS.pos / CDS.length | " +
+      "AA.pos / AA.length | Distance | ERRORS / WARNINGS / INFO' "
+    val annHeaderLine =
+      new VCFInfoHeaderLine(
+        "ANN",
+        VCFHeaderLineCount.UNBOUNDED,
+        VCFHeaderLineType.String,
+        description)
+
+    val inferredSchema = VCFSchemaInferrer.inferSchema(true, true, Seq(annHeaderLine), Seq.empty)
+    val annField = inferredSchema.fields.find(_.name == "INFO_ANN").get
+    assert(annField.metadata.getString("vcf_header_count") == "UNBOUNDED")
+    assert(annField.metadata.getString("vcf_header_description") == description)
+    assert(
+      annField.dataType ==
+      ArrayType(StructType(Seq(
+        StructField("Allele", StringType),
+        StructField("Annotation", StringType),
+        StructField("Annotation_Impact", StringType),
+        StructField("Gene_Name", StringType),
+        StructField("Gene_ID", StringType),
+        StructField("Feature_Type", StringType),
+        StructField("Feature_ID", StringType),
+        StructField("Transcript_BioType", StringType),
+        StructField("Rank", StringType),
+        StructField("HGVS.c", StringType),
+        StructField("HGVS.p", StringType),
+        StructField("cDNA.pos / cDNA.length", StringType),
+        StructField("CDS.pos / CDS.length", StringType),
+        StructField("AA.pos / AA.length", StringType),
+        StructField("Distance", StringType),
+        StructField("ERRORS / WARNINGS / INFO", StringType)
+      ))))
+
+    val inferredHeaderLines = VCFSchemaInferrer.headerLinesFromSchema(inferredSchema)
+    assert(inferredHeaderLines.length == 1)
+    assert(inferredHeaderLines.head == annHeaderLine)
+  }
 }

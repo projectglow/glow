@@ -354,7 +354,8 @@ class InternalRowToVariantContextConverter(
       realName,
       field.dataType match {
         case dt: ArrayType if dt.elementType.isInstanceOf[StructType] =>
-          createAnnotation(dt.elementType.asInstanceOf[StructType], row.getArray(offset)) // CSQ
+          // Annotation (eg. CSQ, ANN)
+          createAnnotation(dt.elementType.asInstanceOf[StructType], row.getArray(offset))
         case dt: ArrayType => row.getArray(offset).toObjectArray(dt.elementType)
         case dt => row.get(offset, dt)
       }

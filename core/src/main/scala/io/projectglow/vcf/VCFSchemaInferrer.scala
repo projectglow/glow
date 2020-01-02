@@ -263,15 +263,19 @@ object VCFSchemaInferrer {
     Seq(VariantSchemas.phasedField.dataType, VariantSchemas.callsField.dataType)
   }
 
-  private def getCsqSchema(description: String): Seq[DataType] = {
-    val fieldNames = description.split(" ").last.split("\\|")
-    Seq(ArrayType(StructType(fieldNames.map(StructField(_, StringType)))))
+  private def getAnnotationSchema(description: String): Seq[DataType] = {
+    // SnpEff field descriptions wrap the format in single quotes
+    val fieldNames = description.split(":").last.replace("'", "").split("\\|")
+    Seq(ArrayType(StructType(fieldNames.map { f =>
+      StructField(f.trim(), StringType)
+    })))
   }
 
   // Fields for which the schema cannot be inferred from the VCF header
   private val particularSchemas: Map[String, String => Seq[DataType]] = Map(
     "GT" -> getGtSchema,
-    "CSQ" -> getCsqSchema
+    "CSQ" -> getAnnotationSchema, // Default VEP annotation field
+    "ANN" -> getAnnotationSchema // SnpEff annotation field
   )
 
   // Public constants
