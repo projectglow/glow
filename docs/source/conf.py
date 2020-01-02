@@ -210,3 +210,10 @@ intersphinx_mapping = {'https://docs.python.org/': None}
 
 # If true, `todo` and `todoList` produce output, else they produce nothing.
 todo_include_todos = True
+
+# -- Linkcheck options -------------------------------------------------------
+
+linkcheck_ignore = [
+    # Intermittent 104s from linkchecker
+    r'https://academic.oup.com*',
+]
