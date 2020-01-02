@@ -318,10 +318,11 @@ class InternalRowToVariantContextConverter(
     vc
   }
 
-  private def createAnnotation(schema: StructType, effects: ArrayData): String = {
-    val strBuilder = new StringBuilder()
+  private def createAnnotations(schema: StructType, effects: ArrayData): Array[String] = {
+    val annotations = new Array[String](effects.numElements)
     var i = 0
-    while (i < effects.numElements()) {
+    while (i < annotations.length) {
+      val strBuilder = new StringBuilder()
       val effect = effects.getStruct(i, schema.size)
       var j = 0
       while (j < schema.size) {
@@ -331,12 +332,10 @@ class InternalRowToVariantContextConverter(
         }
         j += 1
       }
-      if (i < effects.numElements() - 1) {
-        strBuilder.append(",")
-      }
+      annotations(i) = strBuilder.toString
       i += 1
     }
-    strBuilder.toString
+    annotations
   }
 
   private def updateInfoField(
@@ -355,7 +354,7 @@ class InternalRowToVariantContextConverter(
       field.dataType match {
         case dt: ArrayType if dt.elementType.isInstanceOf[StructType] =>
           // Annotation (eg. CSQ, ANN)
-          createAnnotation(dt.elementType.asInstanceOf[StructType], row.getArray(offset))
+          createAnnotations(dt.elementType.asInstanceOf[StructType], row.getArray(offset))
         case dt: ArrayType => row.getArray(offset).toObjectArray(dt.elementType)
         case dt => row.get(offset, dt)
       }
