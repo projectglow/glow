@@ -48,7 +48,6 @@ object VCFSchemaInferrer {
       infoHeaders: Seq[VCFInfoHeaderLine],
       formatHeaders: Seq[VCFFormatHeaderLine]): StructType = {
     val validatedInfoHeaders = validateHeaders(infoHeaders)
-    val validatedFormatHeaders = validateHeaders(formatHeaders)
     val withInfoFields = if (flattenInfoFields) {
       validatedInfoHeaders.foldLeft(VariantSchemas.vcfBaseSchema) {
         case (schema, line) =>
@@ -59,11 +58,19 @@ object VCFSchemaInferrer {
       VariantSchemas.vcfBaseSchema.add(StructField("attributes", MapType(StringType, StringType)))
     }
 
+    val genotypeStruct = inferGenotypeSchema(includeSampleIds, formatHeaders)
+    withInfoFields.add(StructField("genotypes", ArrayType(genotypeStruct)))
+  }
+
+  def inferGenotypeSchema(
+      includeSampleIds: Boolean,
+      formatHeaders: Seq[VCFFormatHeaderLine]): StructType = {
     var genotypeStruct = StructType(Seq.empty)
     if (includeSampleIds) {
       genotypeStruct = genotypeStruct.add(VariantSchemas.sampleIdField)
     }
 
+    val validatedFormatHeaders = validateHeaders(formatHeaders)
     validatedFormatHeaders.foreach { line =>
       val names = GenotypeFields.aliases.getOrElse(line.getID, Seq(line.getID))
       val types = typesForHeader(line)
@@ -77,8 +84,7 @@ object VCFSchemaInferrer {
           genotypeStruct = genotypeStruct.add(StructField(n, t, metadata = metadata))
       }
     }
-
-    withInfoFields.add(StructField("genotypes", ArrayType(genotypeStruct)))
+    genotypeStruct
   }
 
   def inferSchema(

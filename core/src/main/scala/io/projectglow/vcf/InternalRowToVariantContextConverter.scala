@@ -54,9 +54,7 @@ class InternalRowToVariantContextConverter(
   import io.projectglow.common.VariantSchemas._
 
   private val alleles = scala.collection.mutable.ArrayBuffer[Allele]()
-  private val genotypeSchema = rowSchema
-    .find(_.name == "genotypes")
-    .map(_.dataType.asInstanceOf[ArrayType].elementType.asInstanceOf[StructType])
+  private val genotypeSchema = InternalRowToVariantContextConverter.getGenotypeSchema(rowSchema)
   private val infoKeysParsedWithoutHeader = scala.collection.mutable.HashSet.empty[String]
   private val formatKeysParsedWithoutHeader = scala.collection.mutable.HashSet.empty[String]
 
@@ -457,22 +455,34 @@ class InternalRowToVariantContextConverter(
       )
       formatKeysParsedWithoutHeader.add(field.name)
     }
-    genotype.attribute(realName, fieldToString(field, row, offset))
+    genotype.attribute(realName, parseField(field, row, offset))
   }
 
-  private def fieldToString(field: StructField, row: InternalRow, offset: Int): String = {
-    val valueToConvert = field.dataType match {
+  private def parseField(field: StructField, row: InternalRow, offset: Int): AnyRef = {
+    val value = field.dataType match {
       case dt: ArrayType =>
         row.getArray(offset).toObjectArray(dt.elementType)
       case dt =>
         row.get(offset, dt)
     }
-    val base = VariantContextToVCFRowConverter.parseObjectAsString(valueToConvert)
-    if (base.isEmpty) {
-      // Missing values are represented by '.' instead of empty strings
-      VCFConstants.MISSING_VALUE_v4
-    } else {
-      base
+    value match {
+      case null => VCFConstants.MISSING_VALUE_v4
+      case "" => VCFConstants.MISSING_VALUE_v4
+      case _ => value
+    }
+  }
+}
+
+object InternalRowToVariantContextConverter {
+  def getGenotypeSchema(rowSchema: StructType): Option[StructType] = {
+    try {
+      rowSchema
+        .find(_.name == VariantSchemas.genotypesFieldName)
+        .map(_.dataType.asInstanceOf[ArrayType].elementType.asInstanceOf[StructType])
+    } catch {
+      case e: ClassCastException =>
+        throw new IllegalArgumentException(
+          "`genotypes` column must be an array of structs: " + e.getMessage)
     }
   }
 }
