@@ -222,6 +222,7 @@ object VCFFileFormat {
    * The logic to parse the header is adapted from [[org.seqdoop.hadoop_bam.VCFRecordReader]].
    */
   def createVCFCodec(path: String, conf: Configuration): (VCFHeader, VCFCodec) = {
+    println(s"Creating VCF codec in ${Thread.currentThread().getName}")
     val hPath = new Path(path)
     val fs = hPath.getFileSystem(conf)
     WithUtils.withCloseable(fs.open(hPath)) { is =>

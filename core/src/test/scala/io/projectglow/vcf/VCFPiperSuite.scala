@@ -162,26 +162,28 @@ class VCFPiperSuite extends GlowBaseTest {
     }
   }
 
-  test("command doesn't exist") {
-    val ex = intercept[SparkException] {
-      pipeScript(na12878, "totallyfakecommandthatdoesntexist")
-    }
-    assert(ex.getMessage.contains("No such file or directory"))
+  (1 to 10000).foreach { n =>
+    test(s"command doesn't exist ($n)") {
+      val ex = intercept[SparkException] {
+        pipeScript(na12878, "totallyfakecommandthatdoesntexist")
+      }
+      assert(ex.getMessage.contains("No such file or directory"))
 
-    // threads should still be cleaned up
-    eventually {
-      assert(
-        !Thread
-          .getAllStackTraces
-          .asScala
-          .keySet
-          .exists(_.getName.startsWith(ProcessHelper.STDIN_WRITER_THREAD_PREFIX)))
-      assert(
-        !Thread
-          .getAllStackTraces
-          .asScala
-          .keySet
-          .exists(_.getName.startsWith(ProcessHelper.STDERR_READER_THREAD_PREFIX)))
+      // threads should still be cleaned up
+      eventually {
+        assert(
+          !Thread
+            .getAllStackTraces
+            .asScala
+            .keySet
+            .exists(_.getName.startsWith(ProcessHelper.STDIN_WRITER_THREAD_PREFIX)))
+        assert(
+          !Thread
+            .getAllStackTraces
+            .asScala
+            .keySet
+            .exists(_.getName.startsWith(ProcessHelper.STDERR_READER_THREAD_PREFIX)))
+      }
     }
   }
 

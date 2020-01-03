@@ -116,6 +116,7 @@ private[projectglow] class ProcessHelper(
     val pbEnv = pb.environment()
     environment.foreach { case (k, v) => pbEnv.put(k, v) }
     process = pb.start()
+    logger.info("Process has started")
 
     val stdinWriterThread = new Thread(s"${ProcessHelper.STDIN_WRITER_THREAD_PREFIX} for $cmd") {
       override def run(): Unit = {
@@ -130,6 +131,7 @@ private[projectglow] class ProcessHelper(
         }
       }
     }
+    logger.info(s"Stdin writer thread is ${stdinWriterThread.getName}")
     stdinWriterThread.start()
 
     val stderrReaderThread = new Thread(s"${ProcessHelper.STDERR_READER_THREAD_PREFIX} for $cmd") {
