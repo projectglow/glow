@@ -124,7 +124,7 @@ abstract class VCFFileWriterSuite(val sourceName: String)
 
   gridTest("Read VEP VCF with VCF parser")(schemaOptions) { schema =>
     val (ds, rewrittenDs) =
-      writeAndRereadWithDBParser(s"$testDataHome/vcf/vep.vcf", schemaOption = schema)
+      writeAndRereadWithDBParser(s"$testDataHome/vcf/loftee.vcf", schemaOption = schema)
     ds.collect.zip(rewrittenDs.collect).foreach {
       case (vc1, vc2) =>
         assert(vc1.equals(vc2), s"VC1 $vc1 VC2 $vc2")
