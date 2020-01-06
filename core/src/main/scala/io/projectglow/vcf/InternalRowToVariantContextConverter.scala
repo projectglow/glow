@@ -335,11 +335,18 @@ class InternalRowToVariantContextConverter(
                 .mkString(AnnotationUtils.arrayDelimiter)
             case st if st.isInstanceOf[StructType] =>
               val schema = st.asInstanceOf[StructType]
-              effect
-                .getStruct(j, schema.size)
-                .toSeq(schema)
-                .filterNot(_ == null) // Ratio denominator is optional
-                .mkString(AnnotationUtils.structDelimiter)
+              val arr = schema.fields.head.dataType match {
+                case IntegerType =>
+                  effect
+                    .getStruct(j, schema.size)
+                    .toSeq(schema)
+                    .filterNot(_ == null) // Ratio denominator is optional
+                case StringType =>
+                  effect
+                    .getStruct(j, schema.size)
+                    .toSeq(schema)
+              }
+              arr.mkString(AnnotationUtils.structDelimiter)
             case IntegerType => effect.getInt(j)
             case StringType => effect.getUTF8String(j)
           }
