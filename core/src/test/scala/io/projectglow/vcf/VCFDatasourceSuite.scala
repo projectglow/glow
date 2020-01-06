@@ -26,7 +26,7 @@ import org.apache.spark.sql.execution.datasources.PartitionedFile
 import org.apache.spark.sql.execution.datasources.csv.CSVFileFormat
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
-import org.apache.spark.sql.{DataFrame, Dataset}
+import org.apache.spark.sql.{DataFrame, Dataset, Row}
 import org.apache.spark.{SparkConf, SparkException}
 
 import io.projectglow.common.{GenotypeFields, VCFRow}
@@ -572,48 +572,107 @@ class VCFDatasourceSuite extends GlowBaseTest {
     }
   }
 
-  test("Parse CSQ") {
+  test("Parse VEP") {
     val vcf = spark
       .read
       .format(sourceName)
-      .load(s"$testDataHome/vcf/vep.vcf")
+      .load(s"$testDataHome/vcf/loftee.vcf")
 
-    val csqs = vcf
-      .withColumn("allele", expr("INFO_CSQ.Allele"))
-      .withColumn("consequence", expr("INFO_CSQ.Consequence"))
-      .withColumn("impact", expr("INFO_CSQ.IMPACT"))
-      .withColumn("intron", expr("INFO_CSQ.INTRON"))
-      .withColumn("protein_position", expr("INFO_CSQ.Protein_position"))
-      .select("allele", "consequence", "impact", "intron", "protein_position")
-      .collect()
-    assert(csqs.length == 1)
-    val csq = csqs.head
-    assert(csq.toSeq == Seq(Seq("C"), Seq("missense_variant"), Seq("MODERATE"), Seq(""), Seq("84")))
+    val csqs = vcf.selectExpr("explode(INFO_CSQ)").collect()
+    assert(csqs.length == 23)
+    assert(
+      csqs.head.getStruct(0).toSeq == Seq(
+        "T",
+        Seq("missense_variant", "splice_region_variant"),
+        "MODERATE",
+        "CHEK2",
+        "ENSG00000183765",
+        "Transcript",
+        "ENST00000328354",
+        "protein_coding",
+        Row(11, 15),
+        null,
+        null,
+        null,
+        1341,
+        1259,
+        420,
+        Row("C", "Y"),
+        Row("tGc", "tAc"),
+        null,
+        null,
+        -1,
+        null,
+        "HGNC",
+        "16627",
+        null,
+        null,
+        null,
+        Seq(
+          "EXON_START:29091698",
+          "DONOR_GERP_DIFF:0",
+          "DONOR_MES_DIFF:4.2436768980804",
+          "BRANCHPOINT_DISTANCE:NA",
+          "DONOR_ISS:4",
+          "INTRON_END:29091697",
+          "DONOR_DISRUPTION_PROB:0.892289929287647",
+          "DONOR_ESE:27",
+          "MUTANT_DONOR_MES:5.20491527083293",
+          "DONOR_ISE:7",
+          "EXON_END:29091861",
+          "DONOR_ESS:34",
+          "INTRON_START:29091231"
+        )
+      ))
   }
 
-  test("Parse ANN") {
+  test("Parse SnpEff") {
     val vcf = spark
       .read
       .format(sourceName)
       .load(s"$testDataHome/vcf/snpeff.vcf")
 
-    val anns = vcf
-      .withColumn("allele", expr("INFO_ANN.Allele"))
-      .withColumn("annotation", expr("INFO_ANN.Annotation"))
-      .withColumn("impact", expr("INFO_ANN.Annotation_Impact"))
-      .withColumn("rank", expr("INFO_ANN.Rank"))
-      .withColumn("msg", expr("INFO_ANN.`ERRORS / WARNINGS / INFO`"))
-      .select("allele", "annotation", "impact", "rank", "msg")
-      .collect()
-    assert(anns.length == 1)
-    val ann = anns.head
+    val anns = vcf.selectExpr("explode(INFO_ANN)").collect()
+    assert(anns.length == 5)
     assert(
-      ann.toSeq == Seq(
-        Seq("C", "C"),
-        Seq("3_prime_UTR_variant", "downstream_gene_variant"),
-        Seq("MODIFIER", "MODIFIER"),
-        Seq("1/1", ""),
-        Seq("", "")))
+      anns.head.getStruct(0).toSeq == Seq(
+        "T",
+        Seq("splice_region_variant", "synonymous_variant"),
+        "LOW",
+        "GAB4",
+        "ENSG00000215568",
+        "transcript",
+        "ENST00000400588",
+        "protein_coding",
+        Row(6, 10),
+        "c.1287G>A",
+        "p.Lys429Lys",
+        Row(1395, 2630),
+        Row(1287, 1725),
+        Row(429, 574),
+        null,
+        null
+      ))
+
+    assert(
+      anns(1).getStruct(0).toSeq == Seq(
+        "T",
+        Seq("splice_region_variant", "non_coding_exon_variant"),
+        "LOW",
+        "GAB4",
+        "ENSG00000215568",
+        "transcript",
+        "ENST00000465611",
+        "nonsense_mediated_decay",
+        Row(5, 9),
+        "n.*1412G>A",
+        null,
+        null,
+        null,
+        null,
+        null,
+        null
+      ))
   }
 }
 

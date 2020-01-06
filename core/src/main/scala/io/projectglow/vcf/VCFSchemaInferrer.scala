@@ -266,10 +266,16 @@ object VCFSchemaInferrer {
   }
 
   private def getAnnotationSchema(description: String): Seq[DataType] = {
-    // SnpEff field descriptions wrap the format in single quotes
-    val fieldNames = description.split(":").last.replace("'", "").split("\\|")
+    val fieldNames = description
+      .split(":")
+      .last
+      .replace("'", "") // SnpEff field descriptions wrap the format in single quotes
+      .split(AnnotationUtils.annotationDelimiterRegex)
+
     Seq(ArrayType(StructType(fieldNames.map { f =>
-      StructField(f.trim(), StringType)
+      val trimmedFieldName = f.trim()
+      val dataType = AnnotationUtils.allFieldsToSchema(trimmedFieldName)
+      StructField(trimmedFieldName, dataType)
     })))
   }
 

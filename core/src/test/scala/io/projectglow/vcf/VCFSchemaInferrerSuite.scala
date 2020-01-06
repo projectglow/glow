@@ -219,7 +219,10 @@ class VCFSchemaInferrerSuite extends GlowBaseTest {
   }
 
   test("CSQ") {
-    val description = "Consequence annotations from Ensembl VEP. Format: Allele|Consequence|IMPACT"
+    val description =
+      "Consequence annotations from Ensembl VEP. Format: Allele|Consequence|IMPACT|SYMBOL|Gene|Feature_type|" +
+      "Feature|BIOTYPE|EXON|INTRON|HGVSc|HGVSp|cDNA_position|CDS_position|Protein_position|Amino_acids|Codons|" +
+      "Existing_variation|DISTANCE|STRAND|FLAGS|SYMBOL_SOURCE|HGNC_ID|LoF|LoF_filter|LoF_flags|LoF_info"
     val csqHeaderLine =
       new VCFInfoHeaderLine(
         "CSQ",
@@ -233,12 +236,45 @@ class VCFSchemaInferrerSuite extends GlowBaseTest {
     assert(csqField.metadata.getString("vcf_header_description") == description)
     assert(
       csqField.dataType ==
-      ArrayType(
-        StructType(
-          Seq(
-            StructField("Allele", StringType),
-            StructField("Consequence", StringType),
-            StructField("IMPACT", StringType)))))
+      ArrayType(StructType(Seq(
+        StructField("Allele", StringType),
+        StructField("Consequence", ArrayType(StringType)),
+        StructField("IMPACT", StringType),
+        StructField("SYMBOL", StringType),
+        StructField("Gene", StringType),
+        StructField("Feature_type", StringType),
+        StructField("Feature", StringType),
+        StructField("BIOTYPE", StringType),
+        StructField(
+          "EXON",
+          StructType(Seq(StructField("rank", IntegerType), StructField("total", IntegerType)))),
+        StructField(
+          "INTRON",
+          StructType(Seq(StructField("rank", IntegerType), StructField("total", IntegerType)))),
+        StructField("HGVSc", StringType),
+        StructField("HGVSp", StringType),
+        StructField("cDNA_position", IntegerType),
+        StructField("CDS_position", IntegerType),
+        StructField("Protein_position", IntegerType),
+        StructField(
+          "Amino_acids",
+          StructType(
+            Seq(StructField("reference", StringType), StructField("variant", StringType)))),
+        StructField(
+          "Codons",
+          StructType(
+            Seq(StructField("reference", StringType), StructField("variant", StringType)))),
+        StructField("Existing_variation", ArrayType(StringType)),
+        StructField("DISTANCE", IntegerType),
+        StructField("STRAND", IntegerType),
+        StructField("FLAGS", ArrayType(StringType)),
+        StructField("SYMBOL_SOURCE", StringType),
+        StructField("HGNC_ID", StringType),
+        StructField("LoF", StringType),
+        StructField("LoF_filter", ArrayType(StringType)),
+        StructField("LoF_flags", ArrayType(StringType)),
+        StructField("LoF_info", ArrayType(StringType))
+      ))))
 
     val inferredHeaderLines = VCFSchemaInferrer.headerLinesFromSchema(inferredSchema)
     assert(inferredHeaderLines.length == 1)
@@ -265,20 +301,28 @@ class VCFSchemaInferrerSuite extends GlowBaseTest {
       annField.dataType ==
       ArrayType(StructType(Seq(
         StructField("Allele", StringType),
-        StructField("Annotation", StringType),
+        StructField("Annotation", ArrayType(StringType)),
         StructField("Annotation_Impact", StringType),
         StructField("Gene_Name", StringType),
         StructField("Gene_ID", StringType),
         StructField("Feature_Type", StringType),
         StructField("Feature_ID", StringType),
         StructField("Transcript_BioType", StringType),
-        StructField("Rank", StringType),
+        StructField(
+          "Rank",
+          StructType(Seq(StructField("rank", IntegerType), StructField("total", IntegerType)))),
         StructField("HGVS.c", StringType),
         StructField("HGVS.p", StringType),
-        StructField("cDNA.pos / cDNA.length", StringType),
-        StructField("CDS.pos / CDS.length", StringType),
-        StructField("AA.pos / AA.length", StringType),
-        StructField("Distance", StringType),
+        StructField(
+          "cDNA.pos / cDNA.length",
+          StructType(Seq(StructField("pos", IntegerType), StructField("length", IntegerType)))),
+        StructField(
+          "CDS.pos / CDS.length",
+          StructType(Seq(StructField("pos", IntegerType), StructField("length", IntegerType)))),
+        StructField(
+          "AA.pos / AA.length",
+          StructType(Seq(StructField("pos", IntegerType), StructField("length", IntegerType)))),
+        StructField("Distance", IntegerType),
         StructField("ERRORS / WARNINGS / INFO", StringType)
       ))))
 

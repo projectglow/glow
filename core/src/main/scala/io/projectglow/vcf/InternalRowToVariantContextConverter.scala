@@ -28,7 +28,7 @@ import org.apache.spark.sql.SQLUtils
 import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.ArrayData
-import org.apache.spark.sql.types.{ArrayType, StructField, StructType}
+import org.apache.spark.sql.types.{ArrayType, IntegerType, StringType, StructField, StructType}
 
 import io.projectglow.common.{GenotypeFields, GlowLogging, HasStringency, VariantSchemas}
 
@@ -318,7 +318,7 @@ class InternalRowToVariantContextConverter(
     vc
   }
 
-  private def createAnnotations(schema: StructType, effects: ArrayData): Array[String] = {
+  private def createAnnotationArray(schema: StructType, effects: ArrayData): Array[String] = {
     val annotations = new Array[String](effects.numElements)
     var i = 0
     while (i < annotations.length) {
@@ -326,9 +326,26 @@ class InternalRowToVariantContextConverter(
       val effect = effects.getStruct(i, schema.size)
       var j = 0
       while (j < schema.size) {
-        strBuilder.append(effect.getUTF8String(j))
+        if (!effect.isNullAt(j)) {
+          val strEffect = schema.fields(j).dataType match {
+            case ArrayType(StringType, _) =>
+              effect
+                .getArray(j)
+                .toObjectArray(StringType)
+                .mkString(AnnotationUtils.arrayDelimiter)
+            case st if st.isInstanceOf[StructType] =>
+              val schema = st.asInstanceOf[StructType]
+              effect
+                .getStruct(j, schema.size)
+                .toSeq(schema)
+                .mkString(AnnotationUtils.structDelimiter)
+            case IntegerType => effect.getInt(j)
+            case StringType => effect.getUTF8String(j)
+          }
+          strBuilder.append(strEffect)
+        }
         if (j < schema.size - 1) {
-          strBuilder.append("|")
+          strBuilder.append(AnnotationUtils.annotationDelimiter)
         }
         j += 1
       }
@@ -354,7 +371,7 @@ class InternalRowToVariantContextConverter(
       field.dataType match {
         case dt: ArrayType if dt.elementType.isInstanceOf[StructType] =>
           // Annotation (eg. CSQ, ANN)
-          createAnnotations(dt.elementType.asInstanceOf[StructType], row.getArray(offset))
+          createAnnotationArray(dt.elementType.asInstanceOf[StructType], row.getArray(offset))
         case dt: ArrayType => row.getArray(offset).toObjectArray(dt.elementType)
         case dt => row.get(offset, dt)
       }

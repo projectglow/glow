@@ -286,6 +286,48 @@ class VariantContextToInternalRowConverter(
     makeArray(strList, parseFn)
   }
 
+  private def getAnnotationArray(
+      vc: VariantContext,
+      key: String,
+      schema: StructType): Array[GenericInternalRow] = {
+    vc.getAttributeAsStringList(key, "")
+      .asScala
+      .toArray
+      .map { effect =>
+        // Providing a limit to the splitter preserves empty annotations
+        val stringAnnotations =
+          effect.split(AnnotationUtils.annotationDelimiterRegex, schema.size)
+        val convertedAnnotations = stringAnnotations.zip(schema.fields).map {
+          case ("", _) => null
+          case (strAnn, annField) =>
+            annField.dataType match {
+              case ArrayType(StringType, _) =>
+                new GenericArrayData(
+                  strAnn
+                    .split(AnnotationUtils.arrayDelimiter)
+                    .map(UTF8String.fromString(_).asInstanceOf[Any]))
+              case st if st.isInstanceOf[StructType] =>
+                val dataType = st.asInstanceOf[StructType].fields.head.dataType
+                dataType match {
+                  case IntegerType =>
+                    new GenericInternalRow(
+                      strAnn
+                        .split(AnnotationUtils.structDelimiterRegex)
+                        .map(_.toInt.asInstanceOf[Any]))
+                  case StringType =>
+                    new GenericInternalRow(
+                      strAnn
+                        .split(AnnotationUtils.structDelimiterRegex)
+                        .map(UTF8String.fromString(_).asInstanceOf[Any]))
+                }
+              case IntegerType => strAnn.toInt
+              case StringType => UTF8String.fromString(strAnn)
+            }
+        }
+        new GenericInternalRow(convertedAnnotations)
+      }
+  }
+
   private def updateInfoField(
       vc: VariantContext,
       field: StructField,
@@ -333,17 +375,8 @@ class VariantContextToInternalRowConverter(
           new GenericArrayData(doubleList)
         case a: ArrayType if a.elementType.isInstanceOf[StructType] =>
           // Annotation (eg. CSQ, ANN)
-          val structSize = a.elementType.asInstanceOf[StructType].size
-          val effects = vc
-            .getAttributeAsStringList(realName, "")
-            .asScala
-            .map { effect =>
-              // Providing a limit to the splitter preserves empty annotations
-              val annotations = effect.split("\\|", structSize).map { ann =>
-                UTF8String.fromString(ann).asInstanceOf[Any]
-              }
-              new GenericInternalRow(annotations)
-            }
+          val structType = a.elementType.asInstanceOf[StructType]
+          val effects = getAnnotationArray(vc, realName, structType)
           new GenericArrayData(effects)
       }
       if (value != null) {
