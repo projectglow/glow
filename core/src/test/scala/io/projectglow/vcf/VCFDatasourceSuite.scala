@@ -647,7 +647,7 @@ class VCFDatasourceSuite extends GlowBaseTest {
         Row(6, 10),
         "c.1287G>A",
         "p.Lys429Lys",
-        Row(1395, 2630),
+        Row(1395, null),
         Row(1287, 1725),
         Row(429, 574),
         null,

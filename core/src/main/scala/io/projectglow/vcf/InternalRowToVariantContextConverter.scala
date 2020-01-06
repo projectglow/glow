@@ -338,6 +338,7 @@ class InternalRowToVariantContextConverter(
               effect
                 .getStruct(j, schema.size)
                 .toSeq(schema)
+                .filterNot(_ == null) // Ratio denominator is optional
                 .mkString(AnnotationUtils.structDelimiter)
             case IntegerType => effect.getInt(j)
             case StringType => effect.getUTF8String(j)

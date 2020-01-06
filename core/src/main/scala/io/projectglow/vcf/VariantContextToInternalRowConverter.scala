@@ -307,19 +307,19 @@ class VariantContextToInternalRowConverter(
                     .split(AnnotationUtils.arrayDelimiter)
                     .map(UTF8String.fromString(_).asInstanceOf[Any]))
               case st if st.isInstanceOf[StructType] =>
-                val dataType = st.asInstanceOf[StructType].fields.head.dataType
-                dataType match {
+                val stSchema = st.asInstanceOf[StructType]
+                val arr = stSchema.fields.head.dataType match {
                   case IntegerType =>
-                    new GenericInternalRow(
-                      strAnn
-                        .split(AnnotationUtils.structDelimiterRegex)
-                        .map(_.toInt.asInstanceOf[Any]))
+                    strAnn
+                      .split(AnnotationUtils.structDelimiterRegex)
+                      .map(_.toInt.asInstanceOf[Any])
+                      .padTo(stSchema.size, null) // Ratio denominator is optional
                   case StringType =>
-                    new GenericInternalRow(
-                      strAnn
-                        .split(AnnotationUtils.structDelimiterRegex)
-                        .map(UTF8String.fromString(_).asInstanceOf[Any]))
+                    strAnn
+                      .split(AnnotationUtils.structDelimiterRegex)
+                      .map(UTF8String.fromString(_).asInstanceOf[Any])
                 }
+                new GenericInternalRow(arr)
               case IntegerType => strAnn.toInt
               case StringType => UTF8String.fromString(strAnn)
             }
