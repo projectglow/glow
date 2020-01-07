@@ -108,11 +108,10 @@ object VCFHeaderUtils extends GlowLogging {
    */
   def getUniqueHeaderLines(headers: RDD[VCFHeader]): Seq[VCFCompoundHeaderLine] = {
     headers.flatMap { header =>
-        val infoHeaderLines = header.getInfoHeaderLines.asScala
-        val formatHeaderLines = header.getFormatHeaderLines.asScala
-        infoHeaderLines ++ formatHeaderLines
-      }
-      .keyBy(line => (line.getClass.getName, line.getID))
+      val infoHeaderLines = header.getInfoHeaderLines.asScala
+      val formatHeaderLines = header.getFormatHeaderLines.asScala
+      infoHeaderLines ++ formatHeaderLines
+    }.keyBy(line => (line.getClass.getName, line.getID))
       .reduceByKey {
         case (line1, line2) =>
           if (line1.equalsExcludingDescription(line2)) {

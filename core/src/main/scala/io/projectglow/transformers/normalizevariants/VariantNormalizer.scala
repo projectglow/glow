@@ -178,7 +178,6 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
     splitGenotypeFields(dfAfterInfoSplit)
       .withColumn(alternateAllelesField.name, array(col(splitAllelesFieldName)))
       .drop(splitAlleleIdxFieldName, splitAllelesFieldName)
-
   }
 
   /**
@@ -237,12 +236,27 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
 
     val gSchema = genotypesFieldElementType.asInstanceOf[StructType]
 
+    val dummyUdf = udf { x: String =>
+      x
+    }.asNondeterministic
+
+    variantDf
+      .sqlContext
+      .udf
+      .register("dummyUdf", dummyUdf)
+
     // pull out genotypes subfields as new columns
     val withExtractedFields = gSchema
       .fields
-      .foldLeft(variantDf)((df, field) =>
-        df.withColumn(field.name, expr(s"transform(${genotypesFieldName}, g -> g.${field.name})")))
+      .foldLeft(
+        variantDf
+          .withColumn("contigName", expr("dummyUdf(contigName)"))
+      )(
+        (df, field) =>
+          df.withColumn(field.name, expr(s"transform(${genotypesFieldName}, g -> g.${field.name})"))
+      )
       .drop(genotypesFieldName)
+      .withColumn("contigName", expr("dummyUdf(contigName)"))
 
     // register the udf that genotypes splitter uses
     withExtractedFields
@@ -267,51 +281,56 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
                 structFieldsEqualExceptNullability(posteriorProbabilitiesField, f) =>
               // update genotypes subfields that have colex order using the udf
               df.withColumn(
-                f.name,
-                when(
-                  col(splitFromMultiAllelicField.name),
-                  expr( // TODO: Hard code the result of udf for numAlleles = 2, 3, 4 and ploidy = 2
-                    s"""transform(${f.name}, c ->
+                  f.name,
+                  when(
+                    col(splitFromMultiAllelicField.name),
+                    expr( // TODO: Hard code the result of udf for numAlleles = 2, 3, 4 and ploidy = 2
+                      s"""transform(${f.name}, c ->
                        | filter(
                        | transform(
                        | c, (x, idx) -> if (array_contains(
                        | likelihoodSplitUdf(size(${alternateAllelesField.name}) + 1,
                        | size(${callsField.name}[0]), $splitAlleleIdxFieldName + 1), idx), x, null)),
                        | x -> !isnull(x)))""".stripMargin)
-                ).otherwise(col(f.name))
-              )
+                  ).otherwise(col(f.name))
+                )
+                .withColumn("contigName", expr("dummyUdf(contigName)"))
 
             case f if structFieldsEqualExceptNullability(callsField, f) =>
               // update GT calls subfield
               df.withColumn(
-                f.name,
-                when(
-                  col(splitFromMultiAllelicField.name),
-                  expr(
-                    s"transform(${f.name}, " +
-                    s"c -> transform(c, x -> if(x == 0, x, if(x == $splitAlleleIdxFieldName + 1, 1, -1))))"
-                  )
-                ).otherwise(col(f.name))
-              )
+                  f.name,
+                  when(
+                    col(splitFromMultiAllelicField.name),
+                    expr(
+                      s"transform(${f.name}, " +
+                      s"c -> transform(c, x -> if(x == 0, x, if(x == $splitAlleleIdxFieldName + 1, 1, -1))))"
+                    )
+                  ).otherwise(col(f.name))
+                )
+                .withColumn("contigName", expr("dummyUdf(contigName)"))
 
             case f if f.dataType.isInstanceOf[ArrayType] =>
               // update any ArrayType field with number of elements equal to number of alt alleles
               df.withColumn(
-                f.name,
-                when(
-                  col(splitFromMultiAllelicField.name),
-                  expr(
-                    s"transform(${f.name}, c -> if(size(c) == size(${alternateAllelesField.name}) + 1," +
-                    s" array(c[0], c[$splitAlleleIdxFieldName + 1]), null))"
-                  )
-                ).otherwise(col(f.name))
-              )
+                  f.name,
+                  when(
+                    col(splitFromMultiAllelicField.name),
+                    expr(
+                      s"transform(${f.name}, c -> if(size(c) == size(${alternateAllelesField.name}) + 1," +
+                      s" array(c[0], c[$splitAlleleIdxFieldName + 1]), null))"
+                    )
+                  ).otherwise(col(f.name))
+                )
+                .withColumn("contigName", expr("dummyUdf(contigName)"))
 
-            case _ => df
+            case _ =>
+              df.withColumn("contigName", expr("dummyUdf(contigName)"))
           }
       )
       .withColumn(genotypesFieldName, arrays_zip(gSchema.fieldNames.map(col(_)): _*))
       .drop(gSchema.fieldNames: _*)
+
   }
 
   /**
@@ -349,16 +368,29 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
         "Alternate allele index must be at least 1 and at most one less than number of alleles.")
     }
 
-    if (ploidy == 1) {
-      Array(0, altAlleleIdx)
-    } else {
+    (numAlleles, ploidy, altAlleleIdx) match {
+      case (_, 1, idx) => Array(0, idx)
 
-      Array(0) ++ refAltColexOrderIdxArray(altAlleleIdx + 1, ploidy - 1, altAlleleIdx)
-        .map(e =>
-          e +
-          nChooseR(altAlleleIdx + ploidy - 1, ploidy) // The index at which allele altAlleleIdx appears for the first time in the colex order.
-        )
+      case (_, 2, 1) => Array(0, 1, 2)
+      case (_, 2, 2) => Array(0, 3, 5)
+      case (_, 2, 3) => Array(0, 6, 9)
+
+      case (_, 3, 1) => Array(0, 1, 2, 3)
+      case (_, 3, 2) => Array(0, 4, 7, 9)
+      case (_, 3, 3) => Array(0, 10, 16, 19)
+
+      case (_, 4, 1) => Array(0, 1, 2, 3, 4)
+      case (_, 4, 2) => Array(0, 5, 9, 12, 14)
+      case (_, 4, 3) => Array(0, 15, 25, 31, 34)
+
+      case _ =>
+        Array(0) ++ refAltColexOrderIdxArray(altAlleleIdx + 1, ploidy - 1, altAlleleIdx)
+          .map(e =>
+            e +
+            nChooseR(altAlleleIdx + ploidy - 1, ploidy) // The index at which allele altAlleleIdx appears for the first time in the colex order.
+          )
     }
+
   }
 
   /** calculates n choose r

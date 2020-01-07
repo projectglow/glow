@@ -317,35 +317,50 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
     testRefAltColexOrderIdxArray(2, 2, 2, Array())
 
     testRefAltColexOrderIdxArray(2, 1, 1, Array(0, 1))
-    testRefAltColexOrderIdxArray(2, 2, 1, Array(0, 1, 2))
-    testRefAltColexOrderIdxArray(2, 3, 1, Array(0, 1, 2, 3))
-    testRefAltColexOrderIdxArray(2, 4, 1, Array(0, 1, 2, 3, 4))
-
     testRefAltColexOrderIdxArray(3, 1, 1, Array(0, 1))
-    testRefAltColexOrderIdxArray(3, 2, 1, Array(0, 1, 2))
-    testRefAltColexOrderIdxArray(3, 3, 1, Array(0, 1, 2, 3))
-    testRefAltColexOrderIdxArray(3, 4, 1, Array(0, 1, 2, 3, 4))
+    testRefAltColexOrderIdxArray(4, 1, 1, Array(0, 1))
 
     testRefAltColexOrderIdxArray(3, 1, 2, Array(0, 2))
-    testRefAltColexOrderIdxArray(3, 2, 2, Array(0, 3, 5))
-    testRefAltColexOrderIdxArray(3, 3, 2, Array(0, 4, 7, 9))
-    testRefAltColexOrderIdxArray(3, 4, 2, Array(0, 5, 9, 12, 14))
-
-    testRefAltColexOrderIdxArray(4, 1, 1, Array(0, 1))
-    testRefAltColexOrderIdxArray(4, 2, 1, Array(0, 1, 2))
-    testRefAltColexOrderIdxArray(4, 3, 1, Array(0, 1, 2, 3))
-    testRefAltColexOrderIdxArray(4, 4, 1, Array(0, 1, 2, 3, 4))
-
     testRefAltColexOrderIdxArray(4, 1, 2, Array(0, 2))
-    testRefAltColexOrderIdxArray(4, 2, 2, Array(0, 3, 5))
-    testRefAltColexOrderIdxArray(4, 3, 2, Array(0, 4, 7, 9))
-    testRefAltColexOrderIdxArray(4, 4, 2, Array(0, 5, 9, 12, 14))
 
     testRefAltColexOrderIdxArray(4, 1, 3, Array(0, 3))
+
+    testRefAltColexOrderIdxArray(2, 2, 1, Array(0, 1, 2))
+    testRefAltColexOrderIdxArray(3, 2, 1, Array(0, 1, 2))
+    testRefAltColexOrderIdxArray(4, 2, 1, Array(0, 1, 2))
+
+    testRefAltColexOrderIdxArray(3, 2, 2, Array(0, 3, 5))
+    testRefAltColexOrderIdxArray(4, 2, 2, Array(0, 3, 5))
+
     testRefAltColexOrderIdxArray(4, 2, 3, Array(0, 6, 9))
+
+    testRefAltColexOrderIdxArray(2, 3, 1, Array(0, 1, 2, 3))
+    testRefAltColexOrderIdxArray(3, 3, 1, Array(0, 1, 2, 3))
+    testRefAltColexOrderIdxArray(4, 3, 1, Array(0, 1, 2, 3))
+
+    testRefAltColexOrderIdxArray(3, 3, 2, Array(0, 4, 7, 9))
+    testRefAltColexOrderIdxArray(4, 3, 2, Array(0, 4, 7, 9))
+
     testRefAltColexOrderIdxArray(4, 3, 3, Array(0, 10, 16, 19))
+
+    testRefAltColexOrderIdxArray(2, 4, 1, Array(0, 1, 2, 3, 4))
+    testRefAltColexOrderIdxArray(3, 4, 1, Array(0, 1, 2, 3, 4))
+    testRefAltColexOrderIdxArray(4, 4, 1, Array(0, 1, 2, 3, 4))
+
+    testRefAltColexOrderIdxArray(3, 4, 2, Array(0, 5, 9, 12, 14))
+    testRefAltColexOrderIdxArray(4, 4, 2, Array(0, 5, 9, 12, 14))
+
     testRefAltColexOrderIdxArray(4, 4, 3, Array(0, 15, 25, 31, 34))
 
+    testRefAltColexOrderIdxArray(5, 4, 4, Array(0, 35, 55, 65, 69))
+    testRefAltColexOrderIdxArray(6, 4, 4, Array(0, 35, 55, 65, 69))
+    testRefAltColexOrderIdxArray(6, 4, 5, Array(0, 70, 105, 120, 125))
+
+    testRefAltColexOrderIdxArray(6, 5, 1, Array(0, 1, 2, 3, 4, 5))
+    testRefAltColexOrderIdxArray(6, 5, 2, Array(0, 6, 11, 15, 18, 20))
+    testRefAltColexOrderIdxArray(6, 5, 3, Array(0, 21, 36, 46, 52, 55))
+    testRefAltColexOrderIdxArray(6, 5, 4, Array(0, 56, 91, 111, 121, 125))
+    testRefAltColexOrderIdxArray(6, 5, 5, Array(0, 126, 196, 231, 246, 251))
   }
 
   def testNChooseR(n: Int, r: Int, expected: Option[Int]): Unit = {
