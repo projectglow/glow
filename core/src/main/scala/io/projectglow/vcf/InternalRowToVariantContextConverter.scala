@@ -20,7 +20,6 @@ import java.util.{ArrayList => JArrayList}
 
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
-
 import htsjdk.samtools.ValidationStringency
 import htsjdk.variant.variantcontext._
 import htsjdk.variant.vcf.{VCFConstants, VCFHeader, VCFHeaderLine}
@@ -28,7 +27,8 @@ import org.apache.spark.sql.SQLUtils
 import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.ArrayData
-import org.apache.spark.sql.types.{ArrayType, StructField, StructType}
+import org.apache.spark.sql.types.{ArrayType, DoubleType, IntegerType, StringType, StructField, StructType}
+import org.apache.spark.unsafe.types.UTF8String
 
 import io.projectglow.common.{GenotypeFields, GlowLogging, HasStringency, VariantSchemas}
 
@@ -327,10 +327,7 @@ class InternalRowToVariantContextConverter(
     // correct reciprocal conversion between vc and InternalRow using
     // InternalRowToVariantContextConverter and VariantContextToInternalRowConverter. When using
     // in writing to file these fields are converted to strings in VCFStreamWriter.
-    vc.attribute(realName, field.dataType match {
-      case dt: ArrayType => row.getArray(offset).toObjectArray(dt.elementType)
-      case dt => row.get(offset, dt)
-    })
+    vc.attribute(realName, parseField(field, row, offset))
   }
 
   private def updateSampleId(
@@ -460,8 +457,12 @@ class InternalRowToVariantContextConverter(
 
   private def parseField(field: StructField, row: InternalRow, offset: Int): AnyRef = {
     val value = field.dataType match {
-      case dt: ArrayType =>
-        row.getArray(offset).toObjectArray(dt.elementType)
+      case ArrayType(StringType, _) =>
+        row.getArray(offset).toArray[UTF8String](StringType)
+      case ArrayType(IntegerType, _) =>
+        row.getArray(offset).toIntArray()
+      case ArrayType(DoubleType, _) =>
+        row.getArray(offset).toDoubleArray()
       case dt =>
         row.get(offset, dt)
     }
