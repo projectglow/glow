@@ -328,12 +328,12 @@ class InternalRowToVariantContextConverter(
       while (j < schema.size) {
         if (!effect.isNullAt(j)) {
           val strEffect = schema.fields(j).dataType match {
-            case ArrayType(StringType, _) =>
+            case ArrayType(StringType, _) => // &-delimited list
               effect
                 .getArray(j)
                 .toObjectArray(StringType)
                 .mkString(AnnotationUtils.arrayDelimiter)
-            case st if st.isInstanceOf[StructType] =>
+            case st if st.isInstanceOf[StructType] => // /-delimited pair
               val schema = st.asInstanceOf[StructType]
               val arr = schema.fields.head.dataType match {
                 case IntegerType =>

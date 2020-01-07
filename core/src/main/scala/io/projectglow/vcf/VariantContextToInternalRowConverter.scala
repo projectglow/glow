@@ -275,6 +275,23 @@ class VariantContextToInternalRowConverter(
     arr
   }
 
+  // Pads an array with nulls to outputLength (if provided)
+  private def makeArray(
+      strings: Array[String],
+      parseFn: String => Any,
+      outputLength: Option[Int] = None): Array[Any] = {
+    if (outputLength.isDefined) {
+      require(outputLength.get >= strings.length)
+    }
+    val arr = new Array[Any](outputLength.getOrElse(strings.length))
+    var i = 0
+    while (i < strings.length) {
+      arr(i) = parseFn(strings(i))
+      i += 1
+    }
+    arr
+  }
+
   // Fall back on parsing a comma-separated list
   private def getAttributeArray(
       vc: VariantContext,
@@ -290,42 +307,45 @@ class VariantContextToInternalRowConverter(
       vc: VariantContext,
       key: String,
       schema: StructType): Array[GenericInternalRow] = {
-    vc.getAttributeAsStringList(key, "")
-      .asScala
-      .toArray
-      .map { effect =>
-        // Providing a limit to the splitter preserves empty annotations
-        val stringAnnotations =
-          effect.split(AnnotationUtils.annotationDelimiterRegex, schema.size)
-        val convertedAnnotations = stringAnnotations.zip(schema.fields).map {
-          case ("", _) => null
-          case (strAnn, annField) =>
-            annField.dataType match {
-              case ArrayType(StringType, _) =>
-                new GenericArrayData(
-                  strAnn
-                    .split(AnnotationUtils.arrayDelimiter)
-                    .map(UTF8String.fromString(_).asInstanceOf[Any]))
-              case st if st.isInstanceOf[StructType] =>
-                val stSchema = st.asInstanceOf[StructType]
-                val arr = stSchema.fields.head.dataType match {
-                  case IntegerType =>
-                    strAnn
-                      .split(AnnotationUtils.structDelimiterRegex)
-                      .map(_.toInt.asInstanceOf[Any])
-                      .padTo(stSchema.size, null) // Ratio denominator is optional
-                  case StringType =>
-                    strAnn
-                      .split(AnnotationUtils.structDelimiterRegex)
-                      .map(UTF8String.fromString(_).asInstanceOf[Any])
-                }
-                new GenericInternalRow(arr)
-              case IntegerType => strAnn.toInt
-              case StringType => UTF8String.fromString(strAnn)
-            }
+    val annotations = vc.getAttributeAsStringList(key, "")
+    val annotationsArr = new Array[GenericInternalRow](annotations.size)
+    var i = 0
+    while (i < annotations.size) {
+      val effect = annotations.get(i)
+      // Providing a limit to the splitter preserves empty annotations
+      val subfields =
+        effect.split(AnnotationUtils.annotationDelimiterRegex, schema.size)
+      val subfieldsArr = new Array[Any](subfields.size)
+      var j = 0
+      while (j < subfields.size) {
+        val subfield = subfields(j)
+        subfieldsArr(j) = if (subfield == "") {
+          null // If the annotation is missing, set the value to null
+        } else {
+          schema.fields(j).dataType match {
+            case ArrayType(StringType, _) => // &-separated list
+              val strings = subfield.split(AnnotationUtils.arrayDelimiter)
+              new GenericArrayData(makeArray(strings, UTF8String.fromString(_)))
+            case st if st.isInstanceOf[StructType] => // /-separated pair
+              val stSchema = st.asInstanceOf[StructType]
+              val strings = subfield.split(AnnotationUtils.structDelimiterRegex, stSchema.size)
+              val pair = stSchema.fields.head.dataType match {
+                case IntegerType =>
+                  makeArray(strings, _.toInt, Some(stSchema.size))
+                case StringType =>
+                  makeArray(strings, UTF8String.fromString, None)
+              }
+              new GenericInternalRow(pair)
+            case IntegerType => subfield.toInt
+            case StringType => UTF8String.fromString(subfield)
+          }
         }
-        new GenericInternalRow(convertedAnnotations)
+        j += 1
       }
+      annotationsArr(i) = new GenericInternalRow(subfieldsArr)
+      i += 1
+    }
+    annotationsArr
   }
 
   private def updateInfoField(
@@ -354,7 +374,7 @@ class VariantContextToInternalRowConverter(
                 .indexOf(VCFConstants.INFO_FIELD_ARRAY_SEPARATOR) > -1) {
               getAttributeArray(vc, realName, UTF8String.fromString)
             } else {
-              makeArray(strings, UTF8String.fromString)
+              makeArray(strings, UTF8String.fromString(_))
             }
           new GenericArrayData(strList)
         case ArrayType(IntegerType, _) =>
