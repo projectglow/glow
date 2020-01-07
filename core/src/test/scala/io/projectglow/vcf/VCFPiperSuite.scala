@@ -255,7 +255,7 @@ class VCFPiperSuite extends GlowBaseTest {
     assertThrows[IllegalArgumentException](Glow.transform("pipe", inputDf, options))
   }
 
-  test(s"output validation stringency") {
+  test("output validation stringency") {
     val row = Seq("1", "1", "id", "C", "T,GT", "1", ".", "AC=monkey").mkString("\t")
 
     val file = Files.createTempFile("test-vcf", ".vcf")
