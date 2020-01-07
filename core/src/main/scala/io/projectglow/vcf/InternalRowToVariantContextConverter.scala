@@ -19,7 +19,6 @@ package io.projectglow.vcf
 import java.util.{ArrayList => JArrayList, Arrays => JArrays}
 
 import scala.collection.JavaConverters._
-
 import scala.util.control.NonFatal
 
 import htsjdk.samtools.ValidationStringency
@@ -29,8 +28,7 @@ import org.apache.spark.sql.SQLUtils
 import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.ArrayData
-import org.apache.spark.sql.types.{ArrayType, DoubleType, IntegerType, StringType, StructField, StructType}
-import org.apache.spark.unsafe.types.UTF8String
+import org.apache.spark.sql.types.{ArrayType, StructField, StructType}
 
 import io.projectglow.common.{GenotypeFields, GlowLogging, HasStringency, VariantSchemas}
 
