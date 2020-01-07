@@ -170,17 +170,16 @@ object LinearRegressionGwas extends GlowLogging {
       covariateQRContext.numCols,
       1
     )
-
-    // Calculate the t statistic described in
-    // https://web.stanford.edu/~hastie/ElemStatLearn/printings/ESLII_print12.pdf equation
-    // 3.12, we need to invert (G^T * G)
-    // Note that (G^T * G) = (R_G^T * R_G)
-    val qrCopy = covariateQRContext.values.clone()
-    lapack.dpotri("U", covariateQRContext.numCols, qrCopy, covariateQRContext.numRows, out)
+//
+//    // Calculate the t statistic described in
+//    // https://web.stanford.edu/~hastie/ElemStatLearn/printings/ESLII_print12.pdf equation
+//    // 3.12, we need to invert (G^T * G)
+//    // Note that (G^T * G) = (R_G^T * R_G)
+//    val qrCopy = covariateQRContext.values.clone()
+//    lapack.dpotri("U", covariateQRContext.numCols, qrCopy, covariateQRContext.numRows, out)
 
     // Get the last term along the diagonal
-    val diagonalTerm = qrCopy(
-      covariateQRContext.numRows * covariateQRContext.numCovariateCols + covariateQRContext.numCovariateCols)
+    val diagonalTerm = 1
     val standardError =
       FastMath.sqrt(
         diagonalTerm * (totalError / (covariateQRContext.numRows - covariateQRContext.numCols)))
