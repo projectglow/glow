@@ -25,8 +25,6 @@ import com.google.common.annotations.VisibleForTesting
 import htsjdk.variant.vcf.{VCFCodec, VCFCompoundHeaderLine, VCFHeader, VCFHeaderLine}
 import org.apache.commons.io.IOUtils
 import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.FileStatus
-import org.apache.spark
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.StructType
@@ -88,13 +86,12 @@ object VCFHeaderUtils extends GlowLogging {
     }
   }
 
-  def createHeaderRDD(spark: SparkSession, files: Seq[FileStatus]): RDD[VCFHeader] = {
+  def createHeaderRDD(spark: SparkSession, files: Seq[String]): RDD[VCFHeader] = {
     val serializableConf = new SerializableConfiguration(spark.sessionState.newHadoopConf())
 
-    val filePaths = files.map(_.getPath.toString)
     spark
       .sparkContext
-      .parallelize(filePaths)
+      .parallelize(files)
       .map { path =>
         val (header, _) = VCFFileFormat.createVCFCodec(path, serializableConf.value)
         header
@@ -130,7 +127,7 @@ object VCFHeaderUtils extends GlowLogging {
    * A convenience function to parse the headers from a set of VCF files and return the unique
    * header lines.
    */
-  def readHeaderLines(spark: SparkSession, files: Seq[FileStatus]): Seq[VCFCompoundHeaderLine] = {
+  def readHeaderLines(spark: SparkSession, files: Seq[String]): Seq[VCFCompoundHeaderLine] = {
     getUniqueHeaderLines(createHeaderRDD(spark, files))
   }
 }

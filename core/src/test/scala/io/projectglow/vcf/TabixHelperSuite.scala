@@ -16,9 +16,13 @@
 
 package io.projectglow.vcf
 
+import org.apache.hadoop.fs.Path
 import org.apache.spark.SparkConf
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.execution.datasources.PartitionedFile
 import org.apache.spark.sql.sources._
 import org.broadinstitute.hellbender.utils.SimpleInterval
+import org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec
 
 import io.projectglow.common.{GlowLogging, VCFRow}
 import io.projectglow.sql.GlowBaseTest
@@ -32,12 +36,7 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
   lazy val testBigVcf = s"$tabixTestVcf/1000G.phase3.broad.withGenotypes.chr20.10100000.vcf.gz"
   lazy val multiAllelicVcf = s"$tabixTestVcf/combined.chr20_18210071_18210093.g.vcf.gz"
   lazy val testNoTbiVcf = s"$tabixTestVcf/NA12878_21_10002403NoTbi.vcf.gz"
-
-  override def sparkConf: SparkConf = {
-    super
-      .sparkConf
-      .set("spark.hadoop.io.compression.codecs", "org.seqdoop.hadoop_bam.util.BGZFCodec")
-  }
+  lazy val oneRowGzipVcf = s"$testDataHome/vcf/1row_not_bgz.vcf.gz"
 
   def printFilterContig(filterContig: FilterContig): Unit = {
     filterContig.getContigName.foreach(i => logger.debug(s"$i"))
@@ -693,6 +692,25 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
       .load(testNoTbiVcf)
       .filter("contigName= '21' and start = 10002435")
     df.rdd.count()
+  }
+
+  test("gzip files") {
+    val path = new Path(oneRowGzipVcf)
+    val conf = sparkContext.hadoopConfiguration
+    val fs = path.getFileSystem(conf)
+    val fileLength = fs.getFileStatus(path).getLen
+    val partitionedFile = PartitionedFile(InternalRow.empty, oneRowGzipVcf, 0, 2)
+    val interval = Some(new SimpleInterval("0", 1, 2))
+    assert(
+      TabixIndexHelper
+        .getFileRangeToRead(fs, partitionedFile, conf, false, false, interval)
+        .contains((0L, fileLength)))
+
+    val partitionedFileWithoutStart = partitionedFile.copy(start = 1)
+    assert(
+      TabixIndexHelper
+        .getFileRangeToRead(fs, partitionedFileWithoutStart, conf, false, false, interval)
+        .isEmpty)
   }
 
   /**
