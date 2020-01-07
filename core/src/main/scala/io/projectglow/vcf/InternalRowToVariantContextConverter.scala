@@ -16,10 +16,12 @@
 
 package io.projectglow.vcf
 
-import java.util.{ArrayList => JArrayList}
+import java.util.{ArrayList => JArrayList, Arrays => JArrays}
 
 import scala.collection.JavaConverters._
+
 import scala.util.control.NonFatal
+
 import htsjdk.samtools.ValidationStringency
 import htsjdk.variant.variantcontext._
 import htsjdk.variant.vcf.{VCFConstants, VCFHeader, VCFHeaderLine}
@@ -457,12 +459,8 @@ class InternalRowToVariantContextConverter(
 
   private def parseField(field: StructField, row: InternalRow, offset: Int): AnyRef = {
     val value = field.dataType match {
-      case ArrayType(StringType, _) =>
-        row.getArray(offset).toArray[UTF8String](StringType)
-      case ArrayType(IntegerType, _) =>
-        row.getArray(offset).toIntArray()
-      case ArrayType(DoubleType, _) =>
-        row.getArray(offset).toDoubleArray()
+      case dt: ArrayType =>
+        JArrays.asList(row.getArray(offset).toObjectArray(dt.elementType): _*)
       case dt =>
         row.get(offset, dt)
     }

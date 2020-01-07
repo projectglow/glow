@@ -18,6 +18,7 @@ package io.projectglow.vcf
 
 import java.io.File
 import java.nio.file.Files
+import java.util.{List => JList}
 
 import scala.collection.JavaConverters._
 
@@ -203,13 +204,15 @@ class VCFRowToVariantContextConverterSuite extends GlowBaseTest with VCFConverte
     val extendedAttributes = gt1.getExtendedAttributes
     assert(extendedAttributes.size == 5)
     assert(
-      extendedAttributes.get("GP").asInstanceOf[Array[AnyRef]] sameElements Array(0.1, 0.2, 0.3,
-        0.4, 0.5, 0.6))
+      extendedAttributes.get("GP").asInstanceOf[JList[AnyRef]].toArray sameElements Array(0.1, 0.2,
+        0.3, 0.4, 0.5, 0.6))
     assert(
       extendedAttributes
         .get("HQ")
-        .asInstanceOf[Array[AnyRef]] sameElements Array(20, 21, 22, 23, 24, 25, 26))
-    assert(extendedAttributes.get("EC").asInstanceOf[Array[AnyRef]] sameElements Array(5, 6))
+        .asInstanceOf[JList[AnyRef]]
+        .toArray sameElements Array(20, 21, 22, 23, 24, 25, 26))
+    assert(
+      extendedAttributes.get("EC").asInstanceOf[JList[AnyRef]].toArray sameElements Array(5, 6))
     assert(extendedAttributes.get("MQ").asInstanceOf[Int] == 7)
     assert(extendedAttributes.get("GT_KEY") == "val")
 
