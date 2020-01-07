@@ -460,7 +460,7 @@ class InternalRowToVariantContextConverter(
   private def parseField(field: StructField, row: InternalRow, offset: Int): AnyRef = {
     val value = field.dataType match {
       case dt: ArrayType =>
-        JArrays.asList(row.getArray(offset).toObjectArray(dt.elementType): _*)
+        new JArrayList(JArrays.asList(row.getArray(offset).toObjectArray(dt.elementType): _*))
       case dt =>
         row.get(offset, dt)
     }
