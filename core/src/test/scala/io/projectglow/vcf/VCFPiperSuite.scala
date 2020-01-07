@@ -37,6 +37,23 @@ class VCFPiperSuite extends GlowBaseTest {
 
   override def afterEach(): Unit = {
     Glow.transform("pipe_cleanup", spark.emptyDataFrame)
+
+    // Check that all pipe transformer threads are cleaned up
+    eventually {
+      assert(
+        !Thread
+          .getAllStackTraces
+          .asScala
+          .keySet
+          .exists(_.getName.startsWith(ProcessHelper.STDIN_WRITER_THREAD_PREFIX)))
+      assert(
+        !Thread
+          .getAllStackTraces
+          .asScala
+          .keySet
+          .exists(_.getName.startsWith(ProcessHelper.STDERR_READER_THREAD_PREFIX)))
+    }
+
     super.afterEach()
   }
 
@@ -146,20 +163,6 @@ class VCFPiperSuite extends GlowBaseTest {
 
   test("stdin and stderr threads are cleaned up for successful commands") {
     pipeScript(na12878, "cat")
-    eventually {
-      assert(
-        !Thread
-          .getAllStackTraces
-          .asScala
-          .keySet
-          .exists(_.getName.startsWith(ProcessHelper.STDIN_WRITER_THREAD_PREFIX)))
-      assert(
-        !Thread
-          .getAllStackTraces
-          .asScala
-          .keySet
-          .exists(_.getName.startsWith(ProcessHelper.STDERR_READER_THREAD_PREFIX)))
-    }
   }
 
   test("command doesn't exist") {
@@ -167,22 +170,6 @@ class VCFPiperSuite extends GlowBaseTest {
       pipeScript(na12878, "totallyfakecommandthatdoesntexist")
     }
     assert(ex.getMessage.contains("No such file or directory"))
-
-    // threads should still be cleaned up
-    eventually {
-      assert(
-        !Thread
-          .getAllStackTraces
-          .asScala
-          .keySet
-          .exists(_.getName.startsWith(ProcessHelper.STDIN_WRITER_THREAD_PREFIX)))
-      assert(
-        !Thread
-          .getAllStackTraces
-          .asScala
-          .keySet
-          .exists(_.getName.startsWith(ProcessHelper.STDERR_READER_THREAD_PREFIX)))
-    }
   }
 
   test("header only") {
@@ -268,31 +255,33 @@ class VCFPiperSuite extends GlowBaseTest {
     assertThrows[IllegalArgumentException](Glow.transform("pipe", inputDf, options))
   }
 
-  test("output validation stringency") {
-    val row = Seq("1", "1", "id", "C", "T,GT", "1", ".", "AC=monkey").mkString("\t")
+  Range(1, 10000).foreach { i =>
+    test(s"output validation stringency ${i}") {
+      val row = Seq("1", "1", "id", "C", "T,GT", "1", ".", "AC=monkey").mkString("\t")
 
-    val file = Files.createTempFile("test-vcf", ".vcf")
-    val header =
-      s"""##fileformat=VCFv4.2
-         |##INFO=<ID=AC,Number=1,Type=Integer,Description="">
-         |#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO
+      val file = Files.createTempFile("test-vcf", ".vcf")
+      val header =
+        s"""##fileformat=VCFv4.2
+           |##INFO=<ID=AC,Number=1,Type=Integer,Description="">
+           |#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO
         """.stripMargin
-    FileUtils.writeStringToFile(file.toFile, header + row)
+      FileUtils.writeStringToFile(file.toFile, header + row)
 
-    val inputDf = spark
-      .read
-      .format("vcf")
-      .load(TGP)
+      val inputDf = spark
+        .read
+        .format("vcf")
+        .load(TGP)
 
-    val options = Map(
-      "inputFormatter" -> "vcf",
-      "outputFormatter" -> "vcf",
-      "inVcfHeader" -> "infer",
-      "outValidationStringency" -> "STRICT",
-      "cmd" -> s"""["cat", "$file"]"""
-    )
-    val e = intercept[SparkException](Glow.transform("pipe", inputDf, options))
-    assert(e.getCause.isInstanceOf[IllegalArgumentException])
+      val options = Map(
+        "inputFormatter" -> "vcf",
+        "outputFormatter" -> "vcf",
+        "inVcfHeader" -> "infer",
+        "outValidationStringency" -> "STRICT",
+        "cmd" -> s"""["cat", "$file"]"""
+      )
+      val e = intercept[SparkException](Glow.transform("pipe", inputDf, options))
+      assert(e.getCause.isInstanceOf[IllegalArgumentException])
+    }
   }
 }
 
