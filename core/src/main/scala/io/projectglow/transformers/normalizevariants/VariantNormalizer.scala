@@ -371,6 +371,11 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
     (numAlleles, ploidy, altAlleleIdx) match {
       case (_, 1, idx) => Array(0, idx)
 
+      // More common cases are hard-coded for performance and the general case is computed by a recursive call
+      // to the function.
+      // Note: When this function is used as spark sql udf, the general recursive case causes performance deterioration
+      // with WholeStageCodeGen. The deterioration does not happen when WholeStageCodeGen is turned off.
+
       case (_, 2, 1) => Array(0, 1, 2)
       case (_, 2, 2) => Array(0, 3, 5)
       case (_, 2, 3) => Array(0, 6, 9)
