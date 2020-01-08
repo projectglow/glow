@@ -100,7 +100,7 @@ class PipeTransformer extends DataFrameTransformer {
         pipeToolSet
           .foldLeft(Array[String]())(
             (a, b: String) =>
-              if (getCmd.exists(_.toLowerCase.contains(b))) {
+              if (cmd.exists(_.toLowerCase.contains(b))) {
                 a :+ b
               } else {
                 a
