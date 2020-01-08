@@ -311,19 +311,19 @@ class VCFSchemaInferrerSuite extends GlowBaseTest {
         StructField(
           "Rank",
           StructType(Seq(StructField("rank", IntegerType), StructField("total", IntegerType)))),
-        StructField("HGVS.c", StringType),
-        StructField("HGVS.p", StringType),
+        StructField("HGVS_c", StringType),
+        StructField("HGVS_p", StringType),
         StructField(
-          "cDNA.pos / cDNA.length",
+          "cDNA_pos/cDNA_length",
           StructType(Seq(StructField("pos", IntegerType), StructField("length", IntegerType)))),
         StructField(
-          "CDS.pos / CDS.length",
+          "CDS_pos/CDS_length",
           StructType(Seq(StructField("pos", IntegerType), StructField("length", IntegerType)))),
         StructField(
-          "AA.pos / AA.length",
+          "AA_pos/AA_length",
           StructType(Seq(StructField("pos", IntegerType), StructField("length", IntegerType)))),
         StructField("Distance", IntegerType),
-        StructField("ERRORS / WARNINGS / INFO", StringType)
+        StructField("ERRORS/WARNINGS/INFO", StringType)
       ))))
 
     val inferredHeaderLines = VCFSchemaInferrer.headerLinesFromSchema(inferredSchema)
