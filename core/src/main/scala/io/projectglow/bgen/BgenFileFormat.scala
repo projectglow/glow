@@ -35,11 +35,15 @@ import org.apache.spark.sql.types.StructType
 import org.skife.jdbi.v2.DBI
 import org.skife.jdbi.v2.util.LongMapper
 
-import io.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
-import io.projectglow.common.{BgenOptions, GlowLogging, WithUtils}
+import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
+import io.projectglow.common.{BgenOptions, WithUtils}
 import io.projectglow.sql.util.{ComDatabricksDataSource, SerializableConfiguration}
 
-class BgenFileFormat extends FileFormat with DataSourceRegister with Serializable with GlowLogging {
+class BgenFileFormat
+    extends FileFormat
+    with DataSourceRegister
+    with Serializable
+    with HlsEventRecorder {
 
   override def shortName(): String = "bgen"
 
@@ -81,7 +85,7 @@ class BgenFileFormat extends FileFormat with DataSourceRegister with Serializabl
     val sampleIdsOpt = BgenFileFormat.getSampleIds(options, hadoopConf)
 
     // record bgenRead event in the log along with the option
-    BgenFileFormat.logBgenRead(options)
+    recordHlsEvent(HlsTagValues.EVENT_BGEN_READ, Map(BgenOptions.USE_INDEX_KEY -> useIndex))
 
     val serializableConf = new SerializableConfiguration(hadoopConf)
 
@@ -173,7 +177,7 @@ class BgenFileFormat extends FileFormat with DataSourceRegister with Serializabl
 
 class ComDatabricksBgenFileFormat extends BgenFileFormat with ComDatabricksDataSource
 
-object BgenFileFormat extends HlsUsageLogging {
+object BgenFileFormat {
   import io.projectglow.common.BgenOptions._
 
   val BGEN_SUFFIX = ".bgen"
@@ -236,19 +240,5 @@ object BgenFileFormat extends HlsUsageLogging {
 
       Some(sampleIds)
     }
-  }
-
-  def logBgenRead(options: Map[String, String]): Unit = {
-
-    val logOptions = Map(
-      USE_INDEX_KEY -> options.get(USE_INDEX_KEY).forall(_.toBoolean)
-    )
-    recordHlsUsage(
-      HlsMetricDefinitions.EVENT_HLS_USAGE,
-      Map(
-        HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_BGEN_READ
-      ),
-      blob = hlsJsonBuilder(logOptions)
-    )
   }
 }

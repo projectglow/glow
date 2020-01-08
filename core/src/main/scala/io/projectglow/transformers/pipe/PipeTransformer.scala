@@ -31,7 +31,7 @@ import io.projectglow.common.Named
 import io.projectglow.common.logging._
 import io.projectglow.transformers.util.SnakeCaseMap
 
-class PipeTransformer extends DataFrameTransformer with HlsUsageLogging {
+class PipeTransformer extends DataFrameTransformer {
   override def name: String = "pipe"
 
   override def transform(df: DataFrame, options: Map[String, String]): DataFrame = {
@@ -39,7 +39,8 @@ class PipeTransformer extends DataFrameTransformer with HlsUsageLogging {
   }
 
   // Implementation is in an inner class to avoid passing options to private methods
-  private class PipeTransformerImpl(df: DataFrame, options: Map[String, String]) {
+  private class PipeTransformerImpl(df: DataFrame, options: Map[String, String])
+      extends HlsEventRecorder {
 
     import PipeTransformer._
 
@@ -83,8 +84,8 @@ class PipeTransformer extends DataFrameTransformer with HlsUsageLogging {
       mapper.readValue(str, classOf[Seq[String]])
     }
 
-    def transform(): DataFrame = {
-
+    private val loggingOptions: Map[String, Any] = {
+      // TODO: More tools to be added
       val pipeToolSet = Array(
         "saige",
         "plink",
@@ -94,16 +95,12 @@ class PipeTransformer extends DataFrameTransformer with HlsUsageLogging {
         "cat"
       )
 
-      val cmd = getCmd
-
-      // record the pipe event along with tools of interest which maybe called using it.
-      // TODO: More tools to be added
-      val toolInPipe = Map(
+      Map(
         LOGGING_BLOB_KEY ->
         pipeToolSet
           .foldLeft(Array[String]())(
             (a, b: String) =>
-              if (cmd.exists(_.toLowerCase.contains(b))) {
+              if (getCmd.exists(_.toLowerCase.contains(b))) {
                 a :+ b
               } else {
                 a
@@ -111,15 +108,13 @@ class PipeTransformer extends DataFrameTransformer with HlsUsageLogging {
           )
           .mkString(",")
       )
+    }
 
-      recordHlsUsage(
-        HlsMetricDefinitions.EVENT_HLS_USAGE,
-        Map(
-          HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_PIPE
-        ),
-        blob = hlsJsonBuilder(toolInPipe)
-      )
+    def transform(): DataFrame = {
+      // record the pipe event along with tools of interest which maybe called using it.
+      recordHlsEvent(HlsTagValues.EVENT_PIPE, loggingOptions)
 
+      val cmd = getCmd
       val inputFormatter = getInputFormatter
       val outputFormatter = getOutputFormatter
       val env = options.collect {

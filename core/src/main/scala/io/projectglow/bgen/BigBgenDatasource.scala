@@ -22,48 +22,52 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.sources.DataSourceRegister
 
-import io.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
+import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
 import io.projectglow.sql.BigFileDatasource
 import io.projectglow.sql.util.ComDatabricksDataSource
 
-class BigBgenDatasource extends BigFileDatasource with DataSourceRegister with HlsUsageLogging {
+class BigBgenDatasource extends BigFileDatasource with DataSourceRegister {
 
   override def shortName(): String = "bigbgen"
 
-  override def serializeDataFrame(options: Map[String, String], data: DataFrame): RDD[Array[Byte]] =
+  override def serializeDataFrame(
+      options: Map[String, String],
+      data: DataFrame): RDD[Array[Byte]] = {
     BigBgenDatasource.serializeDataFrame(options, data)
+  }
 
 }
 
 class ComDatabricksBigBgenDatasource extends BigBgenDatasource with ComDatabricksDataSource
 
-object BigBgenDatasource extends HlsUsageLogging {
+object BigBgenDatasource extends HlsEventRecorder {
 
   import io.projectglow.common.BgenOptions._
 
-  def serializeDataFrame(options: Map[String, String], data: DataFrame): RDD[Array[Byte]] = {
-
-    val dSchema = data.schema
-    val numVariants = data.count
+  def parseOptions(options: Map[String, String]): BigBgenOptions = {
     val bitsPerProb = options.getOrElse(BITS_PER_PROB_KEY, BITS_PER_PROB_DEFAULT_VALUE).toInt
     val maxPloidy = options.getOrElse(MAX_PLOIDY_KEY, MAX_PLOIDY_VALUE).toInt
     val defaultPloidy = options.getOrElse(DEFAULT_PLOIDY_KEY, DEFAULT_PLOIDY_VALUE).toInt
     val defaultPhasing = options.getOrElse(DEFAULT_PHASING_KEY, DEFAULT_PHASING_VALUE).toBoolean
+    BigBgenOptions(bitsPerProb, maxPloidy, defaultPloidy, defaultPhasing)
+  }
 
-    // record bgenWrite event in the log
+  def logWrite(parsedOptions: BigBgenOptions): Unit = {
     val logOptions = Map(
-      BITS_PER_PROB_KEY -> bitsPerProb,
-      MAX_PLOIDY_KEY -> maxPloidy,
-      DEFAULT_PLOIDY_KEY -> defaultPloidy,
-      DEFAULT_PHASING_KEY -> defaultPhasing
+      BITS_PER_PROB_KEY -> parsedOptions.bitsPerProb,
+      MAX_PLOIDY_KEY -> parsedOptions.maxPloidy,
+      DEFAULT_PLOIDY_KEY -> parsedOptions.defaultPloidy,
+      DEFAULT_PHASING_KEY -> parsedOptions.defaultPhasing
     )
-    recordHlsUsage(
-      HlsMetricDefinitions.EVENT_HLS_USAGE,
-      Map(
-        HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_BGEN_WRITE
-      ),
-      blob = hlsJsonBuilder(logOptions)
-    )
+    recordHlsEvent(HlsTagValues.EVENT_BGEN_WRITE, logOptions)
+  }
+
+  def serializeDataFrame(options: Map[String, String], data: DataFrame): RDD[Array[Byte]] = {
+    val dSchema = data.schema
+    val numVariants = data.count
+    val parsedOptions = parseOptions(options)
+
+    logWrite(parsedOptions)
 
     data.queryExecution.toRdd.mapPartitionsWithIndex {
       case (idx, it) =>
@@ -75,10 +79,10 @@ object BigBgenDatasource extends HlsUsageLogging {
           dSchema,
           writeHeader,
           numVariants,
-          bitsPerProb,
-          maxPloidy,
-          defaultPloidy,
-          defaultPhasing
+          parsedOptions.bitsPerProb,
+          parsedOptions.maxPloidy,
+          parsedOptions.defaultPloidy,
+          parsedOptions.defaultPhasing
         )
 
         it.foreach { row =>
@@ -90,3 +94,9 @@ object BigBgenDatasource extends HlsUsageLogging {
     }
   }
 }
+
+case class BigBgenOptions(
+    bitsPerProb: Int,
+    maxPloidy: Int,
+    defaultPloidy: Int,
+    defaultPhasing: Boolean)
