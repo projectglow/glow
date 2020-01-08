@@ -77,6 +77,14 @@ object BigVCFDatasource extends HlsUsageLogging {
     }
     val validationStringency = VCFOptionParser.getValidationStringency(options)
 
+    // record bigVcfWrite event in the log
+    recordHlsUsage(
+      HlsMetricDefinitions.EVENT_HLS_USAGE,
+      Map(
+        HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_BIGVCF_WRITE
+      )
+    )
+
     rdd.mapPartitionsWithIndex {
       case (idx, it) =>
         val conf = serializableConf.value
@@ -107,14 +115,6 @@ object BigVCFDatasource extends HlsUsageLogging {
         }
 
         writer.close()
-
-        // record bigVcfWrite event in the log
-        recordHlsUsage(
-          HlsMetricDefinitions.EVENT_HLS_USAGE,
-          Map(
-            HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_BIGVCF_WRITE
-          )
-        )
 
         Iterator(baos.toByteArray)
     }
