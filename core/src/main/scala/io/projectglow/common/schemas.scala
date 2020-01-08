@@ -36,7 +36,6 @@ object VariantSchemas {
   val filtersField = StructField("filters", ArrayType(StringType))
   val splitFromMultiAllelicField = StructField("splitFromMultiAllelic", BooleanType)
   val attributesField = StructField("attributes", MapType(StringType, StringType))
-  val infoFieldPrefix = "INFO_"
 
   val vcfBaseSchema: StructType = StructType(
     Seq(
@@ -51,6 +50,10 @@ object VariantSchemas {
       splitFromMultiAllelicField
     )
   )
+
+  // Possible VCF variant fields
+  val infoFieldPrefix = "INFO_"
+  val csqFieldName = "CSQ"
 
   // Possible genotype fields common to VCF and BGEN
   val sampleIdField = StructField("sampleId", StringType)
