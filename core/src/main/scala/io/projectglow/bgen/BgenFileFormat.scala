@@ -35,15 +35,11 @@ import org.apache.spark.sql.types.StructType
 import org.skife.jdbi.v2.DBI
 import org.skife.jdbi.v2.util.LongMapper
 
+import io.projectglow.common.{BgenOptions, GlowLogging, WithUtils}
 import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
-import io.projectglow.common.{BgenOptions, WithUtils}
 import io.projectglow.sql.util.{ComDatabricksDataSource, SerializableConfiguration}
 
-class BgenFileFormat
-    extends FileFormat
-    with DataSourceRegister
-    with Serializable
-    with HlsEventRecorder {
+class BgenFileFormat extends FileFormat with DataSourceRegister with Serializable with GlowLogging {
 
   override def shortName(): String = "bgen"
 
@@ -85,7 +81,7 @@ class BgenFileFormat
     val sampleIdsOpt = BgenFileFormat.getSampleIds(options, hadoopConf)
 
     // record bgenRead event in the log along with the option
-    recordHlsEvent(HlsTagValues.EVENT_BGEN_READ, Map(BgenOptions.USE_INDEX_KEY -> useIndex))
+    BgenFileFormat.logBgenRead(useIndex)
 
     val serializableConf = new SerializableConfiguration(hadoopConf)
 
@@ -177,7 +173,7 @@ class BgenFileFormat
 
 class ComDatabricksBgenFileFormat extends BgenFileFormat with ComDatabricksDataSource
 
-object BgenFileFormat {
+object BgenFileFormat extends HlsEventRecorder {
   import io.projectglow.common.BgenOptions._
 
   val BGEN_SUFFIX = ".bgen"
@@ -188,6 +184,10 @@ object BgenFileFormat {
       |WHERE file_start_position > :pos
     """.stripMargin
   val idxLock = Striped.lock(100)
+
+  def logBgenRead(useIndex: Boolean): Unit = {
+    recordHlsEvent(HlsTagValues.EVENT_BGEN_READ, Map(BgenOptions.USE_INDEX_KEY -> useIndex))
+  }
 
   /**
    * Given a path to an Oxford-style .sample file exists (option: sampleFilePath), reads the sample
