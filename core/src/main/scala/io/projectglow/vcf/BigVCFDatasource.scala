@@ -46,7 +46,7 @@ object BigVCFDatasource extends HlsEventRecorder {
 
   def serializeDataFrame(options: Map[String, String], data: DataFrame): RDD[Array[Byte]] = {
 
-    recordHlsEvent(HlsTagValues.EVENT_BGEN_WRITE, Map.empty)
+    recordHlsEvent(HlsTagValues.EVENT_BIGVCF_WRITE, Map.empty)
 
     val schema = data.schema
     val rdd = data.queryExecution.toRdd
