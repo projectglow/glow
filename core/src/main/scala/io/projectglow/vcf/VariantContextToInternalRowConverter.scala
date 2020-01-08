@@ -550,12 +550,12 @@ class VariantContextToInternalRowConverter(
           val valueStr =
             VariantContextToVCFRowConverter.parseObjectAsString(
               obj2any(identity)(genotype.getExtendedAttribute(key)))
-          if (valueStr != VCFConstants.MISSING_VALUE_v4) {
+          if (valueStr != null) {
             keys.append(UTF8String.fromString(key))
             values.append(UTF8String.fromString(valueStr))
           } else {
             provideWarning(
-              s"Key $key has empty value $valueStr, but FLAG is not supported in FORMAT fields."
+              s"Key $key has an empty value, but FLAG is not supported in FORMAT fields."
             )
           }
         }
