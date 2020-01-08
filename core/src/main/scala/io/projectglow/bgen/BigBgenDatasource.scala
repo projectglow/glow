@@ -52,7 +52,7 @@ object BigBgenDatasource extends HlsEventRecorder {
     BigBgenOptions(bitsPerProb, maxPloidy, defaultPloidy, defaultPhasing)
   }
 
-  private def logWrite(parsedOptions: BigBgenOptions): Unit = {
+  private def logBgenWrite(parsedOptions: BigBgenOptions): Unit = {
     val logOptions = Map(
       BITS_PER_PROB_KEY -> parsedOptions.bitsPerProb,
       MAX_PLOIDY_KEY -> parsedOptions.maxPloidy,
@@ -67,7 +67,7 @@ object BigBgenDatasource extends HlsEventRecorder {
     val numVariants = data.count
     val parsedOptions = parseOptions(options)
 
-    logWrite(parsedOptions)
+    logBgenWrite(parsedOptions)
 
     data.queryExecution.toRdd.mapPartitionsWithIndex {
       case (idx, it) =>

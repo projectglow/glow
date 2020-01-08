@@ -54,7 +54,7 @@ class NormalizeVariantsTransformer extends DataFrameTransformer {
 
       case Some(MODE_SPLIT) =>
         // record variantnormalizer event along with its mode
-        logNormalizeVariants(MODE_SPLIT)
+        recordHlsEvent(HlsTagValues.EVENT_NORMALIZE_VARIANTS, Map(MODE_KEY -> MODE_SPLIT))
         VariantNormalizer.normalize(
           df,
           None,
@@ -65,7 +65,7 @@ class NormalizeVariantsTransformer extends DataFrameTransformer {
 
       case Some(MODE_SPLIT_NORMALIZE) =>
         // record variantnormalizer event along with its mode
-        logNormalizeVariants(MODE_SPLIT_NORMALIZE)
+        recordHlsEvent(HlsTagValues.EVENT_NORMALIZE_VARIANTS, Map(MODE_KEY -> MODE_SPLIT_NORMALIZE))
         VariantNormalizer.normalize(
           df,
           options.get(REFERENCE_GENOME_PATH),
@@ -76,7 +76,7 @@ class NormalizeVariantsTransformer extends DataFrameTransformer {
 
       case Some(MODE_NORMALIZE) | None =>
         // record variantnormalizer event along with its mode
-        logNormalizeVariants(MODE_NORMALIZE)
+        recordHlsEvent(HlsTagValues.EVENT_NORMALIZE_VARIANTS, Map(MODE_KEY -> MODE_NORMALIZE))
         VariantNormalizer.normalize(
           df,
           options.get(REFERENCE_GENOME_PATH),
@@ -97,8 +97,4 @@ object NormalizeVariantsTransformer extends HlsEventRecorder {
   val MODE_SPLIT_NORMALIZE = "split_and_normalize"
   val MODE_SPLIT = "split"
   private val REFERENCE_GENOME_PATH = "reference_genome_path"
-
-  def logNormalizeVariants(mode: String): Unit = {
-    recordHlsEvent(HlsTagValues.EVENT_NORMALIZE_VARIANTS, Map(MODE_KEY -> mode))
-  }
 }
