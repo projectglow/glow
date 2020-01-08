@@ -26,7 +26,7 @@ import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.sources.DataSourceRegister
 import org.seqdoop.hadoop_bam.util.DatabricksBGZFOutputStream
 
-import io.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
+import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
 import io.projectglow.sql.BigFileDatasource
 import io.projectglow.sql.util.{ComDatabricksDataSource, SerializableConfiguration}
 
@@ -34,14 +34,20 @@ class BigVCFDatasource extends BigFileDatasource with DataSourceRegister {
 
   override def shortName(): String = "bigvcf"
 
-  override def serializeDataFrame(options: Map[String, String], data: DataFrame): RDD[Array[Byte]] =
+  override def serializeDataFrame(
+      options: Map[String, String],
+      data: DataFrame): RDD[Array[Byte]] = {
     BigVCFDatasource.serializeDataFrame(options, data)
+  }
 }
 
 class ComDatabricksBigVCFDatasource extends BigVCFDatasource with ComDatabricksDataSource
 
-object BigVCFDatasource extends HlsUsageLogging {
+object BigVCFDatasource extends HlsEventRecorder {
+
   def serializeDataFrame(options: Map[String, String], data: DataFrame): RDD[Array[Byte]] = {
+
+    recordHlsEvent(HlsTagValues.EVENT_BIGVCF_WRITE)
 
     val schema = data.schema
     val rdd = data.queryExecution.toRdd
@@ -107,15 +113,6 @@ object BigVCFDatasource extends HlsUsageLogging {
         }
 
         writer.close()
-
-        // record bigVcfWrite event in the log
-        recordHlsUsage(
-          HlsMetricDefinitions.EVENT_HLS_USAGE,
-          Map(
-            HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_BIGVCF_WRITE
-          )
-        )
-
         Iterator(baos.toByteArray)
     }
   }
