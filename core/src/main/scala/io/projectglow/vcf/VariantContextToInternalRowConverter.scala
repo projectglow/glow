@@ -547,10 +547,10 @@ class VariantContextToInternalRowConverter(
             )
             formatKeysParsedWithoutHeader.add(key)
           }
-          val valueStr = VariantContextToVCFRowConverter.parseObjectAsString(
-            obj2any(identity)(genotype.getExtendedAttribute(key))
-          )
-          if (valueStr.nonEmpty) {
+          val valueStr =
+            VariantContextToVCFRowConverter.parseObjectAsString(
+              obj2any(identity)(genotype.getExtendedAttribute(key)))
+          if (valueStr != VCFConstants.MISSING_VALUE_v4) {
             keys.append(UTF8String.fromString(key))
             values.append(UTF8String.fromString(valueStr))
           } else {

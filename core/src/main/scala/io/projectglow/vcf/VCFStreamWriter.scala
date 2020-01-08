@@ -20,10 +20,9 @@ import java.io.{Closeable, OutputStream}
 import java.util.{ArrayList => JArrayList, HashSet => JHashSet}
 
 import scala.collection.JavaConverters._
-
 import htsjdk.variant.variantcontext.writer.{Options, VariantContextWriter, VariantContextWriterBuilder}
 import htsjdk.variant.variantcontext.{Genotype, GenotypeBuilder, VariantContext, VariantContextBuilder}
-import htsjdk.variant.vcf.{VCFHeader, VCFHeaderLine}
+import htsjdk.variant.vcf.{VCFEncoderUtils, VCFHeader, VCFHeaderLine}
 
 /**
  * This internal row -> variant context stream writer maintains a header that is set exactly once. The sample IDs are
