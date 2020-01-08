@@ -28,7 +28,7 @@ import org.apache.spark.sql.SQLUtils
 import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.ArrayData
-import org.apache.spark.sql.types.{ArrayType, StructField, StructType}
+import org.apache.spark.sql.types.{ArrayType, IntegerType, StringType, StructField, StructType}
 
 import io.projectglow.common.{GenotypeFields, GlowLogging, HasStringency, VariantSchemas}
 
@@ -316,6 +316,51 @@ class InternalRowToVariantContextConverter(
     vc
   }
 
+  private def createAnnotationArray(schema: StructType, effects: ArrayData): Array[String] = {
+    val annotations = new Array[String](effects.numElements)
+    var i = 0
+    while (i < annotations.length) {
+      val strBuilder = new StringBuilder()
+      val effect = effects.getStruct(i, schema.size)
+      var j = 0
+      while (j < schema.size) {
+        if (!effect.isNullAt(j)) {
+          val strEffect = schema.fields(j).dataType match {
+            case ArrayType(StringType, _) => // &-delimited list
+              effect
+                .getArray(j)
+                .toObjectArray(StringType)
+                .mkString(AnnotationUtils.arrayDelimiter)
+            case st if st.isInstanceOf[StructType] => // /-delimited pair
+              val schema = st.asInstanceOf[StructType]
+              val arr = schema.fields.head.dataType match {
+                case IntegerType =>
+                  effect
+                    .getStruct(j, schema.size)
+                    .toSeq(schema)
+                    .filterNot(_ == null) // Ratio denominator is optional
+                case StringType =>
+                  effect
+                    .getStruct(j, schema.size)
+                    .toSeq(schema)
+              }
+              arr.mkString(AnnotationUtils.structDelimiter)
+            case IntegerType => effect.getInt(j)
+            case StringType => effect.getUTF8String(j)
+          }
+          strBuilder.append(strEffect)
+        }
+        if (j < schema.size - 1) {
+          strBuilder.append(AnnotationUtils.annotationDelimiter)
+        }
+        j += 1
+      }
+      annotations(i) = strBuilder.toString
+      i += 1
+    }
+    annotations
+  }
+
   private def updateInfoField(
       field: StructField,
       vc: VariantContextBuilder,
@@ -327,10 +372,16 @@ class InternalRowToVariantContextConverter(
     // correct reciprocal conversion between vc and InternalRow using
     // InternalRowToVariantContextConverter and VariantContextToInternalRowConverter. When using
     // in writing to file these fields are converted to strings in VCFStreamWriter.
-    vc.attribute(realName, field.dataType match {
-      case dt: ArrayType => row.getArray(offset).toObjectArray(dt.elementType)
-      case dt => row.get(offset, dt)
-    })
+    vc.attribute(
+      realName,
+      field.dataType match {
+        case dt: ArrayType if dt.elementType.isInstanceOf[StructType] =>
+          // Annotation (eg. CSQ, ANN)
+          createAnnotationArray(dt.elementType.asInstanceOf[StructType], row.getArray(offset))
+        case dt: ArrayType => row.getArray(offset).toObjectArray(dt.elementType)
+        case dt => row.get(offset, dt)
+      }
+    )
   }
 
   private def updateSampleId(
