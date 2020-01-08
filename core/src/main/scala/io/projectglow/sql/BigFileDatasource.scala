@@ -20,12 +20,14 @@ import java.net.URI
 import java.util.ServiceLoader
 
 import scala.collection.JavaConverters._
+
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.Path
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SQLContext, SaveMode}
+
 import io.projectglow.common.{GlowLogging, WithUtils}
 
 /**

@@ -16,9 +16,9 @@
 
 package io.projectglow.common.logging
 
-// Simplifying wrapper around HlsUsageLogging
 trait HlsEventRecorder extends HlsUsageLogging {
 
+  // Wrapper to simplify recording an HLS usage event
   def recordHlsEvent(tag: String, options: Map[String, Any]): Unit = {
     recordHlsUsage(
       HlsMetricDefinitions.EVENT_HLS_USAGE,

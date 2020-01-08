@@ -84,7 +84,7 @@ class PipeTransformer extends DataFrameTransformer {
       mapper.readValue(str, classOf[Seq[String]])
     }
 
-    private val loggingOptions: Map[String, Any] = {
+    private def getLogOptions(cmd: Seq[String]): Map[String, Any] = {
       // TODO: More tools to be added
       val pipeToolSet = Array(
         "saige",
@@ -111,10 +111,11 @@ class PipeTransformer extends DataFrameTransformer {
     }
 
     def transform(): DataFrame = {
-      // record the pipe event along with tools of interest which maybe called using it.
-      recordHlsEvent(HlsTagValues.EVENT_PIPE, loggingOptions)
-
       val cmd = getCmd
+
+      // record the pipe event along with tools of interest which maybe called using it.
+      recordHlsEvent(HlsTagValues.EVENT_PIPE, getLogOptions(cmd))
+
       val inputFormatter = getInputFormatter
       val outputFormatter = getOutputFormatter
       val env = options.collect {

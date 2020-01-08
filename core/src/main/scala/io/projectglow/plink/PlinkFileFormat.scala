@@ -17,6 +17,7 @@
 package io.projectglow.plink
 
 import scala.collection.JavaConverters._
+
 import com.google.common.io.LittleEndianDataInputStream
 import com.univocity.parsers.csv.CsvParser
 import org.apache.commons.io.IOUtils
@@ -34,6 +35,7 @@ import org.apache.spark.sql.execution.datasources.csv.{CSVOptions, CSVUtils, Uni
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
 import org.apache.spark.sql.types.{StructField, StructType}
+
 import io.projectglow.common.{CommonOptions, GlowLogging, VariantSchemas}
 import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
 import io.projectglow.sql.util.SerializableConfiguration
@@ -145,6 +147,7 @@ object PlinkFileFormat extends HlsEventRecorder {
   val MAGIC_BYTES: Seq[Byte] = Seq(0x6c, 0x1b, 0x01).map(_.toByte)
   val NUM_MAGIC_BYTES: Int = MAGIC_BYTES.size
 
+  /* Log that PLINK files are being read */
   def logPlinkRead(options: Map[String, String]): Unit = {
     val logOptions = Map(
       CommonOptions.INCLUDE_SAMPLE_IDS -> options
