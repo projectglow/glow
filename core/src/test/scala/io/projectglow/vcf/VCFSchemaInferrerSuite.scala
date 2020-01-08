@@ -16,8 +16,11 @@
 
 package io.projectglow.vcf
 
+import java.nio.file.Files
+
 import htsjdk.variant.vcf._
 import org.apache.spark.sql.types._
+import org.apache.spark.sql.Row
 
 import io.projectglow.common.VariantSchemas
 import io.projectglow.sql.GlowBaseTest
@@ -218,6 +221,14 @@ class VCFSchemaInferrerSuite extends GlowBaseTest {
     assert(VCFSchemaInferrer.headerLinesFromSchema(schema) == expected)
   }
 
+  // Will fail if any column names cannot be saved safely
+  def checkSave(schema: StructType): Unit = {
+    spark
+      .createDataFrame(sparkContext.emptyRDD[Row], schema)
+      .write
+      .parquet(Files.createTempDirectory("schemaInferrerSuite").resolve("temp").toString)
+  }
+
   test("CSQ") {
     val description =
       "Consequence annotations from Ensembl VEP. Format: Allele|Consequence|IMPACT|SYMBOL|Gene|Feature_type|" +
@@ -279,6 +290,8 @@ class VCFSchemaInferrerSuite extends GlowBaseTest {
     val inferredHeaderLines = VCFSchemaInferrer.headerLinesFromSchema(inferredSchema)
     assert(inferredHeaderLines.length == 1)
     assert(inferredHeaderLines.head == csqHeaderLine)
+
+    checkSave(inferredSchema)
   }
 
   test("ANN") {
@@ -329,5 +342,7 @@ class VCFSchemaInferrerSuite extends GlowBaseTest {
     val inferredHeaderLines = VCFSchemaInferrer.headerLinesFromSchema(inferredSchema)
     assert(inferredHeaderLines.length == 1)
     assert(inferredHeaderLines.head == annHeaderLine)
+
+    checkSave(inferredSchema)
   }
 }
