@@ -373,9 +373,8 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
     (numAlleles, ploidy, altAlleleIdx) match {
       case (_, 1, idx) => Array(0, idx)
 
-      // More common cases are hard-coded for performance and the general case is computed by a recursive call
-      // to the function.
-      // Note: When this function is used as spark sql udf, the general recursive case causes performance deterioration
+      // More common cases are hard-coded for performance.
+      // Note: When this function is used as spark sql udf, the general case causes performance deterioration
       // with WholeStageCodeGen. The deterioration does not happen when WholeStageCodeGen is turned off.
 
       case (_, 2, 1) => Array(0, 1, 2)
@@ -391,57 +390,24 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
       case (_, 4, 3) => Array(0, 15, 25, 31, 34)
 
       case _ =>
-        /*
-        Array(0) ++ refAltColexOrderIdxArray(altAlleleIdx + 1, ploidy - 1, altAlleleIdx)
-          .map(e =>
-            e +
-            nChooseR(altAlleleIdx + ploidy - 1, ploidy) // The index at which allele altAlleleIdx appears for the first time in the colex order.
-          )
-         */
-        val baseArray = Array.range(ploidy, ploidy - altAlleleIdx + 2)
-          .scanRight(nChooseR(ploidy + 1, altAlleleIdx - 1))((i, b) => b * (i + altAlleleIdx - 1) / i)
+        val idxArray = new Array[Int](ploidy + 1)
 
-        baseArray
+        // generate vector of elements at positions p+1,p,...,2 on the altAlleleIdx'th diagonal of Pascal's triangle
+        idxArray(0) = 0
+        var i = 1
+        idxArray(ploidy) = altAlleleIdx
+        while (i < ploidy) {
+          idxArray(ploidy - i) = idxArray(ploidy - i + 1) * (i + altAlleleIdx) / (i + 1)
+          i += 1
+        }
 
-    }
-
-  }
-
-  /** calculates n choose r
-   *
-   * @param n: total number of objects
-   * @param r: number of selected objects
-   * @return n choose r
-   */
-  @VisibleForTesting
-  private[normalizevariants] def nChooseR(n: Int, r: Int): Int = {
-    if (r < 0 || n <= 0) {
-      throw new IllegalArgumentException("n must be positive and r must be non-negative.")
-    }
-    if (r > n) {
-      0
-    } else if (r == n) {
-      1
-    } else if (r == 0) {
-      1
-    } else {
-
-      val sr = if (r > (n >> 1)) {
-        n - r
-      } else {
-        r
-      }
-
-      var num = n
-      var denum = 1
-      var i = 1
-
-      while (i < sr) {
-        num *= n - i
-        denum *= i + 1
-        i += 1
-      }
-      num / denum
+        // calculate the cumulative vector
+        i = 1
+        while (i <= ploidy) {
+          idxArray(i) = idxArray(i) + idxArray(i - 1)
+          i += 1
+        }
+        idxArray
     }
   }
 

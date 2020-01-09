@@ -352,6 +352,7 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
 
     testRefAltColexOrderIdxArray(4, 4, 3, Array(0, 15, 25, 31, 34))
 
+    // test some general cases
     testRefAltColexOrderIdxArray(5, 4, 4, Array(0, 35, 55, 65, 69))
     testRefAltColexOrderIdxArray(6, 4, 4, Array(0, 35, 55, 65, 69))
     testRefAltColexOrderIdxArray(6, 4, 5, Array(0, 70, 105, 120, 125))
@@ -361,30 +362,6 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
     testRefAltColexOrderIdxArray(6, 5, 3, Array(0, 21, 36, 46, 52, 55))
     testRefAltColexOrderIdxArray(6, 5, 4, Array(0, 56, 91, 111, 121, 125))
     testRefAltColexOrderIdxArray(6, 5, 5, Array(0, 126, 196, 231, 246, 251))
-  }
-
-  def testNChooseR(n: Int, r: Int, expected: Option[Int]): Unit = {
-    if (n <= 0 || r < 0) {
-      try {
-        nChooseR(n, r)
-      } catch {
-        case _: IllegalArgumentException => succeed
-        case _: Throwable => fail()
-      }
-    } else {
-      assert(nChooseR(n, r) == expected.get)
-    }
-  }
-
-  test("test nChooseR") {
-    testNChooseR(-1, -2, None)
-    testNChooseR(-1, 0, None)
-    testNChooseR(0, -1, None)
-    testNChooseR(0, 0, Some(0))
-    testNChooseR(0, 1, Some(0))
-    testNChooseR(1, 0, Some(1))
-    testNChooseR(5, 5, Some(1))
-    testNChooseR(10, 5, Some(252))
   }
 
 }
