@@ -552,7 +552,7 @@ class VariantContextToInternalRowConverter(
           value match {
             case _: JBoolean =>
               provideWarning(
-                s"Key $key has an empty value, but FLAG is not supported in FORMAT fields."
+                s"Key $key has a boolean value, but FLAG is not supported in FORMAT fields."
               )
             case _ =>
               keys.append(UTF8String.fromString(key))
