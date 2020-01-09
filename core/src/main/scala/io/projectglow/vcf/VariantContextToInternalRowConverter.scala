@@ -16,6 +16,7 @@
 
 package io.projectglow.vcf
 
+import java.lang.{Boolean => JBoolean}
 import java.util.{HashMap => JHashMap, List => JList, Map => JMap}
 
 import scala.collection.JavaConverters._
@@ -547,16 +548,17 @@ class VariantContextToInternalRowConverter(
             )
             formatKeysParsedWithoutHeader.add(key)
           }
-          val valueStr =
-            VariantContextToVCFRowConverter.parseObjectAsString(
-              obj2any(identity)(genotype.getExtendedAttribute(key)))
-          if (valueStr != null) {
-            keys.append(UTF8String.fromString(key))
-            values.append(UTF8String.fromString(valueStr))
-          } else {
-            provideWarning(
-              s"Key $key has an empty value, but FLAG is not supported in FORMAT fields."
-            )
+          val value = genotype.getExtendedAttribute(key)
+          value match {
+            case _: JBoolean =>
+              provideWarning(
+                s"Key $key has an empty value, but FLAG is not supported in FORMAT fields."
+              )
+            case _ =>
+              keys.append(UTF8String.fromString(key))
+              val valueStr =
+                VariantContextToVCFRowConverter.parseObjectAsString(obj2any(identity)(value))
+              values.append(UTF8String.fromString(valueStr))
           }
         }
       }
