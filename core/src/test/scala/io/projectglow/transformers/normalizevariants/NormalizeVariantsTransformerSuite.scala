@@ -16,12 +16,10 @@
 
 package io.projectglow.transformers.normalizevariants
 
-import org.apache.spark.SparkConf
-
 import io.projectglow.Glow
 import io.projectglow.common.GlowLogging
 import io.projectglow.sql.GlowBaseTest
-import io.projectglow.transformers.normalizevariants.VariantNormalizer._
+import org.apache.spark.SparkConf
 
 class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
 
@@ -84,16 +82,16 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
     s"$testFolder/01_IN_altered_biallelic_vtdecompose_bcftoolsnormalized.vcf"
 
   lazy val vtTestVcfMultiAllelic =
-    s"$testFolder/01_IN_altered_multiallelic_new.vcf"
+    s"$testFolder/01_IN_altered_multiallelic.vcf"
 
   lazy val vtTestVcfMultiAllelicExpectedSplit =
-    s"$testFolder/01_IN_altered_multiallelic_new_vtdecompose.vcf"
+    s"$testFolder/01_IN_altered_multiallelic_vtdecompose.vcf"
 
   lazy val vtTestVcfMultiAllelicExpectedNormalized =
-    s"$testFolder/01_IN_altered_multiallelic_new_bcftoolsnormalized.vcf"
+    s"$testFolder/01_IN_altered_multiallelic_bcftoolsnormalized.vcf"
 
   lazy val vtTestVcfMultiAllelicExpectedSplitNormalized =
-    s"$testFolder/01_IN_altered_multiallelic_new_vtdecompose_bcftoolsnormalized.vcf"
+    s"$testFolder/01_IN_altered_multiallelic_vtdecompose_bcftoolsnormalized.vcf"
 
   override def sparkConf: SparkConf = {
     super
