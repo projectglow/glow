@@ -28,10 +28,10 @@ class VariantSplitterSuite extends GlowBaseTest with GlowLogging {
   lazy val testFolder: String = s"$testDataHome/variantnormalizer-test"
 
   lazy val vtTestVcfMultiAllelic =
-    s"$testFolder/01_IN_altered_multiallelic_new.vcf"
+    s"$testFolder/01_IN_altered_multiallelic.vcf"
 
   lazy val vtTestVcfMultiAllelicExpectedSplit =
-    s"$testFolder/01_IN_altered_multiallelic_new_vtdecompose.vcf"
+    s"$testFolder/01_IN_altered_multiallelic_vtdecompose.vcf"
 
   test("test splitVariants") {
 

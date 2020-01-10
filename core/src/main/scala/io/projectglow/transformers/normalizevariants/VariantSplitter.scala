@@ -121,11 +121,14 @@ private[projectglow] object VariantSplitter extends GlowLogging {
       variantDf
     } else {
       // pull out genotypes subfields as new columns
-      val withExtractedFields = gSchema.get
+      val withExtractedFields = gSchema
+        .get
         .fields
         .foldLeft(variantDf)(
           (df, field) =>
-            df.withColumn(field.name, expr(s"transform(${genotypesFieldName}, g -> g.${field.name})"))
+            df.withColumn(
+              field.name,
+              expr(s"transform(${genotypesFieldName}, g -> g.${field.name})"))
         )
         .drop(genotypesFieldName)
 
@@ -141,13 +144,14 @@ private[projectglow] object VariantSplitter extends GlowLogging {
 
       // update pulled-out genotypes columns, zip them back together as the new genotypes column,
       // and drop the pulled-out columns
-      gSchema.get
+      gSchema
+        .get
         .fields
         .foldLeft(withExtractedFields)(
           (df, field) =>
             field match {
               case f
-                if structFieldsEqualExceptNullability(genotypeLikelihoodsField, f) |
+                  if structFieldsEqualExceptNullability(genotypeLikelihoodsField, f) |
                   structFieldsEqualExceptNullability(phredLikelihoodsField, f) |
                   structFieldsEqualExceptNullability(posteriorProbabilitiesField, f) =>
                 // update genotypes subfields that have colex order using the udf
@@ -174,7 +178,7 @@ private[projectglow] object VariantSplitter extends GlowLogging {
                     col(splitFromMultiAllelicField.name),
                     expr(
                       s"transform(${f.name}, " +
-                        s"c -> transform(c, x -> if(x == 0, x, if(x == $splitAlleleIdxFieldName + 1, 1, -1))))"
+                      s"c -> transform(c, x -> if(x == 0, x, if(x == $splitAlleleIdxFieldName + 1, 1, -1))))"
                     )
                   ).otherwise(col(f.name))
                 )
@@ -187,7 +191,7 @@ private[projectglow] object VariantSplitter extends GlowLogging {
                     col(splitFromMultiAllelicField.name),
                     expr(
                       s"transform(${f.name}, c -> if(size(c) == size(${alternateAllelesField.name}) + 1," +
-                        s" array(c[0], c[$splitAlleleIdxFieldName + 1]), null))"
+                      s" array(c[0], c[$splitAlleleIdxFieldName + 1]), null))"
                     )
                   ).otherwise(col(f.name))
                 )

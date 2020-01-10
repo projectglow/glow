@@ -362,5 +362,4 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
 
   private val PAD_WINDOW_SIZE = 100
 
-
 }
