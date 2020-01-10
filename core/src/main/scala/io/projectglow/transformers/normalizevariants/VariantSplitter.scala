@@ -251,6 +251,12 @@ private[projectglow] object VariantSplitter extends GlowLogging {
       case (_, 2, 1) => Array(0, 1, 2)
       case (_, 2, 2) => Array(0, 3, 5)
       case (_, 2, 3) => Array(0, 6, 9)
+      case (_, 2, 4) => Array(0, 10, 14)
+      case (_, 2, 5) => Array(0, 15, 20)
+      case (_, 2, 6) => Array(0, 21, 27)
+      case (_, 2, 7) => Array(0, 28, 35)
+      case (_, 2, 8) => Array(0, 36, 44)
+      case (_, 2, 9) => Array(0, 45, 54)
 
       case (_, 3, 1) => Array(0, 1, 2, 3)
       case (_, 3, 2) => Array(0, 4, 7, 9)

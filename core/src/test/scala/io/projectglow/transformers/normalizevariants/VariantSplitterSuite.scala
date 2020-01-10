@@ -250,6 +250,12 @@ class VariantSplitterSuite extends GlowBaseTest with GlowLogging {
     testRefAltColexOrderIdxArray(4, 2, 2, Array(0, 3, 5))
 
     testRefAltColexOrderIdxArray(4, 2, 3, Array(0, 6, 9))
+    testRefAltColexOrderIdxArray(5, 2, 4, Array(0, 10, 14))
+    testRefAltColexOrderIdxArray(6, 2, 5, Array(0, 15, 20))
+    testRefAltColexOrderIdxArray(7, 2, 6, Array(0, 21, 27))
+    testRefAltColexOrderIdxArray(8, 2, 7, Array(0, 28, 35))
+    testRefAltColexOrderIdxArray(9, 2, 8, Array(0, 36, 44))
+    testRefAltColexOrderIdxArray(10, 2, 9, Array(0, 45, 54))
 
     testRefAltColexOrderIdxArray(2, 3, 1, Array(0, 1, 2, 3))
     testRefAltColexOrderIdxArray(3, 3, 1, Array(0, 1, 2, 3))
@@ -270,7 +276,11 @@ class VariantSplitterSuite extends GlowBaseTest with GlowLogging {
     testRefAltColexOrderIdxArray(4, 4, 3, Array(0, 15, 25, 31, 34))
 
     // test some general cases
+    testRefAltColexOrderIdxArray(5, 1, 4, Array(0, 4))
+    testRefAltColexOrderIdxArray(11, 2, 10, Array(0, 55, 65))
+    testRefAltColexOrderIdxArray(5, 3, 4, Array(0, 20, 30, 34))
     testRefAltColexOrderIdxArray(5, 4, 4, Array(0, 35, 55, 65, 69))
+
     testRefAltColexOrderIdxArray(6, 4, 4, Array(0, 35, 55, 65, 69))
     testRefAltColexOrderIdxArray(6, 4, 5, Array(0, 70, 105, 120, 125))
 
