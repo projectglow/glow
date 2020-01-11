@@ -159,8 +159,7 @@ private[projectglow] object VariantSplitter extends GlowLogging {
                   f.name,
                   when(
                     col(splitFromMultiAllelicField.name),
-                    expr( // TODO: Hard code the result of udf for numAlleles = 2, 3, 4 and ploidy = 2
-                      s"""transform(${f.name}, c ->
+                    expr(s"""transform(${f.name}, c ->
                          | filter(
                          | transform(
                          | c, (x, idx) -> if (array_contains(

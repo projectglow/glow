@@ -63,29 +63,21 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
       }
     }
 
-    val schema = df.schema
-    val headerLineSet = VCFSchemaInferrer.headerLinesFromSchema(schema).toSet
-
     val dfAfterMaybeSplit = if (splitToBiallelic) {
       splitVariants(df)
     } else {
       df
     }
 
+    val schema = dfAfterMaybeSplit.schema
+    val headerLineSet = VCFSchemaInferrer.headerLinesFromSchema(schema).toSet
+
     val splitFromMultiallelicColumnIdx =
       dfAfterMaybeSplit.schema.fieldNames.indexOf(splitFromMultiAllelicField.name)
 
     // TODO: Implement normalization without using VariantContext
     val dfAfterMaybeNormalize = if (doNormalize) {
-      val rddAfterNormalize = {
-        // The following if-statement is temporary to make the normalization work.
-        // After normalization is SQLified it will be dropped.
-        if (splitToBiallelic) {
-          dfAfterMaybeSplit.drop(infoFieldPrefix + oldMultiallelicFieldName)
-        } else {
-          dfAfterMaybeSplit
-        }
-      }.queryExecution.toRdd.mapPartitions { it =>
+      val rddAfterNormalize = dfAfterMaybeSplit.queryExecution.toRdd.mapPartitions { it =>
         val vcfHeader = new VCFHeader(headerLineSet.asJava)
 
         val variantContextToInternalRowConverter =
