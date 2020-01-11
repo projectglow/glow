@@ -28,7 +28,26 @@ import org.apache.spark.sql.types._
 private[projectglow] object VariantSplitter extends GlowLogging {
 
   /**
-   * Generates a new DataFrame by splitting the variants in the input DataFrame similar to what vt decompose does
+   * Generates a new DataFrame by splitting the variants in the input DataFrame similar to what "vt decompose -s" does
+   * See https://genome.sph.umich.edu/wiki/Vt#Decompose for more info but note that the example shown there
+   * does not exactly match the real behavior of vt decompose with the -s options.
+   *
+   * The summary of behavior is as follows:
+   *
+   * One multiallelic row with n Alt alleles is split to n biallelic rows, each with one of the Alt alleles
+   * in the altAllele column. Ref allele is the same in all these rows.
+   *
+   * Each info field is appropriately split among these rows if it has the same number of elements as
+   * number of Alt alleles, otherwise it is repeated in all split rows. A new column called OLD_MULTIALLELIC is added
+   * to the DataFrame, which for each split row, holds the contigName, position, and Ref and Alt alleles of the
+   * multiallelic row corresponding to the split row.
+   *
+   * Genotype fields are treated similarly to info fields, except for calls (GT) field and the fields which follow
+   * colex order (e.g., GL, PL, and GP). The calls field becomes biallelic in each row, where Alt alleles not present
+   * in that row are replaced with no call ("."). The colex ordered fields are properly split between rows where in
+   * each row only the elements corresponding to genotypes comprising of the Ref and Alt alleles in that row are
+   * listed.
+   *
    *
    * @param variantDf
    * @return dataframe of split variants
