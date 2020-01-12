@@ -17,7 +17,7 @@
 package io.projectglow.transformers
 
 import java.io.File
-import java.util.{ArrayList => JArrayList, Arrays => JArrays, Collections, HashMap => JHashMap}
+import java.util.{ArrayList => JArrayList, Collections, HashMap => JHashMap, List => JList}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
@@ -342,8 +342,7 @@ object LiftOverVariantsTransformer extends GlowLogging {
       // Reverse array-based FORMAT fields
       formatFieldsToSwap.foreach { k =>
         if (genotype.hasExtendedAttribute(k)) {
-          val arrList =
-            JArrays.asList(genotype.getExtendedAttribute(k).asInstanceOf[Array[AnyRef]]: _*)
+          val arrList = genotype.getExtendedAttribute(k).asInstanceOf[JList[AnyRef]]
           Collections.reverse(arrList)
           gb.attribute(k, arrList)
         }
