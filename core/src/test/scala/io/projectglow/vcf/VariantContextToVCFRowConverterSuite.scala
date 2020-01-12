@@ -17,7 +17,7 @@
 package io.projectglow.vcf
 
 import java.io.File
-import java.lang.{Double => JDouble, Integer => JInteger}
+import java.lang.{Boolean => JBoolean, Double => JDouble, Integer => JInteger}
 import java.util.{ArrayList => JArrayList, HashSet => JHashSet}
 
 import scala.collection.JavaConverters._
@@ -195,7 +195,12 @@ class VariantContextToVCFRowConverterSuite extends GlowBaseTest with VCFConverte
       expectedAlleleCounts = Some(Seq(41, 42, 43)),
       mappingQuality = Some(5),
       alleleDepths = Some(Seq(10, 11, 12)),
-      otherFields = Map("IntKey" -> "150", "DoubleKey" -> "1.5", "StringKey" -> "gtStringVal")
+      otherFields = Map(
+        "IntKey" -> "150",
+        "DoubleKey" -> "1.5",
+        "MissingKey" -> ".",
+        "NullKey" -> ".",
+        "StringKey" -> "gtStringVal")
     )
     val convertedGt2 = defaultGenotypeFields.copy(
       sampleId = Some("sample2"),
@@ -212,8 +217,8 @@ class VariantContextToVCFRowConverterSuite extends GlowBaseTest with VCFConverte
       qual = Some(10.0),
       filters = Seq("filter1", "filter2"),
       attributes = Map(
-        "NullKey" -> "",
-        "MissingKey" -> "",
+        "NullKey" -> ".",
+        "MissingKey" -> ".",
         "BoolKey" -> "",
         "IntKey" -> "50",
         "DoubleKey" -> "0.5",
@@ -221,7 +226,7 @@ class VariantContextToVCFRowConverterSuite extends GlowBaseTest with VCFConverte
       ),
       genotypes = Seq(convertedGt1, convertedGt2)
     )
-    assert(vcfRow == convertedVc, s"\n$vcfRow\n$convertedVc")
+    assert(vcfRow == convertedVc)
   }
 
   test("Throw for missing INFO header line with strict validation stringency") {
@@ -252,5 +257,22 @@ class VariantContextToVCFRowConverterSuite extends GlowBaseTest with VCFConverte
 
     val converter = new VariantContextToVCFRowConverter(defaultHeader, ValidationStringency.STRICT)
     assertThrows[IllegalArgumentException](converter.convert(vc))
+  }
+
+  val objectsParsedAsStrings: Seq[(AnyRef, String)] = Seq(
+    (null, "."),
+    ("abc", "abc"),
+    (0.5: JDouble, "0.5"),
+    (1: JInteger, "1"),
+    (true: JBoolean, ""),
+    (false: JBoolean, null),
+    (new JArrayList[Double](Seq(0.1, 1.2).asJava), "0.1,1.2"),
+    (Array(0.2, 2.4, 4.8), "0.2,2.4,4.8")
+  )
+
+  gridTest("Convert objects to strings")(objectsParsedAsStrings) {
+    case (obj, str) =>
+      val parsedObj = VariantContextToVCFRowConverter.parseObjectAsString(obj)
+      assert(parsedObj == str)
   }
 }
