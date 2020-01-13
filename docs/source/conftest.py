@@ -7,15 +7,15 @@ import pytest
 
 
 @pytest.fixture(scope="session")
-def rows_equal():
-    def _rows_equal(r1, r2):
-        return r1.asDict(recursive=True) == r2.asDict(recursive=True)
-    return _rows_equal
+def assert_rows_equal():
+    def _do_test(r1, r2):
+        assert r1.asDict(recursive=True) == r2.asDict(recursive=True)
+    return _do_test
 
 pytest_collect_file = Sybil(
     parsers=[
         CodeBlockParser(future_imports=['print_function']),
     ],
     pattern='*.rst',
-    fixtures=['rows_equal', 'spark'],
+    fixtures=['assert_rows_equal', 'spark'],
 ).pytest()

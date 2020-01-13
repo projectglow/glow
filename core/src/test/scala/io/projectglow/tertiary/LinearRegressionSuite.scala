@@ -18,6 +18,7 @@ package io.projectglow.tertiary
 
 import scala.concurrent.duration._
 import scala.util.Random
+
 import org.apache.commons.math3.distribution.TDistribution
 import org.apache.commons.math3.linear.SingularMatrixException
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
@@ -26,6 +27,7 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.SparkException
 
 import RegressionTestUtils._
+import io.projectglow.functions
 import io.projectglow.sql.GlowBaseTest
 import io.projectglow.sql.expressions.{ComputeQR, LinearRegressionGwas, RegressionStats}
 
@@ -136,6 +138,7 @@ class LinearRegressionSuite extends GlowBaseTest {
   }
 
   private def compareToApacheOLS(testData: TestData, useSpark: Boolean): Unit = {
+    import io.projectglow.functions._
     import sess.implicits._
     val apacheResults = timeIt("Apache linreg") {
       testData.genotypes.map { g =>
@@ -156,7 +159,9 @@ class LinearRegressionSuite extends GlowBaseTest {
           .createDataFrame(rows)
           .withColumn("id", monotonically_increasing_id())
           .repartition(10)
-          .withColumn("linreg", expr("linear_regression_gwas(genotypes, phenotypes, covariates)"))
+          .withColumn(
+            "linreg",
+            linear_regression_gwas(col("genotypes"), col("phenotypes"), col("covariates")))
           .orderBy("id")
           .selectExpr("expand_struct(linreg)")
           .as[RegressionStats]
@@ -294,10 +299,13 @@ class LinearRegressionSuite extends GlowBaseTest {
   }
 
   def checkIllegalArgumentException(rows: Seq[RegressionRow], error: String): Unit = {
+    import io.projectglow.functions._
     val e = intercept[SparkException] {
       spark
         .createDataFrame(rows)
-        .withColumn("linreg", expr("linear_regression_gwas(genotypes, phenotypes, covariates)"))
+        .withColumn(
+          "linreg",
+          linear_regression_gwas(col("genotypes"), col("phenotypes"), col("covariates")))
         .collect
     }
     assert(e.getCause.isInstanceOf[IllegalArgumentException])

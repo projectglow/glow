@@ -16,30 +16,34 @@
 
 package io.projectglow.sql
 
-import org.apache.spark.sql._
+import org.apache.spark.sql.SparkSessionExtensions
 import org.apache.spark.sql.catalyst.FunctionIdentifier
-import org.apache.spark.sql.catalyst.analysis.{FunctionRegistry, UnresolvedExtractValue}
-import org.apache.spark.sql.catalyst.expressions.{CreateNamedStruct, LambdaFunction}
+import org.apache.spark.sql.catalyst.analysis.FunctionRegistry
+import org.apache.spark.sql.catalyst.expressions.LambdaFunction
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.internal.SQLConf
-import io.projectglow.common.VariantSchemas
+
 import io.projectglow.sql.expressions._
-import io.projectglow.sql.optimizer.{HLSReplaceExpressionsRule, ResolveAggregateFunctionsRule}
+import io.projectglow.sql.optimizer.{ReplaceExpressionsRule, ResolveAggregateFunctionsRule}
 
 // TODO(hhd): Spark 3.0 allows extensions to register functions. After Spark 3.0 is released,
 // we should move all extensions into this class.
 class GlowSQLExtensions extends (SparkSessionExtensions => Unit) {
-  val resolutionRules: Seq[Rule[LogicalPlan]] = Seq(ResolveAggregateFunctionsRule)
-  val optimizations: Seq[Rule[LogicalPlan]] = Seq(HLSReplaceExpressionsRule)
-  def apply(extensions: SparkSessionExtensions): Unit = {
+  val resolutionRules: Seq[Rule[LogicalPlan]] =
+    Seq(ReplaceExpressionsRule, ResolveAggregateFunctionsRule)
+  val optimizations: Seq[Rule[LogicalPlan]] = Seq()
 
-    resolutionRules.foreach(r => extensions.injectResolutionRule(_ => r))
+  def apply(extensions: SparkSessionExtensions): Unit = {
+    resolutionRules.foreach { r =>
+      extensions.injectResolutionRule(_ => r)
+    }
     optimizations.foreach(r => extensions.injectOptimizerRule(_ => r))
   }
 }
 
 object SqlExtensionProvider {
+  import ExpressionHelper.rewrite
 
   def registerFunctions(conf: SQLConf, functionRegistry: FunctionRegistry): Unit = {
     functionRegistry.registerFunction(
@@ -80,7 +84,7 @@ object SqlExtensionProvider {
 
     functionRegistry.registerFunction(
       FunctionIdentifier("dp_summary_stats"),
-      exprs => ArrayStatsSummary.makeDpStats(exprs.head)
+      exprs => rewrite(DpSummaryStats(exprs.head))
     )
 
     functionRegistry.registerFunction(
@@ -100,12 +104,18 @@ object SqlExtensionProvider {
 
     functionRegistry.registerFunction(
       FunctionIdentifier("gq_summary_stats"),
-      exprs => ArrayStatsSummary.makeGqStats(exprs.head)
+      exprs => rewrite(GqSummaryStats(exprs.head))
     )
 
     functionRegistry.registerFunction(
       FunctionIdentifier("hard_calls"),
-      exprs => HardCalls(exprs(0), exprs(1), exprs(2), exprs.lift(3))
+      exprs => {
+        if (exprs.size == 4) {
+          HardCalls(exprs(0), exprs(1), exprs(2), exprs(3))
+        } else {
+          HardCalls(exprs(0), exprs(1), exprs(2))
+        }
+      }
     )
 
     functionRegistry.registerFunction(
@@ -115,7 +125,13 @@ object SqlExtensionProvider {
 
     functionRegistry.registerFunction(
       FunctionIdentifier("lift_over_coordinates"),
-      exprs => LiftOverCoordinatesExpr(exprs(0), exprs(1), exprs(2), exprs(3), exprs.lift(4))
+      exprs => {
+        if (exprs.size == 5) {
+          LiftOverCoordinatesExpr(exprs(0), exprs(1), exprs(2), exprs(3), exprs(4))
+        } else {
+          LiftOverCoordinatesExpr(exprs(0), exprs(1), exprs(2), exprs(3))
+        }
+      }
     )
 
     functionRegistry.registerFunction(
@@ -135,21 +151,17 @@ object SqlExtensionProvider {
 
     functionRegistry.registerFunction(
       FunctionIdentifier("sample_dp_summary_stats"),
-      exprs => PerSampleSummaryStatistics(exprs.head, VariantSchemas.depthField)
+      exprs => rewrite(SampleDpSummaryStatistics(exprs.head))
     )
 
     functionRegistry.registerFunction(
       FunctionIdentifier("sample_gq_summary_stats"),
-      exprs => PerSampleSummaryStatistics(exprs.head, VariantSchemas.conditionalQualityField)
+      exprs => rewrite(SampleGqSummaryStatistics(exprs.head))
     )
 
     functionRegistry.registerFunction(
       FunctionIdentifier("subset_struct"),
-      exprs => {
-        val struct = exprs.head
-        val fields = exprs.tail
-        CreateNamedStruct(fields.flatMap(f => Seq(f, UnresolvedExtractValue(struct, f))))
-      }
+      exprs => rewrite(SubsetStruct(exprs.head, exprs.tail))
     )
 
     functionRegistry.registerFunction(

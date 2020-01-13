@@ -18,13 +18,13 @@ package io.projectglow.sql.expressions
 
 import org.apache.spark.sql.catalyst.analysis.UnresolvedExtractValue
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCode}
-import org.apache.spark.sql.catalyst.expressions.{ArrayTransform, Cast, CreateNamedStruct, ExpectsInputTypes, Expression, GenericInternalRow, LambdaFunction, Literal, NamedLambdaVariable, UnaryExpression, UnresolvedNamedLambdaVariable}
+import org.apache.spark.sql.catalyst.expressions.{ArrayTransform, Cast, CreateNamedStruct, ExpectsInputTypes, Expression, GenericInternalRow, ImplicitCastInputTypes, LambdaFunction, Literal, NamedLambdaVariable, UnaryExpression, Unevaluable, UnresolvedNamedLambdaVariable}
 import org.apache.spark.sql.catalyst.util.{ArrayData, GenericArrayData}
 import org.apache.spark.sql.catalyst.{InternalRow, ScalaReflection}
 import org.apache.spark.sql.types._
 
 import io.projectglow.common.{GlowLogging, VCFRow, VariantSchemas}
-import io.projectglow.sql.util.{ExpectsGenotypeFields, LeveneHaldane}
+import io.projectglow.sql.util.{ExpectsGenotypeFields, LeveneHaldane, Rewrite}
 
 /**
  * Contains implementations of QC functions. These implementations are called during both
@@ -315,7 +315,9 @@ object CallStats {
   lazy val requiredSchema: StructType = StructType(Seq(VariantSchemas.callsField))
 }
 
-case class ArrayStatsSummary(array: Expression) extends UnaryExpression with ExpectsInputTypes {
+case class ArrayStatsSummary(array: Expression)
+    extends UnaryExpression
+    with ImplicitCastInputTypes {
   override def child: Expression = array
 
   override def inputTypes = Seq(ArrayType(DoubleType)) // scalastyle:ignore
@@ -335,20 +337,17 @@ case class ArrayStatsSummary(array: Expression) extends UnaryExpression with Exp
   }
 }
 
-object ArrayStatsSummary {
-  def extractDoubleArray(fieldName: String, child: Expression): Expression = {
-    val lambdaVar = UnresolvedNamedLambdaVariable(Seq("g"))
-    val function =
-      Cast(UnresolvedExtractValue(lambdaVar, Literal(fieldName)), DoubleType)
-    val lambdaFunction = LambdaFunction(function, Seq(lambdaVar), hidden = false)
-    ArrayTransform(child, lambdaFunction)
+case class DpSummaryStats(child: Expression) extends Rewrite {
+  override def children: Seq[Expression] = Seq(child)
+  override def rewrite: Expression = {
+    ArrayStatsSummary(UnresolvedExtractValue(child, Literal(VariantSchemas.depthField.name)))
   }
+}
 
-  def makeDpStats(child: Expression): Expression = {
-    ArrayStatsSummary(extractDoubleArray("depth", child))
-  }
-
-  def makeGqStats(child: Expression): Expression = {
-    ArrayStatsSummary(extractDoubleArray("conditionalQuality", child))
+case class GqSummaryStats(child: Expression) extends Rewrite {
+  override def children: Seq[Expression] = Seq(child)
+  override def rewrite: Expression = {
+    ArrayStatsSummary(
+      UnresolvedExtractValue(child, Literal(VariantSchemas.conditionalQualityField.name)))
   }
 }

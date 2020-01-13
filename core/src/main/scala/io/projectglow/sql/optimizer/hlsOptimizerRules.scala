@@ -17,24 +17,21 @@
 package io.projectglow.sql.optimizer
 
 import org.apache.spark.sql.catalyst.expressions.aggregate.{AggregateExpression, Complete}
-import org.apache.spark.sql.catalyst.expressions.{CreateNamedStruct, GetStructField, Literal}
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.rules.Rule
-import org.apache.spark.sql.types.StructType
 
-import io.projectglow.sql.expressions.{AddStructFields, AggregateByIndex, UnwrappedAggregateFunction}
+import io.projectglow.sql.expressions._
+import io.projectglow.sql.util.RewriteAfterResolution
 
 /**
  * Simple optimization rule that handles expression rewrites
  */
-object HLSReplaceExpressionsRule extends Rule[LogicalPlan] {
-  override def apply(plan: LogicalPlan): LogicalPlan = plan.transformAllExpressions {
-    case AddStructFields(struct, newFields) =>
-      val baseType = struct.dataType.asInstanceOf[StructType]
-      val baseFields = baseType.indices.flatMap { idx =>
-        Seq(Literal(baseType(idx).name), GetStructField(struct, idx))
-      }
-      CreateNamedStruct(baseFields ++ newFields)
+object ReplaceExpressionsRule extends Rule[LogicalPlan] {
+  override def apply(plan: LogicalPlan): LogicalPlan = {
+    plan.transformAllExpressions {
+      case expr: RewriteAfterResolution =>
+        ExpressionHelper.wrapAggregate(expr.rewrite)
+    }
   }
 }
 
@@ -49,6 +46,6 @@ object HLSReplaceExpressionsRule extends Rule[LogicalPlan] {
 object ResolveAggregateFunctionsRule extends Rule[LogicalPlan] {
   override def apply(plan: LogicalPlan): LogicalPlan = plan.transformExpressions {
     case agg: UnwrappedAggregateFunction =>
-      AggregateExpression(agg.asWrapped, Complete, isDistinct = false)
+      ExpressionHelper.wrapAggregate(agg.asWrapped)
   }
 }

@@ -3,6 +3,8 @@ dependencies:
   - python=3.7
   - pytest
   - pip
+  - jinja2
+  - pyyaml
   - pip:
     - numpy==1.17.4
     - pyspark==2.4.3

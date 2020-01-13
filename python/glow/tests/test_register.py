@@ -13,10 +13,11 @@ def test_no_register(spark):
 
 
 def test_register(spark):
-    glow.register(spark)
+    sess = spark.newSession()
+    glow.register(sess)
     row_one = Row(Row(str_col='foo', int_col=1, bool_col=True))
     row_two = Row(Row(str_col='bar', int_col=2, bool_col=False))
-    df = spark.createDataFrame([row_one, row_two], schema=['base_col'])
+    df = sess.createDataFrame([row_one, row_two], schema=['base_col'])
     added_col_row = df.selectExpr("add_struct_fields(base_col, 'float_col', 3.14, 'rev_str_col', reverse(base_col.str_col)) as added_col") \
                       .filter("added_col.str_col = 'foo'") \
                       .head()

@@ -138,7 +138,14 @@ lazy val core = (project in file("core"))
       "io.netty" % "netty" % "3.9.9.Final",
       "io.netty" % "netty-all" % "4.1.17.Final",
       "com.github.samtools" % "htsjdk" % "2.20.3"
-    )
+    ),
+    sourceGenerators in Compile += Def.task {
+      val file = baseDirectory.value / "functions.scala.TEMPLATE"
+      val output = (Compile / scalaSource).value / "io" / "projectglow" / "functions.scala"
+      val script = (ThisBuild / baseDirectory).value / "project" / "render_template.py"
+      Seq(script, file, output).map(_.getPath).!!
+      Seq(output)
+    }.taskValue
   )
 
 /**
@@ -167,19 +174,23 @@ lazy val python =
     .dependsOn(core % "test->test")
     .settings(
       pythonSettings,
-      unmanagedSourceDirectories in Compile := {
-        Seq(baseDirectory.value / "glow")
-      },
       test in Test := {
         // Pass the test classpath to pyspark so that we run the same bits as the Scala tests
         val ret = Process(
-          Seq("pytest", "python"),
+          Seq("pytest", "-s", "python"),
           None,
           "SPARK_CLASSPATH" -> sparkClasspath.value,
           "SPARK_HOME" -> sparkHome.value
         ).!
         require(ret == 0, "Python tests failed")
-      }
+      },
+      sourceGenerators in Compile += Def.task {
+        val file = baseDirectory.value / "glow" / "functions.py.TEMPLATE"
+        val output = baseDirectory.value / "glow" / "functions.py"
+        val script = (ThisBuild / baseDirectory).value / "project" / "render_template.py"
+        Seq(script, file, output).map(_.getPath).!!
+        Seq.empty[File]
+      }.taskValue
     )
 
 lazy val docs =

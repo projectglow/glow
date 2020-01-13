@@ -38,7 +38,7 @@ the DataFrame API using Python, R, Scala, or SQL.
 
 .. invisible-code-block: python
 
-   assert rows_equal(df.select("contigName", "start").head(), Row(contigName='17', start=504217))
+   assert_rows_equal(df.select("contigName", "start").head(), Row(contigName='17', start=504217))
 
 
 The returned DataFrame has a schema that mirrors a single row of a VCF. Information that applies to an entire
@@ -144,7 +144,7 @@ Glow provides the ability to read BGEN files, including those distributed by the
 
 .. invisible-code-block: python
 
-   assert rows_equal(df.select("contigName", "start").head(), Row(contigName='01', start=1999))
+   assert_rows_equal(df.select("contigName", "start").head(), Row(contigName='01', start=1999))
 
 As with the VCF reader, the provided path can be a file, directory, or glob pattern. If ``.bgi``
 index files are located in the same directory as the data files, the reader uses the indexes to
@@ -211,7 +211,7 @@ file or glob pattern.
 
 .. invisible-code-block: python
 
-  assert rows_equal(df.select("contigName", "start").head(), Row(contigName='1', start=9))
+  assert_rows_equal(df.select("contigName", "start").head(), Row(contigName='1', start=9))
 
 The schema of the resulting DataFrame matches that of the VCF reader. The accompanying variant and sample information
 files must be located at ``{prefix}.bim`` and ``{prefix}.fam``.
