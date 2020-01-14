@@ -44,9 +44,9 @@ object AnnotationUtils {
   private val snpEffFieldsToSchema: Map[String, DataType] = Map(
     "Annotation" -> ArrayType(StringType),
     "Rank" -> rankTotalStruct,
-    "cDNA.pos / cDNA.length" -> posLengthStruct,
-    "CDS.pos / CDS.length" -> posLengthStruct,
-    "AA.pos / AA.length" -> posLengthStruct,
+    "cDNA_pos/cDNA_length" -> posLengthStruct,
+    "CDS_pos/CDS_length" -> posLengthStruct,
+    "AA_pos/AA_length" -> posLengthStruct,
     "Distance" -> IntegerType
   )
 

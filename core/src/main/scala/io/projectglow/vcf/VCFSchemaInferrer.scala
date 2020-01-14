@@ -279,9 +279,9 @@ object VCFSchemaInferrer {
       .split(AnnotationUtils.annotationDelimiterRegex)
 
     Seq(ArrayType(StructType(fieldNames.map { f =>
-      val trimmedFieldName = f.trim()
-      val dataType = AnnotationUtils.allFieldsToSchema(trimmedFieldName)
-      StructField(trimmedFieldName, dataType)
+      val safeFieldName = f.replace(" ", "").replace(".", "_")
+      val dataType = AnnotationUtils.allFieldsToSchema(safeFieldName)
+      StructField(safeFieldName, dataType)
     })))
   }
 
