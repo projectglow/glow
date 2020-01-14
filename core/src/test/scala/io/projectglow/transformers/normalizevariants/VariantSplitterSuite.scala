@@ -291,15 +291,4 @@ class VariantSplitterSuite extends GlowBaseTest with GlowLogging {
     testRefAltColexOrderIdxArray(6, 5, 5, Array(0, 126, 196, 231, 246, 251))
   }
 
-  test("all Cases") {
-    val matrix = Array.ofDim[Int](501, 2)
-
-    for (i <- 1 to 500) {
-      matrix(i) = refAltColexOrderIdxArray(i + 1, 2, i).slice(1, 3)
-
-    }
-    // scalastyle:off
-    matrix.map(a => s"Array(0, ${a.mkString(", ")}),").map(println)
-    // scalastyle:on
-  }
 }
