@@ -16,6 +16,7 @@
 
 package io.projectglow.sql
 
+import org.apache.spark.sql.Strategy
 import org.apache.spark.sql._
 import org.apache.spark.sql.catalyst.FunctionIdentifier
 import org.apache.spark.sql.catalyst.analysis.{FunctionRegistry, UnresolvedExtractValue}
@@ -25,21 +26,25 @@ import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.internal.SQLConf
 import io.projectglow.common.VariantSchemas
 import io.projectglow.sql.expressions._
-import io.projectglow.sql.optimizer.{HLSReplaceExpressionsRule, ResolveAggregateFunctionsRule}
+import io.projectglow.sql.optimizer.{HLSReplaceExpressionsRule, ResolveAggregateFunctionsRule, WholestageCodegenBoundaryStrategy}
 
 // TODO(hhd): Spark 3.0 allows extensions to register functions. After Spark 3.0 is released,
 // we should move all extensions into this class.
 class GlowSQLExtensions extends (SparkSessionExtensions => Unit) {
   val resolutionRules: Seq[Rule[LogicalPlan]] = Seq(ResolveAggregateFunctionsRule)
   val optimizations: Seq[Rule[LogicalPlan]] = Seq(HLSReplaceExpressionsRule)
+  val strategies: Seq[Strategy] = Seq(WholestageCodegenBoundaryStrategy())
   def apply(extensions: SparkSessionExtensions): Unit = {
 
     resolutionRules.foreach(r => extensions.injectResolutionRule(_ => r))
     optimizations.foreach(r => extensions.injectOptimizerRule(_ => r))
+    strategies.foreach(r => extensions.injectPlannerStrategy(_ => r))
   }
 }
 
+
 object SqlExtensionProvider {
+
 
   def registerFunctions(conf: SQLConf, functionRegistry: FunctionRegistry): Unit = {
     functionRegistry.registerFunction(
