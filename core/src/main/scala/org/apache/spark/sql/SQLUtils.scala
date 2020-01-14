@@ -16,6 +16,7 @@
 
 package org.apache.spark.sql
 
+import io.projectglow.sql.optimizer.WholestageCodegenBoundaryPlan
 import org.apache.spark.TaskContext
 import org.apache.spark.ml.linalg.{MatrixUDT, VectorUDT}
 import org.apache.spark.rdd.RDD
@@ -23,6 +24,12 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types._
 
 object SQLUtils {
+
+  def wholestageCodegenBoundary(df: DataFrame): DataFrame = {
+    val spark = df.sparkSession
+    Dataset.ofRows(spark, WholestageCodegenBoundaryPlan(df.logicalPlan))
+  }
+
   def verifyHasFields(schema: StructType, fields: Seq[StructField]): Unit = {
     fields.foreach { field =>
       val candidateFields = schema.fields.filter(_.name == field.name)

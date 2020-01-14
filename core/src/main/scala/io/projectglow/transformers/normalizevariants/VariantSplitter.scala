@@ -21,6 +21,7 @@ import io.projectglow.common.GlowLogging
 import io.projectglow.common.VariantSchemas._
 import io.projectglow.vcf.InternalRowToVariantContextConverter
 import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.SQLUtils.wholestageCodegenBoundary
 import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
@@ -30,28 +31,42 @@ private[projectglow] object VariantSplitter extends GlowLogging {
   /**
    * Generates a new DataFrame by splitting the variants in the input DataFrame similar to what "vt decompose -s" does
    * See https://genome.sph.umich.edu/wiki/Vt#Decompose for more info but note that the example shown there
-   * does not exactly match the real behavior of vt decompose with the -s options.
+   * does not exactly match the real behavior of vt decompose with the -s option.
    *
-   * The summary of behavior is as follows:
+   * The summary of true behavior is as follows:
    *
-   * One multiallelic row with n Alt alleles is split to n biallelic rows, each with one of the Alt alleles
-   * in the altAllele column. Ref allele is the same in all these rows.
+   * Any given multiallelic row with n Alt alleles is split to n biallelic rows, each with one of the Alt alleles
+   * in the altAllele column. The Ref allele in all these rows is the same as the Ref allele in the in the multiallelic
+   * row.
    *
-   * Each info field is appropriately split among these rows if it has the same number of elements as
-   * number of Alt alleles, otherwise it is repeated in all split rows. A new column called OLD_MULTIALLELIC is added
-   * to the DataFrame, which for each split row, holds the contigName, position, and Ref and Alt alleles of the
+   * Each info field is appropriately split among split rows if it has the same number of elements as
+   * number of Alt alleles, otherwise it is repeated in all split rows. A new info column called OLD_MULTIALLELIC
+   * is added to the DataFrame, which for each split row, holds the contigName:position:Ref/Alt alleles of the
    * multiallelic row corresponding to the split row.
    *
-   * Genotype fields are treated similarly to info fields, except for calls (GT) field and the fields which follow
-   * colex order (e.g., GL, PL, and GP). The calls field becomes biallelic in each row, where Alt alleles not present
-   * in that row are replaced with no call ("."). The colex ordered fields are properly split between rows where in
-   * each row only the elements corresponding to genotypes comprising of the Ref and Alt alleles in that row are
-   * listed.
+   * Genotype fields are treated as follows: The calls (GT) field becomes biallelic in each row, where Alt alleles not
+   * present in that row are replaced with no call ("."). The fields with number of entries equal to number of
+   * (Ref+Alt) alleles, are properly split into rows, where in each split row, only entries corresponding to the Ref
+   * allele as well as the Alt alleles present in that row are kept. The fields which follow colex order
+   * (e.g., GL, PL, and GP) are properly split between split rows where in each row only the elements corresponding to
+   * genotypes comprising of the Ref and Alt alleles in that row are listed. Other fields are just repeated over the
+   * split rows.
    *
+   * As an example (shown in VCF file format), the following multiallelic row
+   *
+   * #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	SAMPLE1
+   * 20	101	.	A	ACCA,TCGG	.	PASS	VC=INDEL;AC=3,2;AF=0.375,0.25;AN=8	GT:AD:DP:GQ:PL	0/1:2,15,31:30:99:2407,0,533,697,822,574
+   *
+   * will be split into the following two biallelic rows:
+   *
+   * #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	SAMPLE1
+   * 20	101	.	A	ACCA	.	PASS	VC=INDEL;AC=3;AF=0.375;AN=8;OLD_MULTIALLELIC=20:101:A/ACCA/TCGG	GT:AD:DP:GQ:PL	0/1:2,15:30:99:2407,0,533
+   * 20	101	.	A	TCGG	.	PASS	VC=INDEL;AC=2;AF=0.25;AN=8;OLD_MULTIALLELIC=20:101:A/ACCA/TCGG	GT:AD:DP:GQ:PL	0/.:2,31:30:99:2407,697,574
    *
    * @param variantDf
    * @return dataframe of split variants
    */
+
   @VisibleForTesting
   private[normalizevariants] def splitVariants(variantDf: DataFrame): DataFrame = {
 
@@ -63,7 +78,7 @@ private[projectglow] object VariantSplitter extends GlowLogging {
 
     // Update splitFromMultiAllelic column, add INFO_OLD_MULTIALLELIC column (see vt decompose)
     // and posexplode alternateAlleles column
-    val dfAfterAltAlleleSplit = variantDf
+    val dfAfterAltAlleleSplit = wholestageCodegenBoundary(variantDf)
       .withColumn(
         splitFromMultiAllelicField.name,
         when(size(col(alternateAllelesField.name)) > 1, lit(true)).otherwise(lit(false))
@@ -259,51 +274,24 @@ private[projectglow] object VariantSplitter extends GlowLogging {
         "Alternate allele index must be at least 1 and at most one less than number of alleles.")
     }
 
-    (numAlleles, ploidy, altAlleleIdx) match {
-      case (_, 1, idx) => Array(0, idx)
+    val idxArray = new Array[Int](ploidy + 1)
 
-      // More common cases are hard-coded for performance.
-      // Note: When this function is used as spark sql udf, the general case causes performance deterioration
-      // with WholeStageCodeGen. The deterioration does not happen when WholeStageCodeGen is turned off.
-
-      case (_, 2, 1) => Array(0, 1, 2)
-      case (_, 2, 2) => Array(0, 3, 5)
-      case (_, 2, 3) => Array(0, 6, 9)
-      case (_, 2, 4) => Array(0, 10, 14)
-      case (_, 2, 5) => Array(0, 15, 20)
-      case (_, 2, 6) => Array(0, 21, 27)
-      case (_, 2, 7) => Array(0, 28, 35)
-      case (_, 2, 8) => Array(0, 36, 44)
-      case (_, 2, 9) => Array(0, 45, 54)
-
-      case (_, 3, 1) => Array(0, 1, 2, 3)
-      case (_, 3, 2) => Array(0, 4, 7, 9)
-      case (_, 3, 3) => Array(0, 10, 16, 19)
-
-      case (_, 4, 1) => Array(0, 1, 2, 3, 4)
-      case (_, 4, 2) => Array(0, 5, 9, 12, 14)
-      case (_, 4, 3) => Array(0, 15, 25, 31, 34)
-
-      case _ =>
-        val idxArray = new Array[Int](ploidy + 1)
-
-        // generate vector of elements at positions p+1,p,...,2 on the altAlleleIdx'th diagonal of Pascal's triangle
-        idxArray(0) = 0
-        var i = 1
-        idxArray(ploidy) = altAlleleIdx
-        while (i < ploidy) {
-          idxArray(ploidy - i) = idxArray(ploidy - i + 1) * (i + altAlleleIdx) / (i + 1)
-          i += 1
-        }
-
-        // calculate the cumulative vector
-        i = 1
-        while (i <= ploidy) {
-          idxArray(i) = idxArray(i) + idxArray(i - 1)
-          i += 1
-        }
-        idxArray
+    // generate vector of elements at positions p+1,p,...,2 on the altAlleleIdx'th diagonal of Pascal's triangle
+    idxArray(0) = 0
+    var i = 1
+    idxArray(ploidy) = altAlleleIdx
+    while (i < ploidy) {
+      idxArray(ploidy - i) = idxArray(ploidy - i + 1) * (i + altAlleleIdx) / (i + 1)
+      i += 1
     }
+
+    // calculate the cumulative vector
+    i = 1
+    while (i <= ploidy) {
+      idxArray(i) = idxArray(i) + idxArray(i - 1)
+      i += 1
+    }
+    idxArray
   }
 
   @VisibleForTesting
