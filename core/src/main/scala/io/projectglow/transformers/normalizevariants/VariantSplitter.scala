@@ -21,7 +21,6 @@ import io.projectglow.common.GlowLogging
 import io.projectglow.common.VariantSchemas._
 import io.projectglow.vcf.InternalRowToVariantContextConverter
 import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.SQLUtils.wholestageCodegenBoundary
 import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types._
@@ -185,97 +184,60 @@ private[projectglow] object VariantSplitter extends GlowLogging {
           (df, field) =>
             field match {
               case f
-                  if structFieldsEqualExceptNullability(genotypeLikelihoodsField, f) |
+                if structFieldsEqualExceptNullability(genotypeLikelihoodsField, f) |
                   structFieldsEqualExceptNullability(phredLikelihoodsField, f) |
                   structFieldsEqualExceptNullability(posteriorProbabilitiesField, f) =>
                 // update genotypes subfields that have colex order using the udf
-                /*
                 df.withColumn(
-                    f.name,
-                    when(
-                      col(splitFromMultiAllelicField.name),
-                      expr(s"""transform(${f.name}, c ->
-                           |     filter(
-                           |        transform(
-                           |            c, (x, idx) ->
-                           |              if (
-                           |                  array_contains(
-                           |                      likelihoodSplitUdf(
-                           |                            size(${alternateAllelesField.name}) + 1,
-                           |                            size(${callsField.name}[0]),
-                           |                            $splitAlleleIdxFieldName + 1
-                           |                      ),
-                           |                      idx
-                           |                  ), x, null
-                           |              )
-                           |        ),
-                           |        x -> !isnull(x)
-                           |      )
-                           |   )""".stripMargin)
-                    ).otherwise(col(f.name))
+                  f.name,
+                  when(
+                    col(splitFromMultiAllelicField.name),
+                    expr(
+                      s"""transform(${f.name}, c ->
+                         |     filter(
+                         |        transform(
+                         |            c, (x, idx) ->
+                         |              if (
+                         |                  array_contains(
+                         |                      likelihoodSplitUdf(
+                         |                            size(${alternateAllelesField.name}) + 1,
+                         |                            size(${callsField.name}[0]),
+                         |                            $splitAlleleIdxFieldName + 1
+                         |                      ),
+                         |                      idx
+                         |                  ), x, null
+                         |              )
+                         |        ),
+                         |        x -> !isnull(x)
+                         |      )
+                         |   )""".stripMargin)
+                  ).otherwise(col(f.name))
                 )
-                 */
-                wholestageCodegenBoundary(
-                  wholestageCodegenBoundary(
-                    df.withColumn(
-                      "likelihoodSplitColumn",
-                      when(
-                        col(splitFromMultiAllelicField.name),
-                        expr(s"""
-                             |likelihoodSplitUdf(
-                             |  size(${alternateAllelesField.name}) + 1,
-                             |  size(${callsField.name}[0]),
-                             |  $splitAlleleIdxFieldName + 1
-                             |)
-                       """.stripMargin)
-                      ).otherwise(lit(null))
-                    )
-                  ).withColumn(
-                      f.name,
-                      when(
-                        col(splitFromMultiAllelicField.name),
-                        expr(s"""transform(${f.name}, c ->
-                             |     filter(
-                             |        transform(
-                             |            c, (x, idx) ->
-                             |              if (
-                             |                  array_contains(
-                             |                      likelihoodSplitColumn,
-                             |                      idx
-                             |                  ), x, null
-                             |              )
-                             |        ),
-                             |        x -> !isnull(x)
-                             |      )
-                             |   )""".stripMargin)
-                      ).otherwise(col(f.name))
-                    )
-                ).drop("likelihoodSplitColumn")
+
 
               case f if structFieldsEqualExceptNullability(callsField, f) =>
                 // update GT calls subfield
-
                 df.withColumn(
                   f.name,
                   when(
                     col(splitFromMultiAllelicField.name),
                     expr(
                       s"transform(${f.name}, " +
-                      s"c -> transform(c, x -> if(x == 0, x, if(x == $splitAlleleIdxFieldName + 1, 1, -1))))"
+                        s"c -> transform(c, x -> if(x == 0, x, if(x == $splitAlleleIdxFieldName + 1, 1, -1))))"
                     )
                   ).otherwise(col(f.name))
                 )
 
+
               case f if f.dataType.isInstanceOf[ArrayType] =>
                 // update any ArrayType field with number of elements equal to number of alt alleles
-
                 df.withColumn(
                   f.name,
                   when(
                     col(splitFromMultiAllelicField.name),
                     expr(
                       s"transform(${f.name}, c -> if(size(c) == size(${alternateAllelesField.name}) + 1," +
-                      s" array(c[0], c[$splitAlleleIdxFieldName + 1]), null))"
+                        s" array(c[0], c[$splitAlleleIdxFieldName + 1]), null))"
                     )
                   ).otherwise(col(f.name))
                 )
