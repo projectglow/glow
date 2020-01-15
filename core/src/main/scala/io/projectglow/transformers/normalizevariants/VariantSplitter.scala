@@ -177,6 +177,9 @@ private[projectglow] object VariantSplitter extends GlowLogging {
 
       // update pulled-out genotypes columns, zip them back together as the new genotypes column,
       // and drop the pulled-out columns
+      // Note: In performance tests, it was seen that nested transform sql functions used below work twice faster if
+      // WholestageCodegen is off for spark sql. Therefore, it is recommended to set "spark.sql.codegen.wholeStage" conf
+      // to off when using this splitter.
 
       gSchema
         .get
@@ -189,7 +192,6 @@ private[projectglow] object VariantSplitter extends GlowLogging {
                   structFieldsEqualExceptNullability(phredLikelihoodsField, f) |
                   structFieldsEqualExceptNullability(posteriorProbabilitiesField, f) =>
                 // update genotypes subfields that have colex order using the udf
-
                 df.withColumn(
                   f.name,
                   when(
