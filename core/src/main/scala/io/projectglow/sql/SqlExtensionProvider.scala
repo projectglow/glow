@@ -42,9 +42,7 @@ class GlowSQLExtensions extends (SparkSessionExtensions => Unit) {
   }
 }
 
-
 object SqlExtensionProvider {
-
 
   def registerFunctions(conf: SQLConf, functionRegistry: FunctionRegistry): Unit = {
     functionRegistry.registerFunction(

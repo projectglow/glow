@@ -189,50 +189,95 @@ private[projectglow] object VariantSplitter extends GlowLogging {
                   structFieldsEqualExceptNullability(phredLikelihoodsField, f) |
                   structFieldsEqualExceptNullability(posteriorProbabilitiesField, f) =>
                 // update genotypes subfields that have colex order using the udf
-                wholestageCodegenBoundary(
-                  df.withColumn(
+                /*
+                df.withColumn(
                     f.name,
                     when(
                       col(splitFromMultiAllelicField.name),
                       expr(s"""transform(${f.name}, c ->
-                           | filter(
-                           | transform(
-                           | c, (x, idx) -> if (array_contains(
-                           | likelihoodSplitUdf(size(${alternateAllelesField.name}) + 1,
-                           | size(${callsField.name}[0]), $splitAlleleIdxFieldName + 1), idx), x, null)),
-                           | x -> !isnull(x)))""".stripMargin)
+                           |     filter(
+                           |        transform(
+                           |            c, (x, idx) ->
+                           |              if (
+                           |                  array_contains(
+                           |                      likelihoodSplitUdf(
+                           |                            size(${alternateAllelesField.name}) + 1,
+                           |                            size(${callsField.name}[0]),
+                           |                            $splitAlleleIdxFieldName + 1
+                           |                      ),
+                           |                      idx
+                           |                  ), x, null
+                           |              )
+                           |        ),
+                           |        x -> !isnull(x)
+                           |      )
+                           |   )""".stripMargin)
                     ).otherwise(col(f.name))
-                  )
                 )
+                 */
+                wholestageCodegenBoundary(
+                  wholestageCodegenBoundary(
+                    df.withColumn(
+                      "likelihoodSplitColumn",
+                      when(
+                        col(splitFromMultiAllelicField.name),
+                        expr(s"""
+                             |likelihoodSplitUdf(
+                             |  size(${alternateAllelesField.name}) + 1,
+                             |  size(${callsField.name}[0]),
+                             |  $splitAlleleIdxFieldName + 1
+                             |)
+                       """.stripMargin)
+                      ).otherwise(lit(null))
+                    )
+                  ).withColumn(
+                      f.name,
+                      when(
+                        col(splitFromMultiAllelicField.name),
+                        expr(s"""transform(${f.name}, c ->
+                             |     filter(
+                             |        transform(
+                             |            c, (x, idx) ->
+                             |              if (
+                             |                  array_contains(
+                             |                      likelihoodSplitColumn,
+                             |                      idx
+                             |                  ), x, null
+                             |              )
+                             |        ),
+                             |        x -> !isnull(x)
+                             |      )
+                             |   )""".stripMargin)
+                      ).otherwise(col(f.name))
+                    )
+                ).drop("likelihoodSplitColumn")
 
               case f if structFieldsEqualExceptNullability(callsField, f) =>
                 // update GT calls subfield
-                wholestageCodegenBoundary(
-                  df.withColumn(
-                    f.name,
-                    when(
-                      col(splitFromMultiAllelicField.name),
-                      expr(
-                        s"transform(${f.name}, " +
-                        s"c -> transform(c, x -> if(x == 0, x, if(x == $splitAlleleIdxFieldName + 1, 1, -1))))"
-                      )
-                    ).otherwise(col(f.name))
-                  )
+
+                df.withColumn(
+                  f.name,
+                  when(
+                    col(splitFromMultiAllelicField.name),
+                    expr(
+                      s"transform(${f.name}, " +
+                      s"c -> transform(c, x -> if(x == 0, x, if(x == $splitAlleleIdxFieldName + 1, 1, -1))))"
+                    )
+                  ).otherwise(col(f.name))
                 )
 
               case f if f.dataType.isInstanceOf[ArrayType] =>
                 // update any ArrayType field with number of elements equal to number of alt alleles
-                wholestageCodegenBoundary(
-                  df.withColumn(
-                    f.name,
-                    when(
-                      col(splitFromMultiAllelicField.name),
-                      expr(
-                        s"transform(${f.name}, c -> if(size(c) == size(${alternateAllelesField.name}) + 1," +
-                        s" array(c[0], c[$splitAlleleIdxFieldName + 1]), null))"
-                      )
-                    ).otherwise(col(f.name))
-                  )
+
+                df.withColumn(
+                  f.name,
+                  when(
+                    col(splitFromMultiAllelicField.name),
+                    expr(
+                      s"transform(${f.name}, c -> if(size(c) == size(${alternateAllelesField.name}) + 1," +
+                      s" array(c[0], c[$splitAlleleIdxFieldName + 1]), null))"
+                    )
+                  ).otherwise(col(f.name))
                 )
 
               case _ =>
