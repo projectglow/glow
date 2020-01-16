@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package io.projectglow.transformers.normalizevariants
+package io.projectglow.transformers.splitmultiallelics
 
 import io.projectglow.common.GlowLogging
 import io.projectglow.common.VariantSchemas._
 import io.projectglow.sql.GlowBaseTest
-import io.projectglow.transformers.normalizevariants.VariantSplitter._
+import io.projectglow.transformers.splitmultiallelics.VariantSplitter._
 import org.apache.spark.sql.functions._
 
 class VariantSplitterSuite extends GlowBaseTest with GlowLogging {

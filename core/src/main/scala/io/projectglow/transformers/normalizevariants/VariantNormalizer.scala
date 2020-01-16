@@ -26,7 +26,6 @@ import htsjdk.variant.vcf.VCFHeader
 import io.projectglow.common.GlowLogging
 import io.projectglow.common.VariantSchemas._
 import io.projectglow.vcf.{InternalRowToVariantContextConverter, VCFSchemaInferrer, VariantContextToInternalRowConverter}
-import io.projectglow.transformers.normalizevariants.VariantSplitter._
 import org.apache.spark.sql.{DataFrame, SQLUtils}
 import org.broadinstitute.hellbender.engine.{ReferenceContext, ReferenceDataSource}
 import org.broadinstitute.hellbender.utils.SimpleInterval
@@ -37,86 +36,63 @@ import scala.math.min
 private[projectglow] object VariantNormalizer extends GlowLogging {
 
   /**
-   * Normalizes the input DataFrame of variants and outputs them as a Dataframe; Optionally
-   * splits the multi-allelic variants to bi-allelics before normalization
+   * Normalizes the input DataFrame of variants and outputs them as a Dataframe
    *
    * @param df                   : Input dataframe of variants
    * @param refGenomePathString  : Path to the underlying reference genome of the variants
-   * @param validationStringency : ValidationStrigency as defined in htsjdk.samtools
-   * @param doNormalize          : Whether to do normalization or not
-   * @param splitToBiallelic     : Whether to split multiallelics or not
-   * @return Split and/or normalized dataframe
+   * @return normalized DataFrame
    */
-  def normalize(
-      df: DataFrame,
-      refGenomePathString: Option[String],
-      validationStringency: ValidationStringency,
-      doNormalize: Boolean,
-      splitToBiallelic: Boolean): DataFrame = {
+  def normalize(df: DataFrame, refGenomePathString: Option[String]): DataFrame = {
 
-    if (doNormalize) {
-      if (refGenomePathString.isEmpty) {
-        throw new IllegalArgumentException("Reference genome path not provided!")
-      }
-      if (!new File(refGenomePathString.get).exists()) {
-        throw new IllegalArgumentException("The reference file was not found!")
-      }
+    if (refGenomePathString.isEmpty) {
+      throw new IllegalArgumentException("Reference genome path not provided!")
+    }
+    if (!new File(refGenomePathString.get).exists()) {
+      throw new IllegalArgumentException("The reference file was not found!")
     }
 
-    val dfAfterMaybeSplit = if (splitToBiallelic) {
-      splitVariants(df)
-    } else {
-      df
-    }
-
-    val schema = dfAfterMaybeSplit.schema
+    val schema = df.schema
     val headerLineSet = VCFSchemaInferrer.headerLinesFromSchema(schema).toSet
+    val validationStringency = ValidationStringency.valueOf("SILENT")
 
     val splitFromMultiallelicColumnIdx =
-      dfAfterMaybeSplit.schema.fieldNames.indexOf(splitFromMultiAllelicField.name)
+      df.schema.fieldNames.indexOf(splitFromMultiAllelicField.name)
 
     // TODO: Implement normalization without using VariantContext
-    val dfAfterMaybeNormalize = if (doNormalize) {
-      val rddAfterNormalize = dfAfterMaybeSplit.queryExecution.toRdd.mapPartitions { it =>
-        val vcfHeader = new VCFHeader(headerLineSet.asJava)
+    val rddAfterNormalize = df.queryExecution.toRdd.mapPartitions { it =>
+      val vcfHeader = new VCFHeader(headerLineSet.asJava)
 
-        val variantContextToInternalRowConverter =
-          new VariantContextToInternalRowConverter(
-            vcfHeader,
-            schema,
-            validationStringency
-          )
+      val variantContextToInternalRowConverter =
+        new VariantContextToInternalRowConverter(
+          vcfHeader,
+          schema,
+          validationStringency
+        )
 
-        val internalRowToVariantContextConverter =
-          new InternalRowToVariantContextConverter(
-            schema,
-            headerLineSet,
-            validationStringency
-          )
+      val internalRowToVariantContextConverter =
+        new InternalRowToVariantContextConverter(
+          schema,
+          headerLineSet,
+          validationStringency
+        )
 
-        internalRowToVariantContextConverter.validate()
+      internalRowToVariantContextConverter.validate()
 
-        val refGenomeDataSource = Option(ReferenceDataSource.of(Paths.get(refGenomePathString.get)))
+      val refGenomeDataSource = Option(ReferenceDataSource.of(Paths.get(refGenomePathString.get)))
 
-        it.map { row =>
-          val isFromSplit = row.getBoolean(splitFromMultiallelicColumnIdx)
-          internalRowToVariantContextConverter.convert(row) match {
+      it.map { row =>
+        val isFromSplit = row.getBoolean(splitFromMultiallelicColumnIdx)
+        internalRowToVariantContextConverter.convert(row) match {
 
-            case Some(vc) =>
-              variantContextToInternalRowConverter
-                .convertRow(VariantNormalizer.normalizeVC(vc, refGenomeDataSource.get), isFromSplit)
-            case None => row
-          }
+          case Some(vc) =>
+            variantContextToInternalRowConverter
+              .convertRow(VariantNormalizer.normalizeVC(vc, refGenomeDataSource.get), isFromSplit)
+          case None => row
         }
       }
-
-      SQLUtils.internalCreateDataFrame(df.sparkSession, rddAfterNormalize, schema, false)
-
-    } else {
-      dfAfterMaybeSplit
     }
 
-    dfAfterMaybeNormalize
+    SQLUtils.internalCreateDataFrame(df.sparkSession, rddAfterNormalize, schema, false)
 
   }
 
