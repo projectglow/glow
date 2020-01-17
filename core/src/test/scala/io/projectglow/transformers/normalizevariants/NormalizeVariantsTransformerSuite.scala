@@ -17,7 +17,7 @@
 package io.projectglow.transformers.normalizevariants
 
 import io.projectglow.Glow
-import io.projectglow.common.{CommonOptions, GlowLogging, VCFOptions}
+import io.projectglow.common.{CommonOptions, GlowLogging}
 import io.projectglow.sql.GlowBaseTest
 import org.apache.spark.SparkConf
 
