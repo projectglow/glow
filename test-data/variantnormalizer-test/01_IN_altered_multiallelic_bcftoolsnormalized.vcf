@@ -85,25 +85,29 @@
 ##contig=<ID=GL000225.1,length=211173,assembly=b37>
 ##contig=<ID=GL000192.1,length=547496,assembly=b37>
 ##FilterLiftedVariants="analysis_type=FilterLiftedVariants input_file=[] sample_metadata=[] read_buffer_size=null phone_home=STANDARD read_filter=[] intervals=null excludeIntervals=null reference_sequence=/local/sequence/reference/BWA_ref/hg19/hg19.fasta rodBind=[/local/scratch/xyliu/0.915136538286792.sorted.vcf] rodToIntervalTrackName=null BTI_merge_rule=UNION DBSNP=null downsampling_type=null downsample_to_fraction=null downsample_to_coverage=null baq=OFF baqGapOpenPenalty=40.0 performanceLog=null useOriginalQualities=false defaultBaseQualities=-1 validation_strictness=SILENT unsafe=null num_threads=1 interval_merging=ALL read_group_black_list=null processingTracker=null restartProcessingTracker=false processingTrackerStatusFile=null processingTrackerID=-1 allow_intervals_with_unindexed_bam=false enable_experimental_low_memory_sharding=false logging_level=INFO log_to_file=null quiet_output_mode=false debug_mode=false help=false out=org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub NO_HEADER=org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub sites_only=org.broadinstitute.sting.gatk.io.stubs.VCFWriterStub"
-##INFO=<ID=VC,Number=1,Type=String,Description="Variation Class">
-##INFO=<ID=AC,Number=.,Type=Integer,Description="Allele count in genotypes, for each ALT allele, in the same order as listed">
-##INFO=<ID=AF,Number=.,Type=Float,Description="Allele Frequency, for each ALT allele, in the same order as listed">
+##INFO=<ID=AC,Number=A,Type=Integer,Description="Allele count in genotypes, for each ALT allele, in the same order as listed">
+##INFO=<ID=AF,Number=A,Type=Float,Description="Allele Frequency, for each ALT allele, in the same order as listed">
 ##INFO=<ID=AN,Number=1,Type=Integer,Description="Total number of alleles in called genotypes">
+##INFO=<ID=VC,Number=1,Type=String,Description="Variation Class">
 ##INFO=<ID=refseq.name,Number=1,Type=String,Description="RefSeq name">
 ##INFO=<ID=refseq.positionType,Number=1,Type=String,Description="RefSeq genome type position">
+##FORMAT=<ID=AD,Number=R,Type=Integer,Description="Allelic depths for the ref and alt alleles in the order listed">
+##FORMAT=<ID=DP,Number=1,Type=Integer,Description="Approximate read depth (reads with MQ=255 or with bad mates are filtered)">
+##FORMAT=<ID=GQ,Number=1,Type=Integer,Description="Genotype Quality">
 ##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=PL,Number=G,Type=Integer,Description="Normalized, Phred-scaled likelihoods for genotypes as defined in the VCF specification">
 ##bcftools_normVersion=1.9-210-gf1f261b+htslib-1.9-271-g6738132
-##bcftools_normCommand=norm -f 20-altered.fasta 01_IN_altered_multiallelic.vcf; Date=Wed Aug 14 11:47:41 2019
+##bcftools_normCommand=norm -f 20_altered.fasta -o 01_IN_altered_multiallelic_new_bcftoolsnormalized.vcf 01_IN_altered_multiallelic_new.vcf; Date=Wed Dec 11 13:38:56 2019
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	SAMPLE1	SAMPLE2	SAMPLE3	SAMPLE4
-20	101	.	A	ACCA,TCGG	.	PASS	VC=INDEL;AC=2,2;AF=0.25,0.25;AN=8;refseq.name=NM_144628;refseq.positionType=intron	GT	0/1	0/2	0/1	0/2
-20	302	.	C	CTTGT,CTTGTCC	.	PASS	VC=INDEL;AC=2,2;AF=0.25,0.25;AN=8;refseq.name=NM_080489;refseq.positionType=intron	GT	0/1	0/2	0/1	0/2
-20	503	.	T	TGTC	.	PASS	VC=INDEL;AC=4;AF=0.5;AN=8	GT	0/1	0/1	0/1	0/1
-20	704	.	GAA	G	.	PASS	VC=INDEL;AC=4;AF=0.5;AN=8;refseq.name=NM_001083910;refseq.positionType=intron	GT	0/1	0/1	0/1	0/1
-20	905	.	G	GT	.	PASS	VC=INDEL;AC=4;AF=0.5;AN=8	GT	0/1	0/1	0/1	0/1
-20	1106	.	T	TA,TTA,TTTA	.	PASS	VC=INDEL;AC=2,1,2;AF=0.25,0.125,0.25;AN=8	GT	0/1	0/2	0/3	1/3
-20	1305	.	T	TA,TAA,TAAA,TAAAA	.	PASS	VC=INDEL;AC=1,1,1,1;AF=0.125,0.125,0.125,0.125;AN=8	GT	0/1	0/2	0/3	0/4
-20	1507	.	TC	T,TCTT	.	PASS	VC=INDEL;AC=2,2;AF=0.25,0.25;AN=8;refseq.name=NM_002836;refseq.positionType=intron	GT	0/1	0/2	0/1	0/2
-20	1709	.	TCAAA	TCA,T	.	PASS	VC=INDEL;AC=2,2;AF=0.25,0.25;AN=8;refseq.name=NM_001501;refseq.positionType=intron	GT	0/1	0/2	0/1	0/2
-20	1909	.	TTCTT	T,TTC	.	PASS	VC=INDEL;AC=2,2;AF=0.25,0.25;AN=8;refseq.name=NM_001009984;refseq.positionType=intron	GT	0/1	0/2	0/1	0/2
-20	2110	.	A	AT,ATT	.	PASS	VC=INDEL;AC=2,2;AF=0.25,0.25;AN=8	GT	0/1	0/2	0/1	0/2
-20	2311	.	AGCTCCCAGGCTACAGAAAGATGATGGA	A,ATCCCAGGCTACAGAAAGATGAT	.	PASS	VC=INDEL;AC=2,2;AF=0.25,0.25;AN=8	GT	0/1	0/2	0/1	0/2
+20	101	.	A	ACCA,TCGG	.	PASS	VC=INDEL;AC=3,2;AF=0.375,0.25;AN=8;refseq.name=NM_144628;refseq.positionType=intron	GT:AD:DP:GQ:PL	0/1:2,15,31:30:99:2407,0,533,697,822,574	1/2:2,15,31:30:99:2407,585,533,697,0,574	0/1:2,15,31:30:99:2407,0,533,697,822,574	0/2:2,15,31:30:99:2407,822,533,0,336,574
+20	302	.	C	CTTGT,CTTGTCC	.	PASS	VC=INDEL;AC=3,2;AF=0.375,0.25;AN=8;refseq.name=NM_080489;refseq.positionType=intron	GT:AD:DP:GQ:PL	0/1:2,15,31:30:99:2407,0,533,697,822,574	0/2:2,15,31:30:99:2407,822,533,0,336,574	0/1:2,15,31:30:99:2407,0,533,697,822,574	1/2:2,15,31:30:99:2407,585,533,697,0,574
+20	503	.	T	TGTC	.	PASS	VC=INDEL;AC=6;AF=0.75;AN=8	GT:AD:DP:GQ:PL	0/1:2,15:30:99:2407,0,533	0/1:2,15:30:99:2407,0,533	0/1:2,15:30:99:2407,0,533	1/1:2,15:30:99:2407,585,0
+20	704	.	GAA	G	.	PASS	VC=INDEL;AC=6;AF=0.75;AN=8;refseq.name=NM_001083910;refseq.positionType=intron	GT:AD:DP:GQ:PL	0/1:2,15:30:99:2407,0,533	1/1:2,15:30:99:2407,585,0	1/1:2,15:30:99:2407,585,0	0/1:2,15:30:99:2407,0,533
+20	905	.	G	GT	.	PASS	VC=INDEL;AC=6;AF=0.75;AN=8	GT:AD:DP:GQ:PL	0/1:2,15:30:99:2407,0,533	0/1:2,15:30:99:2407,0,533	1/1:2,15:30:99:2407,585,0	1/1:2,15:30:99:2407,585,0
+20	1106	.	T	TA,TTA,TTTA	.	PASS	VC=INDEL;AC=2,1,2;AF=0.25,0.125,0.25;AN=8	GT:AD:DP:GQ:PL	0/1:2,15,31,32:30:99:2407,0,533,125,255,574,220,125,56,324	0/2:2,15,31,32:30:99:2407,822,533,0,255,574,220,125,56,324	0/3:2,15,31,32:30:99:2407,822,533,125,255,574,0,125,56,324	1/3:2,15,31,32:30:99:2407,822,533,125,255,574,225,0,56,324
+20	1305	.	T	TA,TAA,TAAA,TAAAA	.	PASS	VC=INDEL;AC=2,2,1,1;AF=0.25,0.25,0.125,0.125;AN=8	GT:AD:DP:GQ:PL	0/1:2,15,31,32,33:30:99:2407,0,533,225,255,574,234,125,220,324,10,20,30,40,50	0/2:2,15,31,32,33:30:99:2407,822,533,0,255,574,234,125,220,324,10,20,30,40,50	2/3:2,15,31,32,33:30:99:2407,822,533,225,255,574,234,125,0,324,10,20,30,40,50	1/4:2,15,31,32,33:30:99:2407,822,533,225,255,574,234,125,220,324,10,0,30,40,50
+20	1507	.	TC	T,TCTT	.	PASS	VC=INDEL;AC=3,3;AF=0.375,0.375;AN=8;refseq.name=NM_002836;refseq.positionType=intron	GT:AD:DP:GQ:PL	0/1:2,15,31:30:99:2407,0,533,697,822,574	1/2:2,15,31:30:99:2407,585,533,697,0,574	0/1:2,15,31:30:99:2407,0,533,697,822,574	2/2:2,15,31:30:99:2407,585,533,697,110,0
+20	1709	.	TCAAA	TCA,T	.	PASS	VC=INDEL;AC=2,2;AF=0.25,0.25;AN=8;refseq.name=NM_001501;refseq.positionType=intron	GT:AD:DP:GQ:PL	0/1:2,15,31:30:99:2407,0,533,697,822,574	0/2:2,15,31:30:99:2407,822,533,0,336,574	0/1:2,15,31:30:99:2407,0,533,697,822,574	0/2:2,15,31:30:99:2407,822,533,0,336,574
+20	1909	.	TTCTT	T,TTC	.	PASS	VC=INDEL;AC=2,2;AF=0.25,0.25;AN=8;refseq.name=NM_001009984;refseq.positionType=intron	GT:AD:DP:GQ:PL	0/1:2,15,31:30:99:2407,0,533,697,822,574	0/2:2,15,31:30:99:2407,822,533,0,336,574	0/1:2,15,31:30:99:2407,0,533,697,822,574	0/2:2,15,31:30:99:2407,822,533,0,336,574
+20	2110	.	A	AT,ATT	.	PASS	VC=INDEL;AC=4,2;AF=0.5,0.25;AN=8	GT:AD:DP:GQ:PL	0/1:2,15,31:30:99:2407,0,533,697,822,574	1/2:2,15,31:30:99:2407,585,533,697,0,574	0/1:2,15,31:30:99:2407,0,533,697,822,574	1/2:2,15,31:30:99:2407,585,533,697,0,574
+20	2311	.	AGCTCCCAGGCTACAGAAAGATGATGGA	A,ATCCCAGGCTACAGAAAGATGAT	.	PASS	VC=INDEL;AC=4,3;AF=0.5,0.375;AN=8	GT:AD:DP:GQ:PL	1/2:2,15,31:30:99:2407,585,533,697,0,574	1/2:2,15,31:30:99:2407,585,533,697,0,574	0/1:2,15,31:30:99:2407,0,533,697,822,574	1/2:2,15,31:30:99:2407,585,533,697,0,574
