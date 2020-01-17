@@ -20,7 +20,7 @@ import htsjdk.samtools.ValidationStringency
 import org.apache.spark.sql.DataFrame
 
 import io.projectglow.DataFrameTransformer
-import io.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
+import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
 import io.projectglow.transformers.util.StringUtils
 import io.projectglow.vcf.VCFOptionParser
 
@@ -39,7 +39,7 @@ import io.projectglow.vcf.VCFOptionParser
  * A path to reference genome containing .fasta, .fasta.fai, and .dict files must be provided
  * through the referenceGenomePath option.
  */
-class NormalizeVariantsTransformer extends DataFrameTransformer with HlsUsageLogging {
+class NormalizeVariantsTransformer extends DataFrameTransformer {
 
   override def name: String = "normalize_variants"
 
@@ -54,8 +54,7 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HlsUsageLog
 
       case Some(MODE_SPLIT) =>
         // record variantnormalizer event along with its mode
-        logNormalizeVariants(MODE_SPLIT)
-
+        recordHlsEvent(HlsTagValues.EVENT_NORMALIZE_VARIANTS, Map(MODE_KEY -> MODE_SPLIT))
         VariantNormalizer.normalize(
           df,
           None,
@@ -66,8 +65,7 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HlsUsageLog
 
       case Some(MODE_SPLIT_NORMALIZE) =>
         // record variantnormalizer event along with its mode
-        logNormalizeVariants(MODE_SPLIT_NORMALIZE)
-
+        recordHlsEvent(HlsTagValues.EVENT_NORMALIZE_VARIANTS, Map(MODE_KEY -> MODE_SPLIT_NORMALIZE))
         VariantNormalizer.normalize(
           df,
           options.get(REFERENCE_GENOME_PATH),
@@ -78,8 +76,7 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HlsUsageLog
 
       case Some(MODE_NORMALIZE) | None =>
         // record variantnormalizer event along with its mode
-        logNormalizeVariants(MODE_NORMALIZE)
-
+        recordHlsEvent(HlsTagValues.EVENT_NORMALIZE_VARIANTS, Map(MODE_KEY -> MODE_NORMALIZE))
         VariantNormalizer.normalize(
           df,
           options.get(REFERENCE_GENOME_PATH),
@@ -94,21 +91,10 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HlsUsageLog
   }
 }
 
-object NormalizeVariantsTransformer extends HlsUsageLogging {
+object NormalizeVariantsTransformer extends HlsEventRecorder {
   val MODE_KEY = "mode"
   val MODE_NORMALIZE = "normalize"
   val MODE_SPLIT_NORMALIZE = "split_and_normalize"
   val MODE_SPLIT = "split"
   private val REFERENCE_GENOME_PATH = "reference_genome_path"
-
-  private[projectglow] def logNormalizeVariants(mode: String): Unit = {
-    val logOptions = Map(MODE_KEY -> mode)
-    recordHlsUsage(
-      HlsMetricDefinitions.EVENT_HLS_USAGE,
-      Map(
-        HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_NORMALIZE_VARIANTS
-      ),
-      blob = hlsJsonBuilder(logOptions)
-    )
-  }
 }

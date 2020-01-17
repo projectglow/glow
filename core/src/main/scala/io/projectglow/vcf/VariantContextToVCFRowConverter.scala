@@ -16,46 +16,38 @@
 
 package io.projectglow.vcf
 
-import java.lang.{Boolean => JBoolean, Iterable => JIterable}
-
-import scala.collection.mutable
+import java.lang.{Double => JDouble}
+import java.util.{List => JList}
 
 import htsjdk.samtools.ValidationStringency
 import htsjdk.variant.variantcontext.{VariantContext => HtsjdkVariantContext}
-import htsjdk.variant.vcf.{VCFConstants, VCFHeader}
+import htsjdk.variant.vcf.{VCFEncoderUtils, VCFHeader}
 
 import io.projectglow.common.{GlowLogging, VCFRow}
 
-// HTSJDK VariantContext -> VCFRow
-// Based on the HTSJDK classes VCFEncoder and CommonInfo
 object VariantContextToVCFRowConverter {
 
+  // Usually encodes the object normally, but does not pretty-print doubles
   def parseObjectAsString(obj: Object): String = {
     obj match {
-      case null => ""
-      case VCFConstants.MISSING_VALUE_v4 => ""
-      case _: JBoolean => ""
-      case intArray: Array[Int] => intArray.mkString(VCFConstants.INFO_FIELD_ARRAY_SEPARATOR)
-      case doubleArray: Array[Double] =>
-        doubleArray
-          .mkString(VCFConstants.INFO_FIELD_ARRAY_SEPARATOR)
-      case objArray: Array[Object] =>
-        val length = objArray.length
-        val strSeq = new mutable.ArraySeq[String](length)
-        var arrayIdx = 0
-        while (arrayIdx < length) {
-          strSeq.update(arrayIdx, parseObjectAsString(objArray(arrayIdx)))
-          arrayIdx += 1
+      case d: JDouble => d.toString
+      case dArray: Array[Double] =>
+        val sArray = new Array[String](dArray.length)
+        var i = 0
+        while (i < dArray.length) {
+          sArray(i) = dArray(i).toString
+          i += 1
         }
-        strSeq.mkString(VCFConstants.INFO_FIELD_ARRAY_SEPARATOR)
-      case objIter if objIter.isInstanceOf[JIterable[_]] =>
-        val iterator = objIter.asInstanceOf[JIterable[Object]].iterator
-        val listBuffer = new mutable.ListBuffer[String]()
-        while (iterator.hasNext) {
-          listBuffer.append(parseObjectAsString(iterator.next))
+        VCFEncoderUtils.formatVCFField(sArray)
+      case dList: JList[Double] =>
+        val sArray = new Array[String](dList.size)
+        var i = 0
+        while (i < dList.size) {
+          sArray(i) = dList.get(i).toString
+          i += 1
         }
-        listBuffer.mkString(VCFConstants.INFO_FIELD_ARRAY_SEPARATOR)
-      case _ => obj.toString
+        VCFEncoderUtils.formatVCFField(sArray)
+      case _ => VCFEncoderUtils.formatVCFField(obj)
     }
   }
 }

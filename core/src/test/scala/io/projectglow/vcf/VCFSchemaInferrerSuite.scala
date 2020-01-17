@@ -16,8 +16,11 @@
 
 package io.projectglow.vcf
 
+import java.nio.file.Files
+
 import htsjdk.variant.vcf._
 import org.apache.spark.sql.types._
+import org.apache.spark.sql.Row
 
 import io.projectglow.common.VariantSchemas
 import io.projectglow.sql.GlowBaseTest
@@ -216,5 +219,130 @@ class VCFSchemaInferrerSuite extends GlowBaseTest {
               ))))))
     val expected = Seq(new VCFFormatHeaderLine("GT", 1, VCFHeaderLineType.String, "Genotype"))
     assert(VCFSchemaInferrer.headerLinesFromSchema(schema) == expected)
+  }
+
+  // Will fail if any column names cannot be saved safely
+  def checkSave(schema: StructType): Unit = {
+    spark
+      .createDataFrame(sparkContext.emptyRDD[Row], schema)
+      .write
+      .parquet(Files.createTempDirectory("schemaInferrerSuite").resolve("temp").toString)
+  }
+
+  test("CSQ") {
+    val description =
+      "Consequence annotations from Ensembl VEP. Format: Allele|Consequence|IMPACT|SYMBOL|Gene|Feature_type|" +
+      "Feature|BIOTYPE|EXON|INTRON|HGVSc|HGVSp|cDNA_position|CDS_position|Protein_position|Amino_acids|Codons|" +
+      "Existing_variation|DISTANCE|STRAND|FLAGS|SYMBOL_SOURCE|HGNC_ID|LoF|LoF_filter|LoF_flags|LoF_info"
+    val csqHeaderLine =
+      new VCFInfoHeaderLine(
+        "CSQ",
+        VCFHeaderLineCount.UNBOUNDED,
+        VCFHeaderLineType.String,
+        description)
+
+    val inferredSchema = VCFSchemaInferrer.inferSchema(true, true, Seq(csqHeaderLine), Seq.empty)
+    val csqField = inferredSchema.fields.find(_.name == "INFO_CSQ").get
+    assert(csqField.metadata.getString("vcf_header_count") == "UNBOUNDED")
+    assert(csqField.metadata.getString("vcf_header_description") == description)
+    assert(
+      csqField.dataType ==
+      ArrayType(StructType(Seq(
+        StructField("Allele", StringType),
+        StructField("Consequence", ArrayType(StringType)),
+        StructField("IMPACT", StringType),
+        StructField("SYMBOL", StringType),
+        StructField("Gene", StringType),
+        StructField("Feature_type", StringType),
+        StructField("Feature", StringType),
+        StructField("BIOTYPE", StringType),
+        StructField(
+          "EXON",
+          StructType(Seq(StructField("rank", IntegerType), StructField("total", IntegerType)))),
+        StructField(
+          "INTRON",
+          StructType(Seq(StructField("rank", IntegerType), StructField("total", IntegerType)))),
+        StructField("HGVSc", StringType),
+        StructField("HGVSp", StringType),
+        StructField("cDNA_position", IntegerType),
+        StructField("CDS_position", IntegerType),
+        StructField("Protein_position", IntegerType),
+        StructField(
+          "Amino_acids",
+          StructType(
+            Seq(StructField("reference", StringType), StructField("variant", StringType)))),
+        StructField(
+          "Codons",
+          StructType(
+            Seq(StructField("reference", StringType), StructField("variant", StringType)))),
+        StructField("Existing_variation", ArrayType(StringType)),
+        StructField("DISTANCE", IntegerType),
+        StructField("STRAND", IntegerType),
+        StructField("FLAGS", ArrayType(StringType)),
+        StructField("SYMBOL_SOURCE", StringType),
+        StructField("HGNC_ID", StringType),
+        StructField("LoF", StringType),
+        StructField("LoF_filter", ArrayType(StringType)),
+        StructField("LoF_flags", ArrayType(StringType)),
+        StructField("LoF_info", ArrayType(StringType))
+      ))))
+
+    val inferredHeaderLines = VCFSchemaInferrer.headerLinesFromSchema(inferredSchema)
+    assert(inferredHeaderLines.length == 1)
+    assert(inferredHeaderLines.head == csqHeaderLine)
+
+    checkSave(inferredSchema)
+  }
+
+  test("ANN") {
+    val description =
+      "Functional annotations: 'Allele | Annotation | Annotation_Impact | Gene_Name | Gene_ID | Feature_Type | " +
+      "Feature_ID | Transcript_BioType | Rank | HGVS.c | HGVS.p | cDNA.pos / cDNA.length | CDS.pos / CDS.length | " +
+      "AA.pos / AA.length | Distance | ERRORS / WARNINGS / INFO' "
+    val annHeaderLine =
+      new VCFInfoHeaderLine(
+        "ANN",
+        VCFHeaderLineCount.UNBOUNDED,
+        VCFHeaderLineType.String,
+        description)
+
+    val inferredSchema = VCFSchemaInferrer.inferSchema(true, true, Seq(annHeaderLine), Seq.empty)
+    val annField = inferredSchema.fields.find(_.name == "INFO_ANN").get
+    assert(annField.metadata.getString("vcf_header_count") == "UNBOUNDED")
+    assert(annField.metadata.getString("vcf_header_description") == description)
+    assert(
+      annField.dataType ==
+      ArrayType(StructType(Seq(
+        StructField("Allele", StringType),
+        StructField("Annotation", ArrayType(StringType)),
+        StructField("Annotation_Impact", StringType),
+        StructField("Gene_Name", StringType),
+        StructField("Gene_ID", StringType),
+        StructField("Feature_Type", StringType),
+        StructField("Feature_ID", StringType),
+        StructField("Transcript_BioType", StringType),
+        StructField(
+          "Rank",
+          StructType(Seq(StructField("rank", IntegerType), StructField("total", IntegerType)))),
+        StructField("HGVS_c", StringType),
+        StructField("HGVS_p", StringType),
+        StructField(
+          "cDNA_pos/cDNA_length",
+          StructType(Seq(StructField("pos", IntegerType), StructField("length", IntegerType)))),
+        StructField(
+          "CDS_pos/CDS_length",
+          StructType(Seq(StructField("pos", IntegerType), StructField("length", IntegerType)))),
+        StructField(
+          "AA_pos/AA_length",
+          StructType(Seq(StructField("pos", IntegerType), StructField("length", IntegerType)))),
+        StructField("Distance", IntegerType),
+        StructField("ERRORS/WARNINGS/INFO", StringType)
+      ))))
+
+    val inferredHeaderLines = VCFSchemaInferrer.headerLinesFromSchema(inferredSchema)
+    assert(inferredHeaderLines.length == 1)
+    assert(inferredHeaderLines.head == annHeaderLine)
+
+    checkSave(inferredSchema)
   }
 }
