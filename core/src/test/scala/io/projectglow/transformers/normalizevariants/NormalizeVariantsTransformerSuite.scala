@@ -24,7 +24,7 @@ import org.apache.spark.SparkConf
 class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
 
   lazy val sourceName: String = "vcf"
-  lazy val testFolder: String = s"$testDataHome/variantnormalizer-test"
+  lazy val testFolder: String = s"$testDataHome/variantsplitternormalizer-test"
 
   // gatk test file (multiallelic)
   // The base of vcfs and reference in these test files were taken from gatk
