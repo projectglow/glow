@@ -49,7 +49,8 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HlsEventRec
     }
   }
 
-  /** The following function is for backward compatibility to the previous API where
+  /**
+   * The following function is for backward compatibility to the previous API where
    * the normalizer could act in different modes: The default mode was normalizing the variants without splitting
    * multiallelic ones. The "mode" option could be used to change this behavior. Setting "mode" to "split" only splits
    * multiallelic variants and skips normalization. Setting "mode" to split_and_normalize splits multiallelic variants
