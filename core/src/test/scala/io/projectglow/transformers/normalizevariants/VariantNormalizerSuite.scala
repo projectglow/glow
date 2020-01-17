@@ -27,7 +27,7 @@ import org.broadinstitute.hellbender.engine.ReferenceDataSource
 class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
 
   lazy val sourceName: String = "vcf"
-  lazy val testFolder: String = s"$testDataHome/variantnormalizer-test"
+  lazy val testFolder: String = s"$testDataHome/variantsplitternormalizer-test"
 
   lazy val vtTestReference = s"$testFolder/20_altered.fasta"
 

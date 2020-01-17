@@ -17,14 +17,14 @@
 package io.projectglow.transformers.normalizevariants
 
 import io.projectglow.Glow
-import io.projectglow.common.{CommonOptions, GlowLogging, VCFOptions}
+import io.projectglow.common.{CommonOptions, GlowLogging}
 import io.projectglow.sql.GlowBaseTest
 import org.apache.spark.SparkConf
 
 class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
 
   lazy val sourceName: String = "vcf"
-  lazy val testFolder: String = s"$testDataHome/variantnormalizer-test"
+  lazy val testFolder: String = s"$testDataHome/variantsplitternormalizer-test"
 
   // gatk test file (multiallelic)
   // The base of vcfs and reference in these test files were taken from gatk
@@ -36,9 +36,6 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
 
   lazy val gatkTestVcf =
     s"$testFolder/test_left_align_hg38_altered.vcf"
-
-  lazy val gatkTestVcfExpectedSplit =
-    s"$testFolder/test_left_align_hg38_altered_vtdecompose.vcf"
 
   lazy val gatkTestVcfExpectedNormalized =
     s"$testFolder/test_left_align_hg38_altered_bcftoolsnormalized.vcf"
@@ -72,14 +69,8 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
   lazy val vtTestVcfBiallelic =
     s"$testFolder/01_IN_altered_biallelic.vcf"
 
-  lazy val vtTestVcfBiallelicExpectedSplit =
-    s"$testFolder/01_IN_altered_biallelic_vtdecompose.vcf"
-
   lazy val vtTestVcfBiallelicExpectedNormalized =
     s"$testFolder/01_IN_altered_biallelic_bcftoolsnormalized.vcf"
-
-  lazy val vtTestVcfBiallelicExpectedSplitNormalized =
-    s"$testFolder/01_IN_altered_biallelic_vtdecompose_bcftoolsnormalized.vcf"
 
   lazy val vtTestVcfMultiAllelic =
     s"$testFolder/01_IN_altered_multiallelic.vcf"
@@ -113,17 +104,18 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
       includeSampleIds: Boolean
   ): Unit = {
 
+    val (modeMap: Map[String, String], split: Boolean) = mode match {
+      case Some(m) if (m == "split_and_normalize") => (Map("mode" -> m), true)
+      case Some(m) => (Map("mode" -> m), false)
+      case None => (Map(), false)
+    }
+
     val options: Map[String, String] = Map() ++ {
         referenceGenome match {
           case Some(r) => Map("referenceGenomePath" -> r)
           case None => Map()
         }
-      } ++ {
-        mode match {
-          case Some(m) => Map("mode" -> m)
-          case None => Map()
-        }
-      }
+      } ++ modeMap
 
     val dfOriginal = spark
       .read
@@ -134,7 +126,11 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
     val dfNormalized = Glow
       .transform(
         "normalize_variants",
-        dfOriginal,
+        if (split) {
+          Glow.transform("split_multiallelics", dfOriginal)
+        } else {
+          dfOriginal
+        },
         options
       )
       .orderBy("contigName", "start", "end")
@@ -170,34 +166,64 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
       originalVCFFileName: String,
       expectedVCFFileName: String,
       referenceGenome: Option[String],
+      includeSampleIds: Boolean
+  ): Unit = {
+    testNormalizedvsExpected(
+      originalVCFFileName,
+      expectedVCFFileName,
+      referenceGenome,
+      None,
+      includeSampleIds)
+  }
+
+  def testNormalizedvsExpected(
+      originalVCFFileName: String,
+      expectedVCFFileName: String,
+      referenceGenome: Option[String]
+  ): Unit = {
+    testNormalizedvsExpected(originalVCFFileName, expectedVCFFileName, referenceGenome, None, true)
+  }
+
+  def testBackwardCompatibility(
+      originalVCFFileName: String,
+      expectedVCFFileName: String,
+      referenceGenome: Option[String],
       mode: Option[String]
   ): Unit = {
     testNormalizedvsExpected(originalVCFFileName, expectedVCFFileName, referenceGenome, mode, true)
   }
 
-  test("normalization transform do-normalize-no-split no-reference") {
+  test("normalization transform no-reference") {
     // vcf containing multi-allelic variants
     try {
-      testNormalizedvsExpected(vtTestVcfMultiAllelic, vtTestVcfMultiAllelic, None, None)
+      testNormalizedvsExpected(vtTestVcfMultiAllelic, vtTestVcfMultiAllelic, None)
     } catch {
       case _: IllegalArgumentException => succeed
       case _: Throwable => fail()
     }
   }
 
-  test("normalization transform do-normalize-no-split") {
+  test("normalize variants  transformer") {
 
     testNormalizedvsExpected(
       vtTestVcfBiallelic,
       vtTestVcfBiallelicExpectedNormalized,
-      Option(vtTestReference),
-      Option("normalize"))
+      Option(vtTestReference)
+    )
 
     testNormalizedvsExpected(
       vtTestVcfMultiAllelic,
       vtTestVcfMultiAllelicExpectedNormalized,
+      Option(vtTestReference)
+    )
+
+    // without sampleIds
+    testNormalizedvsExpected(
+      vtTestVcfMultiAllelic,
+      vtTestVcfMultiAllelicExpectedNormalized,
       Option(vtTestReference),
-      None)
+      false
+    )
 
     // without sampleIds
     testNormalizedvsExpected(
@@ -210,90 +236,68 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
     testNormalizedvsExpected(
       gatkTestVcf,
       gatkTestVcfExpectedNormalized,
-      Option(gatkTestReference),
-      Option("normalize"))
+      Option(gatkTestReference)
+    )
 
     testNormalizedvsExpected(
       gatkTestVcfSymbolic,
       gatkTestVcfSymbolicExpectedNormalized,
-      Option(gatkTestReference),
-      None)
+      Option(gatkTestReference)
+    )
 
   }
 
-  test("normalization transform no-normalize-do-split") {
+  test("backward mode option compatibility do-normalize-no-split") {
 
-    testNormalizedvsExpected(
-      vtTestVcfBiallelic,
-      vtTestVcfBiallelicExpectedSplit,
-      None,
-      Option("split")
+    testBackwardCompatibility(
+      vtTestVcfMultiAllelic,
+      vtTestVcfMultiAllelicExpectedNormalized,
+      Option(vtTestReference),
+      Option("normalize")
     )
 
-    testNormalizedvsExpected(
+  }
+
+  test("backward mode option compatibility no-normalize-do-split") {
+
+    testBackwardCompatibility(
       vtTestVcfMultiAllelic,
       vtTestVcfMultiAllelicExpectedSplit,
       None,
       Option("split")
     )
 
-    // without sampleIds
-    testNormalizedvsExpected(
-      vtTestVcfMultiAllelic,
-      vtTestVcfMultiAllelicExpectedSplit,
-      None,
-      Option("split"),
-      false
-    )
-
-    testNormalizedvsExpected(
-      gatkTestVcf,
-      gatkTestVcfExpectedSplit,
-      None,
-      Option("split")
-    )
-
-    testNormalizedvsExpected(
-      gatkTestVcfSymbolic,
-      gatkTestVcfSymbolicExpectedSplit,
-      Option(gatkTestReference),
-      Option("split"))
-
   }
 
-  test("normalization transform do-normalize-do-split") {
+  test("backward mode option compatibility do-normalize-do-split") {
 
-    testNormalizedvsExpected(
+    testBackwardCompatibility(
       vtTestVcfBiallelic,
       vtTestVcfBiallelicExpectedNormalized,
       Option(vtTestReference),
-      Option("split_and_normalize"))
+      Option("split_and_normalize")
+    )
 
-    testNormalizedvsExpected(
+    testBackwardCompatibility(
       vtTestVcfMultiAllelic,
       vtTestVcfMultiAllelicExpectedSplitNormalized,
       Option(vtTestReference),
-      Option("split_and_normalize"))
+      Option("split_and_normalize")
+    )
 
-    // without sampleIds
-    testNormalizedvsExpected(
-      vtTestVcfMultiAllelic,
-      vtTestVcfMultiAllelicExpectedSplitNormalized,
-      Option(vtTestReference),
-      Option("split_and_normalize"),
-      false)
-
-    testNormalizedvsExpected(
+    testBackwardCompatibility(
       gatkTestVcf,
       gatkTestVcfExpectedSplitNormalized,
       Option(gatkTestReference),
-      Option("split_and_normalize"))
+      Option("split_and_normalize")
+    )
 
-    testNormalizedvsExpected(
+    testBackwardCompatibility(
       gatkTestVcfSymbolic,
       gatkTestVcfSymbolicExpectedSplitNormalized,
       Option(gatkTestReference),
-      Option("split_and_normalize"))
+      Option("split_and_normalize")
+    )
 
   }
 
