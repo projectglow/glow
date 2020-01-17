@@ -31,9 +31,6 @@ class SplitMultiallelicsTransformerSuite extends GlowBaseTest with GlowLogging {
   // LeftTrimAndLeftAlign test suite. The reference genome was trimmed to +/-400 bases around
   // each variant to generate a small reference fasta. The vcf variants were modified accordingly.
 
-  lazy val gatkTestReference =
-    s"$testFolder/Homo_sapiens_assembly38.20.21_altered.fasta"
-
   lazy val gatkTestVcf =
     s"$testFolder/test_left_align_hg38_altered.vcf"
 
