@@ -27,7 +27,7 @@ concurrentRestrictions in Global := Seq(
   Tags.limit(Tags.ForkedTestGroup, testConcurrency)
 )
 
-def groupByHash(tests: Seq[TestDefinition]) = {
+def groupByHash(tests: Seq[TestDefinition]): Seq[Tests.Group] = {
   tests
     .groupBy(_.name.hashCode % testConcurrency)
     .map {
