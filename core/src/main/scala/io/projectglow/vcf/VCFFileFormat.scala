@@ -43,11 +43,11 @@ import org.broadinstitute.hellbender.utils.SimpleInterval
 import org.broadinstitute.hellbender.utils.variant.GATKVariantContextUtils
 import org.seqdoop.hadoop_bam.util.{BGZFEnhancedGzipCodec, DatabricksBGZFOutputStream}
 
-import io.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
+import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
 import io.projectglow.common.{CommonOptions, GlowLogging, VCFOptions, VCFRow, WithUtils}
 import io.projectglow.sql.util.{BGZFCodec, ComDatabricksDataSource, HadoopLineIterator, SerializableConfiguration}
 
-class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HlsUsageLogging {
+class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HlsEventRecorder {
   var codecFactory: CompressionCodecFactory = _
 
   override def shortName(): String = "vcf"
@@ -96,16 +96,10 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
     }
 
     // record vcfWrite event in the log along with its compression coded
-    val logOptions = Map(
-      VCFOptions.COMPRESSION -> options.getOrElse(VCFOptions.COMPRESSION, "None")
-    )
-    recordHlsUsage(
-      HlsMetricDefinitions.EVENT_HLS_USAGE,
-      Map(
-        HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_VCF_WRITE
-      ),
-      blob = hlsJsonBuilder(logOptions)
-    )
+    recordHlsEvent(
+      HlsTagValues.EVENT_VCF_WRITE,
+      Map(VCFOptions.COMPRESSION -> options.getOrElse(VCFOptions.COMPRESSION, "None")))
+
     new VCFOutputWriterFactory(options)
   }
 
@@ -137,13 +131,7 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
       VCFOptions.USE_TABIX_INDEX -> useIndex
     )
 
-    recordHlsUsage(
-      HlsMetricDefinitions.EVENT_HLS_USAGE,
-      Map(
-        HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_VCF_READ
-      ),
-      blob = hlsJsonBuilder(logOptions)
-    )
+    recordHlsEvent(HlsTagValues.EVENT_VCF_READ, logOptions)
 
     val serializableConf = new SerializableConfiguration(
       VCFFileFormat.hadoopConfWithBGZ(hadoopConf)

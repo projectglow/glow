@@ -37,7 +37,7 @@ import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
 import org.apache.spark.sql.types.{StructField, StructType}
 
 import io.projectglow.common.{CommonOptions, GlowLogging, VariantSchemas}
-import io.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
+import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
 import io.projectglow.sql.util.SerializableConfiguration
 
 class PlinkFileFormat
@@ -134,7 +134,7 @@ class PlinkFileFormat
   }
 }
 
-object PlinkFileFormat extends HlsUsageLogging {
+object PlinkFileFormat extends HlsEventRecorder {
 
   import io.projectglow.common.VariantSchemas._
   import io.projectglow.common.PlinkOptions._
@@ -146,6 +146,17 @@ object PlinkFileFormat extends HlsUsageLogging {
   val BLOCKS_PER_BYTE = 4
   val MAGIC_BYTES: Seq[Byte] = Seq(0x6c, 0x1b, 0x01).map(_.toByte)
   val NUM_MAGIC_BYTES: Int = MAGIC_BYTES.size
+
+  /* Log that PLINK files are being read */
+  def logPlinkRead(options: Map[String, String]): Unit = {
+    val logOptions = Map(
+      CommonOptions.INCLUDE_SAMPLE_IDS -> options
+        .get(CommonOptions.INCLUDE_SAMPLE_IDS)
+        .forall(_.toBoolean),
+      MERGE_FID_IID -> options.get(CommonOptions.INCLUDE_SAMPLE_IDS).forall(_.toBoolean)
+    )
+    recordHlsEvent(HlsTagValues.EVENT_PLINK_READ, logOptions)
+  }
 
   /* Gets the BED path's prefix as the FAM and BIM path prefix  */
   def getPrefixPath(bedPath: String): String = {
@@ -278,23 +289,6 @@ object PlinkFileFormat extends HlsUsageLogging {
     require(
       magicNumber == MAGIC_BYTES,
       s"Magic bytes were not $hexString; this is not a variant-major BED."
-    )
-  }
-
-  /* Log that PLINK files are being read */
-  def logPlinkRead(options: Map[String, String]): Unit = {
-    val logOptions = Map(
-      CommonOptions.INCLUDE_SAMPLE_IDS -> options
-        .get(CommonOptions.INCLUDE_SAMPLE_IDS)
-        .forall(_.toBoolean),
-      MERGE_FID_IID -> options.get(CommonOptions.INCLUDE_SAMPLE_IDS).forall(_.toBoolean)
-    )
-    recordHlsUsage(
-      HlsMetricDefinitions.EVENT_HLS_USAGE,
-      Map(
-        HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_PLINK_READ
-      ),
-      blob = hlsJsonBuilder(logOptions)
     )
   }
 

@@ -37,6 +37,23 @@ class VCFPiperSuite extends GlowBaseTest {
 
   override def afterEach(): Unit = {
     Glow.transform("pipe_cleanup", spark.emptyDataFrame)
+
+    // Check that all pipe transformer threads are cleaned up
+    eventually {
+      assert(
+        !Thread
+          .getAllStackTraces
+          .asScala
+          .keySet
+          .exists(_.getName.startsWith(ProcessHelper.STDIN_WRITER_THREAD_PREFIX)))
+      assert(
+        !Thread
+          .getAllStackTraces
+          .asScala
+          .keySet
+          .exists(_.getName.startsWith(ProcessHelper.STDERR_READER_THREAD_PREFIX)))
+    }
+
     super.afterEach()
   }
 
@@ -146,20 +163,6 @@ class VCFPiperSuite extends GlowBaseTest {
 
   test("stdin and stderr threads are cleaned up for successful commands") {
     pipeScript(na12878, "cat")
-    eventually {
-      assert(
-        !Thread
-          .getAllStackTraces
-          .asScala
-          .keySet
-          .exists(_.getName.startsWith(ProcessHelper.STDIN_WRITER_THREAD_PREFIX)))
-      assert(
-        !Thread
-          .getAllStackTraces
-          .asScala
-          .keySet
-          .exists(_.getName.startsWith(ProcessHelper.STDERR_READER_THREAD_PREFIX)))
-    }
   }
 
   test("command doesn't exist") {
@@ -167,22 +170,6 @@ class VCFPiperSuite extends GlowBaseTest {
       pipeScript(na12878, "totallyfakecommandthatdoesntexist")
     }
     assert(ex.getMessage.contains("No such file or directory"))
-
-    // threads should still be cleaned up
-    eventually {
-      assert(
-        !Thread
-          .getAllStackTraces
-          .asScala
-          .keySet
-          .exists(_.getName.startsWith(ProcessHelper.STDIN_WRITER_THREAD_PREFIX)))
-      assert(
-        !Thread
-          .getAllStackTraces
-          .asScala
-          .keySet
-          .exists(_.getName.startsWith(ProcessHelper.STDERR_READER_THREAD_PREFIX)))
-    }
   }
 
   test("header only") {

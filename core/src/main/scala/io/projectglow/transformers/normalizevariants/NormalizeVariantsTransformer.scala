@@ -29,7 +29,7 @@ import org.apache.spark.sql.DataFrame
  * A path to reference genome containing .fasta, .fasta.fai, and .dict files must be provided
  * through the referenceGenomePath option.
  */
-class NormalizeVariantsTransformer extends DataFrameTransformer with HlsUsageLogging {
+class NormalizeVariantsTransformer extends DataFrameTransformer {
 
   import NormalizeVariantsTransformer._
 

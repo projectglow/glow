@@ -16,6 +16,7 @@
 
 package io.projectglow.vcf
 
+import java.lang.{Boolean => JBoolean}
 import java.util.{HashMap => JHashMap, List => JList, Map => JMap}
 
 import scala.collection.JavaConverters._
@@ -29,6 +30,7 @@ import htsjdk.variant.variantcontext.{Allele, VariantContext, Genotype => HTSJDK
 import htsjdk.variant.vcf.{VCFConstants, VCFHeader, VCFUtils}
 import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, GenericArrayData}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
@@ -274,6 +276,23 @@ class VariantContextToInternalRowConverter(
     arr
   }
 
+  // Pads an array with nulls to outputLength (if provided)
+  private def makeArray(
+      strings: Array[String],
+      parseFn: String => Any,
+      outputLength: Option[Int] = None): Array[Any] = {
+    if (outputLength.isDefined) {
+      require(outputLength.get >= strings.length)
+    }
+    val arr = new Array[Any](outputLength.getOrElse(strings.length))
+    var i = 0
+    while (i < strings.length) {
+      arr(i) = parseFn(strings(i))
+      i += 1
+    }
+    arr
+  }
+
   // Fall back on parsing a comma-separated list
   private def getAttributeArray(
       vc: VariantContext,
@@ -283,6 +302,51 @@ class VariantContextToInternalRowConverter(
       vc.getAttributeAsString(key, ""),
       VCFConstants.INFO_FIELD_ARRAY_SEPARATOR_CHAR)
     makeArray(strList, parseFn)
+  }
+
+  private def getAnnotationArray(
+      vc: VariantContext,
+      key: String,
+      schema: StructType): Array[GenericInternalRow] = {
+    val annotations = vc.getAttributeAsStringList(key, "")
+    val annotationsArr = new Array[GenericInternalRow](annotations.size)
+    var i = 0
+    while (i < annotations.size) {
+      val effect = annotations.get(i)
+      // Providing a limit to the splitter preserves empty annotations
+      val subfields =
+        effect.split(AnnotationUtils.annotationDelimiterRegex, schema.size)
+      val subfieldsArr = new Array[Any](subfields.size)
+      var j = 0
+      while (j < subfields.size) {
+        val subfield = subfields(j)
+        subfieldsArr(j) = if (subfield == "") {
+          null // If the annotation is missing, set the value to null
+        } else {
+          schema.fields(j).dataType match {
+            case ArrayType(StringType, _) => // &-separated list
+              val strings = subfield.split(AnnotationUtils.arrayDelimiter)
+              new GenericArrayData(makeArray(strings, UTF8String.fromString(_)))
+            case st if st.isInstanceOf[StructType] => // /-separated pair
+              val stSchema = st.asInstanceOf[StructType]
+              val strings = subfield.split(AnnotationUtils.structDelimiterRegex, stSchema.size)
+              val pair = stSchema.fields.head.dataType match {
+                case IntegerType =>
+                  makeArray(strings, _.toInt, Some(stSchema.size))
+                case StringType =>
+                  makeArray(strings, UTF8String.fromString, None)
+              }
+              new GenericInternalRow(pair)
+            case IntegerType => subfield.toInt
+            case StringType => UTF8String.fromString(subfield)
+          }
+        }
+        j += 1
+      }
+      annotationsArr(i) = new GenericInternalRow(subfieldsArr)
+      i += 1
+    }
+    annotationsArr
   }
 
   private def updateInfoField(
@@ -311,7 +375,7 @@ class VariantContextToInternalRowConverter(
                 .indexOf(VCFConstants.INFO_FIELD_ARRAY_SEPARATOR) > -1) {
               getAttributeArray(vc, realName, UTF8String.fromString)
             } else {
-              makeArray(strings, UTF8String.fromString)
+              makeArray(strings, UTF8String.fromString(_))
             }
           new GenericArrayData(strList)
         case ArrayType(IntegerType, _) =>
@@ -330,6 +394,11 @@ class VariantContextToInternalRowConverter(
               getAttributeArray(vc, realName, VCFUtils.parseVcfDouble)
           }
           new GenericArrayData(doubleList)
+        case a: ArrayType if a.elementType.isInstanceOf[StructType] =>
+          // Annotation (eg. CSQ, ANN)
+          val structType = a.elementType.asInstanceOf[StructType]
+          val effects = getAnnotationArray(vc, realName, structType)
+          new GenericArrayData(effects)
       }
       if (value != null) {
         row.update(idx, value)
@@ -479,16 +548,17 @@ class VariantContextToInternalRowConverter(
             )
             formatKeysParsedWithoutHeader.add(key)
           }
-          val valueStr = VariantContextToVCFRowConverter.parseObjectAsString(
-            obj2any(identity)(genotype.getExtendedAttribute(key))
-          )
-          if (valueStr.nonEmpty) {
-            keys.append(UTF8String.fromString(key))
-            values.append(UTF8String.fromString(valueStr))
-          } else {
-            provideWarning(
-              s"Key $key has empty value $valueStr, but FLAG is not supported in FORMAT fields."
-            )
+          val value = genotype.getExtendedAttribute(key)
+          value match {
+            case _: JBoolean =>
+              provideWarning(
+                s"Key $key has a boolean value, but FLAG is not supported in FORMAT fields."
+              )
+            case _ =>
+              keys.append(UTF8String.fromString(key))
+              val valueStr =
+                VariantContextToVCFRowConverter.parseObjectAsString(obj2any(identity)(value))
+              values.append(UTF8String.fromString(valueStr))
           }
         }
       }
