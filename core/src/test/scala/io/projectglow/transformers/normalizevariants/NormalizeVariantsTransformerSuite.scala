@@ -193,7 +193,6 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
     testNormalizedvsExpected(originalVCFFileName, expectedVCFFileName, referenceGenome, mode, true)
   }
 
-
   test("normalization transform no-reference") {
     // vcf containing multi-allelic variants
     try {

@@ -56,7 +56,6 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
     val validationStringency = ValidationStringency.valueOf("SILENT")
 
     val splitFromMultiallelicColumnIdx =
-
       df.schema.fieldNames.indexOf(splitFromMultiAllelicField.name)
 
     // TODO: Implement normalization without using VariantContext
@@ -93,8 +92,7 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
         }
       }
     }
-      SQLUtils.internalCreateDataFrame(df.sparkSession, rddAfterNormalize, schema, false)
-
+    SQLUtils.internalCreateDataFrame(df.sparkSession, rddAfterNormalize, schema, false)
 
   }
 

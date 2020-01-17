@@ -60,7 +60,6 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HlsEventRec
     options.get(MODE_KEY).map(StringUtils.toSnakeCase) match {
 
       case Some(MODE_NORMALIZE) =>
-
         recordHlsEvent(HlsTagValues.EVENT_NORMALIZE_VARIANTS)
 
         VariantNormalizer.normalize(
@@ -69,13 +68,11 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HlsEventRec
         )
 
       case Some(MODE_SPLIT) =>
-
         // TODO: Log splitter usage
 
         VariantSplitter.splitVariants(df)
 
       case Some(MODE_SPLIT_NORMALIZE) =>
-
         // TODO: Log splitter usage
 
         VariantSplitter.splitVariants(df)
