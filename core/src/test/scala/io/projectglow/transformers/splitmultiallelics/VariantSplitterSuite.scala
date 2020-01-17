@@ -25,7 +25,7 @@ import org.apache.spark.sql.functions._
 class VariantSplitterSuite extends GlowBaseTest with GlowLogging {
 
   lazy val sourceName: String = "vcf"
-  lazy val testFolder: String = s"$testDataHome/variantnormalizer-test"
+  lazy val testFolder: String = s"$testDataHome/variantsplitternormalizer-test"
 
   lazy val vtTestVcfMultiAllelic =
     s"$testFolder/01_IN_altered_multiallelic.vcf"
