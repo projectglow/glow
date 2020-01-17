@@ -72,8 +72,6 @@ object HlsTagValues {
 
   val EVENT_NORMALIZE_VARIANTS = "normalizeVariants"
 
-  val EVENT_SPLIT_MULTIALLELICS = "splitMultiallelics"
-
   val EVENT_VCF_READ = "vcfRead"
 
   val EVENT_VCF_WRITE = "vcfWrite"

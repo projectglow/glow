@@ -30,12 +30,7 @@ class SplitMultiallelicsTransformer extends DataFrameTransformer with HlsUsageLo
 
   override def transform(df: DataFrame, options: Map[String, String]): DataFrame = {
 
-    recordHlsUsage(
-      HlsMetricDefinitions.EVENT_HLS_USAGE,
-      Map(
-        HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_SPLIT_MULTIALLELICS
-      )
-    )
+    // TODO: Log splitter usage
 
     VariantSplitter.splitVariants(df)
 

@@ -37,9 +37,6 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
   lazy val gatkTestVcf =
     s"$testFolder/test_left_align_hg38_altered.vcf"
 
-  lazy val gatkTestVcfExpectedSplit =
-    s"$testFolder/test_left_align_hg38_altered_vtdecompose.vcf"
-
   lazy val gatkTestVcfExpectedNormalized =
     s"$testFolder/test_left_align_hg38_altered_bcftoolsnormalized.vcf"
 
@@ -72,14 +69,8 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
   lazy val vtTestVcfBiallelic =
     s"$testFolder/01_IN_altered_biallelic.vcf"
 
-  lazy val vtTestVcfBiallelicExpectedSplit =
-    s"$testFolder/01_IN_altered_biallelic_vtdecompose.vcf"
-
   lazy val vtTestVcfBiallelicExpectedNormalized =
     s"$testFolder/01_IN_altered_biallelic_bcftoolsnormalized.vcf"
-
-  lazy val vtTestVcfBiallelicExpectedSplitNormalized =
-    s"$testFolder/01_IN_altered_biallelic_vtdecompose_bcftoolsnormalized.vcf"
 
   lazy val vtTestVcfMultiAllelic =
     s"$testFolder/01_IN_altered_multiallelic.vcf"
@@ -213,7 +204,7 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
     }
   }
 
-  test("normalization transform") {
+  test("normalize variants  transformer") {
 
     testNormalizedvsExpected(
       vtTestVcfBiallelic,
@@ -260,30 +251,9 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
   test("backward mode option compatibility do-normalize-no-split") {
 
     testBackwardCompatibility(
-      vtTestVcfBiallelic,
-      vtTestVcfBiallelicExpectedNormalized,
-      Option(vtTestReference),
-      Option("normalize")
-    )
-
-    testBackwardCompatibility(
       vtTestVcfMultiAllelic,
       vtTestVcfMultiAllelicExpectedNormalized,
       Option(vtTestReference),
-      Option("normalize")
-    )
-
-    testBackwardCompatibility(
-      gatkTestVcf,
-      gatkTestVcfExpectedNormalized,
-      Option(gatkTestReference),
-      Option("normalize")
-    )
-
-    testBackwardCompatibility(
-      gatkTestVcfSymbolic,
-      gatkTestVcfSymbolicExpectedNormalized,
-      Option(gatkTestReference),
       Option("normalize")
     )
 
@@ -292,30 +262,9 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
   test("backward mode option compatibility no-normalize-do-split") {
 
     testBackwardCompatibility(
-      vtTestVcfBiallelic,
-      vtTestVcfBiallelic,
-      None,
-      Option("split")
-    )
-
-    testBackwardCompatibility(
       vtTestVcfMultiAllelic,
       vtTestVcfMultiAllelicExpectedSplit,
       None,
-      Option("split")
-    )
-
-    testBackwardCompatibility(
-      gatkTestVcf,
-      gatkTestVcfExpectedSplit,
-      Option(gatkTestReference), // redundant option
-      Option("split")
-    )
-
-    testBackwardCompatibility(
-      gatkTestVcfSymbolic,
-      gatkTestVcfSymbolicExpectedSplit,
-      Option(gatkTestReference), // redundant option
       Option("split")
     )
 
@@ -350,7 +299,6 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
       Option(gatkTestReference),
       Option("split_and_normalize")
     )
-
 
   }
 

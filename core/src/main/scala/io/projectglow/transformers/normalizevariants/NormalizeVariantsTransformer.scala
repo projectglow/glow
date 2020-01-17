@@ -17,10 +17,10 @@
 package io.projectglow.transformers.normalizevariants
 
 import io.projectglow.DataFrameTransformer
-import io.projectglow.common.logging.{HlsMetricDefinitions, HlsTagDefinitions, HlsTagValues, HlsUsageLogging}
-import io.projectglow.transformers.splitmultiallelics.VariantSplitter
+import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
 import io.projectglow.transformers.util.StringUtils
 import org.apache.spark.sql.DataFrame
+import io.projectglow.transformers.splitmultiallelics.VariantSplitter
 
 /**
  * Implements DataFrameTransformer to transform the input DataFrame of varaints to an output
@@ -29,7 +29,7 @@ import org.apache.spark.sql.DataFrame
  * A path to reference genome containing .fasta, .fasta.fai, and .dict files must be provided
  * through the referenceGenomePath option.
  */
-class NormalizeVariantsTransformer extends DataFrameTransformer {
+class NormalizeVariantsTransformer extends DataFrameTransformer with HlsEventRecorder {
 
   import NormalizeVariantsTransformer._
 
@@ -40,6 +40,8 @@ class NormalizeVariantsTransformer extends DataFrameTransformer {
     if (options.contains(MODE_KEY)) {
       backwardCompatibleTransform(df, options)
     } else {
+      recordHlsEvent(HlsTagValues.EVENT_NORMALIZE_VARIANTS)
+
       VariantNormalizer.normalize(
         df,
         options.get(REFERENCE_GENOME_PATH)
@@ -58,12 +60,8 @@ class NormalizeVariantsTransformer extends DataFrameTransformer {
     options.get(MODE_KEY).map(StringUtils.toSnakeCase) match {
 
       case Some(MODE_NORMALIZE) =>
-        recordHlsUsage(
-          HlsMetricDefinitions.EVENT_HLS_USAGE,
-          Map(
-            HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_NORMALIZE_VARIANTS
-          )
-        )
+
+        recordHlsEvent(HlsTagValues.EVENT_NORMALIZE_VARIANTS)
 
         VariantNormalizer.normalize(
           df,
@@ -71,31 +69,18 @@ class NormalizeVariantsTransformer extends DataFrameTransformer {
         )
 
       case Some(MODE_SPLIT) =>
-        recordHlsUsage(
-          HlsMetricDefinitions.EVENT_HLS_USAGE,
-          Map(
-            HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_SPLIT_MULTIALLELICS
-          )
-        )
+
+        // TODO: Log splitter usage
 
         VariantSplitter.splitVariants(df)
 
       case Some(MODE_SPLIT_NORMALIZE) =>
-        recordHlsUsage(
-          HlsMetricDefinitions.EVENT_HLS_USAGE,
-          Map(
-            HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_SPLIT_MULTIALLELICS
-          )
-        )
+
+        // TODO: Log splitter usage
 
         VariantSplitter.splitVariants(df)
 
-        recordHlsUsage(
-          HlsMetricDefinitions.EVENT_HLS_USAGE,
-          Map(
-            HlsTagDefinitions.TAG_EVENT_TYPE -> HlsTagValues.EVENT_NORMALIZE_VARIANTS
-          )
-        )
+        recordHlsEvent(HlsTagValues.EVENT_NORMALIZE_VARIANTS)
 
         VariantNormalizer.normalize(
           df,
@@ -108,7 +93,7 @@ class NormalizeVariantsTransformer extends DataFrameTransformer {
   }
 }
 
-object NormalizeVariantsTransformer extends HlsUsageLogging {
+object NormalizeVariantsTransformer {
 
   @deprecated(
     "normalize_variants transformer is now for normalization only. split_multiallelics transformer should be used separately for splitting multiallelics")
