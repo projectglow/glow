@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package io.projectglow.transformers.normalizevariants
+package io.projectglow.transformers.splitmultiallelics
 
 import com.google.common.annotations.VisibleForTesting
 import io.projectglow.common.GlowLogging
@@ -23,7 +23,7 @@ import io.projectglow.vcf.InternalRowToVariantContextConverter
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.types._
+import org.apache.spark.sql.types.ArrayType
 
 private[projectglow] object VariantSplitter extends GlowLogging {
 
@@ -65,9 +65,7 @@ private[projectglow] object VariantSplitter extends GlowLogging {
    * @param variantDf
    * @return dataframe of split variants
    */
-
-  @VisibleForTesting
-  private[normalizevariants] def splitVariants(variantDf: DataFrame): DataFrame = {
+  def splitVariants(variantDf: DataFrame): DataFrame = {
 
     if (variantDf.schema.fieldNames.contains("attributes")) {
       // TODO: Unflattened INFO field splitting
@@ -118,7 +116,7 @@ private[projectglow] object VariantSplitter extends GlowLogging {
    * @return dataframe with split info fields
    */
   @VisibleForTesting
-  private[normalizevariants] def splitInfoFields(variantDf: DataFrame): DataFrame = {
+  private[splitmultiallelics] def splitInfoFields(variantDf: DataFrame): DataFrame = {
     variantDf
       .schema
       .filter(field =>
@@ -146,7 +144,7 @@ private[projectglow] object VariantSplitter extends GlowLogging {
    * @return dataframe with split genotype subfields
    */
   @VisibleForTesting
-  private[normalizevariants] def splitGenotypeFields(variantDf: DataFrame): DataFrame = {
+  private[splitmultiallelics] def splitGenotypeFields(variantDf: DataFrame): DataFrame = {
 
     val gSchema = InternalRowToVariantContextConverter.getGenotypeSchema(variantDf.schema)
 
@@ -271,7 +269,7 @@ private[projectglow] object VariantSplitter extends GlowLogging {
    *         of interest in the colex ordering of all possible genotypes.
    */
   @VisibleForTesting
-  private[normalizevariants] def refAltColexOrderIdxArray(
+  private[splitmultiallelics] def refAltColexOrderIdxArray(
       numAlleles: Int,
       ploidy: Int,
       altAlleleIdx: Int): Array[Int] = {
@@ -309,10 +307,10 @@ private[projectglow] object VariantSplitter extends GlowLogging {
   }
 
   @VisibleForTesting
-  private[normalizevariants] val splitAlleleIdxFieldName = "splitAlleleIdx"
+  private[splitmultiallelics] val splitAlleleIdxFieldName = "splitAlleleIdx"
 
   @VisibleForTesting
-  private[normalizevariants] val splitAllelesFieldName = "splitAlleles"
+  private[splitmultiallelics] val splitAllelesFieldName = "splitAlleles"
 
   private val oldMultiallelicFieldName = "OLD_MULTIALLELIC"
 
