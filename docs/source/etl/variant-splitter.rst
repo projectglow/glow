@@ -13,9 +13,9 @@ Splitting Multiallelic Variants
 
 **Splitting multiallelic variants to biallelic variants** is a transformation sometimes required before further downstream analysis. Glow provides the ``split_multiallelics" transformer to be appied on a varaint DataFrame to split multiallelic variants in the DataFrame to biallelic variants.
 
-.. note::
+The splitting logic is the same as the one of the `vt decompose -s <https://genome.sph.umich.edu/wiki/Vt#Decompose>`_ of the vt package. The precise behavior of the splitter is as follows:
 
-  The splitting logic is the same as the one used in GATK's `LeftAlignAndTrimVariants <https://software.broadinstitute.org/gatk/documentation/tooldocs/3.8-0/org_broadinstitute_gatk_tools_walkers_variantutils_LeftAlignAndTrimVariants.php>`_ tool using ``--splitMultiallelics`` option. In splitting a multiallelic variant, this transformer recalculates the GT blocks for the resulting biallelic variants if possible, and drops all VCF INFO fields, except for AC, AN, and AF, which are recalculated based on the newly calculated GT blocks, if any, and otherwise dropped.
+ -
 
 Usage
 =====
