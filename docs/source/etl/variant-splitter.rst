@@ -56,8 +56,8 @@ Assuming ``df_original`` is a variable of type DataFrame which contains the geno
 
             from pyspark.sql import Row
 
-            expected_normalized_variant = Row(contigName='chr20', start=268, end=269, names=[], referenceAllele='A', alternateAlleles=['ATTTGAGATCTTCCCTCTTTTCTAATATAAACACATAAAGCTCTGTTTCCTTCTAGGTAACTGG'], qual=30.0, filters=[], splitFromMultiAllelic=False, INFO_AN=4, INFO_AF=[1.0], INFO_AC=[1], genotypes=[Row(sampleId='CHMI_CHMI3_WGS2', alleleDepths=None, phased=False, calls=[1, 1]), Row(sampleId='CHMI_CHMI3_WGS3', alleleDepths=None, phased=False, calls=[1, 1])])
-            assert rows_equal(df_normalized.head(), expected_normalized_variant)
+            expected_split_variant = Row(contigName='20', start=100, end=101, names=[], referenceAllele='A', alternateAlleles=['ACCA'], qual=None, filters=[], splitFromMultiAllelic=True, INFO_VC='INDEL', INFO_AC=3, INFO_AF=[0.375], INFO_AN=[8], INFO_refseq.name='NM_144628'INFO_refseq.positionType='intron',INFOR_MULTIALLELIC='20:101:A/ACCA/TCGG',genotypes=[Row(sampleId='SAMPLE1',  calls=[0, 1], alleleDepths=[2,15], depth=30, conditionalQualityField=90, phredLikelihoods=[2407,0,533]), Row(sampleId='SAMPLE2', calls=[1, -1], alleleDepths=[2,15], depth=30, conditionalQualityField=90, phredLikelihoods=[2407,585,533]), Row(sampleId='SAMPLE3',  calls=[0, 1], alleleDepths=[2,15], depth=30, conditionalQualityField=90, phredLikelihoods=[2407,0,533]), Row(sampleId='SAMPLE1',  calls=[0, -1], alleleDepths=[2,15], depth=30, conditionalQualityField=90, phredLikelihoods=[2407,822,533])])
+            assert rows_equal(df_split.head(), expected_split_variant)
 
     .. tab:: Scala
 
