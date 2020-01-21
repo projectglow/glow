@@ -32,7 +32,11 @@ jobs:
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            sbt printTests coverage "testOnly $(circleci tests split --split-by=timings --timings-type=classname core-test-names.log | tr '\n' ' ') --" coverageReport exit
+            if [[ $CIRCLE_NODE_INDEX == 0 ]]; then
+              sbt ++2.11.12 -v coverage test coverageReport exit
+            else
+              sbt ++2.12.8 -v coverage test coverageReport exit
+            fi
 
       - run:
           name: Run Python tests
