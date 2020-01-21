@@ -13,14 +13,36 @@ Splitting Multiallelic Variants
 
 **Splitting multiallelic variants to biallelic variants** is a transformation sometimes required before further downstream analysis. Glow provides the ``split_multiallelics" transformer to be appied on a varaint DataFrame to split multiallelic variants in the DataFrame to biallelic variants.
 
-The splitting logic is the same as the one of the `vt decompose -s <https://genome.sph.umich.edu/wiki/Vt#Decompose>`_ of the vt package. The precise behavior of the splitter is as follows:
+.. note::
 
- -
+    The splitting logic is the same as the one used by `vt decompose -s <https://genome.sph.umich.edu/wiki/Vt#Decompose>`_ of the vt package. The precise behavior of the splitter is as follows:
+
+    - A given multiallelic row with :math:`n` ``ALT`` alleles is split to :math:`n` biallelic rows, each with one of the ``ALT`` alleles in the alternate alleles column. The ``REF`` allele in all these rows is the same as the ``REF`` allele in the multiallelic row.
+
+    - Each ``INFO`` field is appropriately split among split rows if it has the same number of elements as number of ``ALT`` alleles, otherwise it is repeated in all split rows. A new ``INFO`` column called ``OLD_MULTIALLELIC`` is added to the DataFrame, which for each split row, holds the ``CHROM:POS:REF/ALT`` of its corresponding multiallelic row.
+
+    - Genotype fields are treated as follows: The ``GT`` field becomes biallelic in each row, where ``ALT`` alleles not present in that row are replaced with no call (``.``). The fields with number of entries equal to number of (``REF`` + ``ALT``) alleles, are properly split into rows, where in each split row, only entries corresponding to the ``REF`` allele as well as the ``ALT`` alleles present in that row are kept. The fields which follow colex order (e.g., ``GL``, ``PL``, and ``GP``) are properly split between split rows where in each row only the elements corresponding to genotypes comprising of the ``REF`` and ``ALT`` alleles in that row are listed. Other fields are just repeated over the split rows.
+
+    As an example (shown in VCF file format), the following multiallelic row
+
+    .. code-block::
+
+        #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	SAMPLE1
+        20	101	.	A	ACCA,TCGG	.	PASS	VC=INDEL;AC=3,2;AF=0.375,0.25;AN=8	GT:AD:DP:GQ:PL	0/1:2,15,31:30:99:2407,0,533,697,822,574
+
+    will be split into the following two biallelic rows:
+
+    .. code-block::
+
+        #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	SAMPLE1
+        20	101	.	A	ACCA	.	PASS	VC=INDEL;AC=3;AF=0.375;AN=8;OLD_MULTIALLELIC=20:101:A/ACCA/TCGG	GT:AD:DP:GQ:PL	0/1:2,15:30:99:2407,0,533
+        20	101	.	A	TCGG	.	PASS	VC=INDEL;AC=2;AF=0.25;AN=8;OLD_MULTIALLELIC=20:101:A/ACCA/TCGG	GT:AD:DP:GQ:PL	0/.:2,31:30:99:2407,697,574
+
 
 Usage
 =====
 
-Assuming ``df_original`` is a variable of type DataFrame which contains the genomic variant records, and ``ref_genome_path`` is a variable of type String containing the path to the reference genome file, a minimal example of using this transformer for normalization is:
+Assuming ``df_original`` is a variable of type DataFrame which contains the genomic variant records, an example of using this transformer for splitting multiallelic variants is:
 
 .. tabs::
 
@@ -28,7 +50,7 @@ Assuming ``df_original`` is a variable of type DataFrame which contains the geno
 
         .. code-block:: python
 
-            df_normalized = glow.transform("normalize_variants", df_original, reference_genome_path=ref_genome_path)
+            df_split = glow.transform("split_multiallelics", df_original)
 
         .. invisible-code-block: python
 
@@ -41,32 +63,7 @@ Assuming ``df_original`` is a variable of type DataFrame which contains the geno
 
         .. code-block:: scala
 
-            df_normalized = Glow.transform("normalize_variants", df_original, Map("reference_genome_path" -> ref_genome_path))
+            df_split = Glow.transform("split_multiallelics", df_original)
 
-Options
-=======
-The ``normalize_variants`` transformer has the following options:
-
-.. list-table::
-   :header-rows: 1
-
-   * - Option
-     - Type
-     - Possible values and description
-   * - ``mode``
-     - string
-     - | ``normalize``: Only normalizes the variants (if user does not pass the option, ``normalize`` is assumed as default)
-       | ``split_and_normalize``: Split multiallelic variants to biallelic variants and normalize them
-       | ``split``: Only split the multiallelic variants to biallelic without normalizing
-   * - ``referenceGenomePath``
-     - string
-     - Path to the reference genome ``.fasta`` or ``.fa`` file (required for normalization)
-
-       **Notes**:
-
-       * ``.fai`` and ``.dict`` files with the same name must be present in the same folder.
-       * This option is not required for the ``split`` mode as the reference genome is only used for normalization.
-
-
-.. notebook:: .. etl/normalizevariants-transformer.html
-  :title: Variant normalization notebook
+.. notebook:: .. etl/splitmultiallelics-transformer.html
+  :title: Splitting Multiallelic Variants notebook
