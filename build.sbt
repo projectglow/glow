@@ -67,7 +67,8 @@ lazy val commonSettings = Seq(
   scalacOptions += "-target:jvm-1.8"
 )
 
-lazy val scalaLogging = scalaBinaryVersion.value match {
+lazy val scalaLogging = SettingKey[String]("scalaLogging")
+scalaLogging := scalaBinaryVersion.value match {
   case "2.11" => "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2"
   case _ => "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2"
 }
