@@ -3,11 +3,15 @@ import scala.sys.process._
 import sbt.Tests._
 
 val sparkVersion = "2.4.3"
-val scalaMajorMinor = "2.11"
 
-ThisBuild / scalaVersion := s"$scalaMajorMinor.12"
+lazy val scala212 = "2.12.8"
+lazy val scala211 = "2.11.12"
+lazy val supportedScalaVersions = List(scala212, scala211)
+
+ThisBuild / scalaVersion := scala212
 ThisBuild / organization := "io.projectglow"
 ThisBuild / scalastyleConfig := baseDirectory.value / "scalastyle-config.xml"
+ThisBuild / crossScalaVersions := Nil
 ThisBuild / publish / skip := true
 
 ThisBuild / organizationName := "The Glow Authors"
@@ -94,8 +98,8 @@ lazy val dependencies = Seq(
     .exclude("org.apache.commons", "commons-collections4")
     .exclude("org.apache.commons", "commons-vfs2")
     .exclude("org.apache.hadoop", "hadoop-client")
-    .exclude("org.apache.spark", s"spark-mllib_$scalaMajorMinor")
-    .exclude("org.bdgenomics.adam", s"adam-core-spark2_$scalaMajorMinor")
+    .exclude("org.apache.spark", s"spark-mllib_2.11")
+    .exclude("org.bdgenomics.adam", s"adam-core-spark2_2.11")
     .exclude("org.broadinstitute", "barclay")
     .exclude("org.broadinstitute", "hdf5-java-bindings")
     .exclude("org.broadinstitute", "gatk-native-bindings")
@@ -125,6 +129,7 @@ lazy val core = (project in file("core"))
   .settings(
     commonSettings,
     name := "glow",
+    crossScalaVersions := supportedScalaVersions,
     publish / skip := false,
     // Adds the Git hash to the MANIFEST file. We set it here instead of relying on sbt-release to
     // do so.
@@ -241,17 +246,19 @@ ThisBuild / bintrayRepository := "glow"
 
 import ReleaseTransformations._
 
+// don't use sbt-release's cross facility
+releaseCrossBuild := false
 releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,
   inquireVersions,
   runClean,
-  runTest,
+  releaseStepCommandAndRemaining("+test"),
   setReleaseVersion,
   updateStableVersion,
   commitReleaseVersion,
   commitStableVersion,
   tagRelease,
-  publishArtifacts,
+  releaseStepCommandAndRemaining("+publishSigned"),
   setNextVersion,
   commitNextVersion
 )
