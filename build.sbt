@@ -67,6 +67,11 @@ lazy val commonSettings = Seq(
   scalacOptions += "-target:jvm-1.8"
 )
 
+lazy val scalaLogging = scalaBinaryVersion.value match {
+  case "2.11" => "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2"
+  case _ => "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2"
+}
+
 lazy val dependencies = Seq(
   "org.apache.spark" %% "spark-catalyst" % sparkVersion % "provided",
   "org.apache.spark" %% "spark-core" % sparkVersion % "provided",
@@ -77,7 +82,7 @@ lazy val dependencies = Seq(
   "org.slf4j" % "slf4j-api" % "1.7.25",
   "org.slf4j" % "slf4j-log4j12" % "1.7.25",
   "org.jdbi" % "jdbi" % "2.63.1",
-  "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2",
+  scalaLogging,
   // Exclude extraneous GATK dependencies
   ("org.broadinstitute" % "gatk" % "4.0.11.0")
     .exclude("biz.k11i", "xgboost-predictor")
