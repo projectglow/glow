@@ -32,7 +32,7 @@ object LinearRegressionExpr {
     if (state.get() == null) {
       // Save the QR factorization of the covariate matrix since it's the same for every row
       state.set(ComputeQR.computeQR(matrixUDT.deserialize(covariates).toDense))
-      TaskContext.get().addTaskCompletionListener(_ => state.remove())
+      TaskContext.get().addTaskCompletionListener[Unit](_ => state.remove())
     }
 
     LinearRegressionGwas.linearRegressionGwas(
