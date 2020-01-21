@@ -265,15 +265,15 @@ object PlinkFileFormat extends HlsEventRecorder {
   }
 
   /* The location of the first byte for a variant in a BED */
-  def getVariantStart(variantIdx: Int, blockSize: Int): Int = {
-    NUM_MAGIC_BYTES + (blockSize * variantIdx)
+  def getVariantStart(variantIdx: Int, blockSize: Int): Long = {
+    NUM_MAGIC_BYTES + (blockSize * variantIdx.toLong)
   }
 
   /* Number of variants to be read from a partitioned BED */
   def getNumVariants(
       partitionedFileStart: Long,
       partitionedFileLength: Long,
-      firstVariantStart: Int,
+      firstVariantStart: Long,
       blockSize: Int): Int = {
     val actualLength = partitionedFileLength - (firstVariantStart - partitionedFileStart)
     math.ceil(actualLength / blockSize.toDouble).toInt

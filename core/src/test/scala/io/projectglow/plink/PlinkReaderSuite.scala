@@ -327,7 +327,7 @@ class PlinkReaderSuite extends GlowBaseTest {
     assert(!schema.exists(_.name == "sampleId"))
   }
 
-  def getVariantIdxStartNum(fileStart: Long, fileLength: Long, blockSize: Int): (Int, Int, Int) = {
+  def getVariantIdxStartNum(fileStart: Long, fileLength: Long, blockSize: Int): (Int, Long, Int) = {
     val firstVariantIdx = PlinkFileFormat.getFirstVariantIdx(fileStart, blockSize)
     val firstVariantStart = PlinkFileFormat.getVariantStart(firstVariantIdx, blockSize)
     val numVariants =
@@ -370,6 +370,16 @@ class PlinkReaderSuite extends GlowBaseTest {
     (5 to 8).foreach { s =>
       assert(PlinkFileFormat.getBlockSize(s) == 2)
     }
+  }
+
+  test("Big PLINK files") {
+    val num1KgSamples = 2504
+    val blockSize = PlinkFileFormat.getBlockSize(num1KgSamples)
+    assert(blockSize == 626)
+
+    val variantIdx = 25484379
+    val variantStart = PlinkFileFormat.getVariantStart(variantIdx, blockSize)
+    assert(variantStart == 15953221257L)
   }
 
 }
