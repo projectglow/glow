@@ -4,7 +4,7 @@ This document will help answer common questions you may have during your first c
 
 ## Submitting Issues
 
-Not every contribution comes in the form of code. Submitting, confirming, and triaging issues is an important task for any project. Wee use GitHub to track all project issues.
+Not every contribution comes in the form of code. Submitting, confirming, and triaging issues is an important task for any project. We use GitHub to track all project issues.
 
 ## Contribution Process
 
