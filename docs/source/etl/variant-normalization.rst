@@ -65,7 +65,7 @@ The ``normalize_variants`` transformer has the following options:
      - string
      - | ``normalize``: Only normalizes the variants (if user does not pass the option, ``normalize`` is assumed as default)
        | ``split_and_normalize``: Split multiallelic variants to biallelic variants and then normalize the variants. This usage is deprecated. Instead, use :ref:`split_multiallelics transformer<split_multiallelics>` followed by normalize_variants transformer.
-       | ``split``: Only split the multiallelic variants to biallelic without normalizing.
+       | ``split``: Only split the multiallelic variants to biallelic without normalizing. This usage is deprecated. Instead, use :ref:`split_multiallelics transformer<split_multiallelics>`.
 
 .. notebook:: .. etl/normalizevariants-transformer.html
   :title: Variant normalization notebook
