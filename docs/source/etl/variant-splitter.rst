@@ -1,5 +1,7 @@
+.. _split_multiallelics:
+
 ===============================
-Splitting Multiallelic Variants
+Split Multiallelic Variants
 ===============================
 
 .. invisible-code-block: python
@@ -10,17 +12,21 @@ Splitting Multiallelic Variants
     test_dir = 'test-data/variantsplitternormalizer-test/'
     df_original = spark.read.format('vcf').load(test_dir + '01_IN_altered_multiallelic.vcf')
 
-**Splitting multiallelic variants to biallelic variants** is a transformation sometimes required before further downstream analysis. Glow provides the ``split_multiallelics" transformer to be appied on a varaint DataFrame to split multiallelic variants in the DataFrame to biallelic variants.
+**Splitting multiallelic variants to biallelic variants** is a transformation sometimes required before further downstream analysis. Glow provides the ``split_multiallelics`` transformer to be applied on a varaint DataFrame to split multiallelic variants in the DataFrame to biallelic variants. This transformer is able to handle any number of ``ALT`` alleles and any ploidy.
 
 .. note::
 
-    The splitting logic is the same as the one used by `vt decompose -s <https://genome.sph.umich.edu/wiki/Vt#Decompose>`_ of the vt package. The precise behavior of the splitter is as follows:
+    The splitting logic used by the ``split_multiallelics`` transformer is the same as the one used by the `vt decompose tool <https://genome.sph.umich.edu/wiki/Vt#Decompose>`_ of the vt package with option ``-s`` (note that the example provided at `vt decompose user manual page <https://genome.sph.umich.edu/wiki/Vt#Decompose>`_ does not reflect the behavior of ``vt decompose -s`` completely correctly).
 
-    - A given multiallelic row with :math:`n` ``ALT`` alleles is split to :math:`n` biallelic rows, each with one of the ``ALT`` alleles in the alternate alleles column. The ``REF`` allele in all these rows is the same as the ``REF`` allele in the multiallelic row.
+    The precise behavior of the ``split_multiallelics`` transformer is presented below:
 
-    - Each ``INFO`` field is appropriately split among split rows if it has the same number of elements as number of ``ALT`` alleles, otherwise it is repeated in all split rows. A new ``INFO`` column called ``OLD_MULTIALLELIC`` is added to the DataFrame, which for each split row, holds the ``CHROM:POS:REF/ALT`` of its corresponding multiallelic row.
+    - A given multiallelic row with :math:`n` ``ALT`` alleles is split to :math:`n` biallelic rows, each with one of the ``ALT`` alleles of the original multiallelic row. The ``REF`` allele in all split rows is the same as the ``REF`` allele in the multiallelic row.
 
-    - Genotype fields are treated as follows: The ``GT`` field becomes biallelic in each row, where ``ALT`` alleles not present in that row are replaced with no call (``.``). The fields with number of entries equal to number of (``REF`` + ``ALT``) alleles, are properly split into rows, where in each split row, only entries corresponding to the ``REF`` allele as well as the ``ALT`` alleles present in that row are kept. The fields which follow colex order (e.g., ``GL``, ``PL``, and ``GP``) are properly split between split rows where in each row only the elements corresponding to genotypes comprising of the ``REF`` and ``ALT`` alleles in that row are listed. Other fields are just repeated over the split rows.
+    - Each ``INFO`` field is appropriately split among split rows if it has the same number of elements as number of ``ALT`` alleles, otherwise it is repeated in all split rows. The boolean ``INFO`` field ``splitFromMultiAllelic`` is added/modified to reflect whether the new row is the result of splitting a multiallelic row through this transformation or not. A new ``INFO`` field called ``OLD_MULTIALLELIC`` is added to the DataFrame, which for each split row, holds the ``CHROM:POS:REF/ALT`` of its original multiallelic row.
+
+    - Genotype fields for each sample are treated as follows: The ``GT`` field becomes biallelic in each row, where the original ``ALT`` alleles that are not present in that row are replaced with no call. The fields with number of entries equal to number of ``REF`` + ``ALT`` alleles, are properly split into rows, where in each split row, only entries corresponding to the ``REF`` allele as well as the ``ALT`` allele present in that row are kept. The fields which follow colex order (e.g., ``GL``, ``PL``, and ``GP``) are properly split between split rows where in each row only the elements corresponding to genotypes comprising of the ``REF`` and ``ALT`` alleles in that row are listed. Other genotype fields are just repeated over the split rows.
+
+    - Any other field in the DataFrame is just repeated across the split rows.
 
     As an example (shown in VCF file format), the following multiallelic row
 
@@ -65,4 +71,4 @@ Assuming ``df_original`` is a variable of type DataFrame which contains the geno
             df_split = Glow.transform("split_multiallelics", df_original)
 
 .. notebook:: .. etl/splitmultiallelics-transformer.html
-  :title: Splitting Multiallelic Variants notebook
+  :title: Split Multiallelic Variants notebook
