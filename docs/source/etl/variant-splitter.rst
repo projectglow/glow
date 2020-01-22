@@ -8,8 +8,7 @@ Splitting Multiallelic Variants
     glow.register(spark)
 
     test_dir = 'test-data/variantsplitternormalizer-test/'
-    df_original = spark.read.format('vcf').load(test_dir + 'test_left_align_hg38_altered.vcf')
-    ref_genome_path = test_dir + 'Homo_sapiens_assembly38.20.21_altered.fasta'
+    df_original = spark.read.format('vcf').load(test_dir + '01_IN_altered_multiallelic.vcf')
 
 **Splitting multiallelic variants to biallelic variants** is a transformation sometimes required before further downstream analysis. Glow provides the ``split_multiallelics" transformer to be appied on a varaint DataFrame to split multiallelic variants in the DataFrame to biallelic variants.
 
@@ -56,7 +55,7 @@ Assuming ``df_original`` is a variable of type DataFrame which contains the geno
 
             from pyspark.sql import Row
 
-            expected_split_variant = Row(contigName='20', start=100, end=101, names=[], referenceAllele='A', alternateAlleles=['ACCA'], qual=None, filters=[], splitFromMultiAllelic=True, INFO_VC='INDEL', INFO_AC=3, INFO_AF=[0.375], INFO_AN=[8], INFO_refseq.name='NM_144628'INFO_refseq.positionType='intron',INFOR_MULTIALLELIC='20:101:A/ACCA/TCGG',genotypes=[Row(sampleId='SAMPLE1',  calls=[0, 1], alleleDepths=[2,15], depth=30, conditionalQualityField=90, phredLikelihoods=[2407,0,533]), Row(sampleId='SAMPLE2', calls=[1, -1], alleleDepths=[2,15], depth=30, conditionalQualityField=90, phredLikelihoods=[2407,585,533]), Row(sampleId='SAMPLE3',  calls=[0, 1], alleleDepths=[2,15], depth=30, conditionalQualityField=90, phredLikelihoods=[2407,0,533]), Row(sampleId='SAMPLE1',  calls=[0, -1], alleleDepths=[2,15], depth=30, conditionalQualityField=90, phredLikelihoods=[2407,822,533])])
+            expected_split_variant = Row(contigName='20', start=100, end=101, names=[], referenceAllele='A', alternateAlleles=['ACCA'], qual=None, filters=['PASS'], splitFromMultiAllelic=True, INFO_VC='INDEL', INFO_AC=[3], INFO_AF=[0.375], INFO_AN=8, **{'INFO_refseq.name':'NM_144628', 'INFO_refseq.positionType':'intron'},INFO_OLD_MULTIALLELIC='20:101:A/ACCA/TCGG', genotypes=[Row(sampleId='SAMPLE1',  calls=[0, 1], alleleDepths=[2,15], phased=False, depth=30, conditionalQuality=99, phredLikelihoods=[2407,0,533]), Row(sampleId='SAMPLE2', calls=[1, -1], alleleDepths=[2,15], phased=False, depth=30, conditionalQuality=99, phredLikelihoods=[2407,585,533]), Row(sampleId='SAMPLE3',  calls=[0, 1], alleleDepths=[2,15], phased=False, depth=30, conditionalQuality=99, phredLikelihoods=[2407,0,533]), Row(sampleId='SAMPLE4',  calls=[0, -1], alleleDepths=[2,15], phased=False, depth=30, conditionalQuality=99, phredLikelihoods=[2407,822,533])])
             assert rows_equal(df_split.head(), expected_split_variant)
 
     .. tab:: Scala

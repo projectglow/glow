@@ -7,7 +7,7 @@ Variant Normalization
     import glow
     glow.register(spark)
 
-    test_dir = 'test-data/variantnormalizer-test/'
+    test_dir = 'test-data/variantsplitternormalizer-test/'
     df_original = spark.read.format('vcf').load(test_dir + 'test_left_align_hg38_altered.vcf')
     ref_genome_path = test_dir + 'Homo_sapiens_assembly38.20.21_altered.fasta'
 
