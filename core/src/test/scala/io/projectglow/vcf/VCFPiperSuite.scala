@@ -278,6 +278,26 @@ class VCFPiperSuite extends GlowBaseTest {
     val e = intercept[SparkException](Glow.transform("pipe", inputDf, options))
     assert(e.getCause.isInstanceOf[IllegalArgumentException])
   }
+
+  test("throw if input formatter fails") {
+    val inputDf = spark
+      .read
+      .format("vcf")
+      .load(TGP)
+      .drop("contigName")
+
+    val options = Map(
+      "inputFormatter" -> "vcf",
+      "outputFormatter" -> "vcf",
+      "inVcfHeader" -> "infer",
+      "inValidationStringency" -> "STRICT",
+      "cmd" -> s"""["cat"]"""
+    )
+
+    val e = intercept[SparkException](Glow.transform("pipe", inputDf, options))
+    assert(e.getCause.isInstanceOf[IllegalArgumentException])
+    assert(e.getCause.getMessage.contains("Could not build variant context: Contig cannot be null"))
+  }
 }
 
 case class SimpleVcfRow(contigName: String, start: Long, genotypes: Seq[SimpleGenotype])
