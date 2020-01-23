@@ -71,7 +71,8 @@ You can save a DataFrame as a VCF file, which you can then read with other tools
 
 .. invisible-code-block: python
 
-   path = "test-data/doc-test-bigvcf.vcf"
+   base_path = "test-data/doc-test-bigvcf/"
+   path = base_path + "test.vcf"
 
 .. code-block:: python
 
@@ -79,8 +80,7 @@ You can save a DataFrame as a VCF file, which you can then read with other tools
 
 .. invisible-code-block: python
 
-   for filename in glob.glob(path):
-    os.remove(filename)
+   shutil.rmtree(base_path)
 
 The file extension of the output path determines which, if any, compression codec should be used.
 For instance, writing to a path such as ``/genomics/my_vcf.vcf.bgz`` will cause the output file to be
@@ -166,7 +166,8 @@ You can use the ``DataFrameWriter`` API to save a single BGEN file, which you ca
 
 .. invisible-code-block: python
 
-   path = "test-data/doc-test-bigbgen.bgen"
+   base_path = "test-data/doc-test-bigbgen/"
+   path = base_path + "test.bgen"
 
 .. code-block:: python
 
@@ -174,8 +175,7 @@ You can use the ``DataFrameWriter`` API to save a single BGEN file, which you ca
 
 .. invisible-code-block: python
 
-   for filename in glob.glob(path):
-    os.remove(filename)
+   shutil.rmtree(base_path)
 
 If the genotype arrays are missing ploidy and/or phasing information, the BGEN writer infers the values using the
 provided values for ploidy, phasing, or ``posteriorProbabilities`` in the genotype arrays. You can provide the value for ploidy
