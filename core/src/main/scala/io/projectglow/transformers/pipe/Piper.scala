@@ -181,7 +181,8 @@ class PipeIterator(
     input: Iterator[InternalRow],
     inputFormatter: InputFormatter,
     outputFormatter: OutputFormatter)
-    extends Iterator[Any] {
+    extends Iterator[Any]
+    with GlowLogging {
 
   private val processHelper = new ProcessHelper(cmd, environment, writeInput, TaskContext.get)
   private val inputStream = processHelper.startProcess()
@@ -191,6 +192,8 @@ class PipeIterator(
     try {
       inputFormatter.init(stream)
       input.foreach(inputFormatter.write)
+    } catch {
+      case e: Throwable => logger.warn(e.toString)
     } finally {
       inputFormatter.close()
     }
