@@ -7,9 +7,7 @@ import pytest
 def spark():
     sess = SparkSession.builder \
         .master("local[2]") \
-        .config(
-            "spark.hadoop.io.compression.codecs",
-            "org.seqdoop.hadoop_bam.util.BGZFCodec,org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec") \
+        .config("spark.hadoop.io.compression.codecs", "io.projectglow.sql.util.BGZFCodec") \
         .getOrCreate()
     yield sess
     sess.stop()
