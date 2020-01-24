@@ -43,6 +43,7 @@ Split Multiallelic Variants
         20	101	.	A	ACCA	.	PASS	VC=INDEL;AC=3;AF=0.375;AN=8;OLD_MULTIALLELIC=20:101:A/ACCA/TCGG	GT:AD:DP:GQ:PL	0/1:2,15:30:99:2407,0,533
         20	101	.	A	TCGG	.	PASS	VC=INDEL;AC=2;AF=0.25;AN=8;OLD_MULTIALLELIC=20:101:A/ACCA/TCGG	GT:AD:DP:GQ:PL	0/.:2,31:30:99:2407,697,574
 
+
 Usage
 =====
 
@@ -68,7 +69,6 @@ Assuming ``df_original`` is a variable of type DataFrame which contains the geno
         .. code-block:: scala
 
             df_split = Glow.transform("split_multiallelics", df_original)
-
 
 .. tip::
 
