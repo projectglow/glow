@@ -29,6 +29,7 @@ import io.projectglow.vcf.{InternalRowToVariantContextConverter, VCFSchemaInferr
 import org.apache.spark.sql.{DataFrame, SQLUtils}
 import org.broadinstitute.hellbender.engine.{ReferenceContext, ReferenceDataSource}
 import org.broadinstitute.hellbender.utils.SimpleInterval
+import htsjdk.samtools.reference.IndexedFastaSequenceFile
 
 import scala.collection.JavaConverters._
 import scala.math.min
@@ -47,7 +48,11 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
     if (refGenomePathString.isEmpty) {
       throw new IllegalArgumentException("Reference genome path not provided!")
     }
-    if (!new File(refGenomePathString.get).exists()) {
+
+    val refGenomeDataSource = new IndexedFastaSequenceFile(Paths.get(refGenomePathString.get))
+
+
+    /* if (!new File(refGenomePathString.get).exists()) {
       throw new IllegalArgumentException("The reference file was not found!")
     }
 
@@ -93,6 +98,8 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
       }
     }
     SQLUtils.internalCreateDataFrame(df.sparkSession, rddAfterNormalize, schema, false)
+    */
+
 
   }
 
