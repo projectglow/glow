@@ -143,14 +143,6 @@ lazy val core = (project in file("core"))
     libraryDependencies ++= dependencies
   )
 
-lazy val stagedRelease = (project in file("core")).settings(
-  scalacOptions += "-target:jvm-1.8",
-  target := baseDirectory.value / "staged-release-target",
-  unmanagedSourceDirectories in Compile := Nil,
-  libraryDependencies ++= providedDependencies ++ testDependencies :+ "io.projectglow" %% "glow" % "0.2.0", // stable version
-  resolvers += "Bintray" at "https://dl.bintray.com/"
-)
-
 /**
  * @param dir The base directory of the Git project
  * @return The commit of HEAD
@@ -248,6 +240,16 @@ ThisBuild / publishMavenStyle := true
 
 ThisBuild / bintrayOrganization := Some("projectglow")
 ThisBuild / bintrayRepository := "glow"
+
+val stableVersion = settingKey[String]("Stable version")
+ThisBuild / stableVersion := IO.read((ThisBuild / baseDirectory).value / "stable-version.txt").trim()
+
+lazy val stagedRelease = (project in file("core")).settings(
+  scalacOptions += "-target:jvm-1.8",
+  target := baseDirectory.value / "staged-release-target",
+  unmanagedSourceDirectories in Compile := Nil,
+  libraryDependencies ++= providedDependencies ++ testDependencies :+ "io.projectglow" %% "glow" % stableVersion.value
+)
 
 import ReleaseTransformations._
 
