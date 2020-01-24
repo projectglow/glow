@@ -250,13 +250,15 @@ ThisBuild / bintrayRepository := "glow"
 
 import ReleaseTransformations._
 
-// don't use sbt-release's cross facility
+// Don't use sbt-release's cross facility
 releaseCrossBuild := false
 releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,
   inquireVersions,
   runClean,
-  releaseStepCommandAndRemaining("+test"),
+  releaseStepCommandAndRemaining("+core/test"),
+  releaseStepCommandAndRemaining("python/test"),
+  releaseStepCommandAndRemaining("docs/test"),
   setReleaseVersion,
   updateStableVersion,
   commitReleaseVersion,
