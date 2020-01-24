@@ -39,13 +39,7 @@ abstract class GlowBaseTest
   override protected def sparkConf: SparkConf = {
     super
       .sparkConf
-      .set("spark.driver.maxResultSize", "0")
-      .set("spark.kryoserializer.buffer.max", "2047m")
-      .set("spark.kryo.registrationRequired", "false")
-      .set(
-        "spark.hadoop.io.compression.codecs",
-        classOf[BGZFCodec].getCanonicalName
-      )
+      .set("spark.hadoop.io.compression.codecs", classOf[BGZFCodec].getCanonicalName)
   }
 
   override def initializeSession(): Unit = ()
