@@ -17,7 +17,7 @@ Glow provides the ``normalize_variants`` transformer to be applied on a variant 
 
 .. note::
 
-  The variant normalization algorithm used by the ``normalize_variants`` transformer follows the same logic as the one used in normalizations tools such as `bcftools norm <http://www.htslib.org/doc/bcftools.html#norm>`_ and `vt normalize <https://genome.sph.umich.edu/wiki/Vt#Normalization>`_. This normalization logic is different from the one used by GATK's `LeftAlignAndTrimVariants <https://software.broadinstitute.org/gatk/documentation/tooldocs/3.8-0/org_broadinstitute_gatk_tools_walkers_variantutils_LeftAlignAndTrimVariants.php>`_, which sometimes yields incorrect normalization (see `Variant Normalization <https://genome.sph.umich.edu/wiki/Variant_Normalization>`_ for more details).
+  The variant normalization algorithm used by the ``normalize_variants`` transformer follows the same logic as the one used in normalizations tools such as `bcftools norm <https://www.htslib.org/doc/bcftools.html#norm>`_ and `vt normalize <https://genome.sph.umich.edu/wiki/Vt#Normalization>`_ tools. This normalization logic is different from the one used by GATK's `LeftAlignAndTrimVariants <https://gatk.broadinstitute.org/hc/en-us/articles/360037225872-LeftAlignAndTrimVariants>`_, which sometimes yields incorrect normalization (see `Variant Normalization <https://genome.sph.umich.edu/wiki/Variant_Normalization>`_ for more details).
 
 Usage
 =====
@@ -37,7 +37,7 @@ Assuming ``df_original`` is a variable of type DataFrame which contains the geno
             from pyspark.sql import Row
 
             expected_normalized_variant = Row(contigName='chr20', start=268, end=269, names=[], referenceAllele='A', alternateAlleles=['ATTTGAGATCTTCCCTCTTTTCTAATATAAACACATAAAGCTCTGTTTCCTTCTAGGTAACTGG'], qual=30.0, filters=[], splitFromMultiAllelic=False, INFO_AN=4, INFO_AF=[1.0], INFO_AC=[1], genotypes=[Row(sampleId='CHMI_CHMI3_WGS2', alleleDepths=None, phased=False, calls=[1, 1]), Row(sampleId='CHMI_CHMI3_WGS3', alleleDepths=None, phased=False, calls=[1, 1])])
-            assert rows_equal(df_normalized.head(), expected_normalized_variant)
+            assert_rows_equal(df_normalized.head(), expected_normalized_variant)
 
     .. tab:: Scala
 

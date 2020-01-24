@@ -30,7 +30,7 @@ import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, SQLUtils, SparkSession}
 import org.apache.spark.storage.StorageLevel
 
-import io.projectglow.common.GlowLogging
+import io.projectglow.common.{GlowLogging, WithUtils}
 
 /**
  * Based on Spark's PipedRDD with the following modifications:
@@ -188,11 +188,9 @@ class PipeIterator(
   private val baseIterator = outputFormatter.makeIterator(inputStream)
 
   private def writeInput(stream: OutputStream): Unit = {
-    try {
-      inputFormatter.init(stream)
-      input.foreach(inputFormatter.write)
-    } finally {
-      inputFormatter.close()
+    WithUtils.withCloseable(inputFormatter) { informatter =>
+      informatter.init(stream)
+      input.foreach(informatter.write)
     }
   }
 

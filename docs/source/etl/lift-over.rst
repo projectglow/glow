@@ -18,9 +18,9 @@ Glow can be used to run `coordinate liftover`_ and `variant liftover`_.
 
 .. _`UCSC liftOver tool`: https://genome.ucsc.edu/cgi-bin/hgLiftOver
 .. _`chain file`: https://genome.ucsc.edu/goldenPath/help/chain.html
-.. _`reference assembly file`: https://software.broadinstitute.org/gatk/documentation/article?id=11013
+.. _`reference assembly file`: https://gatk.broadinstitute.org/hc/en-us/articles/360035531652?id=11013
 .. _`BED files`: https://genome.ucsc.edu/FAQ/FAQformat.html#format1
-.. _`Picard LiftOverVcf tool`: https://software.broadinstitute.org/gatk/documentation/tooldocs/current/picard_vcf_LiftoverVcf.php
+.. _`Picard LiftOverVcf tool`: https://gatk.broadinstitute.org/hc/en-us/articles/360036857991-LiftoverVcf-Picard
 
 Create a liftover cluster
 ==========================
@@ -65,7 +65,7 @@ The returned ``struct`` has the following values if liftover succeeded. If not, 
 .. invisible-code-block: python
 
     from pyspark.sql import Row
-    assert rows_equal(output_df.select('lifted').head().lifted, Row(contigName='chr20', start=18190714, end=18190715))
+    assert_rows_equal(output_df.select('lifted').head().lifted, Row(contigName='chr20', start=18190714, end=18190715))
 
 Variant liftover
 =================
@@ -122,7 +122,7 @@ If liftover fails, the output row contains the original input row, the additiona
 
    lifted_variant = output_df.select('contigName', 'start', 'end', 'INFO_SwappedAlleles', 'INFO_ReverseComplementedAlleles', 'liftOverStatus').head()
    expected_variant = Row(contigName='chr20', start=18190714, end=18190715, INFO_SwappedAlleles=None, INFO_ReverseComplementedAlleles=None, liftOverStatus=Row(errorMessage=None, success=True))
-   assert rows_equal(lifted_variant, expected_variant)
+   assert_rows_equal(lifted_variant, expected_variant)
 
 .. notebook:: .. etl/lift-over.html
   :title: Liftover notebook
