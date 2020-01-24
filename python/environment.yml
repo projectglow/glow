@@ -5,6 +5,7 @@ dependencies:
   - pip
   - pip:
     - numpy==1.17.4
+    - pandas==0.25.3
     - pyspark==2.4.3
     - setuptools==41.2.0 # Python packaging
     - typeguard==2.5.0

@@ -27,7 +27,7 @@ whose parameter structs require a certain schema.
 
 .. invisible-code-block: python
 
-   assert rows_equal(subsetted_df.head().subsetted_col, Row(str_col='foo', bool_col=True))
+   assert_rows_equal(subsetted_df.head().subsetted_col, Row(str_col='foo', bool_col=True))
 
 
 - ``add_struct_fields``: append fields to a struct
@@ -40,7 +40,7 @@ whose parameter structs require a certain schema.
 
    from decimal import Decimal
    expected_added_col = Row(bool_col=True, int_col=1, str_col='foo', float_col=Decimal('3.14'), rev_str_col='oof')
-   assert rows_equal(added_df.head().added_col, expected_added_col)
+   assert_rows_equal(added_df.head().added_col, expected_added_col)
 
 
 - ``expand_struct``: explode a struct into columns
@@ -51,7 +51,7 @@ whose parameter structs require a certain schema.
 
 .. invisible-code-block: python
 
-   assert rows_equal(expanded_df.head(), Row(bool_col=True, int_col=1, str_col='foo'))
+   assert_rows_equal(expanded_df.head(), Row(bool_col=True, int_col=1, str_col='foo'))
 
 
 Spark ML transformations

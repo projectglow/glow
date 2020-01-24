@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?xml-stylesheet type="text/xsl" href="ivy-report.xsl"?>
+<ivy-report version="1.0">
+	<info
+		organisation="io.projectglow"
+		module="stagedrelease$sources"
+		revision="0.2.1-SNAPSHOT"
+		conf="scoveragePlugin"
+		confs="compile, runtime, test, provided, optional, compile-internal, runtime-internal, test-internal, plugin, pom, scala-tool, scoveragePlugin"
+		date="20200124105623"/>
+	<dependencies>
+	</dependencies>
+</ivy-report>

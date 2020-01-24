@@ -112,6 +112,11 @@ lazy val dependencies = Seq(
     .exclude("org.seqdoop", "hadoop-bam")
     .exclude("org.xerial", "sqlite-jdbc")
     .exclude("com.github.fommil.netlib", "*"),
+  // Fix versions of libraries that are depended on multiple times
+  "org.apache.hadoop" % "hadoop-client" % "2.7.3",
+  "io.netty" % "netty" % "3.9.9.Final",
+  "io.netty" % "netty-all" % "4.1.17.Final",
+  "com.github.samtools" % "htsjdk" % "2.20.3",
   // Test dependencies
   "org.scalatest" %% "scalatest" % "3.0.3" % "test",
   "org.mockito" % "mockito-all" % "1.9.5" % "test",
@@ -119,8 +124,6 @@ lazy val dependencies = Seq(
   "org.apache.spark" %% "spark-core" % sparkVersion % "test" classifier "tests",
   "org.apache.spark" %% "spark-mllib" % sparkVersion % "test" classifier "tests",
   "org.apache.spark" %% "spark-sql" % sparkVersion % "test" classifier "tests",
-  "org.bdgenomics.adam" %% "adam-apis-spark2" % "0.29.0" % "test",
-  "org.bdgenomics.bdg-formats" % "bdg-formats" % "0.14.0" % "test",
   "org.xerial" % "sqlite-jdbc" % "3.20.1" % "test"
 ).map(_.exclude("com.google.code.findbugs", "jsr305"))
 
@@ -138,14 +141,7 @@ lazy val core = (project in file("core"))
     libraryDependencies ++= (dependencies ++ (scalaBinaryVersion.value match {
       case "2.11" => Seq("com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2")
       case _ => Seq("com.typesafe.scala-logging" %% "scala-logging" % "3.7.2")
-    })),
-    // Fix versions of libraries that are depended on multiple times
-    dependencyOverrides ++= Seq(
-      "org.apache.hadoop" % "hadoop-client" % "2.7.3",
-      "io.netty" % "netty" % "3.9.9.Final",
-      "io.netty" % "netty-all" % "4.1.17.Final",
-      "com.github.samtools" % "htsjdk" % "2.20.3"
-    )
+    }))
   )
 
 /**
