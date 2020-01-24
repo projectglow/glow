@@ -1,0 +1,8 @@
+[0m[[0m[0mdebug[0m] [0m[0mCopy resource mappings: [0m
+[0m[[0m[0mdebug[0m] [0m[0m	(/Users/karen.feng/glow/core/src/test/resources/META-INF,/Users/karen.feng/glow/core/target2/scala-2.11/test-classes/META-INF)[0m
+[0m[[0m[0mdebug[0m] [0m[0m	(/Users/karen.feng/glow/core/src/test/resources/META-INF/services,/Users/karen.feng/glow/core/target2/scala-2.11/test-classes/META-INF/services)[0m
+[0m[[0m[0mdebug[0m] [0m[0m	(/Users/karen.feng/glow/core/src/test/resources/META-INF/services/io.projectglow.DataFrameTransformer,/Users/karen.feng/glow/core/target2/scala-2.11/test-classes/META-INF/services/io.projectglow.DataFrameTransformer)[0m
+[0m[[0m[0mdebug[0m] [0m[0m	(/Users/karen.feng/glow/core/src/test/resources/META-INF/services/io.projectglow.transformers.pipe.InputFormatterFactory,/Users/karen.feng/glow/core/target2/scala-2.11/test-classes/META-INF/services/io.projectglow.transformers.pipe.InputFormatterFactory)[0m
+[0m[[0m[0mdebug[0m] [0m[0m	(/Users/karen.feng/glow/core/src/test/resources/META-INF/services/io.projectglow.transformers.pipe.OutputFormatterFactory,/Users/karen.feng/glow/core/target2/scala-2.11/test-classes/META-INF/services/io.projectglow.transformers.pipe.OutputFormatterFactory)[0m
+[0m[[0m[0mdebug[0m] [0m[0m	(/Users/karen.feng/glow/core/src/test/resources/META-INF/services/io.projectglow.sql.BigFileUploader,/Users/karen.feng/glow/core/target2/scala-2.11/test-classes/META-INF/services/io.projectglow.sql.BigFileUploader)[0m
+[0m[[0m[0mdebug[0m] [0m[0m	(/Users/karen.feng/glow/core/src/test/resources/log4j.properties,/Users/karen.feng/glow/core/target2/scala-2.11/test-classes/log4j.properties)[0m

@@ -1,0 +1,33 @@
+#Successful Tests
+#Fri Jan 24 10:29:11 PST 2020
+io.projectglow.sql.SingleFileWriterSuite=1579831822246
+io.projectglow.transformers.pipe.CSVPiperSuite=1579831721682
+io.projectglow.common.WithUtilsSuite=1579831719597
+io.projectglow.sql.BigFileDatasourceSuite=1579831640116
+io.projectglow.sql.ComDatabricksDataSourceSuite=1579831776946
+io.projectglow.transformers.LiftOverVariantsTransformerSuite=1579831719476
+io.projectglow.transformers.pipe.PipeTransformerSuite=1579831602114
+io.projectglow.tertiary.VariantQcExprsSuite=1579831738236
+io.projectglow.transformers.normalizevariants.NormalizeVariantsTransformerSuite=1579831703914
+io.projectglow.transformers.normalizevariants.VariantNormalizerSuite=1579831719619
+io.projectglow.vcf.InternalRowToVariantContextConverterSuite=1579831822211
+io.projectglow.tertiary.SampleQcExprsSuite=1579831675912
+io.projectglow.tertiary.MomentAggStateSuite=1579831776969
+io.projectglow.vcf.VCFSchemaInferrerSuite=1579831609996
+io.projectglow.GlowSuite=1579831822040
+io.projectglow.vcf.SingleFileVCFWriterSuite=1579831821864
+io.projectglow.bgen.BgenReaderSuite=1579831609939
+io.projectglow.tertiary.LinearRegressionSuite=1579890551924
+io.projectglow.bgen.BgenRowConverterSuite=1579831601946
+io.projectglow.transformers.pipe.TextPiperSuite=1579831588780
+io.projectglow.bgen.BgenWriterSuite=1579831638786
+io.projectglow.vcf.VCFRowToVariantContextConverterSuite=1579831822805
+io.projectglow.vcf.VCFStreamWriterSuite=1579831588888
+io.projectglow.vcf.VariantContextToVCFRowConverterSuite=1579831587897
+io.projectglow.vcf.TabixHelperSuite=1579831671288
+io.projectglow.tertiary.AggregateByIndexSuite=1579831676877
+io.projectglow.tertiary.LiftOverCoordinatesExprSuite=1579831613350
+io.projectglow.plink.PlinkReaderSuite=1579831640021
+io.projectglow.transformers.util.StringUtilsSuite=1579831609948
+io.projectglow.vcf.VCFHeaderUtilsSuite=1579831822877
+io.projectglow.vcf.MultiFileVCFWriterSuite=1579831736373

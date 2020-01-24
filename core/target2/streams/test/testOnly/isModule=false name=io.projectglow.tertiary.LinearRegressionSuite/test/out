@@ -1,0 +1,11 @@
+[0m[[0m[0minfo[0m] [0m[0m[32mLinearRegressionSuite:[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[32m- against R glm[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[32m- against R glm (Apache OLS)[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[32m- intercept only, 1 site[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[32m- intercept only, many sites[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[32m- many covariates, many sites[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[32m- many covariates, many sites, with spark[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[32m- throws exception if matrix is singular[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[32m- throws exception if more covariates than samples[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[32m- throws exception if number of genotypes and phenotypes do not match[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[32m- throws exception if number of samples does not match between genotypes and covariates[0m[0m

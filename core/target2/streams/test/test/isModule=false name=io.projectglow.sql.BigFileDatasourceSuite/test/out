@@ -1,0 +1,5 @@
+[0m[[0m[0minfo[0m] [0m[0m[32mBigFileDatasourceSuite:[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[32m- save mode: append[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31mio.projectglow.sql.BigFileDatasourceSuite *** ABORTED ***[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31m  The code passed to eventually never returned normally. Attempted 287 times over 5.0092237189999995 seconds. Last failure message: Map(62 -> *(1) FileScan bgen [contigName#40,start#53L,end#57L,names#61,referenceAllele#64,alternateAlleles#66,genotypes#68] Batched: false, Format: io.projectglow.bgen.BgenFileFormat@1cd20717, Location: InMemoryFileIndex[file:/Users/karen.feng/glow/test-data/bgen/example.8bits.bgen], PartitionFilters: [], PushedFilters: [], ReadSchema: struct<contigName:string,start:bigint,end:bigint,names:array<string>,referenceAllele:string,alter...[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31m   MapPartitionsRDD[62] at count at BigBgenDatasource.scala:47, 176 -> MapPartitionsRDD[176] at mapPartitionsWithIndex at BigBgenDatasource.scala:68, 34 -> MapPartitionsRDD[34] at rdd at PipeTransformerSuite.scala:36) was not empty. (GlowBaseTest.scala:70)[0m[0m

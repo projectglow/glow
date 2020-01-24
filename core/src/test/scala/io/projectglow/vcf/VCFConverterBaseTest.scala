@@ -18,8 +18,6 @@ package io.projectglow.vcf
 
 import scala.reflect.runtime.universe._
 
-import org.bdgenomics.adam.util.PhredUtils
-
 import io.projectglow.common.{GenotypeFields, TestUtils, VCFRow}
 
 trait VCFConverterBaseTest extends TestUtils {
@@ -68,14 +66,6 @@ trait VCFConverterBaseTest extends TestUtils {
   final lazy val defaultAlleleIdx = None
   final lazy val defaultNonRefAlleleIdx = None
   final lazy val defaultSplitFromMultiAllelic = false
-
-  protected def phredToLog(p: Int): Double = {
-    PhredUtils.phredToLogProbability(p)
-  }
-
-  protected def phredToLogFloat(p: Int): Float = {
-    PhredUtils.phredToLogProbability(p).toFloat
-  }
 
   // It is ok for f1 to be defined but f2 to be empty.
   private def compareOptionalFloats(f1: Option[Float], f2: Option[Float], field: String): Unit = {

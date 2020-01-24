@@ -1,0 +1,16 @@
+[0m[[0m[31merror[0m] [0m[0m/Users/karen.feng/glow/core/src/main/java/org/projectglow/sql/Functions.java:19:1: package org.apache.spark.sql.catalyst.util does not exist[0m
+[0m[[0m[31merror[0m] [0m[0mimport org.apache.spark.sql.catalyst.util.GenericArrayData;[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/karen.feng/glow/core/src/main/java/org/projectglow/sql/Functions.java:20:1: package org.apache.spark.unsafe.types does not exist[0m
+[0m[[0m[31merror[0m] [0m[0mimport org.apache.spark.unsafe.types.UTF8String;[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/karen.feng/glow/core/src/main/java/org/projectglow/sql/Functions.java:23:1: cannot find symbol[0m
+[0m[[0m[31merror[0m] [0m[0m  symbol:   class UTF8String[0m
+[0m[[0m[31merror[0m] [0m[0m  location: class io.projectglow.sql.Functions[0m
+[0m[[0m[31merror[0m] [0m[0m    public static GenericArrayData asciiCharSplit(UTF8String str, UTF8String split) {[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/karen.feng/glow/core/src/main/java/org/projectglow/sql/Functions.java:23:1: cannot find symbol[0m
+[0m[[0m[31merror[0m] [0m[0m  symbol:   class UTF8String[0m
+[0m[[0m[31merror[0m] [0m[0m  location: class io.projectglow.sql.Functions[0m
+[0m[[0m[31merror[0m] [0m[0m    public static GenericArrayData asciiCharSplit(UTF8String str, UTF8String split) {[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/karen.feng/glow/core/src/main/java/org/projectglow/sql/Functions.java:23:1: cannot find symbol[0m
+[0m[[0m[31merror[0m] [0m[0m  symbol:   class GenericArrayData[0m
+[0m[[0m[31merror[0m] [0m[0m  location: class io.projectglow.sql.Functions[0m
+[0m[[0m[31merror[0m] [0m[0m    public static GenericArrayData asciiCharSplit(UTF8String str, UTF8String split) {[0m

@@ -1,0 +1,29 @@
+[0m[[0m[0minfo[0m] [0m[0m[32mBgenReaderSuite:[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[32m- unphased 8 bit[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[32m- unphased 16 bit (with missing samples)[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[32m- unphased 32 bit[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31mio.projectglow.bgen.BgenReaderSuite *** ABORTED ***[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31m  java.lang.IllegalStateException: There are 1 possibly leaked file streams.[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31m  at org.apache.spark.DebugFilesystem$.assertNoOpenStreams(DebugFilesystem.scala:54)[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31m  at io.projectglow.sql.GlowBaseTest.afterEach(GlowBaseTest.scala:69)[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31m  at org.scalatest.BeforeAndAfterEach$$anonfun$1.apply$mcV$sp(BeforeAndAfterEach.scala:234)[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31m  at org.scalatest.Status$$anonfun$withAfterEffect$1.apply(Status.scala:379)[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31m  at org.scalatest.Status$$anonfun$withAfterEffect$1.apply(Status.scala:375)[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31m  at org.scalatest.SucceededStatus$.whenCompleted(Status.scala:454)[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31m  at org.scalatest.Status$class.withAfterEffect(Status.scala:375)[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31m  at org.scalatest.SucceededStatus$.withAfterEffect(Status.scala:426)[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31m  at org.scalatest.BeforeAndAfterEach$class.runTest(BeforeAndAfterEach.scala:232)[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31m  at io.projectglow.sql.GlowBaseTest.runTest(GlowBaseTest.scala:79)[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31m  ...[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31m  Cause: java.lang.Throwable:[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31m  at org.apache.spark.DebugFilesystem$.addOpenStream(DebugFilesystem.scala:36)[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31m  at org.apache.spark.DebugFilesystem.open(DebugFilesystem.scala:70)[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31m  at org.apache.hadoop.fs.FileSystem.open(FileSystem.java:766)[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31m  at org.apache.hadoop.mapreduce.lib.input.LineRecordReader.initialize(LineRecordReader.java:85)[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31m  at io.projectglow.sql.util.HadoopLineIterator.<init>(HadoopLineIterator.scala:65)[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31m  at io.projectglow.vcf.VCFFileFormat$$anonfun$buildReader$1.apply(VCFFileFormat.scala:192)[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31m  at io.projectglow.vcf.VCFFileFormat$$anonfun$buildReader$1.apply(VCFFileFormat.scala:165)[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31m  at org.apache.spark.sql.execution.datasources.FileFormat$$anon$1.apply(FileFormat.scala:148)[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31m  at org.apache.spark.sql.execution.datasources.FileFormat$$anon$1.apply(FileFormat.scala:132)[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31m  at org.apache.spark.sql.execution.datasources.FileScanRDD$$anon$1.org$apache$spark$sql$execution$datasources$FileScanRDD$$anon$$readCurrentFile(FileScanRDD.scala:124)[0m[0m
+[0m[[0m[0minfo[0m] [0m[0m[31m  ...[0m[0m

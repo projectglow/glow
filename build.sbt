@@ -63,11 +63,25 @@ lazy val commonSettings = Seq(
   scalacOptions += "-target:jvm-1.8"
 )
 
-lazy val dependencies = Seq(
+lazy val providedDependencies = Seq(
   "org.apache.spark" %% "spark-catalyst" % sparkVersion % "provided",
   "org.apache.spark" %% "spark-core" % sparkVersion % "provided",
   "org.apache.spark" %% "spark-mllib" % sparkVersion % "provided",
-  "org.apache.spark" %% "spark-sql" % sparkVersion % "provided",
+  "org.apache.spark" %% "spark-sql" % sparkVersion % "provided"
+)
+
+lazy val testDependencies = Seq(
+  "org.scalatest" %% "scalatest" % "3.0.3" % "test",
+  "org.mockito" % "mockito-all" % "1.9.5" % "test",
+  "org.apache.spark" %% "spark-catalyst" % sparkVersion % "test" classifier "tests",
+  "org.apache.spark" %% "spark-core" % sparkVersion % "test" classifier "tests",
+  "org.apache.spark" %% "spark-mllib" % sparkVersion % "test" classifier "tests",
+  "org.apache.spark" %% "spark-sql" % sparkVersion % "test" classifier "tests",
+  "org.xerial" % "sqlite-jdbc" % "3.20.1" % "test"
+)
+
+lazy val dependencies = (
+  providedDependencies ++ testDependencies ++ Seq(
   "org.seqdoop" % "hadoop-bam" % "7.9.2",
   "log4j" % "log4j" % "1.2.17",
   "org.slf4j" % "slf4j-api" % "1.7.25",
@@ -109,17 +123,12 @@ lazy val dependencies = Seq(
     .exclude("org.seqdoop", "hadoop-bam")
     .exclude("org.xerial", "sqlite-jdbc")
     .exclude("com.github.fommil.netlib", "*"),
-  // Test dependencies
-  "org.scalatest" %% "scalatest" % "3.0.3" % "test",
-  "org.mockito" % "mockito-all" % "1.9.5" % "test",
-  "org.apache.spark" %% "spark-catalyst" % sparkVersion % "test" classifier "tests",
-  "org.apache.spark" %% "spark-core" % sparkVersion % "test" classifier "tests",
-  "org.apache.spark" %% "spark-mllib" % sparkVersion % "test" classifier "tests",
-  "org.apache.spark" %% "spark-sql" % sparkVersion % "test" classifier "tests",
-  "org.bdgenomics.adam" %% "adam-apis-spark2" % "0.29.0" % "test",
-  "org.bdgenomics.bdg-formats" % "bdg-formats" % "0.14.0" % "test",
-  "org.xerial" % "sqlite-jdbc" % "3.20.1" % "test"
-).map(_.exclude("com.google.code.findbugs", "jsr305"))
+  // Fix versions of libraries that are depended on multiple times
+  "org.apache.hadoop" % "hadoop-client" % "2.7.3",
+  "io.netty" % "netty" % "3.9.9.Final",
+  "io.netty" % "netty-all" % "4.1.17.Final",
+  "com.github.samtools" % "htsjdk" % "2.20.3"
+)).map(_.exclude("com.google.code.findbugs", "jsr305"))
 
 lazy val core = (project in file("core"))
   .settings(
@@ -131,15 +140,16 @@ lazy val core = (project in file("core"))
     packageOptions in (Compile, packageBin) +=
     Package.ManifestAttributes("Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
     bintrayRepository := "glow",
-    libraryDependencies ++= dependencies,
-    // Fix versions of libraries that are depended on multiple times
-    dependencyOverrides ++= Seq(
-      "org.apache.hadoop" % "hadoop-client" % "2.7.3",
-      "io.netty" % "netty" % "3.9.9.Final",
-      "io.netty" % "netty-all" % "4.1.17.Final",
-      "com.github.samtools" % "htsjdk" % "2.20.3"
-    )
+    libraryDependencies ++= dependencies
   )
+
+lazy val stagedRelease = (project in file("core")).settings(
+  scalacOptions += "-target:jvm-1.8",
+  target := baseDirectory.value / "target2",
+  unmanagedSourceDirectories in Compile := Nil,
+  libraryDependencies ++= providedDependencies ++ testDependencies :+ "io.projectglow" %% "glow" % "0.2.0", // stable version
+  resolvers += "Bintray" at "https://dl.bintray.com/"
+)
 
 /**
  * @param dir The base directory of the Git project
@@ -252,6 +262,7 @@ releaseProcess := Seq[ReleaseStep](
   commitStableVersion,
   tagRelease,
   publishArtifacts,
+  releaseStepCommandAndRemaining("stagedRelease/test"),
   setNextVersion,
   commitNextVersion
 )

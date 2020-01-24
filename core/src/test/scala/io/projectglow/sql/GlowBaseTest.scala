@@ -40,7 +40,6 @@ abstract class GlowBaseTest
     super
       .sparkConf
       .set("spark.driver.maxResultSize", "0")
-      .set("spark.kryo.registrator", "org.broadinstitute.hellbender.engine.spark.GATKRegistrator")
       .set("spark.kryoserializer.buffer.max", "2047m")
       .set("spark.kryo.registrationRequired", "false")
       .set(
