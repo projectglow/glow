@@ -248,7 +248,8 @@ lazy val stagedRelease = (project in file("core")).settings(
   scalacOptions += "-target:jvm-1.8",
   target := baseDirectory.value / "staged-release-target",
   unmanagedSourceDirectories in Compile := Nil,
-  libraryDependencies ++= providedDependencies ++ testDependencies :+ "io.projectglow" %% "glow" % stableVersion.value
+  libraryDependencies ++= providedDependencies ++ testDependencies :+ "io.projectglow" %% "glow" % stableVersion.value,
+  resolvers += "bintray-staging" at "https://dl.bintray.com/projectglow/glow"
 )
 
 import ReleaseTransformations._
