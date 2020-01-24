@@ -33,9 +33,9 @@ jobs:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             if [[ $CIRCLE_NODE_INDEX == 0 ]]; then
-              sbt ++2.11.12 -v coverage test coverageReport exit
+              sbt ++2.11.12 -v coverage core/test coverageReport exit
             else
-              sbt ++2.12.8 -v coverage test coverageReport exit
+              sbt ++2.12.8 -v coverage core/test coverageReport exit
             fi
 
       - run:

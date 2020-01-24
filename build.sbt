@@ -8,7 +8,7 @@ lazy val scala212 = "2.12.8"
 lazy val scala211 = "2.11.12"
 lazy val supportedScalaVersions = List(scala212, scala211)
 
-ThisBuild / scalaVersion := scala212
+ThisBuild / scalaVersion := scala211
 ThisBuild / organization := "io.projectglow"
 ThisBuild / scalastyleConfig := baseDirectory.value / "scalastyle-config.xml"
 ThisBuild / crossScalaVersions := Nil
@@ -169,6 +169,7 @@ lazy val pythonSettings = Seq(
   publish / skip := true
 )
 
+// Python tests only work on Scala 2.11
 lazy val python =
   (project in file("python"))
     .dependsOn(core % "test->test")
@@ -189,6 +190,7 @@ lazy val python =
       }
     )
 
+// Docs tests only work on Scala 2.11
 lazy val docs =
   (project in file("docs"))
     .dependsOn(core % "test->test")
