@@ -70,7 +70,7 @@ class VCFPiperSuite extends GlowBaseTest {
     val options = Map(
       "inputFormatter" -> "vcf",
       "outputFormatter" -> "vcf",
-      "in_vcfHeader" -> "infer",
+      "inVcfHeader" -> "infer",
       "cmd" -> s"""["$script"]""")
     val outputDf = Glow.transform("pipe", inputDf, options)
 
@@ -78,14 +78,13 @@ class VCFPiperSuite extends GlowBaseTest {
   }
 
   test("Prepend chr") {
-    val sess = spark
-    import sess.implicits._
-
     val (_, df) = pipeScript(
       na12878,
       s"$testDataHome/vcf/scripts/prepend-chr.sh"
     )
     df.cache()
+
+    import sess.implicits._
 
     // Prepends chr
     val distinctContigNames = df.select("contigName").as[String].distinct.collect
@@ -184,7 +183,6 @@ class VCFPiperSuite extends GlowBaseTest {
   }
 
   test("task context is defined in each thread") {
-    val sess = spark
     import sess.implicits._
 
     val input = spark
@@ -209,7 +207,6 @@ class VCFPiperSuite extends GlowBaseTest {
   }
 
   test("missing sample names") {
-    val sess = spark
     import sess.implicits._
 
     val inputDf = spark
@@ -280,6 +277,26 @@ class VCFPiperSuite extends GlowBaseTest {
     )
     val e = intercept[SparkException](Glow.transform("pipe", inputDf, options))
     assert(e.getCause.isInstanceOf[IllegalArgumentException])
+  }
+
+  test("throw if input formatter fails") {
+    val inputDf = spark
+      .read
+      .format("vcf")
+      .load(TGP)
+      .drop("contigName")
+
+    val options = Map(
+      "inputFormatter" -> "vcf",
+      "outputFormatter" -> "vcf",
+      "inVcfHeader" -> "infer",
+      "inValidationStringency" -> "STRICT",
+      "cmd" -> s"""["cat"]"""
+    )
+
+    val e = intercept[SparkException](Glow.transform("pipe", inputDf, options))
+    assert(e.getCause.isInstanceOf[IllegalArgumentException])
+    assert(e.getCause.getMessage.contains("Could not build variant context: Contig cannot be null"))
   }
 }
 
