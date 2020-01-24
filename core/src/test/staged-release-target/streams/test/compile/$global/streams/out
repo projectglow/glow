@@ -1,0 +1,84 @@
+[0m[[0m[33mwarn[0m] [0m[0m/Users/karen.feng/glow/core/src/test/scala/io/projectglow/plink/PlinkReaderSuite.scala:47:25: abstract type T is unchecked since it is eliminated by erasure[0m
+[0m[[0m[33mwarn[0m] [0m[0m      if (e.isInstanceOf[T] && e.getMessage.contains(msg)) {[0m
+[0m[[0m[33mwarn[0m] [0m[0m                        ^[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/karen.feng/glow/core/src/test/scala/io/projectglow/tertiary/LogisticRegressionSuite.scala:73:23: value init is not a member of io.projectglow.sql.expressions.LogitTest[0m
+[0m[[0m[31merror[0m] [0m[0m      val nullFit = t.init(testData.phenotypes.toArray, covariatesMatrix)[0m
+[0m[[0m[31merror[0m] [0m[0m                      ^[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/karen.feng/glow/core/src/test/scala/io/projectglow/tertiary/LogisticRegressionSuite.scala:78:20: type mismatch;[0m
+[0m[[0m[31merror[0m] [0m[0m found   : breeze.linalg.DenseVector[Double][0m
+[0m[[0m[31merror[0m] [0m[0m required: breeze.linalg.DenseMatrix[Double][0m
+[0m[[0m[31merror[0m] [0m[0m          .runTest(new DenseVector[Double](g.toArray), y, nullFit)[0m
+[0m[[0m[31merror[0m] [0m[0m                   ^[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/karen.feng/glow/core/src/test/scala/io/projectglow/tertiary/LogisticRegressionSuite.scala:235:40: value init is not a member of object io.projectglow.sql.expressions.LikelihoodRatioTest[0m
+[0m[[0m[31merror[0m] [0m[0m    val fitState = LikelihoodRatioTest.init([0m
+[0m[[0m[31merror[0m] [0m[0m                                       ^[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/karen.feng/glow/core/src/test/scala/io/projectglow/transformers/splitmultiallelics/VariantSplitterSuite.scala:22:55: object VariantSplitter is not a member of package io.projectglow.transformers.splitmultiallelics[0m
+[0m[[0m[31merror[0m] [0m[0mimport io.projectglow.transformers.splitmultiallelics.VariantSplitter._[0m
+[0m[[0m[31merror[0m] [0m[0m                                                      ^[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/karen.feng/glow/core/src/test/scala/io/projectglow/transformers/splitmultiallelics/VariantSplitterSuite.scala:46:27: not found: value splitVariants[0m
+[0m[[0m[31merror[0m] [0m[0m    val dfSplitVariants = splitVariants(dfOriginal)[0m
+[0m[[0m[31merror[0m] [0m[0m                          ^[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/karen.feng/glow/core/src/test/scala/io/projectglow/transformers/splitmultiallelics/VariantSplitterSuite.scala:94:21: not found: value splitAlleleIdxFieldName[0m
+[0m[[0m[31merror[0m] [0m[0m          .as(Array(splitAlleleIdxFieldName, splitAllelesFieldName))[0m
+[0m[[0m[31merror[0m] [0m[0m                    ^[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/karen.feng/glow/core/src/test/scala/io/projectglow/transformers/splitmultiallelics/VariantSplitterSuite.scala:94:46: not found: value splitAllelesFieldName[0m
+[0m[[0m[31merror[0m] [0m[0m          .as(Array(splitAlleleIdxFieldName, splitAllelesFieldName))[0m
+[0m[[0m[31merror[0m] [0m[0m                                             ^[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/karen.feng/glow/core/src/test/scala/io/projectglow/transformers/splitmultiallelics/VariantSplitterSuite.scala:99:23: not found: value splitInfoFields[0m
+[0m[[0m[31merror[0m] [0m[0m    val dfSplitInfo = splitInfoFields(dfOriginal)[0m
+[0m[[0m[31merror[0m] [0m[0m                      ^[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/karen.feng/glow/core/src/test/scala/io/projectglow/transformers/splitmultiallelics/VariantSplitterSuite.scala:163:21: not found: value splitAlleleIdxFieldName[0m
+[0m[[0m[31merror[0m] [0m[0m          .as(Array(splitAlleleIdxFieldName, splitAllelesFieldName))[0m
+[0m[[0m[31merror[0m] [0m[0m                    ^[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/karen.feng/glow/core/src/test/scala/io/projectglow/transformers/splitmultiallelics/VariantSplitterSuite.scala:163:46: not found: value splitAllelesFieldName[0m
+[0m[[0m[31merror[0m] [0m[0m          .as(Array(splitAlleleIdxFieldName, splitAllelesFieldName))[0m
+[0m[[0m[31merror[0m] [0m[0m                                             ^[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/karen.feng/glow/core/src/test/scala/io/projectglow/transformers/splitmultiallelics/VariantSplitterSuite.scala:168:27: not found: value splitGenotypeFields[0m
+[0m[[0m[31merror[0m] [0m[0m    val dfSplitGenotype = splitGenotypeFields(dfOriginal)[0m
+[0m[[0m[31merror[0m] [0m[0m                          ^[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/karen.feng/glow/core/src/test/scala/io/projectglow/transformers/splitmultiallelics/VariantSplitterSuite.scala:220:9: not found: value refAltColexOrderIdxArray[0m
+[0m[[0m[31merror[0m] [0m[0m        refAltColexOrderIdxArray(numAlleles, ploidy, altAlleleIdx)[0m
+[0m[[0m[31merror[0m] [0m[0m        ^[0m
+[0m[[0m[33mwarn[0m] [0m[0m/Users/karen.feng/glow/core/src/test/scala/io/projectglow/transformers/splitmultiallelics/VariantSplitterSuite.scala:222:45: a pure expression does nothing in statement position; you may be omitting necessary parentheses[0m
+[0m[[0m[33mwarn[0m] [0m[0m        case _: IllegalArgumentException => succeed[0m
+[0m[[0m[33mwarn[0m] [0m[0m                                            ^[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/karen.feng/glow/core/src/test/scala/io/projectglow/transformers/splitmultiallelics/VariantSplitterSuite.scala:226:14: not found: value refAltColexOrderIdxArray[0m
+[0m[[0m[31merror[0m] [0m[0m      assert(refAltColexOrderIdxArray(numAlleles, ploidy, altAlleleIdx) === expected)[0m
+[0m[[0m[31merror[0m] [0m[0m             ^[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/karen.feng/glow/core/src/test/scala/io/projectglow/vcf/InternalRowToVariantContextConverterSuite.scala:65:25: value inferGenotypeSchema is not a member of object io.projectglow.vcf.VCFSchemaInferrer[0m
+[0m[[0m[31merror[0m] [0m[0m      VCFSchemaInferrer.inferGenotypeSchema(true, header.getFormatHeaderLines.asScala.toSeq)[0m
+[0m[[0m[31merror[0m] [0m[0m                        ^[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/karen.feng/glow/core/src/test/scala/io/projectglow/vcf/InternalRowToVariantContextConverterSuite.scala:67:7: not found: value InternalRowToVariantContextConverter[0m
+[0m[[0m[31merror[0m] [0m[0m      InternalRowToVariantContextConverter.getGenotypeSchema(dfSchema).get == actualGenotypeSchema)[0m
+[0m[[0m[31merror[0m] [0m[0m      ^[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/karen.feng/glow/core/src/test/scala/io/projectglow/vcf/InternalRowToVariantContextConverterSuite.scala:72:12: not found: value InternalRowToVariantContextConverter[0m
+[0m[[0m[31merror[0m] [0m[0m    assert(InternalRowToVariantContextConverter.getGenotypeSchema(schema).isEmpty)[0m
+[0m[[0m[31merror[0m] [0m[0m           ^[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/karen.feng/glow/core/src/test/scala/io/projectglow/vcf/InternalRowToVariantContextConverterSuite.scala:78:7: not found: value InternalRowToVariantContextConverter[0m
+[0m[[0m[31merror[0m] [0m[0m      InternalRowToVariantContextConverter.getGenotypeSchema(schema)[0m
+[0m[[0m[31merror[0m] [0m[0m      ^[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/karen.feng/glow/core/src/test/scala/io/projectglow/vcf/InternalRowToVariantContextConverterSuite.scala:86:7: not found: value InternalRowToVariantContextConverter[0m
+[0m[[0m[31merror[0m] [0m[0m      InternalRowToVariantContextConverter.getGenotypeSchema(schema)[0m
+[0m[[0m[31merror[0m] [0m[0m      ^[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/karen.feng/glow/core/src/test/scala/io/projectglow/vcf/TabixHelperSuite.scala:706:10: value getFileRangeToRead is not a member of object io.projectglow.vcf.TabixIndexHelper[0m
+[0m[[0m[31merror[0m] [0m[0mpossible cause: maybe a semicolon is missing before `value getFileRangeToRead'?[0m
+[0m[[0m[31merror[0m] [0m[0m        .getFileRangeToRead(fs, partitionedFile, conf, false, false, interval)[0m
+[0m[[0m[31merror[0m] [0m[0m         ^[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/karen.feng/glow/core/src/test/scala/io/projectglow/vcf/TabixHelperSuite.scala:712:10: value getFileRangeToRead is not a member of object io.projectglow.vcf.TabixIndexHelper[0m
+[0m[[0m[31merror[0m] [0m[0mpossible cause: maybe a semicolon is missing before `value getFileRangeToRead'?[0m
+[0m[[0m[31merror[0m] [0m[0m        .getFileRangeToRead(fs, partitionedFileWithoutStart, conf, false, false, interval)[0m
+[0m[[0m[31merror[0m] [0m[0m         ^[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/karen.feng/glow/core/src/test/scala/io/projectglow/vcf/VCFHeaderUtilsSuite.scala:150:32: value readHeaderLines is not a member of object io.projectglow.vcf.VCFHeaderUtils[0m
+[0m[[0m[31merror[0m] [0m[0m    val lines = VCFHeaderUtils.readHeaderLines(spark, paths)[0m
+[0m[[0m[31merror[0m] [0m[0m                               ^[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/karen.feng/glow/core/src/test/scala/io/projectglow/vcf/VCFHeaderUtilsSuite.scala:170:55: value readHeaderLines is not a member of object io.projectglow.vcf.VCFHeaderUtils[0m
+[0m[[0m[31merror[0m] [0m[0m    val ex = intercept[SparkException](VCFHeaderUtils.readHeaderLines(spark, paths))[0m
+[0m[[0m[31merror[0m] [0m[0m                                                      ^[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/karen.feng/glow/core/src/test/scala/io/projectglow/vcf/VCFHeaderUtilsSuite.scala:184:20: value readHeaderLines is not a member of object io.projectglow.vcf.VCFHeaderUtils[0m
+[0m[[0m[31merror[0m] [0m[0m    VCFHeaderUtils.readHeaderLines(spark, paths) // no exception[0m
+[0m[[0m[31merror[0m] [0m[0m                   ^[0m
+[0m[[0m[31merror[0m] [0m[0m/Users/karen.feng/glow/core/src/test/scala/io/projectglow/vcf/VariantContextToInternalRowConverterSuite.scala:45:77: value REF_A is not a member of object htsjdk.variant.variantcontext.Allele[0m
+[0m[[0m[31merror[0m] [0m[0m    val vcb = new VariantContextBuilder("Unknown", "chr1", 1, 1, Seq(Allele.REF_A).asJava)[0m
+[0m[[0m[31merror[0m] [0m[0m                                                                            ^[0m
+[0m[[0m[33mwarn[0m] [0m[0mtwo warnings found[0m
+[0m[[0m[31merror[0m] [0m[0m24 errors found[0m

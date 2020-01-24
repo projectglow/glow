@@ -244,10 +244,10 @@ ThisBuild / bintrayRepository := "glow"
 val stableVersion = settingKey[String]("Stable version")
 ThisBuild / stableVersion := IO.read((ThisBuild / baseDirectory).value / "stable-version.txt").trim()
 
-lazy val stagedRelease = (project in file("core")).settings(
+lazy val stagedRelease = (project in file("core/src/test")).settings(
   commonSettings,
   target := baseDirectory.value / "staged-release-target",
-  unmanagedSourceDirectories in Compile := Nil,
+  unmanagedSourceDirectories in Test := Seq(baseDirectory.value),
   libraryDependencies ++= providedDependencies ++ testDependencies :+ "io.projectglow" %% "glow" % stableVersion.value,
   resolvers += "bintray-staging" at "https://dl.bintray.com/projectglow/glow"
 )
