@@ -52,7 +52,7 @@ Example
 .. invisible-code-block: python
 
    from pyspark.sql import Row
-   assert rows_equal(lin_reg_df.head(), Row(contigName='20', start=10000053, names=[], beta=-0.012268942487586866, standardError=0.03986890589124242, pValue=0.7583114855349732))
+   assert_rows_equal(lin_reg_df.head(), Row(contigName='20', start=10000053, names=[], beta=-0.012268942487586866, standardError=0.03986890589124242, pValue=0.7583114855349732))
 
 
 Parameters
@@ -136,8 +136,8 @@ Example
 
 .. invisible-code-block: python
 
-   assert rows_equal(log_reg_df.head(), Row(contigName='20', start=10000053, names=[], beta=-0.04909334516505058, oddsRatio=0.9520922523419953, waldConfidenceInterval=[0.5523036168612923, 1.6412705426792646], pValue=0.8161087491239676))
-   assert rows_equal(firth_log_reg_df.head(), Row(contigName='20', start=10000053, names=[], beta=-0.04737592899383216, oddsRatio=0.9537287958835796, waldConfidenceInterval=[0.5532645977026418, 1.644057147112848], pValue=0.8205226692490032))
+   assert_rows_equal(log_reg_df.head(), Row(contigName='20', start=10000053, names=[], beta=-0.04909334516505058, oddsRatio=0.9520922523419953, waldConfidenceInterval=[0.5523036168612923, 1.6412705426792646], pValue=0.8161087491239676))
+   assert_rows_equal(firth_log_reg_df.head(), Row(contigName='20', start=10000053, names=[], beta=-0.04737592899383216, oddsRatio=0.9537287958835796, waldConfidenceInterval=[0.5532645977026418, 1.644057147112848], pValue=0.8205226692490032))
 
 
 Parameters
