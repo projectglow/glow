@@ -245,7 +245,7 @@ val stableVersion = settingKey[String]("Stable version")
 ThisBuild / stableVersion := IO.read((ThisBuild / baseDirectory).value / "stable-version.txt").trim()
 
 lazy val stagedRelease = (project in file("core")).settings(
-  scalacOptions += "-target:jvm-1.8",
+  commonSettings,
   target := baseDirectory.value / "staged-release-target",
   unmanagedSourceDirectories in Compile := Nil,
   libraryDependencies ++= providedDependencies ++ testDependencies :+ "io.projectglow" %% "glow" % stableVersion.value,
