@@ -22,7 +22,7 @@ Split Multiallelic Variants
 
     - A given multiallelic row with :math:`n` ``ALT`` alleles is split to :math:`n` biallelic rows, each with one of the ``ALT`` alleles of the original multiallelic row. The ``REF`` allele in all split rows is the same as the ``REF`` allele in the multiallelic row.
 
-    - Each ``INFO`` field is appropriately split among split rows if it has the same number of elements as number of ``ALT`` alleles, otherwise it is repeated in all split rows. The boolean ``INFO`` field ``splitFromMultiAllelic`` is added/modified to reflect whether the new row is the result of splitting a multiallelic row through this transformation or not. A new ``INFO`` field called ``OLD_MULTIALLELIC`` is added to the DataFrame, which for each split row, holds the ``CHROM:POS:REF/ALT`` of its original multiallelic row. Note that the ``INFO`` field must be flattened (as explained :ref:`here<vcf>`) in order to be split by this transformer. Unflattened ``INFO`` fields inside the ``attributes`` field will not be split, but just repeated in whole across all split rows.
+    - Each ``INFO`` field is appropriately split among split rows if it has the same number of elements as number of ``ALT`` alleles, otherwise it is repeated in all split rows. The boolean ``INFO`` field ``splitFromMultiAllelic`` is added/modified to reflect whether the new row is the result of splitting a multiallelic row through this transformation or not. A new ``INFO`` field called ``OLD_MULTIALLELIC`` is added to the DataFrame, which for each split row, holds the ``CHROM:POS:REF/ALT`` of its original multiallelic row. Note that the ``INFO`` field must be flattened (as explained :ref:`here<vcf>`) in order to be split by this transformer. Unflattened ``INFO`` fields (such as those inside an ``attributes`` field) will not be split, but just repeated in whole across all split rows.
 
     - Genotype fields for each sample are treated as follows: The ``GT`` field becomes biallelic in each row, where the original ``ALT`` alleles that are not present in that row are replaced with no call. The fields with number of entries equal to number of ``REF`` + ``ALT`` alleles, are properly split into rows, where in each split row, only entries corresponding to the ``REF`` allele as well as the ``ALT`` allele present in that row are kept. The fields which follow colex order (e.g., ``GL``, ``PL``, and ``GP``) are properly split between split rows where in each row only the elements corresponding to genotypes comprising of the ``REF`` and ``ALT`` alleles in that row are listed. Other genotype fields are just repeated over the split rows.
 
@@ -72,7 +72,22 @@ Assuming ``df_original`` is a variable of type DataFrame which contains the geno
 
 .. tip::
 
-    The ``split_multiallelics`` transformer is often significantly faster if the `whole-stage code generation` feature of Spark Sql is turned off. Therefore, it is recommended that you turn off this feature using the command ``spark.conf.set("spark.sql.codegen.wholeStage", False)`` before using this transformer.
+    The ``split_multiallelics`` transformer is often significantly faster if the `whole-stage code generation` feature of Spark Sql is turned off. Therefore, it is recommended that you turn off this feature using the following command before using this transformer.
+
+    .. tabs::
+
+       .. tab:: Python
+
+            .. code-block:: python
+
+              spark.conf.set("spark.sql.codegen.wholeStage", False)
+
+       .. tab:: Scala
+
+            .. code-block:: scala
+
+              spark.conf.set("spark.sql.codegen.wholeStage", false)
+
 
 
 .. notebook:: .. etl/splitmultiallelics-transformer.html
