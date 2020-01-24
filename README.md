@@ -58,7 +58,7 @@ To compile the main code:
 compile
 ```
 
-To run all tests:
+To run all Scala tests:
 ```
 core/test
 ```
