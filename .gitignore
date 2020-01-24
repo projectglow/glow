@@ -1,5 +1,6 @@
 # Java targets
 target
+core/staged-release-target
 core/target
 project/target
 

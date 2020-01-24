@@ -145,7 +145,7 @@ lazy val core = (project in file("core"))
 
 lazy val stagedRelease = (project in file("core")).settings(
   scalacOptions += "-target:jvm-1.8",
-  target := baseDirectory.value / "target2",
+  target := baseDirectory.value / "staged-release-target",
   unmanagedSourceDirectories in Compile := Nil,
   libraryDependencies ++= providedDependencies ++ testDependencies :+ "io.projectglow" %% "glow" % "0.2.0", // stable version
   resolvers += "Bintray" at "https://dl.bintray.com/"
