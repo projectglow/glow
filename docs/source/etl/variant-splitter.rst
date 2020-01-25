@@ -72,7 +72,7 @@ Assuming ``df_original`` is a variable of type DataFrame which contains the geno
 
 .. tip::
 
-    The ``split_multiallelics`` transformer is often significantly faster if the `whole-stage code generation` feature of Spark Sql is turned off. Therefore, it is recommended that you turn off this feature using the following command before using this transformer.
+    The ``split_multiallelics`` transformer is often significantly faster if the `whole-stage code generation` feature of Spark Sql is turned off. Therefore, it is recommended that you temporarily turn off this feature using the following command before using this transformer.
 
     .. tabs::
 
@@ -88,7 +88,7 @@ Assuming ``df_original`` is a variable of type DataFrame which contains the geno
 
               spark.conf.set("spark.sql.codegen.wholeStage", false)
 
-
+    Remember to turn this feature back on after your split DataFrame is materialized.
 
 .. notebook:: .. etl/splitmultiallelics-transformer.html
   :title: Split Multiallelic Variants notebook
