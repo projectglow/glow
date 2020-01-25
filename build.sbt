@@ -130,6 +130,9 @@ lazy val dependencies = (
   "com.github.samtools" % "htsjdk" % "2.20.3"
 )).map(_.exclude("com.google.code.findbugs", "jsr305"))
 
+lazy val root = (project in file("."))
+  .aggregate(core, python, docs)
+
 lazy val core = (project in file("core"))
   .settings(
     commonSettings,
@@ -246,8 +249,8 @@ ThisBuild / stableVersion := IO.read((ThisBuild / baseDirectory).value / "stable
 
 lazy val stagedRelease = (project in file("core/src/test")).settings(
   commonSettings,
-  target := baseDirectory.value / "staged-release-target",
-  unmanagedSourceDirectories in Test := Seq(baseDirectory.value),
+  resourceDirectory in Test := baseDirectory.value / "resources",
+  scalaSource in Test := baseDirectory.value / "scala",
   libraryDependencies ++= providedDependencies ++ testDependencies :+ "io.projectglow" %% "glow" % stableVersion.value,
   resolvers += "bintray-staging" at "https://dl.bintray.com/projectglow/glow"
 )
@@ -258,9 +261,7 @@ releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,
   inquireVersions,
   runClean,
-  releaseStepCommandAndRemaining("core/test"),
-  releaseStepCommandAndRemaining("python/test"),
-  releaseStepCommandAndRemaining("docs/test"),
+  runTest,
   setReleaseVersion,
   updateStableVersion,
   commitReleaseVersion,

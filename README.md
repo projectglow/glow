@@ -86,6 +86,11 @@ To run documentation tests:
 docs/test
 ```
 
+To run the Scala, Python and documentation tests:
+```
+test
+```
+
 If you use IntelliJ, you'll want to set up [scalafmt on save](https://scalameta.org/scalafmt/docs/installation.html).
 
 To test or testOnly in remote debug mode with IntelliJ IDEA set the remote debug configuration in IntelliJ to 'Attach to remote JVM' mode and a specific port number (here the default port number 5005 is used) and then modify the definition of options in groupByHash function in build.sbt to
