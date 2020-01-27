@@ -258,6 +258,7 @@ ThisBuild / stableVersion := IO.read((ThisBuild / baseDirectory).value / "stable
 
 lazy val stagedRelease = (project in file("core/src/test")).settings(
   commonSettings,
+  crossScalaVersions := supportedScalaVersions,
   resourceDirectory in Test := baseDirectory.value / "resources",
   scalaSource in Test := baseDirectory.value / "scala",
   libraryDependencies ++= providedDependencies ++ testDependencies :+ "io.projectglow" %% "glow" % stableVersion.value,
