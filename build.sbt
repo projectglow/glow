@@ -281,7 +281,7 @@ releaseProcess := Seq[ReleaseStep](
   commitStableVersion,
   tagRelease,
   releaseStepCommandAndRemaining("+publish"),
-  releaseStepCommandAndRemaining("stagedRelease/test"),
+  releaseStepCommandAndRemaining("+stagedRelease/test"),
   setNextVersion,
   commitNextVersion
 )
