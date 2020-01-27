@@ -28,6 +28,13 @@ jobs:
             fi
 
       - run:
+          name: Compile base Scala build
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            sbt compile exit
+
+      - run:
           name: Run parallelized Scala tests
           environment:
           command: |
