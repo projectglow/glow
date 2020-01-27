@@ -17,7 +17,7 @@ Glow provides the ``normalize_variants`` transformer to be applied on a variant 
 
 .. note::
 
-  The variant normalization algorithm used by the ``normalize_variants`` transformer follows the same logic as the one used in normalizations tools such as `bcftools norm <https://www.htslib.org/doc/bcftools.1.html#norm>`_ and `vt normalize <https://genome.sph.umich.edu/wiki/Vt#Normalization>`_ tools. This normalization logic is different from the one used by GATK's `LeftAlignAndTrimVariants <https://software.broadinstitute.org/gatk/documentation/tooldocs/3.8-0/org_broadinstitute_gatk_tools_walkers_variantutils_LeftAlignAndTrimVariants.php>`_, which sometimes yields incorrect normalization (see `Variant Normalization <https://genome.sph.umich.edu/wiki/Variant_Normalization>`_ for more details).
+  The variant normalization algorithm used by the ``normalize_variants`` transformer follows the same logic as the one used in normalizations tools such as `bcftools norm <https://www.htslib.org/doc/bcftools.html#norm>`_ and `vt normalize <https://genome.sph.umich.edu/wiki/Vt#Normalization>`_ tools. This normalization logic is different from the one used by GATK's `LeftAlignAndTrimVariants <https://gatk.broadinstitute.org/hc/en-us/articles/360037225872-LeftAlignAndTrimVariants>`_, which sometimes yields incorrect normalization (see `Variant Normalization <https://genome.sph.umich.edu/wiki/Variant_Normalization>`_ for more details).
 
 Usage
 =====
