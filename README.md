@@ -58,14 +58,14 @@ To compile the main code:
 compile
 ```
 
-To run all tests:
+To run all Scala tests:
 ```
-test
+core/test
 ```
 
 To test a specific suite:
 ```
-testOnly *VCFDataSourceSuite
+core/testOnly *VCFDataSourceSuite
 ```
 
 To run Python tests, you must [install conda](https://docs.conda.io/en/latest/miniconda.html) and
@@ -75,12 +75,21 @@ conda env create -f python/environment.yml
 conda activate  glow
 ```
 
-
 You can then run tests from sbt:
 ```
 python/test
 ```
 These tests will run with the same Spark classpath as the Scala tests.
+
+To run documentation tests:
+```
+docs/test
+```
+
+To run the Scala, Python and documentation tests:
+```
+test
+```
 
 If you use IntelliJ, you'll want to set up [scalafmt on save](https://scalameta.org/scalafmt/docs/installation.html).
 
@@ -89,3 +98,7 @@ To test or testOnly in remote debug mode with IntelliJ IDEA set the remote debug
 val options = ForkOptions().withRunJVMOptions(Vector("-Xmx1024m")).withRunJVMOptions(Vector("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"))
 ```
 
+To run tests against the staged Maven artifact with the current stable version:
+```
+stagedRelease/test
+```
