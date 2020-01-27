@@ -252,7 +252,7 @@ lazy val stagedRelease = (project in file("core/src/test")).settings(
   resourceDirectory in Test := baseDirectory.value / "resources",
   scalaSource in Test := baseDirectory.value / "scala",
   libraryDependencies ++= providedDependencies ++ testDependencies :+ "io.projectglow" %% "glow" % stableVersion.value,
-  resolvers += "bintray-staging" at "https://dl.bintray.com/projectglow/glow"
+  resolvers := Seq("bintray-staging" at "https://dl.bintray.com/projectglow/glow")
 )
 
 import ReleaseTransformations._
