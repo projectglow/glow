@@ -132,6 +132,6 @@ with a non-reference allele for each sample:
 
   from pyspark.sql import Row
   expected_agg = Row(sampleId='HG00096', count=22, hasNonRef=False)
-  assert rows_equal(agg.withColumnRenamed('count(1)', 'count').head(), expected_agg)
+  assert_rows_equal(agg.withColumnRenamed('count(1)', 'count').head(), expected_agg)
 
 .. notebook:: .. etl/sample-qc-demo.html
