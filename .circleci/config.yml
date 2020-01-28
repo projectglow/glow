@@ -28,13 +28,6 @@ jobs:
             fi
 
       - run:
-          name: Compile base Scala build
-          environment:
-          command: |
-            export PATH=$HOME/conda/envs/glow/bin:$PATH
-            sbt compile exit
-
-      - run:
           name: Run parallelized Scala tests
           environment:
           command: |
@@ -42,8 +35,15 @@ jobs:
             if [[ $CIRCLE_NODE_INDEX == 0 ]]; then
               sbt ++2.11.12 -v coverage core/test coverageReport exit
             else
-              sbt ++2.12.8 -v coverage core/test coverageReport exit
+              sbt ++2.12.8 -v core/test exit
             fi
+
+      - run:
+          name: Compile base Scala build
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            sbt compile exit
 
       - run:
           name: Run Python tests
