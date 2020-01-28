@@ -17,12 +17,12 @@
 package io.projectglow.sql.optimizer
 
 import org.apache.spark.sql.catalyst.expressions.aggregate.{AggregateExpression, Complete}
-import org.apache.spark.sql.catalyst.expressions.{CreateNamedStruct, GetStructField, Literal}
+import org.apache.spark.sql.catalyst.expressions.{ArrayMax, ArrayMin, ArrayTransform, CaseWhen, CreateNamedStruct, ElementAt, GetStructField, GreaterThan, LambdaFunction, LessThan, Literal, NamedLambdaVariable, Size, UnresolvedNamedLambdaVariable}
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.types.StructType
-
-import io.projectglow.sql.expressions.{AddStructFields, AggregateByIndex, UnwrappedAggregateFunction}
+import io.projectglow.sql.expressions.{AddStructFields, AggregateByIndex, PermuteArray, UnwrappedAggregateFunction}
+import javassist.bytecode.stackmap.TypeData.ArrayElement
 
 /**
  * Simple optimization rule that handles expression rewrites
@@ -35,6 +35,19 @@ object HLSReplaceExpressionsRule extends Rule[LogicalPlan] {
         Seq(Literal(baseType(idx).name), GetStructField(struct, idx))
       }
       CreateNamedStruct(baseFields ++ newFields)
+    case PermuteArray(dataArray, indexArray) =>
+      val maxIndexCheck = GreaterThan(ArrayMax(indexArray), Size(dataArray))
+      val minIndexCheck = LessThan(ArrayMin(indexArray), Literal(1))
+      val elseValue = {
+        val elementArg = UnresolvedNamedLambdaVariable(Seq("el"))
+        val fn = ElementAt(dataArray, elementArg)
+        ArrayTransform(indexArray, LambdaFunction(fn, Seq(elementArg)))
+      }
+      val branches = Seq(
+        (maxIndexCheck, Literal(null)),
+        (minIndexCheck, Literal(null))
+      )
+      CaseWhen(branches, elseValue = elseValue)
   }
 }
 
