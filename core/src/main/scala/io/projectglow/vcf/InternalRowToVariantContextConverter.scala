@@ -343,6 +343,7 @@ class InternalRowToVariantContextConverter(
                   effect
                     .getStruct(j, schema.size)
                     .toSeq(schema)
+                    .filterNot(_ == null) // Second value may be missing
               }
               arr.mkString(AnnotationUtils.structDelimiter)
             case IntegerType => effect.getInt(j)
