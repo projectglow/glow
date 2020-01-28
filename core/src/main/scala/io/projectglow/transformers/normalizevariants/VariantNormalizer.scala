@@ -29,6 +29,18 @@ import io.projectglow.vcf.{InternalRowToVariantContextConverter, VCFSchemaInferr
 import org.apache.spark.sql.{DataFrame, SQLUtils}
 import org.broadinstitute.hellbender.engine.{ReferenceContext, ReferenceDataSource}
 import org.broadinstitute.hellbender.utils.SimpleInterval
+import htsjdk.samtools.reference.IndexedFastaSequenceFile
+import io.projectglow.sql.expressions.{ComputeQR, CovariateQRContext, LinearRegressionGwas, LogisticRegressionExpr, LogisticRegressionGwas}
+import io.projectglow.transformers.splitmultiallelics.VariantSplitter.{logger, splitAlleleIdxFieldName, splitAllelesFieldName, splitGenotypeFields, splitInfoFields}
+import org.apache.spark.TaskContext
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, CodegenFallback, ExprCode}
+import org.apache.spark.sql.catalyst.expressions.{Expression, ImplicitCastInputTypes, QuaternaryExpression, TernaryExpression}
+import org.apache.spark.sql.catalyst.util.ArrayData
+import org.apache.spark.sql.types.{ArrayType, DataType, DoubleType, IntegerType, StringType, StructField, StructType}
+import org.apache.spark.unsafe.types.UTF8String
 
 import scala.collection.JavaConverters._
 import scala.math.min
@@ -47,6 +59,10 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
     if (refGenomePathString.isEmpty) {
       throw new IllegalArgumentException("Reference genome path not provided!")
     }
+
+    val refGenomeIndexedFasta = new IndexedFastaSequenceFile(Paths.get(refGenomePathString.get))
+
+    /*
     if (!new File(refGenomePathString.get).exists()) {
       throw new IllegalArgumentException("The reference file was not found!")
     }
@@ -93,8 +109,26 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
       }
     }
     SQLUtils.internalCreateDataFrame(df.sparkSession, rddAfterNormalize, schema, false)
+  */
 
+    normalizeVariants(df)
   }
+
+  def normalizeVariants(variantDf: DataFrame): DataFrame = {
+
+    // Update splitFromMultiAllelic column, add INFO_OLD_MULTIALLELIC column (see vt decompose)
+    // and posexplode alternateAlleles column
+    val dfAfterNormalize = variantDf
+      .withColumn(alternateAllelesField.name,
+        when(
+          !concat_ws("", col(alternateAllelesField.name)).rlike(".*[<|>|*].*"),
+          concat_ws("", col(alternateAllelesField.name)) // s"normalizeVariant(${alternateAllelesField.name}")
+        )
+      )
+    dfAfterNormalize
+  }
+
+
 
   /**
    * Encapsulates all alleles, start, and end of a variant to used by the VC normalizer
@@ -104,7 +138,11 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
    * @param end
    */
   @VisibleForTesting
-  private[normalizevariants] case class AlleleBlock(alleles: Seq[Allele], start: Int, end: Int)
+  private[normalizevariants] case class AlleleBlock(refAllele: String, altAlleles: Array[String], start: Int, end: Int)
+
+
+
+
 
   /**
    * normalizes a single VariantContext by checking some conditions and then calling realignAlleles
@@ -113,32 +151,21 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
    * @param refGenomeDataSource
    * @return normalized VariantContext
    */
-  private def normalizeVC(
-      vc: VariantContext,
-      refGenomeDataSource: ReferenceDataSource): VariantContext = {
+  private def normalizeVariant(
+      refAllele: String,
+      altAlleles: Array[String],
+      refGenomeDataSource: ReferenceDataSource): AlleleBlock = {
 
-    if (vc.getNAlleles < 1) {
-      // if no alleles, throw exception
-      logger.info("Cannot compute right-trim size for an empty allele list...")
-      throw new IllegalArgumentException
-    } else if (vc.isSNP) {
-      // if a SNP, do nothing
-      vc
-    } else if (vc.getNAlleles == 1) {
+    val newAllele
+    if (refAllele.length == 1 && altAlleles.forall(a => a.length == 1)) {
+      altAlleles
+    } else if (altAlleles.length == 0) {
       // if only one allele and longer than one base, trim to the
       // first base
-      val ref = vc.getReference
-      if (ref.length > 1) {
-        val newBase = ref.getBases()(0)
-        val trimmedAllele = Allele.create(newBase, ref.isReference)
-        new VariantContextBuilder(vc)
-          .start(vc.getStart)
-          .stop(vc.getStart) // end is equal to start.
-          .alleles(Seq(trimmedAllele).asJava)
-          .make
-      } else {
-        vc
-      }
+      newRefAllel = refAllele(0)
+    }
+
+    /*
     } else {
       val alleles = vc.getAlleles.asScala
       if (alleles.exists(_.isSymbolic)) {
@@ -159,6 +186,8 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
 
       }
     }
+    */
+
   }
 
   /**
