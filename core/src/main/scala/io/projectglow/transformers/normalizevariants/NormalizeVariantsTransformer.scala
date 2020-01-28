@@ -18,6 +18,7 @@ package io.projectglow.transformers.normalizevariants
 
 import io.projectglow.DataFrameTransformer
 import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
+import io.projectglow.sql.expressions.VariantNormalizer
 import io.projectglow.transformers.util.StringUtils
 import org.apache.spark.sql.DataFrame
 import io.projectglow.transformers.splitmultiallelics.VariantSplitter

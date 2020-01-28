@@ -21,7 +21,7 @@ import java.nio.file.Paths
 import htsjdk.variant.variantcontext.Allele
 import io.projectglow.common.GlowLogging
 import io.projectglow.sql.GlowBaseTest
-import io.projectglow.transformers.normalizevariants.VariantNormalizer._
+import io.projectglow.sql.expressions.VariantNormalizer._
 import org.broadinstitute.hellbender.engine.ReferenceDataSource
 
 class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {

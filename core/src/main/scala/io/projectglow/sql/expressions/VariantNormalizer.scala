@@ -1,51 +1,20 @@
-/*
- * Copyright 2019 The Glow Authors
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+package io.projectglow.sql.expressions
 
-package io.projectglow.transformers.normalizevariants
-
-import java.io.File
 import java.nio.file.Paths
 
 import com.google.common.annotations.VisibleForTesting
-import htsjdk.samtools.ValidationStringency
+import htsjdk.samtools.reference.IndexedFastaSequenceFile
 import htsjdk.variant.variantcontext._
-import htsjdk.variant.vcf.VCFHeader
 import io.projectglow.common.GlowLogging
-import io.projectglow.common.VariantSchemas._
-import io.projectglow.vcf.{InternalRowToVariantContextConverter, VCFSchemaInferrer, VariantContextToInternalRowConverter}
-import org.apache.spark.sql.{DataFrame, SQLUtils}
+import io.projectglow.common.VariantSchemas.alternateAllelesField
+import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.functions.{col, concat_ws, when}
 import org.broadinstitute.hellbender.engine.{ReferenceContext, ReferenceDataSource}
 import org.broadinstitute.hellbender.utils.SimpleInterval
-import htsjdk.samtools.reference.IndexedFastaSequenceFile
-import io.projectglow.sql.expressions.{ComputeQR, CovariateQRContext, LinearRegressionGwas, LogisticRegressionExpr, LogisticRegressionGwas}
-import io.projectglow.transformers.splitmultiallelics.VariantSplitter.{logger, splitAlleleIdxFieldName, splitAllelesFieldName, splitGenotypeFields, splitInfoFields}
-import org.apache.spark.TaskContext
-import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
-import org.apache.spark.sql.functions._
-import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, CodegenFallback, ExprCode}
-import org.apache.spark.sql.catalyst.expressions.{Expression, ImplicitCastInputTypes, QuaternaryExpression, TernaryExpression}
-import org.apache.spark.sql.catalyst.util.ArrayData
-import org.apache.spark.sql.types.{ArrayType, DataType, DoubleType, IntegerType, StringType, StructField, StructType}
-import org.apache.spark.unsafe.types.UTF8String
 
-import scala.collection.JavaConverters._
 import scala.math.min
 
-private[projectglow] object VariantNormalizer extends GlowLogging {
+object VariantNormalizer extends GlowLogging {
 
   /**
    * Normalizes the input DataFrame of variants and outputs them as a Dataframe
@@ -60,7 +29,6 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
       throw new IllegalArgumentException("Reference genome path not provided!")
     }
 
-    val refGenomeIndexedFasta = new IndexedFastaSequenceFile(Paths.get(refGenomePathString.get))
 
     /*
     if (!new File(refGenomePathString.get).exists()) {
@@ -130,15 +98,7 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
 
 
 
-  /**
-   * Encapsulates all alleles, start, and end of a variant to used by the VC normalizer
-   *
-   * @param alleles
-   * @param start
-   * @param end
-   */
-  @VisibleForTesting
-  private[normalizevariants] case class AlleleBlock(refAllele: String, altAlleles: Array[String], start: Int, end: Int)
+
 
 
 
@@ -151,10 +111,12 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
    * @param refGenomeDataSource
    * @return normalized VariantContext
    */
-  private def normalizeVariant(
-      refAllele: String,
-      altAlleles: Array[String],
-      refGenomeDataSource: ReferenceDataSource): AlleleBlock = {
+   def normalizeVariant(
+                                      start: Int,
+                                      end: Int,
+                                      refAllele: String,
+                                      altAlleles: Array[String],
+                                      refGenomeIndexedFasta: IndexedFastaSequenceFile): AlleleBlock = {
 
     val newAllele
     if (refAllele.length == 1 && altAlleles.forall(a => a.length == 1)) {
