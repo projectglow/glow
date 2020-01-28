@@ -334,7 +334,7 @@ class VariantContextToInternalRowConverter(
                 case IntegerType =>
                   makeArray(strings, _.toInt, Some(stSchema.size))
                 case StringType =>
-                  makeArray(strings, UTF8String.fromString, None)
+                  makeArray(strings, UTF8String.fromString, Some(stSchema.size))
               }
               new GenericInternalRow(pair)
             case IntegerType => subfield.toInt
