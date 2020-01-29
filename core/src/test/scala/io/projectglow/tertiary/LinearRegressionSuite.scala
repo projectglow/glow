@@ -152,7 +152,7 @@ class LinearRegressionSuite extends GlowBaseTest {
     }
 
     val ourResults = timeIt("DB linreg") {
-      if (true) {
+      if (useSpark) {
         val rows = testData.genotypes.map { g =>
           RegressionRow(
             g.toArray,
@@ -163,7 +163,7 @@ class LinearRegressionSuite extends GlowBaseTest {
         spark
           .createDataFrame(rows)
           .withColumn("id", monotonically_increasing_id())
-          .repartition(1)
+          .repartition(20)
           .withColumn("linreg", expr("linear_regression_gwas(genotypes, phenotypes, covariates)"))
           .orderBy("id")
           .selectExpr("expand_struct(linreg)")
@@ -324,7 +324,7 @@ class LinearRegressionSuite extends GlowBaseTest {
   // covariate vector space. When the genotypes are a linear combination of some covariates, this
   // projection is 0, so beta, standard error, and p value are all undefined. However, finite
   // precision can instead cause the error to be massive with respect to beta.
-  test("negligible p value if genotypes are in covariate span") {
+  test("large or NaN p value if genotypes are in covariate span") {
     val testData = generateTestData(30, 1, 1, true, 1)
     val genotypes = twoDArrayToBreezeMatrix(testData.covariates.toArray)(::, 1)
     val phenotypes = new DenseVector[Double](testData.phenotypes.toArray)
