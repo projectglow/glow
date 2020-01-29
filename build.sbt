@@ -66,12 +66,15 @@ lazy val commonSettings = Seq(
   scalacOptions += "-target:jvm-1.8"
 )
 
-lazy val providedDependencies = Seq(
-  "org.apache.spark" %% "spark-catalyst" % sparkVersion % "provided",
-  "org.apache.spark" %% "spark-core" % sparkVersion % "provided",
-  "org.apache.spark" %% "spark-mllib" % sparkVersion % "provided",
-  "org.apache.spark" %% "spark-sql" % sparkVersion % "provided"
+lazy val sparkDependencies = Seq(
+  "org.apache.spark" %% "spark-catalyst" % sparkVersion,
+  "org.apache.spark" %% "spark-core" % sparkVersion,
+  "org.apache.spark" %% "spark-mllib" % sparkVersion,
+  "org.apache.spark" %% "spark-sql" % sparkVersion
 )
+
+lazy val providedSparkDependencies = sparkDependencies.map(_ % "provided")
+lazy val testSparkDependencies = sparkDependencies.map(_ % "test")
 
 lazy val testDependencies = Seq(
   "org.scalatest" %% "scalatest" % "3.0.3" % "test",
@@ -83,8 +86,8 @@ lazy val testDependencies = Seq(
   "org.xerial" % "sqlite-jdbc" % "3.20.1" % "test"
 )
 
-lazy val dependencies = (
-  providedDependencies ++ testDependencies ++ Seq(
+lazy val coreDependencies = (
+  providedSparkDependencies ++ testDependencies ++ Seq(
   "org.seqdoop" % "hadoop-bam" % "7.9.2",
   "log4j" % "log4j" % "1.2.17",
   "org.slf4j" % "slf4j-api" % "1.7.25",
@@ -132,8 +135,8 @@ lazy val dependencies = (
   "com.github.samtools" % "htsjdk" % "2.20.3"
 )).map(_.exclude("com.google.code.findbugs", "jsr305"))
 
-//lazy val root = (project in file("."))
-//  .aggregate(core, python, docs)
+lazy val root = (project in file("."))
+  .aggregate(core_2_11, python_2_11, docs_2_11, core_2_12, python_2_12, docs_2_12)
 
 lazy val core = (project in file("core"))
   .settings(
@@ -145,7 +148,7 @@ lazy val core = (project in file("core"))
     packageOptions in (Compile, packageBin) +=
       Package.ManifestAttributes("Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
     bintrayRepository := "glow",
-    libraryDependencies ++= dependencies
+    libraryDependencies ++= coreDependencies
   ).cross
 
 lazy val core_2_11 = core(scala211)
@@ -172,10 +175,13 @@ def currentGitHash(dir: File): String = {
 
 lazy val sparkClasspath = taskKey[String]("sparkClasspath")
 lazy val sparkHome = taskKey[String]("sparkHome")
+lazy val pythonPath = taskKey[String]("pythonPath")
 
 lazy val pythonSettings = Seq(
+  libraryDependencies ++= testSparkDependencies,
   sparkClasspath := (fullClasspath in Test).value.files.map(_.getCanonicalPath).mkString(":"),
   sparkHome := (ThisBuild / baseDirectory).value.absolutePath,
+  pythonPath := ((ThisBuild / baseDirectory).value / "python" / "glow").absolutePath,
   publish / skip := true
 )
 
@@ -202,36 +208,23 @@ lazy val python =
 lazy val python_2_11 = python(scala211)
 lazy val python_2_12 = python(scala212)
 
-lazy val docs =
-  (project in file("docs"))
-    .settings(
-      pythonSettings,
-      test in Test := {
-        // Pass the test classpath to pyspark so that we run the same bits as the Scala tests
-        val ret = Process(
-          Seq("pytest", "docs"),
-          None,
-          "SPARK_CLASSPATH" -> sparkClasspath.value,
-          "SPARK_HOME" -> sparkHome.value,
-          "PYTHONPATH" -> ((ThisBuild / baseDirectory).value / "python" / "glow").absolutePath
-        ).!
-        require(ret == 0, "Docs tests failed")
-      }
-    ).cross
-    .dependsOn(core % "test->test")
+lazy val docs = (project in file("docs")).settings(
+  pythonSettings,
+  test in Test := {
+    // Pass the test classpath to pyspark so that we run the same bits as the Scala tests
+    val ret = Process(
+      Seq("pytest", "docs"),
+      None,
+      "SPARK_CLASSPATH" -> sparkClasspath.value,
+      "SPARK_HOME" -> sparkHome.value,
+      "PYTHONPATH" -> pythonPath.value
+    ).!
+    require(ret == 0, "Docs tests failed")
+  }).cross
+  .dependsOn(core % "test->test")
 
 lazy val docs_2_11 = docs(scala211)
 lazy val docs_2_12 = docs(scala212)
-
-// List tests to parallelize on CircleCI
-lazy val printTests =
-  taskKey[Unit]("Print full class names of Scala tests to core-test-names.log.")
-
-printTests := {
-  IO.writeLines(
-    baseDirectory.value / "core-test-names.log",
-    (definedTestNames in Test in core).value.sorted)
-}
 
 // Publish to Bintray
 ThisBuild / description := "An open-source toolkit for large-scale genomic analysis"
@@ -270,7 +263,7 @@ lazy val stagedRelease = (project in file("core/src/test")).settings(
   crossScalaVersions := supportedScalaVersions,
   resourceDirectory in Test := baseDirectory.value / "resources",
   scalaSource in Test := baseDirectory.value / "scala",
-  libraryDependencies ++= providedDependencies ++ testDependencies :+ "io.projectglow" %% "glow" % stableVersion.value,
+  libraryDependencies ++= testSparkDependencies ++ testDependencies :+ "io.projectglow" %% "glow" % stableVersion.value,
   resolvers := Seq("bintray-staging" at "https://dl.bintray.com/projectglow/glow")
 )
 
@@ -282,9 +275,7 @@ releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,
   inquireVersions,
   runClean,
-  releaseStepCommandAndRemaining("+core/test"),
-  releaseStepCommandAndRemaining("python/test"),
-  releaseStepCommandAndRemaining("docs/test"),
+  runTest,
   setReleaseVersion,
   updateStableVersion,
   commitReleaseVersion,
