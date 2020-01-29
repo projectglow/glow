@@ -6,7 +6,6 @@ val sparkVersion = "2.4.3"
 
 lazy val scala212 = "2.12.8"
 lazy val scala211 = "2.11.12"
-lazy val supportedScalaVersions = List(scala212, scala211)
 
 ThisBuild / scalaVersion := scala211
 ThisBuild / organization := "io.projectglow"
@@ -76,7 +75,7 @@ lazy val sparkDependencies = Seq(
 lazy val providedSparkDependencies = sparkDependencies.map(_ % "provided")
 lazy val testSparkDependencies = sparkDependencies.map(_ % "test")
 
-lazy val testDependencies = Seq(
+lazy val testCoreDependencies = Seq(
   "org.scalatest" %% "scalatest" % "3.0.3" % "test",
   "org.mockito" % "mockito-all" % "1.9.5" % "test",
   "org.apache.spark" %% "spark-catalyst" % sparkVersion % "test" classifier "tests",
@@ -87,7 +86,7 @@ lazy val testDependencies = Seq(
 )
 
 lazy val coreDependencies = (
-  providedSparkDependencies ++ testDependencies ++ Seq(
+  providedSparkDependencies ++ testCoreDependencies ++ Seq(
   "org.seqdoop" % "hadoop-bam" % "7.9.2",
   "log4j" % "log4j" % "1.2.17",
   "org.slf4j" % "slf4j-api" % "1.7.25",
@@ -260,12 +259,14 @@ ThisBuild / stableVersion := IO.read((ThisBuild / baseDirectory).value / "stable
 
 lazy val stagedRelease = (project in file("core/src/test")).settings(
   commonSettings,
-  crossScalaVersions := supportedScalaVersions,
   resourceDirectory in Test := baseDirectory.value / "resources",
   scalaSource in Test := baseDirectory.value / "scala",
-  libraryDependencies ++= testSparkDependencies ++ testDependencies :+ "io.projectglow" %% "glow" % stableVersion.value,
+  libraryDependencies ++= testSparkDependencies ++ testCoreDependencies :+ "io.projectglow" %% "glow" % stableVersion.value,
   resolvers := Seq("bintray-staging" at "https://dl.bintray.com/projectglow/glow")
-)
+).cross
+
+lazy val stagedRelease_2_11 = stagedRelease(scala211)
+lazy val stagedRelease_2_12 = stagedRelease(scala212)
 
 import ReleaseTransformations._
 
@@ -281,8 +282,9 @@ releaseProcess := Seq[ReleaseStep](
   commitReleaseVersion,
   commitStableVersion,
   tagRelease,
-  releaseStepCommandAndRemaining("+publish"),
-  releaseStepCommandAndRemaining("+stagedRelease/test"),
+  publishArtifacts,
+  releaseStepCommandAndRemaining("stagedRelease_2_11/test"),
+  releaseStepCommandAndRemaining("stagedRelease_2_12/test"),
   setNextVersion,
   commitNextVersion
 )

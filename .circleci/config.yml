@@ -28,14 +28,14 @@ jobs:
             fi
 
       - run:
-          name: Run parallelized Scala tests
+          name: Run Scala tests
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             if [[ $CIRCLE_NODE_INDEX == 0 ]]; then
-              sbt ++2.11.12 -v coverage core/test coverageReport exit
+              sbt coverage core_2_11/test coverageReport exit
             else
-              sbt ++2.12.8 -v core/test exit
+              sbt core_2_12/test exit
             fi
 
       - run:
@@ -43,7 +43,11 @@ jobs:
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            sbt python/test exit
+            if [[ $CIRCLE_NODE_INDEX == 0 ]]; then
+              sbt python_2_11/test exit
+            else
+              sbt python_2_12/test exit
+            fi
 
       - run:
           name: Run docs tests
@@ -52,14 +56,18 @@ jobs:
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             cd docs
             make linkcheck
-            sbt docs/test exit
+            if [[ $CIRCLE_NODE_INDEX == 0 ]]; then
+              sbt docs_2_11/test exit
+            else
+              sbt docs_2_12/test exit
+            fi
 
       - store_artifacts:
           path: ~/glow/unit-tests.log
           destination: unit-tests.log
 
       - store_test_results:
-          path: ~/glow/core/target/test-reports
+          path: ~/glow/core/target/scala-2.11/test-reports
 
       - codecov/upload:
           file: "core/target/scala-2.11/scoverage-report/scoverage.xml"
