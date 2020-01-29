@@ -61,9 +61,10 @@ jobs:
             fi
 
       - run:
-          name: Check links
+          name: Check docs links
           environment:
           command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
             cd docs
             make linkcheck
 
