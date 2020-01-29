@@ -100,10 +100,6 @@ object VariantNormalizer extends GlowLogging {
 
 
 
-
-
-
-
   /**
    * normalizes a single VariantContext by checking some conditions and then calling realignAlleles
    *
@@ -111,82 +107,142 @@ object VariantNormalizer extends GlowLogging {
    * @param refGenomeDataSource
    * @return normalized VariantContext
    */
-   def normalizeVariant(
-                                      start: Int,
+   def normalizeVariant(contig: String,
+                                      start: Int, // this start is one less that the start used in the alleleblock of the old version of the code. 
                                       end: Int,
                                       refAllele: String,
                                       altAlleles: Array[String],
-                                      refGenomeIndexedFasta: IndexedFastaSequenceFile): AlleleBlock = {
+                                      refGenomeIndexedFasta: IndexedFastaSequenceFile): NormalizationResult = {
+        // validateForNormalization
+        var flag = FLAG_UNCHANGED
+     var newStart = start
+     var newEnd = end
+     var newRefAllele = refAllele
+     var newAltAlleles = altAlleles
 
-    val newAllele
-    if (refAllele.length == 1 && altAlleles.forall(a => a.length == 1)) {
-      altAlleles
-    } else if (altAlleles.length == 0) {
-      // if only one allele and longer than one base, trim to the
-      // first base
-      newRefAllel = refAllele(0)
-    }
 
-    /*
-    } else {
-      val alleles = vc.getAlleles.asScala
-      if (alleles.exists(_.isSymbolic)) {
-        // if any of the alleles is symbolic, do nothing
-        vc
-      } else {
-        // Create ReferenceDataSource of the reference genome and the AlleleBlock and pass
-        // to realignAlleles
+     if (refAllele.isEmpty && altAlleles.isEmpty) {
+       // if no alleles, throw exception
+       logger.info("REF and ALT alleles are empty allele list...")
+       flag = FLAG_ERROR
+     } else if (refAllele.length == 1 && altAlleles.forall(_.length == 1)) {
+       // if a SNP, do nothing
+       flag = FLAG_UNCHANGED
+     } else if (altAlleles.isEmpty) {
+       // if only one allele and longer than one base, trim to the
+       // first base
+       newRefAllele = refAllele.take(1)
+       flag = FLAG_CHANGED
+     } else if (altAlleles.exists(_.matches(".*[<|>|*].*"))) {
+       // if any of the alleles is symbolic, do nothing
+       flag = FLAG_UNCHANGED
+     } else {
+       // Create ReferenceDataSource of the reference genome and the AlleleBlock and pass
+       // to realignAlleles
 
-        updateVCWithNewAlleles(
-          vc,
-          realignAlleles(
-            AlleleBlock(alleles, vc.getStart, vc.getEnd),
-            refGenomeDataSource,
-            vc.getContig
-          )
-        )
+       // Trim from right
+       var trimSize = 0 // stores total trimSize from right
+       var nTrimmedBasesBeforeNextPadding = 0 // stores number of bases trimmed from right before next padding
+       var firstAlleleBaseFromRight = refAllele(refAllele.length - nTrimmedBasesBeforeNextPadding - 1)
 
-      }
-    }
-    */
+       val allAlleles = refAllele +: altAlleles
 
-  }
+       while (allAlleles
+         .forall(a =>
+           a(a.length - nTrimmedBasesBeforeNextPadding - 1) == firstAlleleBaseFromRight)
+       ) {
+         // Last base in all alleles are the same
 
-  /**
-   * Updates the alleles and genotypes in a VC with new alleles
-   *
-   * @param originalVC
-   * @param newAlleleBlock
-   * @return updated VariantContext
-   */
-  private def updateVCWithNewAlleles(
-      originalVC: VariantContext,
-      newAlleleBlock: AlleleBlock): VariantContext = {
+         var padSeq = Array[Byte]()
+         var nPadBases = 0
 
-    val originalAlleles = originalVC.getAlleles.asScala
-    val newAlleles = newAlleleBlock.alleles
+         if (allAlleles
+           .map(_.length)
+           .min == nTrimmedBasesBeforeNextPadding + 1) {
+           // if beginning of any allele is reached, trim from right what
+           // needs to be trimmed so far, and pad to the left
+           if (newStart > 1) {
+             nPadBases = min(PAD_WINDOW_SIZE, newStart - 1)
 
-    var alleleMap = Map[Allele, Allele]()
+             refGenomeIndexedFasta.getSubsequenceAt(contig, start, end)
+               // refGenomeDataSource,
+               // new SimpleInterval(contig, newStart - 1, newStart - 1)
 
-    for (i <- 0 to originalVC.getNAlleles - 1) {
-      alleleMap += originalAlleles(i) -> newAlleles(i)
-    }
 
-    val originalGenotypes = originalVC.getGenotypes.asScala
-    val updatedGenotypes = GenotypesContext.create(originalGenotypes.size)
-    for (genotype <- originalGenotypes) {
-      val updatedGenotypeAlleles =
-        genotype.getAlleles.asScala.map(a => alleleMap.getOrElse(a, a)).asJava
-      updatedGenotypes.add(new GenotypeBuilder(genotype).alleles(updatedGenotypeAlleles).make)
-    }
+             refGenomeContext.setWindow(nPadBases - 1, 0)
 
-    new VariantContextBuilder(originalVC)
-      .start(newAlleleBlock.start)
-      .stop(newAlleleBlock.end)
-      .alleles(newAlleles.asJava)
-      .genotypes(updatedGenotypes)
-      .make
-  }
+             padSeq ++= refGenomeContext.getBases()
+
+           } else {
+             nTrimmedBasesBeforeNextPadding -= 1
+           }
+
+           alleles = alleles.map { a =>
+             Allele.create(
+               padSeq ++ a
+                 .getBaseString()
+                 .dropRight(nTrimmedBasesBeforeNextPadding + 1)
+                 .getBytes(),
+               a.isReference
+             )
+           }
+
+           trimSize += nTrimmedBasesBeforeNextPadding + 1
+
+           newStart -= nPadBases
+
+           nTrimmedBasesBeforeNextPadding = 0
+
+         } else {
+
+           nTrimmedBasesBeforeNextPadding += 1
+
+         }
+
+         firstAlleleBaseFromRight = alleles(0).getBases()(
+           alleles(0).length
+             - nTrimmedBasesBeforeNextPadding - 1
+         )
+       }
+
+       // trim from left
+       var nLeftTrimBases = 0
+       var firstAlleleBaseFromLeft = alleles(0).getBases()(nLeftTrimBases)
+       val minAlleleLength = alleles.map(_.length).min
+
+       while (nLeftTrimBases < minAlleleLength - nTrimmedBasesBeforeNextPadding - 1
+         && alleles.forall(_.getBases()(nLeftTrimBases) == firstAlleleBaseFromLeft)) {
+
+         nLeftTrimBases += 1
+
+         firstAlleleBaseFromLeft = alleles(0).getBases()(nLeftTrimBases)
+       }
+
+       alleles = alleles.map { a =>
+         Allele.create(
+           a.getBaseString()
+             .drop(nLeftTrimBases)
+             .dropRight(nTrimmedBasesBeforeNextPadding)
+             .getBytes(),
+           a.isReference
+         )
+
+       }
+
+       trimSize += nTrimmedBasesBeforeNextPadding
+
+       AlleleBlock(
+         alleles,
+         newStart + nLeftTrimBases,
+         unalignedAlleleBlock.end - trimSize
+       )
+
+     }
+
+     NormalizationResult(newStart, newEnd, newRefAllele, newAltAlleles, flag)
+
+   }
+
 
   /**
    * Contains the main normalization logic. Normalizes an AlleleBlock by left aligning and
@@ -210,9 +266,9 @@ object VariantNormalizer extends GlowLogging {
    */
   @VisibleForTesting
   private[normalizevariants] def realignAlleles(
-      unalignedAlleleBlock: AlleleBlock,
-      refGenomeDataSource: ReferenceDataSource,
-      contig: String): AlleleBlock = {
+                                                 unalignedAlleleBlock: NormalizationResult,
+                                                 refGenomeDataSource: ReferenceDataSource,
+                                                 contig: String): NormalizationResult = {
 
     // Trim from right
     var trimSize = 0 // stores total trimSize from right
@@ -226,18 +282,18 @@ object VariantNormalizer extends GlowLogging {
     )
 
     while (alleles.forall(
-        a =>
-          a.getBases()(a.length() - nTrimmedBasesBeforeNextPadding - 1) ==
+      a =>
+        a.getBases()(a.length() - nTrimmedBasesBeforeNextPadding - 1) ==
           firstAlleleBaseFromRight
-      )) {
+    )) {
       // Last base in all alleles are the same
 
       var padSeq = Array[Byte]()
       var nPadBases = 0
 
       if (alleles
-          .map(_.length)
-          .min == nTrimmedBasesBeforeNextPadding + 1) {
+        .map(_.length)
+        .min == nTrimmedBasesBeforeNextPadding + 1) {
         // if
         // beginning of any allele is reached, trim from right what
         // needs to be trimmed so far, and pad to the left
@@ -320,5 +376,11 @@ object VariantNormalizer extends GlowLogging {
   }
 
   private val PAD_WINDOW_SIZE = 100
+
+  private val FLAG_ERROR = "Error"
+  private val FLAG_CHANGED = "Changed"
+  private val FLAG_UNCHANGED = "Unchanged"
+
+
 
 }
