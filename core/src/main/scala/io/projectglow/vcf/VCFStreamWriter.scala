@@ -47,9 +47,6 @@ class VCFStreamWriter(
     extends Closeable
     with Serializable {
 
-  // Header should be set or written exactly once
-  var headerHasBeenSetOrWritten = false
-
   var header: VCFHeader = _
   var headerSampleSet: JHashSet[String] = _
   var replaceSampleIds: Boolean = _
@@ -150,7 +147,6 @@ class VCFStreamWriter(
       val sampleIds = sampleIdInfo.asInstanceOf[SampleIds].sortedSampleIds
       header = new VCFHeader(headerLineSet.asJava, sampleIds.asJava)
       writer.writeHeader(header)
-      headerHasBeenSetOrWritten = true
     }
     writer.close()
   }

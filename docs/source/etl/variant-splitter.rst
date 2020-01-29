@@ -22,7 +22,7 @@ Split Multiallelic Variants
 
     - A given multiallelic row with :math:`n` ``ALT`` alleles is split to :math:`n` biallelic rows, each with one of the ``ALT`` alleles of the original multiallelic row. The ``REF`` allele in all split rows is the same as the ``REF`` allele in the multiallelic row.
 
-    - Each ``INFO`` field is appropriately split among split rows if it has the same number of elements as number of ``ALT`` alleles, otherwise it is repeated in all split rows. The boolean ``INFO`` field ``splitFromMultiAllelic`` is added/modified to reflect whether the new row is the result of splitting a multiallelic row through this transformation or not. A new ``INFO`` field called ``OLD_MULTIALLELIC`` is added to the DataFrame, which for each split row, holds the ``CHROM:POS:REF/ALT`` of its original multiallelic row.
+    - Each ``INFO`` field is appropriately split among split rows if it has the same number of elements as number of ``ALT`` alleles, otherwise it is repeated in all split rows. The boolean ``INFO`` field ``splitFromMultiAllelic`` is added/modified to reflect whether the new row is the result of splitting a multiallelic row through this transformation or not. A new ``INFO`` field called ``OLD_MULTIALLELIC`` is added to the DataFrame, which for each split row, holds the ``CHROM:POS:REF/ALT`` of its original multiallelic row. Note that the ``INFO`` field must be flattened (as explained :ref:`here<vcf>`) in order to be split by this transformer. Unflattened ``INFO`` fields (such as those inside an ``attributes`` field) will not be split, but just repeated in whole across all split rows.
 
     - Genotype fields for each sample are treated as follows: The ``GT`` field becomes biallelic in each row, where the original ``ALT`` alleles that are not present in that row are replaced with no call. The fields with number of entries equal to number of ``REF`` + ``ALT`` alleles, are properly split into rows, where in each split row, only entries corresponding to the ``REF`` allele as well as the ``ALT`` allele present in that row are kept. The fields which follow colex order (e.g., ``GL``, ``PL``, and ``GP``) are properly split between split rows where in each row only the elements corresponding to genotypes comprising of the ``REF`` and ``ALT`` alleles in that row are listed. Other genotype fields are just repeated over the split rows.
 
@@ -62,13 +62,33 @@ Assuming ``df_original`` is a variable of type DataFrame which contains the geno
             from pyspark.sql import Row
 
             expected_split_variant = Row(contigName='20', start=100, end=101, names=[], referenceAllele='A', alternateAlleles=['ACCA'], qual=None, filters=['PASS'], splitFromMultiAllelic=True, INFO_VC='INDEL', INFO_AC=[3], INFO_AF=[0.375], INFO_AN=8, **{'INFO_refseq.name':'NM_144628', 'INFO_refseq.positionType':'intron'},INFO_OLD_MULTIALLELIC='20:101:A/ACCA/TCGG', genotypes=[Row(sampleId='SAMPLE1',  calls=[0, 1], alleleDepths=[2,15], phased=False, depth=30, conditionalQuality=99, phredLikelihoods=[2407,0,533]), Row(sampleId='SAMPLE2', calls=[1, -1], alleleDepths=[2,15], phased=False, depth=30, conditionalQuality=99, phredLikelihoods=[2407,585,533]), Row(sampleId='SAMPLE3',  calls=[0, 1], alleleDepths=[2,15], phased=False, depth=30, conditionalQuality=99, phredLikelihoods=[2407,0,533]), Row(sampleId='SAMPLE4',  calls=[0, -1], alleleDepths=[2,15], phased=False, depth=30, conditionalQuality=99, phredLikelihoods=[2407,822,533])])
-            assert rows_equal(df_split.head(), expected_split_variant)
+            assert_rows_equal(df_split.head(), expected_split_variant)
 
     .. tab:: Scala
 
         .. code-block:: scala
 
             df_split = Glow.transform("split_multiallelics", df_original)
+
+.. tip::
+
+    The ``split_multiallelics`` transformer is often significantly faster if the `whole-stage code generation` feature of Spark Sql is turned off. Therefore, it is recommended that you temporarily turn off this feature using the following command before using this transformer.
+
+    .. tabs::
+
+       .. tab:: Python
+
+            .. code-block:: python
+
+              spark.conf.set("spark.sql.codegen.wholeStage", False)
+
+       .. tab:: Scala
+
+            .. code-block:: scala
+
+              spark.conf.set("spark.sql.codegen.wholeStage", false)
+
+    Remember to turn this feature back on after your split DataFrame is materialized.
 
 .. notebook:: .. etl/splitmultiallelics-transformer.html
   :title: Split Multiallelic Variants notebook

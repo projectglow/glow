@@ -54,7 +54,7 @@ The ``normalize_variants`` transformer brings unprecedented scalability and simp
 The underlying normalization algorithm and its accuracy
 -------------------------------------------------------
 
-There are several single-node tools for variant normalization that use different normalization algorithms. Widely used tools for variant normalization include `vt normalize <https://genome.sph.umich.edu/wiki/Vt>`_, `bcftools norm <https://www.htslib.org/doc/bcftools.1.html#norm>`_, and the GATK’s `LeftAlignAndTrimVariants <https://software.broadinstitute.org/gatk/documentation/tooldocs/3.8-0/org_broadinstitute_gatk_tools_walkers_variantutils_LeftAlignAndTrimVariants.php>`_.
+There are several single-node tools for variant normalization that use different normalization algorithms. Widely used tools for variant normalization include `vt normalize <https://genome.sph.umich.edu/wiki/Vt>`_, `bcftools norm <https://www.htslib.org/doc/bcftools.html#norm>`_, and the GATK’s `LeftAlignAndTrimVariants <https://gatk.broadinstitute.org/hc/en-us/articles/360037225872-LeftAlignAndTrimVariants>`_.
 
 Based on our own investigation and also as indicated by :ref:`Bayat et al. <Bayat>` and :ref:`Tan et al. <Tan>`, the GATK’s LeftAlignAndTrimVariants algorithm frequently fails to completely left-align some variants. For example, we noticed that on the `test_left_align_hg38.vcf <https://github.com/broadinstitute/gatk/tree/master/src/test/resources/org/broadinstitute/hellbender/tools/walkers/variantutils/LeftAlignAndTrimVariants>`_ test file from GATK itself, applying LeftAlignAndTrimVariants results in an incorrect normalization of 3 of the 16 variants in the file, including the variants at positions ``chr20:63669973``, ``chr20:64012187``, and ``chr21:13255301``. These variants are normalized correctly using ``vt normalize`` and ``bcftools norm``.
 
@@ -67,7 +67,7 @@ Optional splitting
 
 Our ``normalize_variants`` transformer can optionally split multiallelic variants to biallelics. This is controlled by the mode option that can be supplied to this transformer. The possible values for the mode option are as follows: ``normalize`` (default), which performs normalization only, ``split_and_normalize``, which splits multiallelic variants to biallelic ones before performing normalization, and ``split``, which only splits multiallelics without doing any normalization.
 
-The splitting logic of our transformer is the same as the splitting logic followed by GATK’s `LeftAlignAndTrimVariants <https://software.broadinstitute.org/gatk/documentation/tooldocs/3.8-0/org_broadinstitute_gatk_tools_walkers_variantutils_LeftAlignAndTrimVariants.php>`_ tool using ``--splitMultiallelics`` option. More precisely, in case of splitting multiallelic variants loaded from VCF files, this transformer recalculates the ``GT`` blocks for the resulting biallelic variants if possible, and drops all ``INFO`` fields, except for ``AC``, ``AN``, and ``AF``. These three fields are imputed based on the newly calculated ``GT`` blocks, if any exists, otherwise, these fields are dropped as well.
+The splitting logic of our transformer is the same as the splitting logic followed by GATK’s `LeftAlignAndTrimVariants <https://gatk.broadinstitute.org/hc/en-us/articles/360037225872-LeftAlignAndTrimVariants>`_ tool using ``--splitMultiallelics`` option. More precisely, in case of splitting multiallelic variants loaded from VCF files, this transformer recalculates the ``GT`` blocks for the resulting biallelic variants if possible, and drops all ``INFO`` fields, except for ``AC``, ``AN``, and ``AF``. These three fields are imputed based on the newly calculated ``GT`` blocks, if any exists, otherwise, these fields are dropped as well.
 
 Using the transformer
 ---------------------
@@ -105,7 +105,7 @@ The variants can then be normalized using the ``normalize_variants`` transformer
     reference_genome_path=ref_genome_path\
   )
 
-Note that normalization requires the reference genome ``.fasta`` or ``.fa`` file, which is provided using the ``reference_genome_path`` option. The ``.dict`` and ``.fai`` files must accompany the reference genome file in the same folder (read more about these file formats `here <https://software.broadinstitute.org/gatk/documentation/article?id=11013>`_).
+Note that normalization requires the reference genome ``.fasta`` or ``.fa`` file, which is provided using the ``reference_genome_path`` option. The ``.dict`` and ``.fai`` files must accompany the reference genome file in the same folder (read more about these file formats `here <https://gatk.broadinstitute.org/hc/en-us/articles/360035531652?id=11013>`_).
 
 Our example Dataframe after normalization can be seen in :numref:`fignormalizeddf`.
 
