@@ -11,7 +11,6 @@ lazy val supportedScalaVersions = List(scala212, scala211)
 ThisBuild / scalaVersion := scala211
 ThisBuild / organization := "io.projectglow"
 ThisBuild / scalastyleConfig := baseDirectory.value / "scalastyle-config.xml"
-ThisBuild / crossScalaVersions := Nil
 ThisBuild / publish / skip := true
 
 ThisBuild / organizationName := "The Glow Authors"
@@ -133,24 +132,30 @@ lazy val dependencies = (
   "com.github.samtools" % "htsjdk" % "2.20.3"
 )).map(_.exclude("com.google.code.findbugs", "jsr305"))
 
-lazy val root = (project in file("."))
-  .aggregate(core, python, docs)
+//lazy val root = (project in file("."))
+//  .aggregate(core, python, docs)
 
 lazy val core = (project in file("core"))
   .settings(
     commonSettings,
     name := "glow",
-    crossScalaVersions := supportedScalaVersions,
     publish / skip := false,
     // Adds the Git hash to the MANIFEST file. We set it here instead of relying on sbt-release to
     // do so.
     packageOptions in (Compile, packageBin) +=
-    Package.ManifestAttributes("Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
+      Package.ManifestAttributes("Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
     bintrayRepository := "glow",
-    libraryDependencies ++= (dependencies ++ (scalaBinaryVersion.value match {
-      case "2.11" => Seq("com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2")
-      case _ => Seq("com.typesafe.scala-logging" %% "scala-logging" % "3.7.2")
-    }))
+    libraryDependencies ++= dependencies
+  ).cross
+
+lazy val core_2_11 = core(scala211)
+  .settings(
+    libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2"
+  )
+
+lazy val core_2_12 = core(scala212)
+  .settings(
+    libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2"
   )
 
 /**
@@ -174,10 +179,8 @@ lazy val pythonSettings = Seq(
   publish / skip := true
 )
 
-// Python tests only work on Scala 2.11
 lazy val python =
   (project in file("python"))
-    .dependsOn(core % "test->test")
     .settings(
       pythonSettings,
       unmanagedSourceDirectories in Compile := {
@@ -193,12 +196,14 @@ lazy val python =
         ).!
         require(ret == 0, "Python tests failed")
       }
-    )
+    ).cross
+    .dependsOn(core % "test->test")
 
-// Docs tests only work on Scala 2.11
+lazy val python_2_11 = python(scala211)
+lazy val python_2_12 = python(scala212)
+
 lazy val docs =
   (project in file("docs"))
-    .dependsOn(core % "test->test")
     .settings(
       pythonSettings,
       test in Test := {
@@ -212,7 +217,11 @@ lazy val docs =
         ).!
         require(ret == 0, "Docs tests failed")
       }
-    )
+    ).cross
+    .dependsOn(core % "test->test")
+
+lazy val docs_2_11 = docs(scala211)
+lazy val docs_2_12 = docs(scala212)
 
 // List tests to parallelize on CircleCI
 lazy val printTests =
