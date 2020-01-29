@@ -38,14 +38,22 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HlsEventRec
 
   override def transform(df: DataFrame, options: Map[String, String]): DataFrame = {
 
+    val refGenomePathString = options.get(REFERENCE_GENOME_PATH)
+
+    if (refGenomePathString.isEmpty) {
+      throw new IllegalArgumentException("Reference genome path not provided!")
+    }
+
     if (options.contains(MODE_KEY)) {
-      backwardCompatibleTransform(df, options)
+
+      val modeOption = options.get(MODE_KEY).map(StringUtils.toSnakeCase)
+
+      backwardCompatibleTransform(df, refGenomePathString.get, modeOption)
     } else {
       recordHlsEvent(HlsTagValues.EVENT_NORMALIZE_VARIANTS)
-
       VariantNormalizer.normalize(
         df,
-        options.get(REFERENCE_GENOME_PATH)
+        refGenomePathString.get
       )
     }
   }
@@ -57,33 +65,32 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HlsEventRec
    * multiallelic variants and skips normalization. Setting "mode" to split_and_normalize splits multiallelic variants
    * followed by normalization.
    */
-  def backwardCompatibleTransform(df: DataFrame, options: Map[String, String]): DataFrame = {
+  def backwardCompatibleTransform(df: DataFrame, refGenomePathString: String, modeOption: Option[String]): DataFrame = {
 
-    options.get(MODE_KEY).map(StringUtils.toSnakeCase) match {
+    modeOption match {
 
       case Some(MODE_NORMALIZE) =>
         recordHlsEvent(HlsTagValues.EVENT_NORMALIZE_VARIANTS)
-
         VariantNormalizer.normalize(
           df,
-          options.get(REFERENCE_GENOME_PATH)
+          refGenomePathString
         )
 
       case Some(MODE_SPLIT) =>
-        // TODO: Log splitter usage
 
+        // TODO: Log splitter usage
         VariantSplitter.splitVariants(df)
 
       case Some(MODE_SPLIT_NORMALIZE) =>
-        // TODO: Log splitter usage
 
+        // TODO: Log splitter usage
         VariantSplitter.splitVariants(df)
 
         recordHlsEvent(HlsTagValues.EVENT_NORMALIZE_VARIANTS)
 
         VariantNormalizer.normalize(
           df,
-          options.get(REFERENCE_GENOME_PATH)
+          refGenomePathString
         )
 
       case _ =>

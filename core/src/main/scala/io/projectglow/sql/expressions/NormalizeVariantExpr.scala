@@ -19,27 +19,22 @@ package io.projectglow.sql.expressions
 import java.nio.file.Paths
 
 import htsjdk.samtools.reference.IndexedFastaSequenceFile
-import io.projectglow.common.VariantSchemas.{alternateAllelesField, endField, refAlleleField, startField}
 import org.apache.spark.TaskContext
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCode}
 import org.apache.spark.sql.catalyst.expressions.{Expression, ImplicitCastInputTypes, SenaryExpression}
 import org.apache.spark.sql.types._
 
-/**
-  * Encapsulates all alleles, start, and end of a variant to used by the VC normalizer
-  *
-  * @param alleles
-  * @param start
-  * @param end
-  */
-case class NormalizationResult(start: Int, end: Int, refAllele: String, altAlleles: Array[String], flag: String)
-
 object NormalizeVariantExpr {
 
   val state = new ThreadLocal[IndexedFastaSequenceFile]
 
-  def doVariantNormalization(contig: Any, start: Any, end: Any, refAllele: Any, altAlleles: Any, refGenomePathString: Any): InternalRow = {
+  def doVariantNormalization(contigName: Any,
+                             start: Any,
+                             end: Any,
+                             refAllele: Any,
+                             altAlleles: Any,
+                             refGenomePathString: Any): InternalRow = {
 
     if (state.get() == null) {
       // Save fasta sequence file
@@ -49,19 +44,19 @@ object NormalizeVariantExpr {
     }
 
     VariantNormalizer.normalizeVariant(
+      contigName.asInstanceOf[String],
       start.asInstanceOf[Int],
       end.asInstanceOf[Int],
       refAllele.asInstanceOf[String],
       altAlleles.asInstanceOf[Array[String]],
-      state.get())
-
-    InternalRow()
+      state.get()
+    )
   }
 }
 
 
-case class NormalizeVariant(contig: Expression,
-                             start: Expression,
+case class NormalizeVariant(contigName: Expression,
+                            start: Expression,
                             end: Expression,
                             refAllele : Expression,
                             altAlleles: Expression,
@@ -71,49 +66,32 @@ case class NormalizeVariant(contig: Expression,
 
   override def prettyName: String = "normalize_variant"
 
-  /*    lazy val testStr = test.eval().asInstanceOf[UTF8String].toString
-      lazy val matrixUDT = SQLUtils.newMatrixUDT()
-
-      private lazy val logitTest = LogisticRegressionGwas
-        .logitTests
-        .getOrElse(
-          test.eval().asInstanceOf[UTF8String].toString,
-          throw new IllegalArgumentException(
-            s"Supported tests are currently: ${LogisticRegressionGwas.logitTests.keys.mkString(", ")}")
-        )
-  */
-  override def dataType: DataType = StructType(
-    Seq(
-      StructField(startField.name, startField.dataType),
-      StructField(endField.name, endField.dataType),
-      StructField(refAlleleField.name, refAlleleField.dataType),
-      StructField(alternateAllelesField.name, alternateAllelesField.dataType),
-      StructField("normalizationFlag", BooleanType)
-    )
-  )
+  override def dataType: DataType = VariantNormalizer.normalizationSchema
 
   override def inputTypes: Seq[DataType] =
     Seq(StringType, IntegerType, IntegerType, StringType, ArrayType(StringType), StringType)
 
-  override def children: Seq[Expression] = Seq(contig, start, end, refAllele, altAlleles, refGenomePathString)
+  override def children: Seq[Expression] = Seq(contigName, start, end, refAllele, altAlleles, refGenomePathString)
 
-  override protected def nullSafeEval(contig: Any,
+  override protected def nullSafeEval(contigName: Any,
                                        start: Any,
                                        end: Any,
                                        refAllele: Any,
                                        altAlleles: Any,
                                        refGenomePathString: Any): Any = {
-    NormalizeVariantExpr.doVariantNormalization(contig, start, end, refAllele, altAlleles, refGenomePathString)
+
+    NormalizeVariantExpr.doVariantNormalization(contigName, start, end, refAllele, altAlleles, refGenomePathString)
+
   }
 
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
     nullSafeCodeGen(
       ctx,
       ev,
-      (contig, start, end, refAllele, altAlleles, refGenomePathString) => {
+      (contigName, start, end, refAllele, altAlleles, refGenomePathString) => {
         s"""
            |
-         |${ev.value} = io.projectglow.sql.expressions.NormalizeVariantExpr.doVariantNormalization($contig, $start, $end, $refAllele, $altAlleles, $refGenomePathString);
+         |${ev.value} = io.projectglow.sql.expressions.NormalizeVariantExpr.doVariantNormalization($contigName, $start, $end, $refAllele, $altAlleles, $refGenomePathString);
        """.stripMargin
       }
     )
