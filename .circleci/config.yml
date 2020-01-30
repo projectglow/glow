@@ -32,17 +32,19 @@ jobs:
         - image: circleci/openjdk:8
 
     steps:
-    - save_cache:
-        paths:
-          - /home/circleci/conda
-        key: conda-deps-v1-{{ checksum "python/environment.yml" }}
+      - save_cache:
+          paths:
+            - /home/circleci/conda
+          key: conda-deps-v1-{{ checksum "python/environment.yml" }}
 
   check-links:
-    working_directory: ~/glow/docs
+    working_directory: ~/glow
     docker:
       - image: circleci/openjdk:8
 
     steps:
+      - checkout
+
       - run:
           name: Check docs links
           environment:
@@ -58,6 +60,8 @@ jobs:
       - image: circleci/openjdk:8
 
     steps:
+      - checkout
+
       - run:
           name: Run Scala tests
           environment:
@@ -95,6 +99,8 @@ jobs:
       - image: circleci/openjdk:8
 
     steps:
+      - checkout
+
       - run:
           name: Run Scala tests
           environment:
