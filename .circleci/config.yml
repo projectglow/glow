@@ -140,5 +140,5 @@ workflows:
       - cleanup-environment:
           requires:
             - check-links
-            - scala-2.11-tests
-            - scala-2.12-tests
+            - scala-2_11-tests
+            - scala-2_12-tests
