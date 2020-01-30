@@ -49,6 +49,15 @@ jobs:
             cd docs
             make linkcheck
             sbt docs/test exit
+      - run:
+          name: Verify that repo is clean
+          environment:
+            command: |
+              if [[ -n $(git status --short) ]]; then
+                false
+              else
+                true
+              fi
 
       - store_artifacts:
           path: ~/glow/unit-tests.log
