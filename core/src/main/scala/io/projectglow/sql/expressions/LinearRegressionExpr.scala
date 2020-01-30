@@ -16,31 +16,35 @@
 
 package io.projectglow.sql.expressions
 
+import breeze.linalg.DenseVector
 import org.apache.spark.TaskContext
 import org.apache.spark.sql.SQLUtils
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, CodegenFallback, ExprCode}
+import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCode}
 import org.apache.spark.sql.catalyst.expressions.{Expression, ImplicitCastInputTypes, TernaryExpression}
 import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.sql.types._
 
 object LinearRegressionExpr {
-  val matrixUDT = SQLUtils.newMatrixUDT()
-  val state = new ThreadLocal[CovariateQRContext]
+  private val matrixUDT = SQLUtils.newMatrixUDT()
+  private val state = new ThreadLocal[CovariateQRContext]
+
   def doLinearRegression(genotypes: Any, phenotypes: Any, covariates: Any): InternalRow = {
 
     if (state.get() == null) {
       // Save the QR factorization of the covariate matrix since it's the same for every row
-      state.set(ComputeQR.computeQR(matrixUDT.deserialize(covariates).toDense))
+      state.set(CovariateQRContext.computeQR(matrixUDT.deserialize(covariates).toDense))
       TaskContext.get().addTaskCompletionListener(_ => state.remove())
     }
 
     LinearRegressionGwas.linearRegressionGwas(
-      genotypes.asInstanceOf[ArrayData],
-      phenotypes.asInstanceOf[ArrayData],
-      state.get())
+      new DenseVector[Double](genotypes.asInstanceOf[ArrayData].toDoubleArray()),
+      new DenseVector[Double](phenotypes.asInstanceOf[ArrayData].toDoubleArray()),
+      state.get()
+    )
   }
 }
+
 case class LinearRegressionExpr(
     genotypes: Expression,
     phenotypes: Expression,
