@@ -1,5 +1,5 @@
 # The Glow Python functions
-# Note that this file is auto-generated
+# Note that this file is generated from the definitions in functions.yml.
 
 from pyspark import SparkContext
 from pyspark.sql.column import Column, _to_java_column, _to_seq

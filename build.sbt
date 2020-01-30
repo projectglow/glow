@@ -27,6 +27,13 @@ concurrentRestrictions in Global := Seq(
   Tags.limit(Tags.ForkedTestGroup, testConcurrency)
 )
 
+// Script to generatore function definitions from YAML file
+lazy val generatorScript = taskKey[File]("generatorScript")
+ThisBuild / generatorScript := (ThisBuild / baseDirectory).value / "python" / "render_template.py"
+def runCmd(args: File*): Unit = {
+  args.map(_.getPath).!!
+}
+
 def groupByHash(tests: Seq[TestDefinition]): Seq[Tests.Group] = {
   tests
     .groupBy(_.name.hashCode % testConcurrency)
@@ -147,8 +154,7 @@ lazy val core = (project in file("core"))
     sourceGenerators in Compile += Def.task {
       val file = baseDirectory.value / "functions.scala.TEMPLATE"
       val output = (Compile / scalaSource).value / "io" / "projectglow" / "functions.scala"
-      val script = (ThisBuild / baseDirectory).value / "project" / "render_template.py"
-      Seq(script, file, output).map(_.getPath).!!
+      runCmd(generatorScript.value, file, output)
       Seq(output)
     }.taskValue
   )
@@ -182,7 +188,7 @@ lazy val python =
       test in Test := {
         // Pass the test classpath to pyspark so that we run the same bits as the Scala tests
         val ret = Process(
-          Seq("pytest", "-s", "python"),
+          Seq("pytest", "python"),
           None,
           "SPARK_CLASSPATH" -> sparkClasspath.value,
           "SPARK_HOME" -> sparkHome.value
@@ -192,8 +198,7 @@ lazy val python =
       sourceGenerators in Compile += Def.task {
         val file = baseDirectory.value / "glow" / "functions.py.TEMPLATE"
         val output = baseDirectory.value / "glow" / "functions.py"
-        val script = (ThisBuild / baseDirectory).value / "project" / "render_template.py"
-        Seq(script, file, output).map(_.getPath).!!
+        runCmd(generatorScript.value, file, output)
         Seq.empty[File]
       }.taskValue
     )

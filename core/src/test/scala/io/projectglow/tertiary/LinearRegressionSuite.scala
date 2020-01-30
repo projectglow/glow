@@ -166,15 +166,8 @@ class LinearRegressionSuite extends GlowBaseTest {
         spark
           .createDataFrame(rows)
           .withColumn("id", monotonically_increasing_id())
-<<<<<<< HEAD
-          .repartition(10)
-          .withColumn(
-            "linreg",
-            linear_regression_gwas(col("genotypes"), col("phenotypes"), col("covariates")))
-=======
           .repartition(20)
           .withColumn("linreg", expr("linear_regression_gwas(genotypes, phenotypes, covariates)"))
->>>>>>> 0218c8cbc241cc550f8e45b7b39dc9a5c567b712
           .orderBy("id")
           .selectExpr("expand_struct(linreg)")
           .as[RegressionStats]

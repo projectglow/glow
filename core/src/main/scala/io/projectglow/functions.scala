@@ -52,7 +52,7 @@ object functions {
   /**
    * Add fields to a struct
    * @group complex_type_manipulation
-   * @since 0.2.0
+   * @since 0.3.0
    *
    * @param s The struct to which fields will be added
    * @param fields new fields
@@ -64,7 +64,7 @@ object functions {
   /**
    * Compute the min, max, mean, stddev for an array of numerics
    * @group complex_type_manipulation
-   * @since 0.2.0
+   * @since 0.3.0
    *
    * @param arr The array of numerics
    */
@@ -75,7 +75,7 @@ object functions {
   /**
    * Convert an array of numerics into a spark.ml DenseVector
    * @group complex_type_manipulation
-   * @since 0.2.0
+   * @since 0.3.0
    *
    * @param arr The array of numerics
    */
@@ -86,7 +86,7 @@ object functions {
   /**
    * Convert an array of numerics into a spark.ml SparseVector
    * @group complex_type_manipulation
-   * @since 0.2.0
+   * @since 0.3.0
    *
    * @param arr The array of numerics
    */
@@ -97,7 +97,7 @@ object functions {
   /**
    * Promote fields of a nested struct to top-level columns. Similar to using struct.* from SQL, but can be used in more contexts.
    * @group complex_type_manipulation
-   * @since 0.2.0
+   * @since 0.3.0
    *
    * @param struct The struct to expand
    */
@@ -108,7 +108,7 @@ object functions {
   /**
    * Explode an spark.ml Matrix into arrays of rows
    * @group complex_type_manipulation
-   * @since 0.2.0
+   * @since 0.3.0
    *
    * @param matrix The matrix to explode
    */
@@ -119,7 +119,7 @@ object functions {
   /**
    * Select fields from a struct
    * @group complex_type_manipulation
-   * @since 0.2.0
+   * @since 0.3.0
    *
    * @param struct Struct from which to select fields
    * @param fields Fields to take
@@ -131,7 +131,7 @@ object functions {
   /**
    * Converts an array of probabilities to hard calls
    * @group etl
-   * @since 0.2.0
+   * @since 0.3.0
    *
    * @param probabilities probabilities
    * @param numAlts The number of alts
@@ -150,7 +150,7 @@ object functions {
   /**
    * Do liftover like Picard
    * @group etl
-   * @since 0.2.0
+   * @since 0.3.0
    *
    * @param contigName The current contigName
    * @param start The current start
@@ -170,7 +170,7 @@ object functions {
   /**
    * Compute custom per-sample aggregates
    * @group quality_control
-   * @since 0.2.0
+   * @since 0.3.0
    *
    * @param arr array of values.
    * @param initialValue the initial value
@@ -190,7 +190,7 @@ object functions {
   /**
    * Compute call stats for an array of genotype structs
    * @group quality_control
-   * @since 0.2.0
+   * @since 0.3.0
    *
    * @param genotypes The array of genotype structs
    */
@@ -212,7 +212,7 @@ object functions {
   /**
    * Compute statistics relating to the Hardy Weinberg equilibrium
    * @group quality_control
-   * @since 0.2.0
+   * @since 0.3.0
    *
    * @param genotypes The array of genotype structs
    */
@@ -234,7 +234,7 @@ object functions {
   /**
    * Compute per-sample call stats
    * @group quality_control
-   * @since 0.2.0
+   * @since 0.3.0
    *
    * @param genotypes The array of genotype structs
    * @param refAllele The reference allele
@@ -247,7 +247,7 @@ object functions {
   /**
    * A linear regression gwas function
    * @group gwas_functions
-   * @since 0.2.0
+   * @since 0.3.0
    *
    * @param genotypes An array of genotypes
    * @param phenotypes An array of phenotypes
@@ -260,7 +260,7 @@ object functions {
   /**
    * A logistic regression function
    * @group gwas_functions
-   * @since 0.2.0
+   * @since 0.3.0
    *
    * @param genotypes An array of genotypes
    * @param phenotypes An array of phenotype values
@@ -274,7 +274,7 @@ object functions {
   /**
    * Get number of alt alleles for a genotype
    * @group gwas_functions
-   * @since 0.2.0
+   * @since 0.3.0
    *
    * @param genotypes An array of genotype structs
    */

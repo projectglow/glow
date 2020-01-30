@@ -65,6 +65,28 @@ def fmt_python_call(value):
         return f'_to_java_column({value["name"]})'
     return f'{PYTHON_TYPES[value["type"]]}({value["name"]})'
 
+def prepare_definitions(groups):
+    '''
+    Prepare the function definitions from the YAML file into definitions that can be rendered into
+    templates. Validation should also occur in this function.
+    
+    Currently, this function only performs validation. Looking forward, it can be used for
+    preprocessing to handle features like multiple optional arguments and overloaded function
+    definitions.
+    '''
+
+    for group in groups.values():
+        for function in group['functions']:
+            for i, arg in enumerate(function['args']):
+                if arg.get('is_optional'):
+                    assert i == len(function['args']) - 1, f'Only the last argument in the argument'
+                    'list can be optional ({arg})'
+                if arg.get('is_var_args'):
+                    assert i == len(function['args']) - 1, f'Only the last argument in the argument'
+                    'list can be var args'
+    return groups
+
+
 def render_template(template_path, output_path, **kwargs):
     env = jinja2.Environment(
             loader=jinja2.FileSystemLoader('/'),
@@ -91,5 +113,6 @@ if __name__ == '__main__':
         help='Where to put rendered template. If not provided, template will be rendered to stdout')
     args = parser.parse_args()
 
-    render_template(args.template_path, args.output_path, groups=yaml.load(open(FUNCTIONS_YAML),
-        Loader=yaml.SafeLoader))
+    function_groups = yaml.load(open(FUNCTIONS_YAML), Loader=yaml.SafeLoader)
+    groups_to_render = prepare_definitions(function_groups)
+    render_template(args.template_path, args.output_path, groups=groups_to_render)

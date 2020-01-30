@@ -11,7 +11,7 @@
 #                   the case for functions that take lambda functions as arguments.
 # 
 # Potentially confusing argument options are:
-# - type: The arguments type. This can currently be one of [str, double, lambda1, lambda2]. These
+# - type: The argument's type. This can currently be one of [str, double, lambda1, lambda2]. These
 #         types do not correspond to any real programming language; they are just placeholders used for
 #         client generation. More types can be added as needed. If an argument does not have an explicit
 #         type, it is assumed to be of Spark SQL Column type.
@@ -29,10 +29,10 @@ complex_type_manipulation:
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.AddStructFields
       args:
-        - name: s
+        - name: struct
           doc: The struct to which fields will be added
         - name: fields
-          doc: new fields
+          doc: New fields
           is_var_args: true
     - name: array_summary_stats
       doc: Compute the min, max, mean, stddev for an array of numerics
@@ -63,7 +63,7 @@ complex_type_manipulation:
         - name: struct
           doc: The struct to expand
     - name: explode_matrix
-      doc: Explode an spark.ml Matrix into arrays of rows
+      doc: Explode a spark.ml Matrix into arrays of rows
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.ExplodeMatrix
       args:
@@ -89,11 +89,11 @@ etl:
       expr_class: io.projectglow.sql.expressions.HardCalls
       args:
         - name: probabilities
-          doc: probabilities
+          doc: Probabilities
         - name: numAlts
           doc: The number of alts
         - name: phased
-          doc: whether the probabilities are phased or not
+          doc: Whether the probabilities are phased or not
         - name: threshold
           doc: The minimum probability to include
           type: double
@@ -161,7 +161,7 @@ quality_control:
         - name: genotypes
           doc: The array of genotype structs
     - name: gq_summary_stats
-      doc: Compute summary statistics about the gq field for an array of genotype structs
+      doc: Compute summary statistics about the genotype quality field for an array of genotype structs
       args:
         - name: genotypes
           doc: The array of genotype structs
@@ -175,12 +175,12 @@ quality_control:
         - name: refAllele
           doc: The reference allele
         - name: alternateAlleles
-          doc: an array of alternate alleles
+          doc: An array of alternate alleles
 
 gwas_functions:
   functions:
     - name: linear_regression_gwas
-      doc: A linear regression gwas function
+      doc: A linear regression GWAS function
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.LinearRegressionExpr
       args: 
@@ -202,7 +202,7 @@ gwas_functions:
         - name: covariates
           doc: a matrix of covariates
         - name: test
-          doc: which logistic regression test to use. can be 'lrt' or 'firth'
+          doc: Which logistic regression test to use. Can be 'LRG' or 'Firth'
           type: str
     - name: genotype_states
       doc: Get number of alt alleles for a genotype
