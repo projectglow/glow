@@ -85,8 +85,7 @@ lazy val testCoreDependencies = Seq(
   "org.xerial" % "sqlite-jdbc" % "3.20.1" % "test"
 )
 
-lazy val coreDependencies = (
-  providedSparkDependencies ++ testCoreDependencies ++ Seq(
+lazy val coreDependencies = (providedSparkDependencies ++ testCoreDependencies ++ Seq(
   "org.seqdoop" % "hadoop-bam" % "7.9.2",
   "log4j" % "log4j" % "1.2.17",
   "org.slf4j" % "slf4j-api" % "1.7.25",
@@ -145,10 +144,11 @@ lazy val core = (project in file("core"))
     // Adds the Git hash to the MANIFEST file. We set it here instead of relying on sbt-release to
     // do so.
     packageOptions in (Compile, packageBin) +=
-      Package.ManifestAttributes("Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
+    Package.ManifestAttributes("Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
     bintrayRepository := "glow",
     libraryDependencies ++= coreDependencies
-  ).cross
+  )
+  .cross
 
 lazy val core_2_11 = core(scala211)
   .settings(
@@ -201,25 +201,29 @@ lazy val python =
         ).!
         require(ret == 0, "Python tests failed")
       }
-    ).cross
+    )
+    .cross
     .dependsOn(core % "test->test")
 
 lazy val python_2_11 = python(scala211)
 lazy val python_2_12 = python(scala212)
 
-lazy val docs = (project in file("docs")).settings(
-  pythonSettings,
-  test in Test := {
-    // Pass the test classpath to pyspark so that we run the same bits as the Scala tests
-    val ret = Process(
-      Seq("pytest", "docs"),
-      None,
-      "SPARK_CLASSPATH" -> sparkClasspath.value,
-      "SPARK_HOME" -> sparkHome.value,
-      "PYTHONPATH" -> pythonPath.value
-    ).!
-    require(ret == 0, "Docs tests failed")
-  }).cross
+lazy val docs = (project in file("docs"))
+  .settings(
+    pythonSettings,
+    test in Test := {
+      // Pass the test classpath to pyspark so that we run the same bits as the Scala tests
+      val ret = Process(
+        Seq("pytest", "docs"),
+        None,
+        "SPARK_CLASSPATH" -> sparkClasspath.value,
+        "SPARK_HOME" -> sparkHome.value,
+        "PYTHONPATH" -> pythonPath.value
+      ).!
+      require(ret == 0, "Docs tests failed")
+    }
+  )
+  .cross
   .dependsOn(core % "test->test")
 
 lazy val docs_2_11 = docs(scala211)
@@ -255,23 +259,25 @@ ThisBuild / bintrayOrganization := Some("projectglow")
 ThisBuild / bintrayRepository := "glow"
 
 val stableVersion = settingKey[String]("Stable version")
-ThisBuild / stableVersion := IO.read((ThisBuild / baseDirectory).value / "stable-version.txt").trim()
+ThisBuild / stableVersion := IO
+  .read((ThisBuild / baseDirectory).value / "stable-version.txt")
+  .trim()
 
-lazy val stagedRelease = (project in file("core/src/test")).settings(
-  commonSettings,
-  resourceDirectory in Test := baseDirectory.value / "resources",
-  scalaSource in Test := baseDirectory.value / "scala",
-  libraryDependencies ++= testSparkDependencies ++ testCoreDependencies :+ "io.projectglow" %% "glow" % stableVersion.value,
-  resolvers := Seq("bintray-staging" at "https://dl.bintray.com/projectglow/glow")
-).cross
+lazy val stagedRelease = (project in file("core/src/test"))
+  .settings(
+    commonSettings,
+    resourceDirectory in Test := baseDirectory.value / "resources",
+    scalaSource in Test := baseDirectory.value / "scala",
+    libraryDependencies ++= testSparkDependencies ++ testCoreDependencies :+ "io.projectglow" %% "glow" % stableVersion.value,
+    resolvers := Seq("bintray-staging" at "https://dl.bintray.com/projectglow/glow")
+  )
+  .cross
 
 lazy val stagedRelease_2_11 = stagedRelease(scala211)
 lazy val stagedRelease_2_12 = stagedRelease(scala212)
 
 import ReleaseTransformations._
 
-// Don't use sbt-release's cross facility
-releaseCrossBuild := false
 releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,
   inquireVersions,

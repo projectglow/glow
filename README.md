@@ -61,7 +61,7 @@ To compile the main code:
 compile
 ```
 
-To run all Scala  2.11tests:
+To run all Scala  2.11 tests:
 ```
 core_2_11/test
 ```
