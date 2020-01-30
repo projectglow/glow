@@ -2,7 +2,8 @@ version: 2.1
 orbs:
   codecov: codecov/codecov@1.0.5
 jobs:
-  setup-environment:
+
+  check-links:
     working_directory: ~/glow
     docker:
       - image: circleci/openjdk:8
@@ -26,25 +27,6 @@ jobs:
               echo "Conda already installed"
             fi
 
-  cleanup-environment:
-    working_directory: ~/glow
-    docker:
-        - image: circleci/openjdk:8
-
-    steps:
-      - save_cache:
-          paths:
-            - /home/circleci/conda
-          key: conda-deps-v1-{{ checksum "python/environment.yml" }}
-
-  check-links:
-    working_directory: ~/glow
-    docker:
-      - image: circleci/openjdk:8
-
-    steps:
-      - checkout
-
       - run:
           name: Check docs links
           environment:
@@ -53,6 +35,10 @@ jobs:
             cd docs
             make linkcheck
 
+      - save_cache:
+          paths:
+            - /home/circleci/conda
+          key: conda-deps-v1-{{ checksum "python/environment.yml" }}
 
   scala-2_11-tests:
     working_directory: ~/glow
@@ -61,6 +47,22 @@ jobs:
 
     steps:
       - checkout
+
+      - restore_cache:
+          keys:
+            - conda-deps-v1-{{ checksum "python/environment.yml" }}
+
+      - run:
+          name: Install dependencies
+          command: |
+            export PATH=$HOME/conda/bin:$PATH
+            if [ ! -d "/home/circleci/conda" ]; then
+              wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+              /bin/bash Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/conda
+              conda env create -f python/environment.yml
+            else
+              echo "Conda already installed"
+            fi
 
       - run:
           name: Run Scala tests
@@ -93,6 +95,11 @@ jobs:
       - codecov/upload:
           file: "core/target/scala-2.11/scoverage-report/scoverage.xml"
 
+      - save_cache:
+          paths:
+            - /home/circleci/conda
+          key: conda-deps-v1-{{ checksum "python/environment.yml" }}
+
   scala-2_12-tests:
     working_directory: ~/glow
     docker:
@@ -100,6 +107,22 @@ jobs:
 
     steps:
       - checkout
+
+      - restore_cache:
+          keys:
+            - conda-deps-v1-{{ checksum "python/environment.yml" }}
+
+      - run:
+          name: Install dependencies
+          command: |
+            export PATH=$HOME/conda/bin:$PATH
+            if [ ! -d "/home/circleci/conda" ]; then
+              wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+              /bin/bash Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/conda
+              conda env create -f python/environment.yml
+            else
+              echo "Conda already installed"
+            fi
 
       - run:
           name: Run Scala tests
@@ -129,22 +152,15 @@ jobs:
       - store_test_results:
           path: ~/glow/core/target/scala-2.12/test-reports
 
+      - save_cache:
+          paths:
+            - /home/circleci/conda
+          key: conda-deps-v1-{{ checksum "python/environment.yml" }}
+
 workflows:
   version: 2
   test:
     jobs:
-      - setup-environment
-      - check-links:
-          requires:
-            - setup-environment
-      - scala-2_11-tests:
-          requires:
-            - setup-environment
-      - scala-2_12-tests:
-          requires:
-            - setup-environment
-      - cleanup-environment:
-          requires:
-            - check-links
-            - scala-2_11-tests
-            - scala-2_12-tests
+      - check-links
+      - scala-2_11-tests
+      - scala-2_12-tests

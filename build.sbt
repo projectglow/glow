@@ -258,7 +258,7 @@ ThisBuild / publishMavenStyle := true
 ThisBuild / bintrayOrganization := Some("projectglow")
 ThisBuild / bintrayRepository := "glow"
 
-val stableVersion = settingKey[String]("Stable version")
+lazy val stableVersion = settingKey[String]("Stable version")
 ThisBuild / stableVersion := IO
   .read((ThisBuild / baseDirectory).value / "stable-version.txt")
   .trim()
@@ -268,7 +268,8 @@ lazy val stagedRelease = (project in file("core/src/test"))
     commonSettings,
     resourceDirectory in Test := baseDirectory.value / "resources",
     scalaSource in Test := baseDirectory.value / "scala",
-    libraryDependencies ++= testSparkDependencies ++ testCoreDependencies :+ "io.projectglow" %% "glow" % stableVersion.value,
+    libraryDependencies ++= testSparkDependencies ++ testCoreDependencies :+
+    "io.projectglow" %% "glow" % stableVersion.value,
     resolvers := Seq("bintray-staging" at "https://dl.bintray.com/projectglow/glow")
   )
   .cross
