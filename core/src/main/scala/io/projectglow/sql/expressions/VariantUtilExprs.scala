@@ -35,9 +35,9 @@ import io.projectglow.sql.util.ExpectsGenotypeFields
  */
 object VariantUtilExprs {
   def genotypeStates(genotypes: ArrayData, genotypesSize: Int, genotypesIdx: Int): ArrayData = {
-    val output = new Array[Int](genotypes.numElements())
+    val output = ArrayData.allocateArrayData(IntegerType.defaultSize, genotypes.numElements(), "")
     var i = 0
-    while (i < output.length) {
+    while (i < output.numElements()) {
       val calls = genotypes
         .getStruct(i, genotypesSize)
         .getArray(genotypesIdx)
@@ -51,11 +51,11 @@ object VariantUtilExprs {
         }
         j += 1
       }
-      output(i) = if (j == 0) -1 else sum
+      output.setInt(i, if (j == 0) -1 else sum)
       i += 1
     }
 
-    new GenericArrayData(output)
+    output
   }
 
   def isSnp(refAllele: UTF8String, altAllele: UTF8String): Boolean = {
