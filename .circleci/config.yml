@@ -52,7 +52,7 @@ jobs:
             make linkcheck
 
 
-  scala-2.11-tests:
+  scala-2_11-tests:
     working_directory: ~/glow
     docker:
       - image: circleci/openjdk:8
@@ -89,7 +89,7 @@ jobs:
       - codecov/upload:
           file: "core/target/scala-2.11/scoverage-report/scoverage.xml"
 
-  scala-2.12-tests:
+  scala-2_12-tests:
     working_directory: ~/glow
     docker:
       - image: circleci/openjdk:8
@@ -131,10 +131,10 @@ workflows:
       - check-links:
           requires:
             - setup-environment
-      - scala-2.11-tests:
+      - scala-2_11-tests:
           requires:
             - setup-environment
-      - scala-2.12-tests:
+      - scala-2_12-tests:
           requires:
             - setup-environment
       - cleanup-environment:
