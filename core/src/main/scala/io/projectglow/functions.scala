@@ -54,11 +54,11 @@ object functions {
    * @group complex_type_manipulation
    * @since 0.3.0
    *
-   * @param s The struct to which fields will be added
-   * @param fields new fields
+   * @param struct The struct to which fields will be added
+   * @param fields New fields
    */
-  def add_struct_fields(s: Column, fields: Column*): Column = withExpr {
-    io.projectglow.sql.expressions.AddStructFields(s.expr, fields.map(_.expr))
+  def add_struct_fields(struct: Column, fields: Column*): Column = withExpr {
+    io.projectglow.sql.expressions.AddStructFields(struct.expr, fields.map(_.expr))
   }
 
   /**
@@ -106,7 +106,7 @@ object functions {
   }
 
   /**
-   * Explode an spark.ml Matrix into arrays of rows
+   * Explode a spark.ml Matrix into arrays of rows
    * @group complex_type_manipulation
    * @since 0.3.0
    *
@@ -133,9 +133,9 @@ object functions {
    * @group etl
    * @since 0.3.0
    *
-   * @param probabilities probabilities
+   * @param probabilities Probabilities
    * @param numAlts The number of alts
-   * @param phased whether the probabilities are phased or not
+   * @param phased Whether the probabilities are phased or not
    * @param threshold The minimum probability to include
    */
   def hard_calls(probabilities: Column, numAlts: Column, phased: Column, threshold: Double): Column = withExpr {
@@ -221,7 +221,7 @@ object functions {
   }
 
   /**
-   * Compute summary statistics about the gq field for an array of genotype structs
+   * Compute summary statistics about the genotype quality field for an array of genotype structs
    * @group quality_control
    * @since 
    *
@@ -238,14 +238,14 @@ object functions {
    *
    * @param genotypes The array of genotype structs
    * @param refAllele The reference allele
-   * @param alternateAlleles an array of alternate alleles
+   * @param alternateAlleles An array of alternate alleles
    */
   def sample_call_summary_stats(genotypes: Column, refAllele: Column, alternateAlleles: Column): Column = withExpr {
     io.projectglow.sql.expressions.CallSummaryStats(genotypes.expr, refAllele.expr, alternateAlleles.expr)
   }
 
   /**
-   * A linear regression gwas function
+   * A linear regression GWAS function
    * @group gwas_functions
    * @since 0.3.0
    *
@@ -265,7 +265,7 @@ object functions {
    * @param genotypes An array of genotypes
    * @param phenotypes An array of phenotype values
    * @param covariates a matrix of covariates
-   * @param test which logistic regression test to use. can be 'lrt' or 'firth'
+   * @param test Which logistic regression test to use. Can be 'LRG' or 'Firth'
    */
   def logistic_regression_gwas(genotypes: Column, phenotypes: Column, covariates: Column, test: String): Column = withExpr {
     io.projectglow.sql.expressions.LogisticRegressionExpr(genotypes.expr, phenotypes.expr, covariates.expr, Literal(test))
