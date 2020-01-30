@@ -129,16 +129,16 @@ workflows:
     jobs:
       - setup-environment
       - check-links
-          requires:
-            - setup-environment
+        requires:
+          - setup-environment
       - scala-2.11-tests
-          requires:
-            - setup-environment
+        requires:
+          - setup-environment
       - scala-2.12-tests
-          requires:
-            - setup-environment
+        requires:
+          - setup-environment
       - cleanup-environment
-          requires:
-            - check-links
-            - scala-2.11-tests
-            - scala-2.12-tests
+        requires:
+          - check-links
+          - scala-2.11-tests
+          - scala-2.12-tests
