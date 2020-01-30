@@ -31,3 +31,6 @@ docs/build
 adam.log
 core-test-names.log
 unit-tests.log
+
+# Test artifacts
+Miniconda3-latest-Linux-x86_64.sh

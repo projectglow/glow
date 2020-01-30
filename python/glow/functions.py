@@ -1,5 +1,5 @@
 # The Glow Python functions
-# Note that this file is auto-generated
+# Note that this file is generated from the definitions in functions.yml.
 
 from pyspark import SparkContext
 from pyspark.sql.column import Column, _to_java_column, _to_seq
@@ -11,19 +11,19 @@ def sc():
 
 ########### complex_type_manipulation
 
-def add_struct_fields(s: Union[Column, str], *fields: Union[Column, str]) -> Column:
+def add_struct_fields(struct: Union[Column, str], *fields: Union[Column, str]) -> Column:
     """
     Add fields to a struct
 
     Parameters
     ----------
-    s : The struct to which fields will be added
-    fields : new fields
+    struct : The struct to which fields will be added
+    fields : New fields
 
     .. versionadded 0.3.0
     """
     assert check_argument_types()
-    output = Column(sc()._jvm.io.projectglow.functions.add_struct_fields(_to_java_column(s), _to_seq(fields)))
+    output = Column(sc()._jvm.io.projectglow.functions.add_struct_fields(_to_java_column(struct), _to_seq(fields)))
     assert check_return_type(output)
     return output
   
@@ -94,7 +94,7 @@ def expand_struct(struct: Union[Column, str]) -> Column:
 
 def explode_matrix(matrix: Union[Column, str]) -> Column:
     """
-    Explode an spark.ml Matrix into arrays of rows
+    Explode a spark.ml Matrix into arrays of rows
 
     Parameters
     ----------
@@ -132,9 +132,9 @@ def hard_calls(probabilities: Union[Column, str], numAlts: Union[Column, str], p
 
     Parameters
     ----------
-    probabilities : probabilities
+    probabilities : Probabilities
     numAlts : The number of alts
-    phased : whether the probabilities are phased or not
+    phased : Whether the probabilities are phased or not
     threshold : The minimum probability to include
 
     .. versionadded 0.3.0
@@ -222,7 +222,7 @@ def hardy_weinberg(genotypes: Union[Column, str]) -> Column:
 
 def gq_summary_stats(genotypes: Union[Column, str]) -> Column:
     """
-    Compute summary statistics about the gq field for an array of genotype structs
+    Compute summary statistics about the genotype quality field for an array of genotype structs
 
     Parameters
     ----------
@@ -244,7 +244,7 @@ def sample_call_summary_stats(genotypes: Union[Column, str], refAllele: Union[Co
     ----------
     genotypes : The array of genotype structs
     refAllele : The reference allele
-    alternateAlleles : an array of alternate alleles
+    alternateAlleles : An array of alternate alleles
 
     .. versionadded 0.3.0
     """
@@ -257,7 +257,7 @@ def sample_call_summary_stats(genotypes: Union[Column, str], refAllele: Union[Co
 
 def linear_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Column, str], covariates: Union[Column, str]) -> Column:
     """
-    A linear regression gwas function
+    A linear regression GWAS function
 
     Parameters
     ----------
@@ -282,7 +282,7 @@ def logistic_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Co
     genotypes : An array of genotypes
     phenotypes : An array of phenotype values
     covariates : a matrix of covariates
-    test : which logistic regression test to use. can be 'lrt' or 'firth'
+    test : Which logistic regression test to use. Can be 'LRG' or 'Firth'
 
     .. versionadded 0.3.0
     """
