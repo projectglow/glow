@@ -278,6 +278,9 @@ lazy val stagedRelease_2_12 = stagedRelease(scala212)
 
 import ReleaseTransformations._
 
+// Don't use sbt-release's cross facility	
+releaseCrossBuild := false
+
 releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,
   inquireVersions,

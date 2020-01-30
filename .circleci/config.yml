@@ -2,11 +2,10 @@ version: 2.1
 orbs:
   codecov: codecov/codecov@1.0.5
 jobs:
-  test:
+  setup-environment:
     working_directory: ~/glow
     docker:
       - image: circleci/openjdk:8
-    parallelism: 2
 
     steps:
       - checkout
@@ -27,39 +26,23 @@ jobs:
               echo "Conda already installed"
             fi
 
-      - run:
-          name: Run Scala tests
-          environment:
-          command: |
-            export PATH=$HOME/conda/envs/glow/bin:$PATH
-            if [[ $CIRCLE_NODE_INDEX == 0 ]]; then
-              sbt coverage core_2_11/test coverageReport exit
-            else
-              sbt core_2_12/test exit
-            fi
+  cleanup-environment:
+    working_directory: ~/glow
+    docker:
+        - image: circleci/openjdk:8
 
-      - run:
-          name: Run Python tests
-          environment:
-          command: |
-            export PATH=$HOME/conda/envs/glow/bin:$PATH
-            if [[ $CIRCLE_NODE_INDEX == 0 ]]; then
-              sbt python_2_11/test exit
-            else
-              sbt python_2_12/test exit
-            fi
+    steps:
+    - save_cache:
+        paths:
+          - /home/circleci/conda
+        key: conda-deps-v1-{{ checksum "python/environment.yml" }}
 
-      - run:
-          name: Run docs tests
-          environment:
-          command: |
-            export PATH=$HOME/conda/envs/glow/bin:$PATH
-            if [[ $CIRCLE_NODE_INDEX == 0 ]]; then
-              sbt docs_2_11/test exit
-            else
-              sbt docs_2_12/test exit
-            fi
+  check-links:
+    working_directory: ~/glow/docs
+    docker:
+      - image: circleci/openjdk:8
 
+    steps:
       - run:
           name: Check docs links
           environment:
@@ -67,6 +50,34 @@ jobs:
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             cd docs
             make linkcheck
+
+
+  scala-2.11-tests:
+    working_directory: ~/glow
+    docker:
+      - image: circleci/openjdk:8
+
+    steps:
+      - run:
+          name: Run Scala tests
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            sbt coverage core_2_11/test coverageReport exit
+
+      - run:
+          name: Run Python tests
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            sbt python_2_11/test exit
+
+      - run:
+          name: Run docs tests
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            sbt docs_2_11/test exit
 
       - store_artifacts:
           path: ~/glow/unit-tests.log
@@ -78,13 +89,56 @@ jobs:
       - codecov/upload:
           file: "core/target/scala-2.11/scoverage-report/scoverage.xml"
 
-      - save_cache:
-          paths:
-            - /home/circleci/conda
-          key: conda-deps-v1-{{ checksum "python/environment.yml" }}
+  scala-2.12-tests:
+    working_directory: ~/glow
+    docker:
+      - image: circleci/openjdk:8
+
+    steps:
+      - run:
+          name: Run Scala tests
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            sbt core_2_12/test exit
+
+      - run:
+          name: Run Python tests
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            sbt python_2_12/test exit
+
+      - run:
+          name: Run docs tests
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            sbt docs_2_12/test exit
+
+      - store_artifacts:
+          path: ~/glow/unit-tests.log
+          destination: unit-tests.log
+
+      - store_test_results:
+          path: ~/glow/core/target/scala-2.12/test-reports
 
 workflows:
   version: 2
   test:
     jobs:
-      - test
+      - setup-environment
+      - check-links
+          requires:
+            - setup-environment
+      - scala-2.11-tests
+          requires:
+            - setup-environment
+      - scala-2.12-tests
+          requires:
+            - setup-environment
+      - cleanup-environment
+          requires:
+            - check-links
+            - scala-2.11-tests
+            - scala-2.12-tests
