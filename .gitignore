@@ -23,6 +23,7 @@ docs/build
 # Editor files
 *.swp
 *.swo
+*.swn
 *.iml
 .idea
 
