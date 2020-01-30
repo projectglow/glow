@@ -16,7 +16,7 @@
 
 package io.projectglow.vcf
 
-import java.util.{ArrayList => JArrayList}
+import java.util.{ArrayList => JArrayList, Arrays => JArrays}
 
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
@@ -343,6 +343,7 @@ class InternalRowToVariantContextConverter(
                   effect
                     .getStruct(j, schema.size)
                     .toSeq(schema)
+                    .filterNot(_ == null) // Second value may be missing
               }
               arr.mkString(AnnotationUtils.structDelimiter)
             case IntegerType => effect.getInt(j)
@@ -378,8 +379,7 @@ class InternalRowToVariantContextConverter(
         case dt: ArrayType if dt.elementType.isInstanceOf[StructType] =>
           // Annotation (eg. CSQ, ANN)
           createAnnotationArray(dt.elementType.asInstanceOf[StructType], row.getArray(offset))
-        case dt: ArrayType => row.getArray(offset).toObjectArray(dt.elementType)
-        case dt => row.get(offset, dt)
+        case _ => parseField(field, row, offset)
       }
     )
   }
@@ -512,7 +512,7 @@ class InternalRowToVariantContextConverter(
   private def parseField(field: StructField, row: InternalRow, offset: Int): AnyRef = {
     val value = field.dataType match {
       case dt: ArrayType =>
-        row.getArray(offset).toObjectArray(dt.elementType)
+        new JArrayList(JArrays.asList(row.getArray(offset).toObjectArray(dt.elementType): _*))
       case dt =>
         row.get(offset, dt)
     }

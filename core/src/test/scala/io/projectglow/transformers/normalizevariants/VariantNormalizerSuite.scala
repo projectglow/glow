@@ -19,16 +19,16 @@ package io.projectglow.transformers.normalizevariants
 import java.nio.file.Paths
 
 import htsjdk.variant.variantcontext.Allele
-import org.broadinstitute.hellbender.engine.ReferenceDataSource
-
 import io.projectglow.common.GlowLogging
-import io.projectglow.transformers.normalizevariants.VariantNormalizer._
 import io.projectglow.sql.GlowBaseTest
+import io.projectglow.transformers.normalizevariants.VariantNormalizer._
+import org.broadinstitute.hellbender.engine.ReferenceDataSource
 
 class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
 
   lazy val sourceName: String = "vcf"
-  lazy val testFolder: String = s"$testDataHome/variantnormalizer-test"
+  lazy val testFolder: String = s"$testDataHome/variantsplitternormalizer-test"
+
   lazy val vtTestReference = s"$testFolder/20_altered.fasta"
 
   /**

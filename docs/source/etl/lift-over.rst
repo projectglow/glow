@@ -18,9 +18,9 @@ Glow can be used to run `coordinate liftover`_ and `variant liftover`_.
 
 .. _`UCSC liftOver tool`: https://genome.ucsc.edu/cgi-bin/hgLiftOver
 .. _`chain file`: https://genome.ucsc.edu/goldenPath/help/chain.html
-.. _`reference assembly file`: https://software.broadinstitute.org/gatk/documentation/article?id=11013
+.. _`reference assembly file`: https://gatk.broadinstitute.org/hc/en-us/articles/360035531652?id=11013
 .. _`BED files`: https://genome.ucsc.edu/FAQ/FAQformat.html#format1
-.. _`Picard LiftOverVcf tool`: https://software.broadinstitute.org/gatk/documentation/tooldocs/current/picard_vcf_LiftoverVcf.php
+.. _`Picard LiftOverVcf tool`: https://gatk.broadinstitute.org/hc/en-us/articles/360036857991-LiftoverVcf-Picard
 
 Create a liftover cluster
 ==========================

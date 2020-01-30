@@ -93,8 +93,8 @@ object VCFWriterUtils extends GlowLogging {
   def convertVcAttributesToStrings(vc: VariantContext): VariantContextBuilder = {
     val vcBuilder = new VariantContextBuilder(vc)
     val iterator = vc.getAttributes.entrySet().iterator()
-    while (iterator.hasNext) { // parse to string, then write,
-      // otherwise the write messes up double precisions
+    while (iterator.hasNext) {
+      // parse to string, then write, as the VCF encoder messes up double precisions
       val entry = iterator.next()
       vcBuilder.attribute(
         entry.getKey,

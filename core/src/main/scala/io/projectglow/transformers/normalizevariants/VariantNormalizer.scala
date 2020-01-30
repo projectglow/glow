@@ -19,59 +19,47 @@ package io.projectglow.transformers.normalizevariants
 import java.io.File
 import java.nio.file.Paths
 
-import scala.collection.JavaConverters._
-import scala.math.min
-
 import com.google.common.annotations.VisibleForTesting
 import htsjdk.samtools.ValidationStringency
 import htsjdk.variant.variantcontext._
 import htsjdk.variant.vcf.VCFHeader
+import io.projectglow.common.GlowLogging
+import io.projectglow.common.VariantSchemas._
+import io.projectglow.vcf.{InternalRowToVariantContextConverter, VCFSchemaInferrer, VariantContextToInternalRowConverter}
 import org.apache.spark.sql.{DataFrame, SQLUtils}
 import org.broadinstitute.hellbender.engine.{ReferenceContext, ReferenceDataSource}
-import org.broadinstitute.hellbender.tools.walkers.genotyper.GenotypeAssignmentMethod
 import org.broadinstitute.hellbender.utils.SimpleInterval
-import org.broadinstitute.hellbender.utils.variant.GATKVariantContextUtils
 
-import io.projectglow.common.GlowLogging
-import io.projectglow.vcf.{InternalRowToVariantContextConverter, VCFSchemaInferrer, VariantContextToInternalRowConverter}
+import scala.collection.JavaConverters._
+import scala.math.min
 
 private[projectglow] object VariantNormalizer extends GlowLogging {
 
   /**
-   * Normalizes the input DataFrame of variants and outputs them as a Dataframe; Optionally
-   * splits the multi-allelic variants to bi-allelics before normalization
+   * Normalizes the input DataFrame of variants and outputs them as a Dataframe
    *
    * @param df                   : Input dataframe of variants
    * @param refGenomePathString  : Path to the underlying reference genome of the variants
-   * @param validationStringency : ValidationStrigency as defined in htsjdk.samtools
-   * @param doNormalize          : Whether to do normalization or not
-   * @param splitToBiallelic     : Whether to split multiallelics or not
-   * @return Split and/or normalized dataframe
+   * @return normalized DataFrame
    */
-  def normalize(
-      df: DataFrame,
-      refGenomePathString: Option[String],
-      validationStringency: ValidationStringency,
-      doNormalize: Boolean,
-      splitToBiallelic: Boolean): DataFrame = {
+  def normalize(df: DataFrame, refGenomePathString: Option[String]): DataFrame = {
 
-    if (doNormalize) {
-      if (refGenomePathString.isEmpty) {
-        throw new IllegalArgumentException("Reference genome path not provided!")
-      }
-      if (!new File(refGenomePathString.get).exists()) {
-        throw new IllegalArgumentException("The reference file was not found!")
-      }
+    if (refGenomePathString.isEmpty) {
+      throw new IllegalArgumentException("Reference genome path not provided!")
+    }
+    if (!new File(refGenomePathString.get).exists()) {
+      throw new IllegalArgumentException("The reference file was not found!")
     }
 
     val schema = df.schema
     val headerLineSet = VCFSchemaInferrer.headerLinesFromSchema(schema).toSet
+    val validationStringency = ValidationStringency.valueOf("SILENT")
 
-    // flatmap InternalRows to (optionally split) normalized rows; coverts each InternalRow to a
-    // VariantContext, performs splitting and normalization on the VariantContext, converts it
-    // back to InternalRow(s)
+    val splitFromMultiallelicColumnIdx =
+      df.schema.fieldNames.indexOf(splitFromMultiAllelicField.name)
 
-    val mapped = df.queryExecution.toRdd.mapPartitions { it =>
+    // TODO: Implement normalization without using VariantContext
+    val rddAfterNormalize = df.queryExecution.toRdd.mapPartitions { it =>
       val vcfHeader = new VCFHeader(headerLineSet.asJava)
 
       val variantContextToInternalRowConverter =
@@ -90,69 +78,22 @@ private[projectglow] object VariantNormalizer extends GlowLogging {
 
       internalRowToVariantContextConverter.validate()
 
-      val refGenomeDataSource = if (doNormalize) {
-        Option(ReferenceDataSource.of(Paths.get(refGenomePathString.get)))
-      } else {
-        None
-      }
+      val refGenomeDataSource = Option(ReferenceDataSource.of(Paths.get(refGenomePathString.get)))
 
-      it.flatMap { row =>
+      it.map { row =>
+        val isFromSplit = row.getBoolean(splitFromMultiallelicColumnIdx)
         internalRowToVariantContextConverter.convert(row) match {
 
           case Some(vc) =>
-            val vcStreamAfterMaybeSplit: Stream[VariantContext] =
-              // Strangely, Array, List, Seq, or Iterator do not work correctly!
-              // Line-by-line debugging shows that the issue is after the splitting.
-              // Assume a multi-allelic vc is split into two bi-allelic vcs. If the resulting two
-              // vcs are stored in any collection other than Stream, then the map function that
-              // applies the variantContextToInternalRowConverter.convertRow on them puts two
-              // copies of the InternalRow generated from the first vc in the result instead of one
-              // copy of each!
-              if (splitToBiallelic) {
-                splitVC(vc)
-              } else {
-                Stream(vc)
-              }
-
-            val isFromSplit = vcStreamAfterMaybeSplit.length > 1
-
-            val vcStreamAfterMaybeNormalize = if (doNormalize) {
-              vcStreamAfterMaybeSplit.map(vc =>
-                VariantNormalizer.normalizeVC(vc, refGenomeDataSource.get))
-            } else {
-              vcStreamAfterMaybeSplit
-            }
-
-            vcStreamAfterMaybeNormalize.map(
-              variantContextToInternalRowConverter.convertRow(_, isFromSplit)
-            )
-
-          case None => Stream(row)
+            variantContextToInternalRowConverter
+              .convertRow(VariantNormalizer.normalizeVC(vc, refGenomeDataSource.get), isFromSplit)
+          case None => row
 
         }
       }
     }
+    SQLUtils.internalCreateDataFrame(df.sparkSession, rddAfterNormalize, schema, false)
 
-    SQLUtils.internalCreateDataFrame(df.sparkSession, mapped, schema, false)
-
-  }
-
-  /**
-   * Splits a vc to bi-alleleic using gatk splitting function
-   *
-   * @param vc
-   * @return a Stream of split vc's
-   */
-  private def splitVC(vc: VariantContext): Stream[VariantContext] = {
-    GATKVariantContextUtils
-      .splitVariantContextToBiallelics(
-        vc,
-        false,
-        GenotypeAssignmentMethod.BEST_MATCH_TO_ORIGINAL,
-        false
-      )
-      .asScala
-      .toStream
   }
 
   /**

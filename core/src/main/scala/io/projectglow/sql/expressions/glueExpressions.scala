@@ -131,7 +131,7 @@ case class ArrayToSparseVector(child: Expression)
       ev,
       c => {
         s"""
-         |${ev.value} = 
+         |${ev.value} =
          |io.projectglow.sql.expressions.ArrayToSparseVector.fromDoubleArray($c);
        """.stripMargin
       }
@@ -162,7 +162,7 @@ case class ArrayToDenseVector(child: Expression)
       ev,
       c => {
         s"""
-         |${ev.value} = 
+         |${ev.value} =
          |io.projectglow.sql.expressions.ArrayToDenseVector.fromDoubleArray($c);
        """.stripMargin
       }

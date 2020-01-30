@@ -16,73 +16,73 @@
 
 package io.projectglow.transformers.normalizevariants
 
-import htsjdk.samtools.ValidationStringency
-import org.apache.spark.sql.DataFrame
-
 import io.projectglow.DataFrameTransformer
 import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
 import io.projectglow.transformers.util.StringUtils
-import io.projectglow.vcf.VCFOptionParser
+import org.apache.spark.sql.DataFrame
+import io.projectglow.transformers.splitmultiallelics.VariantSplitter
 
 /**
  * Implements DataFrameTransformer to transform the input DataFrame of varaints to an output
- * DataFrame of normalized variants (normalization is as defined in bcftools norm); Optionally
- * splits multi-allelic variants to bi-allelic (split logic is the one used by gatk).
- *
- * The normalizer can act in different modes:
- * The default mode is normalizing the variants without splitting multi-allelic one.
- * The "mode" option can be used to change this behavior. Setting "mode" to onlysplit only splits
- * multi-allelic variants and skips normalization.
- * Setting "mode" option to splitandnormalize splits multi-allelic variants followed by
- * normalization.
+ * DataFrame of normalized variants (normalization is as defined in bcftools norm).
  *
  * A path to reference genome containing .fasta, .fasta.fai, and .dict files must be provided
  * through the referenceGenomePath option.
  */
-class NormalizeVariantsTransformer extends DataFrameTransformer {
+class NormalizeVariantsTransformer extends DataFrameTransformer with HlsEventRecorder {
+
+  import NormalizeVariantsTransformer._
 
   override def name: String = "normalize_variants"
 
   override def transform(df: DataFrame, options: Map[String, String]): DataFrame = {
 
-    import NormalizeVariantsTransformer._
+    if (options.contains(MODE_KEY)) {
+      backwardCompatibleTransform(df, options)
+    } else {
+      recordHlsEvent(HlsTagValues.EVENT_NORMALIZE_VARIANTS)
 
-    val validationStringency: ValidationStringency = VCFOptionParser
-      .getValidationStringency(options)
+      VariantNormalizer.normalize(
+        df,
+        options.get(REFERENCE_GENOME_PATH)
+      )
+    }
+  }
+
+  /**
+   * The following function is for backward compatibility to the previous API where
+   * the normalizer could act in different modes: The default mode was normalizing the variants without splitting
+   * multiallelic ones. The "mode" option could be used to change this behavior. Setting "mode" to "split" only splits
+   * multiallelic variants and skips normalization. Setting "mode" to split_and_normalize splits multiallelic variants
+   * followed by normalization.
+   */
+  def backwardCompatibleTransform(df: DataFrame, options: Map[String, String]): DataFrame = {
 
     options.get(MODE_KEY).map(StringUtils.toSnakeCase) match {
 
-      case Some(MODE_SPLIT) =>
-        // record variantnormalizer event along with its mode
-        recordHlsEvent(HlsTagValues.EVENT_NORMALIZE_VARIANTS, Map(MODE_KEY -> MODE_SPLIT))
+      case Some(MODE_NORMALIZE) =>
+        recordHlsEvent(HlsTagValues.EVENT_NORMALIZE_VARIANTS)
+
         VariantNormalizer.normalize(
           df,
-          None,
-          validationStringency,
-          false,
-          true
+          options.get(REFERENCE_GENOME_PATH)
         )
+
+      case Some(MODE_SPLIT) =>
+        // TODO: Log splitter usage
+
+        VariantSplitter.splitVariants(df)
 
       case Some(MODE_SPLIT_NORMALIZE) =>
-        // record variantnormalizer event along with its mode
-        recordHlsEvent(HlsTagValues.EVENT_NORMALIZE_VARIANTS, Map(MODE_KEY -> MODE_SPLIT_NORMALIZE))
-        VariantNormalizer.normalize(
-          df,
-          options.get(REFERENCE_GENOME_PATH),
-          validationStringency,
-          true,
-          true
-        )
+        // TODO: Log splitter usage
 
-      case Some(MODE_NORMALIZE) | None =>
-        // record variantnormalizer event along with its mode
-        recordHlsEvent(HlsTagValues.EVENT_NORMALIZE_VARIANTS, Map(MODE_KEY -> MODE_NORMALIZE))
+        VariantSplitter.splitVariants(df)
+
+        recordHlsEvent(HlsTagValues.EVENT_NORMALIZE_VARIANTS)
+
         VariantNormalizer.normalize(
           df,
-          options.get(REFERENCE_GENOME_PATH),
-          validationStringency,
-          true,
-          false
+          options.get(REFERENCE_GENOME_PATH)
         )
 
       case _ =>
@@ -91,10 +91,24 @@ class NormalizeVariantsTransformer extends DataFrameTransformer {
   }
 }
 
-object NormalizeVariantsTransformer extends HlsEventRecorder {
+object NormalizeVariantsTransformer {
+
+  @deprecated(
+    "normalize_variants transformer is now for normalization only. split_multiallelics transformer should be used separately for splitting multiallelics")
   val MODE_KEY = "mode"
+
+  @deprecated(
+    "normalize_variants transformer is now for normalization only. split_multiallelics transformer should be used separately for splitting multiallelics")
   val MODE_NORMALIZE = "normalize"
+
+  @deprecated(
+    "normalize_variants transformer is now for normalization only. split_multiallelics transformer should be used separately for splitting multiallelics")
   val MODE_SPLIT_NORMALIZE = "split_and_normalize"
+
+  @deprecated(
+    "normalize_variants transformer is now for normalization only. split_multiallelics transformer should be used separately for splitting multiallelics")
   val MODE_SPLIT = "split"
+
   private val REFERENCE_GENOME_PATH = "reference_genome_path"
+
 }
