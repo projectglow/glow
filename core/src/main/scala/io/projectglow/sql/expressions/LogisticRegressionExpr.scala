@@ -65,7 +65,7 @@ object LogisticRegressionExpr {
   def getState(test: String): LogisticRegressionState = {
     if (state.get() == null) {
       state.set(new LogisticRegressionState(test))
-      TaskContext.get().addTaskCompletionListener(_ => state.remove())
+      TaskContext.get().addTaskCompletionListener[Unit](_ => state.remove())
     }
     state.get()
   }
