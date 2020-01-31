@@ -161,12 +161,6 @@ lazy val core = (project in file("core"))
       val output = (Compile / scalaSource).value / "io" / "projectglow" / "functions.scala"
       runCmd(generatorScript.value, file, output)
       Seq(output)
-    }.taskValue,
-    resourceGenerators in Compile += Def.task {
-      val sourceFunctionsYml = functionsYml.value.toPath
-      val destFunctionsYml = (Compile / resourceDirectory).value.toPath.resolve(sourceFunctionsYml.getFileName)
-      Files.copy(sourceFunctionsYml, destFunctionsYml, StandardCopyOption.REPLACE_EXISTING)
-      Seq(destFunctionsYml.toFile)
     }.taskValue
   )
 
