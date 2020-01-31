@@ -53,19 +53,22 @@ This project is built using sbt: https://www.scala-sbt.org/1.0/docs/Setup.html
 
 Start an sbt shell using the `sbt` command.
 
+> **FYI**: The following SBT projects with the suffix `2_11` are built on Scala 2.11.
+All have an equivalent `2_12` version built on Scala 2.12.
+
 To compile the main code:
 ```
 compile
 ```
 
-To run all Scala tests:
+To run all Scala  2.11 tests:
 ```
-core/test
+core_2_11/test
 ```
 
 To test a specific suite:
 ```
-core/testOnly *VCFDataSourceSuite
+core_2_11/testOnly *VCFDataSourceSuite
 ```
 
 To run Python tests, you must [install conda](https://docs.conda.io/en/latest/miniconda.html) and
@@ -77,16 +80,16 @@ conda activate  glow
 
 You can then run tests from sbt:
 ```
-python/test
+python_2_11/test
 ```
-These tests will run with the same Spark classpath as the Scala tests.
+These tests will run with the same Spark classpath as the Scala 2.11 tests.
 
 To run documentation tests:
 ```
-docs/test
+docs_2_11/test
 ```
 
-To run the Scala, Python and documentation tests:
+To run the Scala, Python and documentation tests on both Scala 2.11 and Scala 2.12:
 ```
 test
 ```
@@ -98,7 +101,7 @@ To test or testOnly in remote debug mode with IntelliJ IDEA set the remote debug
 val options = ForkOptions().withRunJVMOptions(Vector("-Xmx1024m")).withRunJVMOptions(Vector("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"))
 ```
 
-To run tests against the staged Maven artifact with the current stable version:
+To run Scala 2.11 tests against the staged Maven artifact with the current stable version:
 ```
-stagedRelease/test
+stagedRelease_2_11/test
 ```
