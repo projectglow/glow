@@ -56,7 +56,7 @@ object SqlExtensionProvider {
     val yml = new Yaml()
     WithUtils.withCloseable(
       Thread.currentThread().getContextClassLoader.getResourceAsStream("functions.yml")) { stream =>
-      val groups = yml.load[JMap[String, JMap[String, Any]]](stream)
+      val groups = yml.loadAs(stream, classOf[JMap[String, JMap[String, Any]]])
       groups
         .values()
         .asScala

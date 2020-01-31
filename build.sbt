@@ -139,7 +139,7 @@ lazy val dependencies = (
   "io.netty" % "netty" % "3.9.9.Final",
   "io.netty" % "netty-all" % "4.1.17.Final",
   "com.github.samtools" % "htsjdk" % "2.20.3",
-  "org.yaml" % "snakeyaml" % "1.25"
+  "org.yaml" % "snakeyaml" % "1.16"
 )).map(_.exclude("com.google.code.findbugs", "jsr305"))
 
 lazy val root = (project in file("."))
