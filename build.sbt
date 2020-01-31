@@ -1,3 +1,5 @@
+import java.nio.file.{CopyOption, Files, StandardCopyOption}
+
 import scala.sys.process._
 
 import sbt.Tests._
@@ -29,7 +31,9 @@ concurrentRestrictions in Global := Seq(
 
 // Script to generatore function definitions from YAML file
 lazy val generatorScript = taskKey[File]("generatorScript")
+lazy val functionsYml = taskKey[File]("functionsYml")
 ThisBuild / generatorScript := (ThisBuild / baseDirectory).value / "python" / "render_template.py"
+ThisBuild / functionsYml := (ThisBuild / baseDirectory).value / "functions.yml"
 def runCmd(args: File*): Unit = {
   args.map(_.getPath).!!
 }
@@ -38,10 +42,10 @@ def groupByHash(tests: Seq[TestDefinition]): Seq[Tests.Group] = {
   tests
     .groupBy(_.name.hashCode % testConcurrency)
     .map {
-      case (i, tests) =>
+      case (i, groupTests) =>
         val options = ForkOptions()
           .withRunJVMOptions(Vector("-Dspark.ui.enabled=false", "-Xmx1024m"))
-        new Group(i.toString, tests, SubProcess(options))
+        Group(i.toString, groupTests, SubProcess(options))
     }
     .toSeq
 }
@@ -134,7 +138,8 @@ lazy val dependencies = (
   "org.apache.hadoop" % "hadoop-client" % "2.7.3",
   "io.netty" % "netty" % "3.9.9.Final",
   "io.netty" % "netty-all" % "4.1.17.Final",
-  "com.github.samtools" % "htsjdk" % "2.20.3"
+  "com.github.samtools" % "htsjdk" % "2.20.3",
+  "org.yaml" % "snakeyaml" % "1.25"
 )).map(_.exclude("com.google.code.findbugs", "jsr305"))
 
 lazy val root = (project in file("."))
@@ -156,6 +161,12 @@ lazy val core = (project in file("core"))
       val output = (Compile / scalaSource).value / "io" / "projectglow" / "functions.scala"
       runCmd(generatorScript.value, file, output)
       Seq(output)
+    }.taskValue,
+    resourceGenerators in Compile += Def.task {
+      val sourceFunctionsYml = functionsYml.value.toPath
+      val destFunctionsYml = (Compile / resourceDirectory).value.toPath.resolve(sourceFunctionsYml.getFileName)
+      Files.copy(sourceFunctionsYml, destFunctionsYml, StandardCopyOption.REPLACE_EXISTING)
+      Seq(destFunctionsYml.toFile)
     }.taskValue
   )
 

@@ -18,6 +18,7 @@ package io.projectglow.tertiary
 
 import scala.util.Random
 
+import org.apache.commons.io.IOUtils
 import org.apache.spark.sql.AnalysisException
 import org.apache.spark.sql.functions._
 
@@ -282,26 +283,19 @@ class VariantQcExprsSuite extends GlowBaseTest {
   }
 
   test("analysis error when genotype is missing calls for call stats") {
-//    val e = intercept[AnalysisException] {
-    try {
+    val e = intercept[AnalysisException] {
       spark
         .read
         .format("vcf")
         .load(testVcf)
-        .selectExpr(
-          "transform(genotypes, gt -> subset_struct(gt, 'sampleId', 'calls')) as callFreeGts")
+        .selectExpr("transform(genotypes, gt -> subset_struct(gt, 'sampleId')) as callFreeGts")
         .selectExpr("call_summary_stats(callFreeGts)")
         .collect()
-    } catch {
-      case e: Exception =>
-        logger.info("ex", e)
-        throw e
     }
-//    }
-//    assert(
-//      e.getMessage
-//        .contains(
-//          "Genotype struct was missing required fields: (name: calls, type: ArrayType(IntegerType,true))"))
+    assert(
+      e.getMessage
+        .contains(
+          "Genotype struct was missing required fields: (name: calls, type: ArrayType(IntegerType,true))"))
   }
 
 }

@@ -16,14 +16,22 @@
 
 package io.projectglow.sql
 
-import org.apache.spark.sql.SparkSessionExtensions
+import java.util.{List => JList, Map => JMap}
+
+import scala.collection.JavaConverters._
+import scala.util.control.NonFatal
+
+import org.apache.commons.io.IOUtils
+import org.apache.spark.sql.{SQLUtils, SparkSessionExtensions}
 import org.apache.spark.sql.catalyst.FunctionIdentifier
 import org.apache.spark.sql.catalyst.analysis.FunctionRegistry
-import org.apache.spark.sql.catalyst.expressions.LambdaFunction
+import org.apache.spark.sql.catalyst.expressions.{Expression, ExpressionInfo, LambdaFunction}
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.internal.SQLConf
+import org.yaml.snakeyaml.Yaml
 
+import io.projectglow.common.WithUtils
 import io.projectglow.sql.expressions._
 import io.projectglow.sql.optimizer.{ReplaceExpressionsRule, ResolveAggregateFunctionsRule}
 
@@ -44,129 +52,73 @@ class GlowSQLExtensions extends (SparkSessionExtensions => Unit) {
 
 object SqlExtensionProvider {
   import ExpressionHelper.rewrite
+  private lazy val functionDefinitions = {
+    val yml = new Yaml()
+    WithUtils.withCloseable(
+      Thread.currentThread().getContextClassLoader.getResourceAsStream("functions.yml")) { stream =>
+      val groups = yml.load[JMap[String, JMap[String, Any]]](stream)
+      groups
+        .values()
+        .asScala
+        .flatMap(group => group.asScala("functions").asInstanceOf[JList[JMap[String, Any]]].asScala)
+    }
+  }
 
   def registerFunctions(conf: SQLConf, functionRegistry: FunctionRegistry): Unit = {
-    functionRegistry.registerFunction(
-      FunctionIdentifier("add_struct_fields"),
-      exprs => AddStructFields(exprs.head, exprs.tail)
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("aggregate_by_index"),
-      exprs =>
-        UnwrappedAggregateByIndex(
-          exprs(0),
-          exprs(1),
-          exprs(2),
-          exprs(3),
-          exprs.lift(4).getOrElse(LambdaFunction.identity))
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("array_summary_stats"),
-      exprs => ArrayStatsSummary(exprs.head)
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("array_to_dense_vector"),
-      exprs => ArrayToDenseVector(exprs.head)
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("array_to_sparse_vector"),
-      exprs => ArrayToSparseVector(exprs.head)
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("call_summary_stats"),
-      exprs => CallStats(exprs.head)
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("dp_summary_stats"),
-      exprs => rewrite(DpSummaryStats(exprs.head))
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("expand_struct"),
-      exprs => ExpandStruct(exprs.head)
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("explode_matrix"),
-      exprs => ExplodeMatrix(exprs.head)
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("genotype_states"),
-      exprs => GenotypeStates(exprs.head)
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("gq_summary_stats"),
-      exprs => rewrite(GqSummaryStats(exprs.head))
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("hard_calls"),
-      exprs => {
-        if (exprs.size == 4) {
-          HardCalls(exprs(0), exprs(1), exprs(2), exprs(3))
+//    println(s"Building function definitions for ${functionDefinitions.size} functions")
+    functionDefinitions.foreach { _function =>
+      val function = _function.asScala
+      val id = FunctionIdentifier(function("name").asInstanceOf[String])
+      //      println(s"Building $id")
+      val exprClass = function("expr_class").asInstanceOf[String]
+      val args = function("args").asInstanceOf[JList[JMap[String, Any]]].asScala
+      val argsDoc = args.map { _arg =>
+        val arg = _arg.asScala
+        val suffix = if (arg.get("is_optional").exists(_.asInstanceOf[Boolean])) {
+          " (optional)"
+        } else if (arg.get("is_var_args").exists(_.asInstanceOf[Boolean])) {
+          " (repeated)"
         } else {
-          HardCalls(exprs(0), exprs(1), exprs(2))
+          ""
         }
-      }
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("hardy_weinberg"),
-      exprs => HardyWeinberg(exprs.head)
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("lift_over_coordinates"),
-      exprs => {
-        if (exprs.size == 5) {
-          LiftOverCoordinatesExpr(exprs(0), exprs(1), exprs(2), exprs(3), exprs(4))
-        } else {
-          LiftOverCoordinatesExpr(exprs(0), exprs(1), exprs(2), exprs(3))
+        s"${arg("name")}: ${arg("doc")} $suffix"
+      }.mkString("\n")
+      val info = new ExpressionInfo(
+        exprClass,
+        null,
+        function("name").asInstanceOf[String],
+        function("doc").asInstanceOf[String],
+        argsDoc,
+        "",
+        "",
+        function("since").asInstanceOf[String]
+      )
+      functionRegistry.registerFunction(
+        id,
+        info,
+        exprs => {
+          val clazz = Class.forName(exprClass, true, Thread.currentThread().getContextClassLoader)
+          val children = args.zipWithIndex.flatMap {
+            case (_arg: JMap[String, Any], idx: Int) =>
+              val arg = _arg.asScala
+              if (arg.get("is_optional").exists(_.asInstanceOf[Boolean]) && idx >= exprs.size) {
+                None
+              } else if (arg.get("is_var_args").exists(_.asInstanceOf[Boolean])) {
+                Some(exprs.slice(idx, exprs.size))
+              } else {
+                Some(exprs(idx))
+              }
+          }
+          val constructor = clazz
+            .getConstructors
+            .find(_.getParameterCount == children.size)
+            .getOrElse(
+              throw SQLUtils.newAnalysisException(s"Invalid parameter count ${exprs.size}"))
+          ExpressionHelper.wrapAggregate(
+            ExpressionHelper.rewrite(
+              constructor.newInstance(children: _*).asInstanceOf[Expression]))
         }
-      }
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("linear_regression_gwas"),
-      exprs => LinearRegressionExpr(exprs(0), exprs(1), exprs(2))
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("logistic_regression_gwas"),
-      exprs => LogisticRegressionExpr(exprs(0), exprs(1), exprs(2), exprs(3))
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("sample_call_summary_stats"),
-      exprs => CallSummaryStats(exprs(0), exprs(1), exprs(2))
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("sample_dp_summary_stats"),
-      exprs => rewrite(SampleDpSummaryStatistics(exprs.head))
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("sample_gq_summary_stats"),
-      exprs => rewrite(SampleGqSummaryStatistics(exprs.head))
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("subset_struct"),
-      exprs => rewrite(SubsetStruct(exprs.head, exprs.tail))
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("vector_to_array"),
-      exprs => VectorToArray(exprs.head)
-    )
+      )
+    }
   }
 }

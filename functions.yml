@@ -80,6 +80,13 @@ complex_type_manipulation:
           doc: Fields to take
           type: str
           is_var_args: true
+    - name: vector_to_array
+      doc: Convert a spark.ml vector (sparse or dense) to an array of doubles
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.VectorToArray
+      args:
+        - name: vector
+          doc: Vector to convert
 
 etl:
   functions:
@@ -150,6 +157,7 @@ quality_control:
     - name: dp_summary_stats
       doc: Compute summary statistics for depth field from array of genotype structs
       expr_class: io.projectglow.sql.expressions.DpSummaryStats
+      since: 0.3.0
       args:
         - name: genotypes
           doc: The array of genotype structs
@@ -162,6 +170,8 @@ quality_control:
           doc: The array of genotype structs
     - name: gq_summary_stats
       doc: Compute summary statistics about the genotype quality field for an array of genotype structs
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.GqSummaryStats
       args:
         - name: genotypes
           doc: The array of genotype structs
@@ -176,6 +186,21 @@ quality_control:
           doc: The reference allele
         - name: alternateAlleles
           doc: An array of alternate alleles
+    - name: sample_dp_summary_stats
+      doc: Compute per-sample summary statistics about the depth field in an array of genotype structs
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.SampleDpSummaryStatistics
+      args:
+        - name: genotypes
+          doc: The array of genotype structs
+    - name: sample_gq_summary_stats
+      doc: Compute per-sample summary statistics about the genotype quality field in an array of genotype structs
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.SampleGqSummaryStatistics
+      args:
+        - name: genotypes
+          doc: The array of genotype structs
+
 
 gwas_functions:
   functions:
