@@ -18,19 +18,16 @@ package io.projectglow.tertiary
 
 import scala.concurrent.duration._
 import scala.util.Random
-
-import breeze.linalg.DenseVector
 import org.apache.commons.math3.distribution.TDistribution
 import org.apache.commons.math3.linear.SingularMatrixException
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
-import org.apache.spark.SparkException
+import org.apache.spark.ml.linalg.DenseMatrix
 import org.apache.spark.sql.functions._
+import org.apache.spark.SparkException
 
 import RegressionTestUtils._
-import io.projectglow.functions
 import io.projectglow.sql.GlowBaseTest
-import io.projectglow.sql.expressions.{CovariateQRContext, LinearRegressionGwas, RegressionStats}
-import io.projectglow.tertiary.RegressionTestUtils._
+import io.projectglow.sql.expressions.{ComputeQR, LinearRegressionGwas, RegressionStats}
 
 class LinearRegressionSuite extends GlowBaseTest {
 
@@ -46,17 +43,8 @@ class LinearRegressionSuite extends GlowBaseTest {
       phenotypes: Array[Double],
       covariates: Array[Array[Double]]): RegressionStats = {
 
-    val phenotypeVector = new DenseVector[Double](phenotypes)
-    val genotypeVector = new DenseVector[Double](genotypes)
-    val covariateQR =
-      CovariateQRContext.computeQR(twoDArrayToSparkMatrix(covariates))
-    LinearRegressionGwas.runRegression(genotypeVector, phenotypeVector, covariateQR)
-  }
-
-  def testDataToOlsBaseline(testData: TestData): Seq[RegressionStats] = {
-    testData.genotypes.map { g =>
-      olsBaseline(g.toArray, testData.phenotypes.toArray, testData.covariates.toArray)
-    }
+    val covariateQR = ComputeQR.computeQR(twoDArrayToSparkMatrix(covariates))
+    LinearRegressionGwas.runRegression(genotypes.clone(), phenotypes.clone(), covariateQR)
   }
 
   def olsBaseline(
@@ -148,10 +136,11 @@ class LinearRegressionSuite extends GlowBaseTest {
   }
 
   private def compareToApacheOLS(testData: TestData, useSpark: Boolean): Unit = {
-    import io.projectglow.functions._
     import sess.implicits._
     val apacheResults = timeIt("Apache linreg") {
-      testDataToOlsBaseline(testData)
+      testData.genotypes.map { g =>
+        olsBaseline(g.toArray, testData.phenotypes.toArray, testData.covariates.toArray)
+      }
     }
 
     val ourResults = timeIt("DB linreg") {
@@ -166,7 +155,7 @@ class LinearRegressionSuite extends GlowBaseTest {
         spark
           .createDataFrame(rows)
           .withColumn("id", monotonically_increasing_id())
-          .repartition(20)
+          .repartition(10)
           .withColumn("linreg", expr("linear_regression_gwas(genotypes, phenotypes, covariates)"))
           .orderBy("id")
           .selectExpr("expand_struct(linreg)")
@@ -174,17 +163,14 @@ class LinearRegressionSuite extends GlowBaseTest {
           .collect()
           .toSeq
       } else {
-        val gwasContext =
-          CovariateQRContext.computeQR(twoDArrayToSparkMatrix(testData.covariates.toArray))
-        val phenotypes = new DenseVector[Double](testData.phenotypes.toArray)
+        val gwasContext = ComputeQR.computeQR(twoDArrayToSparkMatrix(testData.covariates.toArray))
         testData.genotypes.map { g =>
-          val genotypes = new DenseVector[Double](g.toArray)
-          LinearRegressionGwas.runRegression(genotypes, phenotypes, gwasContext)
+          LinearRegressionGwas.runRegression(g.toArray, testData.phenotypes.toArray, gwasContext)
         }
       }
     }
 
-    apacheResults.zip(ourResults).foreach {
+    apacheResults.zip(ourResults).map {
       case (ols, db) => compareRegressionStats(ols, db)
     }
   }
@@ -291,57 +277,31 @@ class LinearRegressionSuite extends GlowBaseTest {
     compareToApacheOLS(testData, true)
   }
 
-  test("multiple phenotypes") {
-    import sess.implicits._
+  test("throws exception if matrix is singular") {
+    val covariates = new DenseMatrix(3, 1, Array(1, 1, 1))
+    val ctx = ComputeQR.computeQR(covariates)
+    val genotypes = Array(0d, 0d, 0d)
+    val phenotypes = Array(1d, 2d, 3d)
 
-    val testData = generateTestData(30, 1, 1, true, 1)
-    val testData2 = testData.copy(phenotypes = testData.phenotypes.map(_ => Random.nextDouble()))
-    val rows = testDataToRows(testData) ++ testDataToRows(testData2)
-    val results = spark
-      .createDataFrame(rows)
-      .withColumn("id", monotonically_increasing_id())
-      .withColumn("linreg", expr("linear_regression_gwas(genotypes, phenotypes, covariates)"))
-      .orderBy("id")
-      .selectExpr("expand_struct(linreg)")
-      .as[RegressionStats]
-      .collect()
-      .toSeq
-    assert(results.size == 2)
-    results.zip(testDataToOlsBaseline(testData) ++ testDataToOlsBaseline(testData2)).foreach {
-      case (stats1, stats2) => compareRegressionStats(stats1, stats2)
+    assertThrows[SingularMatrixException] {
+      olsBaseline(genotypes, phenotypes, Array(Array(1), Array(1), Array(1)))
     }
+
+    val ex = intercept[IllegalArgumentException] {
+      LinearRegressionGwas.runRegression(genotypes, phenotypes, ctx)
+    }
+    assert(ex.getMessage.toLowerCase.contains("singular"))
   }
 
   def checkIllegalArgumentException(rows: Seq[RegressionRow], error: String): Unit = {
-    import io.projectglow.functions._
     val e = intercept[SparkException] {
       spark
         .createDataFrame(rows)
-        .withColumn(
-          "linreg",
-          linear_regression_gwas(col("genotypes"), col("phenotypes"), col("covariates")))
+        .withColumn("linreg", expr("linear_regression_gwas(genotypes, phenotypes, covariates)"))
         .collect
     }
     assert(e.getCause.isInstanceOf[IllegalArgumentException])
     assert(e.getCause.getMessage.contains(error))
-  }
-
-  // Our linear regression algorithm projects the genotypes onto orthogonal complement of the
-  // covariate vector space. When the genotypes are a linear combination of some covariates, this
-  // projection is 0, so beta, standard error, and p value are all undefined. However, finite
-  // precision can instead cause the error to be massive with respect to beta.
-  test("large or NaN p value if genotypes are in covariate span") {
-    val testData = generateTestData(30, 1, 1, true, 1)
-    val genotypes = twoDArrayToBreezeMatrix(testData.covariates.toArray)(::, 1)
-    val phenotypes = new DenseVector[Double](testData.phenotypes.toArray)
-    val ctx = CovariateQRContext.computeQR(twoDArrayToSparkMatrix(testData.covariates.toArray))
-
-    assertThrows[SingularMatrixException] {
-      olsBaseline(genotypes.toArray, phenotypes.toArray, testData.covariates.toArray)
-    }
-
-    val results = LinearRegressionGwas.runRegression(genotypes, phenotypes, ctx)
-    assert(results.pValue > 0.999999 || results.pValue.isNaN)
   }
 
   test("throws exception if more covariates than samples") {

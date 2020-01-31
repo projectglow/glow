@@ -1,7 +1,6 @@
 import pytest
-from pyspark.sql.functions import expr, lit
 from pyspark.sql.utils import IllegalArgumentException
-import glow
+import glow as glow
 
 
 def test_transform(spark):
