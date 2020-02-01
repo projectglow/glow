@@ -19,11 +19,14 @@ package io.projectglow.sql.expressions
 import java.nio.file.Paths
 
 import htsjdk.samtools.reference.IndexedFastaSequenceFile
+import io.projectglow.transformers.normalizevariants.VariantNormalizer
 import org.apache.spark.TaskContext
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCode}
 import org.apache.spark.sql.catalyst.expressions.{Expression, ImplicitCastInputTypes, SenaryExpression}
+import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.sql.types._
+import org.apache.spark.unsafe.types.UTF8String
 
 object NormalizeVariantExpr {
 
@@ -38,17 +41,17 @@ object NormalizeVariantExpr {
 
     if (state.get() == null) {
       // Save fasta sequence file
-      val refGenomeIndexedFasta = new IndexedFastaSequenceFile(Paths.get(refGenomePathString.asInstanceOf[String]))
+      val refGenomeIndexedFasta = new IndexedFastaSequenceFile(Paths.get(refGenomePathString.asInstanceOf[UTF8String].toString))
       state.set(refGenomeIndexedFasta)
       TaskContext.get().addTaskCompletionListener(_ => state.remove())
     }
 
     VariantNormalizer.normalizeVariant(
-      contigName.asInstanceOf[String],
-      start.asInstanceOf[Int],
-      end.asInstanceOf[Int],
-      refAllele.asInstanceOf[String],
-      altAlleles.asInstanceOf[Array[String]],
+      contigName.asInstanceOf[UTF8String].toString,
+      start.asInstanceOf[Long],
+      end.asInstanceOf[Long],
+      refAllele.asInstanceOf[UTF8String].toString,
+      altAlleles.asInstanceOf[ArrayData].toArray[UTF8String](StringType).map(_.toString),
       state.get()
     )
   }
@@ -69,7 +72,7 @@ case class NormalizeVariant(contigName: Expression,
   override def dataType: DataType = VariantNormalizer.normalizationSchema
 
   override def inputTypes: Seq[DataType] =
-    Seq(StringType, IntegerType, IntegerType, StringType, ArrayType(StringType), StringType)
+    Seq(StringType, LongType, LongType, StringType, ArrayType(StringType), StringType)
 
   override def children: Seq[Expression] = Seq(contigName, start, end, refAllele, altAlleles, refGenomePathString)
 

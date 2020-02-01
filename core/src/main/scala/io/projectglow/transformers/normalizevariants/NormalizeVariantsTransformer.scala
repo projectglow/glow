@@ -17,11 +17,13 @@
 package io.projectglow.transformers.normalizevariants
 
 import io.projectglow.DataFrameTransformer
+import io.projectglow.common.VariantSchemas._
 import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
-import io.projectglow.sql.expressions.VariantNormalizer
+import VariantNormalizer._
+import io.projectglow.transformers.splitmultiallelics.VariantSplitter
 import io.projectglow.transformers.util.StringUtils
 import org.apache.spark.sql.DataFrame
-import io.projectglow.transformers.splitmultiallelics.VariantSplitter
+import org.apache.spark.sql.functions.{col, expr}
 
 /**
  * Implements DataFrameTransformer to transform the input DataFrame of varaints to an output
@@ -34,26 +36,32 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HlsEventRec
 
   import NormalizeVariantsTransformer._
 
-  override def name: String = "normalize_variants"
+  override def name: String = NORMALIZER_TRANSFORMER_NAME
 
   override def transform(df: DataFrame, options: Map[String, String]): DataFrame = {
 
     val refGenomePathString = options.get(REFERENCE_GENOME_PATH)
 
-    if (refGenomePathString.isEmpty) {
-      throw new IllegalArgumentException("Reference genome path not provided!")
-    }
+    val replaceColumns = options.get(REPLACE_COLUMNS).forall(_.toBoolean)
 
     if (options.contains(MODE_KEY)) {
 
       val modeOption = options.get(MODE_KEY).map(StringUtils.toSnakeCase)
 
-      backwardCompatibleTransform(df, refGenomePathString.get, modeOption)
+      backwardCompatibleTransform(df, refGenomePathString, replaceColumns, modeOption)
+
     } else {
+
       recordHlsEvent(HlsTagValues.EVENT_NORMALIZE_VARIANTS)
-      VariantNormalizer.normalize(
+
+      if (refGenomePathString.isEmpty) {
+        throw new IllegalArgumentException("Reference genome path not provided!")
+      }
+
+      normalizeVariants(
         df,
-        refGenomePathString.get
+        refGenomePathString.get,
+        replaceColumns
       )
     }
   }
@@ -65,15 +73,22 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HlsEventRec
    * multiallelic variants and skips normalization. Setting "mode" to split_and_normalize splits multiallelic variants
    * followed by normalization.
    */
-  def backwardCompatibleTransform(df: DataFrame, refGenomePathString: String, modeOption: Option[String]): DataFrame = {
+  def backwardCompatibleTransform(df: DataFrame, refGenomePathString: Option[String], replaceColumns: Boolean, modeOption: Option[String]): DataFrame = {
 
     modeOption match {
 
       case Some(MODE_NORMALIZE) =>
+
         recordHlsEvent(HlsTagValues.EVENT_NORMALIZE_VARIANTS)
-        VariantNormalizer.normalize(
+
+        if (refGenomePathString.isEmpty) {
+          throw new IllegalArgumentException("Reference genome path not provided!")
+        }
+
+        normalizeVariants(
           df,
-          refGenomePathString
+          refGenomePathString.get,
+          replaceColumns
         )
 
       case Some(MODE_SPLIT) =>
@@ -88,9 +103,14 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HlsEventRec
 
         recordHlsEvent(HlsTagValues.EVENT_NORMALIZE_VARIANTS)
 
-        VariantNormalizer.normalize(
+        if (refGenomePathString.isEmpty) {
+          throw new IllegalArgumentException("Reference genome path not provided!")
+        }
+
+        normalizeVariants(
           df,
-          refGenomePathString
+          refGenomePathString.get,
+          replaceColumns
         )
 
       case _ =>
@@ -100,6 +120,71 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HlsEventRec
 }
 
 object NormalizeVariantsTransformer {
+
+  /**
+    * Normalizes the input DataFrame of variants and outputs them as a Dataframe
+    *
+    * @param df                   : Input dataframe of variants
+    * @param refGenomePathString  : Path to the underlying reference genome of the variants
+    * @return normalized DataFrame
+    */
+  def normalizeVariants(df: DataFrame, refGenomePathString: String, replaceColumns: Boolean): DataFrame = {
+
+    val dfNormalized = df.select(
+      col("*"),
+      expr(
+        s"""expand_struct(
+           |   normalize_variant(
+           |       ${contigNameField.name},
+           |       ${startField.name},
+           |       ${endField.name},
+           |       ${refAlleleField.name},
+           |       ${alternateAllelesField.name},
+           |       "$refGenomePathString"
+           |   )
+           |)""".stripMargin)
+    )
+
+    val origNames = Seq(
+      startField.name,
+      endField.name,
+      refAlleleField.name,
+      alternateAllelesField.name
+    )
+    val normalizedNames = Seq(
+      normalizedStartField.name,
+      normalizedEndField.name,
+      normalizedRefAlleleField.name,
+      normalizedAlternateAllelesField.name
+    )
+
+    if (replaceColumns) {
+
+      (0 to origNames.length - 1)
+        .foldLeft(dfNormalized)(
+          (df, i) => df.withColumn(origNames(i), col(normalizedNames(i)))
+        )
+        .drop(normalizedNames: _*)
+
+    } else {
+
+      var reorderedColumnNames = Seq[String]()
+
+      dfNormalized.columns.foreach { c =>
+        reorderedColumnNames :+= c
+        val idx = origNames.indexOf(c)
+        if (idx >= 0) {
+          reorderedColumnNames :+= normalizedNames(idx)
+        }
+      }
+
+      dfNormalized.select(reorderedColumnNames.head, reorderedColumnNames.tail: _*)
+    }
+  }
+
+  val REFERENCE_GENOME_PATH = "reference_genome_path"
+  private val REPLACE_COLUMNS = "replace_original_columns"
+  val NORMALIZER_TRANSFORMER_NAME = "normalize_variants"
 
   @deprecated(
     "normalize_variants transformer is now for normalization only. split_multiallelics transformer should be used separately for splitting multiallelics")
@@ -116,7 +201,5 @@ object NormalizeVariantsTransformer {
   @deprecated(
     "normalize_variants transformer is now for normalization only. split_multiallelics transformer should be used separately for splitting multiallelics")
   val MODE_SPLIT = "split"
-
-  private val REFERENCE_GENOME_PATH = "reference_genome_path"
 
 }

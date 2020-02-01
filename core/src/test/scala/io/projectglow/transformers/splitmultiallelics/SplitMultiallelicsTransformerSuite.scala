@@ -17,9 +17,11 @@
 package io.projectglow.transformers.splitmultiallelics
 
 import io.projectglow.Glow
+import io.projectglow.common.VariantSchemas._
 import io.projectglow.common.{CommonOptions, GlowLogging}
 import io.projectglow.sql.GlowBaseTest
 import org.apache.spark.SparkConf
+import io.projectglow.transformers.splitmultiallelics.SplitMultiallelicsTransformer._
 
 class SplitMultiallelicsTransformerSuite extends GlowBaseTest with GlowLogging {
 
@@ -92,17 +94,17 @@ class SplitMultiallelicsTransformerSuite extends GlowBaseTest with GlowLogging {
 
     val dfSplit = Glow
       .transform(
-        "split_multiallelics",
+        SPLITTER_TRANSFORMER_NAME,
         dfOriginal
       )
-      .orderBy("contigName", "start", "end")
+      .orderBy(contigNameField.name, startField.name, endField.name)
 
     val dfExpected = spark
       .read
       .format(sourceName)
       .options(Map(CommonOptions.INCLUDE_SAMPLE_IDS -> includeSampleIds.toString))
       .load(expectedVCFFileName)
-      .orderBy("contigName", "start", "end")
+      .orderBy(contigNameField.name, startField.name, endField.name)
 
     val dfExpectedColumns =
       dfExpected.columns.map(name => if (name.contains(".")) s"`${name}`" else name)
@@ -110,12 +112,12 @@ class SplitMultiallelicsTransformerSuite extends GlowBaseTest with GlowLogging {
     assert(dfSplit.count() == dfExpected.count())
 
     dfExpected
-      .drop("splitFromMultiAllelic")
+      .drop(splitFromMultiAllelicField.name)
       .collect
       .zip(
         dfSplit
           .select(dfExpectedColumns.head, dfExpectedColumns.tail: _*) // make order of columns the same
-          .drop("splitFromMultiAllelic")
+          .drop(splitFromMultiAllelicField.name)
           .collect
       )
       .foreach {

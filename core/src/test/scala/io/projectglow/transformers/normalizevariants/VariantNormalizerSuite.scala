@@ -18,10 +18,14 @@ package io.projectglow.transformers.normalizevariants
 
 import java.nio.file.Paths
 
+import htsjdk.samtools.reference.IndexedFastaSequenceFile
 import htsjdk.variant.variantcontext.Allele
 import io.projectglow.common.GlowLogging
 import io.projectglow.sql.GlowBaseTest
-import io.projectglow.sql.expressions.VariantNormalizer._
+import io.projectglow.transformers.normalizevariants.VariantNormalizer.realignAlleles
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.util.ArrayData
+import org.apache.spark.unsafe.types.UTF8String
 import org.broadinstitute.hellbender.engine.ReferenceDataSource
 
 class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
@@ -31,35 +35,41 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
 
   lazy val vtTestReference = s"$testFolder/20_altered.fasta"
 
+
   /**
    * Tests realignAlleles method for given alleles and compares with the provided expected
    * outcome
    */
   def testRealignAlleles(
       referenceGenome: String,
-      contig: String,
-      origStart: Int,
-      origEnd: Int,
-      origAlleleStrings: Seq[String],
-      expectedStart: Int,
-      expectedEnd: Int,
-      expectedAlleleString: Seq[String]): Unit = {
+      contigName: String,
+      origStart: Long,
+      origEnd: Long,
+      origRefAllele: String,
+      origAltAlleles: Array[String],
+      expectedStart: Long,
+      expectedEnd: Long,
+      expectedRefAllele: String,
+      expectedAltAlleles: Array[String],
+      expectedFlag: String
+      ): Unit = {
 
-    val refGenomeDataSource = ReferenceDataSource.of(Paths.get(referenceGenome))
+    val refGenomeIndexedFasta = new IndexedFastaSequenceFile(Paths.get(referenceGenome))
 
-    val alleles = origAlleleStrings.take(1).map(Allele.create(_, true)) ++
-      origAlleleStrings.drop(1).map(Allele.create(_))
 
-    val reAlignedAlleles =
-      realignAlleles(AlleleBlock(alleles, origStart, origEnd), refGenomeDataSource, contig)
+    val normalizedVariant =
+      realignAlleles(
+        contigName,
+        origStart,
+        origEnd,
+        origRefAllele,
+        origAltAlleles,
+        refGenomeIndexedFasta
+      )
 
-    assert(reAlignedAlleles.start == expectedStart)
-    assert(reAlignedAlleles.end == expectedEnd)
-    assert(reAlignedAlleles.alleles.length == expectedAlleleString.length)
-
-    for (i <- 0 to expectedAlleleString.length - 1) {
-      assert(expectedAlleleString(i) == reAlignedAlleles.alleles(i).getBaseString)
-    }
+    assert(normalizedVariant ==
+    InternalRow(expectedStart, expectedEnd, UTF8String.fromString(expectedRefAllele), ArrayData.toArrayData(expectedAltAlleles.map(UTF8String.fromString(_))), UTF8String.fromString(expectedFlag))
+))
   }
 
   test("test realignAlleles") {
@@ -68,12 +78,16 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
       "20",
       71,
       73,
-      Seq("AA", "AAAA", "AAAAAA"),
+      "AA",
+      Array("AAAA", "AAAAAA"),
       67,
       68,
-      Seq("T", "TAA", "TAAAA")
+      "T",
+      Array("TAA", "TAAAA"),
+      FLAG_CHANGED
     )
 
+      /*
     testRealignAlleles(
       vtTestReference,
       "20",
@@ -106,5 +120,8 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
       2,
       Seq("GG", "TA")
     )
+
+       */
   }
+
 }
