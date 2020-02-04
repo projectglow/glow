@@ -22,6 +22,7 @@ import org.apache.spark.sql.catalyst.expressions.aggregate.AggregateFunction
 import io.projectglow.sql.util.Rewrite
 
 private[projectglow] object ExpressionHelper {
+
   /**
    * Aggregate functions must be wrapped in expressions before they can be evaluated.
    *

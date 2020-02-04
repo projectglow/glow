@@ -1,7 +1,7 @@
 from pyspark.sql import SparkSession
 import pytest
 
-# Shared across Python and docs tests
+# Set up a new Spark session for each test suite
 @pytest.fixture(scope="module")
 def spark():
     sess = SparkSession.builder \

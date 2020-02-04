@@ -154,7 +154,7 @@ case class UnwrappedAggregateByIndex(
     extends AggregateByIndex
     with UnwrappedAggregateFunction {
 
-  override def prettyName: String = "unwarrped_agg_by"
+  override def prettyName: String = "unwrapped_aggregate_by_index"
 
   override def withBoundExprs(
       newUpdate: Expression,
