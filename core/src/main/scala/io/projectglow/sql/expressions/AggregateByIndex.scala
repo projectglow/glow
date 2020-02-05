@@ -150,7 +150,7 @@ case class UnwrappedAggregateByIndex(
     initialValue: Expression,
     update: Expression,
     merge: Expression,
-    evaluate: Expression)
+    evaluate: Expression = LambdaFunction.identity)
     extends AggregateByIndex
     with UnwrappedAggregateFunction {
 
@@ -158,7 +158,7 @@ case class UnwrappedAggregateByIndex(
     this(arr, initialValue, update, merge, LambdaFunction.identity)
   }
 
-  override def prettyName: String = "unwrapped_agg_by"
+  override def prettyName: String = "unwrapped_aggregate_by_index"
 
   override def withBoundExprs(
       newUpdate: Expression,

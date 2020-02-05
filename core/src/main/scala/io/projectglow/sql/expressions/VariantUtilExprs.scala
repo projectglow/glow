@@ -228,6 +228,7 @@ case class HardCalls(
   def this(probabilities: Expression, numAlts: Expression, phased: Expression) = {
     this(probabilities, numAlts, phased, Literal(0.90d))
   }
+
   override def children: Seq[Expression] = Seq(probabilities, numAlts, phased, threshold)
   override def inputTypes = { // scalastyle:ignore
     Seq(ArrayType(DoubleType), IntegerType, BooleanType, DecimalType)

@@ -201,7 +201,6 @@ quality_control:
         - name: genotypes
           doc: The array of genotype structs
 
-
 gwas_functions:
   functions:
     - name: linear_regression_gwas

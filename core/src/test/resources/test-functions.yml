@@ -2,14 +2,14 @@ test_functions:
   functions:
     - name: one_arg_test
       doc: one arg
-      since: 1.0
+      since: 1.0.0
       expr_class: io.projectglow.OneArgExpr
       args:
         - name: arg1
           doc: first arg
     - name: two_arg_test
       doc: two args
-      since: 1.0
+      since: 1.0.0
       expr_class: io.projectglow.TwoArgExpr
       args:
         - name: arg1
@@ -18,7 +18,7 @@ test_functions:
           doc: second arg
     - name: var_args_test
       doc: var args
-      since: 1.0
+      since: 1.0.0
       expr_class: io.projectglow.VarArgsExpr
       args:
         - name: arg1
@@ -28,7 +28,7 @@ test_functions:
           is_var_args: true
     - name: optional_arg_test
       doc: optional args
-      since: 1.0
+      since: 1.0.0
       expr_class: io.projectglow.OptionalArgExpr
       args:
         - name: required

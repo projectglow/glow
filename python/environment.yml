@@ -1,9 +1,9 @@
 name: glow
 dependencies:
   - python=3.7
-  - pytest
-  - pip
   - jinja2
+  - pip
+  - pytest
   - pyyaml
   - pip:
     - numpy==1.17.4

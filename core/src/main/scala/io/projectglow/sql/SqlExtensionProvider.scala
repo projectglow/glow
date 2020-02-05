@@ -19,13 +19,11 @@ package io.projectglow.sql
 import java.util.{List => JList, Map => JMap}
 
 import scala.collection.JavaConverters._
-import scala.util.control.NonFatal
 
-import org.apache.commons.io.IOUtils
 import org.apache.spark.sql.{SQLUtils, SparkSessionExtensions}
 import org.apache.spark.sql.catalyst.FunctionIdentifier
 import org.apache.spark.sql.catalyst.analysis.FunctionRegistry
-import org.apache.spark.sql.catalyst.expressions.{Expression, ExpressionInfo, LambdaFunction}
+import org.apache.spark.sql.catalyst.expressions.{Expression, ExpressionInfo}
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.internal.SQLConf
@@ -63,6 +61,10 @@ object SqlExtensionProvider {
         .asScala
         .flatMap(group => group.asScala("functions").asInstanceOf[JList[JMap[String, Any]]].asScala)
     }
+  }
+
+  private def parameterError(params: Int): Exception = {
+    SQLUtils.newAnalysisException(s"Invalid number of parameters: $params")
   }
 
   def registerFunctions(
@@ -109,6 +111,10 @@ object SqlExtensionProvider {
                 None
               } else if (arg.get("is_var_args").exists(_.asInstanceOf[Boolean])) {
                 Some(exprs.slice(idx, exprs.size))
+              } else if (idx >= exprs.size) {
+                throw parameterError(exprs.size)
+              } else if (idx == args.size - 1 && exprs.size != args.size) {
+                throw parameterError(exprs.size)
               } else {
                 Some(exprs(idx))
               }
@@ -116,8 +122,7 @@ object SqlExtensionProvider {
           val constructor = clazz
             .getConstructors
             .find(_.getParameterCount == children.size)
-            .getOrElse(
-              throw SQLUtils.newAnalysisException(s"Invalid parameter count ${exprs.size}"))
+            .getOrElse(throw parameterError(exprs.size))
           ExpressionHelper.wrapAggregate(
             ExpressionHelper.rewrite(
               constructor.newInstance(children: _*).asInstanceOf[Expression]))

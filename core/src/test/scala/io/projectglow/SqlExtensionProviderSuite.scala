@@ -6,7 +6,17 @@ import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
 import org.apache.spark.sql.catalyst.expressions.{BinaryExpression, Expression, Literal, UnaryExpression}
 import org.apache.spark.sql.types.{DataType, IntegerType}
 
+import io.projectglow.sql.SqlExtensionProvider
+
 class SqlExtensionProviderSuite extends GlowSuite {
+  override def beforeAll(): Unit = {
+    super.beforeAll()
+    SqlExtensionProvider.registerFunctions(
+      spark.sessionState.conf,
+      spark.sessionState.functionRegistry,
+      "test-functions.yml")
+  }
+
   private lazy val sess = spark
   test("one arg function") {
     import sess.implicits._
@@ -36,9 +46,9 @@ class SqlExtensionProviderSuite extends GlowSuite {
 
   test("var args function") {
     import sess.implicits._
-    assert(spark.range(1).selectExpr("var_args_test(id)").as[Int].head() == 1)
     assert(spark.range(1).selectExpr("var_args_test(id, id)").as[Int].head() == 1)
     assert(spark.range(1).selectExpr("var_args_test(id, id, id, id)").as[Int].head() == 1)
+    assert(spark.range(1).selectExpr("var_args_test(id)").as[Int].head() == 1)
 
     intercept[AnalysisException] {
       spark.range(1).selectExpr("var_args_test()").collect()
