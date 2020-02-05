@@ -65,11 +65,8 @@ class PlinkRowToInternalRowConverter(schema: StructType) extends GlowLogging {
             }
             r.update(i, new GenericArrayData(genotypes))
           }
-        case f =>
-          logger.info(
-            s"Column $f cannot be derived from PLINK records. It will be null for each " +
-            s"row."
-          )
+        case _ =>
+          // BED file only contains genotypes
           (_, _, _) => ()
       }
       fn
