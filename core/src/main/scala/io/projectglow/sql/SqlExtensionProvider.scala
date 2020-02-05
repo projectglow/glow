@@ -51,11 +51,12 @@ class GlowSQLExtensions extends (SparkSessionExtensions => Unit) {
 }
 
 object SqlExtensionProvider {
-  import ExpressionHelper.rewrite
-  private lazy val functionDefinitions = {
+  private val FUNCTION_YAML_PATH = "functions.yml"
+
+  private def loadFunctionDefinitions(resourcePath: String): Iterable[JMap[String, Any]] = {
     val yml = new Yaml()
     WithUtils.withCloseable(
-      Thread.currentThread().getContextClassLoader.getResourceAsStream("functions.yml")) { stream =>
+      Thread.currentThread().getContextClassLoader.getResourceAsStream(resourcePath)) { stream =>
       val groups = yml.loadAs(stream, classOf[JMap[String, JMap[String, Any]]])
       groups
         .values()
@@ -64,9 +65,12 @@ object SqlExtensionProvider {
     }
   }
 
-  def registerFunctions(conf: SQLConf, functionRegistry: FunctionRegistry): Unit = {
-//    println(s"Building function definitions for ${functionDefinitions.size} functions")
-    functionDefinitions.foreach { _function =>
+  def registerFunctions(
+    conf: SQLConf,
+    functionRegistry: FunctionRegistry,
+    resourcePath: String = FUNCTION_YAML_PATH): Unit = {
+
+    loadFunctionDefinitions(resourcePath).foreach { _function =>
       val function = _function.asScala
       val id = FunctionIdentifier(function("name").asInstanceOf[String])
       //      println(s"Building $id")
