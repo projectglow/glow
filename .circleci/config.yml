@@ -16,6 +16,20 @@ install_deps: &install_deps
         echo "Conda already installed"
       fi
 
+check_clean_repo: &check_clean_repo
+  run:
+    name: Verify that repo is clean
+    environment:
+    command: |
+      if [[ -n $(git status --short) ]]; then
+        echo "Working directory was not clean!"
+        git status
+        false
+      else
+        true
+      fi
+
+
 version: 2.1
 orbs:
   codecov: codecov/codecov@1.0.5
@@ -67,6 +81,7 @@ jobs:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             sbt docs_2_11/test exit
+      - *check_clean_repo
       - store_artifacts:
           path: ~/glow/unit-tests.log
           destination: unit-tests.log
@@ -105,6 +120,7 @@ jobs:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             sbt docs_2_12/test exit
+      - *check_clean_repo
       - store_artifacts:
           path: ~/glow/unit-tests.log
           destination: unit-tests.log

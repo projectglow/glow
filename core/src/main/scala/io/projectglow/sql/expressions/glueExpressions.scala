@@ -18,13 +18,15 @@ package io.projectglow.sql.expressions
 
 import org.apache.spark.ml.linalg.Vectors
 import org.apache.spark.sql.SQLUtils
-import org.apache.spark.sql.catalyst.analysis.Star
+import org.apache.spark.sql.catalyst.analysis.{Star, UnresolvedExtractValue}
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, CodegenFallback, ExprCode}
-import org.apache.spark.sql.catalyst.expressions.{Alias, ExpectsInputTypes, Expression, Generator, GenericInternalRow, GetStructField, ImplicitCastInputTypes, NamedExpression, UnaryExpression, Unevaluable}
+import org.apache.spark.sql.catalyst.expressions.{Alias, CreateNamedStruct, ExpectsInputTypes, Expression, Generator, GenericInternalRow, GetStructField, ImplicitCastInputTypes, Literal, NamedExpression, UnaryExpression, Unevaluable}
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.util.{ArrayData, GenericArrayData}
 import org.apache.spark.sql.catalyst.{analysis, InternalRow}
 import org.apache.spark.sql.types._
+
+import io.projectglow.sql.util.{Rewrite, RewriteAfterResolution}
 
 /**
  * Expands all the fields of a potentially unnamed struct.
@@ -42,27 +44,31 @@ case class ExpandStruct(struct: Expression) extends Star with Unevaluable {
   }
 }
 
+case class SubsetStruct(struct: Expression, fields: Seq[Expression]) extends Rewrite {
+  override def children: Seq[Expression] = Seq(struct) ++ fields
+
+  override def rewrite: Expression = {
+    CreateNamedStruct(fields.flatMap(f => Seq(f, UnresolvedExtractValue(struct, f))))
+  }
+
+}
+
 /**
  * Expression that adds fields to an existing struct.
  *
  * At optimization time, this expression is rewritten as the creation of new struct with all the
- * fields of the existing struct as well as the new fields. See [[HLSReplaceExpressionsRule]]
+ * fields of the existing struct as well as the new fields. See [[io.projectglow.sql.optimizer.ReplaceExpressionsRule]]
  * for more details.
  */
 case class AddStructFields(struct: Expression, newFields: Seq[Expression])
-    extends Expression
-    with Unevaluable {
-
-  override def nullable: Boolean = true
+    extends RewriteAfterResolution {
   override def children: Seq[Expression] = struct +: newFields
-  override def dataType: DataType = {
-    var base = struct.dataType.asInstanceOf[StructType]
-    newFields.grouped(2).foreach {
-      case Seq(name, value) =>
-        val nameStr = name.eval().toString
-        base = base.add(nameStr, value.dataType, value.nullable)
+  override def rewrite: Expression = {
+    val baseType = struct.dataType.asInstanceOf[StructType]
+    val baseFields = baseType.indices.flatMap { idx =>
+      Seq(Literal(baseType(idx).name), GetStructField(struct, idx))
     }
-    base
+    CreateNamedStruct(baseFields ++ newFields)
   }
 }
 

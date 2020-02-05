@@ -23,7 +23,7 @@ import htsjdk.samtools.util.Interval
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
-import org.apache.spark.sql.catalyst.expressions.{Expression, GenericInternalRow, ImplicitCastInputTypes}
+import org.apache.spark.sql.catalyst.expressions.{Expression, GenericInternalRow, ImplicitCastInputTypes, Literal}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
@@ -41,14 +41,14 @@ import org.apache.spark.unsafe.types.UTF8String
  * @param start Start position (0-start) on the reference sequence.
  * @param end End position on the reference sequence.
  * @param chainFile UCSC chain format file mapping blocks from the reference sequence to the query sequence.
- * @param minMatchRatioOpt The minimum fraction of bases that must remap to lift over successfully.
+ * @param minMatchRatio The minimum fraction of bases that must remap to lift over successfully.
  */
 case class LiftOverCoordinatesExpr(
     contigName: Expression,
     start: Expression,
     end: Expression,
     chainFile: Expression,
-    minMatchRatioOpt: Option[Expression])
+    minMatchRatio: Expression = Literal(0.95d))
     extends CodegenFallback
     with ImplicitCastInputTypes {
 
@@ -56,10 +56,10 @@ case class LiftOverCoordinatesExpr(
     new File(chainFile.eval().asInstanceOf[UTF8String].toString))
 
   override def children: Seq[Expression] =
-    Seq(contigName, start, end, chainFile) ++ minMatchRatioOpt
+    Seq(contigName, start, end, chainFile, minMatchRatio)
 
   override def inputTypes = { // scalastyle:ignore
-    Seq(StringType, LongType, LongType, StringType) ++ minMatchRatioOpt.map(_ => DecimalType)
+    Seq(StringType, LongType, LongType, StringType, DecimalType)
   }
 
   override def checkInputDataTypes(): TypeCheckResult = {
@@ -90,9 +90,9 @@ case class LiftOverCoordinatesExpr(
     val _contigName = contigName.eval(input)
     val _start = start.eval(input)
     val _end = end.eval(input)
-    val _minMatchRatio = minMatchRatioOpt.map(_.eval(input))
+    val _minMatchRatio = minMatchRatio.eval(input)
 
-    if (_contigName == null || _start == null || _end == null || _minMatchRatio.contains(null)) {
+    if (_contigName == null || _start == null || _end == null || _minMatchRatio == null) {
       return null
     }
 
@@ -100,9 +100,9 @@ case class LiftOverCoordinatesExpr(
       _contigName.asInstanceOf[UTF8String].toString,
       (_start.asInstanceOf[Long] + 1).toInt, // Convert to the 1-based closed-ended Interval start
       _end.asInstanceOf[Long].toInt)
-    val minMatchRatio = _minMatchRatio.map(_.asInstanceOf[Decimal].toDouble).getOrElse(0.95)
 
-    val outputInterval = liftOver.liftOver(inputInterval, minMatchRatio)
+    val outputInterval =
+      liftOver.liftOver(inputInterval, _minMatchRatio.asInstanceOf[Decimal].toDouble)
     if (outputInterval == null) {
       return null
     }

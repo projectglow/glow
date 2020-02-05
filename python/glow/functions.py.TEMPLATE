@@ -1,0 +1,42 @@
+# The Glow Python functions
+# Note that this file is generated from the definitions in functions.yml.
+
+from pyspark import SparkContext
+from pyspark.sql.column import Column, _to_java_column, _to_seq
+from typeguard import check_argument_types, check_return_type
+from typing import Union
+
+def sc():
+    return SparkContext._active_spark_context
+
+{% for group_name, group in groups.items() %}
+########### {{ group_name }}
+{% for function in group['functions'] if not function.exclude_python %}
+
+def {{ function.name }}({{ function.args|map('fmt_python_signature')|join(', ') }}) -> Column:
+    """
+    {{ function.doc }}
+
+    Parameters
+    ----------
+    {% for arg in function.args %}
+    {{ arg.name }} : {{ arg.doc }}
+    {% endfor %}
+
+    .. versionadded {{ function.since }}
+    """
+    assert check_argument_types()
+{% if function.args[-1].is_optional %}
+    if {{ function.args[-1].name }} is None:
+        output = Column(sc()._jvm.io.projectglow.functions.{{ function.name }}({{ function.args[0:-1]|map('fmt_python_call')|join(', ') }}))
+    else:
+        output = Column(sc()._jvm.io.projectglow.functions.{{ function.name }}({{ function.args|map('fmt_python_call')|join(', ') }}))
+{% else %}
+    output = Column(sc()._jvm.io.projectglow.functions.{{ function.name }}({{ function.args|map('fmt_python_call')|join(', ') }}))
+{% endif %}
+    assert check_return_type(output)
+    return output
+  
+{% endfor %}
+{% endfor %}
+
