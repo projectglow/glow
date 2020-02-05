@@ -67,6 +67,9 @@ object SqlExtensionProvider {
     SQLUtils.newAnalysisException(s"Invalid number of parameters: $params")
   }
 
+  /**
+   * Register SQL functions based on a yaml function definition file.
+   */
   def registerFunctions(
       conf: SQLConf,
       functionRegistry: FunctionRegistry,
@@ -123,6 +126,7 @@ object SqlExtensionProvider {
             .getConstructors
             .find(_.getParameterCount == children.size)
             .getOrElse(throw parameterError(exprs.size))
+
           ExpressionHelper.wrapAggregate(
             ExpressionHelper.rewrite(
               constructor.newInstance(children: _*).asInstanceOf[Expression]))

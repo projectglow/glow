@@ -3,14 +3,14 @@ test_functions:
     - name: one_arg_test
       doc: one arg
       since: 1.0.0
-      expr_class: io.projectglow.OneArgExpr
+      expr_class: io.projectglow.sql.OneArgExpr
       args:
         - name: arg1
           doc: first arg
     - name: two_arg_test
       doc: two args
       since: 1.0.0
-      expr_class: io.projectglow.TwoArgExpr
+      expr_class: io.projectglow.sql.TwoArgExpr
       args:
         - name: arg1
           doc: first arg
@@ -19,7 +19,7 @@ test_functions:
     - name: var_args_test
       doc: var args
       since: 1.0.0
-      expr_class: io.projectglow.VarArgsExpr
+      expr_class: io.projectglow.sql.VarArgsExpr
       args:
         - name: arg1
           doc: first arg
@@ -29,7 +29,7 @@ test_functions:
     - name: optional_arg_test
       doc: optional args
       since: 1.0.0
-      expr_class: io.projectglow.OptionalArgExpr
+      expr_class: io.projectglow.sql.OptionalArgExpr
       args:
         - name: required
           doc: required arg

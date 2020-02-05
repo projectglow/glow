@@ -1,4 +1,4 @@
-package io.projectglow
+package io.projectglow.sql
 
 import org.apache.spark.sql.AnalysisException
 import org.apache.spark.sql.catalyst.InternalRow
@@ -6,7 +6,7 @@ import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
 import org.apache.spark.sql.catalyst.expressions.{BinaryExpression, Expression, Literal, UnaryExpression}
 import org.apache.spark.sql.types.{DataType, IntegerType}
 
-import io.projectglow.sql.SqlExtensionProvider
+import io.projectglow.GlowSuite
 
 class SqlExtensionProviderSuite extends GlowSuite {
   override def beforeAll(): Unit = {
