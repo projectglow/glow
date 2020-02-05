@@ -63,8 +63,9 @@ object SqlExtensionProvider {
     }
   }
 
-  private def parameterError(params: Int): Exception = {
-    SQLUtils.newAnalysisException(s"Invalid number of parameters: $params")
+  private def parameterError(functionName: String, params: Int): Exception = {
+    SQLUtils.newAnalysisException(
+      s"Invalid number of parameters for function '$functionName': $params")
   }
 
   /**
@@ -115,9 +116,9 @@ object SqlExtensionProvider {
               } else if (arg.get("is_var_args").exists(_.asInstanceOf[Boolean])) {
                 Some(exprs.slice(idx, exprs.size))
               } else if (idx >= exprs.size) {
-                throw parameterError(exprs.size)
+                throw parameterError(id.funcName, exprs.size)
               } else if (idx == args.size - 1 && exprs.size != args.size) {
-                throw parameterError(exprs.size)
+                throw parameterError(id.funcName, exprs.size)
               } else {
                 Some(exprs(idx))
               }
@@ -125,7 +126,7 @@ object SqlExtensionProvider {
           val constructor = clazz
             .getConstructors
             .find(_.getParameterCount == children.size)
-            .getOrElse(throw parameterError(exprs.size))
+            .getOrElse(throw parameterError(id.funcName, exprs.size))
 
           ExpressionHelper.wrapAggregate(
             ExpressionHelper.rewrite(
