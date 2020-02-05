@@ -33,6 +33,18 @@ class AggregateByIndexSuite extends GlowBaseTest {
     assert(results == Seq(1L, 2L, 3L))
   }
 
+  test("basic (scala API)") {
+    import io.projectglow.functions._
+    import org.apache.spark.sql.functions._
+    import sess.implicits._
+    val results = spark
+      .createDataFrame(Seq(Tuple1(Seq(1L, 2L, 3L))))
+      .select(aggregate_by_index($"_1", lit(0L), (x, y) => x + y, (x, y) => x + y, x => x))
+      .as[Seq[Long]]
+      .head
+    assert(results == Seq(1L, 2L, 3L))
+  }
+
   test("with types changes") {
     import sess.implicits._
     val results = spark

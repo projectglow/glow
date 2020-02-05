@@ -1,0 +1,213 @@
+# This file contains the manifest of SparkSQL functions provided by Glow. The definitions in this
+# file are used to generate Scala and Python APIs.
+#
+# The top level names are groups of functions. These groups primarily matter for documentation. Each
+# group contains an ordered list of functions. Most of the parameters are self-evident. 
+#
+# Potentially confusing function options are:
+# - expr_class: The class name of the expression in Glow that implements the function. This value is
+#               *not* user-visible. It's used only for client generation.
+# - exclude_python: If true, the function cannot be represented in Python. This is currently only
+#                   the case for functions that take lambda functions as arguments.
+# 
+# Potentially confusing argument options are:
+# - type: The argument's type. This can currently be one of [str, double, lambda1, lambda2]. These
+#         types do not correspond to any real programming language; they are just placeholders used for
+#         client generation. More types can be added as needed. If an argument does not have an explicit
+#         type, it is assumed to be of Spark SQL Column type.
+# - is_var_args: If true, the parameters can be repeated. Only the last argument in the args list
+#                can be var args.
+# - is_optional: If true, the parameter can be omitted. Only the last argument in the args list can
+#                 be optional.
+#
+# For more details about how the definitions in this file are eventually turned into clients,
+# consult the generator script at project/render_template.py.
+complex_type_manipulation:
+  functions:
+    - name: add_struct_fields
+      doc: Add fields to a struct
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.AddStructFields
+      args:
+        - name: struct
+          doc: The struct to which fields will be added
+        - name: fields
+          doc: New fields
+          is_var_args: true
+    - name: array_summary_stats
+      doc: Compute the min, max, mean, stddev for an array of numerics
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.ArrayStatsSummary
+      args:
+        - name: arr
+          doc: The array of numerics
+    - name: array_to_dense_vector
+      doc: Convert an array of numerics into a spark.ml DenseVector
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.ArrayToDenseVector
+      args:
+        - name: arr
+          doc: The array of numerics
+    - name: array_to_sparse_vector
+      doc: Convert an array of numerics into a spark.ml SparseVector
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.ArrayToSparseVector
+      args:
+        - name: arr
+          doc: The array of numerics
+    - name: expand_struct
+      doc: Promote fields of a nested struct to top-level columns. Similar to using struct.* from SQL, but can be used in more contexts.
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.ExpandStruct
+      args:
+        - name: struct
+          doc: The struct to expand
+    - name: explode_matrix
+      doc: Explode a spark.ml Matrix into arrays of rows
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.ExplodeMatrix
+      args:
+        - name: matrix
+          doc: The matrix to explode
+    - name: subset_struct
+      doc: Select fields from a struct
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.SubsetStruct
+      args:
+        - name: struct
+          doc: Struct from which to select fields
+        - name: fields
+          doc: Fields to take
+          type: str
+          is_var_args: true
+
+etl:
+  functions:
+    - name: hard_calls
+      doc: Converts an array of probabilities to hard calls
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.HardCalls
+      args:
+        - name: probabilities
+          doc: Probabilities
+        - name: numAlts
+          doc: The number of alts
+        - name: phased
+          doc: Whether the probabilities are phased or not
+        - name: threshold
+          doc: The minimum probability to include
+          type: double
+          is_optional: true
+    - name: lift_over_coordinates
+      doc: Do liftover like Picard
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.LiftOverCoordinatesExpr
+      args:
+        - name: contigName
+          doc: The current contigName
+        - name: start
+          doc: The current start
+        - name: end
+          doc: The current end
+        - name: chainFile
+          doc: Location of the chain file on each node in the cluster
+          type: str
+        - name: minMatchRatio
+          doc: Minimum fraction of bases that must remap to lift over successfully
+          type: double
+          is_optional: true
+          
+
+quality_control:
+  functions:
+    - name: aggregate_by_index
+      doc: Compute custom per-sample aggregates
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.WrappedAggregateByIndex
+      exclude_python: true
+      args:
+        - name: arr
+          doc: array of values.
+        - name: initialValue
+          doc: the initial value
+        - name: update
+          doc: update function
+          type: lambda2
+        - name: merge
+          doc: merge function
+          type: lambda2
+        - name: evaluate
+          doc: evaluate function
+          type: lambda1
+          is_optional: true
+    - name: call_summary_stats
+      doc: Compute call stats for an array of genotype structs
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.CallStats
+      args:
+        - name: genotypes
+          doc: The array of genotype structs
+    - name: dp_summary_stats
+      doc: Compute summary statistics for depth field from array of genotype structs
+      expr_class: io.projectglow.sql.expressions.DpSummaryStats
+      args:
+        - name: genotypes
+          doc: The array of genotype structs
+    - name: hardy_weinberg
+      doc: Compute statistics relating to the Hardy Weinberg equilibrium
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.HardyWeinberg
+      args:
+        - name: genotypes
+          doc: The array of genotype structs
+    - name: gq_summary_stats
+      doc: Compute summary statistics about the genotype quality field for an array of genotype structs
+      args:
+        - name: genotypes
+          doc: The array of genotype structs
+    - name: sample_call_summary_stats
+      doc: Compute per-sample call stats
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.CallSummaryStats
+      args: 
+        - name: genotypes
+          doc: The array of genotype structs
+        - name: refAllele
+          doc: The reference allele
+        - name: alternateAlleles
+          doc: An array of alternate alleles
+
+gwas_functions:
+  functions:
+    - name: linear_regression_gwas
+      doc: A linear regression GWAS function
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.LinearRegressionExpr
+      args: 
+        - name: genotypes
+          doc: An array of genotypes
+        - name: phenotypes
+          doc: An array of phenotypes
+        - name: covariates
+          doc: A Spark matrix of covariates
+    - name: logistic_regression_gwas
+      doc: A logistic regression function
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.LogisticRegressionExpr
+      args:
+        - name: genotypes
+          doc: An array of genotypes
+        - name: phenotypes
+          doc: An array of phenotype values
+        - name: covariates
+          doc: a matrix of covariates
+        - name: test
+          doc: Which logistic regression test to use. Can be 'LRG' or 'Firth'
+          type: str
+    - name: genotype_states
+      doc: Get number of alt alleles for a genotype
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.GenotypeStates
+      args:
+        - name: genotypes
+          doc: An array of genotype structs

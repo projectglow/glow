@@ -22,14 +22,16 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 import org.apache.spark.SparkEnv
+import org.apache.spark.sql.{AnalysisException, SQLUtils}
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.{Expression, GenericInternalRow}
+import org.apache.spark.sql.catalyst.expressions.{Expression, GenericInternalRow, Literal, UnaryExpression, Unevaluable}
 import org.apache.spark.sql.catalyst.expressions.aggregate.{ImperativeAggregate, TypedImperativeAggregate}
 import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, ArrayData, GenericArrayData}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
+
 import io.projectglow.common.{GlowLogging, VariantSchemas}
-import io.projectglow.sql.util.ExpectsGenotypeFields
+import io.projectglow.sql.util.{ExpectsGenotypeFields, Rewrite}
 
 case class SampleSummaryStatsState(var sampleId: String, var momentAggState: MomentAggState) {
   def this() = this(null, null) // need 0-arg constructor for serialization
@@ -45,7 +47,7 @@ case class SampleSummaryStatsState(var sampleId: String, var momentAggState: Mom
  */
 case class PerSampleSummaryStatistics(
     genotypes: Expression,
-    field: StructField,
+    field: Expression,
     mutableAggBufferOffset: Int = 0,
     inputAggBufferOffset: Int = 0)
     extends TypedImperativeAggregate[mutable.ArrayBuffer[SampleSummaryStatsState]]
@@ -64,7 +66,20 @@ case class PerSampleSummaryStatistics(
     }
 
   override def genotypesExpr: Expression = genotypes
-  override def genotypeFieldsRequired: Seq[StructField] = Seq(field)
+  override def genotypeFieldsRequired: Seq[StructField] = {
+    if (!field.foldable || field.dataType != StringType) {
+      throw SQLUtils.newAnalysisException("Field must be foldable string")
+    }
+    val fieldName = field.eval().asInstanceOf[UTF8String].toString
+    if (fieldName == VariantSchemas.conditionalQualityField.name) {
+      Seq(VariantSchemas.conditionalQualityField)
+    } else if (fieldName == VariantSchemas.depthField.name) {
+      Seq(VariantSchemas.depthField)
+    } else {
+      throw SQLUtils.newAnalysisException("Unsupported field")
+    }
+  }
+
   override def optionalGenotypeFields: Seq[StructField] = Seq(VariantSchemas.sampleIdField)
   private lazy val hasSampleIds = optionalFieldIndices(0) != -1
 
@@ -85,7 +100,7 @@ case class PerSampleSummaryStatistics(
   }
 
   private lazy val updateStateFn: (MomentAggState, InternalRow) => Unit = {
-    field.dataType match {
+    genotypeFieldsRequired.head.dataType match {
       case FloatType =>
         (state, genotype) => {
           state.update(genotype.getFloat(genotypeFieldIndices(0)))
@@ -159,11 +174,12 @@ case class PerSampleSummaryStatistics(
     buffer
   }
 
-  override def withNewInputAggBufferOffset(newInputAggBufferOffset: Int): ImperativeAggregate = {
+  override def withNewInputAggBufferOffset(
+      newInputAggBufferOffset: Int): PerSampleSummaryStatistics = {
     copy(inputAggBufferOffset = newInputAggBufferOffset)
   }
 
-  override def withNewMutableAggBufferOffset(newOffset: Int): ImperativeAggregate = {
+  override def withNewMutableAggBufferOffset(newOffset: Int): PerSampleSummaryStatistics = {
     copy(mutableAggBufferOffset = newOffset)
   }
 
@@ -173,5 +189,21 @@ case class PerSampleSummaryStatistics(
 
   override def deserialize(storageFormat: Array[Byte]): ArrayBuffer[SampleSummaryStatsState] = {
     SparkEnv.get.serializer.newInstance().deserialize(ByteBuffer.wrap(storageFormat))
+  }
+}
+
+case class SampleDpSummaryStatistics(child: Expression) extends Rewrite {
+  override def children: Seq[Expression] = Seq(child)
+  override def rewrite: Expression = {
+    PerSampleSummaryStatistics(child, Literal(VariantSchemas.depthField.name))
+      .toAggregateExpression()
+  }
+}
+
+case class SampleGqSummaryStatistics(child: Expression) extends Rewrite {
+  override def children: Seq[Expression] = Seq(child)
+  override def rewrite: Expression = {
+    PerSampleSummaryStatistics(child, Literal(VariantSchemas.conditionalQualityField.name))
+      .toAggregateExpression()
   }
 }
