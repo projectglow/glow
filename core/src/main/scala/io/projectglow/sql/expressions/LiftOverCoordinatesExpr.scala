@@ -52,10 +52,7 @@ case class LiftOverCoordinatesExpr(
     extends CodegenFallback
     with ImplicitCastInputTypes {
 
-  def this(contigName: Expression,
-    start: Expression,
-    end: Expression,
-    chainFile: Expression) = {
+  def this(contigName: Expression, start: Expression, end: Expression, chainFile: Expression) = {
     this(contigName, start, end, chainFile, Literal(0.95d))
   }
 

@@ -68,9 +68,9 @@ object SqlExtensionProvider {
   }
 
   def registerFunctions(
-    conf: SQLConf,
-    functionRegistry: FunctionRegistry,
-    resourcePath: String = FUNCTION_YAML_PATH): Unit = {
+      conf: SQLConf,
+      functionRegistry: FunctionRegistry,
+      resourcePath: String = FUNCTION_YAML_PATH): Unit = {
 
     loadFunctionDefinitions(resourcePath).foreach { _function =>
       val function = _function.asScala
