@@ -15,5 +15,6 @@ big data processing and machine learning, enabling the scale of the cloud for ge
    troubleshooting
    blogs/index
    additional-resources
+   api-docs/index
 
 .. modules
