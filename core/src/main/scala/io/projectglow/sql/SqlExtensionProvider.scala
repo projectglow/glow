@@ -128,8 +128,7 @@ object SqlExtensionProvider {
             .find(_.getParameterCount == children.size)
             .getOrElse(throw parameterError(id.funcName, exprs.size))
 
-          ExpressionHelper.rewrite(
-            constructor.newInstance(children: _*).asInstanceOf[Expression])
+          ExpressionHelper.rewrite(constructor.newInstance(children: _*).asInstanceOf[Expression])
         }
       )
     }
