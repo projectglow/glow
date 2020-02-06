@@ -150,7 +150,7 @@ case class UnwrappedAggregateByIndex(
     initialValue: Expression,
     update: Expression,
     merge: Expression,
-    evaluate: Expression = LambdaFunction.identity)
+    evaluate: Expression)
     extends AggregateByIndex
     with UnwrappedAggregateFunction {
 

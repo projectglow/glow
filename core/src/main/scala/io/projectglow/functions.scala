@@ -190,11 +190,11 @@ object functions {
    * @param evaluate evaluate function
    */
   def aggregate_by_index(arr: Column, initialValue: Column, update: (Column, Column) => Column, merge: (Column, Column) => Column, evaluate: Column => Column): Column = withExpr {
-    new io.projectglow.sql.expressions.WrappedAggregateByIndex(arr.expr, initialValue.expr, createLambda(update), createLambda(merge), createLambda(evaluate))
+    new io.projectglow.sql.expressions.UnwrappedAggregateByIndex(arr.expr, initialValue.expr, createLambda(update), createLambda(merge), createLambda(evaluate))
   }
 
   def aggregate_by_index(arr: Column, initialValue: Column, update: (Column, Column) => Column, merge: (Column, Column) => Column): Column = withExpr {
-    new io.projectglow.sql.expressions.WrappedAggregateByIndex(arr.expr, initialValue.expr, createLambda(update), createLambda(merge))
+    new io.projectglow.sql.expressions.UnwrappedAggregateByIndex(arr.expr, initialValue.expr, createLambda(update), createLambda(merge))
   }
 
 

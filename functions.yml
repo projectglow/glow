@@ -130,7 +130,7 @@ quality_control:
     - name: aggregate_by_index
       doc: Compute custom per-sample aggregates
       since: 0.3.0
-      expr_class: io.projectglow.sql.expressions.WrappedAggregateByIndex
+      expr_class: io.projectglow.sql.expressions.UnwrappedAggregateByIndex
       exclude_python: true
       args:
         - name: arr
