@@ -124,6 +124,22 @@ def subset_struct(struct: Union[Column, str], *fields: str) -> Column:
     assert check_return_type(output)
     return output
   
+
+def vector_to_array(vector: Union[Column, str]) -> Column:
+    """
+    Convert a spark.ml vector (sparse or dense) to an array of doubles
+
+    Parameters
+    ----------
+    vector : Vector to convert
+
+    .. versionadded 0.3.0
+    """
+    assert check_argument_types()
+    output = Column(sc()._jvm.io.projectglow.functions.vector_to_array(_to_java_column(vector)))
+    assert check_return_type(output)
+    return output
+  
 ########### etl
 
 def hard_calls(probabilities: Union[Column, str], numAlts: Union[Column, str], phased: Union[Column, str], threshold: float = None) -> Column:
@@ -196,7 +212,7 @@ def dp_summary_stats(genotypes: Union[Column, str]) -> Column:
     ----------
     genotypes : The array of genotype structs
 
-    .. versionadded 
+    .. versionadded 0.3.0
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.dp_summary_stats(_to_java_column(genotypes)))
@@ -228,7 +244,7 @@ def gq_summary_stats(genotypes: Union[Column, str]) -> Column:
     ----------
     genotypes : The array of genotype structs
 
-    .. versionadded 
+    .. versionadded 0.3.0
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.gq_summary_stats(_to_java_column(genotypes)))
@@ -250,6 +266,38 @@ def sample_call_summary_stats(genotypes: Union[Column, str], refAllele: Union[Co
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.sample_call_summary_stats(_to_java_column(genotypes), _to_java_column(refAllele), _to_java_column(alternateAlleles)))
+    assert check_return_type(output)
+    return output
+  
+
+def sample_dp_summary_stats(genotypes: Union[Column, str]) -> Column:
+    """
+    Compute per-sample summary statistics about the depth field in an array of genotype structs
+
+    Parameters
+    ----------
+    genotypes : The array of genotype structs
+
+    .. versionadded 0.3.0
+    """
+    assert check_argument_types()
+    output = Column(sc()._jvm.io.projectglow.functions.sample_dp_summary_stats(_to_java_column(genotypes)))
+    assert check_return_type(output)
+    return output
+  
+
+def sample_gq_summary_stats(genotypes: Union[Column, str]) -> Column:
+    """
+    Compute per-sample summary statistics about the genotype quality field in an array of genotype structs
+
+    Parameters
+    ----------
+    genotypes : The array of genotype structs
+
+    .. versionadded 0.3.0
+    """
+    assert check_argument_types()
+    output = Column(sc()._jvm.io.projectglow.functions.sample_gq_summary_stats(_to_java_column(genotypes)))
     assert check_return_type(output)
     return output
   
