@@ -19,7 +19,7 @@ package io.projectglow.sql.expressions
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, CodegenFallback, ExprCode}
-import org.apache.spark.sql.catalyst.expressions.{Expression, ImplicitCastInputTypes, UnaryExpression}
+import org.apache.spark.sql.catalyst.expressions.{Expression, ImplicitCastInputTypes, Literal, UnaryExpression}
 import org.apache.spark.sql.catalyst.util.{ArrayData, GenericArrayData}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
@@ -35,9 +35,9 @@ import io.projectglow.sql.util.ExpectsGenotypeFields
  */
 object VariantUtilExprs {
   def genotypeStates(genotypes: ArrayData, genotypesSize: Int, genotypesIdx: Int): ArrayData = {
-    val output = new Array[Int](genotypes.numElements())
+    val output = ArrayData.allocateArrayData(IntegerType.defaultSize, genotypes.numElements(), "")
     var i = 0
-    while (i < output.length) {
+    while (i < output.numElements()) {
       val calls = genotypes
         .getStruct(i, genotypesSize)
         .getArray(genotypesIdx)
@@ -51,11 +51,11 @@ object VariantUtilExprs {
         }
         j += 1
       }
-      output(i) = if (j == 0) -1 else sum
+      output.setInt(i, if (j == 0) -1 else sum)
       i += 1
     }
 
-    new GenericArrayData(output)
+    output
   }
 
   def isSnp(refAllele: UTF8String, altAllele: UTF8String): Boolean = {
@@ -221,26 +221,25 @@ case class HardCalls(
     probabilities: Expression,
     numAlts: Expression,
     phased: Expression,
-    threshold: Option[Expression])
+    threshold: Expression = Literal(0.9))
     extends CodegenFallback
     with ImplicitCastInputTypes {
-  override def children: Seq[Expression] = Seq(probabilities, numAlts, phased) ++ threshold
+  override def children: Seq[Expression] = Seq(probabilities, numAlts, phased, threshold)
   override def inputTypes = { // scalastyle:ignore
-    Seq(ArrayType(DoubleType), IntegerType, BooleanType) ++ threshold.map(_ => DecimalType)
+    Seq(ArrayType(DoubleType), IntegerType, BooleanType, DecimalType)
   }
   override def checkInputDataTypes(): TypeCheckResult = {
     super.checkInputDataTypes()
-    threshold match {
-      case Some(expr) if !expr.foldable =>
-        TypeCheckResult.TypeCheckFailure("Threshold must be a constant value")
-      case _ => TypeCheckResult.TypeCheckSuccess
+    if (!threshold.foldable) {
+      TypeCheckResult.TypeCheckFailure("Threshold must be a constant value")
+    } else {
+      TypeCheckResult.TypeCheckSuccess
     }
   }
+
   override def dataType: DataType = ArrayType(IntegerType)
   override def nullable: Boolean = probabilities.nullable || numAlts.nullable || phased.nullable
-  private lazy val threshold0 = threshold.map { expr =>
-    expr.eval().asInstanceOf[Decimal].toDouble
-  }.getOrElse(0.9)
+  private lazy val threshold0 = threshold.eval().asInstanceOf[Decimal].toDouble
 
   override def eval(input: InternalRow): Any = {
     val _probArr = probabilities.eval(input)

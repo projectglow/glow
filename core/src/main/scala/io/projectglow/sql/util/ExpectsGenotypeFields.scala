@@ -17,9 +17,9 @@
 package io.projectglow.sql.util
 
 import org.apache.spark.sql.SQLUtils
-import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
-import org.apache.spark.sql.catalyst.expressions.Expression
-import org.apache.spark.sql.types.{ArrayType, StructField, StructType}
+import org.apache.spark.sql.catalyst.analysis.{TypeCheckResult, UnresolvedException}
+import org.apache.spark.sql.catalyst.expressions.{Expression, Unevaluable}
+import org.apache.spark.sql.types.{ArrayType, DataType, StructField, StructType}
 
 /**
  * A trait to simplify type checking and reading for expressions that operate on arrays of genotype
@@ -74,5 +74,28 @@ trait ExpectsGenotypeFields extends Expression {
       TypeCheckResult.TypeCheckFailure(msg)
     }
   }
+}
 
+/**
+ * Expressions that should be rewritten eagerly. The rewrite must be able to be performed without
+ * knowing the datatype or nullability of any of the children.
+ *
+ * In general, rewrite expressions should extend this trait unless they have a compelling reason
+ * to inspect their children.
+ */
+trait Rewrite extends Expression with Unevaluable {
+  def rewrite: Expression
+
+  override def dataType: DataType = throw new UnresolvedException(this, "dataType")
+  override def nullable: Boolean = throw new UnresolvedException(this, "nullable")
+}
+
+/**
+ * Rewrites that depend on child expressions.
+ */
+trait RewriteAfterResolution extends Expression with Unevaluable {
+  def rewrite: Expression
+
+  override def dataType: DataType = rewrite.dataType
+  override def nullable: Boolean = rewrite.nullable
 }

@@ -91,8 +91,11 @@ class VariantUtilExprsSuite extends GlowBaseTest {
   }
 
   test("add struct field has correct schema") {
+    import io.projectglow.functions._
     val df = spark.createDataFrame(Seq(Outer(Inner(1, "monkey"))))
-    val added = df.selectExpr("add_struct_fields(inner, 'number', 1, 'string', 'blah') as struct")
+    val added = df.select(
+      add_struct_fields(col("inner"), lit("number"), lit(1), lit("string"), lit("blah"))
+        .as("struct"))
     val inner = added.schema.find(_.name == "struct").get.dataType.asInstanceOf[StructType]
     val fields = Seq(
       ("one", IntegerType),
@@ -313,9 +316,10 @@ class VariantUtilExprsSuite extends GlowBaseTest {
   }
 
   test("subset struct") {
+    import io.projectglow.functions._
     val df = spark.createDataFrame(Seq(BigOuter(BigInner(1, "monkey", 2.5, false))))
     val subsetted =
-      df.selectExpr("subset_struct(bigInner, 'one', 'three') as struct")
+      df.select(subset_struct(col("bigInner"), "one", "three").as("struct"))
     assert(
       subsetted.schema.find(_.name == "struct").get.dataType.asInstanceOf[StructType] == StructType(
         Seq(StructField("one", IntegerType), StructField("three", DoubleType))))

@@ -14,8 +14,12 @@
  * limitations under the License.
  */
 
-package io.projectglow.common
+package com.typesafe.scalalogging
 
-import com.typesafe.scalalogging.LazyLogging
+// For compatability with Scala 2.11
 
-trait GlowLogging extends LazyLogging
+trait LazyLogging extends com.typesafe.scalalogging.slf4j.LazyLogging
+
+trait AbstractLogging {
+  protected def logger: com.typesafe.scalalogging.slf4j.Logger
+}

@@ -1,65 +1,131 @@
+setup_base: &setup_base
+  working_directory: ~/glow
+  docker:
+    - image: circleci/openjdk:8
+
+install_deps: &install_deps
+  run:
+    name: Install dependencies
+    command: |
+      export PATH=$HOME/conda/bin:$PATH
+      if [ ! -d "/home/circleci/conda" ]; then
+        wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+        /bin/bash Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/conda
+        conda env create -f python/environment.yml
+      else
+        echo "Conda already installed"
+      fi
+
+check_clean_repo: &check_clean_repo
+  run:
+    name: Verify that repo is clean
+    environment:
+    command: |
+      if [[ -n $(git status --short) ]]; then
+        echo "Working directory was not clean!"
+        git status
+        false
+      else
+        true
+      fi
+
+
 version: 2.1
 orbs:
   codecov: codecov/codecov@1.0.5
 jobs:
-  test:
-    working_directory: ~/glow
-    docker:
-      - image: circleci/openjdk:8
-    parallelism: 2
 
+  check-links:
+    <<: *setup_base
     steps:
       - checkout
-
       - restore_cache:
           keys:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}
-
+      - *install_deps
       - run:
-          name: Install dependencies
-          command: |
-            export PATH=$HOME/conda/bin:$PATH
-            if [ ! -d "/home/circleci/conda" ]; then
-              wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
-              /bin/bash Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/conda
-              conda env create -f python/environment.yml
-            else
-              echo "Conda already installed"
-            fi
-
-      - run:
-          name: Run parallelized Scala tests
-          environment:
-          command: |
-            export PATH=$HOME/conda/envs/glow/bin:$PATH
-            sbt printTests coverage "testOnly $(circleci tests split --split-by=timings --timings-type=classname core-test-names.log | tr '\n' ' ') --" coverageReport exit
-
-      - run:
-          name: Run Python tests
-          environment:
-          command: |
-            export PATH=$HOME/conda/envs/glow/bin:$PATH
-            sbt python/test exit
-
-      - run:
-          name: Run docs tests
+          name: Check docs links
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             cd docs
             make linkcheck
-            sbt docs/test exit
+      - save_cache:
+          paths:
+            - /home/circleci/conda
+          key: conda-deps-v1-{{ checksum "python/environment.yml" }}
 
+  scala-2_11-tests:
+    <<: *setup_base
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - conda-deps-v1-{{ checksum "python/environment.yml" }}
+      - *install_deps
+      - run:
+          name: Run Scala tests
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            sbt coverage core_2_11/test coverageReport exit
+      - run:
+          name: Run Python tests
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            sbt python_2_11/test exit
+      - run:
+          name: Run docs tests
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            sbt docs_2_11/test exit
+      - *check_clean_repo
       - store_artifacts:
           path: ~/glow/unit-tests.log
           destination: unit-tests.log
-
       - store_test_results:
-          path: ~/glow/core/target/test-reports
-
+          path: ~/glow/core/target/scala-2.11/test-reports
       - codecov/upload:
           file: "core/target/scala-2.11/scoverage-report/scoverage.xml"
+      - save_cache:
+          paths:
+            - /home/circleci/conda
+          key: conda-deps-v1-{{ checksum "python/environment.yml" }}
 
+  scala-2_12-tests:
+    <<: *setup_base
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - conda-deps-v1-{{ checksum "python/environment.yml" }}
+      - *install_deps
+      - run:
+          name: Run Scala tests
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            sbt core_2_12/test exit
+      - run:
+          name: Run Python tests
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            sbt python_2_12/test exit
+      - run:
+          name: Run docs tests
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            sbt docs_2_12/test exit
+      - *check_clean_repo
+      - store_artifacts:
+          path: ~/glow/unit-tests.log
+          destination: unit-tests.log
+      - store_test_results:
+          path: ~/glow/core/target/scala-2.12/test-reports
       - save_cache:
           paths:
             - /home/circleci/conda
@@ -69,4 +135,6 @@ workflows:
   version: 2
   test:
     jobs:
-      - test
+      - check-links
+      - scala-2_11-tests
+      - scala-2_12-tests
