@@ -17,13 +17,10 @@ def {{ function.name }}({{ function.args|map('fmt_python_signature')|join(', ') 
     """
     {{ function.doc }}
 
-    Parameters
-    ----------
+    Args:
     {% for arg in function.args %}
-    {{ arg.name }} : {{ arg.doc }}
+        {{ arg.name }}: {{ arg.doc }}
     {% endfor %}
-
-    .. versionadded {{ function.since }}
     """
     assert check_argument_types()
 {% if function.args[-1].is_optional %}
