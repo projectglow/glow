@@ -45,21 +45,21 @@ object VariantNormalizer extends GlowLogging {
     var allAlleles = refAllele +: altAlleles
     var trimSize = 0 // stores total trimSize from right
 
-    if (refAllele.isEmpty && altAlleles.isEmpty) {
+    if (refAllele.isEmpty) {
       // if no alleles, throw exception
-      logger.info("REF and ALT alleles are empty allele list...")
+      logger.info("No REF and ALT alleles...")
       flag = FLAG_ERROR
     } else if (refAllele.length == 1 && altAlleles.forall(_.length == 1)) {
       // if a SNP, do nothing
+      flag = FLAG_UNCHANGED
+    } else if (altAlleles.exists(_.matches(".*[<|>|*].*"))) {
+      // if any of the alleles is symbolic, do nothing
       flag = FLAG_UNCHANGED
     } else if (altAlleles.isEmpty) {
       // if only one allele and longer than one base, trim to the
       // first base
       allAlleles(0) = allAlleles(0).take(1)
       flag = FLAG_CHANGED
-    } else if (altAlleles.exists(_.matches(".*[<|>|*].*"))) {
-      // if any of the alleles is symbolic, do nothing
-      flag = FLAG_UNCHANGED
     } else {
       // Create ReferenceDataSource of the reference genome and the AlleleBlock and pass
       // to realignAlleles
