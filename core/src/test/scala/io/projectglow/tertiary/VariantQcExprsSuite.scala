@@ -18,7 +18,6 @@ package io.projectglow.tertiary
 
 import scala.util.Random
 
-import org.apache.commons.io.IOUtils
 import org.apache.spark.sql.AnalysisException
 import org.apache.spark.sql.functions._
 
