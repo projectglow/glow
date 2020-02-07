@@ -45,7 +45,14 @@ object NormalizeVariantExpr {
       val refGenomeIndexedFasta = new IndexedFastaSequenceFile(
         Paths.get(refGenomePathString.asInstanceOf[UTF8String].toString))
       state.set(refGenomeIndexedFasta)
-      TaskContext.get().addTaskCompletionListener[Unit](_ => state.remove())
+      TaskContext
+        .get()
+        .addTaskCompletionListener[Unit](
+          _ => {
+            state.get().close()
+            state.remove()
+          }
+        )
     }
 
     VariantNormalizer.normalizeVariant(

@@ -287,7 +287,12 @@ lazy val stagedRelease = (project in file("core/src/test"))
     libraryDependencies ++= testSparkDependencies ++ testCoreDependencies :+
     "io.projectglow" %% "glow" % stableVersion.value % "test",
     resolvers := Seq("bintray-staging" at "https://dl.bintray.com/projectglow/glow"),
-    org.jetbrains.sbt.extractors.SettingKeys.sbtIdeaIgnoreModule := true // Do not import this SBT project into IDEA
+    org
+      .jetbrains
+      .sbt
+      .extractors
+      .SettingKeys
+      .sbtIdeaIgnoreModule := true // Do not import this SBT project into IDEA
   )
   .cross
 
