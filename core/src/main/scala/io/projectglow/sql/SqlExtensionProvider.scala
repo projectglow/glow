@@ -68,6 +68,49 @@ object SqlExtensionProvider {
       s"Invalid number of parameters for function '$functionName': $params")
   }
 
+  private def makeArgsDoc(args: Seq[JMap[String, Any]]): String = {
+    args.map { _arg =>
+      val arg = _arg.asScala
+      val suffix = if (arg.get("is_optional").exists(_.asInstanceOf[Boolean])) {
+        " (optional)"
+      } else if (arg.get("is_var_args").exists(_.asInstanceOf[Boolean])) {
+        " (repeated)"
+      } else {
+        ""
+      }
+      s"${arg("name")}: ${arg("doc")} $suffix"
+    }.mkString("\n")
+  }
+
+  /**
+   * Using the argument descriptions from the YAML file and the runtime argument expressions,
+   * create the list of constructor parameters for the expression class.
+   */
+  private def makeChildren(
+      functionName: String,
+      args: Seq[JMap[String, Any]],
+      exprs: Seq[Expression]): Seq[AnyRef] = {
+    args.zipWithIndex.flatMap {
+      case (_arg: JMap[String, Any], idx: Int) =>
+        val arg = _arg.asScala
+        // If the argument is optional and doesn't have a matching input, don't add a new
+        // expression to the list of children.
+        if (arg.get("is_optional").exists(_.asInstanceOf[Boolean]) && idx >= exprs.size) {
+          None
+          // If we have a var args argument, the child expressions from here on are part of
+          // the var args list.
+        } else if (arg.get("is_var_args").exists(_.asInstanceOf[Boolean])) {
+          Some(exprs.slice(idx, exprs.size))
+        } else if (idx >= exprs.size) {
+          throw parameterError(functionName, exprs.size)
+        } else if (idx == args.size - 1 && exprs.size != args.size) {
+          throw parameterError(functionName, exprs.size)
+        } else {
+          Some(exprs(idx))
+        }
+    }
+  }
+
   /**
    * Register SQL functions based on a yaml function definition file.
    */
@@ -79,26 +122,14 @@ object SqlExtensionProvider {
     loadFunctionDefinitions(resourcePath).foreach { _function =>
       val function = _function.asScala
       val id = FunctionIdentifier(function("name").asInstanceOf[String])
-      //      println(s"Building $id")
       val exprClass = function("expr_class").asInstanceOf[String]
       val args = function("args").asInstanceOf[JList[JMap[String, Any]]].asScala
-      val argsDoc = args.map { _arg =>
-        val arg = _arg.asScala
-        val suffix = if (arg.get("is_optional").exists(_.asInstanceOf[Boolean])) {
-          " (optional)"
-        } else if (arg.get("is_var_args").exists(_.asInstanceOf[Boolean])) {
-          " (repeated)"
-        } else {
-          ""
-        }
-        s"${arg("name")}: ${arg("doc")} $suffix"
-      }.mkString("\n")
       val info = new ExpressionInfo(
         exprClass,
         null,
         function("name").asInstanceOf[String],
         function("doc").asInstanceOf[String],
-        argsDoc,
+        makeArgsDoc(args),
         "",
         "",
         function("since").asInstanceOf[String]
@@ -108,27 +139,16 @@ object SqlExtensionProvider {
         info,
         exprs => {
           val clazz = Class.forName(exprClass, true, Thread.currentThread().getContextClassLoader)
-          val children = args.zipWithIndex.flatMap {
-            case (_arg: JMap[String, Any], idx: Int) =>
-              val arg = _arg.asScala
-              if (arg.get("is_optional").exists(_.asInstanceOf[Boolean]) && idx >= exprs.size) {
-                None
-              } else if (arg.get("is_var_args").exists(_.asInstanceOf[Boolean])) {
-                Some(exprs.slice(idx, exprs.size))
-              } else if (idx >= exprs.size) {
-                throw parameterError(id.funcName, exprs.size)
-              } else if (idx == args.size - 1 && exprs.size != args.size) {
-                throw parameterError(id.funcName, exprs.size)
-              } else {
-                Some(exprs(idx))
-              }
-          }
+          val constructorArgs = makeChildren(id.funcName, args, exprs)
           val constructor = clazz
             .getConstructors
-            .find(_.getParameterCount == children.size)
+            .find(_.getParameterCount == constructorArgs.size)
             .getOrElse(throw parameterError(id.funcName, exprs.size))
 
-          ExpressionHelper.rewrite(constructor.newInstance(children: _*).asInstanceOf[Expression])
+          ExpressionHelper.rewrite(
+            constructor
+              .newInstance(constructorArgs: _*)
+              .asInstanceOf[Expression])
         }
       )
     }
