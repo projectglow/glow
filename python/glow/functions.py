@@ -170,6 +170,27 @@ def lift_over_coordinates(contigName: Union[Column, str], start: Union[Column, s
     assert check_return_type(output)
     return output
   
+
+def normalize_variant(contigName: Union[Column, str], start: Union[Column, str], end: Union[Column, str], refAllele: Union[Column, str], altAlleles: Union[Column, str], refGenomePathString: str) -> Column:
+    """
+    Normalizes the variant like vt decompose -s
+
+    Parameters
+    ----------
+    contigName : The current contigName
+    start : The current start
+    end : The current end
+    refAllele : Reference allele
+    altAlleles : Alternate alleles
+    refGenomePathString : The string containing the path to refrence genome fasta file
+
+    .. versionadded 0.3.0
+    """
+    assert check_argument_types()
+    output = Column(sc()._jvm.io.projectglow.functions.normalize_variant(_to_java_column(contigName), _to_java_column(start), _to_java_column(end), _to_java_column(refAllele), _to_java_column(altAlleles), str(refGenomePathString)))
+    assert check_return_type(output)
+    return output
+  
 ########### quality_control
 
 def call_summary_stats(genotypes: Union[Column, str]) -> Column:

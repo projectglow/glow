@@ -146,7 +146,7 @@ object SqlExtensionProvider {
 
     functionRegistry.registerFunction(
       FunctionIdentifier("normalize_variant"),
-      exprs => NormalizeVariant(exprs(0), exprs(1), exprs(2), exprs(3), exprs(4), exprs(5))
+      exprs => NormalizeVariantExpr(exprs(0), exprs(1), exprs(2), exprs(3), exprs(4), exprs(5))
     )
 
     functionRegistry.registerFunction(

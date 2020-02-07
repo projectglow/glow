@@ -36,7 +36,7 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
 
 
   /**
-   * Tests realignAlleles method for given alleles and compares with the provided expected
+   * Tests normalizeVariant method for given alleles and compares with the provided expected
    * outcome
    */
   def testNormalizeVariant(

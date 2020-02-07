@@ -168,6 +168,22 @@ object functions {
 
 
   /**
+   * Normalizes the variant like vt decompose -s
+   * @group etl
+   * @since 0.3.0
+   *
+   * @param contigName The current contigName
+   * @param start The current start
+   * @param end The current end
+   * @param refAllele Reference allele
+   * @param altAlleles Alternate alleles
+   * @param refGenomePathString The string containing the path to refrence genome fasta file
+   */
+  def normalize_variant(contigName: Column, start: Column, end: Column, refAllele: Column, altAlleles: Column, refGenomePathString: String): Column = withExpr {
+    io.projectglow.sql.expressions.NormalizeVariantExpr(contigName.expr, start.expr, end.expr, refAllele.expr, altAlleles.expr, Literal(refGenomePathString))
+  }
+
+  /**
    * Compute custom per-sample aggregates
    * @group quality_control
    * @since 0.3.0

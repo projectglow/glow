@@ -116,7 +116,25 @@ etl:
           doc: Minimum fraction of bases that must remap to lift over successfully
           type: double
           is_optional: true
-          
+    - name: normalize_variant
+      doc: Normalizes the variant like vt decompose -s
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.NormalizeVariantExpr
+      args:
+        - name: contigName
+          doc: The current contigName
+        - name: start
+          doc: The current start
+        - name: end
+          doc: The current end
+        - name: refAllele
+          doc: Reference allele
+        - name: altAlleles
+          doc: Alternate alleles
+        - name: refGenomePathString
+          doc: The string containing the path to refrence genome fasta file
+          type: str
+
 
 quality_control:
   functions:

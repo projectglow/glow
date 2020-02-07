@@ -10,36 +10,40 @@ import org.apache.spark.unsafe.types.UTF8String
 object VariantNormalizer extends GlowLogging {
 
   /**
-    * Contains the main normalization logic. Normalizes an AlleleBlock by left aligning and
-    * trimming its alleles and adjusting its new start and end.
-    *
-    * The algorithm has a logic similar to bcftools:
-    *
-    * It starts from the rightmost base of all alleles and scans one base at a time incrementing
-    * trimSize and nTrimmedBasesBeforeNextPadding as long as the bases of all alleles at that
-    * position are the same. If the beginning of any of the alleles is reached, all alleles are
-    * padded on the left by PAD_WINDOW_SIZE bases by reading from the reference genome amd
-    * nTrimmedBaseBeforeNextPadding is reset. The process continues until a position is reached
-    * where all alleles do not have the same base or the beginning of the contig is reached. Next
-    * trimming from left starts and all bases common among all alleles from left are trimmed.
-    * Start and end of the AllleleBlock are adjusted accordingly during the process.
-    *
-    * @param unalignedAlleleBlock
-    * @param refGenomeDataSource
-    * @param contigName : contig of the AlleleBlock
-    * @return normalized AlleleBlock
-    */
+   * Contains the main normalization logic. Given contigName, start, end, refAllele, and
+   * altAlleles of a variant as well as the indexed fasta file of the reference genome,
+   * creates an InternalRow of the normalized variant with the [[normalizationSchema]].
+   *
+   * The algorithm has a logic similar to bcftools norm or vt normalize:
+   *
+   * It starts from the rightmost base of all alleles and scans one base at a time incrementing
+   * trimSize and nTrimmedBasesBeforeNextPadding as long as the bases of all alleles at that
+   * position are the same. If the beginning of any of the alleles is reached, all alleles are
+   * padded on the left by PAD_WINDOW_SIZE bases by reading from the reference genome and
+   * nTrimmedBaseBeforeNextPadding is reset. The process continues until a position is reached
+   * where all alleles do not have the same base or the beginning of the contig is reached. Next
+   * trimming from left starts and all bases common among all alleles from left are trimmed.
+   * Start and end are adjusted accordingly during the process.
+   *
+   * @param contigName            : Contig name of the alleles
+   * @param start                 : 0-based start of the REF allele in an open-left closed-right interval system
+   * @param end                   : 0-based end of the REF allele in an open-left closed-right interval system
+   * @param refAllele             : String containing refrence allele
+   * @param altAlleles            : String array of alternate alleles
+   * @param refGenomeIndexedFasta : an [[IndexedFastaSequenceFile]] of the reference genome.
+   * @return normalized variant as an InternalRow
+   */
 
-  def normalizeVariant(
-                        contigName: String,
-                        start: Long, // this start is one less that the start used in the alleleblock of the old version of the code.
+
+  def normalizeVariant(contigName: String,
+                        start: Long,
                         end: Long,
                         refAllele: String,
                         altAlleles: Array[String],
                         refGenomeIndexedFasta: IndexedFastaSequenceFile): InternalRow = {
 
 
-    // validateForNormalization
+
     var flag = FLAG_UNCHANGED
     var newStart = start
     var allAlleles = refAllele +: altAlleles
@@ -61,11 +65,8 @@ object VariantNormalizer extends GlowLogging {
       allAlleles(0) = allAlleles(0).take(1)
       flag = FLAG_CHANGED
     } else {
-      // Create ReferenceDataSource of the reference genome and the AlleleBlock and pass
-      // to realignAlleles
 
       // Trim from right
-
       var nTrimmedBasesBeforeNextPadding = 0 // stores number of bases trimmed from right before next padding
       var firstBaseFromRightInRefAllele = allAlleles(0)(
         allAlleles(0).length - nTrimmedBasesBeforeNextPadding - 1)

@@ -43,7 +43,7 @@ object NormalizeVariantExpr {
       // Save fasta sequence file
       val refGenomeIndexedFasta = new IndexedFastaSequenceFile(Paths.get(refGenomePathString.asInstanceOf[UTF8String].toString))
       state.set(refGenomeIndexedFasta)
-      TaskContext.get().addTaskCompletionListener(_ => state.remove())
+      TaskContext.get().addTaskCompletionListener[Unit](_ => state.remove())
     }
 
     VariantNormalizer.normalizeVariant(
@@ -58,7 +58,7 @@ object NormalizeVariantExpr {
 }
 
 
-case class NormalizeVariant(contigName: Expression,
+case class NormalizeVariantExpr(contigName: Expression,
                             start: Expression,
                             end: Expression,
                             refAllele : Expression,

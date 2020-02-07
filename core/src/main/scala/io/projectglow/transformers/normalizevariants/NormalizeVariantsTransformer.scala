@@ -24,14 +24,24 @@ import io.projectglow.transformers.splitmultiallelics.VariantSplitter
 import io.projectglow.transformers.util.StringUtils
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.functions.{col, expr}
+import io.projectglow.functions.{expand_struct, normalize_variant}
 
 /**
- * Implements DataFrameTransformer to transform the input DataFrame of varaints to an output
- * DataFrame of normalized variants (normalization is as defined in bcftools norm).
+ * Implements DataFrameTransformer to transform the input DataFrame of variants to an output
+ * DataFrame of normalized variants (normalization is as defined in vt normalize or bcftools norm).
  *
- * A path to reference genome containing .fasta, .fasta.fai, and .dict files must be provided
- * through the referenceGenomePath option.
+ * A path to reference genome containing .fasta, and .fai files must be provided
+ * through the reference_genome_path option.
+ *
+ * This transformer adds a normalizationFlag column to the DataFrame, which indicates whether each
+ * row was changed, unchanged, or hit an error as a result of normalization.
+ *
+ * By default the original values in start, end, referenceAllele, and alternateAlleles columns
+ * are replaced by their normalized values. The replace_columns option can be set to false to
+ * preserve the original columns and add the normalizedStart, normalizedEnd,
+ * normalizedReferenceAllele, and normalizedAlternateAlleles columns as new columns to the DataFrame.
  */
+
 class NormalizeVariantsTransformer extends DataFrameTransformer with HlsEventRecorder {
 
   import NormalizeVariantsTransformer._
@@ -47,7 +57,6 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HlsEventRec
     if (options.contains(MODE_KEY)) {
 
       val modeOption = options.get(MODE_KEY).map(StringUtils.toSnakeCase)
-
       backwardCompatibleTransform(df, refGenomePathString, replaceColumns, modeOption)
 
     } else {
@@ -67,11 +76,13 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HlsEventRec
   }
 
   /**
-   * The following function is for backward compatibility to the previous API where
-   * the normalizer could act in different modes: The default mode was normalizing the variants without splitting
-   * multiallelic ones. The "mode" option could be used to change this behavior. Setting "mode" to "split" only splits
-   * multiallelic variants and skips normalization. Setting "mode" to split_and_normalize splits multiallelic variants
-   * followed by normalization.
+   * The following function is for backward compatibility with the previous API where
+   * the normalizer could act in different modes: The default mode was normalizing the variants
+   * without splitting multiallelic ones. The "mode" option could be used to change this behavior.
+   * Setting "mode" to "split" only splits multiallelic variants and skips normalization.
+   * Setting "mode" to split_and_normalize splits multiallelic variants and then normalizes the
+   * split variants, which is equivalent to using split_multiallelics transformer followed by
+   * normalize_variants transformer.
    */
   def backwardCompatibleTransform(df: DataFrame, refGenomePathString: Option[String], replaceColumns: Boolean, modeOption: Option[String]): DataFrame = {
 
@@ -122,27 +133,28 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HlsEventRec
 object NormalizeVariantsTransformer {
 
   /**
-    * Normalizes the input DataFrame of variants and outputs them as a Dataframe
+    * Normalizes the input DataFrame of variants and outputs them as a Dataframe using
+   * normalize_variant expression and handles the replace_columns option
     *
     * @param df                   : Input dataframe of variants
     * @param refGenomePathString  : Path to the underlying reference genome of the variants
+    * @param replaceColumns       : replace original columns or not
     * @return normalized DataFrame
     */
   def normalizeVariants(df: DataFrame, refGenomePathString: String, replaceColumns: Boolean): DataFrame = {
 
     val dfNormalized = df.select(
       col("*"),
-      expr(
-        s"""expand_struct(
-           |   normalize_variant(
-           |       ${contigNameField.name},
-           |       ${startField.name},
-           |       ${endField.name},
-           |       ${refAlleleField.name},
-           |       ${alternateAllelesField.name},
-           |       "$refGenomePathString"
-           |   )
-           |)""".stripMargin)
+      expand_struct(
+        normalize_variant(
+          col(contigNameField.name),
+          col(startField.name),
+          col(endField.name),
+          col(refAlleleField.name),
+          col(alternateAllelesField.name),
+          refGenomePathString
+        )
+      )
     )
 
     val origNames = Seq(
@@ -170,7 +182,9 @@ object NormalizeVariantsTransformer {
 
       var reorderedColumnNames = Seq[String]()
 
-      dfNormalized.columns.foreach { c =>
+      dfNormalized.columns
+        .map(name => if (name.contains(".")) s"`${name}`" else name)
+        .foreach { c =>
         reorderedColumnNames :+= c
         val idx = origNames.indexOf(c)
         if (idx >= 0) {
@@ -183,7 +197,7 @@ object NormalizeVariantsTransformer {
   }
 
   val REFERENCE_GENOME_PATH = "reference_genome_path"
-  private val REPLACE_COLUMNS = "replace_original_columns"
+  val REPLACE_COLUMNS = "replace_original_columns"
   val NORMALIZER_TRANSFORMER_NAME = "normalize_variants"
 
   @deprecated(
