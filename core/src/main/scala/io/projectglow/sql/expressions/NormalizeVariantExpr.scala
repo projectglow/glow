@@ -32,16 +32,18 @@ object NormalizeVariantExpr {
 
   val state = new ThreadLocal[IndexedFastaSequenceFile]
 
-  def doVariantNormalization(contigName: Any,
-                             start: Any,
-                             end: Any,
-                             refAllele: Any,
-                             altAlleles: Any,
-                             refGenomePathString: Any): InternalRow = {
+  def doVariantNormalization(
+      contigName: Any,
+      start: Any,
+      end: Any,
+      refAllele: Any,
+      altAlleles: Any,
+      refGenomePathString: Any): InternalRow = {
 
     if (state.get() == null) {
       // Save fasta sequence file
-      val refGenomeIndexedFasta = new IndexedFastaSequenceFile(Paths.get(refGenomePathString.asInstanceOf[UTF8String].toString))
+      val refGenomeIndexedFasta = new IndexedFastaSequenceFile(
+        Paths.get(refGenomePathString.asInstanceOf[UTF8String].toString))
       state.set(refGenomeIndexedFasta)
       TaskContext.get().addTaskCompletionListener[Unit](_ => state.remove())
     }
@@ -57,14 +59,14 @@ object NormalizeVariantExpr {
   }
 }
 
-
-case class NormalizeVariantExpr(contigName: Expression,
-                            start: Expression,
-                            end: Expression,
-                            refAllele : Expression,
-                            altAlleles: Expression,
-                            refGenomePathString: Expression)
-  extends SenaryExpression
+case class NormalizeVariantExpr(
+    contigName: Expression,
+    start: Expression,
+    end: Expression,
+    refAllele: Expression,
+    altAlleles: Expression,
+    refGenomePathString: Expression)
+    extends SenaryExpression
     with ImplicitCastInputTypes {
 
   override def prettyName: String = "normalize_variant"
@@ -74,16 +76,24 @@ case class NormalizeVariantExpr(contigName: Expression,
   override def inputTypes: Seq[DataType] =
     Seq(StringType, LongType, LongType, StringType, ArrayType(StringType), StringType)
 
-  override def children: Seq[Expression] = Seq(contigName, start, end, refAllele, altAlleles, refGenomePathString)
+  override def children: Seq[Expression] =
+    Seq(contigName, start, end, refAllele, altAlleles, refGenomePathString)
 
-  override protected def nullSafeEval(contigName: Any,
-                                       start: Any,
-                                       end: Any,
-                                       refAllele: Any,
-                                       altAlleles: Any,
-                                       refGenomePathString: Any): Any = {
+  override protected def nullSafeEval(
+      contigName: Any,
+      start: Any,
+      end: Any,
+      refAllele: Any,
+      altAlleles: Any,
+      refGenomePathString: Any): Any = {
 
-    NormalizeVariantExpr.doVariantNormalization(contigName, start, end, refAllele, altAlleles, refGenomePathString)
+    NormalizeVariantExpr.doVariantNormalization(
+      contigName,
+      start,
+      end,
+      refAllele,
+      altAlleles,
+      refGenomePathString)
 
   }
 

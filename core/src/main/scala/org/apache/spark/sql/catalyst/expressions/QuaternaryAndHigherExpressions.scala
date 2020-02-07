@@ -130,11 +130,10 @@ abstract class QuaternaryExpression extends Expression {
   }
 }
 
-
 /**
-* An expression with five inputs and one output. The output is by default evaluated to null
-* if any input is evaluated to null.
-*/
+ * An expression with five inputs and one output. The output is by default evaluated to null
+ * if any input is evaluated to null.
+ */
 abstract class QuinaryExpression extends Expression {
 
   override def foldable: Boolean = children.forall(_.foldable)
@@ -142,9 +141,9 @@ abstract class QuinaryExpression extends Expression {
   override def nullable: Boolean = children.exists(_.nullable)
 
   /**
-    * Default behavior of evaluation according to the default nullability of QuinaryExpression.
-    * If subclass of QuinaryExpression override nullable, probably should also override this.
-    */
+   * Default behavior of evaluation according to the default nullability of QuinaryExpression.
+   * If subclass of QuinaryExpression override nullable, probably should also override this.
+   */
   override def eval(input: InternalRow): Any = {
     val exprs = children
     val value1 = exprs(0).eval(input)
@@ -167,47 +166,48 @@ abstract class QuinaryExpression extends Expression {
   }
 
   /**
-    * Called by default [[eval]] implementation.  If subclass of QuinaryExpression keep the
-    *  default nullability, they can override this method to save null-check code.  If we need
-    *  full control of evaluation process, we should override [[eval]].
-    */
+   * Called by default [[eval]] implementation.  If subclass of QuinaryExpression keep the
+   *  default nullability, they can override this method to save null-check code.  If we need
+   *  full control of evaluation process, we should override [[eval]].
+   */
   protected def nullSafeEval(input1: Any, input2: Any, input3: Any, input4: Any, input5: Any): Any =
     sys.error(s"QuinaryExpressions must override either eval or nullSafeEval")
 
   /**
-    * Short hand for generating quinary evaluation code.
-    * If either of the sub-expressions is null, the result of this computation
-    * is assumed to be null.
-    *
-    * @param f accepts five variable names and returns Java code to compute the output.
-    */
+   * Short hand for generating quinary evaluation code.
+   * If either of the sub-expressions is null, the result of this computation
+   * is assumed to be null.
+   *
+   * @param f accepts five variable names and returns Java code to compute the output.
+   */
   protected def defineCodeGen(
-                               ctx: CodegenContext,
-                               ev: ExprCode,
-                               f: (String, String, String, String, String) => String): ExprCode = {
+      ctx: CodegenContext,
+      ev: ExprCode,
+      f: (String, String, String, String, String) => String): ExprCode = {
     nullSafeCodeGen(ctx, ev, (eval1, eval2, eval3, eval4, eval5) => {
       s"${ev.value} = ${f(eval1, eval2, eval3, eval4, eval5)};"
     })
   }
 
   /**
-    * Short hand for generating quinary evaluation code.
-    * If either of the sub-expressions is null, the result of this computation
-    * is assumed to be null.
-    *
-    * @param f function that accepts the 5 non-null evaluation result names of children
-    *          and returns Java code to compute the output.
-    */
+   * Short hand for generating quinary evaluation code.
+   * If either of the sub-expressions is null, the result of this computation
+   * is assumed to be null.
+   *
+   * @param f function that accepts the 5 non-null evaluation result names of children
+   *          and returns Java code to compute the output.
+   */
   protected def nullSafeCodeGen(
-                                 ctx: CodegenContext,
-                                 ev: ExprCode,
-                                 f: (String, String, String, String, String) => String): ExprCode = {
+      ctx: CodegenContext,
+      ev: ExprCode,
+      f: (String, String, String, String, String) => String): ExprCode = {
     val firstGen = children(0).genCode(ctx)
     val secondGen = children(1).genCode(ctx)
     val thirdGen = children(2).genCode(ctx)
     val fourthGen = children(3).genCode(ctx)
     val fifthGen = children(4).genCode(ctx)
-    val resultCode = f(firstGen.value, secondGen.value, thirdGen.value, fourthGen.value, fifthGen.value)
+    val resultCode =
+      f(firstGen.value, secondGen.value, thirdGen.value, fourthGen.value, fifthGen.value)
 
     if (nullable) {
       val nullSafeEval =
@@ -246,11 +246,10 @@ abstract class QuinaryExpression extends Expression {
   }
 }
 
-
 /**
-  * An expression with six inputs and one output. The output is by default evaluated to null
-  * if any input is evaluated to null.
-  */
+ * An expression with six inputs and one output. The output is by default evaluated to null
+ * if any input is evaluated to null.
+ */
 abstract class SenaryExpression extends Expression {
 
   override def foldable: Boolean = children.forall(_.foldable)
@@ -258,9 +257,9 @@ abstract class SenaryExpression extends Expression {
   override def nullable: Boolean = children.exists(_.nullable)
 
   /**
-    * Default behavior of evaluation according to the default nullability of SenaryExpression.
-    * If subclass of SenaryExpression override nullable, probably should also override this.
-    */
+   * Default behavior of evaluation according to the default nullability of SenaryExpression.
+   * If subclass of SenaryExpression override nullable, probably should also override this.
+   */
   override def eval(input: InternalRow): Any = {
     val exprs = children
     val value1 = exprs(0).eval(input)
@@ -286,48 +285,60 @@ abstract class SenaryExpression extends Expression {
   }
 
   /**
-    * Called by default [[eval]] implementation.  If subclass of SenaryExpression keep the
-    *  default nullability, they can override this method to save null-check code.  If we need
-    *  full control of evaluation process, we should override [[eval]].
-    */
-  protected def nullSafeEval(input1: Any, input2: Any, input3: Any, input4: Any, input5: Any, input6: Any): Any =
+   * Called by default [[eval]] implementation.  If subclass of SenaryExpression keep the
+   *  default nullability, they can override this method to save null-check code.  If we need
+   *  full control of evaluation process, we should override [[eval]].
+   */
+  protected def nullSafeEval(
+      input1: Any,
+      input2: Any,
+      input3: Any,
+      input4: Any,
+      input5: Any,
+      input6: Any): Any =
     sys.error(s"SenaryExpressions must override either eval or nullSafeEval")
 
   /**
-    * Short hand for generating senary evaluation code.
-    * If either of the sub-expressions is null, the result of this computation
-    * is assumed to be null.
-    *
-    * @param f accepts six variable names and returns Java code to compute the output.
-    */
+   * Short hand for generating senary evaluation code.
+   * If either of the sub-expressions is null, the result of this computation
+   * is assumed to be null.
+   *
+   * @param f accepts six variable names and returns Java code to compute the output.
+   */
   protected def defineCodeGen(
-                               ctx: CodegenContext,
-                               ev: ExprCode,
-                               f: (String, String, String, String, String, String) => String): ExprCode = {
+      ctx: CodegenContext,
+      ev: ExprCode,
+      f: (String, String, String, String, String, String) => String): ExprCode = {
     nullSafeCodeGen(ctx, ev, (eval1, eval2, eval3, eval4, eval5, eval6) => {
       s"${ev.value} = ${f(eval1, eval2, eval3, eval4, eval5, eval6)};"
     })
   }
 
   /**
-    * Short hand for generating senary evaluation code.
-    * If either of the sub-expressions is null, the result of this computation
-    * is assumed to be null.
-    *
-    * @param f function that accepts the 6 non-null evaluation result names of children
-    *          and returns Java code to compute the output.
-    */
+   * Short hand for generating senary evaluation code.
+   * If either of the sub-expressions is null, the result of this computation
+   * is assumed to be null.
+   *
+   * @param f function that accepts the 6 non-null evaluation result names of children
+   *          and returns Java code to compute the output.
+   */
   protected def nullSafeCodeGen(
-                                 ctx: CodegenContext,
-                                 ev: ExprCode,
-                                 f: (String, String, String, String, String, String) => String): ExprCode = {
+      ctx: CodegenContext,
+      ev: ExprCode,
+      f: (String, String, String, String, String, String) => String): ExprCode = {
     val firstGen = children(0).genCode(ctx)
     val secondGen = children(1).genCode(ctx)
     val thirdGen = children(2).genCode(ctx)
     val fourthGen = children(3).genCode(ctx)
     val fifthGen = children(4).genCode(ctx)
     val sixthGen = children(5).genCode(ctx)
-    val resultCode = f(firstGen.value, secondGen.value, thirdGen.value, fourthGen.value, fifthGen.value, sixthGen.value)
+    val resultCode = f(
+      firstGen.value,
+      secondGen.value,
+      thirdGen.value,
+      fourthGen.value,
+      fifthGen.value,
+      sixthGen.value)
 
     if (nullable) {
       val nullSafeEval =

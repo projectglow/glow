@@ -19,12 +19,13 @@ package io.projectglow.transformers.normalizevariants
 import io.projectglow.DataFrameTransformer
 import io.projectglow.common.VariantSchemas._
 import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
-import VariantNormalizer._
+import io.projectglow.functions.{expand_struct, normalize_variant}
+import io.projectglow.transformers.normalizevariants.VariantNormalizer._
 import io.projectglow.transformers.splitmultiallelics.VariantSplitter
 import io.projectglow.transformers.util.StringUtils
+
 import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.functions.{col, expr}
-import io.projectglow.functions.{expand_struct, normalize_variant}
+import org.apache.spark.sql.functions.col
 
 /**
  * Implements DataFrameTransformer to transform the input DataFrame of variants to an output
@@ -41,7 +42,6 @@ import io.projectglow.functions.{expand_struct, normalize_variant}
  * preserve the original columns and add the normalizedStart, normalizedEnd,
  * normalizedReferenceAllele, and normalizedAlternateAlleles columns as new columns to the DataFrame.
  */
-
 class NormalizeVariantsTransformer extends DataFrameTransformer with HlsEventRecorder {
 
   import NormalizeVariantsTransformer._
@@ -84,12 +84,15 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HlsEventRec
    * split variants, which is equivalent to using split_multiallelics transformer followed by
    * normalize_variants transformer.
    */
-  def backwardCompatibleTransform(df: DataFrame, refGenomePathString: Option[String], replaceColumns: Boolean, modeOption: Option[String]): DataFrame = {
+  def backwardCompatibleTransform(
+      df: DataFrame,
+      refGenomePathString: Option[String],
+      replaceColumns: Boolean,
+      modeOption: Option[String]): DataFrame = {
 
     modeOption match {
 
       case Some(MODE_NORMALIZE) =>
-
         recordHlsEvent(HlsTagValues.EVENT_NORMALIZE_VARIANTS)
 
         if (refGenomePathString.isEmpty) {
@@ -103,12 +106,10 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HlsEventRec
         )
 
       case Some(MODE_SPLIT) =>
-
         // TODO: Log splitter usage
         VariantSplitter.splitVariants(df)
 
       case Some(MODE_SPLIT_NORMALIZE) =>
-
         // TODO: Log splitter usage
         VariantSplitter.splitVariants(df)
 
@@ -133,15 +134,18 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HlsEventRec
 object NormalizeVariantsTransformer {
 
   /**
-    * Normalizes the input DataFrame of variants and outputs them as a Dataframe using
+   * Normalizes the input DataFrame of variants and outputs them as a Dataframe using
    * normalize_variant expression and handles the replace_columns option
-    *
-    * @param df                   : Input dataframe of variants
-    * @param refGenomePathString  : Path to the underlying reference genome of the variants
-    * @param replaceColumns       : replace original columns or not
-    * @return normalized DataFrame
-    */
-  def normalizeVariants(df: DataFrame, refGenomePathString: String, replaceColumns: Boolean): DataFrame = {
+   *
+   * @param df                   : Input dataframe of variants
+   * @param refGenomePathString  : Path to the underlying reference genome of the variants
+   * @param replaceColumns       : replace original columns or not
+   * @return normalized DataFrame
+   */
+  def normalizeVariants(
+      df: DataFrame,
+      refGenomePathString: String,
+      replaceColumns: Boolean): DataFrame = {
 
     val dfNormalized = df.select(
       col("*"),
@@ -182,15 +186,16 @@ object NormalizeVariantsTransformer {
 
       var reorderedColumnNames = Seq[String]()
 
-      dfNormalized.columns
+      dfNormalized
+        .columns
         .map(name => if (name.contains(".")) s"`${name}`" else name)
         .foreach { c =>
-        reorderedColumnNames :+= c
-        val idx = origNames.indexOf(c)
-        if (idx >= 0) {
-          reorderedColumnNames :+= normalizedNames(idx)
+          reorderedColumnNames :+= c
+          val idx = origNames.indexOf(c)
+          if (idx >= 0) {
+            reorderedColumnNames :+= normalizedNames(idx)
+          }
         }
-      }
 
       dfNormalized.select(reorderedColumnNames.head, reorderedColumnNames.tail: _*)
     }

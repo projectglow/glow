@@ -1,3 +1,19 @@
+/*
+ * Copyright 2019 The Glow Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.projectglow.transformers.normalizevariants
 
 import htsjdk.samtools.reference.IndexedFastaSequenceFile
@@ -33,16 +49,13 @@ object VariantNormalizer extends GlowLogging {
    * @param refGenomeIndexedFasta : an [[IndexedFastaSequenceFile]] of the reference genome.
    * @return normalized variant as an InternalRow
    */
-
-
-  def normalizeVariant(contigName: String,
-                        start: Long,
-                        end: Long,
-                        refAllele: String,
-                        altAlleles: Array[String],
-                        refGenomeIndexedFasta: IndexedFastaSequenceFile): InternalRow = {
-
-
+  def normalizeVariant(
+      contigName: String,
+      start: Long,
+      end: Long,
+      refAllele: String,
+      altAlleles: Array[String],
+      refGenomeIndexedFasta: IndexedFastaSequenceFile): InternalRow = {
 
     var flag = FLAG_UNCHANGED
     var newStart = start
@@ -68,12 +81,12 @@ object VariantNormalizer extends GlowLogging {
 
       // Trim from right
       var nTrimmedBasesBeforeNextPadding = 0 // stores number of bases trimmed from right before next padding
-      var firstBaseFromRightInRefAllele = allAlleles(0)(
-        allAlleles(0).length - nTrimmedBasesBeforeNextPadding - 1)
-
+      var firstBaseFromRightInRefAllele =
+        allAlleles(0)(allAlleles(0).length - nTrimmedBasesBeforeNextPadding - 1)
 
       while (allAlleles
-          .forall(a => a(a.length - nTrimmedBasesBeforeNextPadding - 1) == firstBaseFromRightInRefAllele)) {
+          .forall(a =>
+            a(a.length - nTrimmedBasesBeforeNextPadding - 1) == firstBaseFromRightInRefAllele)) {
         // Last base in all alleles are the same
 
         var padSeq = ""
@@ -91,12 +104,13 @@ object VariantNormalizer extends GlowLogging {
               newStart.toInt
             }
 
-            padSeq ++= refGenomeIndexedFasta.getSubsequenceAt(contigName, newStart - nPadBases + 1, newStart).getBaseString()
+            padSeq ++= refGenomeIndexedFasta
+              .getSubsequenceAt(contigName, newStart - nPadBases + 1, newStart)
+              .getBaseString()
 
           } else {
             nTrimmedBasesBeforeNextPadding -= 1
           }
-
 
           allAlleles = allAlleles.map { a =>
             padSeq ++ a.dropRight(nTrimmedBasesBeforeNextPadding + 1)
@@ -133,8 +147,8 @@ object VariantNormalizer extends GlowLogging {
       }
 
       allAlleles = allAlleles.map { a =>
-          a.drop(nLeftTrimBases)
-            .dropRight(nTrimmedBasesBeforeNextPadding)
+        a.drop(nLeftTrimBases)
+          .dropRight(nTrimmedBasesBeforeNextPadding)
       }
 
       trimSize += nTrimmedBasesBeforeNextPadding
@@ -148,7 +162,13 @@ object VariantNormalizer extends GlowLogging {
       }
     }
 
-    InternalRow(newStart, end - trimSize, UTF8String.fromString(allAlleles(0)), ArrayData.toArrayData(allAlleles.tail.map(UTF8String.fromString(_))), UTF8String.fromString(flag))
+    InternalRow(
+      newStart,
+      end - trimSize,
+      UTF8String.fromString(allAlleles(0)),
+      ArrayData.toArrayData(allAlleles.tail.map(UTF8String.fromString(_))),
+      UTF8String.fromString(flag)
+    )
 
   }
 
@@ -161,7 +181,8 @@ object VariantNormalizer extends GlowLogging {
   val normalizedStartField = StructField("normalizedStart", LongType)
   val normalizedEndField = StructField("normalizedEnd", LongType)
   val normalizedRefAlleleField = StructField("normalizedReferenceAllele", StringType)
-  val normalizedAlternateAllelesField = StructField("normalizedAlternateAlleles", ArrayType(StringType))
+  val normalizedAlternateAllelesField =
+    StructField("normalizedAlternateAlleles", ArrayType(StringType))
   val normalizationFlagField = StructField("normalizationFlag", StringType)
 
   val normalizationSchema = StructType(

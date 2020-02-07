@@ -34,27 +34,25 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
 
   lazy val vtTestReference = s"$testFolder/20_altered.fasta"
 
-
   /**
    * Tests normalizeVariant method for given alleles and compares with the provided expected
    * outcome
    */
   def testNormalizeVariant(
-    referenceGenome: String,
-    contigName: String,
-    origStart: Long,
-    origEnd: Long,
-    origRefAllele: String,
-    origAltAlleles: Array[String],
-    expectedStart: Long,
-    expectedEnd: Long,
-    expectedRefAllele: String,
-    expectedAltAlleles: Array[String],
-    expectedFlag: String
+      referenceGenome: String,
+      contigName: String,
+      origStart: Long,
+      origEnd: Long,
+      origRefAllele: String,
+      origAltAlleles: Array[String],
+      expectedStart: Long,
+      expectedEnd: Long,
+      expectedRefAllele: String,
+      expectedAltAlleles: Array[String],
+      expectedFlag: String
   ): Unit = {
 
     val refGenomeIndexedFasta = new IndexedFastaSequenceFile(Paths.get(referenceGenome))
-
 
     val normalizedVariant =
       normalizeVariant(
@@ -66,8 +64,15 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
         refGenomeIndexedFasta
       )
 
-    assert(normalizedVariant ==
-      InternalRow(expectedStart, expectedEnd, UTF8String.fromString(expectedRefAllele), ArrayData.toArrayData(expectedAltAlleles.map(UTF8String.fromString(_))), UTF8String.fromString(expectedFlag)))
+    assert(
+      normalizedVariant ==
+      InternalRow(
+        expectedStart,
+        expectedEnd,
+        UTF8String.fromString(expectedRefAllele),
+        ArrayData.toArrayData(expectedAltAlleles.map(UTF8String.fromString(_))),
+        UTF8String.fromString(expectedFlag)
+      ))
   }
 
   test("test realignAlleles") {
@@ -84,7 +89,6 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
       Array("TAA", "TAAAA"),
       FLAG_CHANGED
     )
-
 
     testNormalizeVariant(
       vtTestReference,
@@ -141,7 +145,6 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
       Array("TA"),
       FLAG_ERROR
     )
-
 
   }
 

@@ -25,8 +25,6 @@ import io.projectglow.transformers.normalizevariants.VariantNormalizer._
 import io.projectglow.transformers.normalizevariants.NormalizeVariantsTransformer._
 import io.projectglow.transformers.splitmultiallelics.SplitMultiallelicsTransformer._
 
-
-
 class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
 
   import io.projectglow.transformers.splitmultiallelics
@@ -281,10 +279,7 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
       .orderBy(contigNameField.name, startField.name, endField.name)
 
     val dfOldSplit = Glow
-        .transform(NORMALIZER_TRANSFORMER_NAME,
-          dfOriginal,
-          Map(MODE_KEY -> MODE_SPLIT)
-        )
+      .transform(NORMALIZER_TRANSFORMER_NAME, dfOriginal, Map(MODE_KEY -> MODE_SPLIT))
       .orderBy(contigNameField.name, startField.name, endField.name)
 
     val dfOldSplitColumns =
@@ -338,7 +333,6 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
     )
   }
 
-
   test("replace columns option") {
     val dfOriginal = spark
       .read
@@ -352,21 +346,29 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
         dfOriginal,
         Map(REFERENCE_GENOME_PATH -> vtTestReference)
       )
-      .select(contigNameField.name, startField.name, endField.name, refAlleleField.name,
+      .select(
+        contigNameField.name,
+        startField.name,
+        endField.name,
+        refAlleleField.name,
         alternateAllelesField.name)
-    .orderBy(contigNameField.name, startField.name, endField.name)
+      .orderBy(contigNameField.name, startField.name, endField.name)
 
-
-    val dfNormalizedNonReplaced = Glow.transform(
-      NORMALIZER_TRANSFORMER_NAME,
-      dfOriginal,
-      Map(
-        REFERENCE_GENOME_PATH -> vtTestReference,
-        REPLACE_COLUMNS -> "false"
+    val dfNormalizedNonReplaced = Glow
+      .transform(
+        NORMALIZER_TRANSFORMER_NAME,
+        dfOriginal,
+        Map(
+          REFERENCE_GENOME_PATH -> vtTestReference,
+          REPLACE_COLUMNS -> "false"
+        )
       )
-    )
-      .select(contigNameField.name, normalizedStartField.name, normalizedEndField.name,
-        normalizedRefAlleleField.name, normalizedAlternateAllelesField.name)
+      .select(
+        contigNameField.name,
+        normalizedStartField.name,
+        normalizedEndField.name,
+        normalizedRefAlleleField.name,
+        normalizedAlternateAllelesField.name)
       .orderBy(contigNameField.name, normalizedStartField.name, normalizedEndField.name)
 
     assert(dfNormalizedReplaced.count() == dfNormalizedNonReplaced.count())
@@ -374,12 +376,12 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
     dfNormalizedReplaced
       .collect
       .zip(
-        dfNormalizedNonReplaced
-          .collect
+        dfNormalizedNonReplaced.collect
       )
       .foreach {
         case (rowNormReplaced, rowNormNonReplaced) =>
-          assert(rowNormReplaced.equals(rowNormNonReplaced),
+          assert(
+            rowNormReplaced.equals(rowNormNonReplaced),
             s"Repalced\n$rowNormReplaced\nNon-replaced\n$rowNormNonReplaced")
       }
 
