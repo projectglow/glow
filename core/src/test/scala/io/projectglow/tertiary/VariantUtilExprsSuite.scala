@@ -23,6 +23,7 @@ import org.apache.spark.sql.types.{DoubleType, IntegerType, StringType, StructFi
 import org.apache.spark.unsafe.types.UTF8String
 import io.projectglow.sql.GlowBaseTest
 import io.projectglow.sql.expressions.{VariantType, VariantUtilExprs}
+import io.projectglow.functions._
 
 class VariantUtilExprsSuite extends GlowBaseTest {
   case class SimpleGenotypeFields(calls: Seq[Int])
@@ -330,6 +331,10 @@ class VariantUtilExprsSuite extends GlowBaseTest {
     val df = spark.createDataFrame(Seq(Outer(Inner(1, "monkey"))))
     val e = intercept[AnalysisException] { df.selectExpr("expand_struct(inner.two)").show() }
     assert(e.getMessage.contains("Only structs can be expanded"))
+  }
+
+  test("expand struct scala") {
+    val df = spark.createDataFrame(Seq(Outer(Inner(1, "two")))).select(expand_struct(col("inner")))
   }
 }
 

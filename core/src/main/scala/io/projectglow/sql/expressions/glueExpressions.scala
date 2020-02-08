@@ -33,6 +33,10 @@ import io.projectglow.sql.util.{Rewrite, RewriteAfterResolution}
  */
 case class ExpandStruct(struct: Expression) extends Star with Unevaluable {
   override def expand(input: LogicalPlan, resolver: analysis.Resolver): Seq[NamedExpression] = {
+    if (!struct.resolved) {
+      return Seq(this)
+    }
+
     if (!struct.dataType.isInstanceOf[StructType]) {
       throw SQLUtils.newAnalysisException("Only structs can be expanded.")
     }
