@@ -27,6 +27,9 @@ complex_type_manipulation:
     - name: add_struct_fields
       doc: Add fields to a struct
       since: 0.3.0
+      example: |
+        >>> spark.createDataFrame([Row(struct=Row(a=1))]).select(add_struct_fields('struct', fx.lit('b'), fx.lit(2)).alias('struct')).collect()
+        [Row(struct=Row(a=1, b=2))]
       expr_class: io.projectglow.sql.expressions.AddStructFields
       args:
         - name: struct
@@ -37,6 +40,9 @@ complex_type_manipulation:
     - name: array_summary_stats
       doc: Compute the min, max, mean, stddev for an array of numerics
       since: 0.3.0
+      example: |
+        >>> spark.createDataFrame([Row(arr=[1, 2, 3])]).select(expand_struct(array_summary_stats('arr'))).collect()
+        [Row(mean=2.0, stdDev=1.0, min=1.0, max=3.0)]
       expr_class: io.projectglow.sql.expressions.ArrayStatsSummary
       args:
         - name: arr
@@ -58,6 +64,9 @@ complex_type_manipulation:
     - name: expand_struct
       doc: Promote fields of a nested struct to top-level columns. Similar to using struct.* from SQL, but can be used in more contexts.
       since: 0.3.0
+      example: |
+        >>> spark.createDataFrame([Row(struct=Row(a=1, b=2))]).select(expand_struct(fx.col('struct'))).collect()
+        [Row(a=1, b=2)]
       expr_class: io.projectglow.sql.expressions.ExpandStruct
       args:
         - name: struct

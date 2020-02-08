@@ -204,7 +204,7 @@ lazy val python =
       test in Test := {
         // Pass the test classpath to pyspark so that we run the same bits as the Scala tests
         val ret = Process(
-          Seq("pytest", "python"),
+          Seq("pytest", "--doctest-modules", "python"),
           None,
           "SPARK_CLASSPATH" -> sparkClasspath.value,
           "SPARK_HOME" -> sparkHome.value

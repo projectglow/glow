@@ -60,7 +60,7 @@ def fmt_python_signature(value):
 
 def fmt_python_call(value):
     if value.get('is_var_args'):
-        return f'_to_seq({value["name"]})'
+        return f'_to_seq(sc(), {value["name"]}, _to_java_column)'
     if not 'type' in value or value['type'] in ['lambda1', 'lambda2']:
         return f'_to_java_column({value["name"]})'
     return f'{PYTHON_TYPES[value["type"]]}({value["name"]})'
