@@ -35,6 +35,7 @@ import org.apache.spark.sql.execution.datasources.csv.{CSVOptions, CSVUtils, Uni
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
 import org.apache.spark.sql.types.{StructField, StructType}
+import org.apache.spark.unsafe.types.UTF8String
 
 import io.projectglow.common.{CommonOptions, GlowLogging, VariantSchemas}
 import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
@@ -167,7 +168,7 @@ object PlinkFileFormat extends HlsEventRecorder {
   def getSampleIds(
       bedPath: String,
       options: Map[String, String],
-      hadoopConf: Configuration): Array[String] = {
+      hadoopConf: Configuration): Array[UTF8String] = {
     val famDelimiterOption = options.getOrElse(FAM_DELIMITER_KEY, DEFAULT_FAM_DELIMITER_VALUE)
     val parsedOptions =
       new CSVOptions(
@@ -198,12 +199,13 @@ object PlinkFileFormat extends HlsEventRecorder {
           sampleLine.getValues.length == 6,
           s"Failed while parsing FAM file $famPath: does not have 6 columns delimited by '$famDelimiterOption'")
         val individualId = sampleLine.getString(1)
-        if (mergeFidIid) {
+        val sampleId = if (mergeFidIid) {
           val familyId = sampleLine.getString(0)
           s"${familyId}_$individualId"
         } else {
           individualId
         }
+        UTF8String.fromString(sampleId)
       }.toArray
     } finally {
       stream.close()
