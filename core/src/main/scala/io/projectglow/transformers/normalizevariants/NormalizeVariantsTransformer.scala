@@ -19,7 +19,7 @@ package io.projectglow.transformers.normalizevariants
 import io.projectglow.DataFrameTransformer
 import io.projectglow.common.VariantSchemas._
 import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
-import io.projectglow.functions.{expand_struct, normalize_variant, subset_struct}
+import io.projectglow.functions.{expand_struct, normalize_variant}
 import io.projectglow.transformers.normalizevariants.VariantNormalizer._
 import io.projectglow.transformers.splitmultiallelics.VariantSplitter
 import io.projectglow.transformers.util.StringUtils
@@ -174,9 +174,9 @@ object NormalizeVariantsTransformer {
         .foldLeft(dfNormalized)(
           (df, i) =>
             df.withColumn(
-                origFields(i).name,
-                col(s"${normalizationResultFieldName}.${origFields(i).name}")
-              )
+              origFields(i).name,
+              col(s"${normalizationResultFieldName}.${origFields(i).name}")
+            )
         )
         .drop(normalizationResultFieldName)
 
