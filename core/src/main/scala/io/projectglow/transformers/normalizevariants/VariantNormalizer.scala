@@ -18,7 +18,10 @@ package io.projectglow.transformers.normalizevariants
 
 import htsjdk.samtools.reference.IndexedFastaSequenceFile
 import io.projectglow.common.GlowLogging
+import io.projectglow.common.VariantSchemas._
+
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
@@ -57,27 +60,22 @@ object VariantNormalizer extends GlowLogging {
       altAlleles: Array[String],
       refGenomeIndexedFasta: IndexedFastaSequenceFile): InternalRow = {
 
-    var flag = FLAG_UNCHANGED
+    var flag = false // indicates whether the variant was changed as a result of normalization
+    var errorMessage: Option[String] = None
     var newStart = start
     var allAlleles = refAllele +: altAlleles
     var trimSize = 0 // stores total trimSize from right
 
     if (refAllele.isEmpty) {
       // if no alleles, throw exception
-      logger.info("No REF and ALT alleles...")
-      flag = FLAG_ERROR
-    } else if (refAllele.length == 1 && altAlleles.forall(_.length == 1)) {
-      // if a SNP, do nothing
-      flag = FLAG_UNCHANGED
-    } else if (altAlleles.exists(_.matches(".*[<|>|*].*"))) {
-      // if any of the alleles is symbolic, do nothing
-      flag = FLAG_UNCHANGED
+      logger.info("No REF or ALT alleles found.")
+      errorMessage = Some("No REF or ALT alleles found.")
     } else if (altAlleles.isEmpty) {
       // if only one allele and longer than one base, trim to the
       // first base
       allAlleles(0) = allAlleles(0).take(1)
-      flag = FLAG_CHANGED
-    } else {
+      flag = true
+    } else if (!isSNP(refAllele, altAlleles) || !isSymbolic(altAlleles)) {
 
       // Trim from right
       var nTrimmedBasesBeforeNextPadding = 0 // stores number of bases trimmed from right before next padding
@@ -155,43 +153,67 @@ object VariantNormalizer extends GlowLogging {
 
       newStart += nLeftTrimBases
 
-      flag = if (trimSize == 0 && nLeftTrimBases == 0) {
-        FLAG_UNCHANGED
-      } else {
-        FLAG_CHANGED
+      if (trimSize != 0 || nLeftTrimBases != 0) {
+        flag = true
       }
     }
 
     InternalRow(
-      newStart,
-      end - trimSize,
-      UTF8String.fromString(allAlleles(0)),
-      ArrayData.toArrayData(allAlleles.tail.map(UTF8String.fromString(_))),
-      UTF8String.fromString(flag)
+      if (errorMessage.isEmpty) {
+        InternalRow(
+          newStart,
+          end - trimSize,
+          UTF8String.fromString(allAlleles(0)),
+          ArrayData.toArrayData(allAlleles.tail.map(UTF8String.fromString(_)))
+        )
+      } else {
+        new GenericInternalRow(4)
+      },
+      InternalRow(
+        flag,
+        errorMessage.map(UTF8String.fromString).orNull
+      )
     )
+  }
 
+  def isSNP(refAllele: String, altAlleles: Array[String]): Boolean = {
+    refAllele.length == 1 && altAlleles.forall(_.length == 1)
+  }
+
+  def isSymbolic(altAlleles: Array[String]): Boolean = {
+    altAlleles.exists(_.matches(".*[<|>|*].*"))
   }
 
   private val PAD_WINDOW_SIZE = 100
 
-  val FLAG_ERROR = "Error"
-  val FLAG_CHANGED = "Changed"
-  val FLAG_UNCHANGED = "Unchanged"
+  val normalizationResultFieldName = "normalizationResult"
+  val normalizationStatusFieldName = "normalizationStatus"
+  val changedFieldName = "changed"
+  val errorMessageFieldName = "errorMessage"
 
-  val normalizedStartField = StructField("normalizedStart", LongType)
-  val normalizedEndField = StructField("normalizedEnd", LongType)
-  val normalizedRefAlleleField = StructField("normalizedReferenceAllele", StringType)
-  val normalizedAlternateAllelesField =
-    StructField("normalizedAlternateAlleles", ArrayType(StringType))
-  val normalizationFlagField = StructField("normalizationFlag", StringType)
+  val normalizationStatusStructField = StructField(
+    normalizationStatusFieldName,
+    StructType(
+      Seq(
+        StructField(changedFieldName, BooleanType),
+        StructField(errorMessageFieldName, StringType)
+      )
+    )
+  )
+
+  val normalizationResultsStructField = StructField(
+    normalizationResultFieldName,
+    StructType(
+      Seq(
+        startField,
+        endField,
+        refAlleleField,
+        alternateAllelesField
+      )
+    )
+  )
 
   val normalizationSchema = StructType(
-    Seq(
-      normalizedStartField,
-      normalizedEndField,
-      normalizedRefAlleleField,
-      normalizedAlternateAllelesField,
-      normalizationFlagField
-    )
+    Seq(normalizationResultsStructField, normalizationStatusStructField)
   )
 }

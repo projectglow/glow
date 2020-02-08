@@ -24,6 +24,7 @@ import io.projectglow.sql.GlowBaseTest
 import io.projectglow.transformers.normalizevariants.VariantNormalizer._
 
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.unsafe.types.UTF8String
 
@@ -49,7 +50,8 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
       expectedEnd: Long,
       expectedRefAllele: String,
       expectedAltAlleles: Array[String],
-      expectedFlag: String
+      expectedChanged: Boolean,
+      expectedErrorMessage: Option[String]
   ): Unit = {
 
     val refGenomeIndexedFasta = new IndexedFastaSequenceFile(Paths.get(referenceGenome))
@@ -67,15 +69,56 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
     assert(
       normalizedVariant ==
       InternalRow(
-        expectedStart,
-        expectedEnd,
-        UTF8String.fromString(expectedRefAllele),
-        ArrayData.toArrayData(expectedAltAlleles.map(UTF8String.fromString(_))),
-        UTF8String.fromString(expectedFlag)
-      ))
+        InternalRow(
+          expectedStart,
+          expectedEnd,
+          UTF8String.fromString(expectedRefAllele),
+          ArrayData.toArrayData(expectedAltAlleles.map(UTF8String.fromString(_)))
+        ),
+        InternalRow(
+          expectedChanged,
+          expectedErrorMessage.map(UTF8String.fromString).orNull
+        )
+      )
+    )
+
   }
 
-  test("test realignAlleles") {
+  def testNormalizeVariant(
+      referenceGenome: String,
+      contigName: String,
+      origStart: Long,
+      origEnd: Long,
+      origRefAllele: String,
+      origAltAlleles: Array[String],
+      expectedErrorMessage: Option[String]
+  ): Unit = {
+
+    val refGenomeIndexedFasta = new IndexedFastaSequenceFile(Paths.get(referenceGenome))
+
+    val normalizedVariant =
+      normalizeVariant(
+        contigName,
+        origStart,
+        origEnd,
+        origRefAllele,
+        origAltAlleles,
+        refGenomeIndexedFasta
+      )
+
+    assert(
+      normalizedVariant ==
+      InternalRow(
+        new GenericInternalRow(4),
+        InternalRow(
+          false,
+          expectedErrorMessage.map(UTF8String.fromString).orNull
+        )
+      )
+    )
+  }
+
+  test("test normalizeVariant") {
     testNormalizeVariant(
       vtTestReference,
       "20",
@@ -87,7 +130,8 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
       67,
       "T",
       Array("TAA", "TAAAA"),
-      FLAG_CHANGED
+      true,
+      None
     )
 
     testNormalizeVariant(
@@ -101,7 +145,8 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
       67,
       "AAAAAAAAGAAGGCATAGCCATTACCTTTTAAAAAATTTT",
       Array("A"),
-      FLAG_CHANGED
+      true,
+      None
     )
 
     testNormalizeVariant(
@@ -115,7 +160,8 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
       2,
       "G",
       Array("A"),
-      FLAG_CHANGED
+      true,
+      None
     )
 
     testNormalizeVariant(
@@ -129,7 +175,8 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
       2,
       "GG",
       Array("TA"),
-      FLAG_UNCHANGED
+      false,
+      None
     )
 
     testNormalizeVariant(
@@ -139,11 +186,7 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
       2,
       "",
       Array("TA"),
-      1,
-      2,
-      "",
-      Array("TA"),
-      FLAG_ERROR
+      Some("No REF or ALT alleles found.")
     )
 
   }

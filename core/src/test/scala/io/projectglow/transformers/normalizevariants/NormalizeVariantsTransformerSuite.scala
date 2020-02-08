@@ -24,6 +24,9 @@ import io.projectglow.common.VariantSchemas._
 import io.projectglow.transformers.normalizevariants.VariantNormalizer._
 import io.projectglow.transformers.normalizevariants.NormalizeVariantsTransformer._
 import io.projectglow.transformers.splitmultiallelics.SplitMultiallelicsTransformer._
+import io.projectglow.functions.expand_struct
+
+import org.apache.spark.sql.functions.col
 
 class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
 
@@ -148,17 +151,17 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
       .orderBy(contigNameField.name, startField.name, endField.name)
 
     val dfExpectedColumns =
-      dfExpected.columns.map(name => if (name.contains(".")) s"`${name}`" else name)
+      dfExpected.columns.map(name => s"`${name}`")
 
     assert(dfNormalized.count() == dfExpected.count())
 
     dfExpected
-      .drop(splitFromMultiAllelicField.name, normalizationFlagField.name)
+      .drop(splitFromMultiAllelicField.name, normalizationStatusFieldName)
       .collect
       .zip(
         dfNormalized
           .select(dfExpectedColumns.head, dfExpectedColumns.tail: _*) // make order of columns the same
-          .drop(splitFromMultiAllelicField.name, normalizationFlagField.name)
+          .drop(splitFromMultiAllelicField.name, normalizationStatusFieldName)
           .collect
       )
       .foreach {
@@ -333,7 +336,7 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
     )
   }
 
-  test("replace columns option") {
+  test("replace_columns option") {
     val dfOriginal = spark
       .read
       .format(sourceName)
@@ -365,11 +368,12 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
       )
       .select(
         contigNameField.name,
-        normalizedStartField.name,
-        normalizedEndField.name,
-        normalizedRefAlleleField.name,
-        normalizedAlternateAllelesField.name)
-      .orderBy(contigNameField.name, normalizedStartField.name, normalizedEndField.name)
+        s"${normalizationResultFieldName}.${startField.name}",
+        s"${normalizationResultFieldName}.${endField.name}",
+        s"${normalizationResultFieldName}.${refAlleleField.name}",
+        s"${normalizationResultFieldName}.${alternateAllelesField.name}"
+      )
+      .orderBy(contigNameField.name, startField.name, endField.name)
 
     assert(dfNormalizedReplaced.count() == dfNormalizedNonReplaced.count())
 
@@ -384,6 +388,30 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
             rowNormReplaced.equals(rowNormNonReplaced),
             s"Repalced\n$rowNormReplaced\nNon-replaced\n$rowNormNonReplaced")
       }
-
   }
+
+  /*
+
+  test( "dev") {
+
+    val dfOriginal = spark
+      .read
+      .format(sourceName)
+      .load(gatkTestVcfSymbolic)
+
+    val dfNormalized = Glow
+      .transform(
+        "normalize_variants",
+        dfOriginal
+        ,
+        Map(
+          "reference_genome_path" -> gatkTestReference,
+          "replace_original_columns" -> "true"
+        )
+      )// .select("normalizationResult", "normalizationStatus")
+
+    dfNormalized
+      .show(false)
+  }
+ */
 }

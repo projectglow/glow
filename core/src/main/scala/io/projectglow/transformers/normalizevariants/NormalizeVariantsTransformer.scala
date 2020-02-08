@@ -19,7 +19,7 @@ package io.projectglow.transformers.normalizevariants
 import io.projectglow.DataFrameTransformer
 import io.projectglow.common.VariantSchemas._
 import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
-import io.projectglow.functions.{expand_struct, normalize_variant}
+import io.projectglow.functions.{expand_struct, normalize_variant, subset_struct}
 import io.projectglow.transformers.normalizevariants.VariantNormalizer._
 import io.projectglow.transformers.splitmultiallelics.VariantSplitter
 import io.projectglow.transformers.util.StringUtils
@@ -161,43 +161,27 @@ object NormalizeVariantsTransformer {
       )
     )
 
-    val origNames = Seq(
-      startField.name,
-      endField.name,
-      refAlleleField.name,
-      alternateAllelesField.name
-    )
-    val normalizedNames = Seq(
-      normalizedStartField.name,
-      normalizedEndField.name,
-      normalizedRefAlleleField.name,
-      normalizedAlternateAllelesField.name
+    val origFields = Seq(
+      startField,
+      endField,
+      refAlleleField,
+      alternateAllelesField
     )
 
     if (replaceColumns) {
 
-      (0 to origNames.length - 1)
+      (0 to origFields.length - 1)
         .foldLeft(dfNormalized)(
-          (df, i) => df.withColumn(origNames(i), col(normalizedNames(i)))
+          (df, i) =>
+            df.withColumn(
+                origFields(i).name,
+                col(s"${normalizationResultFieldName}.${origFields(i).name}")
+              )
         )
-        .drop(normalizedNames: _*)
+        .drop(normalizationResultFieldName)
 
     } else {
-
-      var reorderedColumnNames = Seq[String]()
-
       dfNormalized
-        .columns
-        .map(name => if (name.contains(".")) s"`${name}`" else name)
-        .foreach { c =>
-          reorderedColumnNames :+= c
-          val idx = origNames.indexOf(c)
-          if (idx >= 0) {
-            reorderedColumnNames :+= normalizedNames(idx)
-          }
-        }
-
-      dfNormalized.select(reorderedColumnNames.head, reorderedColumnNames.tail: _*)
     }
   }
 
