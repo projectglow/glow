@@ -16,7 +16,7 @@ def add_struct_fields(struct: Union[Column, str], *fields: Union[Column, str]) -
     Add fields to a struct
 
     Examples:
-        >>> spark.createDataFrame([Row(struct=Row(a=1))]).select(add_struct_fields('struct', fx.lit('b'), fx.lit(2)).alias('struct')).collect()
+        >>> spark.createDataFrame([Row(struct=Row(a=1))]).select(add_struct_fields('struct', lit('b'), lit(2)).alias('struct')).collect()
         [Row(struct=Row(a=1, b=2))]
 
 
@@ -53,7 +53,10 @@ def array_to_dense_vector(arr: Union[Column, str]) -> Column:
     Convert an array of numerics into a spark.ml DenseVector
 
     Examples:
-        
+        >>> from pyspark.ml.linalg import DenseVector
+        >>> spark.createDataFrame([Row(arr=[1, 2, 3])]).select(array_to_dense_vector('arr').alias('v')).collect()
+        [Row(v=DenseVector([1.0, 2.0, 3.0]))]
+
 
     Args:
         arr: The array of numerics
@@ -69,7 +72,10 @@ def array_to_sparse_vector(arr: Union[Column, str]) -> Column:
     Convert an array of numerics into a spark.ml SparseVector
 
     Examples:
-        
+        >>> from pyspark.ml.linalg import SparseVector
+        >>> spark.createDataFrame([Row(arr=[1, 0, 2, 0, 3, 0])]).select(array_to_sparse_vector('arr').alias('v')).collect()
+        [Row(v=SparseVector(6, {0: 1.0, 2: 2.0, 4: 3.0}))]
+
 
     Args:
         arr: The array of numerics
@@ -85,7 +91,7 @@ def expand_struct(struct: Union[Column, str]) -> Column:
     Promote fields of a nested struct to top-level columns. Similar to using struct.* from SQL, but can be used in more contexts.
 
     Examples:
-        >>> spark.createDataFrame([Row(struct=Row(a=1, b=2))]).select(expand_struct(fx.col('struct'))).collect()
+        >>> spark.createDataFrame([Row(struct=Row(a=1, b=2))]).select(expand_struct(col('struct'))).collect()
         [Row(a=1, b=2)]
 
 
@@ -103,7 +109,11 @@ def explode_matrix(matrix: Union[Column, str]) -> Column:
     Explode a spark.ml Matrix into arrays of rows
 
     Examples:
-        
+        >>> from pyspark.ml.linalg import DenseMatrix
+        >>> m = DenseMatrix(numRows=3, numCols=2, values=[1, 2, 3, 4, 5, 6])
+        >>> spark.createDataFrame([Row(matrix=m)]).select(explode_matrix('matrix').alias('row')).collect()
+        [Row(row=[1.0, 4.0]), Row(row=[2.0, 5.0]), Row(row=[3.0, 6.0])]
+
 
     Args:
         matrix: The matrix to explode
@@ -119,14 +129,16 @@ def subset_struct(struct: Union[Column, str], *fields: str) -> Column:
     Select fields from a struct
 
     Examples:
-        
+        >>> spark.createDataFrame([Row(struct=Row(a=1, b=2, c=3))]).select(subset_struct('struct', 'a', 'c').alias('struct')).collect()
+        [Row(struct=Row(a=1, c=3))]
+
 
     Args:
         struct: Struct from which to select fields
         fields: Fields to take
     """
     assert check_argument_types()
-    output = Column(sc()._jvm.io.projectglow.functions.subset_struct(_to_java_column(struct), _to_seq(sc(), fields, _to_java_column)))
+    output = Column(sc()._jvm.io.projectglow.functions.subset_struct(_to_java_column(struct), _to_seq(sc(), fields)))
     assert check_return_type(output)
     return output
   
@@ -137,7 +149,9 @@ def hard_calls(probabilities: Union[Column, str], numAlts: Union[Column, str], p
     Converts an array of probabilities to hard calls
 
     Examples:
-        
+        >>> spark.createDataFrame([Row(probs=[0.95, 0.05, 0.0])]).select(hard_calls('probs', numAlts=lit(1), phased=lit(False)).alias('calls')).collect()
+        [Row(calls=[0, 0])]
+
 
     Args:
         probabilities: Probabilities
@@ -149,7 +163,7 @@ def hard_calls(probabilities: Union[Column, str], numAlts: Union[Column, str], p
     if threshold is None:
         output = Column(sc()._jvm.io.projectglow.functions.hard_calls(_to_java_column(probabilities), _to_java_column(numAlts), _to_java_column(phased)))
     else:
-        output = Column(sc()._jvm.io.projectglow.functions.hard_calls(_to_java_column(probabilities), _to_java_column(numAlts), _to_java_column(phased), float(threshold)))
+        output = Column(sc()._jvm.io.projectglow.functions.hard_calls(_to_java_column(probabilities), _to_java_column(numAlts), _to_java_column(phased), threshold))
     assert check_return_type(output)
     return output
   
@@ -170,9 +184,9 @@ def lift_over_coordinates(contigName: Union[Column, str], start: Union[Column, s
     """
     assert check_argument_types()
     if minMatchRatio is None:
-        output = Column(sc()._jvm.io.projectglow.functions.lift_over_coordinates(_to_java_column(contigName), _to_java_column(start), _to_java_column(end), str(chainFile)))
+        output = Column(sc()._jvm.io.projectglow.functions.lift_over_coordinates(_to_java_column(contigName), _to_java_column(start), _to_java_column(end), chainFile))
     else:
-        output = Column(sc()._jvm.io.projectglow.functions.lift_over_coordinates(_to_java_column(contigName), _to_java_column(start), _to_java_column(end), str(chainFile), float(minMatchRatio)))
+        output = Column(sc()._jvm.io.projectglow.functions.lift_over_coordinates(_to_java_column(contigName), _to_java_column(start), _to_java_column(end), chainFile, minMatchRatio))
     assert check_return_type(output)
     return output
   
@@ -183,7 +197,10 @@ def call_summary_stats(genotypes: Union[Column, str]) -> Column:
     Compute call stats for an array of genotype structs
 
     Examples:
-        
+        >>> df = spark.createDataFrame([Row(genotypes=[Row(calls=[0, 0]), Row(calls=[1, 0]), Row(calls=[1, 1])])], 'genotypes: array<struct<calls: array<int>>>')
+        >>> df.select(expand_struct(call_summary_stats('genotypes'))).collect()
+        [Row(callRate=1.0, nCalled=3, nUncalled=0, nHet=1, nHomozygous=[1, 1], nNonRef=2, nAllelesCalled=6, alleleCounts=[3, 3], alleleFrequencies=[0.5, 0.5])]
+
 
     Args:
         genotypes: The array of genotype structs
@@ -293,7 +310,7 @@ def logistic_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Co
         test: Which logistic regression test to use. Can be 'LRG' or 'Firth'
     """
     assert check_argument_types()
-    output = Column(sc()._jvm.io.projectglow.functions.logistic_regression_gwas(_to_java_column(genotypes), _to_java_column(phenotypes), _to_java_column(covariates), str(test)))
+    output = Column(sc()._jvm.io.projectglow.functions.logistic_regression_gwas(_to_java_column(genotypes), _to_java_column(phenotypes), _to_java_column(covariates), test))
     assert check_return_type(output)
     return output
   

@@ -16,21 +16,28 @@
 
 package io.projectglow.sql.optimizer
 
-import org.apache.spark.sql.catalyst.expressions.aggregate.{AggregateExpression, Complete}
-import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
+import org.apache.spark.sql.catalyst.analysis.UnresolvedAlias
+import org.apache.spark.sql.catalyst.expressions.{Alias, Expression}
+import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, Project}
 import org.apache.spark.sql.catalyst.rules.Rule
 
+import io.projectglow.common.GlowLogging
 import io.projectglow.sql.expressions._
 import io.projectglow.sql.util.RewriteAfterResolution
 
 /**
  * Simple optimization rule that handles expression rewrites
  */
-object ReplaceExpressionsRule extends Rule[LogicalPlan] {
+object ReplaceExpressionsRule extends Rule[LogicalPlan] with GlowLogging {
   override def apply(plan: LogicalPlan): LogicalPlan = {
+    logger.info(s"Trying to rewrite expressions in ${plan}")
     plan.transformAllExpressions {
       case expr: RewriteAfterResolution =>
+        logger.info(s"Rewriting $expr")
         ExpressionHelper.wrapAggregate(expr.rewrite)
+      case expr =>
+        logger.info(s"Not rewriting $expr")
+        expr
     }
   }
 }
@@ -47,5 +54,28 @@ object ResolveAggregateFunctionsRule extends Rule[LogicalPlan] {
   override def apply(plan: LogicalPlan): LogicalPlan = plan.transformExpressions {
     case agg: UnwrappedAggregateFunction =>
       ExpressionHelper.wrapAggregate(agg.asWrapped)
+  }
+}
+
+object ResolveExpandStructRule extends Rule[LogicalPlan] with GlowLogging {
+  override def apply(plan: LogicalPlan): LogicalPlan = {
+    logger.info(plan.toString())
+    plan.resolveOperatorsUp {
+      case Project(projectList, child) if canExpand(projectList) =>
+        val expandedList = projectList.flatMap {
+          case UnresolvedAlias(e: ExpandStruct, _) => e.expand()
+          case Alias(e: ExpandStruct, _) => e.expand()
+          case e: ExpandStruct => e.expand()
+          case e => Seq(e)
+        }
+        Project(expandedList, child)
+    }
+  }
+
+  private def canExpand(projectList: Seq[Expression]): Boolean = projectList.exists {
+    case e: ExpandStruct => e.childrenResolved
+    case UnresolvedAlias(e: ExpandStruct, _) => e.childrenResolved
+    case Alias(e: ExpandStruct, _) => e.childrenResolved
+    case _ => false
   }
 }

@@ -28,7 +28,7 @@ complex_type_manipulation:
       doc: Add fields to a struct
       since: 0.3.0
       example: |
-        >>> spark.createDataFrame([Row(struct=Row(a=1))]).select(add_struct_fields('struct', fx.lit('b'), fx.lit(2)).alias('struct')).collect()
+        >>> spark.createDataFrame([Row(struct=Row(a=1))]).select(add_struct_fields('struct', lit('b'), lit(2)).alias('struct')).collect()
         [Row(struct=Row(a=1, b=2))]
       expr_class: io.projectglow.sql.expressions.AddStructFields
       args:
@@ -51,6 +51,10 @@ complex_type_manipulation:
       doc: Convert an array of numerics into a spark.ml DenseVector
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.ArrayToDenseVector
+      example: |
+        >>> from pyspark.ml.linalg import DenseVector
+        >>> spark.createDataFrame([Row(arr=[1, 2, 3])]).select(array_to_dense_vector('arr').alias('v')).collect()
+        [Row(v=DenseVector([1.0, 2.0, 3.0]))]
       args:
         - name: arr
           doc: The array of numerics
@@ -58,6 +62,10 @@ complex_type_manipulation:
       doc: Convert an array of numerics into a spark.ml SparseVector
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.ArrayToSparseVector
+      example: |
+        >>> from pyspark.ml.linalg import SparseVector
+        >>> spark.createDataFrame([Row(arr=[1, 0, 2, 0, 3, 0])]).select(array_to_sparse_vector('arr').alias('v')).collect()
+        [Row(v=SparseVector(6, {0: 1.0, 2: 2.0, 4: 3.0}))]
       args:
         - name: arr
           doc: The array of numerics
@@ -65,7 +73,7 @@ complex_type_manipulation:
       doc: Promote fields of a nested struct to top-level columns. Similar to using struct.* from SQL, but can be used in more contexts.
       since: 0.3.0
       example: |
-        >>> spark.createDataFrame([Row(struct=Row(a=1, b=2))]).select(expand_struct(fx.col('struct'))).collect()
+        >>> spark.createDataFrame([Row(struct=Row(a=1, b=2))]).select(expand_struct(col('struct'))).collect()
         [Row(a=1, b=2)]
       expr_class: io.projectglow.sql.expressions.ExpandStruct
       args:
@@ -74,6 +82,11 @@ complex_type_manipulation:
     - name: explode_matrix
       doc: Explode a spark.ml Matrix into arrays of rows
       since: 0.3.0
+      example: |
+        >>> from pyspark.ml.linalg import DenseMatrix
+        >>> m = DenseMatrix(numRows=3, numCols=2, values=[1, 2, 3, 4, 5, 6])
+        >>> spark.createDataFrame([Row(matrix=m)]).select(explode_matrix('matrix').alias('row')).collect()
+        [Row(row=[1.0, 4.0]), Row(row=[2.0, 5.0]), Row(row=[3.0, 6.0])]
       expr_class: io.projectglow.sql.expressions.ExplodeMatrix
       args:
         - name: matrix
@@ -82,6 +95,9 @@ complex_type_manipulation:
       doc: Select fields from a struct
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.SubsetStruct
+      example: |
+        >>> spark.createDataFrame([Row(struct=Row(a=1, b=2, c=3))]).select(subset_struct('struct', 'a', 'c').alias('struct')).collect()
+        [Row(struct=Row(a=1, c=3))]
       args:
         - name: struct
           doc: Struct from which to select fields
@@ -96,6 +112,9 @@ etl:
       doc: Converts an array of probabilities to hard calls
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.HardCalls
+      example: |
+        >>> spark.createDataFrame([Row(probs=[0.95, 0.05, 0.0])]).select(hard_calls('probs', numAlts=lit(1), phased=lit(False)).alias('calls')).collect()
+        [Row(calls=[0, 0])]
       args:
         - name: probabilities
           doc: Probabilities
@@ -152,12 +171,19 @@ quality_control:
     - name: call_summary_stats
       doc: Compute call stats for an array of genotype structs
       since: 0.3.0
+      example: |
+        >>> df = spark.createDataFrame([Row(genotypes=[Row(calls=[0, 0]), Row(calls=[1, 0]), Row(calls=[1, 1])])], 'genotypes: array<struct<calls: array<int>>>')
+        >>> df.select(expand_struct(call_summary_stats('genotypes'))).collect()
+        [Row(callRate=1.0, nCalled=3, nUncalled=0, nHet=1, nHomozygous=[1, 1], nNonRef=2, nAllelesCalled=6, alleleCounts=[3, 3], alleleFrequencies=[0.5, 0.5])]
       expr_class: io.projectglow.sql.expressions.CallStats
       args:
         - name: genotypes
           doc: The array of genotype structs
     - name: dp_summary_stats
       doc: Compute summary statistics for depth field from array of genotype structs
+      example: |
+        >>> df = spark.createDataFrame([Row(genotypes=[Row(depth=1), Row(depth=2), Row(depth=3)])], 'genotypes: struct<depth: int>')
+        [Row(mean=2.0, stdDev=1.0, min=1.0, max=3.0)]
       expr_class: io.projectglow.sql.expressions.DpSummaryStats
       args:
         - name: genotypes
