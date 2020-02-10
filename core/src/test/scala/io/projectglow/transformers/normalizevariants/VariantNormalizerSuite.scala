@@ -85,13 +85,13 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
   }
 
   def testNormalizeVariant(
-      referenceGenome: String,
-      contigName: String,
-      origStart: Long,
-      origEnd: Long,
-      origRefAllele: String,
-      origAltAlleles: Array[String],
-      expectedErrorMessage: Option[String]
+    referenceGenome: String,
+    contigName: String,
+    origStart: Long,
+    origEnd: Long,
+    origRefAllele: String,
+    origAltAlleles: Array[String],
+    expectedErrorMessage: Option[String]
   ): Unit = {
 
     val refGenomeIndexedFasta = new IndexedFastaSequenceFile(Paths.get(referenceGenome))
@@ -106,16 +106,15 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
         refGenomeIndexedFasta
       )
 
-    assert(
-      normalizedVariant ==
+    val expectedRow = new GenericInternalRow(2)
+    expectedRow.update(
+      1,
       InternalRow(
-        new GenericInternalRow(4),
-        InternalRow(
-          false,
-          expectedErrorMessage.map(UTF8String.fromString).orNull
-        )
+        false,
+        expectedErrorMessage.map(UTF8String.fromString).orNull
       )
     )
+    assert(normalizedVariant == expectedRow)
   }
 
   test("test normalizeVariant") {

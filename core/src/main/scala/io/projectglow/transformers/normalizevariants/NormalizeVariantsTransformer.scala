@@ -25,7 +25,7 @@ import io.projectglow.transformers.splitmultiallelics.VariantSplitter
 import io.projectglow.transformers.util.StringUtils
 
 import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.functions.col
+import org.apache.spark.sql.functions._
 
 /**
  * Implements DataFrameTransformer to transform the input DataFrame of variants to an output
@@ -34,14 +34,25 @@ import org.apache.spark.sql.functions.col
  * A path to reference genome containing .fasta, and .fai files must be provided
  * through the reference_genome_path option.
  *
- * This transformer adds a normalizationFlag column to the DataFrame, which indicates whether each
- * row was changed, unchanged, or hit an error as a result of normalization.
+ * This transformer adds  a StructType normalizationStatus column to the DataFrame which contains
+ * the following fields:
+ *    - changed: A boolean fields whether the variant data was changed as a result of
+ *      normalization.
+ *    - errorMessage: An error message in case the attempt at normalizing the row
+ *       hit an error. In this case, the changed field will be set to false. If no errors occur
+ *       this field will be null.
  *
- * By default the original values in start, end, referenceAllele, and alternateAlleles columns
- * are replaced by their normalized values. The replace_columns option can be set to false to
- * preserve the original columns and add the normalizedStart, normalizedEnd,
- * normalizedReferenceAllele, and normalizedAlternateAlleles columns as new columns to the DataFrame.
+ * If the replace_columns option is false, the transformer also adds the StructType
+ * normalizationResult column to the DataFrame which contains the normalized start, end,
+ * referenceAllele, and alternateAlleles columns, whether changed or unchanged.  In case of
+ * error, normalizationResult will be null.
+ *
+ * If the replace_columns option is true (default), the transformer replaces the original start,
+ * end, referenceAllele, and alternateAlleles columns with the fields of normalizationResult (for
+ * no-error rows) and drops the normalizationResult column.
+ *
  */
+
 class NormalizeVariantsTransformer extends DataFrameTransformer with HlsEventRecorder {
 
   import NormalizeVariantsTransformer._
@@ -175,7 +186,10 @@ object NormalizeVariantsTransformer {
           (df, i) =>
             df.withColumn(
               origFields(i).name,
-              col(s"${normalizationResultFieldName}.${origFields(i).name}")
+              when(
+                !isnull(col(normalizationResultFieldName)),
+                col(s"${normalizationResultFieldName}.${origFields(i).name}")
+              ).otherwise(col(origFields(i).name))
             )
         )
         .drop(normalizationResultFieldName)

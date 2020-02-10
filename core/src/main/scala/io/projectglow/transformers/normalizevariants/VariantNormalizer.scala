@@ -31,7 +31,7 @@ object VariantNormalizer extends GlowLogging {
   /**
    * Contains the main normalization logic. Given contigName, start, end, refAllele, and
    * altAlleles of a variant as well as the indexed fasta file of the reference genome,
-   * creates an InternalRow of the normalized variant with the [[normalizationSchema]].
+   * creates an InternalRow of the normalization result with the [[normalizationSchema]].
    *
    * The algorithm has a logic similar to bcftools norm or vt normalize:
    *
@@ -50,7 +50,7 @@ object VariantNormalizer extends GlowLogging {
    * @param refAllele             : String containing refrence allele
    * @param altAlleles            : String array of alternate alleles
    * @param refGenomeIndexedFasta : an [[IndexedFastaSequenceFile]] of the reference genome.
-   * @return normalized variant as an InternalRow
+   * @return normalization result as an InternalRow
    */
   def normalizeVariant(
       contigName: String,
@@ -158,22 +158,30 @@ object VariantNormalizer extends GlowLogging {
       }
     }
 
-    InternalRow(
-      if (errorMessage.isEmpty) {
+    val outputRow = new GenericInternalRow(2)
+
+    if (errorMessage.isEmpty) {
+      outputRow.update(
+        0,
         InternalRow(
           newStart,
           end - trimSize,
           UTF8String.fromString(allAlleles(0)),
           ArrayData.toArrayData(allAlleles.tail.map(UTF8String.fromString(_)))
         )
-      } else {
-        new GenericInternalRow(4)
-      },
+      )
+    }
+
+    outputRow.update(
+      1,
       InternalRow(
         flag,
         errorMessage.map(UTF8String.fromString).orNull
       )
     )
+
+    outputRow
+
   }
 
   def isSNP(refAllele: String, altAlleles: Array[String]): Boolean = {

@@ -24,9 +24,6 @@ import io.projectglow.common.VariantSchemas._
 import io.projectglow.transformers.normalizevariants.VariantNormalizer._
 import io.projectglow.transformers.normalizevariants.NormalizeVariantsTransformer._
 import io.projectglow.transformers.splitmultiallelics.SplitMultiallelicsTransformer._
-import io.projectglow.functions.expand_struct
-
-import org.apache.spark.sql.functions.col
 
 class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
 
@@ -390,28 +387,4 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
       }
   }
 
-  /*
-
-  test( "dev") {
-
-    val dfOriginal = spark
-      .read
-      .format(sourceName)
-      .load(gatkTestVcfSymbolic)
-
-    val dfNormalized = Glow
-      .transform(
-        "normalize_variants",
-        dfOriginal
-        ,
-        Map(
-          "reference_genome_path" -> gatkTestReference,
-          "replace_original_columns" -> "true"
-        )
-      )// .select("normalizationResult", "normalizationStatus")
-
-    dfNormalized
-      .show(false)
-  }
- */
 }
