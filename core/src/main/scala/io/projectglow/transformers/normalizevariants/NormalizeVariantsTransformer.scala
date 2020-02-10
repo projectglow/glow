@@ -31,10 +31,10 @@ import org.apache.spark.sql.functions._
  * Implements DataFrameTransformer to transform the input DataFrame of variants to an output
  * DataFrame of normalized variants (normalization is as defined in vt normalize or bcftools norm).
  *
- * A path to reference genome containing .fasta, and .fai files must be provided
- * through the reference_genome_path option.
+ * A path to the reference genome .fasta file must be provided through the reference_genome_path
+ * option. The .fasta file must nbe accompanied with a .fai index file in the same folder.
  *
- * This transformer adds  a StructType normalizationStatus column to the DataFrame which contains
+ * This transformer adds a StructType normalizationStatus column to the DataFrame which contains
  * the following fields:
  *    - changed: A boolean fields whether the variant data was changed as a result of
  *      normalization.
@@ -47,9 +47,11 @@ import org.apache.spark.sql.functions._
  * referenceAllele, and alternateAlleles columns, whether changed or unchanged.  In case of
  * error, normalizationResult will be null.
  *
- * If the replace_columns option is true (default), the transformer replaces the original start,
- * end, referenceAllele, and alternateAlleles columns with the fields of normalizationResult (for
- * no-error rows) and drops the normalizationResult column.
+ * If the replace_columns option is true (default), the normalizationStatus Column is added to
+ * the DataFrame as explained above but the normalizationResult column will not. Instead, the
+ * transformer replaces the original start, end, referenceAllele, and alternateAlleles columns with
+ * the normalized value in case they have changed. Otherwise (in case of no change or an error),
+ * the original start, end, referenceAllele, and alternateAlleles are not touched.
  *
  */
 class NormalizeVariantsTransformer extends DataFrameTransformer with HlsEventRecorder {

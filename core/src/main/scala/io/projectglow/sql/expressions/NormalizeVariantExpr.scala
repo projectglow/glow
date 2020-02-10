@@ -20,8 +20,10 @@ import java.nio.file.Paths
 
 import htsjdk.samtools.reference.IndexedFastaSequenceFile
 import io.projectglow.transformers.normalizevariants.VariantNormalizer
+
 import org.apache.spark.TaskContext
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCode}
 import org.apache.spark.sql.catalyst.expressions.{Expression, ImplicitCastInputTypes, SenaryExpression}
 import org.apache.spark.sql.catalyst.util.ArrayData
@@ -85,6 +87,15 @@ case class NormalizeVariantExpr(
 
   override def children: Seq[Expression] =
     Seq(contigName, start, end, refAllele, altAlleles, refGenomePathString)
+
+  override def checkInputDataTypes(): TypeCheckResult = {
+    super.checkInputDataTypes()
+    if (!refGenomePathString.foldable) {
+      TypeCheckResult.TypeCheckFailure("Reference Genome Path must be a constant value")
+    } else {
+      TypeCheckResult.TypeCheckSuccess
+    }
+  }
 
   override protected def nullSafeEval(
       contigName: Any,
