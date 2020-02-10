@@ -52,7 +52,6 @@ import org.apache.spark.sql.functions._
  * no-error rows) and drops the normalizationResult column.
  *
  */
-
 class NormalizeVariantsTransformer extends DataFrameTransformer with HlsEventRecorder {
 
   import NormalizeVariantsTransformer._
