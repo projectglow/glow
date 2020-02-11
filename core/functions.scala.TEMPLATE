@@ -51,12 +51,12 @@ object functions {
   {% for function in group.functions %}
 
   /**
-   * {{ function.doc|default|indent(5) }}
+   * {{ function.doc|replace("\n", "\n* ")|indent(3) }}
    * @group {{ group_name }}
    * @since {{ function.since }}
    *
 {% for arg in function.args %}
-   * @param {{ arg.name }} {{ arg.doc|default|indent(12) }}
+   * @param {{ arg.name }} {{ arg.doc|trim|replace("\n", "\n*        ")|indent(3) }}
 {% endfor %}
    */
   {% if function.args[-1].is_optional %}

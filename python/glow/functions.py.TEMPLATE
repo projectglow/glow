@@ -15,12 +15,12 @@ def sc():
 
 def {{ function.name }}({{ function.args|map('fmt_python_signature')|join(', ') }}) -> Column:
     """
-    {{ function.doc|default|indent(4) }}
+    {{ function.doc|trim|indent(4) }}
 
     Parameters
     ----------
     {% for arg in function.args %}
-    {{ arg.name }} : {{ arg.doc|default|indent(8) }}
+    {{ arg.name }} : {{ arg.doc|trim|indent(8) }}
     {% endfor %}
 
     .. versionadded {{ function.since }}

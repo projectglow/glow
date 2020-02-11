@@ -187,7 +187,6 @@ def normalize_variant(contigName: Union[Column, str], start: Union[Column, str],
     alternateAlleles after normalization (whether changed or unchanged). In case of error,
     this struct will be null.
 
-
     Parameters
     ----------
     contigName : The current contigName
@@ -197,7 +196,6 @@ def normalize_variant(contigName: Union[Column, str], start: Union[Column, str],
     altAlleles : Alternate alleles
     refGenomePathString : A path to the reference genome .fasta file. The .fasta file must
         be accompanied with a .fai index file in the same folder.
-
 
     .. versionadded 0.3.0
     """

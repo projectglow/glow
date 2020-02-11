@@ -169,19 +169,19 @@ object functions {
 
   /**
    * Normalize the variant using algorithms similar to vt normalize or bcftools norm. Adds
-     the StructType normalizationStatus and normalizationResult columns to the DataFrame.
-     The fields normalizationStatus are:
-
-     changed: A boolean fields whether the variant data was changed as a result of normalization.
-
-     errorMessage: An error message in case the attempt at normalizing the row hit an
-         error. In this case, the changed field will be set to false. If no errors occur
-         this field will be null.
-
-     The normalizationResult struct will contain the start, end, referenceAllele, and
-     alternateAlleles after normalization (whether changed or unchanged). In case of error,
-     this struct will be null.
-
+   * the StructType normalizationStatus and normalizationResult columns to the DataFrame.
+   * The fields normalizationStatus are:
+   * 
+   * changed: A boolean fields whether the variant data was changed as a result of normalization.
+   * 
+   * errorMessage: An error message in case the attempt at normalizing the row hit an
+   *     error. In this case, the changed field will be set to false. If no errors occur
+   *     this field will be null.
+   * 
+   * The normalizationResult struct will contain the start, end, referenceAllele, and
+   * alternateAlleles after normalization (whether changed or unchanged). In case of error,
+   * this struct will be null.
+   * 
    * @group etl
    * @since 0.3.0
    *
@@ -191,8 +191,7 @@ object functions {
    * @param refAllele Reference allele
    * @param altAlleles Alternate alleles
    * @param refGenomePathString A path to the reference genome .fasta file. The .fasta file must
-            be accompanied with a .fai index file in the same folder.
-
+   *        be accompanied with a .fai index file in the same folder.
    */
   def normalize_variant(contigName: Column, start: Column, end: Column, refAllele: Column, altAlleles: Column, refGenomePathString: String): Column = withExpr {
     io.projectglow.sql.expressions.NormalizeVariantExpr(contigName.expr, start.expr, end.expr, refAllele.expr, altAlleles.expr, Literal(refGenomePathString))
