@@ -221,9 +221,14 @@ case class HardCalls(
     probabilities: Expression,
     numAlts: Expression,
     phased: Expression,
-    threshold: Expression = Literal(0.9))
+    threshold: Expression)
     extends CodegenFallback
     with ImplicitCastInputTypes {
+
+  def this(probabilities: Expression, numAlts: Expression, phased: Expression) = {
+    this(probabilities, numAlts, phased, Literal(0.90d))
+  }
+
   override def children: Seq[Expression] = Seq(probabilities, numAlts, phased, threshold)
   override def inputTypes = { // scalastyle:ignore
     Seq(ArrayType(DoubleType), IntegerType, BooleanType, DecimalType)

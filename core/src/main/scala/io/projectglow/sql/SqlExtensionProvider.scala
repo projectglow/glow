@@ -16,14 +16,20 @@
 
 package io.projectglow.sql
 
-import org.apache.spark.sql.SparkSessionExtensions
+import java.util.{List => JList, Map => JMap}
+
+import scala.collection.JavaConverters._
+
+import org.apache.spark.sql.{SQLUtils, SparkSessionExtensions}
 import org.apache.spark.sql.catalyst.FunctionIdentifier
 import org.apache.spark.sql.catalyst.analysis.FunctionRegistry
-import org.apache.spark.sql.catalyst.expressions.LambdaFunction
+import org.apache.spark.sql.catalyst.expressions.{Expression, ExpressionInfo}
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.internal.SQLConf
+import org.yaml.snakeyaml.Yaml
 
+import io.projectglow.common.WithUtils
 import io.projectglow.sql.expressions._
 import io.projectglow.sql.optimizer.{ReplaceExpressionsRule, ResolveAggregateFunctionsRule}
 
@@ -43,130 +49,108 @@ class GlowSQLExtensions extends (SparkSessionExtensions => Unit) {
 }
 
 object SqlExtensionProvider {
-  import ExpressionHelper.rewrite
+  private val FUNCTION_YAML_PATH = "functions.yml"
 
-  def registerFunctions(conf: SQLConf, functionRegistry: FunctionRegistry): Unit = {
-    functionRegistry.registerFunction(
-      FunctionIdentifier("add_struct_fields"),
-      exprs => AddStructFields(exprs.head, exprs.tail)
-    )
+  private def loadFunctionDefinitions(resourcePath: String): Iterable[JMap[String, Any]] = {
+    val yml = new Yaml()
+    WithUtils.withCloseable(
+      Thread.currentThread().getContextClassLoader.getResourceAsStream(resourcePath)) { stream =>
+      val groups = yml.loadAs(stream, classOf[JMap[String, JMap[String, Any]]])
+      groups
+        .values()
+        .asScala
+        .flatMap(group => group.asScala("functions").asInstanceOf[JList[JMap[String, Any]]].asScala)
+    }
+  }
 
-    functionRegistry.registerFunction(
-      FunctionIdentifier("aggregate_by_index"),
-      exprs =>
-        UnwrappedAggregateByIndex(
-          exprs(0),
-          exprs(1),
-          exprs(2),
-          exprs(3),
-          exprs.lift(4).getOrElse(LambdaFunction.identity))
-    )
+  private def parameterError(functionName: String, params: Int): Exception = {
+    SQLUtils.newAnalysisException(
+      s"Invalid number of parameters for function '$functionName': $params")
+  }
 
-    functionRegistry.registerFunction(
-      FunctionIdentifier("array_summary_stats"),
-      exprs => ArrayStatsSummary(exprs.head)
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("array_to_dense_vector"),
-      exprs => ArrayToDenseVector(exprs.head)
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("array_to_sparse_vector"),
-      exprs => ArrayToSparseVector(exprs.head)
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("call_summary_stats"),
-      exprs => CallStats(exprs.head)
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("dp_summary_stats"),
-      exprs => rewrite(DpSummaryStats(exprs.head))
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("expand_struct"),
-      exprs => ExpandStruct(exprs.head)
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("explode_matrix"),
-      exprs => ExplodeMatrix(exprs.head)
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("genotype_states"),
-      exprs => GenotypeStates(exprs.head)
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("gq_summary_stats"),
-      exprs => rewrite(GqSummaryStats(exprs.head))
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("hard_calls"),
-      exprs => {
-        if (exprs.size == 4) {
-          HardCalls(exprs(0), exprs(1), exprs(2), exprs(3))
-        } else {
-          HardCalls(exprs(0), exprs(1), exprs(2))
-        }
+  private def makeArgsDoc(args: Seq[JMap[String, Any]]): String = {
+    args.map { _arg =>
+      val arg = _arg.asScala
+      val suffix = if (arg.get("is_optional").exists(_.asInstanceOf[Boolean])) {
+        " (optional)"
+      } else if (arg.get("is_var_args").exists(_.asInstanceOf[Boolean])) {
+        " (repeated)"
+      } else {
+        ""
       }
-    )
+      s"${arg("name")}: ${arg("doc")} $suffix"
+    }.mkString("\n")
+  }
 
-    functionRegistry.registerFunction(
-      FunctionIdentifier("hardy_weinberg"),
-      exprs => HardyWeinberg(exprs.head)
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("lift_over_coordinates"),
-      exprs => {
-        if (exprs.size == 5) {
-          LiftOverCoordinatesExpr(exprs(0), exprs(1), exprs(2), exprs(3), exprs(4))
+  /**
+   * Using the argument descriptions from the YAML file and the runtime argument expressions,
+   * create the list of constructor parameters for the expression class.
+   */
+  private def makeChildren(
+      functionName: String,
+      args: Seq[JMap[String, Any]],
+      exprs: Seq[Expression]): Seq[AnyRef] = {
+    args.zipWithIndex.flatMap {
+      case (_arg: JMap[String, Any], idx: Int) =>
+        val arg = _arg.asScala
+        // If the argument is optional and doesn't have a matching input, don't add a new
+        // expression to the list of children.
+        if (arg.get("is_optional").exists(_.asInstanceOf[Boolean]) && idx >= exprs.size) {
+          None
+          // If we have a var args argument, the child expressions from here on are part of
+          // the var args list.
+        } else if (arg.get("is_var_args").exists(_.asInstanceOf[Boolean])) {
+          Some(exprs.slice(idx, exprs.size))
+        } else if (idx >= exprs.size) {
+          throw parameterError(functionName, exprs.size)
+        } else if (idx == args.size - 1 && exprs.size != args.size) {
+          throw parameterError(functionName, exprs.size)
         } else {
-          LiftOverCoordinatesExpr(exprs(0), exprs(1), exprs(2), exprs(3))
+          Some(exprs(idx))
         }
-      }
-    )
+    }
+  }
 
-    functionRegistry.registerFunction(
-      FunctionIdentifier("linear_regression_gwas"),
-      exprs => LinearRegressionExpr(exprs(0), exprs(1), exprs(2))
-    )
+  /**
+   * Register SQL functions based on a yaml function definition file.
+   */
+  def registerFunctions(
+      conf: SQLConf,
+      functionRegistry: FunctionRegistry,
+      resourcePath: String = FUNCTION_YAML_PATH): Unit = {
 
-    functionRegistry.registerFunction(
-      FunctionIdentifier("logistic_regression_gwas"),
-      exprs => LogisticRegressionExpr(exprs(0), exprs(1), exprs(2), exprs(3))
-    )
+    loadFunctionDefinitions(resourcePath).foreach { _function =>
+      val function = _function.asScala
+      val id = FunctionIdentifier(function("name").asInstanceOf[String])
+      val exprClass = function("expr_class").asInstanceOf[String]
+      val args = function("args").asInstanceOf[JList[JMap[String, Any]]].asScala
+      val info = new ExpressionInfo(
+        exprClass,
+        null,
+        function("name").asInstanceOf[String],
+        function("doc").asInstanceOf[String],
+        makeArgsDoc(args),
+        "",
+        "",
+        function("since").asInstanceOf[String]
+      )
+      functionRegistry.registerFunction(
+        id,
+        info,
+        exprs => {
+          val clazz = Class.forName(exprClass, true, Thread.currentThread().getContextClassLoader)
+          val constructorArgs = makeChildren(id.funcName, args, exprs)
+          val constructor = clazz
+            .getConstructors
+            .find(_.getParameterCount == constructorArgs.size)
+            .getOrElse(throw parameterError(id.funcName, exprs.size))
 
-    functionRegistry.registerFunction(
-      FunctionIdentifier("sample_call_summary_stats"),
-      exprs => CallSummaryStats(exprs(0), exprs(1), exprs(2))
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("sample_dp_summary_stats"),
-      exprs => rewrite(SampleDpSummaryStatistics(exprs.head))
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("sample_gq_summary_stats"),
-      exprs => rewrite(SampleGqSummaryStatistics(exprs.head))
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("subset_struct"),
-      exprs => rewrite(SubsetStruct(exprs.head, exprs.tail))
-    )
-
-    functionRegistry.registerFunction(
-      FunctionIdentifier("vector_to_array"),
-      exprs => VectorToArray(exprs.head)
-    )
+          ExpressionHelper.rewrite(
+            constructor
+              .newInstance(constructorArgs: _*)
+              .asInstanceOf[Expression])
+        }
+      )
+    }
   }
 }
