@@ -385,5 +385,5 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
             s"Repalced\n$rowNormReplaced\nNon-replaced\n$rowNormNonReplaced")
       }
   }
-  
+
 }
