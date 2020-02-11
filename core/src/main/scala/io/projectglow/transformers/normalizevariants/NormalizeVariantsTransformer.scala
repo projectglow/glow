@@ -69,21 +69,21 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HlsEventRec
     if (options.contains(MODE_KEY)) {
 
       val modeOption = options.get(MODE_KEY).map(StringUtils.toSnakeCase)
-      backwardCompatibleTransform(df, refGenomePathString, replaceColumns, modeOption)
+
+      backwardCompatibleTransform(
+        df,
+        refGenomePathString,
+        replaceColumns,
+        modeOption
+      )
 
     } else {
 
       recordHlsEvent(HlsTagValues.EVENT_NORMALIZE_VARIANTS)
 
-      if (refGenomePathString.isEmpty) {
-        throw new IllegalArgumentException("Reference genome path not provided!")
-      }
+      validateRefGenomeOption(refGenomePathString)
 
-      normalizeVariants(
-        df,
-        refGenomePathString.get,
-        replaceColumns
-      )
+      normalizeVariants(df, refGenomePathString.get, replaceColumns)
     }
   }
 
@@ -107,15 +107,9 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HlsEventRec
       case Some(MODE_NORMALIZE) =>
         recordHlsEvent(HlsTagValues.EVENT_NORMALIZE_VARIANTS)
 
-        if (refGenomePathString.isEmpty) {
-          throw new IllegalArgumentException("Reference genome path not provided!")
-        }
+        validateRefGenomeOption(refGenomePathString)
 
-        normalizeVariants(
-          df,
-          refGenomePathString.get,
-          replaceColumns
-        )
+        normalizeVariants(df, refGenomePathString.get, replaceColumns)
 
       case Some(MODE_SPLIT) =>
         // TODO: Log splitter usage
@@ -127,20 +121,15 @@ class NormalizeVariantsTransformer extends DataFrameTransformer with HlsEventRec
 
         recordHlsEvent(HlsTagValues.EVENT_NORMALIZE_VARIANTS)
 
-        if (refGenomePathString.isEmpty) {
-          throw new IllegalArgumentException("Reference genome path not provided!")
-        }
+        validateRefGenomeOption(refGenomePathString)
 
-        normalizeVariants(
-          df,
-          refGenomePathString.get,
-          replaceColumns
-        )
+        normalizeVariants(df, refGenomePathString.get, replaceColumns)
 
       case _ =>
         throw new IllegalArgumentException("Invalid mode option!")
     }
   }
+
 }
 
 object NormalizeVariantsTransformer {
@@ -173,12 +162,8 @@ object NormalizeVariantsTransformer {
       )
     )
 
-    val origFields = Seq(
-      startField,
-      endField,
-      refAlleleField,
-      alternateAllelesField
-    )
+    val origFields =
+      Seq(startField, endField, refAlleleField, alternateAllelesField)
 
     if (replaceColumns) {
 
@@ -188,8 +173,8 @@ object NormalizeVariantsTransformer {
             df.withColumn(
               origFields(i).name,
               when(
-                !isnull(col(normalizationResultFieldName)),
-                col(s"${normalizationResultFieldName}.${origFields(i).name}")
+                col(s"$normalizationStatusFieldName.$changedFieldName"),
+                col(s"$normalizationResultFieldName.${origFields(i).name}")
               ).otherwise(col(origFields(i).name))
             )
         )
@@ -200,24 +185,34 @@ object NormalizeVariantsTransformer {
     }
   }
 
+  def validateRefGenomeOption(refGenomePathString: Option[String]): Unit = {
+    if (refGenomePathString.isEmpty) {
+      throw new IllegalArgumentException("Reference genome path not provided!")
+    }
+  }
+
   val REFERENCE_GENOME_PATH = "reference_genome_path"
-  val REPLACE_COLUMNS = "replace_original_columns"
+  val REPLACE_COLUMNS = "replace_columns"
   val NORMALIZER_TRANSFORMER_NAME = "normalize_variants"
 
   @deprecated(
-    "normalize_variants transformer is now for normalization only. split_multiallelics transformer should be used separately for splitting multiallelics")
+    "normalize_variants transformer is now for normalization only. split_multiallelics transformer should be used separately for splitting multiallelics"
+  )
   val MODE_KEY = "mode"
 
   @deprecated(
-    "normalize_variants transformer is now for normalization only. split_multiallelics transformer should be used separately for splitting multiallelics")
+    "normalize_variants transformer is now for normalization only. split_multiallelics transformer should be used separately for splitting multiallelics"
+  )
   val MODE_NORMALIZE = "normalize"
 
   @deprecated(
-    "normalize_variants transformer is now for normalization only. split_multiallelics transformer should be used separately for splitting multiallelics")
+    "normalize_variants transformer is now for normalization only. split_multiallelics transformer should be used separately for splitting multiallelics"
+  )
   val MODE_SPLIT_NORMALIZE = "split_and_normalize"
 
   @deprecated(
-    "normalize_variants transformer is now for normalization only. split_multiallelics transformer should be used separately for splitting multiallelics")
+    "normalize_variants transformer is now for normalization only. split_multiallelics transformer should be used separately for splitting multiallelics"
+  )
   val MODE_SPLIT = "split"
 
 }

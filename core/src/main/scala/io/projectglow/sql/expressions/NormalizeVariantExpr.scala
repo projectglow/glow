@@ -121,7 +121,7 @@ case class NormalizeVariantExpr(
       ev,
       (contigName, start, end, refAllele, altAlleles, refGenomePathString) => {
         s"""
-           |
+         |
          |${ev.value} = io.projectglow.sql.expressions.NormalizeVariantExpr.doVariantNormalization($contigName, $start, $end, $refAllele, $altAlleles, $refGenomePathString);
        """.stripMargin
       }

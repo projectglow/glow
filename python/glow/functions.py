@@ -173,7 +173,20 @@ def lift_over_coordinates(contigName: Union[Column, str], start: Union[Column, s
 
 def normalize_variant(contigName: Union[Column, str], start: Union[Column, str], end: Union[Column, str], refAllele: Union[Column, str], altAlleles: Union[Column, str], refGenomePathString: str) -> Column:
     """
-    Normalize the variant using algorithms similar to vt normalize or bcftools norm. Adds the StructType normalizationStatus and normalizationResult columns to the DataFrame. The fields normalizationStatus are: changed: A boolean fields whether the variant data was changed as a result of normalization. errorMessage: An error message in case the attempt at normalizing the row hit an error. In this case, the changed field will be set to false. If no errors occur this field will be null. The normalizationResult struct will contain the start, end, referenceAllele, and alternateAlleles after normalization (whether changed or unchanged). In case of error, this struct will be null.
+    Normalize the variant using algorithms similar to vt normalize or bcftools norm. Adds
+    the StructType normalizationStatus and normalizationResult columns to the DataFrame.
+    The fields normalizationStatus are:
+
+    changed: A boolean fields whether the variant data was changed as a result of normalization.
+
+    errorMessage: An error message in case the attempt at normalizing the row hit an
+        error. In this case, the changed field will be set to false. If no errors occur
+        this field will be null.
+
+    The normalizationResult struct will contain the start, end, referenceAllele, and
+    alternateAlleles after normalization (whether changed or unchanged). In case of error,
+    this struct will be null.
+
 
     Parameters
     ----------
@@ -182,7 +195,9 @@ def normalize_variant(contigName: Union[Column, str], start: Union[Column, str],
     end : The current end
     refAllele : Reference allele
     altAlleles : Alternate alleles
-    refGenomePathString : A path to the reference genome .fasta file. The .fasta file must nbe accompanied with a .fai index file in the same folder.
+    refGenomePathString : A path to the reference genome .fasta file. The .fasta file must
+        be accompanied with a .fai index file in the same folder.
+
 
     .. versionadded 0.3.0
     """

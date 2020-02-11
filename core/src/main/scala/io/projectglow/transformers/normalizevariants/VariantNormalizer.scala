@@ -209,7 +209,7 @@ object VariantNormalizer extends GlowLogging {
     )
   )
 
-  val normalizationResultsStructField = StructField(
+  val normalizationResultStructField = StructField(
     normalizationResultFieldName,
     StructType(
       Seq(
@@ -222,6 +222,6 @@ object VariantNormalizer extends GlowLogging {
   )
 
   val normalizationSchema = StructType(
-    Seq(normalizationResultsStructField, normalizationStatusStructField)
+    Seq(normalizationResultStructField, normalizationStatusStructField)
   )
 }

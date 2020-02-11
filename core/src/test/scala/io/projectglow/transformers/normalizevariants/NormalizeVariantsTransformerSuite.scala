@@ -386,4 +386,26 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
       }
   }
 
+  test("dev") {
+
+    val dfOriginal = spark
+      .read
+      .format(sourceName)
+      .load(gatkTestVcfSymbolic)
+
+    val dfNormalized = Glow
+      .transform(
+        "normalize_variants",
+        dfOriginal,
+        Map(
+          "reference_genome_path" -> gatkTestReference,
+          "replace_columns" -> "false"
+        )
+      )
+
+    dfNormalized
+      .select("normalizationResult", "normalizationStatus")
+      .show(false)
+  }
+
 }
