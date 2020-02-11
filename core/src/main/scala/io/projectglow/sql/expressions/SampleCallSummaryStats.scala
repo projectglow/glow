@@ -43,11 +43,15 @@ case class CallSummaryStats(
     genotypes: Expression,
     refAllele: Expression,
     altAlleles: Expression,
-    mutableAggBufferOffset: Int = 0,
-    inputAggBufferOffset: Int = 0)
+    mutableAggBufferOffset: Int,
+    inputAggBufferOffset: Int)
     extends TypedImperativeAggregate[mutable.ArrayBuffer[SampleCallStats]]
     with ExpectsGenotypeFields
     with GlowLogging {
+
+  def this(genotypes: Expression, refAllele: Expression, altAlleles: Expression) = {
+    this(genotypes, refAllele, altAlleles, 0, 0)
+  }
 
   override def genotypesExpr: Expression = genotypes
 
