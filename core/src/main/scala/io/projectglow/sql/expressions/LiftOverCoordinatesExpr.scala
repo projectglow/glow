@@ -48,9 +48,13 @@ case class LiftOverCoordinatesExpr(
     start: Expression,
     end: Expression,
     chainFile: Expression,
-    minMatchRatio: Expression = Literal(0.95d))
+    minMatchRatio: Expression)
     extends CodegenFallback
     with ImplicitCastInputTypes {
+
+  def this(contigName: Expression, start: Expression, end: Expression, chainFile: Expression) = {
+    this(contigName, start, end, chainFile, Literal(0.95d))
+  }
 
   private lazy val liftOver = new LiftOver(
     new File(chainFile.eval().asInstanceOf[UTF8String].toString))
