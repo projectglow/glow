@@ -10,7 +10,7 @@ Parallelizing Command-Line Tools With the Pipe Transformer
     path = 'test-data/NA12878_21_10002403.vcf'
 
 To use single-node tools on massive data sets, Glow includes a
-utility called the Pipe Transformer to process Spark DataFrames with command-line programs.
+utility called the Pipe Transformer to process Spark DataFrames with command-line tools.
 
 Usage
 =====
@@ -60,6 +60,8 @@ Integrating with bioinformatics tools
 
 To integrate with tools for genomic data, you can configure the Pipe Transformer to write each
 partition of the input DataFrame as VCF by choosing ``vcf`` as the input and output formatter.
+Here is an example using bedtools, note that the bioinformatics tool must be installed on each
+virtual machine of the Spark cluster.
 
 .. code-block:: python
 
@@ -68,19 +70,16 @@ partition of the input DataFrame as VCF by choosing ``vcf`` as the input and out
     info_free_df = glow.transform(
         'pipe',
         df,
-        cmd='["grep", "-v", "#INFO"]',
+	cmd='["bash", "-c", "/mnt/bin/bedtools intersect -a - -b /dbfs/mnt/tmp/chr22.bed -header -wa"]',
         input_formatter='vcf',
         in_vcf_header='infer',
         output_formatter='vcf'
     )
 
-.. invisible-code-block: python
 
-   assert [f for f in info_free_df.schema.fieldNames() if f.startswith('INFO_')] == []
-
-When you use the VCF input formatter, you must specify a method to determine the VCF header. The
-simplest option is ``infer``, which instructs the Pipe Transformer to derive a VCF header from the
-DataFrame schema.
+When you use the VCF input formatter, you must specify a method to determine the VCF header. The option ``infer``
+instructs the Pipe Transformer to derive a VCF header from the DataFrame schema. Or you can provide the header
+as a blob, or you can point to the filesystem path for an existing VCF file with the correct header.
 
 .. _transformer-options:
 
