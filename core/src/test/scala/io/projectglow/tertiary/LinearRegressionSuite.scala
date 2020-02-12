@@ -26,6 +26,8 @@ import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
 import org.apache.spark.SparkException
 import org.apache.spark.sql.functions._
 
+import RegressionTestUtils._
+import io.projectglow.functions
 import io.projectglow.sql.GlowBaseTest
 import io.projectglow.sql.expressions.{CovariateQRContext, LinearRegressionGwas, RegressionStats}
 import io.projectglow.tertiary.RegressionTestUtils._
@@ -146,6 +148,7 @@ class LinearRegressionSuite extends GlowBaseTest {
   }
 
   private def compareToApacheOLS(testData: TestData, useSpark: Boolean): Unit = {
+    import io.projectglow.functions._
     import sess.implicits._
     val apacheResults = timeIt("Apache linreg") {
       testDataToOlsBaseline(testData)
@@ -310,10 +313,13 @@ class LinearRegressionSuite extends GlowBaseTest {
   }
 
   def checkIllegalArgumentException(rows: Seq[RegressionRow], error: String): Unit = {
+    import io.projectglow.functions._
     val e = intercept[SparkException] {
       spark
         .createDataFrame(rows)
-        .withColumn("linreg", expr("linear_regression_gwas(genotypes, phenotypes, covariates)"))
+        .withColumn(
+          "linreg",
+          linear_regression_gwas(col("genotypes"), col("phenotypes"), col("covariates")))
         .collect
     }
     assert(e.getCause.isInstanceOf[IllegalArgumentException])

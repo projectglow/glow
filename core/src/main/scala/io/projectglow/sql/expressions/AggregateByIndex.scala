@@ -150,9 +150,13 @@ case class UnwrappedAggregateByIndex(
     initialValue: Expression,
     update: Expression,
     merge: Expression,
-    evaluate: Expression = LambdaFunction.identity)
+    evaluate: Expression)
     extends AggregateByIndex
     with UnwrappedAggregateFunction {
+
+  def this(arr: Expression, initialValue: Expression, update: Expression, merge: Expression) = {
+    this(arr, initialValue, update, merge, LambdaFunction.identity)
+  }
 
   override def prettyName: String = "unwrapped_aggregate_by_index"
 

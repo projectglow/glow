@@ -76,8 +76,11 @@ def prepare_definitions(groups):
     definitions.
     '''
 
+    required_fields = ['name', 'doc', 'since', 'expr_class']
     for group in groups.values():
         for function in group['functions']:
+            for field in required_fields:
+                check_field_defined(function, field)
             for i, arg in enumerate(function['args']):
                 if arg.get('is_optional'):
                     assert i == len(function['args']) - 1, f'Only the last argument in the argument'
@@ -86,6 +89,10 @@ def prepare_definitions(groups):
                     assert i == len(function['args']) - 1, f'Only the last argument in the argument'
                     'list can be var args'
     return groups
+
+def check_field_defined(value, field):
+    assert value.get(field), f'Must provide "{field}" field'
+
 
 
 def render_template(template_path, output_path, **kwargs):

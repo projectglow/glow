@@ -9,4 +9,5 @@ def add_spark(doctest_namespace, spark):
     doctest_namespace['spark'] = spark
     doctest_namespace['lit'] = functions.lit
     doctest_namespace['col'] = functions.col
+    doctest_namespace['glow'] = glow
 

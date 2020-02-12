@@ -61,16 +61,16 @@ object functions {
    */
   {% if function.args[-1].is_optional %}
   def {{ function.name }}({{ function.args|map('fmt_scala_signature')|join(', ') }}): Column = withExpr {
-    {{ function.expr_class }}({{ function.args|map('fmt_scala_call')|join(', ') }})
+    new {{ function.expr_class }}({{ function.args|map('fmt_scala_call')|join(', ') }})
   }
 
   def {{ function.name }}({{ function.args[:-1]|map('fmt_scala_signature')|join(', ') }}): Column = withExpr {
-    {{ function.expr_class }}({{ function.args[:-1]|map('fmt_scala_call')|join(', ') }})
+    new {{ function.expr_class }}({{ function.args[:-1]|map('fmt_scala_call')|join(', ') }})
   }
 
   {% else %}
   def {{ function.name }}({{ function.args|map('fmt_scala_signature')|join(', ') }}): Column = withExpr {
-    {{ function.expr_class }}({{ function.args|map('fmt_scala_call')|join(', ') }})
+    new {{ function.expr_class }}({{ function.args|map('fmt_scala_call')|join(', ') }})
   }
   {% endif %}
   {% endfor %}
