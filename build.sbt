@@ -208,7 +208,7 @@ lazy val pythonSettings = Seq(
   libraryDependencies ++= testSparkDependencies,
   sparkClasspath := (fullClasspath in Test).value.files.map(_.getCanonicalPath).mkString(":"),
   sparkHome := (ThisBuild / baseDirectory).value.absolutePath,
-  pythonPath := ((ThisBuild / baseDirectory).value / "python" / "glow").absolutePath,
+  pythonPath := ((ThisBuild / baseDirectory).value / "python").absolutePath,
   publish / skip := true
 )
 

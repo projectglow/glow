@@ -11,12 +11,21 @@ For example:
 .. code-block:: python
 
   import glow
-  glow.transform('pipe', df, ....)
-  df.select(glow.linear_regression_gwas(...))
+  glow.register(spark)
+  df = spark.read.format('vcf').load('test-data/1kg_sample.vcf')
+  glow.transform('pipe', df, cmd='["cat"]', input_formatter='vcf', output_formatter='vcf',
+      in_vcf_header='infer')
+  df.select(glow.genotype_states('genotypes'))
+
+Modules
+~~~~~~~
 
 .. toctree::
 
   functions
+
+Top-Level Functions
+~~~~~~~~~~~~~~~~~~~
 
 .. automodule:: glow.glow
   :members:
