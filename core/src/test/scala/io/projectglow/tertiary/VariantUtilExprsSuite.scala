@@ -337,7 +337,7 @@ class VariantUtilExprsSuite extends GlowBaseTest {
     val df = spark.createDataFrame(Seq(Outer(Inner(1, "two"))))
     df.selectExpr("expand_struct(add_struct_fields(inner, 'new_field', 10))").show()
     try {
-        df.select(expand_struct(add_struct_fields(col("inner"), lit("new_field"), lit(10)))).show()
+      df.select(expand_struct(add_struct_fields(col("inner"), lit("new_field"), lit(10)))).show()
     } catch {
       case e: Exception =>
         logger.info("Failed!", e)
