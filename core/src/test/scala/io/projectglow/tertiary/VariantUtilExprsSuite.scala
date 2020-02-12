@@ -334,15 +334,9 @@ class VariantUtilExprsSuite extends GlowBaseTest {
   }
 
   test("expand struct scala") {
+    import sess.implicits._
     val df = spark.createDataFrame(Seq(Outer(Inner(1, "two"))))
-    df.selectExpr("expand_struct(add_struct_fields(inner, 'new_field', 10))").show()
-    try {
-      df.select(expand_struct(add_struct_fields(col("inner"), lit("new_field"), lit(10)))).show()
-    } catch {
-      case e: Exception =>
-        logger.info("Failed!", e)
-        throw e
-    }
+    assert(df.select(expand_struct(col("inner"))).as[Inner].head == Inner(1, "two"))
   }
 }
 

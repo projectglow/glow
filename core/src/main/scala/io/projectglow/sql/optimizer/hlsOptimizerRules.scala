@@ -17,8 +17,8 @@
 package io.projectglow.sql.optimizer
 
 import org.apache.spark.sql.catalyst.analysis.UnresolvedAlias
-import org.apache.spark.sql.catalyst.expressions.{Alias, Expression}
-import org.apache.spark.sql.catalyst.plans.logical.{LogicalPlan, Project}
+import org.apache.spark.sql.catalyst.expressions.{Alias, Expression, NamedExpression}
+import org.apache.spark.sql.catalyst.plans.logical.{Aggregate, LogicalPlan, Project}
 import org.apache.spark.sql.catalyst.rules.Rule
 
 import io.projectglow.common.GlowLogging
@@ -30,13 +30,10 @@ import io.projectglow.sql.util.RewriteAfterResolution
  */
 object ReplaceExpressionsRule extends Rule[LogicalPlan] with GlowLogging {
   override def apply(plan: LogicalPlan): LogicalPlan = {
-    logger.info(s"Trying to rewrite expressions in ${plan}")
     plan.transformAllExpressions {
       case expr: RewriteAfterResolution =>
-        logger.info(s"Rewriting $expr")
         ExpressionHelper.wrapAggregate(expr.rewrite)
       case expr =>
-        logger.info(s"Not rewriting $expr")
         expr
     }
   }
@@ -59,16 +56,11 @@ object ResolveAggregateFunctionsRule extends Rule[LogicalPlan] {
 
 object ResolveExpandStructRule extends Rule[LogicalPlan] with GlowLogging {
   override def apply(plan: LogicalPlan): LogicalPlan = {
-    logger.info(plan.toString())
     plan.resolveOperatorsUp {
-      case Project(projectList, child) if canExpand(projectList) =>
-        val expandedList = projectList.flatMap {
-          case UnresolvedAlias(e: ExpandStruct, _) => e.expand()
-          case Alias(e: ExpandStruct, _) => e.expand()
-          case e: ExpandStruct => e.expand()
-          case e => Seq(e)
-        }
-        Project(expandedList, child)
+      case p @Project(projectList, _) if canExpand(projectList) =>
+        p.copy(projectList = expandExprs(p.projectList))
+      case a @ Aggregate(_, aggregateExpressions, _) if canExpand(aggregateExpressions) =>
+        a.copy(aggregateExpressions = expandExprs(a.aggregateExpressions))
     }
   }
 
@@ -77,5 +69,14 @@ object ResolveExpandStructRule extends Rule[LogicalPlan] with GlowLogging {
     case UnresolvedAlias(e: ExpandStruct, _) => e.childrenResolved
     case Alias(e: ExpandStruct, _) => e.childrenResolved
     case _ => false
+  }
+
+  private def expandExprs(exprs: Seq[NamedExpression]): Seq[NamedExpression] = {
+    exprs.flatMap {
+      case UnresolvedAlias(e: ExpandStruct, _) => e.expand()
+      case Alias(e: ExpandStruct, _) => e.expand()
+      case e: ExpandStruct => e.expand()
+      case e => Seq(e)
+    }
   }
 }
