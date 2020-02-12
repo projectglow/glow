@@ -179,18 +179,20 @@ object functions {
 
 
   /**
-   * Normalize the variant using algorithms similar to vt normalize or bcftools norm.
+   * Normalize the variant with a behavior similar to vt normalize or bcftools norm.
    * Creates a StructType column including the normalized start, end, referenceAllele and
-   * alternateAlleles fields (whether changed or unchanged) as well as a StructType field
-   * called normalizationStatus that contains the follwoing fields:
+   * alternateAlleles fields (whether they are changed or unchanged as the result of
+   * normalization) as well as a StructType field called normalizationStatus that
+   * contains the following fields:
    * 
-   * changed: A boolean fields whether the variant data was changed as a result of normalization.
+   * changed: A boolean field indicating whether the variant data was changed as a
+   *     result of normalization.
    * 
    * errorMessage: An error message in case the attempt at normalizing the row hit an
-   *     error. In this case, the changed field will be set to false. If no errors occur
+   *     error. In this case, the changed field will be set to false. If no errors occur,
    *     this field will be null.
    * 
-   * In case of error, the start, end, referemnceAllele and alternateAlleles fields in
+   * In case of an error, the start, end, referenceAllele and alternateAlleles fields in
    * the generated struct will be null.
    * 
    * @group etl
