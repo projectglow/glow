@@ -54,10 +54,16 @@ object ResolveAggregateFunctionsRule extends Rule[LogicalPlan] {
   }
 }
 
-object ResolveExpandStructRule extends Rule[LogicalPlan] with GlowLogging {
+/**
+ * Handles [[ExpandStruct]] commands similarly to how [[org.apache.spark.sql.catalyst.analysis.Star]]
+ * is handled in Spark. If the struct to expand has not yet been resolved, we intentionally
+ * do nothing with the expectation that we have not yet reached a fixed point in analysis and
+ * will be able to perform the expansion in a future iteration.
+ */
+object ResolveExpandStructRule extends Rule[LogicalPlan] {
   override def apply(plan: LogicalPlan): LogicalPlan = {
     plan.resolveOperatorsUp {
-      case p @Project(projectList, _) if canExpand(projectList) =>
+      case p @ Project(projectList, _) if canExpand(projectList) =>
         p.copy(projectList = expandExprs(p.projectList))
       case a @ Aggregate(_, aggregateExpressions, _) if canExpand(aggregateExpressions) =>
         a.copy(aggregateExpressions = expandExprs(a.aggregateExpressions))
