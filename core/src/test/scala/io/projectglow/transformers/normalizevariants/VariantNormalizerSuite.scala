@@ -69,12 +69,10 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
     assert(
       normalizedVariant ==
       InternalRow(
-        InternalRow(
-          expectedStart,
-          expectedEnd,
-          UTF8String.fromString(expectedRefAllele),
-          ArrayData.toArrayData(expectedAltAlleles.map(UTF8String.fromString(_)))
-        ),
+        expectedStart,
+        expectedEnd,
+        UTF8String.fromString(expectedRefAllele),
+        ArrayData.toArrayData(expectedAltAlleles.map(UTF8String.fromString(_))),
         InternalRow(
           expectedChanged,
           expectedErrorMessage.map(UTF8String.fromString).orNull
@@ -106,9 +104,9 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
         refGenomeIndexedFasta
       )
 
-    val expectedRow = new GenericInternalRow(2)
+    val expectedRow = new GenericInternalRow(5)
     expectedRow.update(
-      1,
+      4,
       InternalRow(
         false,
         expectedErrorMessage.map(UTF8String.fromString).orNull

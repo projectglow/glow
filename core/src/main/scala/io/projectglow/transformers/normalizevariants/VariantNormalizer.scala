@@ -31,7 +31,7 @@ object VariantNormalizer extends GlowLogging {
   /**
    * Contains the main normalization logic. Given contigName, start, end, refAllele, and
    * altAlleles of a variant as well as the indexed fasta file of the reference genome,
-   * creates an InternalRow of the normalization result with the [[normalizationSchema]].
+   * creates an InternalRow of the normalization result.
    *
    * The algorithm has a logic similar to bcftools norm or vt normalize:
    *
@@ -158,22 +158,17 @@ object VariantNormalizer extends GlowLogging {
       }
     }
 
-    val outputRow = new GenericInternalRow(2)
+    val outputRow = new GenericInternalRow(5)
 
     if (errorMessage.isEmpty) {
-      outputRow.update(
-        0,
-        InternalRow(
-          newStart,
-          end - trimSize,
-          UTF8String.fromString(allAlleles(0)),
-          ArrayData.toArrayData(allAlleles.tail.map(UTF8String.fromString(_)))
-        )
-      )
+      outputRow.update(0, newStart)
+      outputRow.update(1, end - trimSize)
+      outputRow.update(2, UTF8String.fromString(allAlleles(0)))
+      outputRow.update(3, ArrayData.toArrayData(allAlleles.tail.map(UTF8String.fromString(_))))
     }
 
     outputRow.update(
-      1,
+      4,
       InternalRow(
         flag,
         errorMessage.map(UTF8String.fromString).orNull
@@ -209,19 +204,15 @@ object VariantNormalizer extends GlowLogging {
     )
   )
 
-  val normalizationResultStructField = StructField(
-    normalizationResultFieldName,
+  val normalizationResultStructType =
     StructType(
       Seq(
         startField,
         endField,
         refAlleleField,
-        alternateAllelesField
+        alternateAllelesField,
+        normalizationStatusStructField
       )
     )
-  )
 
-  val normalizationSchema = StructType(
-    Seq(normalizationResultStructField, normalizationStatusStructField)
-  )
 }

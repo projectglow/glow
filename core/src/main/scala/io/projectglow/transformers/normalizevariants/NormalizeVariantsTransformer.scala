@@ -19,7 +19,7 @@ package io.projectglow.transformers.normalizevariants
 import io.projectglow.DataFrameTransformer
 import io.projectglow.common.VariantSchemas._
 import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
-import io.projectglow.functions.{expand_struct, normalize_variant}
+import io.projectglow.functions.normalize_variant
 import io.projectglow.transformers.normalizevariants.VariantNormalizer._
 import io.projectglow.transformers.splitmultiallelics.VariantSplitter
 import io.projectglow.transformers.util.StringUtils
@@ -34,25 +34,24 @@ import org.apache.spark.sql.functions._
  * A path to the reference genome .fasta file must be provided through the reference_genome_path
  * option. The .fasta file must nbe accompanied with a .fai index file in the same folder.
  *
- * This transformer adds a StructType normalizationStatus column to the DataFrame which contains
- * the following fields:
+ * The transformer output columns can be controlled by the replace_columns option.
+ * If replace_columns option is true (default), the transformer replaces the original start, end,
+ * referenceAllele, and alternateAlleles columns with the normalized value in case they have
+ * changed. Otherwise (in case of no change or an error), the original start, end, referenceAllele,
+ * and alternateAlleles are not touched. A StructType normalizationStatus column is added to
+ * the DataFrame as explained above but the normalizationResult column will not. Instead,
+ * which contains the following fields:
  *    - changed: A boolean fields whether the variant data was changed as a result of
  *      normalization.
  *    - errorMessage: An error message in case the attempt at normalizing the row
  *       hit an error. In this case, the changed field will be set to false. If no errors occur
  *       this field will be null.
  *
- * If the replace_columns option is false, the transformer also adds the StructType
- * normalizationResult column to the DataFrame which contains the normalized start, end,
- * referenceAllele, and alternateAlleles columns, whether changed or unchanged.  In case of
- * error, normalizationResult will be null.
- *
- * If the replace_columns option is true (default), the normalizationStatus Column is added to
- * the DataFrame as explained above but the normalizationResult column will not. Instead, the
- * transformer replaces the original start, end, referenceAllele, and alternateAlleles columns with
- * the normalized value in case they have changed. Otherwise (in case of no change or an error),
- * the original start, end, referenceAllele, and alternateAlleles are not touched.
- *
+ * If the replace_columns option is false, the transformer does not touch the original start, end,
+ * referenceAllele and alternateAlleles columns. Instead, a StructType columns called
+ * normalizationResult is added to tthe DataFrame which contains the normalized start, end,
+ * referenceAllele, and alternateAlleles columns as well as the normalizationStatus StructType as
+ * the fifth field. In case of error, the first four fields in normalizationResult will be null.
  */
 class NormalizeVariantsTransformer extends DataFrameTransformer with HlsEventRecorder {
 
@@ -148,9 +147,9 @@ object NormalizeVariantsTransformer {
       refGenomePathString: String,
       replaceColumns: Boolean): DataFrame = {
 
-    val dfNormalized = df.select(
-      col("*"),
-      expand_struct(
+    val dfNormalized = df
+      .withColumn(
+        normalizationResultFieldName,
         normalize_variant(
           col(contigNameField.name),
           col(startField.name),
@@ -160,7 +159,6 @@ object NormalizeVariantsTransformer {
           refGenomePathString
         )
       )
-    )
 
     val origFields =
       Seq(startField, endField, refAlleleField, alternateAllelesField)
@@ -173,15 +171,22 @@ object NormalizeVariantsTransformer {
             df.withColumn(
               origFields(i).name,
               when(
-                col(s"$normalizationStatusFieldName.$changedFieldName"),
+                col(
+                  s"$normalizationResultFieldName.$normalizationStatusFieldName.$changedFieldName"),
                 col(s"$normalizationResultFieldName.${origFields(i).name}")
               ).otherwise(col(origFields(i).name))
             )
         )
+        .withColumn(
+          normalizationStatusFieldName,
+          col(s"$normalizationResultFieldName.$normalizationStatusFieldName")
+        )
         .drop(normalizationResultFieldName)
 
     } else {
+
       dfNormalized
+
     }
   }
 

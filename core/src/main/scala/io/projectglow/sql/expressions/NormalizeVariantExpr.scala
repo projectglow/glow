@@ -80,7 +80,7 @@ case class NormalizeVariantExpr(
 
   override def prettyName: String = "normalize_variant"
 
-  override def dataType: DataType = VariantNormalizer.normalizationSchema
+  override def dataType: DataType = VariantNormalizer.normalizationResultStructType
 
   override def inputTypes: Seq[DataType] =
     Seq(StringType, LongType, LongType, StringType, ArrayType(StringType), StringType)
