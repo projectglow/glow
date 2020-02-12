@@ -20,7 +20,7 @@ def {{ function.name }}({{ function.args|map('fmt_python_signature')|join(', ') 
     Added in version {{ function.since }}.
 
     Examples:
-        {{ function.example|default|trim|indent(8) }}
+        {{ function.examples.python|trim|indent(8) }}
 
     Args:
     {% for arg in function.args %}
