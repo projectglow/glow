@@ -8,9 +8,10 @@ Parallelizing Command-Line Tools With the Pipe Transformer
     glow.register(spark)
 
     path = 'test-data/NA12878_21_10002403.vcf'
+    bed = 'test-data/bedtools/intersect_21.bed'
 
 To use single-node tools on massive data sets, Glow includes a
-utility called the Pipe Transformer to process Spark DataFrames with command-line programs.
+utility called the Pipe Transformer to process Spark DataFrames with command-line tools.
 
 Usage
 =====
@@ -60,15 +61,17 @@ Integrating with bioinformatics tools
 
 To integrate with tools for genomic data, you can configure the Pipe Transformer to write each
 partition of the input DataFrame as VCF by choosing ``vcf`` as the input and output formatter.
+Here is an example using bedtools, note that the bioinformatics tool must be installed on each
+virtual machine of the Spark cluster.
 
 .. code-block:: python
 
     df = spark.read.format("vcf").load(path)
 
-    info_free_df = glow.transform(
+    intersection_df = glow.transform(
         'pipe',
         df,
-        cmd='["grep", "-v", "#INFO"]',
+        cmd='["bedtools", "intersect", "-a", "stdin", "-b", "{bed}", "-header", "-wa"]'.format(bed=bed),
         input_formatter='vcf',
         in_vcf_header='infer',
         output_formatter='vcf'
@@ -76,11 +79,15 @@ partition of the input DataFrame as VCF by choosing ``vcf`` as the input and out
 
 .. invisible-code-block: python
 
-   assert [f for f in info_free_df.schema.fieldNames() if f.startswith('INFO_')] == []
+   from pyspark.sql import Row
+   intersection_rows = intersection_df.select("contigName", "start").collect()
+   assert(len(intersection_rows) == 2)
+   assert_rows_equal(intersection_rows[0], Row(contigName="21", start=10002402))
+   assert_rows_equal(intersection_rows[1], Row(contigName="21", start=10002453))
 
-When you use the VCF input formatter, you must specify a method to determine the VCF header. The
-simplest option is ``infer``, which instructs the Pipe Transformer to derive a VCF header from the
-DataFrame schema.
+When you use the VCF input formatter, you must specify a method to determine the VCF header. The option ``infer``
+instructs the Pipe Transformer to derive a VCF header from the DataFrame schema. Or you can provide the header
+as a blob, or you can point to the filesystem path for an existing VCF file with the correct header.
 
 .. _transformer-options:
 
