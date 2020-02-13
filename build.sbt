@@ -1,8 +1,8 @@
-import java.nio.file.{CopyOption, Files, StandardCopyOption}
-
 import scala.sys.process._
 
 import sbt.Tests._
+import sbt.Keys._
+import sbt.nio.Keys._
 
 val sparkVersion = "2.4.3"
 
@@ -30,16 +30,6 @@ Test / fork := true
 concurrentRestrictions in Global := Seq(
   Tags.limit(Tags.ForkedTestGroup, testConcurrency)
 )
-
-lazy val functionsYml = taskKey[File]("functionsYml")
-ThisBuild / functionsYml := (ThisBuild / baseDirectory).value / "functions.yml"
-// Script to generate function definitions from YAML file
-lazy val generatorScript = taskKey[File]("generatorScript")
-ThisBuild / generatorScript := (ThisBuild / baseDirectory).value / "python" / "render_template.py"
-
-def runCmd(args: File*): Unit = {
-  args.map(_.getPath).!!
-}
 
 def groupByHash(tests: Seq[TestDefinition]): Seq[Tests.Group] = {
   tests
@@ -75,6 +65,27 @@ lazy val commonSettings = Seq(
       MergeStrategy.first
   },
   scalacOptions += "-target:jvm-1.8"
+)
+
+lazy val functionsYml = settingKey[File]("functionsYml")
+ThisBuild / functionsYml := (ThisBuild / baseDirectory).value / "functions.yml"
+// Script to generate function definitions from YAML file
+lazy val generatorScript = settingKey[File]("generatorScript")
+ThisBuild / generatorScript := (ThisBuild / baseDirectory).value / "python" / "render_template.py"
+lazy val generatedFunctionsOutput = settingKey[File]("generatedFunctionsOutput")
+lazy val functionsTemplate = settingKey[File]("functionsTemplate")
+lazy val generateFunctions = taskKey[Seq[File]]("generateFunctions")
+
+def runCmd(args: File*): Unit = {
+  args.map(_.getPath).!!
+}
+
+lazy val functionGenerationSettings = Seq(
+  generateFunctions := {
+    runCmd(generatorScript.value, functionsTemplate.value, generatedFunctionsOutput.value)
+    Seq.empty[File]
+  },
+  generateFunctions / fileInputs := Seq(functionsTemplate.value, functionsYml.value, generatorScript.value).map(_.toGlob)
 )
 
 lazy val sparkDependencies = Seq(
@@ -152,6 +163,7 @@ lazy val root = (project in file("."))
 lazy val core = (project in file("core"))
   .settings(
     commonSettings,
+    functionGenerationSettings,
     name := "glow",
     publish / skip := false,
     // Adds the Git hash to the MANIFEST file. We set it here instead of relying on sbt-release to
@@ -162,12 +174,9 @@ lazy val core = (project in file("core"))
     libraryDependencies ++= coreDependencies,
     Compile / unmanagedSourceDirectories += baseDirectory.value / "src" / "main" / "shim" / "2.4",
     Test / unmanagedSourceDirectories += baseDirectory.value / "src" / "test" / "shim" / "2.4",
-    sourceGenerators in Compile += Def.task {
-      val file = baseDirectory.value / "functions.scala.TEMPLATE"
-      val output = (Compile / scalaSource).value / "io" / "projectglow" / "functions.scala"
-      runCmd(generatorScript.value, file, output)
-      Seq(output)
-    }.taskValue
+    functionsTemplate := baseDirectory.value / "functions.scala.TEMPLATE",
+    generatedFunctionsOutput := (Compile / scalaSource).value / "io" / "projectglow" / "functions.scala",
+    sourceGenerators in Compile += generateFunctions
   )
   .cross
 
@@ -201,7 +210,7 @@ lazy val pythonSettings = Seq(
   libraryDependencies ++= testSparkDependencies,
   sparkClasspath := (fullClasspath in Test).value.files.map(_.getCanonicalPath).mkString(":"),
   sparkHome := (ThisBuild / baseDirectory).value.absolutePath,
-  pythonPath := ((ThisBuild / baseDirectory).value / "python" / "glow").absolutePath,
+  pythonPath := ((ThisBuild / baseDirectory).value / "python").absolutePath,
   publish / skip := true
 )
 
@@ -209,22 +218,20 @@ lazy val python =
   (project in file("python"))
     .settings(
       pythonSettings,
+      functionGenerationSettings,
       test in Test := {
         // Pass the test classpath to pyspark so that we run the same bits as the Scala tests
         val ret = Process(
-          Seq("pytest", "python"),
+          Seq("pytest", "--doctest-modules", "python"),
           None,
           "SPARK_CLASSPATH" -> sparkClasspath.value,
           "SPARK_HOME" -> sparkHome.value
         ).!
         require(ret == 0, "Python tests failed")
       },
-      sourceGenerators in Compile += Def.task {
-        val file = baseDirectory.value / "glow" / "functions.py.TEMPLATE"
-        val output = baseDirectory.value / "glow" / "functions.py"
-        runCmd(generatorScript.value, file, output)
-        Seq.empty[File]
-      }.taskValue
+      generatedFunctionsOutput := baseDirectory.value / "glow" / "functions.py",
+      functionsTemplate := baseDirectory.value / "glow" / "functions.py.TEMPLATE",
+      sourceGenerators in Compile += generateFunctions
     )
     .cross
     .dependsOn(core % "test->test")
@@ -248,7 +255,7 @@ lazy val docs = (project in file("docs"))
     }
   )
   .cross
-  .dependsOn(core % "test->test")
+  .dependsOn(core % "test->test", python)
 
 lazy val docs_2_11 = docs(scala211)
 lazy val docs_2_12 = docs(scala212)
