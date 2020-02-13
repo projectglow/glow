@@ -22,15 +22,21 @@ import scala.collection.JavaConverters._
 
 import com.univocity.parsers.csv.CsvParser
 import org.apache.commons.io.IOUtils
-import org.apache.spark.sql.execution.datasources.csv._
+import org.apache.spark.sql.execution.datasources.csv.{CSVDataSourceUtils, CSVUtils, UnivocityParserUtils}
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
+
+import io.projectglow.SparkShim.{CSVOptions, UnivocityParser}
 
 class CSVOutputFormatter(parsedOptions: CSVOptions) extends OutputFormatter {
 
   private def getSchema(record: Array[String]): StructType = {
     val header =
-      CSVDataSourceUtils.makeSafeHeader(record, SQLConf.get.caseSensitiveAnalysis, parsedOptions)
+      CSVDataSourceUtils.makeSafeHeader(
+        record,
+        SQLConf.get.caseSensitiveAnalysis,
+        parsedOptions
+      )
     val fields = header.map { fieldName =>
       StructField(fieldName, StringType, nullable = true)
     }
@@ -59,7 +65,8 @@ class CSVOutputFormatter(parsedOptions: CSVOptions) extends OutputFormatter {
       UnivocityParserUtils.parseIterator(
         Iterator(firstLine) ++ filteredLines,
         univocityParser,
-        schema)
+        schema
+      )
 
     val parsedIterWithoutHeader = if (parsedOptions.headerFlag) {
       parsedIter.drop(1)
@@ -74,9 +81,15 @@ class CSVOutputFormatter(parsedOptions: CSVOptions) extends OutputFormatter {
 class CSVOutputFormatterFactory extends OutputFormatterFactory {
   override def name: String = "csv"
 
-  override def makeOutputFormatter(options: Map[String, String]): OutputFormatter = {
+  override def makeOutputFormatter(
+      options: Map[String, String]
+  ): OutputFormatter = {
     val parsedOptions =
-      new CSVOptions(options, SQLConf.get.csvColumnPruning, SQLConf.get.sessionLocalTimeZone)
+      new CSVOptions(
+        options,
+        SQLConf.get.csvColumnPruning,
+        SQLConf.get.sessionLocalTimeZone
+      )
     new CSVOutputFormatter(parsedOptions)
   }
 }

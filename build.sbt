@@ -160,6 +160,8 @@ lazy val core = (project in file("core"))
     Package.ManifestAttributes("Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
     bintrayRepository := "glow",
     libraryDependencies ++= coreDependencies,
+    Compile / unmanagedSourceDirectories += baseDirectory.value / "src" / "main" / "shim" / "2.4",
+    Test / unmanagedSourceDirectories += baseDirectory.value / "src" / "test" / "shim" / "2.4",
     sourceGenerators in Compile += Def.task {
       val file = baseDirectory.value / "functions.scala.TEMPLATE"
       val output = (Compile / scalaSource).value / "io" / "projectglow" / "functions.scala"
