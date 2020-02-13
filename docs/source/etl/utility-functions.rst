@@ -12,7 +12,7 @@ Glow includes a variety of utility functions for performing basic data manipulat
 Struct transformations
 ======================
 
-Glow's struct transformation functions change the schema of a struct. These transformations integrate with functions
+Glow's struct transformation functions changes the schema structure of the DataFrame. These transformations integrate with functions
 whose parameter structs require a certain schema.
 
 - ``subset_struct``: subset fields from a struct
@@ -58,7 +58,7 @@ Spark ML transformations
 ========================
 
 Glow supports transformations between double arrays and Spark ML vectors for integration with machine learning
-libraries such as MLlib.
+libraries such as Spark's machine learning library (MLlib).
 
 - ``array_to_dense_vector``: transform from an array to a dense vector
 
