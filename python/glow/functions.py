@@ -13,7 +13,7 @@ def sc():
 
 def add_struct_fields(struct: Union[Column, str], *fields: Union[Column, str]) -> Column:
     """
-    Add fields to a struct
+    Adds fields to a struct.
 
     Added in version 0.3.0.
 
@@ -23,8 +23,8 @@ def add_struct_fields(struct: Union[Column, str], *fields: Union[Column, str]) -
         [Row(struct=Row(a=1, b=2))]
 
     Args:
-        struct: The struct to which fields will be added
-        fields: New fields
+        struct: The struct to which fields will be added.
+        fields: The new fields to add. The arguments must alternate between string-typed literal field names and field values.
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.add_struct_fields(_to_java_column(struct), _to_seq(sc(), fields, _to_java_column)))
@@ -34,7 +34,7 @@ def add_struct_fields(struct: Union[Column, str], *fields: Union[Column, str]) -
 
 def array_summary_stats(arr: Union[Column, str]) -> Column:
     """
-    Compute the min, max, mean, stddev for an array of numerics
+    Computes the min, max, mean, stddev for an array of numerics. The input array can be any numeric type, but the returned stats are always ``double`` typed.
 
     Added in version 0.3.0.
 
@@ -54,7 +54,7 @@ def array_summary_stats(arr: Union[Column, str]) -> Column:
 
 def array_to_dense_vector(arr: Union[Column, str]) -> Column:
     """
-    Convert an array of numerics into a spark.ml DenseVector
+    Converts an array of numerics into a ``spark.ml`` ``DenseVector``.
 
     Added in version 0.3.0.
 
@@ -75,7 +75,7 @@ def array_to_dense_vector(arr: Union[Column, str]) -> Column:
 
 def array_to_sparse_vector(arr: Union[Column, str]) -> Column:
     """
-    Convert an array of numerics into a spark.ml SparseVector
+    Converts an array of numerics into a ``spark.ml`` ``SparseVector``.
 
     Added in version 0.3.0.
 
@@ -96,7 +96,7 @@ def array_to_sparse_vector(arr: Union[Column, str]) -> Column:
 
 def expand_struct(struct: Union[Column, str]) -> Column:
     """
-    Promote fields of a nested struct to top-level columns. Similar to using struct.* from SQL, but can be used in more contexts.
+    Promotes fields of a nested struct to top-level columns. Similar to using struct.* from SQL, but can be used in more contexts.
 
     Added in version 0.3.0.
 
@@ -116,7 +116,7 @@ def expand_struct(struct: Union[Column, str]) -> Column:
 
 def explode_matrix(matrix: Union[Column, str]) -> Column:
     """
-    Explode a spark.ml Matrix into arrays of rows
+    Explodes a ``spark.ml`` matrix (sparse or dense) into multiple arrays, one per row of the matrix.
 
     Added in version 0.3.0.
 
@@ -138,7 +138,7 @@ def explode_matrix(matrix: Union[Column, str]) -> Column:
 
 def subset_struct(struct: Union[Column, str], *fields: str) -> Column:
     """
-    Select fields from a struct
+    Selects fields from a struct. The return value will be a struct containing only the desired fields.
 
     Added in version 0.3.0.
 
@@ -149,7 +149,7 @@ def subset_struct(struct: Union[Column, str], *fields: str) -> Column:
 
     Args:
         struct: Struct from which to select fields
-        fields: Fields to take
+        fields: Fields to select
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.subset_struct(_to_java_column(struct), _to_seq(sc(), fields)))
@@ -159,7 +159,7 @@ def subset_struct(struct: Union[Column, str], *fields: str) -> Column:
 
 def vector_to_array(vector: Union[Column, str]) -> Column:
     """
-    Convert a spark.ml vector (sparse or dense) to an array of doubles
+    Converts a ``spark.ml`` vector (sparse or dense) to an array of doubles.
 
     Added in version 0.3.0.
 
@@ -181,7 +181,7 @@ def vector_to_array(vector: Union[Column, str]) -> Column:
 
 def hard_calls(probabilities: Union[Column, str], numAlts: Union[Column, str], phased: Union[Column, str], threshold: float = None) -> Column:
     """
-    Converts an array of probabilities to hard calls
+    Converts an array of probabilities to hard calls. See :ref:`variant-data-transformations` for more details. The probabilites are assumed to be diploid.
 
     Added in version 0.3.0.
 
@@ -198,10 +198,10 @@ def hard_calls(probabilities: Union[Column, str], numAlts: Union[Column, str], p
         [Row(calls=[-1, -1])]
 
     Args:
-        probabilities: Probabilities
-        numAlts: The number of alts
-        phased: Whether the probabilities are phased or not
-        threshold: The minimum probability to include
+        probabilities: The array of probabilities to convert
+        numAlts: The number of alternate alleles
+        phased: Whether the probabilities are phased. If phased, we expect one 2 * numAlts values in probabilities array. If unphased, we expect one probability per possible genotype.
+        threshold: The minimum probability to make a call. If no probability falls into the range of [0, 1 - threshold] or [threshold, 1], a no-call (represented by -1s) will be emitted. If not provided, this parameter defaults to 0.9.
     """
     assert check_argument_types()
     if threshold is None:
@@ -214,7 +214,7 @@ def hard_calls(probabilities: Union[Column, str], numAlts: Union[Column, str], p
 
 def lift_over_coordinates(contigName: Union[Column, str], start: Union[Column, str], end: Union[Column, str], chainFile: str, minMatchRatio: float = None) -> Column:
     """
-    Do liftover like Picard
+    Performs lift over for the coordinates of a variants. To lift over alleles and add additional metadata, see :ref:`liftover`.
 
     Added in version 0.3.0.
 
@@ -233,7 +233,7 @@ def lift_over_coordinates(contigName: Union[Column, str], start: Union[Column, s
         start: The current start
         end: The current end
         chainFile: Location of the chain file on each node in the cluster
-        minMatchRatio: Minimum fraction of bases that must remap to lift over successfully
+        minMatchRatio: Minimum fraction of bases that must remap to lift over successfully. If not provided, defaults to 0.95.
     """
     assert check_argument_types()
     if minMatchRatio is None:
@@ -247,7 +247,7 @@ def lift_over_coordinates(contigName: Union[Column, str], start: Union[Column, s
 
 def call_summary_stats(genotypes: Union[Column, str]) -> Column:
     """
-    Compute call stats for an array of genotype structs
+    Computes call summary statistics for an array of genotype structs. See :ref:`variant-qc` for more details.
 
     Added in version 0.3.0.
 
@@ -268,7 +268,7 @@ def call_summary_stats(genotypes: Union[Column, str]) -> Column:
 
 def dp_summary_stats(genotypes: Union[Column, str]) -> Column:
     """
-    Compute summary statistics for depth field from array of genotype structs
+    Computes summary statistics for the depth field from array of genotype structs.
 
     Added in version 0.3.0.
 
@@ -288,7 +288,7 @@ def dp_summary_stats(genotypes: Union[Column, str]) -> Column:
 
 def hardy_weinberg(genotypes: Union[Column, str]) -> Column:
     """
-    Compute statistics relating to the Hardy Weinberg equilibrium
+    Computes statistics relating to the Hardy Weinberg equilibrium. See :ref:`variant-qc` for more details.
 
     Added in version 0.3.0.
 
@@ -312,7 +312,7 @@ def hardy_weinberg(genotypes: Union[Column, str]) -> Column:
 
 def gq_summary_stats(genotypes: Union[Column, str]) -> Column:
     """
-    Compute summary statistics about the genotype quality field for an array of genotype structs
+    Computes summary statistics about the genotype quality field for an array of genotype structs
 
     Added in version 0.3.0.
 
@@ -336,7 +336,7 @@ def gq_summary_stats(genotypes: Union[Column, str]) -> Column:
 
 def sample_call_summary_stats(genotypes: Union[Column, str], refAllele: Union[Column, str], alternateAlleles: Union[Column, str]) -> Column:
     """
-    Compute per-sample call stats
+    Computes per-sample call summary statistics. See :ref:`sample-qc` for more details.
 
     Added in version 0.3.0.
 
@@ -411,7 +411,7 @@ def sample_gq_summary_stats(genotypes: Union[Column, str]) -> Column:
 
 def linear_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Column, str], covariates: Union[Column, str]) -> Column:
     """
-    A linear regression GWAS function
+    Performs a linear regression association test optimized for performance in a GWAS setting. See :ref:`linear-regression` for details.
 
     Added in version 0.3.0.
 
@@ -427,7 +427,7 @@ def linear_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Colu
     Args:
         genotypes: An array of genotypes
         phenotypes: An array of phenotypes
-        covariates: A Spark matrix of covariates
+        covariates: A spark.ml matrix of covariates
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.linear_regression_gwas(_to_java_column(genotypes), _to_java_column(phenotypes), _to_java_column(covariates)))
@@ -437,7 +437,7 @@ def linear_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Colu
 
 def logistic_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Column, str], covariates: Union[Column, str], test: str) -> Column:
     """
-    A logistic regression function
+    Performs a logistic regression association test optimized for performance in a GWAS setting. See :ref:`logistic-regression` for more details.
 
     Added in version 0.3.0.
 
@@ -453,10 +453,10 @@ def logistic_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Co
         [Row(beta=1.1658962684583645, oddsRatio=3.208797540870915, waldConfidenceInterval=[0.2970960052553798, 34.65674891673014], pValue=0.2943946848756771)]
 
     Args:
-        genotypes: An array of genotypes
-        phenotypes: An array of phenotype values
-        covariates: a matrix of covariates
-        test: Which logistic regression test to use. Can be 'LRT' or 'Firth'
+        genotypes: An array of genotype structs
+        phenotypes: A ``double`` array of phenotype values
+        covariates: M ``spark.ml`` matrix of covariates
+        test: Which logistic regression test to use. Can be 'LRT' or 'Firth'.
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.logistic_regression_gwas(_to_java_column(genotypes), _to_java_column(phenotypes), _to_java_column(covariates), test))
@@ -466,7 +466,7 @@ def logistic_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Co
 
 def genotype_states(genotypes: Union[Column, str]) -> Column:
     """
-    Get number of alt alleles for a genotype
+    Gets number of alt alleles for a genotype. Returns ``-1`` if there are any ``-1`` s in the input array.
 
     Added in version 0.3.0.
 

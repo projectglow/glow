@@ -25,7 +25,7 @@
 complex_type_manipulation:
   functions:
     - name: add_struct_fields
-      doc: Add fields to a struct
+      doc: Adds fields to a struct. 
       since: 0.3.0
       examples:
         python: |
@@ -35,12 +35,13 @@ complex_type_manipulation:
       expr_class: io.projectglow.sql.expressions.AddStructFields
       args:
         - name: struct
-          doc: The struct to which fields will be added
+          doc: The struct to which fields will be added.
         - name: fields
-          doc: New fields
+          doc: The new fields to add. The arguments must alternate between string-typed literal field names and field values.
           is_var_args: true
     - name: array_summary_stats
-      doc: Compute the min, max, mean, stddev for an array of numerics
+      doc: Computes the min, max, mean, stddev for an array of numerics. The input array can be any numeric
+        type, but the returned stats are always ``double`` typed.
       since: 0.3.0
       examples:
         python: |
@@ -52,7 +53,7 @@ complex_type_manipulation:
         - name: arr
           doc: The array of numerics
     - name: array_to_dense_vector
-      doc: Convert an array of numerics into a spark.ml DenseVector
+      doc: Converts an array of numerics into a ``spark.ml`` ``DenseVector``.
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.ArrayToDenseVector
       examples:
@@ -65,7 +66,7 @@ complex_type_manipulation:
         - name: arr
           doc: The array of numerics
     - name: array_to_sparse_vector
-      doc: Convert an array of numerics into a spark.ml SparseVector
+      doc: Converts an array of numerics into a ``spark.ml`` ``SparseVector``.
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.ArrayToSparseVector
       examples:
@@ -78,7 +79,7 @@ complex_type_manipulation:
         - name: arr
           doc: The array of numerics
     - name: expand_struct
-      doc: Promote fields of a nested struct to top-level columns. Similar to using struct.* from SQL, but can be used in more contexts.
+      doc: Promotes fields of a nested struct to top-level columns. Similar to using struct.* from SQL, but can be used in more contexts.
       since: 0.3.0
       examples:
         python: |
@@ -90,7 +91,7 @@ complex_type_manipulation:
         - name: struct
           doc: The struct to expand
     - name: explode_matrix
-      doc: Explode a spark.ml Matrix into arrays of rows
+      doc: Explodes a ``spark.ml`` matrix (sparse or dense) into multiple arrays, one per row of the matrix.
       since: 0.3.0
       examples:
         python: |
@@ -104,7 +105,7 @@ complex_type_manipulation:
         - name: matrix
           doc: The matrix to explode
     - name: subset_struct
-      doc: Select fields from a struct
+      doc: Selects fields from a struct. The return value will be a struct containing only the desired fields.
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.SubsetStruct
       examples:
@@ -116,11 +117,11 @@ complex_type_manipulation:
         - name: struct
           doc: Struct from which to select fields
         - name: fields
-          doc: Fields to take
+          doc: Fields to select
           type: str
           is_var_args: true
     - name: vector_to_array
-      doc: Convert a spark.ml vector (sparse or dense) to an array of doubles
+      doc: Converts a ``spark.ml`` vector (sparse or dense) to an array of doubles.
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.VectorToArray
       examples:
@@ -136,7 +137,8 @@ complex_type_manipulation:
 etl:
   functions:
     - name: hard_calls
-      doc: Converts an array of probabilities to hard calls
+      doc: Converts an array of probabilities to hard calls. See :ref:`variant-data-transformations` 
+        for more details. The probabilites are assumed to be diploid.
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.HardCalls
       examples:
@@ -153,17 +155,20 @@ etl:
           [Row(calls=[-1, -1])]
       args:
         - name: probabilities
-          doc: Probabilities
+          doc: The array of probabilities to convert
         - name: numAlts
-          doc: The number of alts
+          doc: The number of alternate alleles
         - name: phased
-          doc: Whether the probabilities are phased or not
+          doc: Whether the probabilities are phased. If phased, we expect one 2 * numAlts values 
+            in probabilities array. If unphased, we expect one probability per possible genotype.
         - name: threshold
-          doc: The minimum probability to include
+          doc: The minimum probability to make a call. If no probability falls into the range 
+            of [0, 1 - threshold] or [threshold, 1], a no-call (represented by -1s) will be emitted. 
+            If not provided, this parameter defaults to 0.9.
           type: double
           is_optional: true
     - name: lift_over_coordinates
-      doc: Do liftover like Picard
+      doc: Performs lift over for the coordinates of a variants. To lift over alleles and add additional metadata, see :ref:`liftover`.
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.LiftOverCoordinatesExpr
       examples:
@@ -187,7 +192,7 @@ etl:
           doc: Location of the chain file on each node in the cluster
           type: str
         - name: minMatchRatio
-          doc: Minimum fraction of bases that must remap to lift over successfully
+          doc: Minimum fraction of bases that must remap to lift over successfully. If not provided, defaults to 0.95.
           type: double
           is_optional: true
           
@@ -195,7 +200,7 @@ etl:
 quality_control:
   functions:
     - name: aggregate_by_index
-      doc: Compute custom per-sample aggregates
+      doc: Computes custom per-sample aggregates
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.UnwrappedAggregateByIndex
       exclude_python: true
@@ -215,7 +220,7 @@ quality_control:
           type: lambda1
           is_optional: true
     - name: call_summary_stats
-      doc: Compute call stats for an array of genotype structs
+      doc: Computes call summary statistics for an array of genotype structs. See :ref:`variant-qc` for more details.
       since: 0.3.0
       examples:
         python: |
@@ -228,7 +233,7 @@ quality_control:
         - name: genotypes
           doc: The array of genotype structs
     - name: dp_summary_stats
-      doc: Compute summary statistics for depth field from array of genotype structs
+      doc: Computes summary statistics for the depth field from array of genotype structs.
       examples:
         python: |
           >>> df = spark.createDataFrame([Row(genotypes=[Row(depth=1), Row(depth=2), Row(depth=3)])], 'genotypes: array<struct<depth: int>>')
@@ -240,7 +245,7 @@ quality_control:
         - name: genotypes
           doc: The array of genotype structs
     - name: hardy_weinberg
-      doc: Compute statistics relating to the Hardy Weinberg equilibrium
+      doc: Computes statistics relating to the Hardy Weinberg equilibrium. See :ref:`variant-qc` for more details.
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.HardyWeinberg
       examples:
@@ -256,7 +261,7 @@ quality_control:
         - name: genotypes
           doc: The array of genotype structs
     - name: gq_summary_stats
-      doc: Compute summary statistics about the genotype quality field for an array of genotype structs
+      doc: Computes summary statistics about the genotype quality field for an array of genotype structs
       since: 0.3.0
       examples:
         python: |
@@ -272,7 +277,7 @@ quality_control:
         - name: genotypes
           doc: The array of genotype structs
     - name: sample_call_summary_stats
-      doc: Compute per-sample call stats
+      doc: Computes per-sample call summary statistics. See :ref:`sample-qc` for more details.
       since: 0.3.0
       examples:
         python: |
@@ -327,7 +332,8 @@ quality_control:
 gwas_functions:
   functions:
     - name: linear_regression_gwas
-      doc: A linear regression GWAS function
+      doc: Performs a linear regression association test optimized for performance in a GWAS setting.
+        See :ref:`linear-regression` for details.
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.LinearRegressionExpr
       examples:
@@ -345,9 +351,10 @@ gwas_functions:
         - name: phenotypes
           doc: An array of phenotypes
         - name: covariates
-          doc: A Spark matrix of covariates
+          doc: A spark.ml matrix of covariates
     - name: logistic_regression_gwas
-      doc: A logistic regression function
+      doc: Performs a logistic regression association test optimized for performance in a GWAS setting.
+        See :ref:`logistic-regression` for more details.
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.LogisticRegressionExpr
       examples:
@@ -363,16 +370,16 @@ gwas_functions:
           [Row(beta=1.1658962684583645, oddsRatio=3.208797540870915, waldConfidenceInterval=[0.2970960052553798, 34.65674891673014], pValue=0.2943946848756771)]
       args:
         - name: genotypes
-          doc: An array of genotypes
+          doc: An array of genotype structs
         - name: phenotypes
-          doc: An array of phenotype values
+          doc: A ``double`` array of phenotype values
         - name: covariates
-          doc: a matrix of covariates
+          doc: M ``spark.ml`` matrix of covariates
         - name: test
-          doc: Which logistic regression test to use. Can be 'LRT' or 'Firth'
+          doc: Which logistic regression test to use. Can be 'LRT' or 'Firth'.
           type: str
     - name: genotype_states
-      doc: Get number of alt alleles for a genotype
+      doc: Gets number of alt alleles for a genotype. Returns ``-1`` if there are any ``-1``s in the input array.
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.GenotypeStates
       examples:
