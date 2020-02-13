@@ -466,7 +466,7 @@ def logistic_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Co
 
 def genotype_states(genotypes: Union[Column, str]) -> Column:
     """
-    Gets number of alt alleles for a genotype. Returns ``-1`` if there are any ``-1`` s in the input array.
+    Gets number of alt alleles for a genotype. Returns ``-1`` if there are any ``-1``s in the input array.
 
     Added in version 0.3.0.
 

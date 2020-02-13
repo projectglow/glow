@@ -305,7 +305,7 @@ object functions {
   }
 
   /**
-   * Gets number of alt alleles for a genotype. Returns ``-1`` if there are any ``-1`` s in the input array.
+   * Gets number of alt alleles for a genotype. Returns ``-1`` if there are any ``-1``s in the input array.
    * @group gwas_functions
    * @since 0.3.0
    *
