@@ -5,7 +5,8 @@
 Variant Data Manipulation
 =========================
 
-Glow offers functionalities to perform genomic variant data ETL, manipulation, and quality control.
+Glow offers functionalities to extract, transform and load (ETL) genomic variant data into Spark DataFrames, 
+enabling seamless manipulation, filtering, quality control and transformation between file formats.
 
 .. toctree::
    :maxdepth: 2

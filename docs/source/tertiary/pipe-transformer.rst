@@ -1,6 +1,6 @@
-==========================================================
-Parallelizing Command-Line Tools With the Pipe Transformer
-==========================================================
+=========================================================================
+Parallelizing Command-Line Bioinformatics Tools With the Pipe Transformer
+=========================================================================
 
 .. invisible-code-block: python
 
