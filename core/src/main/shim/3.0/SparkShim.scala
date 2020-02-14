@@ -18,10 +18,15 @@ package io.projectglow
 
 import org.apache.spark.sql.catalyst.expressions.ExpressionInfo
 
+// Spark 3.0 APIs that are not inter-version compatible
 object SparkShim extends SparkShimBase {
+  // [SPARK-25393][SQL] Adding new function from_csv()
+  // Refactors classes from [[org.apache.spark.sql.execution.datasources.csv]] to [[org.apache.spark.sql.catalyst.csv]]
   override type CSVOptions = org.apache.spark.sql.catalyst.csv.CSVOptions
   override type UnivocityParser = org.apache.spark.sql.catalyst.csv.UnivocityParser
 
+  // [SPARK-27328][SQL] Add 'deprecated' in ExpressionDescription for extended usage and SQL doc
+  // Adds 'deprecated' argument to the ExpressionInfo constructor
   override def createExpressionInfo(
       className: String,
       db: String,

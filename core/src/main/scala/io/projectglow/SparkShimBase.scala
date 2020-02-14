@@ -18,6 +18,7 @@ package io.projectglow
 
 import org.apache.spark.sql.catalyst.expressions.ExpressionInfo
 
+// Spark APIs that are not inter-version compatible
 trait SparkShimBase {
   type CSVOptions
   type UnivocityParser
