@@ -12,7 +12,7 @@ Glow includes a variety of utility functions for performing basic data manipulat
 Struct transformations
 ======================
 
-Glow's struct transformation functions changes the schema structure of the DataFrame. These transformations integrate with functions
+Glow's struct transformation functions change the schema structure of the DataFrame. These transformations integrate with functions
 whose parameter structs require a certain schema.
 
 - ``subset_struct``: subset fields from a struct
