@@ -8,6 +8,8 @@ dependencies:
   - pytest
   - pyyaml
   - bedtools
+  - sphinx
+  - sphinx_rtd_theme
   - pip:
     - numpy==1.17.4
     - pandas==0.25.3
@@ -15,7 +17,6 @@ dependencies:
     - setuptools==41.2.0 # Python packaging
     - typeguard==2.5.0
     - twine==2.0.0 # Pypi publishing
-    - sphinx_rtd_theme==0.4.3
     - Sphinx-Substitution-Extensions==2019.6.15.0 # Substitutions in code blocks
     - sphinx-tabs==1.1.13 # Code tabs (Python/Scala)
     - sybil==1.2.0 # Automatic doctest

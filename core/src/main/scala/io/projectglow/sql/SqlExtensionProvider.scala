@@ -31,13 +31,13 @@ import org.yaml.snakeyaml.Yaml
 
 import io.projectglow.common.WithUtils
 import io.projectglow.sql.expressions._
-import io.projectglow.sql.optimizer.{ReplaceExpressionsRule, ResolveAggregateFunctionsRule}
+import io.projectglow.sql.optimizer.{ReplaceExpressionsRule, ResolveAggregateFunctionsRule, ResolveExpandStructRule}
 
 // TODO(hhd): Spark 3.0 allows extensions to register functions. After Spark 3.0 is released,
 // we should move all extensions into this class.
 class GlowSQLExtensions extends (SparkSessionExtensions => Unit) {
   val resolutionRules: Seq[Rule[LogicalPlan]] =
-    Seq(ReplaceExpressionsRule, ResolveAggregateFunctionsRule)
+    Seq(ReplaceExpressionsRule, ResolveAggregateFunctionsRule, ResolveExpandStructRule)
   val optimizations: Seq[Rule[LogicalPlan]] = Seq()
 
   def apply(extensions: SparkSessionExtensions): Unit = {

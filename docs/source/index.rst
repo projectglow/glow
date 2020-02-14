@@ -15,5 +15,6 @@ big data processing and machine learning, enabling genomics workflows to scale t
    troubleshooting
    blogs/index
    additional-resources
+   api-docs/index
 
 .. modules
