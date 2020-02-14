@@ -330,7 +330,7 @@ object functions {
    * @param genotypes An array of genotypes
    * @param phenotypes An array of phenotype values
    * @param covariates a matrix of covariates
-   * @param test Which logistic regression test to use. Can be 'LRG' or 'Firth'
+   * @param test Which logistic regression test to use. Can be 'LRT' or 'Firth'
    */
   def logistic_regression_gwas(genotypes: Column, phenotypes: Column, covariates: Column, test: String): Column = withExpr {
     new io.projectglow.sql.expressions.LogisticRegressionExpr(genotypes.expr, phenotypes.expr, covariates.expr, Literal(test))

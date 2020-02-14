@@ -77,6 +77,13 @@ class VCFPiperSuite extends GlowBaseTest {
     (inputDf, outputDf)
   }
 
+  test("Cat") {
+    val (inputDf, outputDf) = pipeScript(na12878, "cat")
+    val inputRows = inputDf.collect().toSeq
+    val outputRows = outputDf.collect().toSeq
+    assert(inputRows == outputRows)
+  }
+
   test("Prepend chr") {
     val (_, df) = pipeScript(
       na12878,

@@ -18,9 +18,9 @@ package io.projectglow.sql.expressions
 
 import org.apache.spark.ml.linalg.Vectors
 import org.apache.spark.sql.SQLUtils
-import org.apache.spark.sql.catalyst.analysis.{Star, UnresolvedExtractValue}
+import org.apache.spark.sql.catalyst.analysis.{Star, UnresolvedAttribute, UnresolvedException, UnresolvedExtractValue}
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, CodegenFallback, ExprCode}
-import org.apache.spark.sql.catalyst.expressions.{Alias, CreateNamedStruct, ExpectsInputTypes, Expression, Generator, GenericInternalRow, GetStructField, ImplicitCastInputTypes, Literal, NamedExpression, UnaryExpression, Unevaluable}
+import org.apache.spark.sql.catalyst.expressions.{Alias, Attribute, CreateNamedStruct, ExpectsInputTypes, ExprId, Expression, Generator, GenericInternalRow, GetStructField, ImplicitCastInputTypes, LeafExpression, Literal, NamedExpression, UnaryExpression, Unevaluable}
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.util.{ArrayData, GenericArrayData}
 import org.apache.spark.sql.catalyst.{analysis, InternalRow}
@@ -31,8 +31,12 @@ import io.projectglow.sql.util.{Rewrite, RewriteAfterResolution}
 /**
  * Expands all the fields of a potentially unnamed struct.
  */
-case class ExpandStruct(struct: Expression) extends Star with Unevaluable {
-  override def expand(input: LogicalPlan, resolver: analysis.Resolver): Seq[NamedExpression] = {
+case class ExpandStruct(struct: Expression) extends Expression with Unevaluable {
+  override def children: Seq[Expression] = Seq(struct)
+  override lazy val resolved: Boolean = false
+  override def dataType: DataType = throw new UnresolvedException(this, "dataType")
+  override def nullable: Boolean = throw new UnresolvedException(this, "nullable")
+  def expand(): Seq[NamedExpression] = {
     if (!struct.dataType.isInstanceOf[StructType]) {
       throw SQLUtils.newAnalysisException("Only structs can be expanded.")
     }
