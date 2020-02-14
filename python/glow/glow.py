@@ -20,6 +20,9 @@ def transform(operation: str, df: DataFrame, arg_map: Dict[str, str]=None,
         kwargs: Named string arguments. If the arg_map is not specified, transformer args will be
           pulled from these keyword args.
 
+    Example:
+        >>> df = spark.read.format('vcf').load('test-data/1kg_sample.vcf')
+        >>> piped_df = glow.transform('pipe', df, cmd='["cat"]', input_formatter='vcf', output_formatter='vcf', in_vcf_header='infer')
 
     Returns:
         The transformed DataFrame
@@ -41,6 +44,10 @@ def register(session: SparkSession):
 
     Args:
         session: Spark session
+
+    Example:
+        >>> import glow
+        >>> glow.register(spark)
     """
     assert check_argument_types()
     session._jvm.io.projectglow.Glow.register(session._jsparkSession)

@@ -252,12 +252,9 @@ def normalize_variant(contigName: Union[Column, str], start: Union[Column, str],
     normalization) as well as a StructType field called normalizationStatus that
     contains the following fields:
 
-    changed: A boolean field indicating whether the variant data was changed as a
-        result of normalization.
+       changed: A boolean field indicating whether the variant data was changed as a result of normalization.
 
-    errorMessage: An error message in case the attempt at normalizing the row hit an
-        error. In this case, the changed field will be set to false. If no errors occur,
-        this field will be null.
+       errorMessage: An error message in case the attempt at normalizing the row hit an error. In this case, the changed field will be set to false. If no errors occur, this field will be null.
 
     In case of an error, the start, end, referenceAllele and alternateAlleles fields in
     the generated struct will be null.
