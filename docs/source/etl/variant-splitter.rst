@@ -12,7 +12,7 @@ Split Multiallelic Variants
     test_dir = 'test-data/variantsplitternormalizer-test/'
     df_original = spark.read.format('vcf').load(test_dir + '01_IN_altered_multiallelic.vcf')
 
-**Splitting multiallelic variants to biallelic variants** is a transformation sometimes required before further downstream analysis. Glow provides the ``split_multiallelics`` transformer to be applied on a varaint DataFrame to split multiallelic variants in the DataFrame to biallelic variants. This transformer is able to handle any number of ``ALT`` alleles and any ploidy.
+**Splitting multiallelic variants to biallelic variants** is a transformation sometimes required before further downstream analysis. Glow provides the ``split_multiallelics`` transformer to be applied on a variant DataFrame to split multiallelic variants in the DataFrame to biallelic variants. This transformer is able to handle any number of ``ALT`` alleles and any ploidy.
 
 .. note::
 

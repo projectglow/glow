@@ -20,8 +20,10 @@ import java.io.{OutputStream, PrintWriter}
 
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.execution.datasources.csv.{CSVOptions, SGUnivocityGenerator}
+import org.apache.spark.sql.execution.datasources.csv.SGUnivocityGenerator
 import org.apache.spark.sql.types.StructType
+
+import io.projectglow.SparkShim.CSVOptions
 
 class CSVInputFormatter(schema: StructType, parsedOptions: CSVOptions) extends InputFormatter {
 
@@ -49,10 +51,17 @@ class CSVInputFormatter(schema: StructType, parsedOptions: CSVOptions) extends I
 class CSVInputFormatterFactory extends InputFormatterFactory {
   override def name: String = "csv"
 
-  override def makeInputFormatter(df: DataFrame, options: Map[String, String]): InputFormatter = {
+  override def makeInputFormatter(
+      df: DataFrame,
+      options: Map[String, String]
+  ): InputFormatter = {
     val sqlConf = df.sparkSession.sessionState.conf
     val parsedOptions =
-      new CSVOptions(options, sqlConf.csvColumnPruning, sqlConf.sessionLocalTimeZone)
+      new CSVOptions(
+        options,
+        sqlConf.csvColumnPruning,
+        sqlConf.sessionLocalTimeZone
+      )
     new CSVInputFormatter(df.schema, parsedOptions)
   }
 }

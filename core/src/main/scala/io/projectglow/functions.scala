@@ -179,7 +179,39 @@ object functions {
 
 
   /**
-   * Computes custom per-sample aggregates
+   * Normalize the variant with a behavior similar to vt normalize or bcftools norm.
+   * Creates a StructType column including the normalized start, end, referenceAllele and
+   * alternateAlleles fields (whether they are changed or unchanged as the result of
+   * normalization) as well as a StructType field called normalizationStatus that
+   * contains the following fields:
+   * 
+   * changed: A boolean field indicating whether the variant data was changed as a
+   *     result of normalization.
+   * 
+   * errorMessage: An error message in case the attempt at normalizing the row hit an
+   *     error. In this case, the changed field will be set to false. If no errors occur,
+   *     this field will be null.
+   * 
+   * In case of an error, the start, end, referenceAllele and alternateAlleles fields in
+   * the generated struct will be null.
+   * 
+   * @group etl
+   * @since 0.3.0
+   *
+   * @param contigName The current contigName
+   * @param start The current start
+   * @param end The current end
+   * @param refAllele Reference allele
+   * @param altAlleles Alternate alleles
+   * @param refGenomePathString A path to the reference genome .fasta file. The .fasta file must
+   *        be accompanied with a .fai index file in the same folder.
+   */
+  def normalize_variant(contigName: Column, start: Column, end: Column, refAllele: Column, altAlleles: Column, refGenomePathString: String): Column = withExpr {
+    new io.projectglow.sql.expressions.NormalizeVariantExpr(contigName.expr, start.expr, end.expr, refAllele.expr, altAlleles.expr, Literal(refGenomePathString))
+  }
+
+  /**
+   * Compute custom per-sample aggregates
    * @group quality_control
    * @since 0.3.0
    *
