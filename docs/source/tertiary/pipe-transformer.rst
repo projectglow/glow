@@ -85,9 +85,10 @@ virtual machine of the Spark cluster.
    assert_rows_equal(intersection_rows[0], Row(contigName="21", start=10002402))
    assert_rows_equal(intersection_rows[1], Row(contigName="21", start=10002453))
 
-When you use the VCF input formatter, you must specify a method to determine the VCF header. The option ``infer``
-instructs the Pipe Transformer to derive a VCF header from the DataFrame schema. Or you can provide the header
-as a blob, or you can point to the filesystem path for an existing VCF file with the correct header.
+You must specify a method to determine the VCF header when using the `VCF input formatter`_.
+The option ``infer`` instructs the Pipe Transformer to derive a VCF header from the DataFrame schema.
+Alternately, you can provide the header as a blob, or you can point to the filesystem path for an existing VCF file with
+the correct header.
 
 .. _transformer-options:
 
@@ -120,7 +121,8 @@ Option keys and values are always strings. You can specify option names in snake
 
 Some of the input and output formatters take additional options.
 
-VCF input formatter:
+VCF input formatter
+-------------------
 
 .. list-table::
   :header-rows: 1
