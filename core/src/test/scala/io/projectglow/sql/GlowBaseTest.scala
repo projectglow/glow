@@ -18,19 +18,19 @@ package io.projectglow.sql
 
 import htsjdk.samtools.util.Log
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.test.SharedSparkSession
 import org.apache.spark.{DebugFilesystem, SparkConf}
 import org.scalatest.concurrent.{AbstractPatienceConfiguration, Eventually}
 import org.scalatest.time.{Milliseconds, Seconds, Span}
 import org.scalatest.{Args, FunSuite, Status, Tag}
 
 import io.projectglow.Glow
+import io.projectglow.SparkTestShim.SharedSparkSessionBase
 import io.projectglow.common.{GlowLogging, TestUtils}
 import io.projectglow.sql.util.BGZFCodec
 
 abstract class GlowBaseTest
     extends FunSuite
-    with SharedSparkSession
+    with SharedSparkSessionBase
     with GlowLogging
     with GlowTestData
     with TestUtils

@@ -31,12 +31,13 @@ import org.apache.spark.sql.catalyst.expressions.codegen.GenerateMutableProjecti
 import org.apache.spark.sql.catalyst.expressions.{Add, BoundReference, CreateArray, Length, Literal, MutableProjection, Subtract}
 import org.apache.spark.sql.catalyst.util.FailFastMode
 import org.apache.spark.sql.execution.datasources.{FileFormat, OutputWriterFactory, PartitionedFile}
-import org.apache.spark.sql.execution.datasources.csv.{CSVOptions, CSVUtils, UnivocityParser, UnivocityParserUtils}
+import org.apache.spark.sql.execution.datasources.csv.{CSVUtils, UnivocityParserUtils}
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
 import org.apache.spark.sql.types.{StructField, StructType}
 import org.apache.spark.unsafe.types.UTF8String
 
+import io.projectglow.SparkShim.{CSVOptions, UnivocityParser}
 import io.projectglow.common.{CommonOptions, GlowLogging, VariantSchemas}
 import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
 import io.projectglow.sql.util.SerializableConfiguration
@@ -55,7 +56,8 @@ class PlinkFileFormat
       sparkSession: SparkSession,
       options: Map[String, String],
       files: Seq[FileStatus]): Option[StructType] = {
-    val includeSampleIds = options.get(CommonOptions.INCLUDE_SAMPLE_IDS).forall(_.toBoolean)
+    val includeSampleIds =
+      options.get(CommonOptions.INCLUDE_SAMPLE_IDS).forall(_.toBoolean)
     Some(VariantSchemas.plinkSchema(includeSampleIds))
   }
 
@@ -83,7 +85,8 @@ class PlinkFileFormat
       requiredSchema: StructType,
       filters: Seq[Filter],
       options: Map[String, String],
-      hadoopConf: Configuration): PartitionedFile => Iterator[InternalRow] = {
+      hadoopConf: Configuration
+  ): PartitionedFile => Iterator[InternalRow] = {
 
     val serializableConf = new SerializableConfiguration(hadoopConf)
     logPlinkRead(options)
@@ -101,21 +104,31 @@ class PlinkFileFormat
       }
 
       // Read sample IDs from the accompanying FAM file
-      val sampleIds = getSampleIds(file.filePath, options, serializableConf.value)
+      val sampleIds =
+        getSampleIds(file.filePath, options, serializableConf.value)
 
       verifyBed(littleEndianStream)
       val numSamples = sampleIds.length
       val blockSize = getBlockSize(numSamples)
       val firstVariantIdx = getFirstVariantIdx(file.start, blockSize)
       val firstVariantStart = getVariantStart(firstVariantIdx, blockSize)
-      val numVariants = getNumVariants(file.start, file.length, firstVariantStart, blockSize)
+      val numVariants =
+        getNumVariants(file.start, file.length, firstVariantStart, blockSize)
 
       // Read the relevant variant metadata from the accompanying BIM file
       val variants =
-        getVariants(file.filePath, firstVariantIdx, numVariants, options, serializableConf.value)
+        getVariants(
+          file.filePath,
+          firstVariantIdx,
+          numVariants,
+          options,
+          serializableConf.value
+        )
 
       // Read genotype calls from the BED file
-      logger.info(s"Reading variants [$firstVariantIdx, ${firstVariantIdx + numVariants}]")
+      logger.info(
+        s"Reading variants [$firstVariantIdx, ${firstVariantIdx + numVariants}]"
+      )
       stream.seek(firstVariantStart)
       val bedIter = new BedFileIterator(
         littleEndianStream,
@@ -154,7 +167,9 @@ object PlinkFileFormat extends HlsEventRecorder {
       CommonOptions.INCLUDE_SAMPLE_IDS -> options
         .get(CommonOptions.INCLUDE_SAMPLE_IDS)
         .forall(_.toBoolean),
-      MERGE_FID_IID -> options.get(CommonOptions.INCLUDE_SAMPLE_IDS).forall(_.toBoolean)
+      MERGE_FID_IID -> options
+        .get(CommonOptions.INCLUDE_SAMPLE_IDS)
+        .forall(_.toBoolean)
     )
     recordHlsEvent(HlsTagValues.EVENT_PLINK_READ, logOptions)
   }
@@ -169,19 +184,22 @@ object PlinkFileFormat extends HlsEventRecorder {
       bedPath: String,
       options: Map[String, String],
       hadoopConf: Configuration): Array[UTF8String] = {
-    val famDelimiterOption = options.getOrElse(FAM_DELIMITER_KEY, DEFAULT_FAM_DELIMITER_VALUE)
+    val famDelimiterOption =
+      options.getOrElse(FAM_DELIMITER_KEY, DEFAULT_FAM_DELIMITER_VALUE)
     val parsedOptions =
       new CSVOptions(
         Map(CSV_DELIMITER_KEY -> famDelimiterOption),
         SQLConf.get.csvColumnPruning,
-        SQLConf.get.sessionLocalTimeZone)
+        SQLConf.get.sessionLocalTimeZone
+      )
 
     val mergeFidIid = try {
       options.getOrElse(MERGE_FID_IID, "true").toBoolean
     } catch {
       case _: IllegalArgumentException =>
         throw new IllegalArgumentException(
-          s"Value for $MERGE_FID_IID must be [true, false]. Provided: ${options(MERGE_FID_IID)}")
+          s"Value for $MERGE_FID_IID must be [true, false]. Provided: ${options(MERGE_FID_IID)}"
+        )
     }
 
     val prefixPath = getPrefixPath(bedPath)
@@ -197,7 +215,8 @@ object PlinkFileFormat extends HlsEventRecorder {
         val sampleLine = parser.parseRecord(l)
         require(
           sampleLine.getValues.length == 6,
-          s"Failed while parsing FAM file $famPath: does not have 6 columns delimited by '$famDelimiterOption'")
+          s"Failed while parsing FAM file $famPath: does not have 6 columns delimited by '$famDelimiterOption'"
+        )
         val individualId = sampleLine.getString(1)
         val sampleId = if (mergeFidIid) {
           val familyId = sampleLine.getString(0)
@@ -226,12 +245,17 @@ object PlinkFileFormat extends HlsEventRecorder {
       numVariants: Int,
       options: Map[String, String],
       hadoopConf: Configuration): Array[InternalRow] = {
-    val bimDelimiterOption = options.getOrElse(BIM_DELIMITER_KEY, DEFAULT_BIM_DELIMITER_VALUE)
+    val bimDelimiterOption =
+      options.getOrElse(BIM_DELIMITER_KEY, DEFAULT_BIM_DELIMITER_VALUE)
     val parsedOptions =
       new CSVOptions(
-        Map(CSV_DELIMITER_KEY -> bimDelimiterOption, "mode" -> FailFastMode.name),
+        Map(
+          CSV_DELIMITER_KEY -> bimDelimiterOption,
+          "mode" -> FailFastMode.name
+        ),
         SQLConf.get.csvColumnPruning,
-        SQLConf.get.sessionLocalTimeZone)
+        SQLConf.get.sessionLocalTimeZone
+      )
 
     val prefixPath = getPrefixPath(bedPath)
     val bimPath = new Path(prefixPath + BIM_FILE_EXTENSION)
@@ -241,16 +265,22 @@ object PlinkFileFormat extends HlsEventRecorder {
     val filteredLines = CSVUtils
       .filterCommentAndEmpty(lines, parsedOptions)
       .slice(firstVariant, firstVariant + numVariants)
-    val univocityParser = new UnivocityParser(bimSchema, bimSchema, parsedOptions)
+    val univocityParser =
+      new UnivocityParser(bimSchema, bimSchema, parsedOptions)
 
     try {
       val variantIterator =
-        UnivocityParserUtils.parseIterator(filteredLines, univocityParser, bimSchema)
+        UnivocityParserUtils.parseIterator(
+          filteredLines,
+          univocityParser,
+          bimSchema
+        )
       variantIterator.map(_.copy).toArray
     } catch {
       case e: Exception =>
         throw new IllegalArgumentException(
-          s"Failed while parsing BIM file $bimPath: ${e.getMessage}")
+          s"Failed while parsing BIM file $bimPath: ${e.getMessage}"
+        )
     } finally {
       stream.close()
     }
@@ -263,7 +293,12 @@ object PlinkFileFormat extends HlsEventRecorder {
 
   /* Index of the first variant to be parsed for a partitioned BED */
   def getFirstVariantIdx(partitionedFileStart: Long, blockSize: Int): Int = {
-    math.max(0, math.ceil((partitionedFileStart - NUM_MAGIC_BYTES.toDouble) / blockSize).toInt)
+    math.max(
+      0,
+      math
+        .ceil((partitionedFileStart - NUM_MAGIC_BYTES.toDouble) / blockSize)
+        .toInt
+    )
   }
 
   /* The location of the first byte for a variant in a BED */
@@ -299,16 +334,19 @@ object PlinkFileFormat extends HlsEventRecorder {
     val expressions =
       schema.map {
         case `contigNameField` => makeBimBoundReference(contigNameField)
-        case `namesField` => CreateArray(Seq(makeBimBoundReference(variantIdField)))
+        case `namesField` =>
+          CreateArray(Seq(makeBimBoundReference(variantIdField)))
         case `positionField` => makeBimBoundReference(positionField)
         case `startField` =>
           Subtract(makeBimBoundReference(startField), Literal(1)) // BIM is 1-start
         case `endField` =>
           Add(
             Subtract(makeBimBoundReference(startField), Literal(1)),
-            Length(makeBimBoundReference(alleleTwoField)))
+            Length(makeBimBoundReference(alleleTwoField))
+          )
         case `refAlleleField` => makeBimBoundReference(alleleTwoField)
-        case `alternateAllelesField` => CreateArray(Seq(makeBimBoundReference(alleleOneField)))
+        case `alternateAllelesField` =>
+          CreateArray(Seq(makeBimBoundReference(alleleOneField)))
         case f => Literal(null, f.dataType)
       }
     GenerateMutableProjection.generate(expressions)
