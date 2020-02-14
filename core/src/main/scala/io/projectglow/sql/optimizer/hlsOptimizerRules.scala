@@ -65,7 +65,7 @@ object ResolveExpandStructRule extends Rule[LogicalPlan] {
     plan.resolveOperatorsUp {
       case p @ Project(projectList, _) if canExpand(projectList) =>
         p.copy(projectList = expandExprs(p.projectList))
-      case a @ Aggregate(_, aggregateExpressions, _) if canExpand(aggregateExpressions) =>
+      case a: Aggregate if canExpand(a.aggregateExpressions) =>
         a.copy(aggregateExpressions = expandExprs(a.aggregateExpressions))
     }
   }
