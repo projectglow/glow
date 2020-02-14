@@ -26,7 +26,9 @@ import org.apache.spark.sql.DataFrame
  */
 class SplitMultiallelicsTransformer extends DataFrameTransformer with HlsUsageLogging {
 
-  override def name: String = "split_multiallelics"
+  import SplitMultiallelicsTransformer._
+
+  override def name: String = SPLITTER_TRANSFORMER_NAME
 
   override def transform(df: DataFrame, options: Map[String, String]): DataFrame = {
 
@@ -35,4 +37,8 @@ class SplitMultiallelicsTransformer extends DataFrameTransformer with HlsUsageLo
     VariantSplitter.splitVariants(df)
 
   }
+}
+
+object SplitMultiallelicsTransformer {
+  val SPLITTER_TRANSFORMER_NAME = "split_multiallelics"
 }

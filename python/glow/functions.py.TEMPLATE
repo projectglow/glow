@@ -15,7 +15,7 @@ def sc():
 
 def {{ function.name }}({{ function.args|map('fmt_python_signature')|join(', ') }}) -> Column:
     """
-    {{ function.doc }}
+    {{ function.doc|trim|indent(4) }}
 
     Added in version {{ function.since }}.
 
@@ -24,7 +24,7 @@ def {{ function.name }}({{ function.args|map('fmt_python_signature')|join(', ') 
 
     Args:
     {% for arg in function.args %}
-        {{ arg.name }}: {{ arg.doc }}
+        {{ arg.name }} : {{ arg.doc|trim|indent(8) }}
     {% endfor %}
     """
     assert check_argument_types()

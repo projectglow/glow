@@ -20,9 +20,14 @@ import io.projectglow.Glow
 import io.projectglow.common.{CommonOptions, GlowLogging}
 import io.projectglow.sql.GlowBaseTest
 import org.apache.spark.SparkConf
+import io.projectglow.common.VariantSchemas._
+import io.projectglow.transformers.normalizevariants.VariantNormalizer._
+import io.projectglow.transformers.normalizevariants.NormalizeVariantsTransformer._
+import io.projectglow.transformers.splitmultiallelics.SplitMultiallelicsTransformer._
 
 class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
 
+  import io.projectglow.transformers.splitmultiallelics
   lazy val sourceName: String = "vcf"
   lazy val testFolder: String = s"$testDataHome/variantsplitternormalizer-test"
 
@@ -105,14 +110,14 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
   ): Unit = {
 
     val (modeMap: Map[String, String], split: Boolean) = mode match {
-      case Some(m) if (m == "split_and_normalize") => (Map("mode" -> m), true)
-      case Some(m) => (Map("mode" -> m), false)
+      case Some(m) if (m == MODE_SPLIT_NORMALIZE) => (Map(MODE_KEY -> m), true)
+      case Some(m) => (Map(MODE_KEY -> m), false)
       case None => (Map(), false)
     }
 
     val options: Map[String, String] = Map() ++ {
         referenceGenome match {
-          case Some(r) => Map("referenceGenomePath" -> r)
+          case Some(r) => Map(REFERENCE_GENOME_PATH -> r)
           case None => Map()
         }
       } ++ modeMap
@@ -125,35 +130,35 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
 
     val dfNormalized = Glow
       .transform(
-        "normalize_variants",
+        NORMALIZER_TRANSFORMER_NAME,
         if (split) {
-          Glow.transform("split_multiallelics", dfOriginal)
+          Glow.transform(SPLITTER_TRANSFORMER_NAME, dfOriginal)
         } else {
           dfOriginal
         },
         options
       )
-      .orderBy("contigName", "start", "end")
+      .orderBy(contigNameField.name, startField.name, endField.name)
 
     val dfExpected = spark
       .read
       .format(sourceName)
       .options(Map(CommonOptions.INCLUDE_SAMPLE_IDS -> includeSampleIds.toString))
       .load(expectedVCFFileName)
-      .orderBy("contigName", "start", "end")
+      .orderBy(contigNameField.name, startField.name, endField.name)
 
     val dfExpectedColumns =
-      dfExpected.columns.map(name => if (name.contains(".")) s"`${name}`" else name)
+      dfExpected.columns.map(name => s"`${name}`")
 
     assert(dfNormalized.count() == dfExpected.count())
 
     dfExpected
-      .drop("splitFromMultiAllelic")
+      .drop(splitFromMultiAllelicField.name, normalizationStatusFieldName)
       .collect
       .zip(
         dfNormalized
           .select(dfExpectedColumns.head, dfExpectedColumns.tail: _*) // make order of columns the same
-          .drop("splitFromMultiAllelic")
+          .drop(splitFromMultiAllelicField.name, normalizationStatusFieldName)
           .collect
       )
       .foreach {
@@ -194,7 +199,6 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
   }
 
   test("normalization transform no-reference") {
-    // vcf containing multi-allelic variants
     try {
       testNormalizedvsExpected(vtTestVcfMultiAllelic, vtTestVcfMultiAllelic, None)
     } catch {
@@ -203,7 +207,7 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
     }
   }
 
-  test("normalize variants  transformer") {
+  test("normalize variants transformer") {
 
     testNormalizedvsExpected(
       vtTestVcfBiallelic,
@@ -253,20 +257,48 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
       vtTestVcfMultiAllelic,
       vtTestVcfMultiAllelicExpectedNormalized,
       Option(vtTestReference),
-      Option("normalize")
+      Option(MODE_NORMALIZE)
     )
 
   }
 
   test("backward mode option compatibility no-normalize-do-split") {
 
-    testBackwardCompatibility(
-      vtTestVcfMultiAllelic,
-      vtTestVcfMultiAllelicExpectedSplit,
-      None,
-      Option("split")
-    )
+    val dfOriginal = spark
+      .read
+      .format(sourceName)
+      .options(Map(CommonOptions.INCLUDE_SAMPLE_IDS -> "true"))
+      .load(vtTestVcfMultiAllelic)
 
+    val dfSplit = Glow
+      .transform(
+        SPLITTER_TRANSFORMER_NAME,
+        dfOriginal
+      )
+      .orderBy(contigNameField.name, startField.name, endField.name)
+
+    val dfOldSplit = Glow
+      .transform(NORMALIZER_TRANSFORMER_NAME, dfOriginal, Map(MODE_KEY -> MODE_SPLIT))
+      .orderBy(contigNameField.name, startField.name, endField.name)
+
+    val dfOldSplitColumns =
+      dfOldSplit.columns.map(name => if (name.contains(".")) s"`${name}`" else name)
+
+    assert(dfSplit.count() == dfOldSplit.count())
+
+    dfOldSplit
+      .drop(splitFromMultiAllelicField.name)
+      .collect
+      .zip(
+        dfSplit
+          .select(dfOldSplitColumns.head, dfOldSplitColumns.tail: _*) // make order of columns the same
+          .drop(splitFromMultiAllelicField.name)
+          .collect
+      )
+      .foreach {
+        case (rowExp, rowNorm) =>
+          assert(rowExp.equals(rowNorm), s"Expected\n$rowExp\nNormalized\n$rowNorm")
+      }
   }
 
   test("backward mode option compatibility do-normalize-do-split") {
@@ -275,30 +307,83 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
       vtTestVcfBiallelic,
       vtTestVcfBiallelicExpectedNormalized,
       Option(vtTestReference),
-      Option("split_and_normalize")
+      Option(MODE_SPLIT_NORMALIZE)
     )
 
     testBackwardCompatibility(
       vtTestVcfMultiAllelic,
       vtTestVcfMultiAllelicExpectedSplitNormalized,
       Option(vtTestReference),
-      Option("split_and_normalize")
+      Option(MODE_SPLIT_NORMALIZE)
     )
 
     testBackwardCompatibility(
       gatkTestVcf,
       gatkTestVcfExpectedSplitNormalized,
       Option(gatkTestReference),
-      Option("split_and_normalize")
+      Option(MODE_SPLIT_NORMALIZE)
     )
 
     testBackwardCompatibility(
       gatkTestVcfSymbolic,
       gatkTestVcfSymbolicExpectedSplitNormalized,
       Option(gatkTestReference),
-      Option("split_and_normalize")
+      Option(MODE_SPLIT_NORMALIZE)
     )
+  }
 
+  test("replace_columns option") {
+    val dfOriginal = spark
+      .read
+      .format(sourceName)
+      .options(Map(CommonOptions.INCLUDE_SAMPLE_IDS -> "true"))
+      .load(vtTestVcfBiallelic)
+
+    val dfNormalizedReplaced = Glow
+      .transform(
+        NORMALIZER_TRANSFORMER_NAME,
+        dfOriginal,
+        Map(REFERENCE_GENOME_PATH -> vtTestReference)
+      )
+      .select(
+        contigNameField.name,
+        startField.name,
+        endField.name,
+        refAlleleField.name,
+        alternateAllelesField.name)
+      .orderBy(contigNameField.name, startField.name, endField.name)
+
+    val dfNormalizedNonReplaced = Glow
+      .transform(
+        NORMALIZER_TRANSFORMER_NAME,
+        dfOriginal,
+        Map(
+          REFERENCE_GENOME_PATH -> vtTestReference,
+          REPLACE_COLUMNS -> "false"
+        )
+      )
+      .select(
+        contigNameField.name,
+        s"${normalizationResultFieldName}.${startField.name}",
+        s"${normalizationResultFieldName}.${endField.name}",
+        s"${normalizationResultFieldName}.${refAlleleField.name}",
+        s"${normalizationResultFieldName}.${alternateAllelesField.name}"
+      )
+      .orderBy(contigNameField.name, startField.name, endField.name)
+
+    assert(dfNormalizedReplaced.count() == dfNormalizedNonReplaced.count())
+
+    dfNormalizedReplaced
+      .collect
+      .zip(
+        dfNormalizedNonReplaced.collect
+      )
+      .foreach {
+        case (rowNormReplaced, rowNormNonReplaced) =>
+          assert(
+            rowNormReplaced.equals(rowNormNonReplaced),
+            s"Repalced\n$rowNormReplaced\nNon-replaced\n$rowNormNonReplaced")
+      }
   }
 
 }

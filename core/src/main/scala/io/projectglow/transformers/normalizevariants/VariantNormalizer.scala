@@ -16,318 +16,203 @@
 
 package io.projectglow.transformers.normalizevariants
 
-import java.io.File
-import java.nio.file.Paths
-
-import com.google.common.annotations.VisibleForTesting
-import htsjdk.samtools.ValidationStringency
-import htsjdk.variant.variantcontext._
-import htsjdk.variant.vcf.VCFHeader
+import htsjdk.samtools.reference.IndexedFastaSequenceFile
 import io.projectglow.common.GlowLogging
 import io.projectglow.common.VariantSchemas._
-import io.projectglow.vcf.{InternalRowToVariantContextConverter, VCFSchemaInferrer, VariantContextToInternalRowConverter}
-import org.apache.spark.sql.{DataFrame, SQLUtils}
-import org.broadinstitute.hellbender.engine.{ReferenceContext, ReferenceDataSource}
-import org.broadinstitute.hellbender.utils.SimpleInterval
 
-import scala.collection.JavaConverters._
-import scala.math.min
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
+import org.apache.spark.sql.catalyst.util.ArrayData
+import org.apache.spark.sql.types._
+import org.apache.spark.unsafe.types.UTF8String
 
-private[projectglow] object VariantNormalizer extends GlowLogging {
-
-  /**
-   * Normalizes the input DataFrame of variants and outputs them as a Dataframe
-   *
-   * @param df                   : Input dataframe of variants
-   * @param refGenomePathString  : Path to the underlying reference genome of the variants
-   * @return normalized DataFrame
-   */
-  def normalize(df: DataFrame, refGenomePathString: Option[String]): DataFrame = {
-
-    if (refGenomePathString.isEmpty) {
-      throw new IllegalArgumentException("Reference genome path not provided!")
-    }
-    if (!new File(refGenomePathString.get).exists()) {
-      throw new IllegalArgumentException("The reference file was not found!")
-    }
-
-    val schema = df.schema
-    val headerLineSet = VCFSchemaInferrer.headerLinesFromSchema(schema).toSet
-    val validationStringency = ValidationStringency.valueOf("SILENT")
-
-    val splitFromMultiallelicColumnIdx =
-      df.schema.fieldNames.indexOf(splitFromMultiAllelicField.name)
-
-    // TODO: Implement normalization without using VariantContext
-    val rddAfterNormalize = df.queryExecution.toRdd.mapPartitions { it =>
-      val vcfHeader = new VCFHeader(headerLineSet.asJava)
-
-      val variantContextToInternalRowConverter =
-        new VariantContextToInternalRowConverter(
-          vcfHeader,
-          schema,
-          validationStringency
-        )
-
-      val internalRowToVariantContextConverter =
-        new InternalRowToVariantContextConverter(
-          schema,
-          headerLineSet,
-          validationStringency
-        )
-
-      internalRowToVariantContextConverter.validate()
-
-      val refGenomeDataSource = Option(ReferenceDataSource.of(Paths.get(refGenomePathString.get)))
-
-      it.map { row =>
-        val isFromSplit = row.getBoolean(splitFromMultiallelicColumnIdx)
-        internalRowToVariantContextConverter.convert(row) match {
-
-          case Some(vc) =>
-            variantContextToInternalRowConverter
-              .convertRow(VariantNormalizer.normalizeVC(vc, refGenomeDataSource.get), isFromSplit)
-          case None => row
-
-        }
-      }
-    }
-    SQLUtils.internalCreateDataFrame(df.sparkSession, rddAfterNormalize, schema, false)
-
-  }
+object VariantNormalizer extends GlowLogging {
 
   /**
-   * Encapsulates all alleles, start, and end of a variant to used by the VC normalizer
+   * Contains the main normalization logic. Given contigName, start, end, refAllele, and
+   * altAlleles of a variant as well as the indexed fasta file of the reference genome,
+   * creates an InternalRow of the normalization result.
    *
-   * @param alleles
-   * @param start
-   * @param end
-   */
-  @VisibleForTesting
-  private[normalizevariants] case class AlleleBlock(alleles: Seq[Allele], start: Int, end: Int)
-
-  /**
-   * normalizes a single VariantContext by checking some conditions and then calling realignAlleles
-   *
-   * @param vc
-   * @param refGenomeDataSource
-   * @return normalized VariantContext
-   */
-  private def normalizeVC(
-      vc: VariantContext,
-      refGenomeDataSource: ReferenceDataSource): VariantContext = {
-
-    if (vc.getNAlleles < 1) {
-      // if no alleles, throw exception
-      logger.info("Cannot compute right-trim size for an empty allele list...")
-      throw new IllegalArgumentException
-    } else if (vc.isSNP) {
-      // if a SNP, do nothing
-      vc
-    } else if (vc.getNAlleles == 1) {
-      // if only one allele and longer than one base, trim to the
-      // first base
-      val ref = vc.getReference
-      if (ref.length > 1) {
-        val newBase = ref.getBases()(0)
-        val trimmedAllele = Allele.create(newBase, ref.isReference)
-        new VariantContextBuilder(vc)
-          .start(vc.getStart)
-          .stop(vc.getStart) // end is equal to start.
-          .alleles(Seq(trimmedAllele).asJava)
-          .make
-      } else {
-        vc
-      }
-    } else {
-      val alleles = vc.getAlleles.asScala
-      if (alleles.exists(_.isSymbolic)) {
-        // if any of the alleles is symbolic, do nothing
-        vc
-      } else {
-        // Create ReferenceDataSource of the reference genome and the AlleleBlock and pass
-        // to realignAlleles
-
-        updateVCWithNewAlleles(
-          vc,
-          realignAlleles(
-            AlleleBlock(alleles, vc.getStart, vc.getEnd),
-            refGenomeDataSource,
-            vc.getContig
-          )
-        )
-
-      }
-    }
-  }
-
-  /**
-   * Updates the alleles and genotypes in a VC with new alleles
-   *
-   * @param originalVC
-   * @param newAlleleBlock
-   * @return updated VariantContext
-   */
-  private def updateVCWithNewAlleles(
-      originalVC: VariantContext,
-      newAlleleBlock: AlleleBlock): VariantContext = {
-
-    val originalAlleles = originalVC.getAlleles.asScala
-    val newAlleles = newAlleleBlock.alleles
-
-    var alleleMap = Map[Allele, Allele]()
-
-    for (i <- 0 to originalVC.getNAlleles - 1) {
-      alleleMap += originalAlleles(i) -> newAlleles(i)
-    }
-
-    val originalGenotypes = originalVC.getGenotypes.asScala
-    val updatedGenotypes = GenotypesContext.create(originalGenotypes.size)
-    for (genotype <- originalGenotypes) {
-      val updatedGenotypeAlleles =
-        genotype.getAlleles.asScala.map(a => alleleMap.getOrElse(a, a)).asJava
-      updatedGenotypes.add(new GenotypeBuilder(genotype).alleles(updatedGenotypeAlleles).make)
-    }
-
-    new VariantContextBuilder(originalVC)
-      .start(newAlleleBlock.start)
-      .stop(newAlleleBlock.end)
-      .alleles(newAlleles.asJava)
-      .genotypes(updatedGenotypes)
-      .make
-  }
-
-  /**
-   * Contains the main normalization logic. Normalizes an AlleleBlock by left aligning and
-   * trimming its alleles and adjusting its new start and end.
-   *
-   * The algorithm has a logic similar to bcftools:
+   * The algorithm has a logic similar to bcftools norm or vt normalize:
    *
    * It starts from the rightmost base of all alleles and scans one base at a time incrementing
    * trimSize and nTrimmedBasesBeforeNextPadding as long as the bases of all alleles at that
    * position are the same. If the beginning of any of the alleles is reached, all alleles are
-   * padded on the left by PAD_WINDOW_SIZE bases by reading from the reference genome amd
+   * padded on the left by PAD_WINDOW_SIZE bases by reading from the reference genome and
    * nTrimmedBaseBeforeNextPadding is reset. The process continues until a position is reached
    * where all alleles do not have the same base or the beginning of the contig is reached. Next
    * trimming from left starts and all bases common among all alleles from left are trimmed.
-   * Start and end of the AllleleBlock are adjusted accordingly during the process.
+   * Start and end are adjusted accordingly during the process.
    *
-   * @param unalignedAlleleBlock
-   * @param refGenomeDataSource
-   * @param contig : contig of the AlleleBlock
-   * @return normalized AlleleBlock
+   * @param contigName            : Contig name of the alleles
+   * @param start                 : 0-based start of the REF allele in an open-left closed-right interval system
+   * @param end                   : 0-based end of the REF allele in an open-left closed-right interval system
+   * @param refAllele             : String containing refrence allele
+   * @param altAlleles            : String array of alternate alleles
+   * @param refGenomeIndexedFasta : an [[IndexedFastaSequenceFile]] of the reference genome.
+   * @return normalization result as an InternalRow
    */
-  @VisibleForTesting
-  private[normalizevariants] def realignAlleles(
-      unalignedAlleleBlock: AlleleBlock,
-      refGenomeDataSource: ReferenceDataSource,
-      contig: String): AlleleBlock = {
+  def normalizeVariant(
+      contigName: String,
+      start: Long,
+      end: Long,
+      refAllele: String,
+      altAlleles: Array[String],
+      refGenomeIndexedFasta: IndexedFastaSequenceFile): InternalRow = {
 
-    // Trim from right
+    var flag = false // indicates whether the variant was changed as a result of normalization
+    var errorMessage: Option[String] = None
+    var newStart = start
+    var allAlleles = refAllele +: altAlleles
     var trimSize = 0 // stores total trimSize from right
-    var nTrimmedBasesBeforeNextPadding = 0 // stores number of bases trimmed from right before
-    // next padding
-    var newStart = unalignedAlleleBlock.start
-    var alleles = unalignedAlleleBlock.alleles
-    var firstAlleleBaseFromRight = alleles(0).getBases()(
-      alleles(0).length
-      - nTrimmedBasesBeforeNextPadding - 1
-    )
 
-    while (alleles.forall(
-        a =>
-          a.getBases()(a.length() - nTrimmedBasesBeforeNextPadding - 1) ==
-          firstAlleleBaseFromRight
-      )) {
-      // Last base in all alleles are the same
+    if (refAllele.isEmpty) {
+      // if no alleles, throw exception
+      logger.info("No REF or ALT alleles found.")
+      errorMessage = Some("No REF or ALT alleles found.")
+    } else if (altAlleles.isEmpty) {
+      // if only one allele and longer than one base, trim to the
+      // first base
+      allAlleles(0) = allAlleles(0).take(1)
+      flag = true
+    } else if (!isSNP(refAllele, altAlleles) || !isSymbolic(altAlleles)) {
 
-      var padSeq = Array[Byte]()
-      var nPadBases = 0
+      // Trim from right
+      var nTrimmedBasesBeforeNextPadding = 0 // stores number of bases trimmed from right before next padding
+      var firstBaseFromRightInRefAllele =
+        allAlleles(0)(allAlleles(0).length - nTrimmedBasesBeforeNextPadding - 1)
 
-      if (alleles
-          .map(_.length)
-          .min == nTrimmedBasesBeforeNextPadding + 1) {
-        // if
-        // beginning of any allele is reached, trim from right what
-        // needs to be trimmed so far, and pad to the left
-        if (newStart > 1) {
-          nPadBases = min(PAD_WINDOW_SIZE, newStart - 1)
+      while (allAlleles
+          .forall(a =>
+            a(a.length - nTrimmedBasesBeforeNextPadding - 1) == firstBaseFromRightInRefAllele)) {
+        // Last base in all alleles are the same
 
-          val refGenomeContext = new ReferenceContext(
-            refGenomeDataSource,
-            new SimpleInterval(contig, newStart - 1, newStart - 1)
-          )
+        var padSeq = ""
+        var nPadBases = 0
 
-          refGenomeContext.setWindow(nPadBases - 1, 0)
+        if (allAlleles
+            .map(_.length)
+            .min == nTrimmedBasesBeforeNextPadding + 1) {
+          // if beginning of any allele is reached, trim from right what
+          // needs to be trimmed so far, and pad to the left
+          if (newStart > 0) {
+            nPadBases = if (PAD_WINDOW_SIZE <= newStart) {
+              PAD_WINDOW_SIZE
+            } else {
+              newStart.toInt
+            }
 
-          padSeq ++= refGenomeContext.getBases()
+            padSeq ++= refGenomeIndexedFasta
+              .getSubsequenceAt(contigName, newStart - nPadBases + 1, newStart)
+              .getBaseString()
+
+          } else {
+            nTrimmedBasesBeforeNextPadding -= 1
+          }
+
+          allAlleles = allAlleles.map { a =>
+            padSeq ++ a.dropRight(nTrimmedBasesBeforeNextPadding + 1)
+          }
+
+          trimSize += nTrimmedBasesBeforeNextPadding + 1
+
+          newStart -= nPadBases
+
+          nTrimmedBasesBeforeNextPadding = 0
 
         } else {
-          nTrimmedBasesBeforeNextPadding -= 1
+
+          nTrimmedBasesBeforeNextPadding += 1
+
         }
 
-        alleles = alleles.map { a =>
-          Allele.create(
-            padSeq ++ a
-              .getBaseString()
-              .dropRight(nTrimmedBasesBeforeNextPadding + 1)
-              .getBytes(),
-            a.isReference
-          )
-        }
-
-        trimSize += nTrimmedBasesBeforeNextPadding + 1
-
-        newStart -= nPadBases
-
-        nTrimmedBasesBeforeNextPadding = 0
-
-      } else {
-
-        nTrimmedBasesBeforeNextPadding += 1
-
+        firstBaseFromRightInRefAllele = allAlleles(0)(
+          allAlleles(0).length - nTrimmedBasesBeforeNextPadding - 1
+        )
       }
 
-      firstAlleleBaseFromRight = alleles(0).getBases()(
-        alleles(0).length
-        - nTrimmedBasesBeforeNextPadding - 1
-      )
-    }
+      // trim from left
+      var nLeftTrimBases = 0
+      var firstBaseFromLeftInRefAllele = allAlleles(0)(nLeftTrimBases)
+      val minAlleleLength = allAlleles.map(_.length).min
 
-    // trim from left
-    var nLeftTrimBases = 0
-    var firstAlleleBaseFromLeft = alleles(0).getBases()(nLeftTrimBases)
-    val minAlleleLength = alleles.map(_.length).min
+      while (nLeftTrimBases < minAlleleLength - nTrimmedBasesBeforeNextPadding - 1
+        && allAlleles.forall(_(nLeftTrimBases) == firstBaseFromLeftInRefAllele)) {
 
-    while (nLeftTrimBases < minAlleleLength - nTrimmedBasesBeforeNextPadding - 1
-      && alleles.forall(_.getBases()(nLeftTrimBases) == firstAlleleBaseFromLeft)) {
+        nLeftTrimBases += 1
 
-      nLeftTrimBases += 1
+        firstBaseFromLeftInRefAllele = allAlleles(0)(nLeftTrimBases)
+      }
 
-      firstAlleleBaseFromLeft = alleles(0).getBases()(nLeftTrimBases)
-    }
-
-    alleles = alleles.map { a =>
-      Allele.create(
-        a.getBaseString()
-          .drop(nLeftTrimBases)
+      allAlleles = allAlleles.map { a =>
+        a.drop(nLeftTrimBases)
           .dropRight(nTrimmedBasesBeforeNextPadding)
-          .getBytes(),
-        a.isReference
-      )
+      }
 
+      trimSize += nTrimmedBasesBeforeNextPadding
+
+      newStart += nLeftTrimBases
+
+      if (trimSize != 0 || nLeftTrimBases != 0) {
+        flag = true
+      }
     }
 
-    trimSize += nTrimmedBasesBeforeNextPadding
+    val outputRow = new GenericInternalRow(5)
 
-    AlleleBlock(
-      alleles,
-      newStart + nLeftTrimBases,
-      unalignedAlleleBlock.end - trimSize
+    if (errorMessage.isEmpty) {
+      outputRow.update(0, newStart)
+      outputRow.update(1, end - trimSize)
+      outputRow.update(2, UTF8String.fromString(allAlleles(0)))
+      outputRow.update(3, ArrayData.toArrayData(allAlleles.tail.map(UTF8String.fromString(_))))
+    }
+
+    outputRow.update(
+      4,
+      InternalRow(
+        flag,
+        errorMessage.map(UTF8String.fromString).orNull
+      )
     )
+
+    outputRow
 
   }
 
+  def isSNP(refAllele: String, altAlleles: Array[String]): Boolean = {
+    refAllele.length == 1 && altAlleles.forall(_.length == 1)
+  }
+
+  def isSymbolic(altAlleles: Array[String]): Boolean = {
+    altAlleles.exists(_.matches(".*[<|>|*].*"))
+  }
+
   private val PAD_WINDOW_SIZE = 100
+
+  val normalizationResultFieldName = "normalizationResult"
+  val normalizationStatusFieldName = "normalizationStatus"
+  val changedFieldName = "changed"
+  val errorMessageFieldName = "errorMessage"
+
+  val normalizationStatusStructField = StructField(
+    normalizationStatusFieldName,
+    StructType(
+      Seq(
+        StructField(changedFieldName, BooleanType),
+        StructField(errorMessageFieldName, StringType)
+      )
+    )
+  )
+
+  val normalizationResultStructType =
+    StructType(
+      Seq(
+        startField,
+        endField,
+        refAlleleField,
+        alternateAllelesField,
+        normalizationStatusStructField
+      )
+    )
 
 }
