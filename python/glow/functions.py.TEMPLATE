@@ -24,7 +24,7 @@ def {{ function.name }}({{ function.args|map('fmt_python_signature')|join(', ') 
 
     Args:
     {% for arg in function.args %}
-    {{ arg.name }} : {{ arg.doc|trim|indent(8) }
+    {{ arg.name }} : {{ arg.doc|trim|indent(8) }}
     {% endfor %}
     """
     assert check_argument_types()
