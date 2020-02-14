@@ -1,6 +1,6 @@
-==========================
-Variant I/O with Spark SQL
-==========================
+==============================================
+Read and Write VCF, Plink, and BGEN with Spark
+==============================================
 
 .. invisible-code-block: python
 
@@ -200,7 +200,7 @@ To control the behavior of the BGEN writer, you can provide the following option
 PLINK
 =====
 
-Glow provides the ability to read binary PLINK BED files with accompanying BIM and FAM files. The provided path can be a
+Glow provides the ability to read binary PLINK binary PED (BED) files with accompanying BIM and FAM files. The provided path can be a
 file or glob pattern.
 
 .. invisible-code-block: python

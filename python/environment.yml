@@ -1,10 +1,13 @@
 name: glow
+channels:
+  - bioconda
 dependencies:
   - python=3.7
   - jinja2
   - pip
   - pytest
   - pyyaml
+  - bedtools
   - sphinx
   - sphinx_rtd_theme
   - pip:
