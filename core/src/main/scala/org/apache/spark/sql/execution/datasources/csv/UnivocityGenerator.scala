@@ -26,10 +26,12 @@ import org.apache.spark.sql.catalyst.util._
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
+import io.projectglow.SparkShim.{CSVOptions => ShimCSVOptions, UnivocityParser => ShimUnivocityParser}
+
 /**
  * Inlined version of [[UnivocityGenerator]] to handle compatibility between Spark distributions.
  */
-class SGUnivocityGenerator(schema: StructType, writer: Writer, options: CSVOptions) {
+class SGUnivocityGenerator(schema: StructType, writer: Writer, options: ShimCSVOptions) {
   private val writerSettings = options.asWriterSettings
   writerSettings.setHeaders(schema.fieldNames: _*)
   private val gen = new CsvWriter(writer, writerSettings)
@@ -42,20 +44,29 @@ class SGUnivocityGenerator(schema: StructType, writer: Writer, options: CSVOptio
   private val valueConverters: Array[ValueConverter] =
     schema.map(_.dataType).map(makeConverter).toArray
 
-  private def makeConverter(dataType: DataType): ValueConverter = dataType match {
-    case DateType =>
-      (row: InternalRow, ordinal: Int) =>
-        options.dateFormat.format(DateTimeUtils.toJavaDate(row.getInt(ordinal)))
+  private def makeConverter(dataType: DataType): ValueConverter =
+    dataType match {
+      case DateType =>
+        (row: InternalRow, ordinal: Int) =>
+          options
+            .dateFormat
+            .format(
+              DateTimeUtils.toJavaDate(row.getInt(ordinal))
+            )
 
-    case TimestampType =>
-      (row: InternalRow, ordinal: Int) =>
-        options.timestampFormat.format(DateTimeUtils.toJavaTimestamp(row.getLong(ordinal)))
+      case TimestampType =>
+        (row: InternalRow, ordinal: Int) =>
+          options
+            .timestampFormat
+            .format(
+              DateTimeUtils.toJavaTimestamp(row.getLong(ordinal))
+            )
 
-    case udt: UserDefinedType[_] => makeConverter(udt.sqlType)
+      case udt: UserDefinedType[_] => makeConverter(udt.sqlType)
 
-    case dt: DataType =>
-      (row: InternalRow, ordinal: Int) => row.get(ordinal, dt).toString
-  }
+      case dt: DataType =>
+        (row: InternalRow, ordinal: Int) => row.get(ordinal, dt).toString
+    }
 
   private def convertRow(row: InternalRow): Seq[String] = {
     var i = 0
@@ -94,13 +105,14 @@ object UnivocityParserUtils {
   // Accepts pre-filtered lines (using CSVUtils.filterCommentAndEmpty)
   def parseIterator(
       filteredLines: Iterator[String],
-      parser: UnivocityParser,
+      parser: ShimUnivocityParser,
       schema: StructType): Iterator[InternalRow] = {
     val safeParser = new MinimalFailureSafeParser[String](
       input => Seq(parser.parse(input)),
       parser.options.parseMode,
       schema,
-      parser.options.columnNameOfCorruptRecord)
+      parser.options.columnNameOfCorruptRecord
+    )
     filteredLines.flatMap(safeParser.parse)
   }
 }
@@ -110,7 +122,7 @@ object CSVDataSourceUtils {
   def makeSafeHeader(
       row: Array[String],
       caseSensitive: Boolean,
-      options: CSVOptions): Array[String] = {
+      options: ShimCSVOptions): Array[String] = {
     if (options.headerFlag) {
       val duplicates = {
         val headerNames = row
@@ -153,8 +165,11 @@ class MinimalFailureSafeParser[IN](
     schema: StructType,
     columnNameOfCorruptRecord: String) {
 
-  private val corruptFieldIndex = schema.getFieldIndex(columnNameOfCorruptRecord)
-  private val actualSchema = StructType(schema.filterNot(_.name == columnNameOfCorruptRecord))
+  private val corruptFieldIndex =
+    schema.getFieldIndex(columnNameOfCorruptRecord)
+  private val actualSchema = StructType(
+    schema.filterNot(_.name == columnNameOfCorruptRecord)
+  )
   private val resultRow = new GenericInternalRow(schema.length)
   private val nullResult = new GenericInternalRow(schema.length)
 
@@ -181,7 +196,10 @@ class MinimalFailureSafeParser[IN](
 
   def parse(input: IN): Iterator[InternalRow] = {
     try {
-      rawParser.apply(input).toIterator.map(row => toResultRow(Some(row), () => null))
+      rawParser
+        .apply(input)
+        .toIterator
+        .map(row => toResultRow(Some(row), () => null))
     } catch {
       case e: BadRecordException =>
         mode match {
@@ -193,7 +211,8 @@ class MinimalFailureSafeParser[IN](
             throw new SparkException(
               "Malformed records are detected in record parsing. " +
               s"Parse Mode: ${FailFastMode.name}.",
-              e.cause)
+              e.cause
+            )
         }
     }
   }

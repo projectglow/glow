@@ -23,12 +23,13 @@ import scala.collection.JavaConverters._
 import org.apache.spark.sql.{SQLUtils, SparkSessionExtensions}
 import org.apache.spark.sql.catalyst.FunctionIdentifier
 import org.apache.spark.sql.catalyst.analysis.FunctionRegistry
-import org.apache.spark.sql.catalyst.expressions.{Expression, ExpressionInfo}
+import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.internal.SQLConf
 import org.yaml.snakeyaml.Yaml
 
+import io.projectglow.SparkShim._
 import io.projectglow.common.WithUtils
 import io.projectglow.sql.expressions._
 import io.projectglow.sql.optimizer.{ReplaceExpressionsRule, ResolveAggregateFunctionsRule, ResolveExpandStructRule}
@@ -51,33 +52,47 @@ class GlowSQLExtensions extends (SparkSessionExtensions => Unit) {
 object SqlExtensionProvider {
   private val FUNCTION_YAML_PATH = "functions.yml"
 
-  private def loadFunctionDefinitions(resourcePath: String): Iterable[JMap[String, Any]] = {
+  private def loadFunctionDefinitions(
+      resourcePath: String
+  ): Iterable[JMap[String, Any]] = {
     val yml = new Yaml()
     WithUtils.withCloseable(
-      Thread.currentThread().getContextClassLoader.getResourceAsStream(resourcePath)) { stream =>
+      Thread
+        .currentThread()
+        .getContextClassLoader
+        .getResourceAsStream(resourcePath)
+    ) { stream =>
       val groups = yml.loadAs(stream, classOf[JMap[String, JMap[String, Any]]])
       groups
         .values()
         .asScala
-        .flatMap(group => group.asScala("functions").asInstanceOf[JList[JMap[String, Any]]].asScala)
+        .flatMap(
+          group =>
+            group
+              .asScala("functions")
+              .asInstanceOf[JList[JMap[String, Any]]]
+              .asScala
+        )
     }
   }
 
   private def parameterError(functionName: String, params: Int): Exception = {
     SQLUtils.newAnalysisException(
-      s"Invalid number of parameters for function '$functionName': $params")
+      s"Invalid number of parameters for function '$functionName': $params"
+    )
   }
 
   private def makeArgsDoc(args: Seq[JMap[String, Any]]): String = {
     args.map { _arg =>
       val arg = _arg.asScala
-      val suffix = if (arg.get("is_optional").exists(_.asInstanceOf[Boolean])) {
-        " (optional)"
-      } else if (arg.get("is_var_args").exists(_.asInstanceOf[Boolean])) {
-        " (repeated)"
-      } else {
-        ""
-      }
+      val suffix =
+        if (arg.get("is_optional").exists(_.asInstanceOf[Boolean])) {
+          " (optional)"
+        } else if (arg.get("is_var_args").exists(_.asInstanceOf[Boolean])) {
+          " (repeated)"
+        } else {
+          ""
+        }
       s"${arg("name")}: ${arg("doc")} $suffix"
     }.mkString("\n")
   }
@@ -95,7 +110,9 @@ object SqlExtensionProvider {
         val arg = _arg.asScala
         // If the argument is optional and doesn't have a matching input, don't add a new
         // expression to the list of children.
-        if (arg.get("is_optional").exists(_.asInstanceOf[Boolean]) && idx >= exprs.size) {
+        if (arg
+            .get("is_optional")
+            .exists(_.asInstanceOf[Boolean]) && idx >= exprs.size) {
           None
           // If we have a var args argument, the child expressions from here on are part of
           // the var args list.
@@ -124,7 +141,7 @@ object SqlExtensionProvider {
       val id = FunctionIdentifier(function("name").asInstanceOf[String])
       val exprClass = function("expr_class").asInstanceOf[String]
       val args = function("args").asInstanceOf[JList[JMap[String, Any]]].asScala
-      val info = new ExpressionInfo(
+      val info = createExpressionInfo(
         exprClass,
         null,
         function("name").asInstanceOf[String],
@@ -138,7 +155,11 @@ object SqlExtensionProvider {
         id,
         info,
         exprs => {
-          val clazz = Class.forName(exprClass, true, Thread.currentThread().getContextClassLoader)
+          val clazz = Class.forName(
+            exprClass,
+            true,
+            Thread.currentThread().getContextClassLoader
+          )
           val constructorArgs = makeChildren(id.funcName, args, exprs)
           val constructor = clazz
             .getConstructors
@@ -148,7 +169,8 @@ object SqlExtensionProvider {
           ExpressionHelper.rewrite(
             constructor
               .newInstance(constructorArgs: _*)
-              .asInstanceOf[Expression])
+              .asInstanceOf[Expression]
+          )
         }
       )
     }
