@@ -209,6 +209,15 @@ etl:
              the generated struct will be null.
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.NormalizeVariantExpr
+      examples:
+        python: |
+          >>> df = spark.read.format('vcf').load('test-data/variantsplitternormalizer-test/test_left_align_hg38_altered.vcf')
+          >>> ref_genome = 'test-data/variantsplitternormalizer-test/Homo_sapiens_assembly38.20.21_altered.fasta'
+          >>> df.select('contigName', 'start', 'end', 'referenceAllele', 'alternateAlleles').head()
+          Row(contigName='chr20', start=400, end=401, referenceAllele='G', alternateAlleles=['GATCTTCCCTCTTTTCTAATATAAACACATAAAGCTCTGTTTCCTTCTAGGTAACTGGTTTGAG'])
+          >>> normalized_df = df.select('contigName', glow.expand_struct(glow.normalize_variant('contigName', 'start', 'end', 'referenceAllele', 'alternateAlleles', ref_genome)))
+          >>> normalized_df.head()
+          Row(contigName='chr20', start=268, end=269, referenceAllele='A', alternateAlleles=['ATTTGAGATCTTCCCTCTTTTCTAATATAAACACATAAAGCTCTGTTTCCTTCTAGGTAACTGG'], normalizationStatus=Row(changed=True, errorMessage=None))
       args:
         - name: contigName
           doc: The current contigName

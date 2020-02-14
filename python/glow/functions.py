@@ -23,8 +23,8 @@ def add_struct_fields(struct: Union[Column, str], *fields: Union[Column, str]) -
         [Row(struct=Row(a=1, b=2))]
 
     Args:
-    struct : The struct to which fields will be added
-    fields : New fields
+        struct : The struct to which fields will be added
+        fields : New fields
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.add_struct_fields(_to_java_column(struct), _to_seq(sc(), fields, _to_java_column)))
@@ -44,7 +44,7 @@ def array_summary_stats(arr: Union[Column, str]) -> Column:
         [Row(mean=2.0, stdDev=1.0, min=1.0, max=3.0)]
 
     Args:
-    arr : The array of numerics
+        arr : The array of numerics
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.array_summary_stats(_to_java_column(arr)))
@@ -65,7 +65,7 @@ def array_to_dense_vector(arr: Union[Column, str]) -> Column:
         [Row(v=DenseVector([1.0, 2.0, 3.0]))]
 
     Args:
-    arr : The array of numerics
+        arr : The array of numerics
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.array_to_dense_vector(_to_java_column(arr)))
@@ -86,7 +86,7 @@ def array_to_sparse_vector(arr: Union[Column, str]) -> Column:
         [Row(v=SparseVector(6, {0: 1.0, 2: 2.0, 4: 3.0}))]
 
     Args:
-    arr : The array of numerics
+        arr : The array of numerics
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.array_to_sparse_vector(_to_java_column(arr)))
@@ -106,7 +106,7 @@ def expand_struct(struct: Union[Column, str]) -> Column:
         [Row(a=1, b=2)]
 
     Args:
-    struct : The struct to expand
+        struct : The struct to expand
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.expand_struct(_to_java_column(struct)))
@@ -128,7 +128,7 @@ def explode_matrix(matrix: Union[Column, str]) -> Column:
         [Row(row=[1.0, 4.0]), Row(row=[2.0, 5.0]), Row(row=[3.0, 6.0])]
 
     Args:
-    matrix : The matrix to explode
+        matrix : The matrix to explode
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.explode_matrix(_to_java_column(matrix)))
@@ -148,8 +148,8 @@ def subset_struct(struct: Union[Column, str], *fields: str) -> Column:
         [Row(struct=Row(a=1, c=3))]
 
     Args:
-    struct : Struct from which to select fields
-    fields : Fields to take
+        struct : Struct from which to select fields
+        fields : Fields to take
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.subset_struct(_to_java_column(struct), _to_seq(sc(), fields)))
@@ -170,7 +170,7 @@ def vector_to_array(vector: Union[Column, str]) -> Column:
         [Row(arr=[1.0, 0.0, 2.0]), Row(arr=[3.0, 4.0])]
 
     Args:
-    vector : Vector to convert
+        vector : Vector to convert
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.vector_to_array(_to_java_column(vector)))
@@ -198,10 +198,10 @@ def hard_calls(probabilities: Union[Column, str], numAlts: Union[Column, str], p
         [Row(calls=[-1, -1])]
 
     Args:
-    probabilities : Probabilities
-    numAlts : The number of alts
-    phased : Whether the probabilities are phased or not
-    threshold : The minimum probability to include
+        probabilities : Probabilities
+        numAlts : The number of alts
+        phased : Whether the probabilities are phased or not
+        threshold : The minimum probability to include
     """
     assert check_argument_types()
     if threshold is None:
@@ -229,17 +229,306 @@ def lift_over_coordinates(contigName: Union[Column, str], start: Union[Column, s
         Row(contigName='chr20', start=18190715, end=18190716)
 
     Args:
-    contigName : The current contigName
-    start : The current start
-    end : The current end
-    chainFile : Location of the chain file on each node in the cluster
-    minMatchRatio : Minimum fraction of bases that must remap to lift over successfully
+        contigName : The current contigName
+        start : The current start
+        end : The current end
+        chainFile : Location of the chain file on each node in the cluster
+        minMatchRatio : Minimum fraction of bases that must remap to lift over successfully
     """
     assert check_argument_types()
     if minMatchRatio is None:
         output = Column(sc()._jvm.io.projectglow.functions.lift_over_coordinates(_to_java_column(contigName), _to_java_column(start), _to_java_column(end), chainFile))
     else:
         output = Column(sc()._jvm.io.projectglow.functions.lift_over_coordinates(_to_java_column(contigName), _to_java_column(start), _to_java_column(end), chainFile, minMatchRatio))
+    assert check_return_type(output)
+    return output
+  
+
+def normalize_variant(contigName: Union[Column, str], start: Union[Column, str], end: Union[Column, str], refAllele: Union[Column, str], altAlleles: Union[Column, str], refGenomePathString: str) -> Column:
+    """
+    Normalize the variant with a behavior similar to vt normalize or bcftools norm.
+    Creates a StructType column including the normalized start, end, referenceAllele and
+    alternateAlleles fields (whether they are changed or unchanged as the result of
+    normalization) as well as a StructType field called normalizationStatus that
+    contains the following fields:
+
+    changed: A boolean field indicating whether the variant data was changed as a
+        result of normalization.
+
+    errorMessage: An error message in case the attempt at normalizing the row hit an
+        error. In this case, the changed field will be set to false. If no errors occur,
+        this field will be null.
+
+    In case of an error, the start, end, referenceAllele and alternateAlleles fields in
+    the generated struct will be null.
+
+    Added in version 0.3.0.
+
+    Examples:
+        >>> df = spark.read.format('vcf').load('test-data/variantsplitternormalizer-test/test_left_align_hg38_altered.vcf')
+        >>> ref_genome = 'test-data/variantsplitternormalizer-test/Homo_sapiens_assembly38.20.21_altered.fasta'
+        >>> df.select('contigName', 'start', 'end', 'referenceAllele', 'alternateAlleles').head()
+        Row(contigName='chr20', start=400, end=401, referenceAllele='G', alternateAlleles=['GATCTTCCCTCTTTTCTAATATAAACACATAAAGCTCTGTTTCCTTCTAGGTAACTGGTTTGAG'])
+        >>> normalized_df = df.select('contigName', glow.expand_struct(glow.normalize_variant('contigName', 'start', 'end', 'referenceAllele', 'alternateAlleles', ref_genome)))
+        >>> normalized_df.head()
+        Row(contigName='chr20', start=268, end=269, referenceAllele='A', alternateAlleles=['ATTTGAGATCTTCCCTCTTTTCTAATATAAACACATAAAGCTCTGTTTCCTTCTAGGTAACTGG'], normalizationStatus=Row(changed=True, errorMessage=None))
+
+    Args:
+        contigName : The current contigName
+        start : The current start
+        end : The current end
+        refAllele : Reference allele
+        altAlleles : Alternate alleles
+        refGenomePathString : A path to the reference genome .fasta file. The .fasta file must
+        be accompanied with a .fai index file in the same folder.
+    """
+    assert check_argument_types()
+    output = Column(sc()._jvm.io.projectglow.functions.normalize_variant(_to_java_column(contigName), _to_java_column(start), _to_java_column(end), _to_java_column(refAllele), _to_java_column(altAlleles), refGenomePathString))
+    assert check_return_type(output)
+    return output
+  
+########### quality_control
+
+def call_summary_stats(genotypes: Union[Column, str]) -> Column:
+    """
+    Compute call stats for an array of genotype structs
+
+    Added in version 0.3.0.
+
+    Examples:
+        >>> schema = 'genotypes: array<struct<calls: array<int>>>'
+        >>> df = spark.createDataFrame([Row(genotypes=[Row(calls=[0, 0]), Row(calls=[1, 0]), Row(calls=[1, 1])])], schema)
+        >>> df.select(glow.expand_struct(glow.call_summary_stats('genotypes'))).collect()
+        [Row(callRate=1.0, nCalled=3, nUncalled=0, nHet=1, nHomozygous=[1, 1], nNonRef=2, nAllelesCalled=6, alleleCounts=[3, 3], alleleFrequencies=[0.5, 0.5])]
+
+    Args:
+        genotypes : The array of genotype structs
+    """
+    assert check_argument_types()
+    output = Column(sc()._jvm.io.projectglow.functions.call_summary_stats(_to_java_column(genotypes)))
+    assert check_return_type(output)
+    return output
+  
+
+def dp_summary_stats(genotypes: Union[Column, str]) -> Column:
+    """
+    Compute summary statistics for depth field from array of genotype structs
+
+    Added in version 0.3.0.
+
+    Examples:
+        >>> df = spark.createDataFrame([Row(genotypes=[Row(depth=1), Row(depth=2), Row(depth=3)])], 'genotypes: array<struct<depth: int>>')
+        >>> df.select(glow.expand_struct(glow.dp_summary_stats('genotypes'))).collect()
+        [Row(mean=2.0, stdDev=1.0, min=1.0, max=3.0)]
+
+    Args:
+        genotypes : The array of genotype structs
+    """
+    assert check_argument_types()
+    output = Column(sc()._jvm.io.projectglow.functions.dp_summary_stats(_to_java_column(genotypes)))
+    assert check_return_type(output)
+    return output
+  
+
+def hardy_weinberg(genotypes: Union[Column, str]) -> Column:
+    """
+    Compute statistics relating to the Hardy Weinberg equilibrium
+
+    Added in version 0.3.0.
+
+    Examples:
+        >>> genotypes = [
+        ... Row(calls=[1, 1]),
+        ... Row(calls=[1, 0]),
+        ... Row(calls=[0, 0])]
+        >>> df = spark.createDataFrame([Row(genotypes=genotypes)], 'genotypes: array<struct<calls: array<int>>>')
+        >>> df.select(glow.expand_struct(glow.hardy_weinberg('genotypes'))).collect()
+        [Row(hetFreqHwe=0.6, pValueHwe=0.7)]
+
+    Args:
+        genotypes : The array of genotype structs
+    """
+    assert check_argument_types()
+    output = Column(sc()._jvm.io.projectglow.functions.hardy_weinberg(_to_java_column(genotypes)))
+    assert check_return_type(output)
+    return output
+  
+
+def gq_summary_stats(genotypes: Union[Column, str]) -> Column:
+    """
+    Compute summary statistics about the genotype quality field for an array of genotype structs
+
+    Added in version 0.3.0.
+
+    Examples:
+        >>> genotypes = [
+        ... Row(conditionalQuality=1), 
+        ... Row(conditionalQuality=2), 
+        ... Row(conditionalQuality=3)] 
+        >>> df = spark.createDataFrame([Row(genotypes=genotypes)], 'genotypes: array<struct<conditionalQuality: int>>')
+        >>> df.select(glow.expand_struct(glow.gq_summary_stats('genotypes'))).collect()
+        [Row(mean=2.0, stdDev=1.0, min=1.0, max=3.0)]
+
+    Args:
+        genotypes : The array of genotype structs
+    """
+    assert check_argument_types()
+    output = Column(sc()._jvm.io.projectglow.functions.gq_summary_stats(_to_java_column(genotypes)))
+    assert check_return_type(output)
+    return output
+  
+
+def sample_call_summary_stats(genotypes: Union[Column, str], refAllele: Union[Column, str], alternateAlleles: Union[Column, str]) -> Column:
+    """
+    Compute per-sample call stats
+
+    Added in version 0.3.0.
+
+    Examples:
+        >>> sites = [
+        ... Row(refAllele='C', alternateAlleles=['G'], genotypes=[Row(sampleId='NA12878', calls=[0, 0])]),
+        ... Row(refAllele='A', alternateAlleles=['G'], genotypes=[Row(sampleId='NA12878', calls=[1, 1])]),
+        ... Row(refAllele='AG', alternateAlleles=['A'], genotypes=[Row(sampleId='NA12878', calls=[1, 0])])]
+        >>> df = spark.createDataFrame(sites, 'alternateAlleles: array<string>, genotypes: array<struct<sampleId: string, calls: array<int>>>, refAllele: string')
+        >>> df.select(glow.sample_call_summary_stats('genotypes', 'refAllele', 'alternateAlleles').alias('stats')).collect()
+        [Row(stats=[Row(sampleId='NA12878', callRate=1.0, nCalled=3, nUncalled=0, nHomRef=1, nHet=1, nHomVar=1, nSnp=2, nInsertion=0, nDeletion=1, nTransition=2, nTransversion=0, nSpanningDeletion=0, rTiTv=inf, rInsertionDeletion=0.0, rHetHomVar=1.0)])]
+
+    Args:
+        genotypes : The array of genotype structs
+        refAllele : The reference allele
+        alternateAlleles : An array of alternate alleles
+    """
+    assert check_argument_types()
+    output = Column(sc()._jvm.io.projectglow.functions.sample_call_summary_stats(_to_java_column(genotypes), _to_java_column(refAllele), _to_java_column(alternateAlleles)))
+    assert check_return_type(output)
+    return output
+  
+
+def sample_dp_summary_stats(genotypes: Union[Column, str]) -> Column:
+    """
+    Compute per-sample summary statistics about the depth field in an array of genotype structs
+
+    Added in version 0.3.0.
+
+    Examples:
+        >>> sites = [
+        ... Row(genotypes=[Row(sampleId='NA12878', depth=1)]),
+        ... Row(genotypes=[Row(sampleId='NA12878', depth=2)]),
+        ... Row(genotypes=[Row(sampleId='NA12878', depth=3)])]
+        >>> df = spark.createDataFrame(sites, 'genotypes: array<struct<depth: int, sampleId: string>>')
+        >>> df.select(glow.sample_dp_summary_stats('genotypes').alias('stats')).collect()
+        [Row(stats=[Row(sampleId='NA12878', mean=2.0, stdDev=1.0, min=1.0, max=3.0)])]
+
+    Args:
+        genotypes : The array of genotype structs
+    """
+    assert check_argument_types()
+    output = Column(sc()._jvm.io.projectglow.functions.sample_dp_summary_stats(_to_java_column(genotypes)))
+    assert check_return_type(output)
+    return output
+  
+
+def sample_gq_summary_stats(genotypes: Union[Column, str]) -> Column:
+    """
+    Compute per-sample summary statistics about the genotype quality field in an array of genotype structs
+
+    Added in version 0.3.0.
+
+    Examples:
+        >>> sites = [
+        ... Row(genotypes=[Row(sampleId='NA12878', conditionalQuality=1)]),
+        ... Row(genotypes=[Row(sampleId='NA12878', conditionalQuality=2)]),
+        ... Row(genotypes=[Row(sampleId='NA12878', conditionalQuality=3)])]
+        >>> df = spark.createDataFrame(sites, 'genotypes: array<struct<conditionalQuality: int, sampleId: string>>')
+        >>> df.select(glow.sample_gq_summary_stats('genotypes').alias('stats')).collect()
+        [Row(stats=[Row(sampleId='NA12878', mean=2.0, stdDev=1.0, min=1.0, max=3.0)])]
+
+    Args:
+        genotypes : The array of genotype structs
+    """
+    assert check_argument_types()
+    output = Column(sc()._jvm.io.projectglow.functions.sample_gq_summary_stats(_to_java_column(genotypes)))
+    assert check_return_type(output)
+    return output
+  
+########### gwas_functions
+
+def linear_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Column, str], covariates: Union[Column, str]) -> Column:
+    """
+    A linear regression GWAS function
+
+    Added in version 0.3.0.
+
+    Examples:
+        >>> from pyspark.ml.linalg import DenseMatrix
+        >>> phenotypes = [2, 3, 4]
+        >>> genotypes = [0, 1, 2]
+        >>> covariates = DenseMatrix(numRows=3, numCols=1, values=[1, 1, 1])
+        >>> df = spark.createDataFrame([Row(genotypes=genotypes, phenotypes=phenotypes, covariates=covariates)])
+        >>> df.select(glow.expand_struct(glow.linear_regression_gwas('genotypes', 'phenotypes', 'covariates'))).collect()
+        [Row(beta=0.9999999999999998, standardError=1.4901161193847656e-08, pValue=9.486373847239922e-09)]
+
+    Args:
+        genotypes : An array of genotypes
+        phenotypes : An array of phenotypes
+        covariates : A Spark matrix of covariates
+    """
+    assert check_argument_types()
+    output = Column(sc()._jvm.io.projectglow.functions.linear_regression_gwas(_to_java_column(genotypes), _to_java_column(phenotypes), _to_java_column(covariates)))
+    assert check_return_type(output)
+    return output
+  
+
+def logistic_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Column, str], covariates: Union[Column, str], test: str) -> Column:
+    """
+    A logistic regression function
+
+    Added in version 0.3.0.
+
+    Examples:
+        >>> from pyspark.ml.linalg import DenseMatrix
+        >>> phenotypes = [1, 0, 0, 1, 1]
+        >>> genotypes = [0, 0, 1, 2, 2]
+        >>> covariates = DenseMatrix(numRows=5, numCols=1, values=[1, 1, 1, 1, 1])
+        >>> df = spark.createDataFrame([Row(genotypes=genotypes, phenotypes=phenotypes, covariates=covariates)])
+        >>> df.select(glow.expand_struct(glow.logistic_regression_gwas('genotypes', 'phenotypes', 'covariates', 'Firth'))).collect()
+        [Row(beta=0.7418937644793101, oddsRatio=2.09990848346903, waldConfidenceInterval=[0.2509874689201784, 17.569066925598555], pValue=0.3952193664793294)]
+        >>> df.select(glow.expand_struct(glow.logistic_regression_gwas('genotypes', 'phenotypes', 'covariates', 'LRT'))).collect()
+        [Row(beta=1.1658962684583645, oddsRatio=3.208797540870915, waldConfidenceInterval=[0.2970960052553798, 34.65674891673014], pValue=0.2943946848756771)]
+
+    Args:
+        genotypes : An array of genotypes
+        phenotypes : An array of phenotype values
+        covariates : a matrix of covariates
+        test : Which logistic regression test to use. Can be 'LRT' or 'Firth'
+    """
+    assert check_argument_types()
+    output = Column(sc()._jvm.io.projectglow.functions.logistic_regression_gwas(_to_java_column(genotypes), _to_java_column(phenotypes), _to_java_column(covariates), test))
+    assert check_return_type(output)
+    return output
+  
+
+def genotype_states(genotypes: Union[Column, str]) -> Column:
+    """
+    Get number of alt alleles for a genotype
+
+    Added in version 0.3.0.
+
+    Examples:
+        >>> genotypes = [
+        ... Row(calls=[1, 1]),
+        ... Row(calls=[1, 0]),
+        ... Row(calls=[0, 0]),
+        ... Row(calls=[-1, -1])]
+        >>> df = spark.createDataFrame([Row(genotypes=genotypes)], 'genotypes: array<struct<calls: array<int>>>')
+        >>> df.select(glow.genotype_states('genotypes').alias('states')).collect()
+        [Row(states=[2, 1, 0, -1])]
+
+    Args:
+        genotypes : An array of genotype structs
+    """
+    assert check_argument_types()
+    output = Column(sc()._jvm.io.projectglow.functions.genotype_states(_to_java_column(genotypes)))
     assert check_return_type(output)
     return output
   
