@@ -13,10 +13,10 @@ Liftover
     chain_file = 'test-data/liftover/hg38ToHg19.over.chain.gz'
     reference_file = 'test-data/liftover/hg19.chr20.fa.gz'
 
-Liftover tools convert genomic data between reference assemblies. The `UCSC liftOver tool`_  uses a `chain file`_ to
+LiftOver converts genomic data between reference assemblies. The `UCSC liftOver tool`_  uses a `chain file`_ to
 perform simple coordinate conversion, for example on `BED files`_. The `Picard LiftOverVcf tool`_ also uses the new
 `reference assembly file`_ to transform variant information (eg. alleles and INFO fields).
-Glow can be used to run `coordinate liftover`_ and `variant liftover`_.
+Glow can be used to run `coordinate liftOver`_ and `variant liftOver`_.
 
 .. _`UCSC liftOver tool`: https://genome.ucsc.edu/cgi-bin/hgLiftOver
 .. _`chain file`: https://genome.ucsc.edu/goldenPath/help/chain.html
@@ -24,13 +24,13 @@ Glow can be used to run `coordinate liftover`_ and `variant liftover`_.
 .. _`BED files`: https://genome.ucsc.edu/FAQ/FAQformat.html#format1
 .. _`Picard LiftOverVcf tool`: https://gatk.broadinstitute.org/hc/en-us/articles/360036857991-LiftoverVcf-Picard
 
-Create a liftover cluster
+Create a liftOver cluster
 ==========================
 
-For both coordinate and variant liftover, you need a chain file on every node of the cluster.
+For both coordinate and variant liftOver, you need a chain file on every node of the cluster.
 On a Databricks cluster, an example of a
 `cluster-scoped init script <https://docs.databricks.com/clusters/init-scripts.html#cluster-scoped-init-scripts>`_
-you can use to download the required file for liftover from the b37 to the hg38 reference assembly is as follows:
+you can use to download the required file for liftOver from the b37 to the hg38 reference assembly is as follows:
 
 .. code-block:: bash
 
@@ -40,10 +40,10 @@ you can use to download the required file for liftover from the b37 to the hg38 
     mkdir /opt/liftover
     curl https://raw.githubusercontent.com/broadinstitute/gatk/master/scripts/funcotator/data_sources/gnomAD/b37ToHg38.over.chain --output /opt/liftover/b37ToHg38.over.chain
 
-Coordinate liftover
+Coordinate liftOver
 ====================
 
-To perform liftover for genomic coordinates, use the function ``lift_over_coordinates``. ``lift_over_coordinates`` has
+To perform liftOver for genomic coordinates, use the function ``lift_over_coordinates``. ``lift_over_coordinates``, which has
 the following parameters.
 
 - chromosome: ``string``
@@ -52,7 +52,7 @@ the following parameters.
 - chain file: ``string`` (constant value, such as one created with ``lit()``)
 - minimum fraction of bases that must remap: ``double`` (optional, defaults to ``.95``)
 
-The returned ``struct`` has the following values if liftover succeeded. If not, the UDF returns ``null``.
+The returned ``struct`` has the following values if liftOver succeeded. If not, the function returns ``null``.
 
 - ``contigName``: ``string``
 - ``start``: ``long``
@@ -69,18 +69,18 @@ The returned ``struct`` has the following values if liftover succeeded. If not, 
     from pyspark.sql import Row
     assert_rows_equal(output_df.select('lifted').head().lifted, Row(contigName='chr20', start=18190714, end=18190715))
 
-Variant liftover
+Variant liftOver
 =================
 
-For genetic variant data, use the ``lift_over_variants`` transformer. In addition to performing liftover for genetic
-coordinates, variant liftover performs the following transformations:
+For genetic variant data, use the ``lift_over_variants`` transformer. In addition to performing liftOver for genetic
+coordinates, variant liftOver performs the following transformations:
 
 - Reverse-complement and left-align the variant if needed
-- Adjust the SNP, and correct AF-like INFO fields and the relevant genotypes if the reference and alternate alleles have
+- Adjust the SNP, and correct allele-frequency-like INFO fields and the relevant genotypes if the reference and alternate alleles have
   been swapped in the new genome build
 
 Pull a target assembly reference file down to every node in the Spark cluster in addition to a chain file before
-performing variant liftover.
+performing variant liftOver.
 
 The ``lift_over_variants`` transformer operates on a DataFrame containing genetic variants and supports the following
 options:
@@ -103,18 +103,18 @@ options:
 
 The output DataFrame's schema consists of the input DataFrame's schema with the following fields appended:
 
-- ``INFO_SwappedAlleles``: ``boolean`` (null if liftover failed, true if the reference and alternate alleles were
+- ``INFO_SwappedAlleles``: ``boolean`` (null if liftOver failed, true if the reference and alternate alleles were
   swapped, false otherwise)
 - ``INFO_ReverseComplementedAlleles``: ``boolean`` (null if liftover failed, true if the reference and alternate
   alleles were reverse complemented, false otherwise)
 - ``liftOverStatus``: ``struct``
 
-   * ``success``: ``boolean`` (true if liftover succeeded, false otherwise)
-   * ``errorMessage``: ``string`` (null if liftover succeeded, message describing reason for liftover failure otherwise)
+   * ``success``: ``boolean`` (true if liftOver succeeded, false otherwise)
+   * ``errorMessage``: ``string`` (null if liftOver succeeded, message describing reason for liftOver failure otherwise)
 
-If liftover succeeds, the output row contains the liftover result and ``liftOverStatus.success`` is true.
-If liftover fails, the output row contains the original input row, the additional ``INFO`` fields are null,
-``liftOverStatus.success`` is false, and ``liftOverStatus.errorMessage`` contains the reason liftover failed.
+If liftOver succeeds, the output row contains the liftOver result and ``liftOverStatus.success`` is true.
+If liftOver fails, the output row contains the original input row, the additional ``INFO`` fields are null,
+``liftOverStatus.success`` is false, and ``liftOverStatus.errorMessage`` contains the reason liftOver failed.
 
 .. code-block:: python
 
