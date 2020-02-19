@@ -39,6 +39,7 @@ complex_type_manipulation:
         - name: fields
           doc: The new fields to add. The arguments must alternate between string-typed literal field names and field values.
           is_var_args: true
+      returns: A struct consisting of the input struct and the added fields
     - name: array_summary_stats
       doc: Computes the min, max, mean, stddev for an array of numerics. The input array can be any numeric
         type, but the returned stats are always ``double`` typed.
@@ -52,6 +53,7 @@ complex_type_manipulation:
       args:
         - name: arr
           doc: The array of numerics
+      returns: A struct containing ``mean``, ``stdDev``, ``min``, and ``max`` fields
     - name: array_to_dense_vector
       doc: Converts an array of numerics into a ``spark.ml`` ``DenseVector``.
       since: 0.3.0
@@ -65,6 +67,7 @@ complex_type_manipulation:
       args:
         - name: arr
           doc: The array of numerics
+      returns: A ``spark.ml`` ``DenseVector``
     - name: array_to_sparse_vector
       doc: Converts an array of numerics into a ``spark.ml`` ``SparseVector``.
       since: 0.3.0
@@ -78,6 +81,7 @@ complex_type_manipulation:
       args:
         - name: arr
           doc: The array of numerics
+      returns: A ``spark.ml`` ``SparseVector``
     - name: expand_struct
       doc: Promotes fields of a nested struct to top-level columns. Similar to using struct.* from SQL, but can be used in more contexts.
       since: 0.3.0
@@ -90,6 +94,7 @@ complex_type_manipulation:
       args:
         - name: struct
           doc: The struct to expand
+      returns: Columns corresponding to fields of the input struct
     - name: explode_matrix
       doc: Explodes a ``spark.ml`` matrix (sparse or dense) into multiple arrays, one per row of the matrix.
       since: 0.3.0
@@ -104,8 +109,9 @@ complex_type_manipulation:
       args:
         - name: matrix
           doc: The matrix to explode
+      returns: An array column in which each row is a row of the input matrix
     - name: subset_struct
-      doc: Selects fields from a struct. The return value will be a struct containing only the desired fields.
+      doc: Selects fields from a struct.
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.SubsetStruct
       examples:
@@ -120,6 +126,7 @@ complex_type_manipulation:
           doc: Fields to select
           type: str
           is_var_args: true
+      returns: A struct containing only the indicated fields
     - name: vector_to_array
       doc: Converts a ``spark.ml`` vector (sparse or dense) to an array of doubles.
       since: 0.3.0
@@ -133,6 +140,7 @@ complex_type_manipulation:
       args:
         - name: vector
           doc: Vector to convert
+      returns: An array of doubles
 
 etl:
   functions:
@@ -167,8 +175,9 @@ etl:
             If not provided, this parameter defaults to 0.9.
           type: double
           is_optional: true
+      returns: An array of hard calls
     - name: lift_over_coordinates
-      doc: Performs lift over for the coordinates of a variants. To lift over alleles and add additional metadata, see :ref:`liftover`.
+      doc: Performs liftover for the coordinates of a variants. To perform liftover of alleles and add additional metadata, see :ref:`liftover`.
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.LiftOverCoordinatesExpr
       examples:
@@ -192,12 +201,13 @@ etl:
           doc: Location of the chain file on each node in the cluster
           type: str
         - name: minMatchRatio
-          doc: Minimum fraction of bases that must remap to lift over successfully. If not provided, defaults to 0.95.
+          doc: Minimum fraction of bases that must remap to do liftover successfully. If not provided, defaults to 0.95.
           type: double
           is_optional: true
+      returns: A struct containing ``contigName``, ``start``, and ``end`` fields after liftover.
     - name: normalize_variant
       doc: |
-             Normalize the variant with a behavior similar to vt normalize or bcftools norm.
+             Normalizes the variant with a behavior similar to vt normalize or bcftools norm.
              Creates a StructType column including the normalized start, end, referenceAllele and
              alternateAlleles fields (whether they are changed or unchanged as the result of
              normalization) as well as a StructType field called normalizationStatus that
@@ -207,8 +217,7 @@ etl:
 
                 errorMessage: An error message in case the attempt at normalizing the row hit an error. In this case, the changed field will be set to false. If no errors occur, this field will be null.
 
-             In case of an error, the start, end, referenceAllele and alternateAlleles fields in
-             the generated struct will be null.
+             In case of an error, the start, end, referenceAllele and alternateAlleles fields in the generated struct will be null.
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.NormalizeVariantExpr
       examples:
@@ -233,9 +242,9 @@ etl:
           doc: Alternate alleles
         - name: refGenomePathString
           doc: |
-            A path to the reference genome .fasta file. The .fasta file must
-            be accompanied with a .fai index file in the same folder.
+            A path to the reference genome .fasta file. The .fasta file must be accompanied with a .fai index file in the same folder.
           type: str
+      returns: A struct as explained above
 
 
 quality_control:
@@ -260,6 +269,7 @@ quality_control:
           doc: evaluate function
           type: lambda1
           is_optional: true
+      returns: An array of aggregated values. The number of elements in the array is equal to the number of samples.
     - name: call_summary_stats
       doc: Computes call summary statistics for an array of genotype structs. See :ref:`variant-qc` for more details.
       since: 0.3.0
@@ -273,8 +283,9 @@ quality_control:
       args:
         - name: genotypes
           doc: The array of genotype structs
+      returns: A struct containing ``callRate``, ``nCalled``, ``nUncalled``, ``nHet``, ``nHomozygous``, ``nNonRef``, ``nAllelesCalled``, ``alleleCounts``, ``alleleFrequencies`` fields. See :ref:`variant-qc`.
     - name: dp_summary_stats
-      doc: Compute summary statistics for depth field from array of genotype structs
+      doc: Compute summary statistics for depth field from array of genotype structs. See :ref:`variant-qc`.
       examples:
         python: |
           >>> df = spark.createDataFrame([Row(genotypes=[Row(depth=1), Row(depth=2), Row(depth=3)])], 'genotypes: array<struct<depth: int>>')
@@ -285,6 +296,7 @@ quality_control:
       args:
         - name: genotypes
           doc: The array of genotype structs
+      returns: A struct containing ``mean``, ``stdDev``, ``min``, and ``max`` of genotype depths
     - name: hardy_weinberg
       doc: Computes statistics relating to the Hardy Weinberg equilibrium. See :ref:`variant-qc` for more details.
       since: 0.3.0
@@ -301,8 +313,9 @@ quality_control:
       args:
         - name: genotypes
           doc: The array of genotype structs
+      returns: A struct containing two fields, ``hetFreqHwe`` (the expected heterozygous frequency according to Hardy-Weinberg equilibrium) and ``pValueHwe`` (the associated p-value)
     - name: gq_summary_stats
-      doc: Computes summary statistics about the genotype quality field for an array of genotype structs
+      doc: Computes summary statistics about the genotype quality field for an array of genotype structs. See :ref:`variant-qc`.
       since: 0.3.0
       examples:
         python: |
@@ -317,6 +330,7 @@ quality_control:
       args:
         - name: genotypes
           doc: The array of genotype structs
+      returns: A struct containing ``mean``, ``stdDev``, ``min``, and ``max`` of genotype qualities
     - name: sample_call_summary_stats
       doc: Computes per-sample call summary statistics. See :ref:`sample-qc` for more details.
       since: 0.3.0
@@ -337,6 +351,7 @@ quality_control:
           doc: The reference allele
         - name: alternateAlleles
           doc: An array of alternate alleles
+      returns: A struct containing ``sampleId``, ``callRate``, ``nCalled``, ``nUncalled``, ``nHomRef``, ``nHet``, ``nHomVar``, ``nSnp``, ``nInsertion``, ``nDeletion``, ``nTransition``, ``nTransversion``, ``nSpanningDeletion``, ``rTiTv``, ``rInsertionDeletion``, ``rHetHomVar`` fields. See :ref:`sample-qc`.
     - name: sample_dp_summary_stats
       doc: Compute per-sample summary statistics about the depth field in an array of genotype structs
       since: 0.3.0
@@ -352,7 +367,8 @@ quality_control:
           [Row(stats=[Row(sampleId='NA12878', mean=2.0, stdDev=1.0, min=1.0, max=3.0)])]
       args:
         - name: genotypes
-          doc: The array of genotype structs
+          doc: An array of genotype structs
+      returns: An array of structs where each struct contains ``mean``, ``stDev``, ``min``, and ``max`` of the genotype depths for a sample. If ``sampleId`` is present in a genotype, it will be propagated to the resulting struct as an extra field.
     - name: sample_gq_summary_stats
       doc: Compute per-sample summary statistics about the genotype quality field in an array of genotype structs
       since: 0.3.0
@@ -368,7 +384,8 @@ quality_control:
           [Row(stats=[Row(sampleId='NA12878', mean=2.0, stdDev=1.0, min=1.0, max=3.0)])]
       args:
         - name: genotypes
-          doc: The array of genotype structs
+          doc: An array of genotype structs with a conditionalQuality field
+      returns: An array of structs where each struct contains ``mean``, ``stDev``, ``min``, and ``max`` of the genotype qualities for a sample. If ``sampleId`` is present in a genotype, it will be propagated to the resulting struct as an extra field.
 
 gwas_functions:
   functions:
@@ -393,6 +410,7 @@ gwas_functions:
           doc: An array of phenotypes
         - name: covariates
           doc: A spark.ml matrix of covariates
+      returns: A struct containing ``beta``, ``standardError``, and ``pValue`` fields. See :ref:`linear-regression`.
     - name: logistic_regression_gwas
       doc: Performs a logistic regression association test optimized for performance in a GWAS setting.
         See :ref:`logistic-regression` for more details.
@@ -419,8 +437,9 @@ gwas_functions:
         - name: test
           doc: Which logistic regression test to use. Can be 'LRT' or 'Firth'
           type: str
+      returns: A struct containing ``beta``, ``oddsRatio``, ``waldConfidenceInterval``, and ``pValue`` fields. See :ref:`logistic-regression`.
     - name: genotype_states
-      doc: Gets number of alt alleles for a genotype. Returns ``-1`` if there are any ``-1``s in the input array.
+      doc: Gets number of alt alleles for genotypes. Returns ``-1`` if there are any ``-1``s in the calls array.
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.GenotypeStates
       examples:
@@ -436,3 +455,4 @@ gwas_functions:
       args:
         - name: genotypes
           doc: An array of genotype structs
+      returns: An array of integers containing the number of alt alleles in each call array

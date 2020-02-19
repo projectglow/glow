@@ -58,6 +58,7 @@ object functions {
 {% for arg in function.args %}
    * @param {{ arg.name }} {{ arg.doc|trim|replace("\n", "\n*        ")|indent(3) }}
 {% endfor %}
+   * @return {{ function.returns|trim|replace("\n", "\n* ")|indent(3) }}
    */
   {% if function.args[-1].is_optional %}
   def {{ function.name }}({{ function.args|map('fmt_scala_signature')|join(', ') }}): Column = withExpr {

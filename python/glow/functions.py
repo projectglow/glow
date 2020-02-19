@@ -25,12 +25,15 @@ def add_struct_fields(struct: Union[Column, str], *fields: Union[Column, str]) -
     Args:
         struct : The struct to which fields will be added.
         fields : The new fields to add. The arguments must alternate between string-typed literal field names and field values.
+
+    Returns:
+        A struct consisting of the input struct and the added fields
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.add_struct_fields(_to_java_column(struct), _to_seq(sc(), fields, _to_java_column)))
     assert check_return_type(output)
     return output
-  
+
 
 def array_summary_stats(arr: Union[Column, str]) -> Column:
     """
@@ -45,12 +48,15 @@ def array_summary_stats(arr: Union[Column, str]) -> Column:
 
     Args:
         arr : The array of numerics
+
+    Returns:
+        A struct containing ``mean``, ``stdDev``, ``min``, and ``max`` fields
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.array_summary_stats(_to_java_column(arr)))
     assert check_return_type(output)
     return output
-  
+
 
 def array_to_dense_vector(arr: Union[Column, str]) -> Column:
     """
@@ -66,12 +72,15 @@ def array_to_dense_vector(arr: Union[Column, str]) -> Column:
 
     Args:
         arr : The array of numerics
+
+    Returns:
+        A ``spark.ml`` ``DenseVector``
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.array_to_dense_vector(_to_java_column(arr)))
     assert check_return_type(output)
     return output
-  
+
 
 def array_to_sparse_vector(arr: Union[Column, str]) -> Column:
     """
@@ -87,12 +96,15 @@ def array_to_sparse_vector(arr: Union[Column, str]) -> Column:
 
     Args:
         arr : The array of numerics
+
+    Returns:
+        A ``spark.ml`` ``SparseVector``
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.array_to_sparse_vector(_to_java_column(arr)))
     assert check_return_type(output)
     return output
-  
+
 
 def expand_struct(struct: Union[Column, str]) -> Column:
     """
@@ -107,12 +119,15 @@ def expand_struct(struct: Union[Column, str]) -> Column:
 
     Args:
         struct : The struct to expand
+
+    Returns:
+        Columns corresponding to fields of the input struct
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.expand_struct(_to_java_column(struct)))
     assert check_return_type(output)
     return output
-  
+
 
 def explode_matrix(matrix: Union[Column, str]) -> Column:
     """
@@ -129,16 +144,19 @@ def explode_matrix(matrix: Union[Column, str]) -> Column:
 
     Args:
         matrix : The matrix to explode
+
+    Returns:
+        An array column in which each row is a row of the input matrix
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.explode_matrix(_to_java_column(matrix)))
     assert check_return_type(output)
     return output
-  
+
 
 def subset_struct(struct: Union[Column, str], *fields: str) -> Column:
     """
-    Selects fields from a struct. The return value will be a struct containing only the desired fields.
+    Selects fields from a struct.
 
     Added in version 0.3.0.
 
@@ -150,12 +168,15 @@ def subset_struct(struct: Union[Column, str], *fields: str) -> Column:
     Args:
         struct : Struct from which to select fields
         fields : Fields to select
+
+    Returns:
+        A struct containing only the indicated fields
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.subset_struct(_to_java_column(struct), _to_seq(sc(), fields)))
     assert check_return_type(output)
     return output
-  
+
 
 def vector_to_array(vector: Union[Column, str]) -> Column:
     """
@@ -171,12 +192,15 @@ def vector_to_array(vector: Union[Column, str]) -> Column:
 
     Args:
         vector : Vector to convert
+
+    Returns:
+        An array of doubles
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.vector_to_array(_to_java_column(vector)))
     assert check_return_type(output)
     return output
-  
+
 ########### etl
 
 def hard_calls(probabilities: Union[Column, str], numAlts: Union[Column, str], phased: Union[Column, str], threshold: float = None) -> Column:
@@ -202,6 +226,9 @@ def hard_calls(probabilities: Union[Column, str], numAlts: Union[Column, str], p
         numAlts : The number of alternate alleles
         phased : Whether the probabilities are phased. If phased, we expect one 2 * numAlts values in probabilities array. If unphased, we expect one probability per possible genotype.
         threshold : The minimum probability to make a call. If no probability falls into the range of [0, 1 - threshold] or [threshold, 1], a no-call (represented by -1s) will be emitted. If not provided, this parameter defaults to 0.9.
+
+    Returns:
+        An array of hard calls
     """
     assert check_argument_types()
     if threshold is None:
@@ -210,11 +237,11 @@ def hard_calls(probabilities: Union[Column, str], numAlts: Union[Column, str], p
         output = Column(sc()._jvm.io.projectglow.functions.hard_calls(_to_java_column(probabilities), _to_java_column(numAlts), _to_java_column(phased), threshold))
     assert check_return_type(output)
     return output
-  
+
 
 def lift_over_coordinates(contigName: Union[Column, str], start: Union[Column, str], end: Union[Column, str], chainFile: str, minMatchRatio: float = None) -> Column:
     """
-    Performs lift over for the coordinates of a variants. To lift over alleles and add additional metadata, see :ref:`liftover`.
+    Performs liftover for the coordinates of a variants. To perform liftover of alleles and add additional metadata, see :ref:`liftover`.
 
     Added in version 0.3.0.
 
@@ -233,7 +260,10 @@ def lift_over_coordinates(contigName: Union[Column, str], start: Union[Column, s
         start : The current start
         end : The current end
         chainFile : Location of the chain file on each node in the cluster
-        minMatchRatio : Minimum fraction of bases that must remap to lift over successfully. If not provided, defaults to 0.95.
+        minMatchRatio : Minimum fraction of bases that must remap to do liftover successfully. If not provided, defaults to 0.95.
+
+    Returns:
+        A struct containing ``contigName``, ``start``, and ``end`` fields after liftover.
     """
     assert check_argument_types()
     if minMatchRatio is None:
@@ -242,11 +272,11 @@ def lift_over_coordinates(contigName: Union[Column, str], start: Union[Column, s
         output = Column(sc()._jvm.io.projectglow.functions.lift_over_coordinates(_to_java_column(contigName), _to_java_column(start), _to_java_column(end), chainFile, minMatchRatio))
     assert check_return_type(output)
     return output
-  
+
 
 def normalize_variant(contigName: Union[Column, str], start: Union[Column, str], end: Union[Column, str], refAllele: Union[Column, str], altAlleles: Union[Column, str], refGenomePathString: str) -> Column:
     """
-    Normalize the variant with a behavior similar to vt normalize or bcftools norm.
+    Normalizes the variant with a behavior similar to vt normalize or bcftools norm.
     Creates a StructType column including the normalized start, end, referenceAllele and
     alternateAlleles fields (whether they are changed or unchanged as the result of
     normalization) as well as a StructType field called normalizationStatus that
@@ -256,8 +286,7 @@ def normalize_variant(contigName: Union[Column, str], start: Union[Column, str],
 
        errorMessage: An error message in case the attempt at normalizing the row hit an error. In this case, the changed field will be set to false. If no errors occur, this field will be null.
 
-    In case of an error, the start, end, referenceAllele and alternateAlleles fields in
-    the generated struct will be null.
+    In case of an error, the start, end, referenceAllele and alternateAlleles fields in the generated struct will be null.
 
     Added in version 0.3.0.
 
@@ -276,14 +305,16 @@ def normalize_variant(contigName: Union[Column, str], start: Union[Column, str],
         end : The current end
         refAllele : Reference allele
         altAlleles : Alternate alleles
-        refGenomePathString : A path to the reference genome .fasta file. The .fasta file must
-        be accompanied with a .fai index file in the same folder.
+        refGenomePathString : A path to the reference genome .fasta file. The .fasta file must be accompanied with a .fai index file in the same folder.
+
+    Returns:
+        A struct as explained above
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.normalize_variant(_to_java_column(contigName), _to_java_column(start), _to_java_column(end), _to_java_column(refAllele), _to_java_column(altAlleles), refGenomePathString))
     assert check_return_type(output)
     return output
-  
+
 ########### quality_control
 
 def call_summary_stats(genotypes: Union[Column, str]) -> Column:
@@ -300,16 +331,19 @@ def call_summary_stats(genotypes: Union[Column, str]) -> Column:
 
     Args:
         genotypes : The array of genotype structs
+
+    Returns:
+        A struct containing ``callRate``, ``nCalled``, ``nUncalled``, ``nHet``, ``nHomozygous``, ``nNonRef``, ``nAllelesCalled``, ``alleleCounts``, ``alleleFrequencies`` fields. See :ref:`variant-qc`.
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.call_summary_stats(_to_java_column(genotypes)))
     assert check_return_type(output)
     return output
-  
+
 
 def dp_summary_stats(genotypes: Union[Column, str]) -> Column:
     """
-    Compute summary statistics for depth field from array of genotype structs
+    Compute summary statistics for depth field from array of genotype structs. See :ref:`variant-qc`.
 
     Added in version 0.3.0.
 
@@ -320,12 +354,15 @@ def dp_summary_stats(genotypes: Union[Column, str]) -> Column:
 
     Args:
         genotypes : The array of genotype structs
+
+    Returns:
+        A struct containing ``mean``, ``stdDev``, ``min``, and ``max`` of genotype depths
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.dp_summary_stats(_to_java_column(genotypes)))
     assert check_return_type(output)
     return output
-  
+
 
 def hardy_weinberg(genotypes: Union[Column, str]) -> Column:
     """
@@ -344,16 +381,19 @@ def hardy_weinberg(genotypes: Union[Column, str]) -> Column:
 
     Args:
         genotypes : The array of genotype structs
+
+    Returns:
+        A struct containing two fields, ``hetFreqHwe`` (the expected heterozygous frequency according to Hardy-Weinberg equilibrium) and ``pValueHwe`` (the associated p-value)
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.hardy_weinberg(_to_java_column(genotypes)))
     assert check_return_type(output)
     return output
-  
+
 
 def gq_summary_stats(genotypes: Union[Column, str]) -> Column:
     """
-    Computes summary statistics about the genotype quality field for an array of genotype structs
+    Computes summary statistics about the genotype quality field for an array of genotype structs. See :ref:`variant-qc`.
 
     Added in version 0.3.0.
 
@@ -368,12 +408,15 @@ def gq_summary_stats(genotypes: Union[Column, str]) -> Column:
 
     Args:
         genotypes : The array of genotype structs
+
+    Returns:
+        A struct containing ``mean``, ``stdDev``, ``min``, and ``max`` of genotype qualities
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.gq_summary_stats(_to_java_column(genotypes)))
     assert check_return_type(output)
     return output
-  
+
 
 def sample_call_summary_stats(genotypes: Union[Column, str], refAllele: Union[Column, str], alternateAlleles: Union[Column, str]) -> Column:
     """
@@ -394,12 +437,15 @@ def sample_call_summary_stats(genotypes: Union[Column, str], refAllele: Union[Co
         genotypes : The array of genotype structs
         refAllele : The reference allele
         alternateAlleles : An array of alternate alleles
+
+    Returns:
+        A struct containing ``sampleId``, ``callRate``, ``nCalled``, ``nUncalled``, ``nHomRef``, ``nHet``, ``nHomVar``, ``nSnp``, ``nInsertion``, ``nDeletion``, ``nTransition``, ``nTransversion``, ``nSpanningDeletion``, ``rTiTv``, ``rInsertionDeletion``, ``rHetHomVar`` fields. See :ref:`sample-qc`.
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.sample_call_summary_stats(_to_java_column(genotypes), _to_java_column(refAllele), _to_java_column(alternateAlleles)))
     assert check_return_type(output)
     return output
-  
+
 
 def sample_dp_summary_stats(genotypes: Union[Column, str]) -> Column:
     """
@@ -417,13 +463,16 @@ def sample_dp_summary_stats(genotypes: Union[Column, str]) -> Column:
         [Row(stats=[Row(sampleId='NA12878', mean=2.0, stdDev=1.0, min=1.0, max=3.0)])]
 
     Args:
-        genotypes : The array of genotype structs
+        genotypes : An array of genotype structs
+
+    Returns:
+        An array of structs where each struct contains ``mean``, ``stDev``, ``min``, and ``max`` of the genotype depths for a sample. If ``sampleId`` is present in a genotype, it will be propagated to the resulting struct as an extra field.
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.sample_dp_summary_stats(_to_java_column(genotypes)))
     assert check_return_type(output)
     return output
-  
+
 
 def sample_gq_summary_stats(genotypes: Union[Column, str]) -> Column:
     """
@@ -441,13 +490,16 @@ def sample_gq_summary_stats(genotypes: Union[Column, str]) -> Column:
         [Row(stats=[Row(sampleId='NA12878', mean=2.0, stdDev=1.0, min=1.0, max=3.0)])]
 
     Args:
-        genotypes : The array of genotype structs
+        genotypes : An array of genotype structs with a conditionalQuality field
+
+    Returns:
+        An array of structs where each struct contains ``mean``, ``stDev``, ``min``, and ``max`` of the genotype qualities for a sample. If ``sampleId`` is present in a genotype, it will be propagated to the resulting struct as an extra field.
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.sample_gq_summary_stats(_to_java_column(genotypes)))
     assert check_return_type(output)
     return output
-  
+
 ########### gwas_functions
 
 def linear_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Column, str], covariates: Union[Column, str]) -> Column:
@@ -469,12 +521,15 @@ def linear_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Colu
         genotypes : An array of genotypes
         phenotypes : An array of phenotypes
         covariates : A spark.ml matrix of covariates
+
+    Returns:
+        A struct containing ``beta``, ``standardError``, and ``pValue`` fields. See :ref:`linear-regression`.
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.linear_regression_gwas(_to_java_column(genotypes), _to_java_column(phenotypes), _to_java_column(covariates)))
     assert check_return_type(output)
     return output
-  
+
 
 def logistic_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Column, str], covariates: Union[Column, str], test: str) -> Column:
     """
@@ -498,16 +553,19 @@ def logistic_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Co
         phenotypes : A ``double`` array of phenotype values
         covariates : M ``spark.ml`` matrix of covariates
         test : Which logistic regression test to use. Can be 'LRT' or 'Firth'
+
+    Returns:
+        A struct containing ``beta``, ``oddsRatio``, ``waldConfidenceInterval``, and ``pValue`` fields. See :ref:`logistic-regression`.
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.logistic_regression_gwas(_to_java_column(genotypes), _to_java_column(phenotypes), _to_java_column(covariates), test))
     assert check_return_type(output)
     return output
-  
+
 
 def genotype_states(genotypes: Union[Column, str]) -> Column:
     """
-    Gets number of alt alleles for a genotype. Returns ``-1`` if there are any ``-1``s in the input array.
+    Gets number of alt alleles for genotypes. Returns ``-1`` if there are any ``-1``s in the calls array.
 
     Added in version 0.3.0.
 
@@ -523,9 +581,12 @@ def genotype_states(genotypes: Union[Column, str]) -> Column:
 
     Args:
         genotypes : An array of genotype structs
+
+    Returns:
+        An array of integers containing the number of alt alleles in each call array
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.genotype_states(_to_java_column(genotypes)))
     assert check_return_type(output)
     return output
-  
+

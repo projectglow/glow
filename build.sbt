@@ -85,7 +85,10 @@ lazy val functionGenerationSettings = Seq(
     runCmd(generatorScript.value, functionsTemplate.value, generatedFunctionsOutput.value)
     Seq.empty[File]
   },
-  generateFunctions / fileInputs := Seq(functionsTemplate.value, functionsYml.value, generatorScript.value).map(_.toGlob)
+  generateFunctions / fileInputs := Seq(
+    functionsTemplate.value,
+    functionsYml.value,
+    generatorScript.value).map(_.toGlob)
 )
 
 lazy val sparkDependencies = Seq(

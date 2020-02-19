@@ -56,6 +56,7 @@ object functions {
    *
    * @param struct The struct to which fields will be added.
    * @param fields The new fields to add. The arguments must alternate between string-typed literal field names and field values.
+   * @return A struct consisting of the input struct and the added fields
    */
   def add_struct_fields(struct: Column, fields: Column*): Column = withExpr {
     new io.projectglow.sql.expressions.AddStructFields(struct.expr, fields.map(_.expr))
@@ -67,6 +68,7 @@ object functions {
    * @since 0.3.0
    *
    * @param arr The array of numerics
+   * @return A struct containing ``mean``, ``stdDev``, ``min``, and ``max`` fields
    */
   def array_summary_stats(arr: Column): Column = withExpr {
     new io.projectglow.sql.expressions.ArrayStatsSummary(arr.expr)
@@ -78,6 +80,7 @@ object functions {
    * @since 0.3.0
    *
    * @param arr The array of numerics
+   * @return A ``spark.ml`` ``DenseVector``
    */
   def array_to_dense_vector(arr: Column): Column = withExpr {
     new io.projectglow.sql.expressions.ArrayToDenseVector(arr.expr)
@@ -89,6 +92,7 @@ object functions {
    * @since 0.3.0
    *
    * @param arr The array of numerics
+   * @return A ``spark.ml`` ``SparseVector``
    */
   def array_to_sparse_vector(arr: Column): Column = withExpr {
     new io.projectglow.sql.expressions.ArrayToSparseVector(arr.expr)
@@ -100,6 +104,7 @@ object functions {
    * @since 0.3.0
    *
    * @param struct The struct to expand
+   * @return Columns corresponding to fields of the input struct
    */
   def expand_struct(struct: Column): Column = withExpr {
     new io.projectglow.sql.expressions.ExpandStruct(struct.expr)
@@ -111,18 +116,20 @@ object functions {
    * @since 0.3.0
    *
    * @param matrix The matrix to explode
+   * @return An array column in which each row is a row of the input matrix
    */
   def explode_matrix(matrix: Column): Column = withExpr {
     new io.projectglow.sql.expressions.ExplodeMatrix(matrix.expr)
   }
 
   /**
-   * Selects fields from a struct. The return value will be a struct containing only the desired fields.
+   * Selects fields from a struct.
    * @group complex_type_manipulation
    * @since 0.3.0
    *
    * @param struct Struct from which to select fields
    * @param fields Fields to select
+   * @return A struct containing only the indicated fields
    */
   def subset_struct(struct: Column, fields: String*): Column = withExpr {
     new io.projectglow.sql.expressions.SubsetStruct(struct.expr, fields.map(Literal(_)))
@@ -134,6 +141,7 @@ object functions {
    * @since 0.3.0
    *
    * @param vector Vector to convert
+   * @return An array of doubles
    */
   def vector_to_array(vector: Column): Column = withExpr {
     new io.projectglow.sql.expressions.VectorToArray(vector.expr)
@@ -148,6 +156,7 @@ object functions {
    * @param numAlts The number of alternate alleles
    * @param phased Whether the probabilities are phased. If phased, we expect one 2 * numAlts values in probabilities array. If unphased, we expect one probability per possible genotype.
    * @param threshold The minimum probability to make a call. If no probability falls into the range of [0, 1 - threshold] or [threshold, 1], a no-call (represented by -1s) will be emitted. If not provided, this parameter defaults to 0.9.
+   * @return An array of hard calls
    */
   def hard_calls(probabilities: Column, numAlts: Column, phased: Column, threshold: Double): Column = withExpr {
     new io.projectglow.sql.expressions.HardCalls(probabilities.expr, numAlts.expr, phased.expr, Literal(threshold))
@@ -159,7 +168,7 @@ object functions {
 
 
   /**
-   * Performs lift over for the coordinates of a variants. To lift over alleles and add additional metadata, see :ref:`liftover`.
+   * Performs liftover for the coordinates of a variants. To perform liftover of alleles and add additional metadata, see :ref:`liftover`.
    * @group etl
    * @since 0.3.0
    *
@@ -167,7 +176,8 @@ object functions {
    * @param start The current start
    * @param end The current end
    * @param chainFile Location of the chain file on each node in the cluster
-   * @param minMatchRatio Minimum fraction of bases that must remap to lift over successfully. If not provided, defaults to 0.95.
+   * @param minMatchRatio Minimum fraction of bases that must remap to do liftover successfully. If not provided, defaults to 0.95.
+   * @return A struct containing ``contigName``, ``start``, and ``end`` fields after liftover.
    */
   def lift_over_coordinates(contigName: Column, start: Column, end: Column, chainFile: String, minMatchRatio: Double): Column = withExpr {
     new io.projectglow.sql.expressions.LiftOverCoordinatesExpr(contigName.expr, start.expr, end.expr, Literal(chainFile), Literal(minMatchRatio))
@@ -179,7 +189,7 @@ object functions {
 
 
   /**
-   * Normalize the variant with a behavior similar to vt normalize or bcftools norm.
+   * Normalizes the variant with a behavior similar to vt normalize or bcftools norm.
    * Creates a StructType column including the normalized start, end, referenceAllele and
    * alternateAlleles fields (whether they are changed or unchanged as the result of
    * normalization) as well as a StructType field called normalizationStatus that
@@ -189,8 +199,7 @@ object functions {
    * 
    *    errorMessage: An error message in case the attempt at normalizing the row hit an error. In this case, the changed field will be set to false. If no errors occur, this field will be null.
    * 
-   * In case of an error, the start, end, referenceAllele and alternateAlleles fields in
-   * the generated struct will be null.
+   * In case of an error, the start, end, referenceAllele and alternateAlleles fields in the generated struct will be null.
    * 
    * @group etl
    * @since 0.3.0
@@ -200,8 +209,8 @@ object functions {
    * @param end The current end
    * @param refAllele Reference allele
    * @param altAlleles Alternate alleles
-   * @param refGenomePathString A path to the reference genome .fasta file. The .fasta file must
-   *        be accompanied with a .fai index file in the same folder.
+   * @param refGenomePathString A path to the reference genome .fasta file. The .fasta file must be accompanied with a .fai index file in the same folder.
+   * @return A struct as explained above
    */
   def normalize_variant(contigName: Column, start: Column, end: Column, refAllele: Column, altAlleles: Column, refGenomePathString: String): Column = withExpr {
     new io.projectglow.sql.expressions.NormalizeVariantExpr(contigName.expr, start.expr, end.expr, refAllele.expr, altAlleles.expr, Literal(refGenomePathString))
@@ -217,6 +226,7 @@ object functions {
    * @param update update function
    * @param merge merge function
    * @param evaluate evaluate function
+   * @return An array of aggregated values. The number of elements in the array is equal to the number of samples.
    */
   def aggregate_by_index(arr: Column, initialValue: Column, update: (Column, Column) => Column, merge: (Column, Column) => Column, evaluate: Column => Column): Column = withExpr {
     new io.projectglow.sql.expressions.UnwrappedAggregateByIndex(arr.expr, initialValue.expr, createLambda(update), createLambda(merge), createLambda(evaluate))
@@ -233,17 +243,19 @@ object functions {
    * @since 0.3.0
    *
    * @param genotypes The array of genotype structs
+   * @return A struct containing ``callRate``, ``nCalled``, ``nUncalled``, ``nHet``, ``nHomozygous``, ``nNonRef``, ``nAllelesCalled``, ``alleleCounts``, ``alleleFrequencies`` fields. See :ref:`variant-qc`.
    */
   def call_summary_stats(genotypes: Column): Column = withExpr {
     new io.projectglow.sql.expressions.CallStats(genotypes.expr)
   }
 
   /**
-   * Compute summary statistics for depth field from array of genotype structs
+   * Compute summary statistics for depth field from array of genotype structs. See :ref:`variant-qc`.
    * @group quality_control
    * @since 0.3.0
    *
    * @param genotypes The array of genotype structs
+   * @return A struct containing ``mean``, ``stdDev``, ``min``, and ``max`` of genotype depths
    */
   def dp_summary_stats(genotypes: Column): Column = withExpr {
     new io.projectglow.sql.expressions.DpSummaryStats(genotypes.expr)
@@ -255,17 +267,19 @@ object functions {
    * @since 0.3.0
    *
    * @param genotypes The array of genotype structs
+   * @return A struct containing two fields, ``hetFreqHwe`` (the expected heterozygous frequency according to Hardy-Weinberg equilibrium) and ``pValueHwe`` (the associated p-value)
    */
   def hardy_weinberg(genotypes: Column): Column = withExpr {
     new io.projectglow.sql.expressions.HardyWeinberg(genotypes.expr)
   }
 
   /**
-   * Computes summary statistics about the genotype quality field for an array of genotype structs
+   * Computes summary statistics about the genotype quality field for an array of genotype structs. See :ref:`variant-qc`.
    * @group quality_control
    * @since 0.3.0
    *
    * @param genotypes The array of genotype structs
+   * @return A struct containing ``mean``, ``stdDev``, ``min``, and ``max`` of genotype qualities
    */
   def gq_summary_stats(genotypes: Column): Column = withExpr {
     new io.projectglow.sql.expressions.GqSummaryStats(genotypes.expr)
@@ -279,6 +293,7 @@ object functions {
    * @param genotypes The array of genotype structs
    * @param refAllele The reference allele
    * @param alternateAlleles An array of alternate alleles
+   * @return A struct containing ``sampleId``, ``callRate``, ``nCalled``, ``nUncalled``, ``nHomRef``, ``nHet``, ``nHomVar``, ``nSnp``, ``nInsertion``, ``nDeletion``, ``nTransition``, ``nTransversion``, ``nSpanningDeletion``, ``rTiTv``, ``rInsertionDeletion``, ``rHetHomVar`` fields. See :ref:`sample-qc`.
    */
   def sample_call_summary_stats(genotypes: Column, refAllele: Column, alternateAlleles: Column): Column = withExpr {
     new io.projectglow.sql.expressions.CallSummaryStats(genotypes.expr, refAllele.expr, alternateAlleles.expr)
@@ -289,7 +304,8 @@ object functions {
    * @group quality_control
    * @since 0.3.0
    *
-   * @param genotypes The array of genotype structs
+   * @param genotypes An array of genotype structs
+   * @return An array of structs where each struct contains ``mean``, ``stDev``, ``min``, and ``max`` of the genotype depths for a sample. If ``sampleId`` is present in a genotype, it will be propagated to the resulting struct as an extra field.
    */
   def sample_dp_summary_stats(genotypes: Column): Column = withExpr {
     new io.projectglow.sql.expressions.SampleDpSummaryStatistics(genotypes.expr)
@@ -300,7 +316,8 @@ object functions {
    * @group quality_control
    * @since 0.3.0
    *
-   * @param genotypes The array of genotype structs
+   * @param genotypes An array of genotype structs with a conditionalQuality field
+   * @return An array of structs where each struct contains ``mean``, ``stDev``, ``min``, and ``max`` of the genotype qualities for a sample. If ``sampleId`` is present in a genotype, it will be propagated to the resulting struct as an extra field.
    */
   def sample_gq_summary_stats(genotypes: Column): Column = withExpr {
     new io.projectglow.sql.expressions.SampleGqSummaryStatistics(genotypes.expr)
@@ -314,6 +331,7 @@ object functions {
    * @param genotypes An array of genotypes
    * @param phenotypes An array of phenotypes
    * @param covariates A spark.ml matrix of covariates
+   * @return A struct containing ``beta``, ``standardError``, and ``pValue`` fields. See :ref:`linear-regression`.
    */
   def linear_regression_gwas(genotypes: Column, phenotypes: Column, covariates: Column): Column = withExpr {
     new io.projectglow.sql.expressions.LinearRegressionExpr(genotypes.expr, phenotypes.expr, covariates.expr)
@@ -328,17 +346,19 @@ object functions {
    * @param phenotypes A ``double`` array of phenotype values
    * @param covariates M ``spark.ml`` matrix of covariates
    * @param test Which logistic regression test to use. Can be 'LRT' or 'Firth'
+   * @return A struct containing ``beta``, ``oddsRatio``, ``waldConfidenceInterval``, and ``pValue`` fields. See :ref:`logistic-regression`.
    */
   def logistic_regression_gwas(genotypes: Column, phenotypes: Column, covariates: Column, test: String): Column = withExpr {
     new io.projectglow.sql.expressions.LogisticRegressionExpr(genotypes.expr, phenotypes.expr, covariates.expr, Literal(test))
   }
 
   /**
-   * Gets number of alt alleles for a genotype. Returns ``-1`` if there are any ``-1``s in the input array.
+   * Gets number of alt alleles for genotypes. Returns ``-1`` if there are any ``-1``s in the calls array.
    * @group gwas_functions
    * @since 0.3.0
    *
    * @param genotypes An array of genotype structs
+   * @return An array of integers containing the number of alt alleles in each call array
    */
   def genotype_states(genotypes: Column): Column = withExpr {
     new io.projectglow.sql.expressions.GenotypeStates(genotypes.expr)
