@@ -110,6 +110,8 @@ libraries such as Spark's machine learning library (MLlib).
 
    assert array_df.head().array_col == [0.0, 2.0, 4.0]
 
+.. _variant-data-transformations:
+
 Variant data transformations
 ============================
 
