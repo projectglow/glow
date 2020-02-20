@@ -54,7 +54,7 @@ object functions {
    * @group complex_type_manipulation
    * @since 0.3.0
    *
-   * @param struct The struct to which fields will be added.
+   * @param struct The struct to which fields will be added
    * @param fields The new fields to add. The arguments must alternate between string-typed literal field names and field values.
    * @return A struct consisting of the input struct and the added fields
    */
@@ -68,7 +68,7 @@ object functions {
    * @since 0.3.0
    *
    * @param arr An array of any numeric type
-   * @return A struct containing double-typed ``mean``, ``stdDev``, ``min``, and ``max`` fields.
+   * @return A struct containing double ``mean``, ``stdDev``, ``min``, and ``max`` fields
    */
   def array_summary_stats(arr: Column): Column = withExpr {
     new io.projectglow.sql.expressions.ArrayStatsSummary(arr.expr)
@@ -99,7 +99,7 @@ object functions {
   }
 
   /**
-   * Promotes fields of a nested struct to top-level columns. Similar to using ``struct.*`` from SQL, but can be used in more contexts.
+   * Promotes fields of a nested struct to top-level columns similar to using ``struct.*`` from SQL, but can be used in more contexts.
    * @group complex_type_manipulation
    * @since 0.3.0
    *
@@ -136,7 +136,7 @@ object functions {
   }
 
   /**
-   * Converts a ``spark.ml`` vector (sparse or dense) to an array of doubles.
+   * Converts a ``spark.ml.linalg`` ``Vector`` (sparse or dense) to an array of doubles.
    * @group complex_type_manipulation
    * @since 0.3.0
    *
@@ -155,7 +155,7 @@ object functions {
    * @param probabilities The array of probabilities to convert
    * @param numAlts The number of alternate alleles
    * @param phased Whether the probabilities are phased. If phased, we expect one ``2 * numAlts`` values in the probabilities array. If unphased, we expect one probability per possible genotype.
-   * @param threshold The minimum probability to make a call. If no probability falls into the range of ``[0, 1 - threshold]`` or ``[threshold, 1]``, a no-call (represented by ``-1``s) will be emitted. If not provided, this parameter defaults to ``0.9``.
+   * @param threshold The minimum probability to make a call. If no probability falls into the range of ``[0, 1 - threshold]`` or ``[threshold, 1]``, a no-call (represented by ``-1`` s) will be emitted. If not provided, this parameter defaults to ``0.9``.
    * @return An array of hard calls
    */
   def hard_calls(probabilities: Column, numAlts: Column, phased: Column, threshold: Double): Column = withExpr {
@@ -172,12 +172,12 @@ object functions {
    * @group etl
    * @since 0.3.0
    *
-   * @param contigName The current contigName
+   * @param contigName The current contig name
    * @param start The current start
    * @param end The current end
    * @param chainFile Location of the chain file on each node in the cluster
    * @param minMatchRatio Minimum fraction of bases that must remap to do liftover successfully. If not provided, defaults to ``0.95``.
-   * @return A struct containing ``contigName``, ``start``, and ``end`` fields after liftover.
+   * @return A struct containing ``contigName``, ``start``, and ``end`` fields after liftover
    */
   def lift_over_coordinates(contigName: Column, start: Column, end: Column, chainFile: String, minMatchRatio: Double): Column = withExpr {
     new io.projectglow.sql.expressions.LiftOverCoordinatesExpr(contigName.expr, start.expr, end.expr, Literal(chainFile), Literal(minMatchRatio))
@@ -195,20 +195,20 @@ object functions {
    * normalization) as well as a StructType field called ``normalizationStatus`` that
    * contains the following fields:
    * 
-   *    ``changed``: A boolean field indicating whether the variant data was changed as a result of normalization.
+   *    ``changed``: A boolean field indicating whether the variant data was changed as a result of normalization
    * 
-   *    ``errorMessage``: An error message in case the attempt at normalizing the row hit an error. In this case, the changed field will be set to false. If no errors occur, this field will be null.
+   *    ``errorMessage``: An error message in case the attempt at normalizing the row hit an error. In this case, the changed field will be set to ``false``. If no errors occur, this field will be ``null``.
    * 
    * In case of an error, the ``start``, ``end``, ``referenceAllele`` and ``alternateAlleles`` fields in the generated struct will be ``null``.
    * 
    * @group etl
    * @since 0.3.0
    *
-   * @param contigName The current contigName
+   * @param contigName The current contig name
    * @param start The current start
    * @param end The current end
-   * @param refAllele Reference allele
-   * @param altAlleles Alternate alleles
+   * @param refAllele The current reference allele
+   * @param altAlleles The current array of alternate alleles
    * @param refGenomePathString A path to the reference genome ``.fasta`` file. The ``.fasta`` file must be accompanied with a ``.fai`` index file in the same folder.
    * @return A struct as explained above
    */
@@ -217,7 +217,7 @@ object functions {
   }
 
   /**
-   * Computes custom per-sample aggregates
+   * Computes custom per-sample aggregates.
    * @group quality_control
    * @since 0.3.0
    *
@@ -250,7 +250,7 @@ object functions {
   }
 
   /**
-   * Computes summary statistics for depth field from array of genotype structs. See :ref:`variant-qc`.
+   * Computes summary statistics for the depth field from array of genotype structs. See :ref:`variant-qc`.
    * @group quality_control
    * @since 0.3.0
    *
@@ -266,7 +266,7 @@ object functions {
    * @group quality_control
    * @since 0.3.0
    *
-   * @param genotypes The array of genotype structs
+   * @param genotypes The array of genotype structs with ``calls`` field``
    * @return A struct containing two fields, ``hetFreqHwe`` (the expected heterozygous frequency according to Hardy-Weinberg equilibrium) and ``pValueHwe`` (the associated p-value)
    */
   def hardy_weinberg(genotypes: Column): Column = withExpr {
@@ -278,7 +278,7 @@ object functions {
    * @group quality_control
    * @since 0.3.0
    *
-   * @param genotypes The array of genotype structs
+   * @param genotypes The array of genotype structs with ``conditionalQuality`` field
    * @return A struct containing ``mean``, ``stdDev``, ``min``, and ``max`` of genotype qualities
    */
   def gq_summary_stats(genotypes: Column): Column = withExpr {
@@ -300,7 +300,7 @@ object functions {
   }
 
   /**
-   * Computes per-sample summary statistics about the depth field in an array of genotype structs
+   * Computes per-sample summary statistics about the depth field in an array of genotype structs.
    * @group quality_control
    * @since 0.3.0
    *
@@ -312,11 +312,11 @@ object functions {
   }
 
   /**
-   * Computes per-sample summary statistics about the genotype quality field in an array of genotype structs
+   * Computes per-sample summary statistics about the genotype quality field in an array of genotype structs.
    * @group quality_control
    * @since 0.3.0
    *
-   * @param genotypes An array of genotype structs with a ``conditionalQuality`` field
+   * @param genotypes An array of genotype structs with ``conditionalQuality`` field
    * @return An array of structs where each struct contains ``mean``, ``stDev``, ``min``, and ``max`` of the genotype qualities for a sample. If ``sampleId`` is present in a genotype, it will be propagated to the resulting struct as an extra field.
    */
   def sample_gq_summary_stats(genotypes: Column): Column = withExpr {
@@ -328,7 +328,7 @@ object functions {
    * @group gwas_functions
    * @since 0.3.0
    *
-   * @param genotypes An array of genotypes
+   * @param genotypes A numeric array of genotypes
    * @param phenotypes A numeric array of phenotypes
    * @param covariates A ``spark.ml`` ``Matrix`` of covariates
    * @return A struct containing ``beta``, ``standardError``, and ``pValue`` fields. See :ref:`linear-regression`.
@@ -342,7 +342,7 @@ object functions {
    * @group gwas_functions
    * @since 0.3.0
    *
-   * @param genotypes An array of genotype structs
+   * @param genotypes An numeric array of genotypes
    * @param phenotypes A double array of phenotype values
    * @param covariates A ``spark.ml`` ``Matrix`` of covariates
    * @param test Which logistic regression test to use. Can be 'LRT' or 'Firth'
@@ -353,12 +353,12 @@ object functions {
   }
 
   /**
-   * Gets number of alternate alleles for genotypes. Returns ``-1`` if there are any ``-1`` s in the calls array.
+   * Gets number of alternate alleles for an array of genotype structs. Returns ``-1`` if there are any ``-1`` s (no-calls) in the calls array.
    * @group gwas_functions
    * @since 0.3.0
    *
-   * @param genotypes An array of genotype structs
-   * @return An array of integers containing the number of alt alleles in each call array
+   * @param genotypes An array of genotype structs with ``calls`` field
+   * @return An array of integers containing the number of alternate alleles in each call array
    */
   def genotype_states(genotypes: Column): Column = withExpr {
     new io.projectglow.sql.expressions.GenotypeStates(genotypes.expr)
