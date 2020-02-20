@@ -26,6 +26,9 @@ def {{ function.name }}({{ function.args|map('fmt_python_signature')|join(', ') 
     {% for arg in function.args %}
         {{ arg.name }} : {{ arg.doc|trim|indent(8) }}
     {% endfor %}
+
+    Returns:
+        {{ function.returns|trim|indent(4) }}
     """
     assert check_argument_types()
 {% if function.args[-1].is_optional %}
@@ -38,7 +41,7 @@ def {{ function.name }}({{ function.args|map('fmt_python_signature')|join(', ') 
 {% endif %}
     assert check_return_type(output)
     return output
-  
+
 {% endfor %}
 {% endfor %}
 

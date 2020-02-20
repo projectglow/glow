@@ -12,6 +12,8 @@ Genome-wide Association Study Regression Tests
 Glow contains functions for performing simple regression analyses used in
 genome-wide association studies (GWAS).
 
+.. _linear-regression:
+
 Linear regression
 =================
 
@@ -108,6 +110,8 @@ Implementation details
 
 The linear regression model is fit using the QR decomposition. For performance, the QR decomposition
 of the covariate matrix is computed once and reused for each (``genotypes``, ``phenotypes``) pair.
+
+.. _logistic-regression:
 
 Logistic regression
 ===================
