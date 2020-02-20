@@ -88,8 +88,8 @@ The normalizer can also be used as a SQL expression function. See :ref:`Glow PyS
 .. code-block:: python
 
   from pyspark.sql.functions import expr
-  normalization_expr = "normalize_variant(contigName, start, end, referenceAllele, alternateAlleles, '{ref_genome}').format(ref_genome=ref_genome_path)
-  df_normalized = input_df.withColumn('normalizationResult', expr(normalization_expr))
+  normalization_expr = "normalize_variant(contigName, start, end, referenceAllele, alternateAlleles, '{ref_genome}')".format(ref_genome=ref_genome_path)
+  df_normalized = df_original.withColumn('normalizationResult', expr(normalization_expr))
 
 .. notebook:: .. etl/normalizevariants.html
   :title: Variant normalization notebook
