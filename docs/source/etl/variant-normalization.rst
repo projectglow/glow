@@ -83,7 +83,7 @@ The ``normalize_variants`` transformer has the following options:
 
 ``normalize_variant`` Function
 ==============================
-The normalizer can also be used as a SQL expression function. See :ref:`Glow PySpark Functions<pyspark_functions>` for details on how to use it in the Python API. The function can be similarly used in SQL expression.
+The normalizer can also be used as a SQL expression function. See :ref:`Glow PySpark Functions<pyspark_functions>` for details on how to use it in the Python API. An example of the SQL expression usage is demonstrated below:
 
 .. code-block:: python
 
