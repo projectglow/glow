@@ -1,3 +1,5 @@
+.. _variant-qc:
+
 =======================
 Variant Quality Control
 =======================

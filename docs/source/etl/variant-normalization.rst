@@ -1,3 +1,5 @@
+.. _variantnormalization:
+
 =====================
 Variant Normalization
 =====================

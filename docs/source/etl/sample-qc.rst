@@ -1,3 +1,5 @@
+.. _sample-qc:
+
 ======================
 Sample Quality Control
 ======================
