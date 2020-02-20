@@ -343,7 +343,7 @@ def call_summary_stats(genotypes: Union[Column, str]) -> Column:
 
 def dp_summary_stats(genotypes: Union[Column, str]) -> Column:
     """
-    Computes summary statistics for the depth field from array of genotype structs. See :ref:`variant-qc`.
+    Computes summary statistics for the depth field from an array of genotype structs. See :ref:`variant-qc`.
 
     Added in version 0.3.0.
 
@@ -380,7 +380,7 @@ def hardy_weinberg(genotypes: Union[Column, str]) -> Column:
         [Row(hetFreqHwe=0.6, pValueHwe=0.7)]
 
     Args:
-        genotypes : The array of genotype structs with ``calls`` field``
+        genotypes : The array of genotype structs with ``calls`` field
 
     Returns:
         A struct containing two fields, ``hetFreqHwe`` (the expected heterozygous frequency according to Hardy-Weinberg equilibrium) and ``pValueHwe`` (the associated p-value)
@@ -565,7 +565,7 @@ def logistic_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Co
 
 def genotype_states(genotypes: Union[Column, str]) -> Column:
     """
-    Gets number of alternate alleles for an array of genotype structs. Returns ``-1`` if there are any ``-1`` s (no-calls) in the calls array.
+    Gets the number of alternate alleles for an array of genotype structs. Returns ``-1`` if there are any ``-1`` s (no-calls) in the calls array.
 
     Added in version 0.3.0.
 

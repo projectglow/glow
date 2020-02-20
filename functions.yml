@@ -284,7 +284,7 @@ quality_control:
           doc: The array of genotype structs
       returns: A struct containing ``callRate``, ``nCalled``, ``nUncalled``, ``nHet``, ``nHomozygous``, ``nNonRef``, ``nAllelesCalled``, ``alleleCounts``, ``alleleFrequencies`` fields. See :ref:`variant-qc`.
     - name: dp_summary_stats
-      doc: Computes summary statistics for the depth field from array of genotype structs. See :ref:`variant-qc`.
+      doc: Computes summary statistics for the depth field from an array of genotype structs. See :ref:`variant-qc`.
       examples:
         python: |
           >>> df = spark.createDataFrame([Row(genotypes=[Row(depth=1), Row(depth=2), Row(depth=3)])], 'genotypes: array<struct<depth: int>>')
@@ -311,7 +311,7 @@ quality_control:
           [Row(hetFreqHwe=0.6, pValueHwe=0.7)]
       args:
         - name: genotypes
-          doc: The array of genotype structs with ``calls`` field``
+          doc: The array of genotype structs with ``calls`` field
       returns: A struct containing two fields, ``hetFreqHwe`` (the expected heterozygous frequency according to Hardy-Weinberg equilibrium) and ``pValueHwe`` (the associated p-value)
     - name: gq_summary_stats
       doc: Computes summary statistics about the genotype quality field for an array of genotype structs. See :ref:`variant-qc`.
@@ -438,7 +438,7 @@ gwas_functions:
           type: str
       returns: A struct containing ``beta``, ``oddsRatio``, ``waldConfidenceInterval``, and ``pValue`` fields. See :ref:`logistic-regression`.
     - name: genotype_states
-      doc: Gets number of alternate alleles for an array of genotype structs. Returns ``-1`` if there are any ``-1`` s (no-calls) in the calls array.
+      doc: Gets the number of alternate alleles for an array of genotype structs. Returns ``-1`` if there are any ``-1`` s (no-calls) in the calls array.
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.GenotypeStates
       examples:

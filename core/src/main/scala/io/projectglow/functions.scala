@@ -250,7 +250,7 @@ object functions {
   }
 
   /**
-   * Computes summary statistics for the depth field from array of genotype structs. See :ref:`variant-qc`.
+   * Computes summary statistics for the depth field from an array of genotype structs. See :ref:`variant-qc`.
    * @group quality_control
    * @since 0.3.0
    *
@@ -266,7 +266,7 @@ object functions {
    * @group quality_control
    * @since 0.3.0
    *
-   * @param genotypes The array of genotype structs with ``calls`` field``
+   * @param genotypes The array of genotype structs with ``calls`` field
    * @return A struct containing two fields, ``hetFreqHwe`` (the expected heterozygous frequency according to Hardy-Weinberg equilibrium) and ``pValueHwe`` (the associated p-value)
    */
   def hardy_weinberg(genotypes: Column): Column = withExpr {
@@ -353,7 +353,7 @@ object functions {
   }
 
   /**
-   * Gets number of alternate alleles for an array of genotype structs. Returns ``-1`` if there are any ``-1`` s (no-calls) in the calls array.
+   * Gets the number of alternate alleles for an array of genotype structs. Returns ``-1`` if there are any ``-1`` s (no-calls) in the calls array.
    * @group gwas_functions
    * @since 0.3.0
    *
