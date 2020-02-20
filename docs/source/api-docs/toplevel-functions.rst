@@ -1,4 +1,4 @@
-Glow Top-level Functions
+Glow Top-Level Functions
 ------------------------
 
 .. automodule:: glow.glow

@@ -345,7 +345,7 @@ quality_control:
       expr_class: io.projectglow.sql.expressions.CallSummaryStats
       args: 
         - name: genotypes
-          doc: An array of genotype structs with ``calls`` fields
+          doc: An array of genotype structs with ``calls`` field
         - name: refAllele
           doc: The reference allele
         - name: alternateAlleles
@@ -366,7 +366,7 @@ quality_control:
           [Row(stats=[Row(sampleId='NA12878', mean=2.0, stdDev=1.0, min=1.0, max=3.0)])]
       args:
         - name: genotypes
-          doc: An array of genotype structs
+          doc: An array of genotype structs with ``depth`` field
       returns: An array of structs where each struct contains ``mean``, ``stDev``, ``min``, and ``max`` of the genotype depths for a sample. If ``sampleId`` is present in a genotype, it will be propagated to the resulting struct as an extra field.
     - name: sample_gq_summary_stats
       doc: Computes per-sample summary statistics about the genotype quality field in an array of genotype structs
@@ -432,7 +432,7 @@ gwas_functions:
         - name: phenotypes
           doc: A double array of phenotype values
         - name: covariates
-          doc: M ``spark.ml`` matrix of covariates
+          doc: A ``spark.ml`` ``Matrix`` of covariates
         - name: test
           doc: Which logistic regression test to use. Can be 'LRT' or 'Firth'
           type: str

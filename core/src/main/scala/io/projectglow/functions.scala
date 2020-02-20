@@ -290,7 +290,7 @@ object functions {
    * @group quality_control
    * @since 0.3.0
    *
-   * @param genotypes An array of genotype structs with ``calls`` fields
+   * @param genotypes An array of genotype structs with ``calls`` field
    * @param refAllele The reference allele
    * @param alternateAlleles An array of alternate alleles
    * @return A struct containing ``sampleId``, ``callRate``, ``nCalled``, ``nUncalled``, ``nHomRef``, ``nHet``, ``nHomVar``, ``nSnp``, ``nInsertion``, ``nDeletion``, ``nTransition``, ``nTransversion``, ``nSpanningDeletion``, ``rTiTv``, ``rInsertionDeletion``, ``rHetHomVar`` fields. See :ref:`sample-qc`.
@@ -304,7 +304,7 @@ object functions {
    * @group quality_control
    * @since 0.3.0
    *
-   * @param genotypes An array of genotype structs
+   * @param genotypes An array of genotype structs with ``depth`` field
    * @return An array of structs where each struct contains ``mean``, ``stDev``, ``min``, and ``max`` of the genotype depths for a sample. If ``sampleId`` is present in a genotype, it will be propagated to the resulting struct as an extra field.
    */
   def sample_dp_summary_stats(genotypes: Column): Column = withExpr {
@@ -344,7 +344,7 @@ object functions {
    *
    * @param genotypes An array of genotype structs
    * @param phenotypes A double array of phenotype values
-   * @param covariates M ``spark.ml`` matrix of covariates
+   * @param covariates A ``spark.ml`` ``Matrix`` of covariates
    * @param test Which logistic regression test to use. Can be 'LRT' or 'Firth'
    * @return A struct containing ``beta``, ``oddsRatio``, ``waldConfidenceInterval``, and ``pValue`` fields. See :ref:`logistic-regression`.
    */

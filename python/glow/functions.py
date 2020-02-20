@@ -434,7 +434,7 @@ def sample_call_summary_stats(genotypes: Union[Column, str], refAllele: Union[Co
         [Row(stats=[Row(sampleId='NA12878', callRate=1.0, nCalled=3, nUncalled=0, nHomRef=1, nHet=1, nHomVar=1, nSnp=2, nInsertion=0, nDeletion=1, nTransition=2, nTransversion=0, nSpanningDeletion=0, rTiTv=inf, rInsertionDeletion=0.0, rHetHomVar=1.0)])]
 
     Args:
-        genotypes : An array of genotype structs with ``calls`` fields
+        genotypes : An array of genotype structs with ``calls`` field
         refAllele : The reference allele
         alternateAlleles : An array of alternate alleles
 
@@ -463,7 +463,7 @@ def sample_dp_summary_stats(genotypes: Union[Column, str]) -> Column:
         [Row(stats=[Row(sampleId='NA12878', mean=2.0, stdDev=1.0, min=1.0, max=3.0)])]
 
     Args:
-        genotypes : An array of genotype structs
+        genotypes : An array of genotype structs with ``depth`` field
 
     Returns:
         An array of structs where each struct contains ``mean``, ``stDev``, ``min``, and ``max`` of the genotype depths for a sample. If ``sampleId`` is present in a genotype, it will be propagated to the resulting struct as an extra field.
@@ -551,7 +551,7 @@ def logistic_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Co
     Args:
         genotypes : An array of genotype structs
         phenotypes : A double array of phenotype values
-        covariates : M ``spark.ml`` matrix of covariates
+        covariates : A ``spark.ml`` ``Matrix`` of covariates
         test : Which logistic regression test to use. Can be 'LRT' or 'Firth'
 
     Returns:
