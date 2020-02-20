@@ -15,7 +15,7 @@ Variant Normalization
 
 Different genomic analysis tools often represent the same genomic variant in different ways, making it non-trivial to integrate and compare variants across call sets. Therefore, **variant normalization** is an essential step to be applied on variants before further downstream analysis to make sure the same variant is represented identically in different call sets. Normalization is achieved by making sure the variant is parsimonious and left-aligned (see `Variant Normalization <https://genome.sph.umich.edu/wiki/Variant_Normalization>`_ for more details).
 
-Glow provides variant normalization capabilities as a DataFrame transformer as well as a SQL expression function with Python and Scala APIs, bringing unprecedented scalability to this operation.
+Glow provides variant normalization capabilities as a DataFrame transformer as well as a SQL expression function with a Python API, bringing unprecedented scalability to this operation.
 
 .. note::
 
@@ -83,13 +83,18 @@ The ``normalize_variants`` transformer has the following options:
 
 ``normalize_variant`` Function
 ==============================
-The normalizer can also be used as a SQL expression function. See :ref:`Glow PySpark Functions<pyspark_functions>` for details on how to use it in the Python API. An example of the SQL expression usage is demonstrated below:
+The normalizer can also be used as a SQL expression function. See :ref:`Glow PySpark Functions<pyspark_functions>` for details on how to use it in the Python API. An example of an expression using the ``normalize_variant`` function is as follows:
 
 .. code-block:: python
 
   from pyspark.sql.functions import expr
   normalization_expr = "normalize_variant(contigName, start, end, referenceAllele, alternateAlleles, '{ref_genome}')".format(ref_genome=ref_genome_path)
   df_normalized = df_original.withColumn('normalizationResult', expr(normalization_expr))
+
+.. invisible-code-block: python
+
+   expected_normalized_variant = Row(contigName='chr20', start=400, end=401, names=[], referenceAllele='G', alternateAlleles=['GATCTTCCCTCTTTTCTAATATAAACACATAAAGCTCTGTTTCCTTCTAGGTAACTGGTTTGAG'], qual=30.0, filters=[], splitFromMultiAllelic=False, INFO_AN=4, INFO_AF=[1.0], INFO_AC=[1], genotypes=[Row(sampleId='CHMI_CHMI3_WGS2', alleleDepths=None, phased=False, calls=[1, 1]), Row(sampleId='CHMI_CHMI3_WGS3', alleleDepths=None, phased=False, calls=[1, 1])], normalizationResult=Row(start=268, end=269, referenceAllele='A', alternateAlleles=['ATTTGAGATCTTCCCTCTTTTCTAATATAAACACATAAAGCTCTGTTTCCTTCTAGGTAACTGG'], normalizationStatus=Row(changed=True, errorMessage=None)))
+   assert_rows_equal(df_normalized.head(), expected_normalized_variant)
 
 .. notebook:: .. etl/normalizevariants.html
   :title: Variant normalization notebook
