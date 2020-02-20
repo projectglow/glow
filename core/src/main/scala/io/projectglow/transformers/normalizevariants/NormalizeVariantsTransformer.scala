@@ -34,6 +34,12 @@ import org.apache.spark.sql.functions._
  * A path to the reference genome .fasta file must be provided through the reference_genome_path
  * option. The .fasta file must nbe accompanied with a .fai index file in the same folder.
  *
+ * If the replace_columns option is false, the transformer does not touch the original start, end,
+ * referenceAllele and alternateAlleles columns. Instead, a StructType columns called
+ * normalizationResult is added to the DataFrame which contains the normalized start, end,
+ * referenceAllele, and alternateAlleles columns as well as the normalizationStatus StructType as
+ * the fifth field. In case of error, the first four fields in normalizationResult will be null.
+ *
  * The transformer output columns can be controlled by the replace_columns option.
  * If replace_columns option is true (default), the transformer replaces the original start, end,
  * referenceAllele, and alternateAlleles columns with the normalized value in case they have
@@ -41,17 +47,12 @@ import org.apache.spark.sql.functions._
  * and alternateAlleles are not touched. A StructType normalizationStatus column is added to
  * the DataFrame as explained above but the normalizationResult column will not. Instead,
  * which contains the following fields:
- *    - changed: A boolean fields whether the variant data was changed as a result of
+ *    - changed: A boolean field indicating  whether the variant data was changed as a result of
  *      normalization.
  *    - errorMessage: An error message in case the attempt at normalizing the row
  *       hit an error. In this case, the changed field will be set to false. If no errors occur
  *       this field will be null.
  *
- * If the replace_columns option is false, the transformer does not touch the original start, end,
- * referenceAllele and alternateAlleles columns. Instead, a StructType columns called
- * normalizationResult is added to tthe DataFrame which contains the normalized start, end,
- * referenceAllele, and alternateAlleles columns as well as the normalizationStatus StructType as
- * the fifth field. In case of error, the first four fields in normalizationResult will be null.
  */
 class NormalizeVariantsTransformer extends DataFrameTransformer with HlsEventRecorder {
 
