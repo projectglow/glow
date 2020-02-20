@@ -63,12 +63,12 @@ object functions {
   }
 
   /**
-   * Computes the min, max, mean, stddev for an array of numerics. The input array can be any numeric type, but the returned stats are always ``double`` typed.
+   * Computes the minimum, maximum, mean, standard deviation for an array of numerics.
    * @group complex_type_manipulation
    * @since 0.3.0
    *
-   * @param arr The array of numerics
-   * @return A struct containing ``mean``, ``stdDev``, ``min``, and ``max`` fields
+   * @param arr An array of any numeric type
+   * @return A struct containing double-typed ``mean``, ``stdDev``, ``min``, and ``max`` fields.
    */
   def array_summary_stats(arr: Column): Column = withExpr {
     new io.projectglow.sql.expressions.ArrayStatsSummary(arr.expr)
@@ -99,7 +99,7 @@ object functions {
   }
 
   /**
-   * Promotes fields of a nested struct to top-level columns. Similar to using struct.* from SQL, but can be used in more contexts.
+   * Promotes fields of a nested struct to top-level columns. Similar to using ``struct.*`` from SQL, but can be used in more contexts.
    * @group complex_type_manipulation
    * @since 0.3.0
    *
@@ -111,11 +111,11 @@ object functions {
   }
 
   /**
-   * Explodes a ``spark.ml`` matrix (sparse or dense) into multiple arrays, one per row of the matrix.
+   * Explodes a ``spark.ml`` ``Matrix`` (sparse or dense) into multiple arrays, one per row of the matrix.
    * @group complex_type_manipulation
    * @since 0.3.0
    *
-   * @param matrix The matrix to explode
+   * @param matrix The ``sparl.ml`` ``Matrix`` to explode
    * @return An array column in which each row is a row of the input matrix
    */
   def explode_matrix(matrix: Column): Column = withExpr {
@@ -148,14 +148,14 @@ object functions {
   }
 
   /**
-   * Converts an array of probabilities to hard calls. See :ref:`variant-data-transformations` for more details. The probabilites are assumed to be diploid.
+   * Converts an array of probabilities to hard calls. The probabilities are assumed to be diploid. See :ref:`variant-data-transformations` for more details.
    * @group etl
    * @since 0.3.0
    *
    * @param probabilities The array of probabilities to convert
    * @param numAlts The number of alternate alleles
-   * @param phased Whether the probabilities are phased. If phased, we expect one 2 * numAlts values in probabilities array. If unphased, we expect one probability per possible genotype.
-   * @param threshold The minimum probability to make a call. If no probability falls into the range of [0, 1 - threshold] or [threshold, 1], a no-call (represented by -1s) will be emitted. If not provided, this parameter defaults to 0.9.
+   * @param phased Whether the probabilities are phased. If phased, we expect one ``2 * numAlts`` values in the probabilities array. If unphased, we expect one probability per possible genotype.
+   * @param threshold The minimum probability to make a call. If no probability falls into the range of ``[0, 1 - threshold]`` or ``[threshold, 1]``, a no-call (represented by ``-1``s) will be emitted. If not provided, this parameter defaults to ``0.9``.
    * @return An array of hard calls
    */
   def hard_calls(probabilities: Column, numAlts: Column, phased: Column, threshold: Double): Column = withExpr {
@@ -168,7 +168,7 @@ object functions {
 
 
   /**
-   * Performs liftover for the coordinates of a variants. To perform liftover of alleles and add additional metadata, see :ref:`liftover`.
+   * Performs liftover for the coordinates of a variant. To perform liftover of alleles and add additional metadata, see :ref:`liftover`.
    * @group etl
    * @since 0.3.0
    *
@@ -176,7 +176,7 @@ object functions {
    * @param start The current start
    * @param end The current end
    * @param chainFile Location of the chain file on each node in the cluster
-   * @param minMatchRatio Minimum fraction of bases that must remap to do liftover successfully. If not provided, defaults to 0.95.
+   * @param minMatchRatio Minimum fraction of bases that must remap to do liftover successfully. If not provided, defaults to ``0.95``.
    * @return A struct containing ``contigName``, ``start``, and ``end`` fields after liftover.
    */
   def lift_over_coordinates(contigName: Column, start: Column, end: Column, chainFile: String, minMatchRatio: Double): Column = withExpr {
@@ -190,16 +190,16 @@ object functions {
 
   /**
    * Normalizes the variant with a behavior similar to vt normalize or bcftools norm.
-   * Creates a StructType column including the normalized start, end, referenceAllele and
-   * alternateAlleles fields (whether they are changed or unchanged as the result of
-   * normalization) as well as a StructType field called normalizationStatus that
+   * Creates a StructType column including the normalized ``start``, ``end``, ``referenceAllele`` and
+   * ``alternateAlleles`` fields (whether they are changed or unchanged as the result of
+   * normalization) as well as a StructType field called ``normalizationStatus`` that
    * contains the following fields:
    * 
-   *    changed: A boolean field indicating whether the variant data was changed as a result of normalization.
+   *    ``changed``: A boolean field indicating whether the variant data was changed as a result of normalization.
    * 
-   *    errorMessage: An error message in case the attempt at normalizing the row hit an error. In this case, the changed field will be set to false. If no errors occur, this field will be null.
+   *    ``errorMessage``: An error message in case the attempt at normalizing the row hit an error. In this case, the changed field will be set to false. If no errors occur, this field will be null.
    * 
-   * In case of an error, the start, end, referenceAllele and alternateAlleles fields in the generated struct will be null.
+   * In case of an error, the ``start``, ``end``, ``referenceAllele`` and ``alternateAlleles`` fields in the generated struct will be ``null``.
    * 
    * @group etl
    * @since 0.3.0
@@ -209,7 +209,7 @@ object functions {
    * @param end The current end
    * @param refAllele Reference allele
    * @param altAlleles Alternate alleles
-   * @param refGenomePathString A path to the reference genome .fasta file. The .fasta file must be accompanied with a .fai index file in the same folder.
+   * @param refGenomePathString A path to the reference genome ``.fasta`` file. The ``.fasta`` file must be accompanied with a ``.fai`` index file in the same folder.
    * @return A struct as explained above
    */
   def normalize_variant(contigName: Column, start: Column, end: Column, refAllele: Column, altAlleles: Column, refGenomePathString: String): Column = withExpr {
@@ -250,7 +250,7 @@ object functions {
   }
 
   /**
-   * Compute summary statistics for depth field from array of genotype structs. See :ref:`variant-qc`.
+   * Computes summary statistics for depth field from array of genotype structs. See :ref:`variant-qc`.
    * @group quality_control
    * @since 0.3.0
    *
@@ -290,7 +290,7 @@ object functions {
    * @group quality_control
    * @since 0.3.0
    *
-   * @param genotypes The array of genotype structs
+   * @param genotypes An array of genotype structs with ``calls`` fields
    * @param refAllele The reference allele
    * @param alternateAlleles An array of alternate alleles
    * @return A struct containing ``sampleId``, ``callRate``, ``nCalled``, ``nUncalled``, ``nHomRef``, ``nHet``, ``nHomVar``, ``nSnp``, ``nInsertion``, ``nDeletion``, ``nTransition``, ``nTransversion``, ``nSpanningDeletion``, ``rTiTv``, ``rInsertionDeletion``, ``rHetHomVar`` fields. See :ref:`sample-qc`.
@@ -300,7 +300,7 @@ object functions {
   }
 
   /**
-   * Compute per-sample summary statistics about the depth field in an array of genotype structs
+   * Computes per-sample summary statistics about the depth field in an array of genotype structs
    * @group quality_control
    * @since 0.3.0
    *
@@ -312,11 +312,11 @@ object functions {
   }
 
   /**
-   * Compute per-sample summary statistics about the genotype quality field in an array of genotype structs
+   * Computes per-sample summary statistics about the genotype quality field in an array of genotype structs
    * @group quality_control
    * @since 0.3.0
    *
-   * @param genotypes An array of genotype structs with a conditionalQuality field
+   * @param genotypes An array of genotype structs with a ``conditionalQuality`` field
    * @return An array of structs where each struct contains ``mean``, ``stDev``, ``min``, and ``max`` of the genotype qualities for a sample. If ``sampleId`` is present in a genotype, it will be propagated to the resulting struct as an extra field.
    */
   def sample_gq_summary_stats(genotypes: Column): Column = withExpr {
@@ -329,8 +329,8 @@ object functions {
    * @since 0.3.0
    *
    * @param genotypes An array of genotypes
-   * @param phenotypes An array of phenotypes
-   * @param covariates A spark.ml matrix of covariates
+   * @param phenotypes A numeric array of phenotypes
+   * @param covariates A ``spark.ml`` ``Matrix`` of covariates
    * @return A struct containing ``beta``, ``standardError``, and ``pValue`` fields. See :ref:`linear-regression`.
    */
   def linear_regression_gwas(genotypes: Column, phenotypes: Column, covariates: Column): Column = withExpr {
@@ -343,7 +343,7 @@ object functions {
    * @since 0.3.0
    *
    * @param genotypes An array of genotype structs
-   * @param phenotypes A ``double`` array of phenotype values
+   * @param phenotypes A double array of phenotype values
    * @param covariates M ``spark.ml`` matrix of covariates
    * @param test Which logistic regression test to use. Can be 'LRT' or 'Firth'
    * @return A struct containing ``beta``, ``oddsRatio``, ``waldConfidenceInterval``, and ``pValue`` fields. See :ref:`logistic-regression`.
@@ -353,7 +353,7 @@ object functions {
   }
 
   /**
-   * Gets number of alt alleles for genotypes. Returns ``-1`` if there are any ``-1``s in the calls array.
+   * Gets number of alternate alleles for genotypes. Returns ``-1`` if there are any ``-1`` s in the calls array.
    * @group gwas_functions
    * @since 0.3.0
    *

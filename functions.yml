@@ -41,8 +41,7 @@ complex_type_manipulation:
           is_var_args: true
       returns: A struct consisting of the input struct and the added fields
     - name: array_summary_stats
-      doc: Computes the min, max, mean, stddev for an array of numerics. The input array can be any numeric
-        type, but the returned stats are always ``double`` typed.
+      doc: Computes the minimum, maximum, mean, standard deviation for an array of numerics.
       since: 0.3.0
       examples:
         python: |
@@ -52,8 +51,8 @@ complex_type_manipulation:
       expr_class: io.projectglow.sql.expressions.ArrayStatsSummary
       args:
         - name: arr
-          doc: The array of numerics
-      returns: A struct containing ``mean``, ``stdDev``, ``min``, and ``max`` fields
+          doc: An array of any numeric type
+      returns: A struct containing double-typed ``mean``, ``stdDev``, ``min``, and ``max`` fields.
     - name: array_to_dense_vector
       doc: Converts an array of numerics into a ``spark.ml`` ``DenseVector``.
       since: 0.3.0
@@ -83,7 +82,7 @@ complex_type_manipulation:
           doc: The array of numerics
       returns: A ``spark.ml`` ``SparseVector``
     - name: expand_struct
-      doc: Promotes fields of a nested struct to top-level columns. Similar to using struct.* from SQL, but can be used in more contexts.
+      doc: Promotes fields of a nested struct to top-level columns. Similar to using ``struct.*`` from SQL, but can be used in more contexts.
       since: 0.3.0
       examples:
         python: |
@@ -96,7 +95,7 @@ complex_type_manipulation:
           doc: The struct to expand
       returns: Columns corresponding to fields of the input struct
     - name: explode_matrix
-      doc: Explodes a ``spark.ml`` matrix (sparse or dense) into multiple arrays, one per row of the matrix.
+      doc: Explodes a ``spark.ml`` ``Matrix`` (sparse or dense) into multiple arrays, one per row of the matrix.
       since: 0.3.0
       examples:
         python: |
@@ -108,7 +107,7 @@ complex_type_manipulation:
       expr_class: io.projectglow.sql.expressions.ExplodeMatrix
       args:
         - name: matrix
-          doc: The matrix to explode
+          doc: The ``sparl.ml`` ``Matrix`` to explode
       returns: An array column in which each row is a row of the input matrix
     - name: subset_struct
       doc: Selects fields from a struct.
@@ -145,8 +144,8 @@ complex_type_manipulation:
 etl:
   functions:
     - name: hard_calls
-      doc: Converts an array of probabilities to hard calls. See :ref:`variant-data-transformations` 
-        for more details. The probabilites are assumed to be diploid.
+      doc: Converts an array of probabilities to hard calls. The probabilities are assumed to be diploid. See :ref:`variant-data-transformations`
+        for more details.
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.HardCalls
       examples:
@@ -167,17 +166,17 @@ etl:
         - name: numAlts
           doc: The number of alternate alleles
         - name: phased
-          doc: Whether the probabilities are phased. If phased, we expect one 2 * numAlts values 
-            in probabilities array. If unphased, we expect one probability per possible genotype.
+          doc: Whether the probabilities are phased. If phased, we expect one ``2 * numAlts`` values
+            in the probabilities array. If unphased, we expect one probability per possible genotype.
         - name: threshold
           doc: The minimum probability to make a call. If no probability falls into the range 
-            of [0, 1 - threshold] or [threshold, 1], a no-call (represented by -1s) will be emitted. 
-            If not provided, this parameter defaults to 0.9.
+            of ``[0, 1 - threshold]`` or ``[threshold, 1]``, a no-call (represented by ``-1``s) will be emitted.
+            If not provided, this parameter defaults to ``0.9``.
           type: double
           is_optional: true
       returns: An array of hard calls
     - name: lift_over_coordinates
-      doc: Performs liftover for the coordinates of a variants. To perform liftover of alleles and add additional metadata, see :ref:`liftover`.
+      doc: Performs liftover for the coordinates of a variant. To perform liftover of alleles and add additional metadata, see :ref:`liftover`.
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.LiftOverCoordinatesExpr
       examples:
@@ -201,23 +200,23 @@ etl:
           doc: Location of the chain file on each node in the cluster
           type: str
         - name: minMatchRatio
-          doc: Minimum fraction of bases that must remap to do liftover successfully. If not provided, defaults to 0.95.
+          doc: Minimum fraction of bases that must remap to do liftover successfully. If not provided, defaults to ``0.95``.
           type: double
           is_optional: true
       returns: A struct containing ``contigName``, ``start``, and ``end`` fields after liftover.
     - name: normalize_variant
       doc: |
              Normalizes the variant with a behavior similar to vt normalize or bcftools norm.
-             Creates a StructType column including the normalized start, end, referenceAllele and
-             alternateAlleles fields (whether they are changed or unchanged as the result of
-             normalization) as well as a StructType field called normalizationStatus that
+             Creates a StructType column including the normalized ``start``, ``end``, ``referenceAllele`` and
+             ``alternateAlleles`` fields (whether they are changed or unchanged as the result of
+             normalization) as well as a StructType field called ``normalizationStatus`` that
              contains the following fields:
 
-                changed: A boolean field indicating whether the variant data was changed as a result of normalization.
+                ``changed``: A boolean field indicating whether the variant data was changed as a result of normalization.
 
-                errorMessage: An error message in case the attempt at normalizing the row hit an error. In this case, the changed field will be set to false. If no errors occur, this field will be null.
+                ``errorMessage``: An error message in case the attempt at normalizing the row hit an error. In this case, the changed field will be set to false. If no errors occur, this field will be null.
 
-             In case of an error, the start, end, referenceAllele and alternateAlleles fields in the generated struct will be null.
+             In case of an error, the ``start``, ``end``, ``referenceAllele`` and ``alternateAlleles`` fields in the generated struct will be ``null``.
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.NormalizeVariantExpr
       examples:
@@ -242,7 +241,7 @@ etl:
           doc: Alternate alleles
         - name: refGenomePathString
           doc: |
-            A path to the reference genome .fasta file. The .fasta file must be accompanied with a .fai index file in the same folder.
+            A path to the reference genome ``.fasta`` file. The ``.fasta`` file must be accompanied with a ``.fai`` index file in the same folder.
           type: str
       returns: A struct as explained above
 
@@ -285,7 +284,7 @@ quality_control:
           doc: The array of genotype structs
       returns: A struct containing ``callRate``, ``nCalled``, ``nUncalled``, ``nHet``, ``nHomozygous``, ``nNonRef``, ``nAllelesCalled``, ``alleleCounts``, ``alleleFrequencies`` fields. See :ref:`variant-qc`.
     - name: dp_summary_stats
-      doc: Compute summary statistics for depth field from array of genotype structs. See :ref:`variant-qc`.
+      doc: Computes summary statistics for depth field from array of genotype structs. See :ref:`variant-qc`.
       examples:
         python: |
           >>> df = spark.createDataFrame([Row(genotypes=[Row(depth=1), Row(depth=2), Row(depth=3)])], 'genotypes: array<struct<depth: int>>')
@@ -346,14 +345,14 @@ quality_control:
       expr_class: io.projectglow.sql.expressions.CallSummaryStats
       args: 
         - name: genotypes
-          doc: The array of genotype structs
+          doc: An array of genotype structs with ``calls`` fields
         - name: refAllele
           doc: The reference allele
         - name: alternateAlleles
           doc: An array of alternate alleles
       returns: A struct containing ``sampleId``, ``callRate``, ``nCalled``, ``nUncalled``, ``nHomRef``, ``nHet``, ``nHomVar``, ``nSnp``, ``nInsertion``, ``nDeletion``, ``nTransition``, ``nTransversion``, ``nSpanningDeletion``, ``rTiTv``, ``rInsertionDeletion``, ``rHetHomVar`` fields. See :ref:`sample-qc`.
     - name: sample_dp_summary_stats
-      doc: Compute per-sample summary statistics about the depth field in an array of genotype structs
+      doc: Computes per-sample summary statistics about the depth field in an array of genotype structs
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.SampleDpSummaryStatistics
       examples:
@@ -370,7 +369,7 @@ quality_control:
           doc: An array of genotype structs
       returns: An array of structs where each struct contains ``mean``, ``stDev``, ``min``, and ``max`` of the genotype depths for a sample. If ``sampleId`` is present in a genotype, it will be propagated to the resulting struct as an extra field.
     - name: sample_gq_summary_stats
-      doc: Compute per-sample summary statistics about the genotype quality field in an array of genotype structs
+      doc: Computes per-sample summary statistics about the genotype quality field in an array of genotype structs
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.SampleGqSummaryStatistics
       examples:
@@ -384,7 +383,7 @@ quality_control:
           [Row(stats=[Row(sampleId='NA12878', mean=2.0, stdDev=1.0, min=1.0, max=3.0)])]
       args:
         - name: genotypes
-          doc: An array of genotype structs with a conditionalQuality field
+          doc: An array of genotype structs with a ``conditionalQuality`` field
       returns: An array of structs where each struct contains ``mean``, ``stDev``, ``min``, and ``max`` of the genotype qualities for a sample. If ``sampleId`` is present in a genotype, it will be propagated to the resulting struct as an extra field.
 
 gwas_functions:
@@ -407,9 +406,9 @@ gwas_functions:
         - name: genotypes
           doc: An array of genotypes
         - name: phenotypes
-          doc: An array of phenotypes
+          doc: A numeric array of phenotypes
         - name: covariates
-          doc: A spark.ml matrix of covariates
+          doc: A ``spark.ml`` ``Matrix`` of covariates
       returns: A struct containing ``beta``, ``standardError``, and ``pValue`` fields. See :ref:`linear-regression`.
     - name: logistic_regression_gwas
       doc: Performs a logistic regression association test optimized for performance in a GWAS setting.
@@ -431,7 +430,7 @@ gwas_functions:
         - name: genotypes
           doc: An array of genotype structs
         - name: phenotypes
-          doc: A ``double`` array of phenotype values
+          doc: A double array of phenotype values
         - name: covariates
           doc: M ``spark.ml`` matrix of covariates
         - name: test
@@ -439,7 +438,7 @@ gwas_functions:
           type: str
       returns: A struct containing ``beta``, ``oddsRatio``, ``waldConfidenceInterval``, and ``pValue`` fields. See :ref:`logistic-regression`.
     - name: genotype_states
-      doc: Gets number of alt alleles for genotypes. Returns ``-1`` if there are any ``-1``s in the calls array.
+      doc: Gets number of alternate alleles for genotypes. Returns ``-1`` if there are any ``-1`` s in the calls array.
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.GenotypeStates
       examples:

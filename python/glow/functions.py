@@ -37,7 +37,7 @@ def add_struct_fields(struct: Union[Column, str], *fields: Union[Column, str]) -
 
 def array_summary_stats(arr: Union[Column, str]) -> Column:
     """
-    Computes the min, max, mean, stddev for an array of numerics. The input array can be any numeric type, but the returned stats are always ``double`` typed.
+    Computes the minimum, maximum, mean, standard deviation for an array of numerics.
 
     Added in version 0.3.0.
 
@@ -47,10 +47,10 @@ def array_summary_stats(arr: Union[Column, str]) -> Column:
         [Row(mean=2.0, stdDev=1.0, min=1.0, max=3.0)]
 
     Args:
-        arr : The array of numerics
+        arr : An array of any numeric type
 
     Returns:
-        A struct containing ``mean``, ``stdDev``, ``min``, and ``max`` fields
+        A struct containing double-typed ``mean``, ``stdDev``, ``min``, and ``max`` fields.
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.array_summary_stats(_to_java_column(arr)))
@@ -108,7 +108,7 @@ def array_to_sparse_vector(arr: Union[Column, str]) -> Column:
 
 def expand_struct(struct: Union[Column, str]) -> Column:
     """
-    Promotes fields of a nested struct to top-level columns. Similar to using struct.* from SQL, but can be used in more contexts.
+    Promotes fields of a nested struct to top-level columns. Similar to using ``struct.*`` from SQL, but can be used in more contexts.
 
     Added in version 0.3.0.
 
@@ -131,7 +131,7 @@ def expand_struct(struct: Union[Column, str]) -> Column:
 
 def explode_matrix(matrix: Union[Column, str]) -> Column:
     """
-    Explodes a ``spark.ml`` matrix (sparse or dense) into multiple arrays, one per row of the matrix.
+    Explodes a ``spark.ml`` ``Matrix`` (sparse or dense) into multiple arrays, one per row of the matrix.
 
     Added in version 0.3.0.
 
@@ -143,7 +143,7 @@ def explode_matrix(matrix: Union[Column, str]) -> Column:
         [Row(row=[1.0, 4.0]), Row(row=[2.0, 5.0]), Row(row=[3.0, 6.0])]
 
     Args:
-        matrix : The matrix to explode
+        matrix : The ``sparl.ml`` ``Matrix`` to explode
 
     Returns:
         An array column in which each row is a row of the input matrix
@@ -205,7 +205,7 @@ def vector_to_array(vector: Union[Column, str]) -> Column:
 
 def hard_calls(probabilities: Union[Column, str], numAlts: Union[Column, str], phased: Union[Column, str], threshold: float = None) -> Column:
     """
-    Converts an array of probabilities to hard calls. See :ref:`variant-data-transformations` for more details. The probabilites are assumed to be diploid.
+    Converts an array of probabilities to hard calls. The probabilities are assumed to be diploid. See :ref:`variant-data-transformations` for more details.
 
     Added in version 0.3.0.
 
@@ -224,8 +224,8 @@ def hard_calls(probabilities: Union[Column, str], numAlts: Union[Column, str], p
     Args:
         probabilities : The array of probabilities to convert
         numAlts : The number of alternate alleles
-        phased : Whether the probabilities are phased. If phased, we expect one 2 * numAlts values in probabilities array. If unphased, we expect one probability per possible genotype.
-        threshold : The minimum probability to make a call. If no probability falls into the range of [0, 1 - threshold] or [threshold, 1], a no-call (represented by -1s) will be emitted. If not provided, this parameter defaults to 0.9.
+        phased : Whether the probabilities are phased. If phased, we expect one ``2 * numAlts`` values in the probabilities array. If unphased, we expect one probability per possible genotype.
+        threshold : The minimum probability to make a call. If no probability falls into the range of ``[0, 1 - threshold]`` or ``[threshold, 1]``, a no-call (represented by ``-1``s) will be emitted. If not provided, this parameter defaults to ``0.9``.
 
     Returns:
         An array of hard calls
@@ -241,7 +241,7 @@ def hard_calls(probabilities: Union[Column, str], numAlts: Union[Column, str], p
 
 def lift_over_coordinates(contigName: Union[Column, str], start: Union[Column, str], end: Union[Column, str], chainFile: str, minMatchRatio: float = None) -> Column:
     """
-    Performs liftover for the coordinates of a variants. To perform liftover of alleles and add additional metadata, see :ref:`liftover`.
+    Performs liftover for the coordinates of a variant. To perform liftover of alleles and add additional metadata, see :ref:`liftover`.
 
     Added in version 0.3.0.
 
@@ -260,7 +260,7 @@ def lift_over_coordinates(contigName: Union[Column, str], start: Union[Column, s
         start : The current start
         end : The current end
         chainFile : Location of the chain file on each node in the cluster
-        minMatchRatio : Minimum fraction of bases that must remap to do liftover successfully. If not provided, defaults to 0.95.
+        minMatchRatio : Minimum fraction of bases that must remap to do liftover successfully. If not provided, defaults to ``0.95``.
 
     Returns:
         A struct containing ``contigName``, ``start``, and ``end`` fields after liftover.
@@ -277,16 +277,16 @@ def lift_over_coordinates(contigName: Union[Column, str], start: Union[Column, s
 def normalize_variant(contigName: Union[Column, str], start: Union[Column, str], end: Union[Column, str], refAllele: Union[Column, str], altAlleles: Union[Column, str], refGenomePathString: str) -> Column:
     """
     Normalizes the variant with a behavior similar to vt normalize or bcftools norm.
-    Creates a StructType column including the normalized start, end, referenceAllele and
-    alternateAlleles fields (whether they are changed or unchanged as the result of
-    normalization) as well as a StructType field called normalizationStatus that
+    Creates a StructType column including the normalized ``start``, ``end``, ``referenceAllele`` and
+    ``alternateAlleles`` fields (whether they are changed or unchanged as the result of
+    normalization) as well as a StructType field called ``normalizationStatus`` that
     contains the following fields:
 
-       changed: A boolean field indicating whether the variant data was changed as a result of normalization.
+       ``changed``: A boolean field indicating whether the variant data was changed as a result of normalization.
 
-       errorMessage: An error message in case the attempt at normalizing the row hit an error. In this case, the changed field will be set to false. If no errors occur, this field will be null.
+       ``errorMessage``: An error message in case the attempt at normalizing the row hit an error. In this case, the changed field will be set to false. If no errors occur, this field will be null.
 
-    In case of an error, the start, end, referenceAllele and alternateAlleles fields in the generated struct will be null.
+    In case of an error, the ``start``, ``end``, ``referenceAllele`` and ``alternateAlleles`` fields in the generated struct will be ``null``.
 
     Added in version 0.3.0.
 
@@ -305,7 +305,7 @@ def normalize_variant(contigName: Union[Column, str], start: Union[Column, str],
         end : The current end
         refAllele : Reference allele
         altAlleles : Alternate alleles
-        refGenomePathString : A path to the reference genome .fasta file. The .fasta file must be accompanied with a .fai index file in the same folder.
+        refGenomePathString : A path to the reference genome ``.fasta`` file. The ``.fasta`` file must be accompanied with a ``.fai`` index file in the same folder.
 
     Returns:
         A struct as explained above
@@ -343,7 +343,7 @@ def call_summary_stats(genotypes: Union[Column, str]) -> Column:
 
 def dp_summary_stats(genotypes: Union[Column, str]) -> Column:
     """
-    Compute summary statistics for depth field from array of genotype structs. See :ref:`variant-qc`.
+    Computes summary statistics for depth field from array of genotype structs. See :ref:`variant-qc`.
 
     Added in version 0.3.0.
 
@@ -434,7 +434,7 @@ def sample_call_summary_stats(genotypes: Union[Column, str], refAllele: Union[Co
         [Row(stats=[Row(sampleId='NA12878', callRate=1.0, nCalled=3, nUncalled=0, nHomRef=1, nHet=1, nHomVar=1, nSnp=2, nInsertion=0, nDeletion=1, nTransition=2, nTransversion=0, nSpanningDeletion=0, rTiTv=inf, rInsertionDeletion=0.0, rHetHomVar=1.0)])]
 
     Args:
-        genotypes : The array of genotype structs
+        genotypes : An array of genotype structs with ``calls`` fields
         refAllele : The reference allele
         alternateAlleles : An array of alternate alleles
 
@@ -449,7 +449,7 @@ def sample_call_summary_stats(genotypes: Union[Column, str], refAllele: Union[Co
 
 def sample_dp_summary_stats(genotypes: Union[Column, str]) -> Column:
     """
-    Compute per-sample summary statistics about the depth field in an array of genotype structs
+    Computes per-sample summary statistics about the depth field in an array of genotype structs
 
     Added in version 0.3.0.
 
@@ -476,7 +476,7 @@ def sample_dp_summary_stats(genotypes: Union[Column, str]) -> Column:
 
 def sample_gq_summary_stats(genotypes: Union[Column, str]) -> Column:
     """
-    Compute per-sample summary statistics about the genotype quality field in an array of genotype structs
+    Computes per-sample summary statistics about the genotype quality field in an array of genotype structs
 
     Added in version 0.3.0.
 
@@ -490,7 +490,7 @@ def sample_gq_summary_stats(genotypes: Union[Column, str]) -> Column:
         [Row(stats=[Row(sampleId='NA12878', mean=2.0, stdDev=1.0, min=1.0, max=3.0)])]
 
     Args:
-        genotypes : An array of genotype structs with a conditionalQuality field
+        genotypes : An array of genotype structs with a ``conditionalQuality`` field
 
     Returns:
         An array of structs where each struct contains ``mean``, ``stDev``, ``min``, and ``max`` of the genotype qualities for a sample. If ``sampleId`` is present in a genotype, it will be propagated to the resulting struct as an extra field.
@@ -519,8 +519,8 @@ def linear_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Colu
 
     Args:
         genotypes : An array of genotypes
-        phenotypes : An array of phenotypes
-        covariates : A spark.ml matrix of covariates
+        phenotypes : A numeric array of phenotypes
+        covariates : A ``spark.ml`` ``Matrix`` of covariates
 
     Returns:
         A struct containing ``beta``, ``standardError``, and ``pValue`` fields. See :ref:`linear-regression`.
@@ -550,7 +550,7 @@ def logistic_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Co
 
     Args:
         genotypes : An array of genotype structs
-        phenotypes : A ``double`` array of phenotype values
+        phenotypes : A double array of phenotype values
         covariates : M ``spark.ml`` matrix of covariates
         test : Which logistic regression test to use. Can be 'LRT' or 'Firth'
 
@@ -565,7 +565,7 @@ def logistic_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Co
 
 def genotype_states(genotypes: Union[Column, str]) -> Column:
     """
-    Gets number of alt alleles for genotypes. Returns ``-1`` if there are any ``-1``s in the calls array.
+    Gets number of alternate alleles for genotypes. Returns ``-1`` if there are any ``-1`` s in the calls array.
 
     Added in version 0.3.0.
 
