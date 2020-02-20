@@ -127,7 +127,7 @@ complex_type_manipulation:
           is_var_args: true
       returns: A struct containing only the indicated fields
     - name: vector_to_array
-      doc: Converts a ``spark.ml.linalg`` ``Vector`` (sparse or dense) to an array of doubles.
+      doc: Converts a ``spark.ml`` ``Vector`` (sparse or dense) to an array of doubles.
       since: 0.3.0
       expr_class: io.projectglow.sql.expressions.VectorToArray
       examples:
@@ -281,7 +281,7 @@ quality_control:
       expr_class: io.projectglow.sql.expressions.CallStats
       args:
         - name: genotypes
-          doc: The array of genotype structs
+          doc: The array of genotype structs with ``calls`` field
       returns: A struct containing ``callRate``, ``nCalled``, ``nUncalled``, ``nHet``, ``nHomozygous``, ``nNonRef``, ``nAllelesCalled``, ``alleleCounts``, ``alleleFrequencies`` fields. See :ref:`variant-qc`.
     - name: dp_summary_stats
       doc: Computes summary statistics for the depth field from an array of genotype structs. See :ref:`variant-qc`.
@@ -294,7 +294,7 @@ quality_control:
       since: 0.3.0
       args:
         - name: genotypes
-          doc: The array of genotype structs
+          doc: An array of genotype structs with ``depth`` field
       returns: A struct containing ``mean``, ``stdDev``, ``min``, and ``max`` of genotype depths
     - name: hardy_weinberg
       doc: Computes statistics relating to the Hardy Weinberg equilibrium. See :ref:`variant-qc` for more details.
@@ -434,7 +434,7 @@ gwas_functions:
         - name: covariates
           doc: A ``spark.ml`` ``Matrix`` of covariates
         - name: test
-          doc: Which logistic regression test to use. Can be 'LRT' or 'Firth'
+          doc: Which logistic regression test to use. Can be ``LRT`` or ``Firth``
           type: str
       returns: A struct containing ``beta``, ``oddsRatio``, ``waldConfidenceInterval``, and ``pValue`` fields. See :ref:`logistic-regression`.
     - name: genotype_states

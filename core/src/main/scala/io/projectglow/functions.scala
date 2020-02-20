@@ -136,7 +136,7 @@ object functions {
   }
 
   /**
-   * Converts a ``spark.ml.linalg`` ``Vector`` (sparse or dense) to an array of doubles.
+   * Converts a ``spark.ml`` ``Vector`` (sparse or dense) to an array of doubles.
    * @group complex_type_manipulation
    * @since 0.3.0
    *
@@ -242,7 +242,7 @@ object functions {
    * @group quality_control
    * @since 0.3.0
    *
-   * @param genotypes The array of genotype structs
+   * @param genotypes The array of genotype structs with ``calls`` field
    * @return A struct containing ``callRate``, ``nCalled``, ``nUncalled``, ``nHet``, ``nHomozygous``, ``nNonRef``, ``nAllelesCalled``, ``alleleCounts``, ``alleleFrequencies`` fields. See :ref:`variant-qc`.
    */
   def call_summary_stats(genotypes: Column): Column = withExpr {
@@ -254,7 +254,7 @@ object functions {
    * @group quality_control
    * @since 0.3.0
    *
-   * @param genotypes The array of genotype structs
+   * @param genotypes An array of genotype structs with ``depth`` field
    * @return A struct containing ``mean``, ``stdDev``, ``min``, and ``max`` of genotype depths
    */
   def dp_summary_stats(genotypes: Column): Column = withExpr {
@@ -345,7 +345,7 @@ object functions {
    * @param genotypes An numeric array of genotypes
    * @param phenotypes A double array of phenotype values
    * @param covariates A ``spark.ml`` ``Matrix`` of covariates
-   * @param test Which logistic regression test to use. Can be 'LRT' or 'Firth'
+   * @param test Which logistic regression test to use. Can be ``LRT`` or ``Firth``
    * @return A struct containing ``beta``, ``oddsRatio``, ``waldConfidenceInterval``, and ``pValue`` fields. See :ref:`logistic-regression`.
    */
   def logistic_regression_gwas(genotypes: Column, phenotypes: Column, covariates: Column, test: String): Column = withExpr {

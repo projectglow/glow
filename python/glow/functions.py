@@ -180,7 +180,7 @@ def subset_struct(struct: Union[Column, str], *fields: str) -> Column:
 
 def vector_to_array(vector: Union[Column, str]) -> Column:
     """
-    Converts a ``spark.ml.linalg`` ``Vector`` (sparse or dense) to an array of doubles.
+    Converts a ``spark.ml`` ``Vector`` (sparse or dense) to an array of doubles.
 
     Added in version 0.3.0.
 
@@ -330,7 +330,7 @@ def call_summary_stats(genotypes: Union[Column, str]) -> Column:
         [Row(callRate=1.0, nCalled=3, nUncalled=0, nHet=1, nHomozygous=[1, 1], nNonRef=2, nAllelesCalled=6, alleleCounts=[3, 3], alleleFrequencies=[0.5, 0.5])]
 
     Args:
-        genotypes : The array of genotype structs
+        genotypes : The array of genotype structs with ``calls`` field
 
     Returns:
         A struct containing ``callRate``, ``nCalled``, ``nUncalled``, ``nHet``, ``nHomozygous``, ``nNonRef``, ``nAllelesCalled``, ``alleleCounts``, ``alleleFrequencies`` fields. See :ref:`variant-qc`.
@@ -353,7 +353,7 @@ def dp_summary_stats(genotypes: Union[Column, str]) -> Column:
         [Row(mean=2.0, stdDev=1.0, min=1.0, max=3.0)]
 
     Args:
-        genotypes : The array of genotype structs
+        genotypes : An array of genotype structs with ``depth`` field
 
     Returns:
         A struct containing ``mean``, ``stdDev``, ``min``, and ``max`` of genotype depths
@@ -552,7 +552,7 @@ def logistic_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Co
         genotypes : An numeric array of genotypes
         phenotypes : A double array of phenotype values
         covariates : A ``spark.ml`` ``Matrix`` of covariates
-        test : Which logistic regression test to use. Can be 'LRT' or 'Firth'
+        test : Which logistic regression test to use. Can be ``LRT`` or ``Firth``
 
     Returns:
         A struct containing ``beta``, ``oddsRatio``, ``waldConfidenceInterval``, and ``pValue`` fields. See :ref:`logistic-regression`.
