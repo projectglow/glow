@@ -1,3 +1,5 @@
+.. _pyspark_functions:
+
 Glow PySpark Functions
 ----------------------
 
