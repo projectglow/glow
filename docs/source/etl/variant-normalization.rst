@@ -81,7 +81,7 @@ The ``normalize_variants`` transformer has the following options:
 
 ``normalize_variant`` Function
 ==============================
-The normalizer can also be used as a SQL expression function applied on proper DataFrame columns to get the ``normalizationResult`` column. See :ref:`pyspark_functions` for details on how to use the function.
+The normalizer can also be used as a SQL expression function applied on proper DataFrame columns to get the ``normalizationResult`` column. See this function at :ref:`pyspark_functions` for details on how to use it in the Python API. The function can be similarly used in Scala API or as a SQL expression.
 
 .. notebook:: .. etl/normalizevariants-transformer.html
   :title: Variant normalization notebook
