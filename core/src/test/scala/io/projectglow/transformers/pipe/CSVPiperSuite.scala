@@ -166,6 +166,8 @@ class CSVPiperSuite extends GlowBaseTest {
         .csv(saige)
         .limit(0)
         .repartition(1)
+    inputDf.explain(true)
+
     val outputDf =
       pipeCsv(
         inputDf,

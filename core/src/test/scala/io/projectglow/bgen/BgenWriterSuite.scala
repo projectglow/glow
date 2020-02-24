@@ -282,14 +282,20 @@ class BgenWriterSuite extends BgenConverterBaseTest {
 
     val newBgenFile = createTempBgen
 
-    spark
+    val inputDf = spark
       .sparkContext
       .emptyRDD[BgenRow]
       .toDS
       .repartition(1)
+
+    inputDf.explain(true)
+    assert(false)
+
+    inputDf
       .write
       .format(sourceName)
       .save(newBgenFile)
+
     val rewrittenDs = spark
       .read
       .format("bgen")
