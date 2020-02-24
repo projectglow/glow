@@ -190,22 +190,8 @@ class VCFPiperSuite extends GlowBaseTest {
     assert(ex.getMessage.contains("No such file or directory"))
   }
 
-  test("0 partitions exception check") {
-    val options = Map(
-      "inputFormatter" -> "vcf",
-      "outputFormatter" -> "text",
-      "in_vcfHeader" -> na12878,
-      "cmd" -> s"""["cat", "-"]"""
-    )
-    val e = intercept[SparkException] {
-      Glow.transform("pipe", spark.emptyDataFrame, options)
-    }
-
-    assert(e.getMessage.contains("the DataFrame has zero partitions"))
-  }
-
   test("header only") {
-    val df = readVcf(na12878).limit(0).repartition(1)
+    val df = readVcf(na12878).limit(0)
     val options = Map(
       "inputFormatter" -> "vcf",
       "outputFormatter" -> "text",

@@ -260,38 +260,16 @@ class BgenWriterSuite extends BgenConverterBaseTest {
     )
   }
 
-  test("0 partitions exception check") {
-    val sess = spark
-    import sess.implicits._
-
-    val e = intercept[SparkException](
-      spark
-        .sparkContext
-        .emptyRDD[BgenRow]
-        .toDS
-        .write
-        .format(sourceName)
-        .save(createTempBgen)
-    )
-    assert(e.getMessage.contains("the DataFrame has zero partitions"))
-  }
-
   test("Empty file with determined header") {
     val sess = spark
     import sess.implicits._
 
     val newBgenFile = createTempBgen
 
-    val inputDf = spark
+    spark
       .sparkContext
       .emptyRDD[BgenRow]
       .toDS
-      .repartition(1)
-
-    inputDf.explain(true)
-    assert(false)
-
-    inputDf
       .write
       .format(sourceName)
       .save(newBgenFile)

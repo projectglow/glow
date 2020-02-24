@@ -23,11 +23,11 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.io.Source
 
-import org.apache.spark.{SparkException, TaskContext}
+import org.apache.spark.TaskContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
-import org.apache.spark.sql.{DataFrame, SQLUtils, SparkSession}
+import org.apache.spark.sql.{DataFrame, Row, SQLUtils, SparkSession}
 import org.apache.spark.storage.StorageLevel
 
 import io.projectglow.common.{GlowLogging, WithUtils}
@@ -64,18 +64,17 @@ private[projectglow] object Piper extends GlowLogging {
 
     logger.info(s"Beginning pipe with cmd $cmd")
 
-    val rdd = df.queryExecution.toRdd
-    val nParts = rdd.getNumPartitions
-    if (nParts == 0) {
-      throw new SparkException(
-        "Cannot pipe because the DataFrame has zero partitions. " +
-        "Repartition to a positive number of partitions if you want to just pipe the header"
-      )
+    val rawRdd = df.queryExecution.toRdd
+    val inputRdd = if (rawRdd.getNumPartitions == 0) {
+      logger.warn("Not piping any rows, as the input DataFrame has zero partitions.")
+      SQLUtils.createEmptyRDD(df.sparkSession)
+    } else {
+      rawRdd
     }
 
     // Each partition consists of an iterator with the schema, followed by [[InternalRow]]s with the
     // schema
-    val schemaInternalRowRDD = rdd.mapPartitions { it =>
+    val schemaInternalRowRDD = inputRdd.mapPartitions { it =>
       new PipeIterator(cmd, env, it, informatter, outputformatter)
     }.persist(StorageLevel.DISK_ONLY)
 

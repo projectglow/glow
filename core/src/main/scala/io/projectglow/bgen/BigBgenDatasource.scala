@@ -19,10 +19,10 @@ package io.projectglow.bgen
 import java.io.ByteArrayOutputStream
 
 import org.apache.spark.rdd.RDD
-import org.apache.spark.SparkException
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, SQLUtils}
 import org.apache.spark.sql.sources.DataSourceRegister
 
+import io.projectglow.common.GlowLogging
 import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
 import io.projectglow.sql.BigFileDatasource
 import io.projectglow.sql.util.ComDatabricksDataSource
@@ -41,7 +41,7 @@ class BigBgenDatasource extends BigFileDatasource with DataSourceRegister {
 
 class ComDatabricksBigBgenDatasource extends BigBgenDatasource with ComDatabricksDataSource
 
-object BigBgenDatasource extends HlsEventRecorder {
+object BigBgenDatasource extends HlsEventRecorder with GlowLogging {
 
   import io.projectglow.common.BgenOptions._
 
@@ -73,17 +73,16 @@ object BigBgenDatasource extends HlsEventRecorder {
 
     val dSchema = data.schema
     val numVariants = data.count
-    val rdd = data.queryExecution.toRdd
+    val rawRdd = data.queryExecution.toRdd
 
-    val nParts = rdd.getNumPartitions
-    if (nParts == 0) {
-      throw new SparkException(
-        "Cannot write BGEN because the DataFrame has zero partitions. " +
-        "Repartition to a positive number of partitions if you want to just write the header"
-      )
+    val inputRdd = if (rawRdd.getNumPartitions == 0) {
+      logger.warn("Writing BGEN header only as the input DataFrame has zero partitions.")
+      SQLUtils.createEmptyRDD(data.sparkSession)
+    } else {
+      rawRdd
     }
 
-    rdd.mapPartitionsWithIndex {
+    inputRdd.mapPartitionsWithIndex {
       case (idx, it) =>
         val baos = new ByteArrayOutputStream()
 

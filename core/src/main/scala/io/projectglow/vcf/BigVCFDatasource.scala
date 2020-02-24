@@ -22,10 +22,11 @@ import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress.CompressionCodecFactory
 import org.apache.spark.rdd.RDD
 import org.apache.spark.SparkException
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, SQLUtils}
 import org.apache.spark.sql.sources.DataSourceRegister
 import org.seqdoop.hadoop_bam.util.DatabricksBGZFOutputStream
 
+import io.projectglow.common.GlowLogging
 import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
 import io.projectglow.sql.BigFileDatasource
 import io.projectglow.sql.util.{ComDatabricksDataSource, SerializableConfiguration}
@@ -43,30 +44,29 @@ class BigVCFDatasource extends BigFileDatasource with DataSourceRegister {
 
 class ComDatabricksBigVCFDatasource extends BigVCFDatasource with ComDatabricksDataSource
 
-object BigVCFDatasource extends HlsEventRecorder {
+object BigVCFDatasource extends HlsEventRecorder with GlowLogging {
 
   def serializeDataFrame(options: Map[String, String], data: DataFrame): RDD[Array[Byte]] = {
 
     recordHlsEvent(HlsTagValues.EVENT_BIGVCF_WRITE)
 
     val schema = data.schema
-    val rdd = data.queryExecution.toRdd
+    val rawRdd = data.queryExecution.toRdd
 
-    val nParts = rdd.getNumPartitions
-
-    if (nParts == 0) {
-      throw new SparkException(
-        "Cannot write VCF because the DataFrame has zero partitions. " +
-        "Repartition to a positive number of partitions if you want to just write the header"
-      )
+    val inputRdd = if (rawRdd.getNumPartitions == 0) {
+      logger.warn("Writing VCF header only as the input DataFrame has zero partitions.")
+      SQLUtils.createEmptyRDD(data.sparkSession)
+    } else {
+      rawRdd
     }
+    val nParts = inputRdd.getNumPartitions
 
     val conf = VCFFileFormat.hadoopConfWithBGZ(
       data.sparkSession.sparkContext.hadoopConfiguration
     )
     val serializableConf = new SerializableConfiguration(conf)
     val firstNonemptyPartition =
-      rdd.mapPartitions(iter => Iterator(iter.nonEmpty)).collect.indexOf(true)
+      inputRdd.mapPartitions(iter => Iterator(iter.nonEmpty)).collect.indexOf(true)
 
     if (firstNonemptyPartition == -1 && options
         .get(VCFHeaderUtils.VCF_HEADER_KEY)
@@ -88,7 +88,7 @@ object BigVCFDatasource extends HlsEventRecorder {
     }
     val validationStringency = VCFOptionParser.getValidationStringency(options)
 
-    rdd.mapPartitionsWithIndex {
+    inputRdd.mapPartitionsWithIndex {
       case (idx, it) =>
         val conf = serializableConf.value
         val codec = new CompressionCodecFactory(conf)

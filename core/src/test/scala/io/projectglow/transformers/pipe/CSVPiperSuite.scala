@@ -16,7 +16,6 @@
 
 package io.projectglow.transformers.pipe
 
-import org.apache.spark.SparkException
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.types.{StringType, StructField}
 
@@ -142,21 +141,6 @@ class CSVPiperSuite extends GlowBaseTest {
     assert(outputDf.collect.toSeq == inputDf.collect.toSeq)
   }
 
-  test("0 partitions exception check") {
-    val e = intercept[SparkException] {
-      pipeCsv(
-        spark.emptyDataFrame,
-        s"""["cat", "-"]""",
-        Some(" "),
-        Some(" "),
-        Some(true),
-        Some(true)
-      )
-    }
-
-    assert(e.getMessage.contains("the DataFrame has zero partitions"))
-  }
-
   test("No rows with header") {
     val inputDf =
       spark
@@ -165,8 +149,6 @@ class CSVPiperSuite extends GlowBaseTest {
         .option("header", "true")
         .csv(saige)
         .limit(0)
-        .repartition(1)
-    inputDf.explain(true)
 
     val outputDf =
       pipeCsv(
