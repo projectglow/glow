@@ -45,13 +45,15 @@ class VCFPiperSuite extends GlowBaseTest {
           .getAllStackTraces
           .asScala
           .keySet
-          .exists(_.getName.startsWith(ProcessHelper.STDIN_WRITER_THREAD_PREFIX)))
+          .exists(_.getName.startsWith(ProcessHelper.STDIN_WRITER_THREAD_PREFIX))
+      )
       assert(
         !Thread
           .getAllStackTraces
           .asScala
           .keySet
-          .exists(_.getName.startsWith(ProcessHelper.STDERR_READER_THREAD_PREFIX)))
+          .exists(_.getName.startsWith(ProcessHelper.STDERR_READER_THREAD_PREFIX))
+      )
     }
 
     super.afterEach()
@@ -85,10 +87,7 @@ class VCFPiperSuite extends GlowBaseTest {
   }
 
   test("Prepend chr") {
-    val (_, df) = pipeScript(
-      na12878,
-      s"$testDataHome/vcf/scripts/prepend-chr.sh"
-    )
+    val (_, df) = pipeScript(na12878, s"$testDataHome/vcf/scripts/prepend-chr.sh")
     df.cache()
 
     import sess.implicits._
@@ -109,19 +108,13 @@ class VCFPiperSuite extends GlowBaseTest {
   }
 
   test("Remove INFO") {
-    val (_, df) = pipeScript(
-      na12878,
-      s"$testDataHome/vcf/scripts/remove-info.sh"
-    )
+    val (_, df) = pipeScript(na12878, s"$testDataHome/vcf/scripts/remove-info.sh")
 
     assert(!df.schema.fieldNames.exists(_.startsWith("INFO_")))
   }
 
   test("Remove non-header rows") {
-    val (inputDf, outputDf) = pipeScript(
-      na12878,
-      s"$testDataHome/vcf/scripts/remove-rows.sh"
-    )
+    val (inputDf, outputDf) = pipeScript(na12878, s"$testDataHome/vcf/scripts/remove-rows.sh")
 
     assert(inputDf.schema == outputDf.schema)
     assert(outputDf.isEmpty)
@@ -154,7 +147,10 @@ class VCFPiperSuite extends GlowBaseTest {
     val df = readVcf(na12878).repartition(8)
     assert(df.count == 4)
 
-    val options = baseTextOptions ++ Map("cmd" -> """["wc", "-l"]""", "in_vcfHeader" -> na12878)
+    val options = baseTextOptions ++ Map(
+        "cmd" -> """["wc", "-l"]""",
+        "in_vcfHeader" -> na12878
+      )
     val output = Glow.transform("pipe", df, options)
     assert(output.count() == 8)
   }
@@ -163,7 +159,7 @@ class VCFPiperSuite extends GlowBaseTest {
     val df = readVcf(na12878).repartition(8)
     assert(df.count == 4)
 
-    val options = baseTextOptions ++ Map("cmd" -> """["wc", "-l"]""", "in_vcfHeader" -> "infer")
+    val options = baseTextOptions ++ Map("cmd" -> """["wc", "-l"]""", "in_vcf_header" -> "infer")
     assertThrows[SparkException](Glow.transform("pipe", df, options))
   }
 
@@ -227,7 +223,8 @@ class VCFPiperSuite extends GlowBaseTest {
       "inputFormatter" -> "vcf",
       "outputFormatter" -> "vcf",
       "in_vcfHeader" -> "infer",
-      "cmd" -> s"""["cat", "-"]""")
+      "cmd" -> s"""["cat", "-"]"""
+    )
     val outputDf = Glow.transform("pipe", inputDf.toDF, options)
 
     inputDf.as[SimpleVcfRow].collect.zip(outputDf.as[SimpleVcfRow].collect).foreach {
@@ -238,7 +235,10 @@ class VCFPiperSuite extends GlowBaseTest {
           gt.copy(sampleId = Some(s"sample_$missingSampleIdx"))
         }
         val vc1WithSampleIds = vc1.copy(genotypes = gtsWithSampleIds)
-        assert(vc1WithSampleIds.equals(vc2), s"VC1 $vc1WithSampleIds VC2 $vc2")
+        assert(
+          vc1WithSampleIds.equals(vc2),
+          s"VC1 $vc1WithSampleIds VC2 $vc2"
+        )
     }
   }
 

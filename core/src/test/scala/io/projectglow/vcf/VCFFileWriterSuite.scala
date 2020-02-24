@@ -631,7 +631,6 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
       .sparkContext
       .emptyRDD[VCFRow]
       .toDS
-      .repartition(1)
       .write
       .option("vcfHeader", NA12878)
       .format(sourceName)
@@ -642,24 +641,6 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
 
     assert(truthHeader.getMetaDataInInputOrder.equals(writtenHeader.getMetaDataInInputOrder))
     assert(truthHeader.getGenotypeSamples == writtenHeader.getGenotypeSamples)
-  }
-
-  test("Bigvcf 0 partitions exception check") {
-    val sess = spark
-    import sess.implicits._
-
-    val tempFile = createTempVcf.toString
-
-    assertThrows[SparkException](
-      spark
-        .sparkContext
-        .emptyRDD[VCFRow]
-        .toDS
-        .write
-        .option("vcfHeader", NA12878)
-        .format(sourceName)
-        .save(tempFile)
-    )
   }
 
   def sliceInferredSampleIds(
