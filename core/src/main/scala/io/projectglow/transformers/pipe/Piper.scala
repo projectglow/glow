@@ -92,8 +92,7 @@ private[projectglow] object Piper extends GlowLogging {
 
     if (schemaSeq.length != 1) {
       throw new IllegalStateException(
-        s"Cannot infer schema: saw ${schemaSeq.length} distinct schemas."
-      )
+        s"Cannot infer schema: saw ${schemaSeq.length} distinct schemas.")
     }
 
     val schema = schemaSeq.head
@@ -101,12 +100,7 @@ private[projectglow] object Piper extends GlowLogging {
       it.drop(1).asInstanceOf[Iterator[InternalRow]]
     }
 
-    SQLUtils.internalCreateDataFrame(
-      df.sparkSession,
-      internalRowRDD,
-      schema,
-      isStreaming = false
-    )
+    SQLUtils.internalCreateDataFrame(df.sparkSession, internalRowRDD, schema, isStreaming = false)
   }
 }
 
@@ -127,9 +121,7 @@ private[projectglow] class ProcessHelper(
     environment.foreach { case (k, v) => pbEnv.put(k, v) }
     process = pb.start()
 
-    val stdinWriterThread = new Thread(
-      s"${ProcessHelper.STDIN_WRITER_THREAD_PREFIX} for $cmd"
-    ) {
+    val stdinWriterThread = new Thread(s"${ProcessHelper.STDIN_WRITER_THREAD_PREFIX} for $cmd") {
       override def run(): Unit = {
         SQLUtils.setTaskContext(context)
         val out = process.getOutputStream
@@ -144,9 +136,7 @@ private[projectglow] class ProcessHelper(
     }
     stdinWriterThread.start()
 
-    val stderrReaderThread = new Thread(
-      s"${ProcessHelper.STDERR_READER_THREAD_PREFIX} for $cmd"
-    ) {
+    val stderrReaderThread = new Thread(s"${ProcessHelper.STDERR_READER_THREAD_PREFIX} for $cmd") {
       override def run(): Unit = {
         val err = process.getErrorStream
         try {
@@ -197,8 +187,7 @@ class PipeIterator(
     outputFormatter: OutputFormatter)
     extends Iterator[Any] {
 
-  private val processHelper =
-    new ProcessHelper(cmd, environment, writeInput, TaskContext.get)
+  private val processHelper = new ProcessHelper(cmd, environment, writeInput, TaskContext.get)
   private val inputStream = processHelper.startProcess()
   private val baseIterator = outputFormatter.makeIterator(inputStream)
 
@@ -215,9 +204,7 @@ class PipeIterator(
     } else {
       val exitStatus = processHelper.waitForProcess()
       if (exitStatus != 0) {
-        throw new IllegalStateException(
-          s"Subprocess exited with status $exitStatus"
-        )
+        throw new IllegalStateException(s"Subprocess exited with status $exitStatus")
       }
       false
     }

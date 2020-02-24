@@ -40,12 +40,7 @@ class BgenWriterSuite extends BgenConverterBaseTest {
     val newBgenFile = createTempBgen
 
     val origDs =
-      spark
-        .read
-        .format("bgen")
-        .schema(BgenRow.schema)
-        .load(testBgen)
-        .as[BgenRow]
+      spark.read.format("bgen").schema(BgenRow.schema).load(testBgen).as[BgenRow]
     origDs
       .write
       .option("bitsPerProbability", bitsPerProb)
@@ -54,19 +49,12 @@ class BgenWriterSuite extends BgenConverterBaseTest {
 
     // Check that rows in new file are approximately equal
     val newDs =
-      spark
-        .read
-        .format("bgen")
-        .schema(BgenRow.schema)
-        .load(newBgenFile)
-        .as[BgenRow]
+      spark.read.format("bgen").schema(BgenRow.schema).load(newBgenFile).as[BgenRow]
     origDs
       .sort("contigName", "start")
       .collect
       .zip(newDs.sort("contigName", "start").collect)
-      .foreach {
-        case (or, nr) => checkBgenRowsEqual(or, nr, true, bitsPerProb)
-      }
+      .foreach { case (or, nr) => checkBgenRowsEqual(or, nr, true, bitsPerProb) }
 
     // Check that size of files are approximately equal (excluding free data area in header)
     val origStream = new FileInputStream(testBgen)
@@ -196,11 +184,7 @@ class BgenWriterSuite extends BgenConverterBaseTest {
   }
 
   test("single name") {
-    changeVariantIdAndRsid(
-      Some("fakeId"),
-      None,
-      s"$testRoot/example.16bits.bgen"
-    )
+    changeVariantIdAndRsid(Some("fakeId"), None, s"$testRoot/example.16bits.bgen")
   }
 
   test("invalid bitsPerProb option") {
@@ -219,28 +203,19 @@ class BgenWriterSuite extends BgenConverterBaseTest {
 
   test("Represent probabilities as int") {
     assert(
-      BgenRecordWriter
-        .calculateIntProbabilities(bitsPerProb = 2, Seq(0.5, 0.5))
-        .sorted ==
+      BgenRecordWriter.calculateIntProbabilities(bitsPerProb = 2, Seq(0.5, 0.5)).sorted ==
       Seq(1, 2) // Unrounded: 1.5, 1.5
     )
     assert(
-      BgenRecordWriter
-        .calculateIntProbabilities(bitsPerProb = 8, Seq(0.99, 0.01)) ==
+      BgenRecordWriter.calculateIntProbabilities(bitsPerProb = 8, Seq(0.99, 0.01)) ==
       Seq(252, 3) // Unrounded: 252.45, 2.55
     )
     assert(
-      BgenRecordWriter.calculateIntProbabilities(
-        bitsPerProb = 16,
-        Seq(0.605, 0.283, 0.122)
-      ) ==
+      BgenRecordWriter.calculateIntProbabilities(bitsPerProb = 16, Seq(0.605, 0.283, 0.122)) ==
       Seq(39649, 18547, 7995) // Unrounded: 39648.675, 18546.405, 7995.27
     )
     assert(
-      BgenRecordWriter.calculateIntProbabilities(
-        bitsPerProb = 32,
-        Seq(0.23, 0.27, 0.16, 0.34)
-      ) ==
+      BgenRecordWriter.calculateIntProbabilities(bitsPerProb = 32, Seq(0.23, 0.27, 0.16, 0.34)) ==
       Seq(987842478, 1159641170, 687194767, 1460288881)
       // Unrounded: 987842477.85, 1159641169.65, 687194767.2, 1460288880.3
     )
@@ -260,7 +235,7 @@ class BgenWriterSuite extends BgenConverterBaseTest {
     )
   }
 
-  test("Empty file with determined header") {
+  test("Empty file") {
     val sess = spark
     import sess.implicits._
 
@@ -282,36 +257,19 @@ class BgenWriterSuite extends BgenConverterBaseTest {
   }
 
   test("unphased 8 bit VCF") {
-    roundTripVcf(
-      s"$testRoot/example.8bits.bgen",
-      s"$testRoot/example.8bits.vcf",
-      8
-    )
+    roundTripVcf(s"$testRoot/example.8bits.bgen", s"$testRoot/example.8bits.vcf", 8)
   }
 
   test("unphased 16 bit (with missing samples) VCF") {
-    roundTripVcf(
-      s"$testRoot/example.16bits.bgen",
-      s"$testRoot/example.16bits.vcf",
-      16
-    )
+    roundTripVcf(s"$testRoot/example.16bits.bgen", s"$testRoot/example.16bits.vcf", 16)
   }
 
   test("unphased 32 bit VCF") {
-    roundTripVcf(
-      s"$testRoot/example.32bits.bgen",
-      s"$testRoot/example.32bits.vcf",
-      32
-    )
+    roundTripVcf(s"$testRoot/example.32bits.bgen", s"$testRoot/example.32bits.vcf", 32)
   }
 
   test("phased VCF") {
-    roundTripVcf(
-      s"$testRoot/phased.16bits.bgen",
-      s"$testRoot/phased.16bits.vcf",
-      16,
-      Some(true)
-    )
+    roundTripVcf(s"$testRoot/phased.16bits.bgen", s"$testRoot/phased.16bits.vcf", 16, Some(true))
   }
 
   test("No genotype") {

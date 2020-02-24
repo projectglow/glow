@@ -45,18 +45,14 @@ class VCFPiperSuite extends GlowBaseTest {
           .getAllStackTraces
           .asScala
           .keySet
-          .exists(
-            _.getName.startsWith(ProcessHelper.STDIN_WRITER_THREAD_PREFIX)
-          )
+          .exists(_.getName.startsWith(ProcessHelper.STDIN_WRITER_THREAD_PREFIX))
       )
       assert(
         !Thread
           .getAllStackTraces
           .asScala
           .keySet
-          .exists(
-            _.getName.startsWith(ProcessHelper.STDERR_READER_THREAD_PREFIX)
-          )
+          .exists(_.getName.startsWith(ProcessHelper.STDERR_READER_THREAD_PREFIX))
       )
     }
 
@@ -77,8 +73,7 @@ class VCFPiperSuite extends GlowBaseTest {
       "inputFormatter" -> "vcf",
       "outputFormatter" -> "vcf",
       "inVcfHeader" -> "infer",
-      "cmd" -> s"""["$script"]"""
-    )
+      "cmd" -> s"""["$script"]""")
     val outputDf = Glow.transform("pipe", inputDf, options)
 
     (inputDf, outputDf)
@@ -92,18 +87,14 @@ class VCFPiperSuite extends GlowBaseTest {
   }
 
   test("Prepend chr") {
-    val (_, df) =
-      pipeScript(na12878, s"$testDataHome/vcf/scripts/prepend-chr.sh")
+    val (_, df) = pipeScript(na12878, s"$testDataHome/vcf/scripts/prepend-chr.sh")
     df.cache()
 
     import sess.implicits._
 
     // Prepends chr
-    val distinctContigNames =
-      df.select("contigName").as[String].distinct.collect
-    assert(
-      distinctContigNames.length == 1 && distinctContigNames.head == "chr21"
-    )
+    val distinctContigNames = df.select("contigName").as[String].distinct.collect
+    assert(distinctContigNames.length == 1 && distinctContigNames.head == "chr21")
 
     // Include sample names
     val sampleSeq = df.select("genotypes.sampleId").as[Seq[String]].head
@@ -117,22 +108,19 @@ class VCFPiperSuite extends GlowBaseTest {
   }
 
   test("Remove INFO") {
-    val (_, df) =
-      pipeScript(na12878, s"$testDataHome/vcf/scripts/remove-info.sh")
+    val (_, df) = pipeScript(na12878, s"$testDataHome/vcf/scripts/remove-info.sh")
 
     assert(!df.schema.fieldNames.exists(_.startsWith("INFO_")))
   }
 
   test("Remove non-header rows") {
-    val (inputDf, outputDf) =
-      pipeScript(na12878, s"$testDataHome/vcf/scripts/remove-rows.sh")
+    val (inputDf, outputDf) = pipeScript(na12878, s"$testDataHome/vcf/scripts/remove-rows.sh")
 
     assert(inputDf.schema == outputDf.schema)
     assert(outputDf.isEmpty)
   }
 
-  private val baseTextOptions =
-    Map("inputFormatter" -> "vcf", "outputFormatter" -> "text")
+  private val baseTextOptions = Map("inputFormatter" -> "vcf", "outputFormatter" -> "text")
   test("environment variables") {
     import sess.implicits._
 
@@ -142,8 +130,7 @@ class VCFPiperSuite extends GlowBaseTest {
         "env_animal" -> "monkey",
         "env_a" -> "b",
         "env_c" -> "D",
-        "envE" -> "F"
-      )
+        "envE" -> "F")
     val df = readVcf(na12878)
     val output = Glow
       .transform("pipe", df, options)
@@ -172,10 +159,7 @@ class VCFPiperSuite extends GlowBaseTest {
     val df = readVcf(na12878).repartition(8)
     assert(df.count == 4)
 
-    val options = baseTextOptions ++ Map(
-        "cmd" -> """["wc", "-l"]""",
-        "in_vcfHeader" -> "infer"
-      )
+    val options = baseTextOptions ++ Map("cmd" -> """["wc", "-l"]""", "in_vcf_header" -> "infer")
     assertThrows[SparkException](Glow.transform("pipe", df, options))
   }
 
@@ -196,8 +180,7 @@ class VCFPiperSuite extends GlowBaseTest {
       "inputFormatter" -> "vcf",
       "outputFormatter" -> "text",
       "in_vcfHeader" -> na12878,
-      "cmd" -> s"""["cat", "-"]"""
-    )
+      "cmd" -> s"""["cat", "-"]""")
     val output = Glow.transform("pipe", df, options)
     assert(output.count == 28)
   }
@@ -221,8 +204,7 @@ class VCFPiperSuite extends GlowBaseTest {
       "inputFormatter" -> "vcf",
       "outputFormatter" -> "vcf",
       "in_vcfHeader" -> na12878,
-      "cmd" -> s"""["cat", "-"]"""
-    )
+      "cmd" -> s"""["cat", "-"]""")
     val output = Glow.transform("pipe", df, options)
     assert(output.count() == 4)
   }
@@ -245,23 +227,19 @@ class VCFPiperSuite extends GlowBaseTest {
     )
     val outputDf = Glow.transform("pipe", inputDf.toDF, options)
 
-    inputDf
-      .as[SimpleVcfRow]
-      .collect
-      .zip(outputDf.as[SimpleVcfRow].collect)
-      .foreach {
-        case (vc1, vc2) =>
-          var missingSampleIdx = 0
-          val gtsWithSampleIds = vc1.genotypes.map { gt =>
-            missingSampleIdx += 1
-            gt.copy(sampleId = Some(s"sample_$missingSampleIdx"))
-          }
-          val vc1WithSampleIds = vc1.copy(genotypes = gtsWithSampleIds)
-          assert(
-            vc1WithSampleIds.equals(vc2),
-            s"VC1 $vc1WithSampleIds VC2 $vc2"
-          )
-      }
+    inputDf.as[SimpleVcfRow].collect.zip(outputDf.as[SimpleVcfRow].collect).foreach {
+      case (vc1, vc2) =>
+        var missingSampleIdx = 0
+        val gtsWithSampleIds = vc1.genotypes.map { gt =>
+          missingSampleIdx += 1
+          gt.copy(sampleId = Some(s"sample_$missingSampleIdx"))
+        }
+        val vc1WithSampleIds = vc1.copy(genotypes = gtsWithSampleIds)
+        assert(
+          vc1WithSampleIds.equals(vc2),
+          s"VC1 $vc1WithSampleIds VC2 $vc2"
+        )
+    }
   }
 
   test("input validation stringency") {
@@ -278,14 +256,11 @@ class VCFPiperSuite extends GlowBaseTest {
       "inValidationStringency" -> "STRICT",
       "cmd" -> s"""["cat", "-"]"""
     )
-    assertThrows[IllegalArgumentException](
-      Glow.transform("pipe", inputDf, options)
-    )
+    assertThrows[IllegalArgumentException](Glow.transform("pipe", inputDf, options))
   }
 
   test("output validation stringency") {
-    val row =
-      Seq("1", "1", "id", "C", "T,GT", "1", ".", "AC=monkey").mkString("\t")
+    val row = Seq("1", "1", "id", "C", "T,GT", "1", ".", "AC=monkey").mkString("\t")
 
     val file = Files.createTempFile("test-vcf", ".vcf")
     val header =
@@ -328,11 +303,7 @@ class VCFPiperSuite extends GlowBaseTest {
 
     val e = intercept[SparkException](Glow.transform("pipe", inputDf, options))
     assert(e.getCause.isInstanceOf[IllegalArgumentException])
-    assert(
-      e.getCause
-        .getMessage
-        .contains("Could not build variant context: Contig cannot be null")
-    )
+    assert(e.getCause.getMessage.contains("Could not build variant context: Contig cannot be null"))
   }
 }
 

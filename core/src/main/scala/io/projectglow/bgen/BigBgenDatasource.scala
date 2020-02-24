@@ -45,13 +45,10 @@ object BigBgenDatasource extends HlsEventRecorder {
   import io.projectglow.common.BgenOptions._
 
   private def parseOptions(options: Map[String, String]): BigBgenOptions = {
-    val bitsPerProb =
-      options.getOrElse(BITS_PER_PROB_KEY, BITS_PER_PROB_DEFAULT_VALUE).toInt
+    val bitsPerProb = options.getOrElse(BITS_PER_PROB_KEY, BITS_PER_PROB_DEFAULT_VALUE).toInt
     val maxPloidy = options.getOrElse(MAX_PLOIDY_KEY, MAX_PLOIDY_VALUE).toInt
-    val defaultPloidy =
-      options.getOrElse(DEFAULT_PLOIDY_KEY, DEFAULT_PLOIDY_VALUE).toInt
-    val defaultPhasing =
-      options.getOrElse(DEFAULT_PHASING_KEY, DEFAULT_PHASING_VALUE).toBoolean
+    val defaultPloidy = options.getOrElse(DEFAULT_PLOIDY_KEY, DEFAULT_PLOIDY_VALUE).toInt
+    val defaultPhasing = options.getOrElse(DEFAULT_PHASING_KEY, DEFAULT_PHASING_VALUE).toBoolean
     BigBgenOptions(bitsPerProb, maxPloidy, defaultPloidy, defaultPhasing)
   }
 
