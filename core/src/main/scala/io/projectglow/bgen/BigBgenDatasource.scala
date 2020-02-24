@@ -19,6 +19,7 @@ package io.projectglow.bgen
 import java.io.ByteArrayOutputStream
 
 import org.apache.spark.rdd.RDD
+import org.apache.spark.SparkException
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.sources.DataSourceRegister
 
@@ -45,10 +46,13 @@ object BigBgenDatasource extends HlsEventRecorder {
   import io.projectglow.common.BgenOptions._
 
   private def parseOptions(options: Map[String, String]): BigBgenOptions = {
-    val bitsPerProb = options.getOrElse(BITS_PER_PROB_KEY, BITS_PER_PROB_DEFAULT_VALUE).toInt
+    val bitsPerProb =
+      options.getOrElse(BITS_PER_PROB_KEY, BITS_PER_PROB_DEFAULT_VALUE).toInt
     val maxPloidy = options.getOrElse(MAX_PLOIDY_KEY, MAX_PLOIDY_VALUE).toInt
-    val defaultPloidy = options.getOrElse(DEFAULT_PLOIDY_KEY, DEFAULT_PLOIDY_VALUE).toInt
-    val defaultPhasing = options.getOrElse(DEFAULT_PHASING_KEY, DEFAULT_PHASING_VALUE).toBoolean
+    val defaultPloidy =
+      options.getOrElse(DEFAULT_PLOIDY_KEY, DEFAULT_PLOIDY_VALUE).toInt
+    val defaultPhasing =
+      options.getOrElse(DEFAULT_PHASING_KEY, DEFAULT_PHASING_VALUE).toBoolean
     BigBgenOptions(bitsPerProb, maxPloidy, defaultPloidy, defaultPhasing)
   }
 
@@ -63,13 +67,23 @@ object BigBgenDatasource extends HlsEventRecorder {
   }
 
   def serializeDataFrame(options: Map[String, String], data: DataFrame): RDD[Array[Byte]] = {
-    val dSchema = data.schema
-    val numVariants = data.count
-    val parsedOptions = parseOptions(options)
 
+    val parsedOptions = parseOptions(options)
     logBgenWrite(parsedOptions)
 
-    data.queryExecution.toRdd.mapPartitionsWithIndex {
+    val dSchema = data.schema
+    val numVariants = data.count
+    val rdd = data.queryExecution.toRdd
+
+    val nParts = rdd.getNumPartitions
+    if (nParts == 0) {
+      throw new SparkException(
+        "Cannot write BGEN because the DataFrame has zero partitions. " +
+        "Repartition to a positive number of partitions if you want to just write the header"
+      )
+    }
+
+    rdd.mapPartitionsWithIndex {
       case (idx, it) =>
         val baos = new ByteArrayOutputStream()
 

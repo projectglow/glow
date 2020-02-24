@@ -23,7 +23,7 @@ import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.io.Source
 
-import org.apache.spark.TaskContext
+import org.apache.spark.{SparkException, TaskContext}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
@@ -64,15 +64,20 @@ private[projectglow] object Piper extends GlowLogging {
 
     logger.info(s"Beginning pipe with cmd $cmd")
 
+    val rdd = df.queryExecution.toRdd
+    val nParts = rdd.getNumPartitions
+    if (nParts == 0) {
+      throw new SparkException(
+        "Cannot pipe because the DataFrame has zero partitions. " +
+        "Repartition to a positive number of partitions if you want to just pipe the header"
+      )
+    }
+
     // Each partition consists of an iterator with the schema, followed by [[InternalRow]]s with the
     // schema
-    val schemaInternalRowRDD = df
-      .queryExecution
-      .toRdd
-      .mapPartitions { it =>
-        new PipeIterator(cmd, env, it, informatter, outputformatter)
-      }
-      .persist(StorageLevel.DISK_ONLY)
+    val schemaInternalRowRDD = rdd.mapPartitions { it =>
+      new PipeIterator(cmd, env, it, informatter, outputformatter)
+    }.persist(StorageLevel.DISK_ONLY)
 
     cachedRdds.synchronized {
       cachedRdds.append(schemaInternalRowRDD)
@@ -88,7 +93,8 @@ private[projectglow] object Piper extends GlowLogging {
 
     if (schemaSeq.length != 1) {
       throw new IllegalStateException(
-        s"Cannot infer schema: saw ${schemaSeq.length} distinct schemas.")
+        s"Cannot infer schema: saw ${schemaSeq.length} distinct schemas."
+      )
     }
 
     val schema = schemaSeq.head
@@ -96,7 +102,12 @@ private[projectglow] object Piper extends GlowLogging {
       it.drop(1).asInstanceOf[Iterator[InternalRow]]
     }
 
-    SQLUtils.internalCreateDataFrame(df.sparkSession, internalRowRDD, schema, isStreaming = false)
+    SQLUtils.internalCreateDataFrame(
+      df.sparkSession,
+      internalRowRDD,
+      schema,
+      isStreaming = false
+    )
   }
 }
 
@@ -117,7 +128,9 @@ private[projectglow] class ProcessHelper(
     environment.foreach { case (k, v) => pbEnv.put(k, v) }
     process = pb.start()
 
-    val stdinWriterThread = new Thread(s"${ProcessHelper.STDIN_WRITER_THREAD_PREFIX} for $cmd") {
+    val stdinWriterThread = new Thread(
+      s"${ProcessHelper.STDIN_WRITER_THREAD_PREFIX} for $cmd"
+    ) {
       override def run(): Unit = {
         SQLUtils.setTaskContext(context)
         val out = process.getOutputStream
@@ -132,7 +145,9 @@ private[projectglow] class ProcessHelper(
     }
     stdinWriterThread.start()
 
-    val stderrReaderThread = new Thread(s"${ProcessHelper.STDERR_READER_THREAD_PREFIX} for $cmd") {
+    val stderrReaderThread = new Thread(
+      s"${ProcessHelper.STDERR_READER_THREAD_PREFIX} for $cmd"
+    ) {
       override def run(): Unit = {
         val err = process.getErrorStream
         try {
@@ -183,7 +198,8 @@ class PipeIterator(
     outputFormatter: OutputFormatter)
     extends Iterator[Any] {
 
-  private val processHelper = new ProcessHelper(cmd, environment, writeInput, TaskContext.get)
+  private val processHelper =
+    new ProcessHelper(cmd, environment, writeInput, TaskContext.get)
   private val inputStream = processHelper.startProcess()
   private val baseIterator = outputFormatter.makeIterator(inputStream)
 
@@ -200,7 +216,9 @@ class PipeIterator(
     } else {
       val exitStatus = processHelper.waitForProcess()
       if (exitStatus != 0) {
-        throw new IllegalStateException(s"Subprocess exited with status $exitStatus")
+        throw new IllegalStateException(
+          s"Subprocess exited with status $exitStatus"
+        )
       }
       false
     }

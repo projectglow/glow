@@ -56,11 +56,14 @@ object BigVCFDatasource extends HlsEventRecorder {
 
     if (nParts == 0) {
       throw new SparkException(
-        "Cannot write vcf because the DataFrame has zero partitions. " +
-        "Repartition to a positive number of partitions if you want to just write the header")
+        "Cannot write VCF because the DataFrame has zero partitions. " +
+        "Repartition to a positive number of partitions if you want to just write the header"
+      )
     }
 
-    val conf = VCFFileFormat.hadoopConfWithBGZ(data.sparkSession.sparkContext.hadoopConfiguration)
+    val conf = VCFFileFormat.hadoopConfWithBGZ(
+      data.sparkSession.sparkContext.hadoopConfiguration
+    )
     val serializableConf = new SerializableConfiguration(conf)
     val firstNonemptyPartition =
       rdd.mapPartitions(iter => Iterator(iter.nonEmpty)).collect.indexOf(true)
@@ -71,11 +74,13 @@ object BigVCFDatasource extends HlsEventRecorder {
       throw new SparkException("Cannot infer header for empty VCF.")
     }
 
-    val (headerLineSet, providedSampleIds) = VCFHeaderUtils.parseHeaderLinesAndSamples(
-      options,
-      Some(VCFHeaderUtils.INFER_HEADER),
-      schema,
-      conf)
+    val (headerLineSet, providedSampleIds) =
+      VCFHeaderUtils.parseHeaderLinesAndSamples(
+        options,
+        Some(VCFHeaderUtils.INFER_HEADER),
+        schema,
+        conf
+      )
     val sampleIdInfo = if (providedSampleIds.isInstanceOf[SampleIds]) {
       providedSampleIds
     } else {
@@ -88,15 +93,20 @@ object BigVCFDatasource extends HlsEventRecorder {
         val conf = serializableConf.value
         val codec = new CompressionCodecFactory(conf)
         val baos = new ByteArrayOutputStream()
-        val outputStream = Option(codec.getCodec(new Path(BigFileDatasource.checkPath(options))))
-          .map(_.createOutputStream(baos))
-          .getOrElse(baos)
+        val outputStream =
+          Option(codec.getCodec(new Path(BigFileDatasource.checkPath(options))))
+            .map(_.createOutputStream(baos))
+            .getOrElse(baos)
 
         // Write an empty GZIP block iff this is the last partition
-        DatabricksBGZFOutputStream.setWriteEmptyBlockOnClose(outputStream, idx == nParts - 1)
+        DatabricksBGZFOutputStream.setWriteEmptyBlockOnClose(
+          outputStream,
+          idx == nParts - 1
+        )
 
         // Write the header if this is the first nonempty partition
-        val partitionWithHeader = if (firstNonemptyPartition == -1) 0 else firstNonemptyPartition
+        val partitionWithHeader =
+          if (firstNonemptyPartition == -1) 0 else firstNonemptyPartition
 
         val writer =
           new VCFFileWriter(
@@ -106,7 +116,8 @@ object BigVCFDatasource extends HlsEventRecorder {
             schema,
             conf,
             outputStream,
-            idx == partitionWithHeader)
+            idx == partitionWithHeader
+          )
 
         it.foreach { row =>
           writer.write(row)
