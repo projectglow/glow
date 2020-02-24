@@ -26,7 +26,6 @@ import org.apache.spark.sql.{DataFrame, SQLUtils}
 import org.apache.spark.sql.sources.DataSourceRegister
 import org.seqdoop.hadoop_bam.util.DatabricksBGZFOutputStream
 
-import io.projectglow.common.GlowLogging
 import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
 import io.projectglow.sql.BigFileDatasource
 import io.projectglow.sql.util.{ComDatabricksDataSource, SerializableConfiguration}
@@ -44,7 +43,7 @@ class BigVCFDatasource extends BigFileDatasource with DataSourceRegister {
 
 class ComDatabricksBigVCFDatasource extends BigVCFDatasource with ComDatabricksDataSource
 
-object BigVCFDatasource extends HlsEventRecorder with GlowLogging {
+object BigVCFDatasource extends HlsEventRecorder {
 
   def serializeDataFrame(options: Map[String, String], data: DataFrame): RDD[Array[Byte]] = {
 

@@ -22,7 +22,6 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, SQLUtils}
 import org.apache.spark.sql.sources.DataSourceRegister
 
-import io.projectglow.common.GlowLogging
 import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
 import io.projectglow.sql.BigFileDatasource
 import io.projectglow.sql.util.ComDatabricksDataSource
@@ -41,7 +40,7 @@ class BigBgenDatasource extends BigFileDatasource with DataSourceRegister {
 
 class ComDatabricksBigBgenDatasource extends BigBgenDatasource with ComDatabricksDataSource
 
-object BigBgenDatasource extends HlsEventRecorder with GlowLogging {
+object BigBgenDatasource extends HlsEventRecorder {
 
   import io.projectglow.common.BgenOptions._
 
