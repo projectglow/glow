@@ -40,19 +40,22 @@ class BgenWriterSuite extends BgenConverterBaseTest {
     val newBgenFile = createTempBgen
 
     val origDs =
-      spark.read
+      spark
+        .read
         .format("bgen")
         .schema(BgenRow.schema)
         .load(testBgen)
         .as[BgenRow]
-    origDs.write
+    origDs
+      .write
       .option("bitsPerProbability", bitsPerProb)
       .format(sourceName)
       .save(newBgenFile)
 
     // Check that rows in new file are approximately equal
     val newDs =
-      spark.read
+      spark
+        .read
         .format("bgen")
         .schema(BgenRow.schema)
         .load(newBgenFile)
@@ -81,15 +84,14 @@ class BgenWriterSuite extends BgenConverterBaseTest {
     )
   }
 
-  def changeVariantIdAndRsid(variantId: Option[String],
-                             rsid: Option[String],
-                             testBgen: String) {
+  def changeVariantIdAndRsid(variantId: Option[String], rsid: Option[String], testBgen: String) {
     val sess = spark
     import sess.implicits._
 
     val newBgenFile = createTempBgen
 
-    val origDs = spark.read
+    val origDs = spark
+      .read
       .format("bgen")
       .load(testBgen)
       .as[BgenRow]
@@ -97,11 +99,13 @@ class BgenWriterSuite extends BgenConverterBaseTest {
         br.copy(names = Seq(variantId, rsid).flatten)
       }
 
-    origDs.write
+    origDs
+      .write
       .format(sourceName)
       .save(newBgenFile)
 
-    spark.read
+    spark
+      .read
       .format("bgen")
       .load(newBgenFile)
       .as[BgenRow]
@@ -111,27 +115,31 @@ class BgenWriterSuite extends BgenConverterBaseTest {
       }
   }
 
-  def roundTripVcf(testBgen: String,
-                   testVcf: String,
-                   bitsPerProb: Int,
-                   defaultPhasing: Option[Boolean] = None) {
+  def roundTripVcf(
+      testBgen: String,
+      testVcf: String,
+      bitsPerProb: Int,
+      defaultPhasing: Option[Boolean] = None) {
 
     val sess = spark
     import sess.implicits._
 
     val newBgenFile = createTempBgen
 
-    val bgenDs = spark.read
+    val bgenDs = spark
+      .read
       .format("bgen")
       .schema(BgenRow.schema)
       .load(testBgen)
       .as[BgenRow]
-    val origVcfDs = spark.read
+    val origVcfDs = spark
+      .read
       .format("vcf")
       .option("includeSampleIds", true)
       .load(testVcf)
 
-    val writer = origVcfDs.write
+    val writer = origVcfDs
+      .write
       .option("bitsPerProbability", bitsPerProb)
       .format(sourceName)
 
@@ -142,7 +150,8 @@ class BgenWriterSuite extends BgenConverterBaseTest {
     }
     writerWithDefaultPhasing.save(newBgenFile)
 
-    val vcfDs = spark.read
+    val vcfDs = spark
+      .read
       .format("bgen")
       .schema(BgenRow.schema)
       .load(newBgenFile)
@@ -213,26 +222,26 @@ class BgenWriterSuite extends BgenConverterBaseTest {
       BgenRecordWriter
         .calculateIntProbabilities(bitsPerProb = 2, Seq(0.5, 0.5))
         .sorted ==
-        Seq(1, 2) // Unrounded: 1.5, 1.5
+      Seq(1, 2) // Unrounded: 1.5, 1.5
     )
     assert(
       BgenRecordWriter
         .calculateIntProbabilities(bitsPerProb = 8, Seq(0.99, 0.01)) ==
-        Seq(252, 3) // Unrounded: 252.45, 2.55
+      Seq(252, 3) // Unrounded: 252.45, 2.55
     )
     assert(
       BgenRecordWriter.calculateIntProbabilities(
         bitsPerProb = 16,
         Seq(0.605, 0.283, 0.122)
       ) ==
-        Seq(39649, 18547, 7995) // Unrounded: 39648.675, 18546.405, 7995.27
+      Seq(39649, 18547, 7995) // Unrounded: 39648.675, 18546.405, 7995.27
     )
     assert(
       BgenRecordWriter.calculateIntProbabilities(
         bitsPerProb = 32,
         Seq(0.23, 0.27, 0.16, 0.34)
       ) ==
-        Seq(987842478, 1159641170, 687194767, 1460288881)
+      Seq(987842478, 1159641170, 687194767, 1460288881)
       // Unrounded: 987842477.85, 1159641169.65, 687194767.2, 1460288880.3
     )
   }
@@ -256,7 +265,8 @@ class BgenWriterSuite extends BgenConverterBaseTest {
     import sess.implicits._
 
     val e = intercept[SparkException](
-      spark.sparkContext
+      spark
+        .sparkContext
         .emptyRDD[BgenRow]
         .toDS
         .write
@@ -272,14 +282,16 @@ class BgenWriterSuite extends BgenConverterBaseTest {
 
     val newBgenFile = createTempBgen
 
-    spark.sparkContext
+    spark
+      .sparkContext
       .emptyRDD[BgenRow]
       .toDS
       .repartition(1)
       .write
       .format(sourceName)
       .save(newBgenFile)
-    val rewrittenDs = spark.read
+    val rewrittenDs = spark
+      .read
       .format("bgen")
       .load(newBgenFile)
     assert(rewrittenDs.collect.isEmpty)
@@ -325,10 +337,13 @@ class BgenWriterSuite extends BgenConverterBaseTest {
     val newBgenFile = createTempBgen
 
     val noGtRow = BgenRow("chr1", 10, 11, Nil, "A", Seq("T"), Nil)
-    Seq(noGtRow).toDS.write
+    Seq(noGtRow)
+      .toDS
+      .write
       .format("bigbgen")
       .save(newBgenFile)
-    val rewrittenDs = spark.read
+    val rewrittenDs = spark
+      .read
       .format("bgen")
       .schema(BgenRow.schema)
       .load(newBgenFile)
