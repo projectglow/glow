@@ -26,7 +26,7 @@ import org.apache.spark.sql.catalyst.util._
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
-import io.projectglow.SparkShim.{CSVOptions => ShimCSVOptions, UnivocityParser => ShimUnivocityParser}
+import io.projectglow.SparkShim.{CSVOptions => ShimCSVOptions, UnivocityParser => ShimUnivocityParser, wrapUnivocityParse}
 
 /**
  * Inlined version of [[UnivocityGenerator]] to handle compatibility between Spark distributions.
@@ -108,7 +108,7 @@ object UnivocityParserUtils {
       parser: ShimUnivocityParser,
       schema: StructType): Iterator[InternalRow] = {
     val safeParser = new MinimalFailureSafeParser[String](
-      input => Seq(parser.parse(input)),
+      input => wrapUnivocityParse(parser)(input).toSeq,
       parser.options.parseMode,
       schema,
       parser.options.columnNameOfCorruptRecord
