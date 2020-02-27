@@ -79,4 +79,9 @@ object SQLUtils {
   def getSessionExtensions(session: SparkSession): SparkSessionExtensions = {
     session.extensions
   }
+
+  // Used to create an empty RDD with 1 partition to be compatible with our partition-based functionality
+  def createEmptyRDD(sess: SparkSession, numPartitions: Int = 1): RDD[InternalRow] = {
+    sess.sparkContext.parallelize(Seq.empty[InternalRow], numPartitions)
+  }
 }

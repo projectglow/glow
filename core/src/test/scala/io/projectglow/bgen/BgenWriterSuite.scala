@@ -28,12 +28,16 @@ class BgenWriterSuite extends BgenConverterBaseTest {
 
   val sourceName = "bigbgen"
 
+  protected def createTempBgen: String = {
+    val tempDir = Files.createTempDirectory("bgen")
+    tempDir.resolve("test.bgen").toString
+  }
+
   def roundTrip(testBgen: String, bitsPerProb: Int) {
     val sess = spark
     import sess.implicits._
 
-    val newBgenDir = Files.createTempDirectory("bgen")
-    val newBgenFile = newBgenDir.resolve("temp.bgen").toString
+    val newBgenFile = createTempBgen
 
     val origDs =
       spark.read.format("bgen").schema(BgenRow.schema).load(testBgen).as[BgenRow]
@@ -72,8 +76,7 @@ class BgenWriterSuite extends BgenConverterBaseTest {
     val sess = spark
     import sess.implicits._
 
-    val newBgenDir = Files.createTempDirectory("bgen")
-    val newBgenFile = newBgenDir.resolve("temp.bgen").toString
+    val newBgenFile = createTempBgen
 
     val origDs = spark
       .read
@@ -109,8 +112,7 @@ class BgenWriterSuite extends BgenConverterBaseTest {
     val sess = spark
     import sess.implicits._
 
-    val newBgenDir = Files.createTempDirectory("bgen")
-    val newBgenFile = newBgenDir.resolve("temp.bgen").toString
+    val newBgenFile = createTempBgen
 
     val bgenDs = spark
       .read
@@ -195,7 +197,7 @@ class BgenWriterSuite extends BgenConverterBaseTest {
         .write
         .option("bitsPerProbability", 2)
         .format(sourceName)
-        .save(Files.createTempDirectory("bgen").resolve("out.bgen").toString)
+        .save(createTempBgen)
     )
   }
 
@@ -237,8 +239,7 @@ class BgenWriterSuite extends BgenConverterBaseTest {
     val sess = spark
     import sess.implicits._
 
-    val newBgenDir = Files.createTempDirectory("bgen")
-    val newBgenFile = newBgenDir.resolve("temp.bgen").toString
+    val newBgenFile = createTempBgen
 
     spark
       .sparkContext
@@ -247,6 +248,7 @@ class BgenWriterSuite extends BgenConverterBaseTest {
       .write
       .format(sourceName)
       .save(newBgenFile)
+
     val rewrittenDs = spark
       .read
       .format("bgen")
@@ -274,8 +276,7 @@ class BgenWriterSuite extends BgenConverterBaseTest {
     val sess = spark
     import sess.implicits._
 
-    val newBgenDir = Files.createTempDirectory("bgen")
-    val newBgenFile = newBgenDir.resolve("temp.bgen").toString
+    val newBgenFile = createTempBgen
 
     val noGtRow = BgenRow("chr1", 10, 11, Nil, "A", Seq("T"), Nil)
     Seq(noGtRow)

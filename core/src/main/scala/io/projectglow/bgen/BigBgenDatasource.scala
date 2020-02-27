@@ -19,7 +19,7 @@ package io.projectglow.bgen
 import java.io.ByteArrayOutputStream
 
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{DataFrame, SQLUtils}
 import org.apache.spark.sql.sources.DataSourceRegister
 
 import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
@@ -63,13 +63,22 @@ object BigBgenDatasource extends HlsEventRecorder {
   }
 
   def serializeDataFrame(options: Map[String, String], data: DataFrame): RDD[Array[Byte]] = {
-    val dSchema = data.schema
-    val numVariants = data.count
-    val parsedOptions = parseOptions(options)
 
+    val parsedOptions = parseOptions(options)
     logBgenWrite(parsedOptions)
 
-    data.queryExecution.toRdd.mapPartitionsWithIndex {
+    val dSchema = data.schema
+    val numVariants = data.count
+    val rawRdd = data.queryExecution.toRdd
+
+    val inputRdd = if (rawRdd.getNumPartitions == 0) {
+      logger.warn("Writing BGEN header only as the input DataFrame has zero partitions.")
+      SQLUtils.createEmptyRDD(data.sparkSession)
+    } else {
+      rawRdd
+    }
+
+    inputRdd.mapPartitionsWithIndex {
       case (idx, it) =>
         val baos = new ByteArrayOutputStream()
 

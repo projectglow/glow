@@ -27,7 +27,7 @@ import org.apache.spark.TaskContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
-import org.apache.spark.sql.{DataFrame, SQLUtils, SparkSession}
+import org.apache.spark.sql.{DataFrame, Row, SQLUtils, SparkSession}
 import org.apache.spark.storage.StorageLevel
 
 import io.projectglow.common.{GlowLogging, WithUtils}
@@ -64,15 +64,19 @@ private[projectglow] object Piper extends GlowLogging {
 
     logger.info(s"Beginning pipe with cmd $cmd")
 
+    val rawRdd = df.queryExecution.toRdd
+    val inputRdd = if (rawRdd.getNumPartitions == 0) {
+      logger.warn("Not piping any rows, as the input DataFrame has zero partitions.")
+      SQLUtils.createEmptyRDD(df.sparkSession)
+    } else {
+      rawRdd
+    }
+
     // Each partition consists of an iterator with the schema, followed by [[InternalRow]]s with the
     // schema
-    val schemaInternalRowRDD = df
-      .queryExecution
-      .toRdd
-      .mapPartitions { it =>
-        new PipeIterator(cmd, env, it, informatter, outputformatter)
-      }
-      .persist(StorageLevel.DISK_ONLY)
+    val schemaInternalRowRDD = inputRdd.mapPartitions { it =>
+      new PipeIterator(cmd, env, it, informatter, outputformatter)
+    }.persist(StorageLevel.DISK_ONLY)
 
     cachedRdds.synchronized {
       cachedRdds.append(schemaInternalRowRDD)
