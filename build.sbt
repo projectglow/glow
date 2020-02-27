@@ -64,7 +64,8 @@ lazy val commonSettings = Seq(
       // Be permissive for other files
       MergeStrategy.first
   },
-  scalacOptions += "-target:jvm-1.8"
+  scalacOptions += "-target:jvm-1.8",
+  resolvers += "Apache Snapshots" at "https://repository.apache.org/snapshots/"
 )
 
 lazy val functionsYml = settingKey[File]("functionsYml")
