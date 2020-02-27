@@ -16,6 +16,7 @@
 
 package io.projectglow
 
+import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.ExpressionInfo
 
 // Spark 3.0 APIs that are not inter-version compatible
@@ -24,6 +25,10 @@ object SparkShim extends SparkShimBase {
   // Refactors classes from [[org.apache.spark.sql.execution.datasources.csv]] to [[org.apache.spark.sql.catalyst.csv]]
   override type CSVOptions = org.apache.spark.sql.catalyst.csv.CSVOptions
   override type UnivocityParser = org.apache.spark.sql.catalyst.csv.UnivocityParser
+
+  override def wrapUnivocityParse(parser: UnivocityParser)(input: String): Option[InternalRow] = {
+    parser.parse(input)
+  }
 
   // [SPARK-27328][SQL] Add 'deprecated' in ExpressionDescription for extended usage and SQL doc
   // Adds 'deprecated' argument to the ExpressionInfo constructor

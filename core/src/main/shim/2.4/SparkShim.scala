@@ -16,12 +16,17 @@
 
 package io.projectglow
 
+import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.ExpressionInfo
 
 // Spark 2.4 APIs that are not inter-version compatible
 object SparkShim extends SparkShimBase {
   override type CSVOptions = org.apache.spark.sql.execution.datasources.csv.CSVOptions
   override type UnivocityParser = org.apache.spark.sql.execution.datasources.csv.UnivocityParser
+
+  override def wrapUnivocityParse(parser: UnivocityParser)(input: String): Option[InternalRow] = {
+    Some(parser.parse(input))
+  }
 
   override def createExpressionInfo(
       className: String,
