@@ -96,7 +96,7 @@ As discussed in the previous section, this SQL expression function, like any oth
   from glow.functions import normalize_variant
   function_normalized_variants_df = original_variants_df.withColumn( \
     "normalizationResult", \
-    normalize_variant(
+    normalize_variant( \
       "contigName", \
       "start", \
       "end", \
