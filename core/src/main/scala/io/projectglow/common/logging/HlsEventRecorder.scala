@@ -21,7 +21,7 @@ trait HlsEventRecorder extends HlsUsageLogging {
   // Wrapper to simplify recording an HLS usage event
   def recordHlsEvent(tag: String, options: Map[String, Any] = Map.empty): Unit = {
     val metric = HlsMetricDefinitions.EVENT_HLS_USAGE
-    val tags = Map(HlsTagDefinitions.TAG_EVENT_TYPE -> tag)
+    val tags: Map[TagDefinition, String] = Map(HlsTagDefinitions.TAG_EVENT_TYPE -> tag)
 
     if (options.isEmpty) {
       recordHlsUsage(metric, tags)
