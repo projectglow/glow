@@ -53,4 +53,9 @@ object SparkShim extends SparkShimBase {
       "" // deprecated
     )
   }
+
+  // [SPARK-28077][SQL] Support ANSI SQL OVERLAY function.
+  // Adds QuaternaryExpression
+  abstract class QuaternaryExpression
+      extends org.apache.spark.sql.catalyst.expressions.QuaternaryExpression
 }
