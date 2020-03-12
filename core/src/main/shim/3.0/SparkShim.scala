@@ -17,7 +17,7 @@
 package io.projectglow
 
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.ExpressionInfo
+import org.apache.spark.sql.catalyst.expressions.{Expression, ExpressionInfo}
 
 // Spark 3.0 APIs that are not inter-version compatible
 object SparkShim extends SparkShimBase {
@@ -53,4 +53,8 @@ object SparkShim extends SparkShimBase {
       "" // deprecated
     )
   }
+
+  // [SPARK-28077][SQL] Support ANSI SQL OVERLAY function.
+  // Adds QuaternaryExpression
+  abstract class QuaternaryExpression = org.apache.spark.sql.catalyst.expressions.QuaternaryExpression
 }

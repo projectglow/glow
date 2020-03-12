@@ -35,4 +35,6 @@ trait SparkShimBase {
       examples: String,
       note: String,
       since: String): ExpressionInfo
+
+  abstract class QuaternaryExpression
 }
