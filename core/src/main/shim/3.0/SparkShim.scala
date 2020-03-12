@@ -17,7 +17,7 @@
 package io.projectglow
 
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.{Expression, ExpressionInfo}
+import org.apache.spark.sql.catalyst.expressions.ExpressionInfo
 
 // Spark 3.0 APIs that are not inter-version compatible
 object SparkShim extends SparkShimBase {
