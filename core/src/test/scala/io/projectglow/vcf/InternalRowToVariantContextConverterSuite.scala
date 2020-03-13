@@ -123,6 +123,6 @@ class InternalRowToVariantContextConverterSuite extends GlowBaseTest {
     assert(genotype.getExtendedAttribute("string") == "monkey")
     assert(
       genotype.getExtendedAttribute("string_array").asInstanceOf[JList[String]].asScala
-        == Seq("monkey"))
+      == Seq("monkey"))
   }
 }
