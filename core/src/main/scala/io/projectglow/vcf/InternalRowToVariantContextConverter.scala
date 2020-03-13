@@ -515,10 +515,10 @@ class InternalRowToVariantContextConverter(
         row.getString(offset)
       case ArrayType(StringType, _) =>
         val arrayData = row.getArray(offset)
-        val arr = new Array[String](arrayData.numElements())
+        val arr = new JArrayList[String](arrayData.numElements())
         var i = 0
-        while (i < arr.length) {
-          arr(i) = arrayData.getUTF8String(i).toString
+        while (i < arrayData.numElements()) {
+          arr.add(arrayData.getUTF8String(i).toString)
           i += 1
         }
         arr
