@@ -99,11 +99,11 @@ class InternalRowToVariantContextConverterSuite extends GlowBaseTest {
       .withColumn("end", lit(2))
       .withColumn("referenceAllele", lit("A"))
       .withColumn("alternateAlleles", lit(array(lit("G"))))
-      .withColumn("INFO_string", lit("monkey"))
-      .withColumn("INFO_string_array", array(lit("monkey")))
+      .withColumn("INFO_string", lit("monkey1"))
+      .withColumn("INFO_string_array", array(lit("monkey2")))
       .withColumn(
         "genotypes",
-        array(struct(lit("monkey").as("string"), array(lit("monkey")).as("string_array"))))
+        array(struct(lit("monkey3").as("string"), array(lit("monkey4")).as("string_array"))))
     val schema = df.schema
     val vc = df
       .queryExecution
@@ -117,12 +117,12 @@ class InternalRowToVariantContextConverterSuite extends GlowBaseTest {
         it.flatMap(converter.convert)
       }
       .first()
-    assert(vc.getAttribute("string") == "monkey")
-    assert(vc.getAttribute("string_array").asInstanceOf[JList[String]].asScala == Seq("monkey"))
+    assert(vc.getAttribute("string") == "monkey1")
+    assert(vc.getAttribute("string_array").asInstanceOf[JList[String]].asScala == Seq("monkey2"))
     val genotype = vc.getGenotype(0)
-    assert(genotype.getExtendedAttribute("string") == "monkey")
+    assert(genotype.getExtendedAttribute("string") == "monkey3")
     assert(
       genotype.getExtendedAttribute("string_array").asInstanceOf[JList[String]].asScala
-      == Seq("monkey"))
+      == Seq("monkey4"))
   }
 }
