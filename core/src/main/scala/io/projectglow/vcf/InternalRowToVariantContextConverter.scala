@@ -511,11 +511,23 @@ class InternalRowToVariantContextConverter(
 
   private def parseField(field: StructField, row: InternalRow, offset: Int): AnyRef = {
     val value = field.dataType match {
+      case StringType =>
+        row.getString(offset)
+      case ArrayType(StringType, _) =>
+        val arrayData = row.getArray(offset)
+        val arr = new JArrayList[String](arrayData.numElements())
+        var i = 0
+        while (i < arrayData.numElements()) {
+          arr.add(arrayData.getUTF8String(i).toString)
+          i += 1
+        }
+        arr
       case dt: ArrayType =>
         new JArrayList(JArrays.asList(row.getArray(offset).toObjectArray(dt.elementType): _*))
       case dt =>
         row.get(offset, dt)
     }
+
     value match {
       case null => VCFConstants.MISSING_VALUE_v4
       case "" => VCFConstants.MISSING_VALUE_v4
