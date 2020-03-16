@@ -16,6 +16,8 @@
 
 package io.projectglow.vcf
 
+import java.util.{List => JList}
+
 import scala.collection.JavaConverters._
 import htsjdk.samtools.ValidationStringency
 import org.apache.spark.sql.types.{ArrayType, DataType, MapType, StringType, StructField, StructType}
@@ -86,5 +88,41 @@ class InternalRowToVariantContextConverterSuite extends GlowBaseTest {
       InternalRowToVariantContextConverter.getGenotypeSchema(schema)
     }
     assert(e.getMessage.contains("`genotypes` column must be an array of structs"))
+  }
+
+  test("convert string fields") {
+    import org.apache.spark.sql.functions._
+    val df = spark
+      .range(1)
+      .withColumn("contigName", lit("1"))
+      .withColumn("start", lit(1))
+      .withColumn("end", lit(2))
+      .withColumn("referenceAllele", lit("A"))
+      .withColumn("alternateAlleles", lit(array(lit("G"))))
+      .withColumn("INFO_string", lit("monkey1"))
+      .withColumn("INFO_string_array", array(lit("monkey2")))
+      .withColumn(
+        "genotypes",
+        array(struct(lit("monkey3").as("string"), array(lit("monkey4")).as("string_array"))))
+    val schema = df.schema
+    val vc = df
+      .queryExecution
+      .toRdd
+      .mapPartitions { it =>
+        val header = VCFSchemaInferrer.headerLinesFromSchema(schema)
+        val converter = new InternalRowToVariantContextConverter(
+          schema,
+          header.toSet,
+          ValidationStringency.STRICT)
+        it.flatMap(converter.convert)
+      }
+      .first()
+    assert(vc.getAttribute("string") == "monkey1")
+    assert(vc.getAttribute("string_array").asInstanceOf[JList[String]].asScala == Seq("monkey2"))
+    val genotype = vc.getGenotype(0)
+    assert(genotype.getExtendedAttribute("string") == "monkey3")
+    assert(
+      genotype.getExtendedAttribute("string_array").asInstanceOf[JList[String]].asScala
+      == Seq("monkey4"))
   }
 }
