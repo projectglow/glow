@@ -22,7 +22,7 @@ import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 
 import com.google.common.annotations.VisibleForTesting
-import htsjdk.variant.vcf.{VCFCodec, VCFCompoundHeaderLine, VCFHeader, VCFHeaderLine}
+import htsjdk.variant.vcf.{VCFCodec, VCFCompoundHeaderLine, VCFContigHeaderLine, VCFFilterHeaderLine, VCFHeader, VCFHeaderLine}
 import org.apache.commons.io.IOUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.rdd.RDD
@@ -99,25 +99,41 @@ object VCFHeaderUtils extends GlowLogging {
   }
 
   /**
-   * Find the unique header lines from an RDD of VCF headers. If there are incompatible lines,
-   * meaning lines with the same ID but different types or counts, an
-   * [[IllegalArgumentException]] is thrown.
+   * Find the unique header lines from an RDD of VCF headers.
+   * If lines of the same class found with the same ID, we pick one unless they are incompatible.
+   * If there are incompatible lines, [[IllegalArgumentException]] is thrown.
+   * Incompatible lines are:
+   * - FORMAT or INFO lines with the same ID but different types or counts
+   * - contig lines with the same ID but different lengths
    */
-  def getUniqueHeaderLines(headers: RDD[VCFHeader]): Seq[VCFCompoundHeaderLine] = {
+  def getUniqueHeaderLines(headers: RDD[VCFHeader]): Seq[VCFHeaderLine] = {
     headers.flatMap { header =>
       val infoHeaderLines = header.getInfoHeaderLines.asScala
       val formatHeaderLines = header.getFormatHeaderLines.asScala
-      infoHeaderLines ++ formatHeaderLines
+      val contigHeaderLines = header.getContigLines.asScala
+      val filterHeaderLines = header.getFilterLines.asScala
+      infoHeaderLines ++ formatHeaderLines ++ contigHeaderLines ++ filterHeaderLines
     }.keyBy(line => (line.getClass.getName, line.getID))
       .reduceByKey {
-        case (line1, line2) =>
+        case (line1: VCFCompoundHeaderLine, line2: VCFCompoundHeaderLine) =>
           if (line1.equalsExcludingDescription(line2)) {
             line1
           } else {
             throw new IllegalArgumentException(
-              s"Found incompatible header lines: $line1 " +
+              s"Found incompatible compound header lines: $line1 " +
               s"and $line2. Header lines with the same ID must have the same count and type.")
           }
+        case (line1: VCFContigHeaderLine, line2: VCFContigHeaderLine) =>
+          if (line1
+              .getSAMSequenceRecord()
+              .getSequenceLength() == line2.getSAMSequenceRecord().getSequenceLength()) {
+            line1
+          } else {
+            throw new IllegalArgumentException(
+              s"Found incompatible contig header lines: $line1 " +
+              s"and $line2. Header lines with the same ID must have the same length.")
+          }
+        case (line1: VCFFilterHeaderLine, _: VCFFilterHeaderLine) => line1
       }
       .values
       .collect()
@@ -127,7 +143,7 @@ object VCFHeaderUtils extends GlowLogging {
    * A convenience function to parse the headers from a set of VCF files and return the unique
    * header lines.
    */
-  def readHeaderLines(spark: SparkSession, files: Seq[String]): Seq[VCFCompoundHeaderLine] = {
+  def readHeaderLines(spark: SparkSession, files: Seq[String]): Seq[VCFHeaderLine] = {
     getUniqueHeaderLines(createHeaderRDD(spark, files))
   }
 }
