@@ -22,7 +22,7 @@ import java.nio.file.Files
 import scala.collection.JavaConverters._
 
 import htsjdk.tribble.TribbleException
-import htsjdk.variant.vcf.{VCFFormatHeaderLine, VCFHeader, VCFHeaderLineCount, VCFHeaderLineType, VCFInfoHeaderLine}
+import htsjdk.variant.vcf._
 import org.apache.commons.io.FileUtils
 import org.apache.hadoop.fs.{FileStatus, Path}
 import org.apache.spark.SparkException
@@ -138,26 +138,49 @@ class VCFHeaderUtilsSuite extends GlowBaseTest {
   test("merge header lines") {
     val file1 =
       s"""
+         |##fileformat=VCFv4.2
          |##FORMAT=<ID=AD,Number=R,Type=Integer,Description="">
          |##INFO=<ID=animal,Number=1,Type=String,Description="monkey">
+         |##FILTER=<ID=LowQual,Description="Low Quality">
+         |##contig=<ID=20,length=63025520>
+         |##source=willNotBeIncluded
        """.stripMargin
     val file2 =
       s"""
+         |##fileformat=VCFv4.2
          |##FORMAT=<ID=DP,Number=1,Type=Integer,Description="">
          |##INFO=<ID=color,Number=G,Type=String,Description="">
+         |##FILTER=<ID=LowQual,Description="Low Quality">
+         |##contig=<ID=20,length=63025520>
+         |##contig=<ID=21,length=48129895>
        """.stripMargin
     val paths = writeVCFHeaders(Seq(file1, file2))
     val lines = VCFHeaderUtils.readHeaderLines(spark, paths)
+
     val expectedLines = Set(
       new VCFInfoHeaderLine("animal", 1, VCFHeaderLineType.String, "monkey"),
       new VCFInfoHeaderLine("color", VCFHeaderLineCount.G, VCFHeaderLineType.String, ""),
       new VCFFormatHeaderLine("AD", VCFHeaderLineCount.R, VCFHeaderLineType.Integer, ""),
-      new VCFFormatHeaderLine("DP", 1, VCFHeaderLineType.Integer, "")
+      new VCFFormatHeaderLine("DP", 1, VCFHeaderLineType.Integer, ""),
+      new VCFFilterHeaderLine("LowQual", "Low Quality"),
+      new VCFContigHeaderLine("<ID=20,length=63025520>", VCFHeaderVersion.VCF4_2, "contig", 0),
+      new VCFContigHeaderLine("<ID=21,length=48129895>", VCFHeaderVersion.VCF4_2, "contig", 1)
     )
-    assert(lines.toSet == expectedLines)
+
+    // We compare the string-encoded versions of the header lines to avoid direct object comparisons
+    val sortedLines = lines.map(_.toString).toSet
+    val sortedExpectedLines = expectedLines.map(_.toString)
+    assert(lines.size == sortedLines.size)
+    assert(sortedLines == sortedExpectedLines)
   }
 
-  test("verify that lines are compatible") {
+  def checkLinesIncompatible(file1: String, file2: String): Unit = {
+    val paths = writeVCFHeaders(Seq(file1, file2))
+    val ex = intercept[SparkException](VCFHeaderUtils.readHeaderLines(spark, paths))
+    assert(ex.getCause.isInstanceOf[IllegalArgumentException])
+  }
+
+  test("verify that INFO lines are compatible") {
     val file1 =
       s"""
          |##INFO=<ID=animal,Number=1,Type=String,Description="monkey">
@@ -166,9 +189,31 @@ class VCFHeaderUtilsSuite extends GlowBaseTest {
       s"""
          |##INFO=<ID=animal,Number=2,Type=String,Description="monkey">
        """.stripMargin
-    val paths = writeVCFHeaders(Seq(file1, file2))
-    val ex = intercept[SparkException](VCFHeaderUtils.readHeaderLines(spark, paths))
-    assert(ex.getCause.isInstanceOf[IllegalArgumentException])
+    checkLinesIncompatible(file1, file2)
+  }
+
+  test("verify that FORMAT lines are compatible") {
+    val file1 =
+      s"""
+         |##FORMAT=<ID=animal,Number=1,Type=String,Description="monkey">
+       """.stripMargin
+    val file2 =
+      s"""
+         |##FORMAT=<ID=animal,Number=2,Type=String,Description="monkey">
+       """.stripMargin
+    checkLinesIncompatible(file1, file2)
+  }
+
+  test("verify that contig lines are compatible") {
+    val file1 =
+      s"""
+         |##contig=<ID=21,length=48129895>
+       """.stripMargin
+    val file2 =
+      s"""
+         |##contig=<ID=21,length=48129896>
+       """.stripMargin
+    checkLinesIncompatible(file1, file2)
   }
 
   test("all format and info lines with same id and different types") {
