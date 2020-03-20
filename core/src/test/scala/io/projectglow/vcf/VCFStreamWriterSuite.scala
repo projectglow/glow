@@ -16,7 +16,8 @@
 
 package io.projectglow.vcf
 
-import java.io.{ByteArrayOutputStream, StringReader}
+import java.io.{BufferedOutputStream, ByteArrayOutputStream, FileOutputStream, StringReader}
+import java.nio.file.Files
 
 import scala.collection.JavaConverters._
 
@@ -117,5 +118,13 @@ class VCFStreamWriterSuite extends GlowBaseTest {
       writer.close()
     }
     assert(e.getMessage.contains("Cannot infer header for empty partition"))
+  }
+
+  test("Stream closes before writer closes") {
+    val tempFile = Files.createTempFile("test-file", ".tmp").toString
+    val stream = new BufferedOutputStream(new FileOutputStream(tempFile))
+    val writer = new VCFStreamWriter(stream, headerLines, SampleIds(actualSampleIds), true)
+    stream.close()
+    writer.close() // should not throw an exception
   }
 }
