@@ -19,6 +19,7 @@ package io.projectglow.vcf
 import java.io.BufferedInputStream
 
 import scala.collection.JavaConverters._
+import scala.collection.mutable.ArrayBuffer
 
 import com.google.common.util.concurrent.Striped
 import htsjdk.samtools.ValidationStringency
@@ -455,16 +456,16 @@ private[vcf] object SchemaDelegate {
   private def readHeaders(
       spark: SparkSession,
       files: Seq[FileStatus]): (Seq[VCFInfoHeaderLine], Seq[VCFFormatHeaderLine]) = {
+    val infoHeaderLines = ArrayBuffer[VCFInfoHeaderLine]()
+    val formatHeaderLines = ArrayBuffer[VCFFormatHeaderLine]()
     VCFHeaderUtils
       .readHeaderLines(spark, files.map(_.getPath.toString))
-      .partition {
-        case _: VCFInfoHeaderLine => true
-        case _: VCFFormatHeaderLine => false
-        case _ =>
-          throw new IllegalArgumentException(
-            "Header line is neither an INFO nor a FORMAT header line")
+      .foreach {
+        case i: VCFInfoHeaderLine => infoHeaderLines += i
+        case f: VCFFormatHeaderLine => formatHeaderLines += f
+        case _ => // Don't do anything with other header lines
       }
-      .asInstanceOf[(Seq[VCFInfoHeaderLine], Seq[VCFFormatHeaderLine])]
+    (infoHeaderLines, formatHeaderLines)
   }
 
   private class VCFRowSchemaDelegate(stringency: ValidationStringency, includeSampleIds: Boolean)
