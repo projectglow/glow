@@ -25,6 +25,8 @@ import htsjdk.variant.variantcontext.writer.{Options, VariantContextWriter, Vari
 import htsjdk.variant.variantcontext.{Genotype, GenotypeBuilder, VariantContext, VariantContextBuilder}
 import htsjdk.variant.vcf.{VCFHeader, VCFHeaderLine}
 
+import io.projectglow.common.GlowLogging
+
 /**
  * This internal row -> variant context stream writer maintains a header that is set exactly once. The sample IDs are
  * set by [[sampleIdInfo]] if predetermined, or inferred from the first written row otherwise.
@@ -45,6 +47,7 @@ class VCFStreamWriter(
     sampleIdInfo: SampleIdInfo,
     writeHeader: Boolean)
     extends Closeable
+    with GlowLogging
     with Serializable {
 
   var header: VCFHeader = _
@@ -148,6 +151,12 @@ class VCFStreamWriter(
       header = new VCFHeader(headerLineSet.asJava, sampleIds.asJava)
       writer.writeHeader(header)
     }
-    writer.close()
+
+    try {
+      writer.close()
+    } catch {
+      case e: Throwable =>
+        logger.warn("Could not close writer: " + e.getMessage)
+    }
   }
 }
