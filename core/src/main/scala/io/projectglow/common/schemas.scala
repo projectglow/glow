@@ -73,6 +73,7 @@ object VariantSchemas {
   // Possible genotype fields for BGEN
   val ploidyField = StructField("ploidy", IntegerType)
 
+
   // Genotype fields that are typically present in BGEN records
   def bgenGenotypesField(hasSampleIds: Boolean): StructField = StructField(
     genotypesFieldName,
@@ -141,6 +142,53 @@ object VariantSchemas {
   def plinkSchema(hasSampleIds: Boolean): StructType = {
     StructType(plinkBaseSchema :+ plinkGenotypeSchema(hasSampleIds))
   }
+}
+
+object FeatureSchemas {
+
+  // GFF fields
+  val seqIdField = StructField("seqid", StringType)
+  val sourceField = StructField("source", StringType)
+  val typeField = StructField("type", StringType)
+  val startField = StructField("start", StringType) // LongType)
+  val endField = StructField("end", StringType) // LongType)
+  val scoreField = StructField("score", StringType) // DoubleType)
+  val strandField = StructField("strand", StringType)
+  val phaseField = StructField("phase", StringType) // IntegerType)
+  val attributesFieldName = "attributes"
+
+  // GFF3 tags
+  val idField = StructField("id", StringType)
+  val nameField = StructField("name", StringType)
+  val aliasField = StructField("alias", ArrayType(StringType))
+  val parentField = StructField("parent", ArrayType(StringType))
+  val targetField = StructField("target", StringType)
+  val gapField = StructField("gap", StringType)
+  val derivesFromField = StructField("derives_from", StringType)
+  val noteField = StructField("note", ArrayType(StringType))
+  val dbxrefField = StructField("dbxref", ArrayType(StringType))
+  val ontologyTermField = StructField("ontology_term", ArrayType(StringType))
+  val isCircularField = StructField("is_circular", BooleanType)
+
+  // GTF specific tags
+  val geneIdField = StructField("gene_id", StringType)
+  val transcriptIdField = StructField("transcript_id", StringType)
+
+  val gffBaseSchema = StructType(
+    Seq(
+      seqIdField,
+      sourceField,
+      typeField,
+      startField,
+      endField,
+      scoreField,
+      strandField,
+      phaseField
+    )
+  )
+
+  val gffSchema = StructType(gffBaseSchema :+ StructField(attributesFieldName, StringType))
+
 }
 
 case class GenotypeFields(

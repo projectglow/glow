@@ -16,8 +16,6 @@
 
 package io.projectglow.vcf
 
-import java.io.BufferedInputStream
-
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
 
@@ -32,6 +30,7 @@ import org.apache.hadoop.fs.{FileStatus, Path}
 import org.apache.hadoop.io.Text
 import org.apache.hadoop.io.compress.{CodecPool, CompressionCodecFactory, SplittableCompressionCodec}
 import org.apache.hadoop.mapreduce.{Job, TaskAttemptContext}
+
 import org.apache.spark.TaskContext
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.util.CompressionCodecs
@@ -43,9 +42,8 @@ import org.broadinstitute.hellbender.tools.walkers.genotyper.GenotypeAssignmentM
 import org.broadinstitute.hellbender.utils.SimpleInterval
 import org.broadinstitute.hellbender.utils.variant.GATKVariantContextUtils
 import org.seqdoop.hadoop_bam.util.{BGZFEnhancedGzipCodec, DatabricksBGZFOutputStream}
-
 import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
-import io.projectglow.common.{CommonOptions, GlowLogging, VCFOptions, VCFRow, WithUtils}
+import io.projectglow.common.{CommonOptions, CompressionUtils, GlowLogging, VCFOptions, VCFRow, WithUtils}
 import io.projectglow.sql.util.{BGZFCodec, ComDatabricksDataSource, HadoopLineIterator, SerializableConfiguration}
 
 class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HlsEventRecorder {
@@ -63,7 +61,7 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
       path: Path): Boolean = {
     if (codecFactory == null) {
       codecFactory = new CompressionCodecFactory(
-        VCFFileFormat.hadoopConfWithBGZ(sparkSession.sessionState.newHadoopConf())
+        CompressionUtils.hadoopConfWithBGZ(sparkSession.sessionState.newHadoopConf())
       )
     }
 
@@ -89,7 +87,7 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
     options.get(VCFOptions.COMPRESSION).foreach { compressionOption =>
       if (codecFactory == null) {
         codecFactory =
-          new CompressionCodecFactory(VCFFileFormat.hadoopConfWithBGZ(job.getConfiguration))
+          new CompressionCodecFactory(CompressionUtils.hadoopConfWithBGZ(job.getConfiguration))
       }
 
       val codec = codecFactory.getCodecByName(compressionOption)
@@ -135,7 +133,7 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
     recordHlsEvent(HlsTagValues.EVENT_VCF_READ, logOptions)
 
     val serializableConf = new SerializableConfiguration(
-      VCFFileFormat.hadoopConfWithBGZ(hadoopConf)
+      CompressionUtils.hadoopConfWithBGZ(hadoopConf)
     )
 
     /* Make a filtered interval by parsing the filters
@@ -230,49 +228,9 @@ object VCFFileFormat {
     }
   }
 
-  /**
-   * Adds BGZF support to an existing Hadoop conf.
-   */
-  def hadoopConfWithBGZ(conf: Configuration): Configuration = {
-    val toReturn = new Configuration(conf)
-    val bgzCodecs = Seq(
-      classOf[BGZFCodec].getCanonicalName,
-      classOf[BGZFEnhancedGzipCodec].getCanonicalName
-    )
-    val codecs = toReturn
-        .get("io.compression.codecs", "")
-        .split(",")
-        .filter(codec => codec.nonEmpty && !bgzCodecs.contains(codec)) ++ bgzCodecs
-    toReturn.set("io.compression.codecs", codecs.mkString(","))
-    toReturn
-  }
-
   val idxLock = Striped.lock(100)
   val INDEX_SUFFIX = ".tbi"
 
-  /** Checks whether the file is a valid bgzipped file
-   * Used by filteredVariantBlockRange to abandon use of tabix if the file is not bgzipped.
-   */
-  def isValidBGZ(path: Path, conf: Configuration): Boolean = {
-    val fs = path.getFileSystem(conf)
-    WithUtils.withCloseable(fs.open(path)) { is =>
-      val buffered = new BufferedInputStream(is)
-      BlockCompressedInputStream.isValidFile(buffered)
-    }
-  }
-
-  /**
-   * Checks whether a file is gzipped (not block gzipped).
-   */
-  def isGzip(split: PartitionedFile, conf: Configuration): Boolean = {
-    val path = new Path(split.filePath)
-    val compressionCodec = new CompressionCodecFactory(hadoopConfWithBGZ(conf)).getCodec(path)
-    if (compressionCodec.isInstanceOf[BGZFEnhancedGzipCodec]) {
-      !isValidBGZ(path, conf)
-    } else {
-      false
-    }
-  }
 }
 
 case class VariantContextWrapper(vc: VariantContext, splitFromMultiallelic: Boolean)
