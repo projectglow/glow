@@ -21,6 +21,7 @@ import java.nio.file.Paths
 import htsjdk.samtools.reference.ReferenceSequenceFileFactory
 import io.projectglow.common.GlowLogging
 import io.projectglow.sql.GlowBaseTest
+import io.projectglow.transformers.normalizevariants.VariantNormalizer._
 
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
