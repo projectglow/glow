@@ -18,10 +18,9 @@ package io.projectglow.transformers.normalizevariants
 
 import java.nio.file.Paths
 
-import htsjdk.samtools.reference.IndexedFastaSequenceFile
+import htsjdk.samtools.reference.ReferenceSequenceFileFactory
 import io.projectglow.common.GlowLogging
 import io.projectglow.sql.GlowBaseTest
-import io.projectglow.transformers.normalizevariants.VariantNormalizer._
 
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
@@ -34,6 +33,7 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
   lazy val testFolder: String = s"$testDataHome/variantsplitternormalizer-test"
 
   lazy val vtTestReference = s"$testFolder/20_altered.fasta"
+  lazy val vtTestReferenceBGzip = s"$testFolder/20_altered_bgzip.fasta.gz"
 
   /**
    * Tests normalizeVariant method for given alleles and compares with the provided expected
@@ -54,7 +54,8 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
       expectedErrorMessage: Option[String]
   ): Unit = {
 
-    val refGenomeIndexedFasta = new IndexedFastaSequenceFile(Paths.get(referenceGenome))
+    val refGenomeIndexedFasta =
+      ReferenceSequenceFileFactory.getReferenceSequenceFile(Paths.get(referenceGenome))
 
     val normalizedVariant =
       normalizeVariant(
@@ -92,7 +93,8 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
       expectedErrorMessage: Option[String]
   ): Unit = {
 
-    val refGenomeIndexedFasta = new IndexedFastaSequenceFile(Paths.get(referenceGenome))
+    val refGenomeIndexedFasta =
+      ReferenceSequenceFileFactory.getReferenceSequenceFile(Paths.get(referenceGenome))
 
     val normalizedVariant =
       normalizeVariant(
@@ -186,6 +188,28 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
       Some("No REF or ALT alleles found.")
     )
 
+  }
+
+  gridTest("Reference compression modes")(
+    Seq(
+      vtTestReference,
+      vtTestReferenceBGzip
+    )
+  ) { fastaFile =>
+    testNormalizeVariant(
+      fastaFile,
+      "20",
+      35,
+      76,
+      "GAAGGCATAGCCATTACCTTTTAAAAAATTTTAAAAAAAGA",
+      Array("GA"),
+      27,
+      67,
+      "AAAAAAAAGAAGGCATAGCCATTACCTTTTAAAAAATTTT",
+      Array("A"),
+      true,
+      None
+    )
   }
 
 }
