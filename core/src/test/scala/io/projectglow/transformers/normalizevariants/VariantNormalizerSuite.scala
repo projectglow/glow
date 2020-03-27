@@ -34,7 +34,6 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
   lazy val testFolder: String = s"$testDataHome/variantsplitternormalizer-test"
 
   lazy val vtTestReference = s"$testFolder/20_altered.fasta"
-  lazy val vtTestReferenceBGzip = s"$testFolder/20_altered_bgzip.fasta.gz"
 
   /**
    * Tests normalizeVariant method for given alleles and compares with the provided expected
@@ -189,28 +188,6 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
       Some("No REF or ALT alleles found.")
     )
 
-  }
-
-  gridTest("Reference compression modes")(
-    Seq(
-      vtTestReference,
-      vtTestReferenceBGzip
-    )
-  ) { fastaFile =>
-    testNormalizeVariant(
-      fastaFile,
-      "20",
-      35,
-      76,
-      "GAAGGCATAGCCATTACCTTTTAAAAAATTTTAAAAAAAGA",
-      Array("GA"),
-      27,
-      67,
-      "AAAAAAAAGAAGGCATAGCCATTACCTTTTAAAAAATTTT",
-      Array("A"),
-      true,
-      None
-    )
   }
 
 }
