@@ -213,7 +213,7 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
     )
   }
 
-  test("Invalid reference path ") {
+  test("Invalid reference path") {
     assertThrows[SparkException](
       testNormalizedvsExpected(
         vtTestVcfMultiAllelic,
@@ -223,7 +223,7 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
     )
   }
 
-  gridTest("Reference not indexed ")(
+  gridTest("Reference not indexed")(
     Seq(
       vtTestReferenceNoIndex,
       vtTestReferenceBGzipNoIndex
