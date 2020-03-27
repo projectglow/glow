@@ -22,6 +22,7 @@ import io.projectglow.sql.GlowBaseTest
 
 import org.apache.spark.{SparkConf, SparkException}
 import io.projectglow.common.VariantSchemas._
+import io.projectglow.common.WithUtils.withCloseable
 import io.projectglow.transformers.normalizevariants.VariantNormalizer._
 import io.projectglow.transformers.normalizevariants.NormalizeVariantsTransformer._
 import io.projectglow.transformers.splitmultiallelics.SplitMultiallelicsTransformer._
@@ -204,23 +205,25 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
   }
 
   test("normalization transform no-reference") {
-    assertThrows[IllegalArgumentException](
+    val e = intercept[IllegalArgumentException] {
       testNormalizedvsExpected(
         vtTestVcfMultiAllelic,
         vtTestVcfMultiAllelic,
         None
       )
-    )
+    }
+    assert(e.getMessage.contains("Reference genome path not provided"))
   }
 
   test("Invalid reference path") {
-    assertThrows[SparkException](
+    val e = intercept[SparkException] {
       testNormalizedvsExpected(
         vtTestVcfMultiAllelic,
         vtTestVcfMultiAllelicExpectedNormalized,
         Option(vtTestReferenceNonexistent)
       )
-    )
+    }
+    assert(e.getMessage.contains("Error opening file"))
   }
 
   gridTest("Reference not indexed")(
@@ -229,12 +232,14 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
       vtTestReferenceBGzipNoIndex
     )
   ) { fastaFile =>
-    assertThrows[SparkException](
+    val e = intercept[SparkException] {
       testNormalizedvsExpected(
         vtTestVcfMultiAllelic,
         vtTestVcfMultiAllelicExpectedNormalized,
-        Option(fastaFile))
-    )
+        Option(fastaFile)
+      )
+    }
+    assert(e.getMessage.contains("Index does not appear to exist"))
   }
 
   gridTest("Reference compression modes")(
