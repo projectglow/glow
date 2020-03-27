@@ -16,7 +16,7 @@
 
 package io.projectglow.transformers.normalizevariants
 
-import htsjdk.samtools.reference.IndexedFastaSequenceFile
+import htsjdk.samtools.reference.ReferenceSequenceFile
 import io.projectglow.common.GlowLogging
 import io.projectglow.common.VariantSchemas._
 
@@ -49,7 +49,7 @@ object VariantNormalizer extends GlowLogging {
    * @param end                   : 0-based end of the REF allele in an open-left closed-right interval system
    * @param refAllele             : String containing refrence allele
    * @param altAlleles            : String array of alternate alleles
-   * @param refGenomeIndexedFasta : an [[IndexedFastaSequenceFile]] of the reference genome.
+   * @param refGenomeIndexedFasta : a [[ReferenceSequenceFile]] of the reference genome.
    * @return normalization result as an InternalRow
    */
   def normalizeVariant(
@@ -58,7 +58,7 @@ object VariantNormalizer extends GlowLogging {
       end: Long,
       refAllele: String,
       altAlleles: Array[String],
-      refGenomeIndexedFasta: IndexedFastaSequenceFile): InternalRow = {
+      refGenomeIndexedFasta: ReferenceSequenceFile): InternalRow = {
 
     var flag = false // indicates whether the variant was changed as a result of normalization
     var errorMessage: Option[String] = None

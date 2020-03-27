@@ -18,7 +18,7 @@ package io.projectglow.sql.expressions
 
 import java.nio.file.Paths
 
-import htsjdk.samtools.reference.IndexedFastaSequenceFile
+import htsjdk.samtools.reference.{ReferenceSequenceFile, ReferenceSequenceFileFactory}
 import io.projectglow.transformers.normalizevariants.VariantNormalizer
 
 import org.apache.spark.TaskContext
@@ -32,7 +32,7 @@ import org.apache.spark.unsafe.types.UTF8String
 
 object NormalizeVariantExpr {
 
-  val state = new ThreadLocal[IndexedFastaSequenceFile]
+  val state = new ThreadLocal[ReferenceSequenceFile]
 
   def doVariantNormalization(
       contigName: Any,
@@ -44,7 +44,8 @@ object NormalizeVariantExpr {
 
     if (state.get() == null) {
       // Save fasta sequence file
-      val refGenomeIndexedFasta = new IndexedFastaSequenceFile(
+
+      val refGenomeIndexedFasta = ReferenceSequenceFileFactory.getReferenceSequenceFile(
         Paths.get(refGenomePathString.asInstanceOf[UTF8String].toString))
       state.set(refGenomeIndexedFasta)
       TaskContext
