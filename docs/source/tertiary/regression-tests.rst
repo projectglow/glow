@@ -87,7 +87,7 @@ Return
 ------
 
 The function returns a struct with the following fields. The computation of each value matches the
-`lm R package <https://www.rdocumentation.org/packages/stats/versions/3.6.1/topics/lm>`_.
+`lm R package <https://stat.ethz.ch/R-manual/R-patched/library/stats/html/lm.html>`_.
 
 .. list-table::
   :header-rows: 1
@@ -182,7 +182,7 @@ Return
 ------
 
 The function returns a struct with the following fields. The computation of each value matches the
-`glm R package <https://www.rdocumentation.org/packages/stats/versions/3.6.1/topics/glm>`_ for the
+`glm R package <https://stat.ethz.ch/R-manual/R-patched/library/stats/html/glm.html>`_ for the
 likelihood ratio test and the
 `logistf R package <https://cran.r-project.org/web/packages/logistf/logistf.pdf>`_ for the Firth
 test.
