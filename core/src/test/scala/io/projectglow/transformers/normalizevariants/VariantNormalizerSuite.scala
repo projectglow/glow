@@ -18,7 +18,7 @@ package io.projectglow.transformers.normalizevariants
 
 import java.nio.file.Paths
 
-import htsjdk.samtools.reference.IndexedFastaSequenceFile
+import htsjdk.samtools.reference.ReferenceSequenceFileFactory
 import io.projectglow.common.GlowLogging
 import io.projectglow.sql.GlowBaseTest
 import io.projectglow.transformers.normalizevariants.VariantNormalizer._
@@ -54,7 +54,8 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
       expectedErrorMessage: Option[String]
   ): Unit = {
 
-    val refGenomeIndexedFasta = new IndexedFastaSequenceFile(Paths.get(referenceGenome))
+    val refGenomeIndexedFasta =
+      ReferenceSequenceFileFactory.getReferenceSequenceFile(Paths.get(referenceGenome))
 
     val normalizedVariant =
       normalizeVariant(
@@ -92,7 +93,8 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
       expectedErrorMessage: Option[String]
   ): Unit = {
 
-    val refGenomeIndexedFasta = new IndexedFastaSequenceFile(Paths.get(referenceGenome))
+    val refGenomeIndexedFasta =
+      ReferenceSequenceFileFactory.getReferenceSequenceFile(Paths.get(referenceGenome))
 
     val normalizedVariant =
       normalizeVariant(
