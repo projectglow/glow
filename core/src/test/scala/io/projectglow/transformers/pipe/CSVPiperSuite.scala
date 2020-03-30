@@ -107,14 +107,14 @@ class CSVPiperSuite extends GlowBaseTest {
     assert(outputDf.collect.toSeq == inputDf.collect.toSeq)
   }
 
-  test("No rows with header") {
+  test("No rows") {
     val inputDf =
       spark.read.option("delimiter", " ").option("header", "true").csv(saige).limit(0)
 
-    val outputDf =
+    val ex = intercept[IllegalStateException] {
       pipeCsv(inputDf, s"""["cat", "-"]""", Some(" "), Some(" "), Some(true), Some(true))
-    assert(outputDf.schema == inputDf.schema)
-    assert(outputDf.isEmpty)
+    }
+    assert(ex.getMessage.contains("Cannot infer schema: saw 0 distinct schemas"))
   }
 
   test("Default options: comma delimiter and no header") {
