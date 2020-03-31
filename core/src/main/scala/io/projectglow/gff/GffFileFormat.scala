@@ -18,7 +18,6 @@ package io.projectglow.gff
 
 import com.google.common.io.LittleEndianDataInputStream
 import com.univocity.parsers.csv.CsvParser
-import io.projectglow.gff.GffDataSource
 import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
 import io.projectglow.common.{CommonOptions, CompressionUtils, FeatureSchemas, GlowLogging, VCFOptions, VariantSchemas}
 import io.projectglow.sql.util.{HadoopLineIterator, SerializableConfiguration}
@@ -127,113 +126,6 @@ class GffFileFormat extends TextBasedFileFormat
   }
 
 
-  /*
-// With accumulator
-  override def inferSchema(
-    sparkSession: SparkSession,
-    options: Map[String, String],
-    files: Seq[FileStatus]): Option[StructType] = {
-
-    import FeatureSchemas._
-    val paths = files.map(_.getPath.toString)
-    val optionsWithDelimiter = options + ("sep" -> "\t")
-
-    val parsedOptions = new CSVOptions(optionsWithDelimiter,
-      columnPruning = sparkSession.sessionState.conf.csvColumnPruning,
-      sparkSession.sessionState.conf.sessionLocalTimeZone)
-
-    val csv = GffFileFormat.createBaseDataset(sparkSession, files, parsedOptions)
-      .select(attributesFieldName)
-        .filter(col(attributesFieldName).isNotNull)
-
-    val attFields = sparkSession.sparkContext.collectionAccumulator[String]
-
-
-    csv.queryExecution.toRdd.foreachPartition { it =>
-
-      var sepOption = Option.empty[String]
-
-      it.foreach { r =>
-        val attributesArray = r.getString(0).split(";")
-        if (sepOption.isEmpty) {
-          if (attributesArray(0).contains("=")) {
-            sepOption = Some("=")
-          } else {
-            sepOption = Some(" ")
-          }
-        }
-
-        val attFieldsAsSet = attFields.value.asScala.toSet[String]
-        val parsedTags = GffFileFormat.getParsedTags(attributesArray, sepOption.get)
-
-        while (i < parsedTags.length) {
-          if (!attFieldsAsSet.contains(parsedTags(i))
-          i += 1
-        }
-
-
-       attFields = GffFileFormat.updateAttFieldsWithParsedTags(
-         attFields,
-         attributesArray,
-         sepOption.get
-       )
-
-      }
-
-    }
-
-    val attributesSchema = Seq[StructField]()
-
-    val finalSchema = StructType(
-      attFields.foldLeft(attributesSchema) { (s, f) =>
-
-        val gffField = gffAttributesSchema.filter(_.name.toLowerCase == f.toLowerCase)
-
-        if (gffField.nonEmpty) {
-          s ++ gffField
-        } else {
-          s :+ StructField(f, StringType)
-        }
-      }
-    )
-
-    Option(finalSchema)
-  }
-*/
-
-
-
-/*
-  //  val maybeFirstLine = CSVUtils.filterCommentAndEmpty(csv, parsedOptions).take(1).headOption
-  //  inferFromDataset(sparkSession, csv, maybeFirstLine, parsedOptions)
-
-    val csv = sparkSession.baseRelationToDataFrame(
-      DataSource.apply(
-        sparkSession,
-        paths = paths,
-        // userSpecifiedSchema = Some(FeatureSchemas.gffSchema),
-        className = classOf[CSVFileFormat].getName
-        // options = optionsWithDelimiter
-      ).resolveRelation(checkFilesExist = true)
-    )//.select(FeatureSchemas.attributesFieldName)
-
-    println(csv.count())
-//    csv.foreach { row =>
-//      row.toSeq.foreach{col => println(col) }
-//    }
-*/
-
-   // csv.show()
-    // inferFromDataset(sparkSession, csv, maybeFirstLine, parsedOptions)
- //    Some(FeatureSchemas.gffSchema)
-
-
-
-
-
-
-
-
   override def prepareWrite(
     sparkSession: SparkSession,
     job: Job,
@@ -254,20 +146,14 @@ class GffFileFormat extends TextBasedFileFormat
     options: Map[String, String],
     hadoopConf: Configuration): PartitionedFile => Iterator[InternalRow] = {
 
-    // TODO:record vcfRead event in the log along with the options
+    // TODO: WIP: Ignore this function for now
+
+    // TODO: record vcfRead event in the log along with the options
 
 
     val serializableConf = new SerializableConfiguration(
       CompressionUtils.hadoopConfWithBGZ(hadoopConf)
     )
-
-    /* Make a filtered interval by parsing the filters
-     Filters are parsed even if useTabixIndex is disabled because the parser can help with
-     variant skipping in the VCF iterator if there is no overlap with the filteredInterval,
-     improving the performance benefiting from lazy loading of genotypes */
-
-    //    val filteredSimpleInterval =
-    //      TabixIndexHelper.makeFilteredInterval(filters, useFilterParser, useIndex)
 
 
     Seq("sep", "delimiter").foreach { s =>
@@ -297,7 +183,6 @@ class GffFileFormat extends TextBasedFileFormat
       // Get the file offset=(startPos,endPos) that must be read from this partitionedFile.
       // Currently only one offset is generated for each partitionedFile.
       // val offset = Option((0L, partitionedFile.length))
-      // TODO: Add Tabix usage
 
       val parser = new UnivocityParser(
         dataSchema,
@@ -362,23 +247,5 @@ object GffFileFormat {
   }
 
   case class ParsedAttributesToken(sep: Option[Char], tags: Set[String])
-  /*
-
-  def getParsedTags(
-    attributes: Array[String],
-    sep: String): Array[String] = {
-
-    var i = 0
-
-    val parsedTags = Array[String]()
-
-    while (i < attributes.length) {
-      parsedTags(i) = attributes(i).take(attributes(i).indexOf(sep))
-      i += 1
-    }
-    parsedTags
-  }
-
-   */
 
 }
