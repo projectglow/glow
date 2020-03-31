@@ -131,6 +131,42 @@ jobs:
             - /home/circleci/conda
           key: conda-deps-v1-{{ checksum "python/environment.yml" }}
 
+  spark-3-tests:
+    <<: *setup_base
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - conda-deps-v1-{{ checksum "python/environment.yml" }}
+      - *install_deps
+      - run:
+          name: Change Spark version
+          environment:
+          command: |
+            echo "3.0.0-SNAPSHOT" > spark-version.txt
+      - run:
+          name: Run Scala tests
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            sbt core_2_12/test exit
+      - run:
+          name: Run Python tests
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            sbt python_2_12/test exit
+      - run:
+          name: Run docs tests
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            sbt docs_2_12/test exit
+      - save_cache:
+          paths:
+            - /home/circleci/conda
+          key: conda-deps-v1-{{ checksum "python/environment.yml" }}
+
 workflows:
   version: 2
   test:
@@ -138,3 +174,7 @@ workflows:
       - check-links
       - scala-2_11-tests
       - scala-2_12-tests
+      - spark-3-tests
+  nightly:
+    jobs:
+      - spark-3-tests
