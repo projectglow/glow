@@ -75,7 +75,11 @@ private[projectglow] object Piper extends GlowLogging {
     // Each partition consists of an iterator with the schema, followed by [[InternalRow]]s with the
     // schema
     val schemaInternalRowRDD = inputRdd.mapPartitions { it =>
-      new PipeIterator(cmd, env, it, informatter, outputformatter)
+      if (it.isEmpty) {
+        Iterator.empty
+      } else {
+        new PipeIterator(cmd, env, it, informatter, outputformatter)
+      }
     }.persist(StorageLevel.DISK_ONLY)
 
     cachedRdds.synchronized {
