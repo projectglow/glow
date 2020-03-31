@@ -41,7 +41,11 @@ import org.apache.spark.sql.execution.datasources.csv.{CSVDataSource, CSVFileFor
 import org.apache.spark.sql.execution.datasources.text.TextFileFormat
 import org.apache.spark.sql.execution.datasources.{DataSource, FileFormat, HadoopFileLinesReader, OutputWriterFactory, PartitionedFile, TextBasedFileFormat}
 import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types.{StructField, StructType, StringType}
+import scala.collection.JavaConverters._
+import io.projectglow.common.FeatureSchemas._
+import io.projectglow.gff.GffFileFormat._
+
 
 class GffFileFormat extends TextBasedFileFormat
     with DataSourceRegister with HlsEventRecorder with GlowLogging {
@@ -70,6 +74,62 @@ class GffFileFormat extends TextBasedFileFormat
   }
 
 
+  // With aggregate
+  override def inferSchema(
+    sparkSession: SparkSession,
+    options: Map[String, String],
+    files: Seq[FileStatus]): Option[StructType] = {
+
+    val paths = files.map(_.getPath.toString)
+    val optionsWithDelimiter = options + ("sep" -> "\t")
+
+    val parsedOptions = new CSVOptions(optionsWithDelimiter,
+      columnPruning = sparkSession.sessionState.conf.csvColumnPruning,
+      sparkSession.sessionState.conf.sessionLocalTimeZone)
+
+    val csv = GffFileFormat.createBaseDataset(sparkSession, files, parsedOptions)
+      .select(attributesFieldName)
+      .filter(col(attributesFieldName).isNotNull)
+
+    // Use of ParsedAttributesToken helps update sep as soon as detected and avoid looking into
+    // attributes array again to detect the separator when it is detected once.
+    val attributesTokenZero = ParsedAttributesToken(None, Set[String]())
+
+    val attributesToken = csv.queryExecution.toRdd.aggregate(attributesTokenZero)(
+      { (t, r) =>
+        val attributes = r.getString(0).split(";")
+        GffFileFormat.updateAttributesToken(t, attributes)
+      },
+      { (t1, t2) =>
+        ParsedAttributesToken(
+          t1.sep.orElse(t2.sep.orElse(None)),
+            t1.tags ++ t2.tags
+          )
+      }
+    )
+
+    // Separate base from others then merge.
+    val attributesSchema = Seq[StructField]()
+
+    val finalSchema = StructType(
+      attributesToken.tags.foldLeft(attributesSchema) { (s, t) =>
+
+        val gffField = gffAttributesSchema.filter(_.name.toLowerCase == t.toLowerCase)
+
+        if (gffField.nonEmpty) {
+          gffField ++ s
+        } else {
+          s :+ StructField(t, StringType)
+        }
+      }
+    )
+
+    Option(finalSchema)
+  }
+
+
+  /*
+// With accumulator
   override def inferSchema(
     sparkSession: SparkSession,
     options: Map[String, String],
@@ -83,25 +143,66 @@ class GffFileFormat extends TextBasedFileFormat
       columnPruning = sparkSession.sessionState.conf.csvColumnPruning,
       sparkSession.sessionState.conf.sessionLocalTimeZone)
 
-
-
-    val csv = createBaseDataset(sparkSession, files, parsedOptions)
+    val csv = GffFileFormat.createBaseDataset(sparkSession, files, parsedOptions)
       .select(attributesFieldName)
         .filter(col(attributesFieldName).isNotNull)
 
-    csv.queryExecution.toRdd.mapPartitions { it =>
+    val attFields = sparkSession.sparkContext.collectionAccumulator[String]
+
+
+    csv.queryExecution.toRdd.foreachPartition { it =>
 
       var sepOption = Option.empty[String]
 
-      it.map { r =>
+      it.foreach { r =>
         val attributesArray = r.getString(0).split(";")
-        if (sepOption.isEmpty && !attributesArray(0).contains("=")) {
-          sepOption = Some("=")
+        if (sepOption.isEmpty) {
+          if (attributesArray(0).contains("=")) {
+            sepOption = Some("=")
+          } else {
+            sepOption = Some(" ")
+          }
         }
-        parseAttributeTags(attributesArray, sepOption)
+
+        val attFieldsAsSet = attFields.value.asScala.toSet[String]
+        val parsedTags = GffFileFormat.getParsedTags(attributesArray, sepOption.get)
+
+        while (i < parsedTags.length) {
+          if (!attFieldsAsSet.contains(parsedTags(i))
+          i += 1
+        }
+
+
+       attFields = GffFileFormat.updateAttFieldsWithParsedTags(
+         attFields,
+         attributesArray,
+         sepOption.get
+       )
+
       }
 
     }
+
+    val attributesSchema = Seq[StructField]()
+
+    val finalSchema = StructType(
+      attFields.foldLeft(attributesSchema) { (s, f) =>
+
+        val gffField = gffAttributesSchema.filter(_.name.toLowerCase == f.toLowerCase)
+
+        if (gffField.nonEmpty) {
+          s ++ gffField
+        } else {
+          s :+ StructField(f, StringType)
+        }
+      }
+    )
+
+    Option(finalSchema)
+  }
+*/
+
+
 
 /*
   //  val maybeFirstLine = CSVUtils.filterCommentAndEmpty(csv, parsedOptions).take(1).headOption
@@ -123,71 +224,16 @@ class GffFileFormat extends TextBasedFileFormat
 //    }
 */
 
-    csv.show()
+   // csv.show()
     // inferFromDataset(sparkSession, csv, maybeFirstLine, parsedOptions)
-    Some(FeatureSchemas.gffSchema)
+ //    Some(FeatureSchemas.gffSchema)
 
 
-  }
 
-  /*
-  /**
-   * Infers the schema from `Dataset` that stores CSV string records.
-   */
-  def inferFromDataset(
-    sparkSession: SparkSession,
-    csv: Dataset[String],
-    maybeFirstLine: Option[String],
-    parsedOptions: CSVOptions): StructType = {
-    val csvParser = new CsvParser(parsedOptions.asParserSettings)
-    maybeFirstLine.map(csvParser.parseLine(_)) match {
-      case Some(firstRow) if firstRow != null =>
-        val caseSensitive = sparkSession.sessionState.conf.caseSensitiveAnalysis
-        val header = CSVUtils.makeSafeHeader(firstRow, caseSensitive, parsedOptions)
-        val sampled: Dataset[String] = CSVUtils.sample(csv, parsedOptions)
-        val tokenRDD = sampled.rdd.mapPartitions { iter =>
-          val filteredLines = CSVUtils.filterCommentAndEmpty(iter, parsedOptions)
-          val linesWithoutHeader =
-            CSVUtils.filterHeaderLine(filteredLines, maybeFirstLine.get, parsedOptions)
-          val parser = new CsvParser(parsedOptions.asParserSettings)
-          linesWithoutHeader.map(parser.parseLine)
-        }
-        SQLExecution.withSQLConfPropagated(csv.sparkSession) {
-          new CSVInferSchema(parsedOptions).infer(tokenRDD, header)
-        }
-      case _ =>
-        // If the first line could not be read, just return the empty schema.
-        StructType(Nil)
-    }
-  }
-  */
 
-  def createBaseDataset(
-    sparkSession: SparkSession,
-    inputPaths: Seq[FileStatus],
-    options: CSVOptions): DataFrame = {
-    val paths = inputPaths.map(_.getPath.toString)
-    sparkSession.baseRelationToDataFrame(
-      DataSource.apply(
-        sparkSession,
-        paths = paths,
-        userSpecifiedSchema = Some(FeatureSchemas.gffSchema),
-        className = classOf[CSVFileFormat].getName,
-        options = options.parameters
-      ).resolveRelation(checkFilesExist = false))
 
-  }
 
-  def parseAttributeTags(attributes: Array[String], sepOption: Option[String]): Array[String] = {
-    var i = 0
-    val tagArray = new Array[String](attributes.length)
-    val sep = sepOption.getOrElse(" ")
-    while (i < attributes.length - 1) {
-      tagArray(i) = attributes(i).take(attributes(i).indexOf(sep))
-      i += 1
-    }
-    tagArray
-  }
+
 
   override def prepareWrite(
     sparkSession: SparkSession,
@@ -269,6 +315,71 @@ class GffFileFormat extends TextBasedFileFormat
         columnPruning)
     }
   }
-
 }
 
+object GffFileFormat {
+
+  def createBaseDataset(
+    sparkSession: SparkSession,
+    inputPaths: Seq[FileStatus],
+    options: CSVOptions): DataFrame = {
+
+    import FeatureSchemas._
+    val paths = inputPaths.map(_.getPath.toString)
+
+    val gffBaseSchemaPlusAtributes = StructType(
+      gffBaseSchema :+ StructField(attributesFieldName, StringType)
+    )
+
+    sparkSession.baseRelationToDataFrame(
+      DataSource.apply(
+        sparkSession,
+        paths = paths,
+        userSpecifiedSchema = Some(gffBaseSchemaPlusAtributes),
+        className = classOf[CSVFileFormat].getName,
+        options = options.parameters
+      ).resolveRelation(checkFilesExist = false))
+  }
+
+  def updateAttributesToken(
+    currentToken: ParsedAttributesToken,
+    attributes: Array[String]): ParsedAttributesToken = {
+
+    val updatedSep: Char = if (currentToken.sep.isEmpty) {
+      if (attributes(0).contains('=')) '=' else ' '
+    } else {
+      currentToken.sep.get
+    }
+
+    var i = 0
+    var updatedTags = currentToken.tags
+
+    while (i < attributes.length) {
+      updatedTags += attributes(i).takeWhile(_ != updatedSep)
+      i += 1
+    }
+
+    ParsedAttributesToken(Option(updatedSep), updatedTags)
+  }
+
+  case class ParsedAttributesToken(sep: Option[Char], tags: Set[String])
+  /*
+
+  def getParsedTags(
+    attributes: Array[String],
+    sep: String): Array[String] = {
+
+    var i = 0
+
+    val parsedTags = Array[String]()
+
+    while (i < attributes.length) {
+      parsedTags(i) = attributes(i).take(attributes(i).indexOf(sep))
+      i += 1
+    }
+    parsedTags
+  }
+
+   */
+
+}

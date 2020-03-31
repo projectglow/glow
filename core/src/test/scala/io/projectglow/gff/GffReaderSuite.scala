@@ -18,7 +18,8 @@ package io.projectglow.gff
 
 import java.io.{EOFException, FileNotFoundException}
 
-import io.projectglow.common.FeatureSchemas
+import io.projectglow.common.FeatureSchemas._
+import io.projectglow.gff.GffFileFormat._
 import io.projectglow.sql.GlowBaseTest
 
 import org.apache.spark.sql.Row
@@ -36,8 +37,17 @@ class GffReaderSuite extends GlowBaseTest {
       .read
       //.schema(FeatureSchemas.gffSchema)
       .format(sourceName)
-      .load(s"$testRoot/testgff.gff")
+      .load(s"$testRoot/testgffAtt.gff")
 
     df.count()
   }
+
+  test("updateAttFieldsWithParsedTags") {
+    val currentToken = ParsedAttributesToken(Some('='), Set(idField.name, nameField.name))
+    val attributes = Array(s"${idField.name}=1234", s"${aliasField.name}=monkey")
+    val expected = Set(idField.name, nameField.name, aliasField.name)
+    assert(updateAttributesToken(currentToken, attributes) == expected)
+  }
+
+
 }

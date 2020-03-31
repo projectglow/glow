@@ -187,8 +187,21 @@ object FeatureSchemas {
     )
   )
 
-  val gffSchema = StructType(gffBaseSchema :+ StructField(attributesFieldName, StringType))
+  // val gffSchema = StructType(gffBaseSchema :+ StructField(attributesFieldName, StringType))
 
+  val gffAttributesSchema = Seq(
+    idField,
+    nameField,
+    aliasField,
+    parentField,
+    targetField,
+    gapField,
+    derivesFromField,
+    noteField,
+    dbxrefField,
+    ontologyTermField,
+    isCircularField
+  )
 }
 
 case class GenotypeFields(
