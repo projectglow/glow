@@ -107,12 +107,21 @@ class CSVPiperSuite extends GlowBaseTest {
     assert(outputDf.collect.toSeq == inputDf.collect.toSeq)
   }
 
-  test("No rows") {
+  test("No rows input") {
     val inputDf =
       spark.read.option("delimiter", " ").option("header", "true").csv(saige).limit(0)
 
     val ex = intercept[IllegalStateException] {
       pipeCsv(inputDf, s"""["cat", "-"]""", Some(" "), Some(" "), Some(true), Some(true))
+    }
+    assert(ex.getMessage.contains("Cannot infer schema: saw 0 distinct schemas"))
+  }
+
+  test("No rows output") {
+    val inputDf = spark.read.option("delimiter", ",").option("header", "false").csv(csv)
+
+    val ex = intercept[IllegalStateException] {
+      pipeCsv(inputDf, s"""["echo"]""", Some(" "), Some(" "), None, None)
     }
     assert(ex.getMessage.contains("Cannot infer schema: saw 0 distinct schemas"))
   }
