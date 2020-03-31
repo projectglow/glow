@@ -51,7 +51,7 @@ class CSVOutputFormatter(parsedOptions: CSVOptions) extends OutputFormatter {
     val lines = IOUtils.lineIterator(stream, "UTF-8").asScala
     val filteredLines = CSVUtils.filterCommentAndEmpty(lines, parsedOptions)
 
-    if (!filteredLines.hasNext) {
+    if (filteredLines.isEmpty) {
       return Iterator.empty
     }
 
