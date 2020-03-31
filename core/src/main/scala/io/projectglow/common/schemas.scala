@@ -189,7 +189,7 @@ object FeatureSchemas {
 
   // val gffSchema = StructType(gffBaseSchema :+ StructField(attributesFieldName, StringType))
 
-  val gffAttributesSchema = Seq(
+  val gffOfficialAttributeFields = Seq(
     idField,
     nameField,
     aliasField,

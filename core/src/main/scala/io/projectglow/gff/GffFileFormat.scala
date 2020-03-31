@@ -103,28 +103,27 @@ class GffFileFormat extends TextBasedFileFormat
       { (t1, t2) =>
         ParsedAttributesToken(
           t1.sep.orElse(t2.sep.orElse(None)),
-            t1.tags ++ t2.tags
-          )
+          t1.tags ++ t2.tags
+        )
       }
     )
 
     // Separate base from others then merge.
-    val attributesSchema = Seq[StructField]()
+    val officialAttributeFields = gffOfficialAttributeFields.foldLeft(Seq[StructField]()) {
+      (s, f) =>
+        if (attributesToken.tags.map(_.toLowerCase).contains(f.name.toLowerCase)) s :+ f else s
+    }
 
-    val finalSchema = StructType(
-      attributesToken.tags.foldLeft(attributesSchema) { (s, t) =>
-
-        val gffField = gffAttributesSchema.filter(_.name.toLowerCase == t.toLowerCase)
-
-        if (gffField.nonEmpty) {
-          gffField ++ s
-        } else {
-          s :+ StructField(t, StringType)
-        }
-      }
+    val remainingTags = attributesToken.tags.filter(
+      t => !officialAttributeFields.map(_.name.toLowerCase).contains(t.toLowerCase)
     )
 
-    Option(finalSchema)
+    val unofficialAttributeFields = remainingTags.foldLeft(Seq[StructField]()) {
+      (s, t) => s :+ StructField(t, StringType)
+    }
+
+    Option(StructType(officialAttributeFields ++ unofficialAttributeFields))
+
   }
 
 
