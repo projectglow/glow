@@ -150,18 +150,6 @@ jobs:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             sbt core_2_12/test exit
-      - run:
-          name: Run Python tests
-          environment:
-          command: |
-            export PATH=$HOME/conda/envs/glow/bin:$PATH
-            sbt python_2_12/test exit
-      - run:
-          name: Run docs tests
-          environment:
-          command: |
-            export PATH=$HOME/conda/envs/glow/bin:$PATH
-            sbt docs_2_12/test exit
       - save_cache:
           paths:
             - /home/circleci/conda
@@ -176,5 +164,8 @@ workflows:
       - scala-2_12-tests
       - spark-3-tests
   nightly:
+    triggers:
+      - schedule:
+          cron: "0 0 * * *"
     jobs:
       - spark-3-tests
