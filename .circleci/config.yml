@@ -143,7 +143,7 @@ jobs:
           name: Change Spark version
           environment:
           command: |
-            echo "3.0.0-SNAPSHOT" > spark-version.txt
+            export SPARK_VERSION="3.0.0-SNAPSHOT"
       - run:
           name: Run Scala tests
           environment:
