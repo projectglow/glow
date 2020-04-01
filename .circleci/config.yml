@@ -140,7 +140,13 @@ jobs:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}
       - *install_deps
       - run:
-          name: Change Spark version
+          name: Use latest PySpark release
+          environment:
+          command: |
+            wget https://archive.apache.org/dist/spark/spark-3.0.0-preview2/pyspark-3.0.0.dev2.tar.gz
+            pip install pyspark-3.0.0.dev2.tar.gz
+      - run:
+          name: Use latest Spark release
           environment:
           command: |
             export SPARK_VERSION="3.0.0-SNAPSHOT"
@@ -150,10 +156,18 @@ jobs:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             sbt core_2_12/test exit
-      - save_cache:
-          paths:
-            - /home/circleci/conda
-          key: conda-deps-v1-{{ checksum "python/environment.yml" }}
+      - run:
+          name: Run Python tests
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            sbt python_2_12/test exit
+      - run:
+          name: Run docs tests
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            sbt docs_2_12/test exit
 
 workflows:
   version: 2
