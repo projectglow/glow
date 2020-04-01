@@ -147,27 +147,25 @@ jobs:
             wget https://archive.apache.org/dist/spark/spark-3.0.0-preview2/pyspark-3.0.0.dev2.tar.gz
             pip install pyspark-3.0.0.dev2.tar.gz
       - run:
-          name: Use latest Spark release
-          environment:
-          command: |
-            export SPARK_VERSION="3.0.0-SNAPSHOT"
-      - run:
           name: Run Scala tests
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
+            export SPARK_VERSION="3.0.0-SNAPSHOT"
             sbt core_2_12/test exit
       - run:
           name: Run Python tests
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
+            export SPARK_VERSION="3.0.0-SNAPSHOT"
             sbt python_2_12/test exit
       - run:
           name: Run docs tests
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
+            export SPARK_VERSION="3.0.0-SNAPSHOT"
             sbt docs_2_12/test exit
 
 workflows:
