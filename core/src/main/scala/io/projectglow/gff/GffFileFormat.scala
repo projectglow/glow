@@ -38,10 +38,11 @@ import org.apache.spark.sql.execution.SQLExecution
 import org.apache.spark.sql.execution.datasources.csv.TextInputCSVDataSource.{createBaseDataset, inferFromDataset}
 import org.apache.spark.sql.execution.datasources.csv.{CSVDataSource, CSVFileFormat, CSVOptions, CSVUtils, TextInputCSVDataSource, UnivocityParser}
 import org.apache.spark.sql.execution.datasources.text.TextFileFormat
-import org.apache.spark.sql.execution.datasources.{DataSource, FileFormat, HadoopFileLinesReader, OutputWriterFactory, PartitionedFile, TextBasedFileFormat}
+import org.apache.spark.sql.execution.datasources.{DataSource, FailureSafeParser, FileFormat, HadoopFileLinesReader, OutputWriterFactory, PartitionedFile, TextBasedFileFormat}
 import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
-import org.apache.spark.sql.types.{StructField, StructType, StringType}
+import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import scala.collection.JavaConverters._
+
 import io.projectglow.common.FeatureSchemas._
 import io.projectglow.gff.GffFileFormat._
 
@@ -87,8 +88,8 @@ class GffFileFormat extends TextBasedFileFormat
       sparkSession.sessionState.conf.sessionLocalTimeZone)
 
     val csv = GffFileFormat.createBaseDataset(sparkSession, files, parsedOptions)
-      .select(attributesFieldName)
-      .filter(col(attributesFieldName).isNotNull)
+      .select(attributesField.name)
+      .filter(col(attributesField.name).isNotNull)
 
     // Use of ParsedAttributesToken helps update sep as soon as detected and avoid looking into
     // attributes array again to detect the separator when it is detected once.
@@ -123,6 +124,7 @@ class GffFileFormat extends TextBasedFileFormat
 
     Option(StructType(officialAttributeFields ++ unofficialAttributeFields))
 
+    Option(gffCsvSchema)
   }
 
 
@@ -168,35 +170,66 @@ class GffFileFormat extends TextBasedFileFormat
     val parsedOptions = new CSVOptions(
       optionsWithDelimiter,
       spark.sessionState.conf.csvColumnPruning,
-      spark.sessionState.conf.sessionLocalTimeZone,
-      spark.sessionState.conf.columnNameOfCorruptRecord)
-
-
+      spark.sessionState.conf.sessionLocalTimeZone
+    )
 
     val caseSensitive = spark.sessionState.conf.caseSensitiveAnalysis
     val columnPruning = spark.sessionState.conf.csvColumnPruning
 
+
+
     partitionedFile => {
       val path = new Path(partitionedFile.filePath)
-
+      val hadoopFs = path.getFileSystem(serializableConf.value)
 
       // Get the file offset=(startPos,endPos) that must be read from this partitionedFile.
       // Currently only one offset is generated for each partitionedFile.
       // val offset = Option((0L, partitionedFile.length))
 
-      val parser = new UnivocityParser(
-        dataSchema,
-        requiredSchema,
-        parsedOptions)
+      val isGzip = CompressionUtils.isGzip(partitionedFile, serializableConf.value)
 
-      CSVDataSource(parsedOptions).readFile(
-        serializableConf.value,
-        partitionedFile,
-        parser,
-        requiredSchema,
-        dataSchema,
-        caseSensitive,
-        columnPruning)
+      val offset: Option[(Long, Long)] = if (isGzip && partitionedFile.start == 0) {
+      // Reading gzip file from beginning to end
+        val fileLength = hadoopFs.getFileStatus(path).getLen
+        Some((0, fileLength))
+      } else if (isGzip) {
+        // Skipping gzip file because task starts in the middle of the file
+        None
+      } else {
+        Some((partitionedFile.start, partitionedFile.start + partitionedFile.length))
+      }
+
+      offset match {
+        case None =>
+          Iterator.empty
+
+        case Some((startPos, endPos)) =>
+
+          val parser = new UnivocityParser(
+            gffCsvSchema,
+            gffCsvSchema,
+            parsedOptions)
+
+          val lines = {
+            val linesReader = new HadoopLineIterator(
+              partitionedFile.filePath,
+              startPos,
+              endPos - startPos,
+              None,
+              serializableConf.value
+            )
+
+            Option(TaskContext.get()).foreach(_.addTaskCompletionListener[Unit](_ => linesReader.close()))
+
+            linesReader.map { line =>
+              new String(line.getBytes, 0, line.getLength, parser.options.charset)
+            }.filter { line =>
+              line.trim.nonEmpty && !line.startsWith("#")
+            }
+          }
+
+          lines.map(parser.parse)
+      }
     }
   }
 }
@@ -211,15 +244,11 @@ object GffFileFormat {
     import FeatureSchemas._
     val paths = inputPaths.map(_.getPath.toString)
 
-    val gffBaseSchemaPlusAtributes = StructType(
-      gffBaseSchema :+ StructField(attributesFieldName, StringType)
-    )
-
     sparkSession.baseRelationToDataFrame(
       DataSource.apply(
         sparkSession,
         paths = paths,
-        userSpecifiedSchema = Some(gffBaseSchemaPlusAtributes),
+        userSpecifiedSchema = Some(gffCsvSchema),
         className = classOf[CSVFileFormat].getName,
         options = options.parameters
       ).resolveRelation(checkFilesExist = false))
@@ -246,6 +275,26 @@ object GffFileFormat {
     ParsedAttributesToken(Option(updatedSep), updatedTags)
   }
 
+  /*
+  def parseLines(
+    lines: Iterator[String],
+    parser: UnivocityParser,
+    schema: StructType): Iterator[InternalRow] = {
+    val options = parser.options
+
+    val safeParser = new FailureSafeParser[String](
+      input => Seq(parser.parse(input)),
+      parser.options.parseMode,
+      schema,
+      parser.options.columnNameOfCorruptRecord)
+    safeParser.parse(lines)
+  }
+*/
   case class ParsedAttributesToken(sep: Option[Char], tags: Set[String])
+
+  private val gffCsvSchema = StructType(
+    gffBaseSchema.fields.toSeq.map(f =>
+      StructField(f.name, StringType)) :+ attributesField
+  )
 
 }

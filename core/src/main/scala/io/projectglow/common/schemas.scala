@@ -150,12 +150,12 @@ object FeatureSchemas {
   val seqIdField = StructField("seqid", StringType)
   val sourceField = StructField("source", StringType)
   val typeField = StructField("type", StringType)
-  val startField = StructField("start", StringType) // LongType)
-  val endField = StructField("end", StringType) // LongType)
-  val scoreField = StructField("score", StringType) // DoubleType)
+  val startField = StructField("start", LongType)
+  val endField = StructField("end", LongType)
+  val scoreField = StructField("score", DoubleType)
   val strandField = StructField("strand", StringType)
-  val phaseField = StructField("phase", StringType) // IntegerType)
-  val attributesFieldName = "attributes"
+  val phaseField = StructField("phase", IntegerType)
+  val attributesField = StructField("attributes", StringType)
 
   // GFF3 tags
   val idField = StructField("id", StringType)
@@ -186,8 +186,6 @@ object FeatureSchemas {
       phaseField
     )
   )
-
-  // val gffSchema = StructType(gffBaseSchema :+ StructField(attributesFieldName, StringType))
 
   val gffOfficialAttributeFields = Seq(
     idField,

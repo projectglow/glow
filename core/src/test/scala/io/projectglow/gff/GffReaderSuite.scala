@@ -35,11 +35,12 @@ class GffReaderSuite extends GlowBaseTest {
   test("gff") {
     val df = spark
       .read
-      //.schema(FeatureSchemas.gffSchema)
+      // .schema(gffBaseSchema)
       .format(sourceName)
       .load(s"$testRoot/testgffAtt.gff")
+      //.load(s"$testRoot/GCF_000001405.39_GRCh38.p13_genomic.gff.bgzf")
 
-    df.count()
+    df.show()
   }
 
   test("updateAttFieldsWithParsedTags") {
