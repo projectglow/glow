@@ -37,7 +37,7 @@ class GffReaderSuite extends GlowBaseTest {
       .read
       // .schema(gffBaseSchema)
       .format(sourceName)
-      .load(s"$testRoot/testgffAtt.gff")
+      .load(s"$testRoot/testgffAttWithFasta.gff")
       //.load(s"$testRoot/GCF_000001405.39_GRCh38.p13_genomic.gff.bgzf")
 
     df.show()

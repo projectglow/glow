@@ -40,11 +40,15 @@ import org.apache.spark.sql.execution.datasources.csv.{CSVDataSource, CSVFileFor
 import org.apache.spark.sql.execution.datasources.text.TextFileFormat
 import org.apache.spark.sql.execution.datasources.{DataSource, FailureSafeParser, FileFormat, HadoopFileLinesReader, OutputWriterFactory, PartitionedFile, TextBasedFileFormat}
 import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
-import org.apache.spark.sql.types.{StringType, StructField, StructType}
+import org.apache.spark.sql.types.{DoubleType, IntegerType, LongType, StringType, StructField, StructType}
 import scala.collection.JavaConverters._
 
 import io.projectglow.common.FeatureSchemas._
+import io.projectglow.common.VariantSchemas.{alleleOneField, alleleTwoField, bimSchema, contigNameField, positionField, startField, variantIdField}
 import io.projectglow.gff.GffFileFormat._
+
+import org.apache.spark.sql.catalyst.expressions.codegen.GenerateMutableProjection
+import org.apache.spark.sql.catalyst.expressions.{Add, BoundReference, Cast, CreateArray, EqualTo, If, Length, Literal, MutableProjection, Subtract}
 
 
 class GffFileFormat extends TextBasedFileFormat
@@ -124,7 +128,7 @@ class GffFileFormat extends TextBasedFileFormat
 
     Option(StructType(officialAttributeFields ++ unofficialAttributeFields))
 
-    Option(gffCsvSchema)
+    Option(gffBaseSchema)
   }
 
 
@@ -205,9 +209,10 @@ class GffFileFormat extends TextBasedFileFormat
 
         case Some((startPos, endPos)) =>
 
+          // need to read all as strings, then project to correct types
           val parser = new UnivocityParser(
-            gffCsvSchema,
-            gffCsvSchema,
+            gffBaseSchema,
+            gffBaseSchema,
             parsedOptions)
 
           val lines = {
@@ -221,20 +226,52 @@ class GffFileFormat extends TextBasedFileFormat
 
             Option(TaskContext.get()).foreach(_.addTaskCompletionListener[Unit](_ => linesReader.close()))
 
-            linesReader.map { line =>
+            linesReader.map(line =>
               new String(line.getBytes, 0, line.getLength, parser.options.charset)
-            }.filter { line =>
-              line.trim.nonEmpty && !line.startsWith("#")
-            }
+            )
           }
 
-          lines.map(parser.parse)
+          val filteredLines = filterCommentEmptyAndFasta(lines)
+
+          val projection = makeMutableProjection(requiredSchema)
+
+
+          filteredLines.map(parser.parse)
+            .map(projection(_)) // without projection the reader is unable to cast types
+        // form strings to int, long, or double in requiredSchema
+
       }
     }
   }
 }
 
 object GffFileFormat {
+
+  /* Project BIM rows to the output schema */
+  def makeMutableProjection(schema: StructType): MutableProjection = {
+    val expressions =
+      schema.map {
+        case `seqIdField` => makeGffBoundReference(seqIdField)
+        case `sourceField` => makeGffBoundReference(sourceField)
+        case `typeField` => makeGffBoundReference(typeField)
+        case `startField` => Cast(makeGffBoundReference(startField), LongType)
+        case `endField` => Cast(makeGffBoundReference(endField), LongType)
+        case `scoreField` => Cast(makeGffBoundReference(scoreField), DoubleType)
+        case `strandField` => makeGffBoundReference(strandField)
+        case `phaseField` =>
+          If(EqualTo(makeGffBoundReference(phaseField), Literal(".")),
+            Literal(null, IntegerType),
+            Cast(makeGffBoundReference(phaseField), IntegerType))
+        case `attributesField` => makeGffBoundReference(attributesField)
+        case f => Literal(null, f.dataType)
+      }
+    GenerateMutableProjection.generate(expressions)
+  }
+
+  def makeGffBoundReference(f: StructField): BoundReference = {
+    val idx = gffCsvSchema.names.indexOf(f.name)
+    BoundReference(idx, gffCsvSchema.fields(idx).dataType, gffCsvSchema.fields(idx).nullable)
+  }
 
   def createBaseDataset(
     sparkSession: SparkSession,
@@ -273,6 +310,16 @@ object GffFileFormat {
     }
 
     ParsedAttributesToken(Option(updatedSep), updatedTags)
+  }
+
+  def filterCommentEmptyAndFasta(iter: Iterator[String]): Iterator[String] = {
+    iter.filter { line =>
+    val trimmed = line.trim
+      trimmed.nonEmpty &&
+        !trimmed.startsWith("#") &&
+        !trimmed.startsWith(">") &&
+        !(trimmed.matches("(?i)[acgt]*"))
+    }
   }
 
   /*
