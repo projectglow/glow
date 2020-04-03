@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-/*
+
 package io.projectglow.gff
 
 import java.lang.{Boolean => JBoolean}
@@ -46,9 +46,6 @@ class GffRowToInternalRowConverter(schema: StructType) extends GlowLogging {
   private val converter = {
     val fns = schema.map { field =>
       val fn: RowConverter.Updater[InternalRow] = field match {
-        case f if structFieldsEqualExceptNullability(f, scoreField) => updateScore
-        case f if structFieldsEqualExceptNullability(f, strandField) => updateStrand
-        case f if structFieldsEqualExceptNullability(f, phaseField) => updatePhase
         case f if structFieldsEqualExceptNullability(f, attributesField) =>
           val gSchema = field.dataType.asInstanceOf[ArrayType].elementType.asInstanceOf[StructType]
           val gConverter = makeGenotypeConverter(gSchema)
@@ -62,7 +59,8 @@ class GffRowToInternalRowConverter(schema: StructType) extends GlowLogging {
             }
             row.update(i, new GenericArrayData(output))
           }
-        case f =>
+        case f if (gffBaseSchema.fields.filter(_ != attributesField)
+          .forall(!structFieldsEqualExceptNullability(f, _))) =>
           logger.info(
             s"Column $f cannot be derived from GFF records. It will be null for each " +
               s"row."
@@ -575,5 +573,4 @@ object FieldTypes {
   val FORMAT: String = "FORMAT"
   val INFO: String = "INFO"
 }
-*/
 */

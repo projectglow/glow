@@ -47,6 +47,7 @@ import io.projectglow.common.FeatureSchemas._
 import io.projectglow.common.VariantSchemas.{alleleOneField, alleleTwoField, bimSchema, contigNameField, positionField, startField, variantIdField}
 import io.projectglow.gff.GffFileFormat._
 
+import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 import org.apache.spark.sql.catalyst.expressions.codegen.GenerateMutableProjection
 import org.apache.spark.sql.catalyst.expressions.{Add, BoundReference, Cast, CreateArray, EqualTo, If, Length, Literal, MutableProjection, Subtract}
 
@@ -211,8 +212,8 @@ class GffFileFormat extends TextBasedFileFormat
 
           // need to read all as strings, then project to correct types
           val parser = new UnivocityParser(
-            gffBaseSchema,
-            gffBaseSchema,
+            gffCsvSchema,
+            gffCsvSchema,
             parsedOptions)
 
           val lines = {
@@ -247,29 +248,33 @@ class GffFileFormat extends TextBasedFileFormat
 
 object GffFileFormat {
 
-  /* Project BIM rows to the output schema */
   def makeMutableProjection(schema: StructType): MutableProjection = {
     val expressions =
       schema.map {
-        case `seqIdField` => makeGffBoundReference(seqIdField)
-        case `sourceField` => makeGffBoundReference(sourceField)
-        case `typeField` => makeGffBoundReference(typeField)
-        case `startField` => Cast(makeGffBoundReference(startField), LongType)
-        case `endField` => Cast(makeGffBoundReference(endField), LongType)
-        case `scoreField` => Cast(makeGffBoundReference(scoreField), DoubleType)
-        case `strandField` => makeGffBoundReference(strandField)
-        case `phaseField` =>
-          If(EqualTo(makeGffBoundReference(phaseField), Literal(".")),
-            Literal(null, IntegerType),
-            Cast(makeGffBoundReference(phaseField), IntegerType))
-        case `attributesField` => makeGffBoundReference(attributesField)
+        case f if structFieldsEqualExceptNullability(f, seqIdField) |
+          structFieldsEqualExceptNullability(f, sourceField) |
+          structFieldsEqualExceptNullability(f, typeField) |
+          structFieldsEqualExceptNullability(f, attributesField)
+        => makeGffBoundReference(f)
+
+        case f if structFieldsEqualExceptNullability(f, startField) |
+          structFieldsEqualExceptNullability(f, endField) |
+          structFieldsEqualExceptNullability(f, scoreField)
+        => Cast(makeGffBoundReference(f), f.dataType)
+
+        case f if structFieldsEqualExceptNullability(f, strandField) |
+          structFieldsEqualExceptNullability(f, phaseField) =>
+          If(EqualTo(makeGffBoundReference(f), Literal(".")),
+            Literal(null, f.dataType),
+            Cast(makeGffBoundReference(f), f.dataType))
+
         case f => Literal(null, f.dataType)
       }
     GenerateMutableProjection.generate(expressions)
   }
 
   def makeGffBoundReference(f: StructField): BoundReference = {
-    val idx = gffCsvSchema.names.indexOf(f.name)
+    val idx = gffCsvSchema.fieldIndex(f.name)
     BoundReference(idx, gffCsvSchema.fields(idx).dataType, gffCsvSchema.fields(idx).nullable)
   }
 
