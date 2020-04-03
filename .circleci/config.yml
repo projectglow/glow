@@ -139,7 +139,7 @@ jobs:
           keys:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}
       - *install_deps
-      - run:
+      - run: # Evict PySpark 2.4.3 in favor of PySpark 3.0.0.dev2; do not save the cache after this change
           name: Use latest PySpark release
           environment:
           command: |
