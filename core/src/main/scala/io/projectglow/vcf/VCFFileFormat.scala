@@ -33,7 +33,7 @@ import org.apache.hadoop.io.Text
 import org.apache.hadoop.io.compress.{CodecPool, CompressionCodecFactory, SplittableCompressionCodec}
 import org.apache.hadoop.mapreduce.{Job, TaskAttemptContext}
 import org.apache.spark.TaskContext
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{SQLUtils, SparkSession}
 import org.apache.spark.sql.catalyst.util.CompressionCodecs
 import org.apache.spark.sql.catalyst.{InternalRow, ScalaReflection}
 import org.apache.spark.sql.execution.datasources._
@@ -45,7 +45,7 @@ import org.broadinstitute.hellbender.utils.variant.GATKVariantContextUtils
 import org.seqdoop.hadoop_bam.util.{BGZFEnhancedGzipCodec, DatabricksBGZFOutputStream}
 
 import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
-import io.projectglow.common.{CommonOptions, GlowLogging, VCFOptions, VCFRow, WithUtils}
+import io.projectglow.common.{CommonOptions, GlowLogging, VCFOptions, VCFRow, VariantSchemas, WithUtils}
 import io.projectglow.sql.util.{BGZFCodec, ComDatabricksDataSource, HadoopLineIterator, SerializableConfiguration}
 
 class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HlsEventRecorder {
@@ -85,7 +85,7 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
       job: Job,
       options: Map[String, String],
       dataSchema: StructType): OutputWriterFactory = {
-
+    VCFFileFormat.requireWritableAsVCF(dataSchema)
     options.get(VCFOptions.COMPRESSION).foreach { compressionOption =>
       if (codecFactory == null) {
         codecFactory =
@@ -271,6 +271,23 @@ object VCFFileFormat {
       !isValidBGZ(path, conf)
     } else {
       false
+    }
+  }
+
+  def requireWritableAsVCF(schema: StructType): Unit = {
+    val baseRequiredFields =
+      Seq(VariantSchemas.contigNameField, VariantSchemas.startField, VariantSchemas.refAlleleField)
+    val requiredFields = if (schema.exists(_.name == VariantSchemas.genotypesFieldName)) {
+      baseRequiredFields :+ VariantSchemas.alternateAllelesField
+    } else {
+      baseRequiredFields
+    }
+
+    val missingFields = requiredFields
+      .filter(f => !schema.exists(SQLUtils.structFieldsEqualExceptNullability(_, f)))
+    if (missingFields.nonEmpty) {
+      throw SQLUtils
+        .newAnalysisException(s"Cannot write as VCF. Missing required fields: $requiredFields")
     }
   }
 }

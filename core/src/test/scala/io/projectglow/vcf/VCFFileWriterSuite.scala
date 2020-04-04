@@ -27,7 +27,7 @@ import htsjdk.samtools.ValidationStringency
 import htsjdk.samtools.util.{BlockCompressedInputStream, BlockCompressedStreamConstants}
 import htsjdk.variant.variantcontext.writer.VCFHeaderWriter
 import htsjdk.variant.vcf.{VCFCompoundHeaderLine, VCFHeader, VCFHeaderLine}
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{AnalysisException, DataFrame}
 import org.apache.spark.sql.functions.expr
 import org.apache.spark.{SparkConf, SparkException}
 
@@ -399,6 +399,31 @@ abstract class VCFFileWriterSuite(val sourceName: String)
     val sampleIds = rereadDf.select("genotypes.sampleId").distinct().as[Seq[String]].collect
     assert(sampleIds.length == 1)
     assert(sampleIds.head == Seq("sample_1", "sample_2", "sample_3"))
+  }
+
+  test("validate schema before write") {
+    val df = spark.read.format(readSourceName).load(NA12878)
+    val tempFile = createTempVcf.toString
+    df.select("contigName", "start", "end", "referenceAllele").write.format(sourceName)
+    intercept[AnalysisException] {
+      // contigName, start, referenceAllele are required
+      df.select("start", "end", "referenceAllele").write.format(sourceName).save(tempFile)
+    }
+  }
+
+  test("validate genotype schema before write") {
+    val df = spark.read.format(readSourceName).load(NA12878)
+    val tempFile = createTempVcf.toString
+    df.select("contigName", "start", "end", "referenceAllele", "alternateAlleles", "genotypes")
+      .write
+      .format(sourceName)
+    intercept[AnalysisException] {
+      // alternateAlleles are required if genotypes are present
+      df.select("start", "end", "referenceAllele", "genotypes")
+        .write
+        .format(sourceName)
+        .save(tempFile)
+    }
   }
 }
 

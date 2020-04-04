@@ -166,7 +166,9 @@ class InternalRowToVariantContextConverter(
       try {
         Option(builder.make())
       } catch {
-        case NonFatal(ex) =>
+        case NonFatal(_) if stringency == ValidationStringency.SILENT =>
+          None
+        case NonFatal(ex) if stringency == ValidationStringency.LENIENT =>
           provideWarning(s"Could not build variant context: ${ex.getMessage}")
           None
       }
