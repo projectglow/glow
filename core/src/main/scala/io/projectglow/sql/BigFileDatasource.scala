@@ -89,7 +89,7 @@ trait BigFileUploader {
   def upload(bytes: RDD[Array[Byte]], path: String): Unit
 }
 
-private[projectglow] object SingleFileWriter extends GlowLogging {
+object SingleFileWriter extends GlowLogging {
 
   lazy val uploaders: Seq[BigFileUploader] = ServiceLoader
     .load(classOf[BigFileUploader])
