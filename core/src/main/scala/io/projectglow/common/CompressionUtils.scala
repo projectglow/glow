@@ -34,6 +34,7 @@ import org.apache.spark.sql.execution.datasources.PartitionedFile
 import org.apache.spark.storage.StorageLevel
 
 object CompressionUtils {
+
   /**
    * Adds BGZF support to an existing Hadoop conf.
    */
@@ -44,14 +45,12 @@ object CompressionUtils {
       classOf[BGZFEnhancedGzipCodec].getCanonicalName
     )
     val codecs = toReturn
-      .get("io.compression.codecs", "")
-      .split(",")
-      .filter(codec => codec.nonEmpty && !bgzCodecs.contains(codec)) ++ bgzCodecs
+        .get("io.compression.codecs", "")
+        .split(",")
+        .filter(codec => codec.nonEmpty && !bgzCodecs.contains(codec)) ++ bgzCodecs
     toReturn.set("io.compression.codecs", codecs.mkString(","))
     toReturn
   }
-
-
 
   /** Checks whether the file is a valid bgzipped file
    * Used by filteredVariantBlockRange to abandon use of tabix if the file is not bgzipped.

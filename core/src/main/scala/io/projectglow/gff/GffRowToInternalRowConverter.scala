@@ -34,12 +34,13 @@ class GffRowToInternalRowConverter(schema: StructType) extends GlowLogging {
   private val converter = {
     val fns = schema.map { field =>
       val fn: RowConverter.Updater[(InternalRow, Map[String, String])] = field match {
-        case f if Seq(
-          seqIdField,
-          sourceField,
-          typeField,
-          attributesField // if attributesField is in a user specified schema it will be passed through as well.
-        ).exists(structFieldsEqualExceptNullability(f, _)) =>
+        case f
+            if Seq(
+              seqIdField,
+              sourceField,
+              typeField,
+              attributesField // if attributesField is in a user specified schema it will be passed through as well.
+            ).exists(structFieldsEqualExceptNullability(f, _)) =>
           (rowAndMap, gffRow, idx) => updateStringFields(rowAndMap._1, gffRow, idx)
         case f if structFieldsEqualExceptNullability(f, startField) =>
           (rowAndMap, gffRow, idx) => updateStart(rowAndMap._1, gffRow, idx)

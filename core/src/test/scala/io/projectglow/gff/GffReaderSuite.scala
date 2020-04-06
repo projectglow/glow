@@ -20,18 +20,18 @@ import io.projectglow.common.FeatureSchemas._
 import io.projectglow.gff.GffFileFormat._
 import io.projectglow.sql.GlowBaseTest
 
-
 class GffReaderSuite extends GlowBaseTest {
   private val testRoot = s"$testDataHome/gff"
   private val sourceName = "gff"
 
+  // TODO: Add tests
+
   test("gff") {
-    val df = spark
-      .read
-      // .schema(StructType(gffBaseSchema.fields :+ attributesField))
+    val df = spark.read
+    // .schema(StructType(gffBaseSchema.fields :+ attributesField))
       .format(sourceName)
       .load(s"$testRoot/testgffAttWithFasta.gff")
-      // .load(s"$testRoot/GCF_000001405.39_GRCh38.p13_genomic.gff.bgz")
+    // .load(s"$testRoot/GCF_000001405.39_GRCh38.p13_genomic.gff.bgz")
 
     df.show()
   }
@@ -42,6 +42,5 @@ class GffReaderSuite extends GlowBaseTest {
     val expected = Set(idField.name, nameField.name, aliasField.name)
     assert(updateAttributesToken(currentToken, attributes) == expected)
   }
-
 
 }

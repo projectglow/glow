@@ -73,7 +73,6 @@ object VariantSchemas {
   // Possible genotype fields for BGEN
   val ploidyField = StructField("ploidy", IntegerType)
 
-
   // Genotype fields that are typically present in BGEN records
   def bgenGenotypesField(hasSampleIds: Boolean): StructField = StructField(
     genotypesFieldName,

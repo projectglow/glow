@@ -61,7 +61,8 @@ object BigVCFDatasource extends HlsEventRecorder {
     }
     val nParts = inputRdd.getNumPartitions
 
-    val conf = CompressionUtils.hadoopConfWithBGZ(data.sparkSession.sparkContext.hadoopConfiguration)
+    val conf =
+      CompressionUtils.hadoopConfWithBGZ(data.sparkSession.sparkContext.hadoopConfiguration)
     val serializableConf = new SerializableConfiguration(conf)
     val firstNonemptyPartition =
       inputRdd.mapPartitions(iter => Iterator(iter.nonEmpty)).collect.indexOf(true)
