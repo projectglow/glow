@@ -16,17 +16,10 @@
 
 package io.projectglow.gff
 
-import java.io.{EOFException, FileNotFoundException}
-
 import io.projectglow.common.FeatureSchemas._
 import io.projectglow.gff.GffFileFormat._
 import io.projectglow.sql.GlowBaseTest
 
-import org.apache.spark.sql.Row
-import org.apache.spark.sql.catalyst.ScalaReflection
-import org.apache.spark.sql.functions.expr
-import org.apache.spark.sql.types.StructType
-import org.apache.spark.{DebugFilesystem, SparkException}
 
 class GffReaderSuite extends GlowBaseTest {
   private val testRoot = s"$testDataHome/gff"
@@ -35,17 +28,17 @@ class GffReaderSuite extends GlowBaseTest {
   test("gff") {
     val df = spark
       .read
-      // .schema(gffBaseSchema)
+      // .schema(StructType(gffBaseSchema.fields :+ attributesField))
       .format(sourceName)
       .load(s"$testRoot/testgffAttWithFasta.gff")
-      //.load(s"$testRoot/GCF_000001405.39_GRCh38.p13_genomic.gff.bgzf")
+      // .load(s"$testRoot/GCF_000001405.39_GRCh38.p13_genomic.gff.bgz")
 
     df.show()
   }
 
   test("updateAttFieldsWithParsedTags") {
     val currentToken = ParsedAttributesToken(Some('='), Set(idField.name, nameField.name))
-    val attributes = Array(s"${idField.name}=1234", s"${aliasField.name}=monkey")
+    val attributes = s"${idField.name}=1234;${aliasField.name}=monkey"
     val expected = Set(idField.name, nameField.name, aliasField.name)
     assert(updateAttributesToken(currentToken, attributes) == expected)
   }
