@@ -20,7 +20,7 @@ import io.projectglow.common.FeatureSchemas._
 import io.projectglow.gff.GffFileFormat._
 import io.projectglow.sql.GlowBaseTest
 
-import org.apache.spark.sql.types.{StructField, StructType, StringType}
+import org.apache.spark.sql.types.{StringType, StructField, StructType}
 
 class GffReaderSuite extends GlowBaseTest {
   lazy val testRoot = s"$testDataHome/gff"
@@ -47,10 +47,11 @@ class GffReaderSuite extends GlowBaseTest {
 
     val expectedSchema = StructType(
       gffBaseSchema.fields.toSeq ++
-        Seq(idField, nameField, parentField, dbxrefField, isCircularField) ++
-        unofficialFields
+      Seq(idField, nameField, parentField, dbxrefField, isCircularField) ++
+      unofficialFields
     )
-    val df = spark.read
+    val df = spark
+      .read
       .format(sourceName)
       .load(s"$testRoot/testgffAttWithFasta.gff")
 
