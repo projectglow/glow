@@ -113,10 +113,10 @@ class GffFileFormat
         }
       }
 
-    val remainingTags = attributesToken
-      .tags
-      .filter(
-        t => !officialAttributeFields.map(_.name.toLowerCase).contains(t.toLowerCase)
+    val remainingTags = attributesToken.tags.filter(
+        t => !officialAttributeFields
+          .map(_.name.toLowerCase)
+          .contains(t.replaceAll("_", "").toLowerCase)
       )
 
     val unofficialAttributeFields = remainingTags.foldLeft(Seq[StructField]()) { (s, t) =>
@@ -275,7 +275,7 @@ object GffFileFormat {
     var updatedTags = currentToken.tags
 
     while (i < attributes.length) {
-      updatedTags += attributes(i).takeWhile(_ != updatedSep)
+      updatedTags += attributes(i).takeWhile(_ != updatedSep).trim
       i += 1
     }
 

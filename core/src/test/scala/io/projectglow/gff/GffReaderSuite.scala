@@ -20,11 +20,44 @@ import io.projectglow.common.FeatureSchemas._
 import io.projectglow.gff.GffFileFormat._
 import io.projectglow.sql.GlowBaseTest
 
+import org.apache.spark.sql.types.{StructField, StructType, StringType}
+
 class GffReaderSuite extends GlowBaseTest {
-  private val testRoot = s"$testDataHome/gff"
+  lazy val testRoot = s"$testDataHome/gff"
+  lazy val testGff3 = s"$testDataHome/testgffAttWithFasta.gff"
+
   private val sourceName = "gff"
 
   // TODO: Add tests
+
+  test("schema") {
+    val unofficialFields = Seq(
+      StructField("description", StringType),
+      StructField("gene_biotype", StringType),
+      StructField("gene_synonym", StringType),
+      StructField("chromosome", StringType),
+      StructField("transcript_id", StringType),
+      StructField("gbkey", StringType),
+      StructField("genome", StringType),
+      StructField("mol_type", StringType),
+      StructField("gene", StringType),
+      StructField("pseudo", StringType),
+      StructField("product", StringType)
+    )
+
+    val expectedSchema = StructType(
+      gffBaseSchema.fields.toSeq ++
+        Seq(idField, nameField, parentField, dbxrefField, isCircularField) ++
+        unofficialFields
+    )
+    val df = spark.read
+      .format(sourceName)
+      .load(s"$testRoot/testgffAttWithFasta.gff")
+
+    df.printSchema()
+
+    assert(df.schema.equals(expectedSchema))
+  }
 
   test("gff") {
     val df = spark.read

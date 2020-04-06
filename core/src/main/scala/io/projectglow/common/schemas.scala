@@ -163,15 +163,15 @@ object FeatureSchemas {
   val parentField = StructField("parent", ArrayType(StringType))
   val targetField = StructField("target", StringType)
   val gapField = StructField("gap", StringType)
-  val derivesFromField = StructField("derives_from", StringType)
+  val derivesFromField = StructField("derivesFrom", StringType)
   val noteField = StructField("note", ArrayType(StringType))
   val dbxrefField = StructField("dbxref", ArrayType(StringType))
-  val ontologyTermField = StructField("ontology_term", ArrayType(StringType))
-  val isCircularField = StructField("is_circular", BooleanType)
+  val ontologyTermField = StructField("ontologyTerm", ArrayType(StringType))
+  val isCircularField = StructField("isCircular", BooleanType)
 
   // GTF specific tags
-  val geneIdField = StructField("gene_id", StringType)
-  val transcriptIdField = StructField("transcript_id", StringType)
+  val geneIdField = StructField("geneId", StringType)
+  val transcriptIdField = StructField("transcriptId", StringType)
 
   val gffBaseSchema = StructType(
     Seq(

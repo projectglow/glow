@@ -58,10 +58,12 @@ class GffRowToInternalRowConverter(schema: StructType) extends GlowLogging {
             value match {
               case None => ()
               case Some(v) =>
-                if (f.dataType == StringType) {
+                if (dataTypesEqualExceptNullability(f.dataType, StringType)) {
                   updateStringAttribute(v, gffRow, idx)
                 } else if (dataTypesEqualExceptNullability(f.dataType, ArrayType(StringType))) {
                   updateStringArrayAttribute(v, gffRow, idx)
+                } else if (dataTypesEqualExceptNullability(f.dataType, BooleanType)) {
+                  updateBooleanAttribute(v, gffRow, idx)
                 } else {
                   ()
                 }
@@ -95,8 +97,8 @@ class GffRowToInternalRowConverter(schema: StructType) extends GlowLogging {
     var attrMap = Map[String, String]()
 
     while (i < attributes.length) {
-      val tag = attributes(i).takeWhile(_ != delimiter.get).toLowerCase
-      val value = attributes(i).drop(tag.length + 1)
+      val tag = attributes(i).takeWhile(_ != delimiter.get).toLowerCase.trim
+      val value = attributes(i).drop(tag.length + 1).trim
       attrMap += tag -> value
       i += 1
     }
@@ -151,5 +153,9 @@ class GffRowToInternalRowConverter(schema: StructType) extends GlowLogging {
       i += 1
     }
     gffRow.update(idx, new GenericArrayData(arr))
+  }
+
+  private def updateBooleanAttribute(value: String, gffRow: InternalRow, idx: Int): Unit = {
+    gffRow.setBoolean(idx, value.toBoolean)
   }
 }
