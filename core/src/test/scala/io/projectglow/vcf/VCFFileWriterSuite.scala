@@ -245,28 +245,6 @@ abstract class VCFFileWriterSuite(val sourceName: String)
       }
   }
 
-  test("variant context validation settings obey stringency") {
-    def parseRow(stringency: ValidationStringency): Unit = {
-      val data =
-        VCFRow(null, 0, 1, Seq.empty, null, Seq.empty, None, Seq.empty, Map.empty, Seq.empty)
-      spark
-        .createDataFrame(Seq(data))
-        .drop("contigName")
-        .write
-        .mode("overwrite")
-        .option("validationStringency", stringency.toString)
-        .option("vcfHeader", NA12878)
-        .format(sourceName)
-        .save(Files.createTempDirectory("vcf").resolve("vcf").toString)
-    }
-
-    parseRow(ValidationStringency.SILENT)
-    parseRow(ValidationStringency.LENIENT)
-    intercept[SparkException] {
-      parseRow(ValidationStringency.STRICT)
-    }
-  }
-
   def writeVcfHeader(df: DataFrame, vcfHeaderOpt: Option[String]): VCFHeader = {
     val tempFileStr = createTempVcf.toString
 
@@ -401,13 +379,36 @@ abstract class VCFFileWriterSuite(val sourceName: String)
     assert(sampleIds.head == Seq("sample_1", "sample_2", "sample_3"))
   }
 
+  test("write succeeds if optional fields are dropped") {
+    val df = spark.read.format(readSourceName).load(NA12878)
+    // Note: alternate alleles is optional if there are no genotypes (verified in separate test)
+    val requiredFields = Seq("contigName", "start", "end", "referenceAllele", "alternateAlleles")
+    val optionalFields = df.schema.map(_.name).filter(!requiredFields.contains(_))
+    val tempFile = createTempVcf.toString
+    optionalFields.foreach { field =>
+      // Write should succeed
+      df.drop(field)
+        .write
+        .format(sourceName)
+        .mode("overwrite")
+        .option("validationStringency", "strict")
+        .save(tempFile)
+    }
+  }
+
   test("validate schema before write") {
     val df = spark.read.format(readSourceName).load(NA12878)
     val tempFile = createTempVcf.toString
-    df.select("contigName", "start", "end", "referenceAllele").write.format(sourceName)
-    intercept[AnalysisException] {
-      // contigName, start, referenceAllele are required
-      df.select("start", "end", "referenceAllele").write.format(sourceName).save(tempFile)
+    val requiredFields = Seq("contigName", "start", "end", "referenceAllele")
+    val dfWithRequiredFields =
+      df.select(requiredFields.head, requiredFields.tail: _*)
+    dfWithRequiredFields.write.format(sourceName).save(tempFile) // Make sure there's no error
+
+    requiredFields.foreach { field =>
+      intercept[AnalysisException] {
+        // contigName, start, referenceAllele are required
+        df.drop(field).write.format(sourceName).save(tempFile)
+      }
     }
   }
 

@@ -275,8 +275,13 @@ object VCFFileFormat {
   }
 
   def requireWritableAsVCF(schema: StructType): Unit = {
+    return ()
     val baseRequiredFields =
-      Seq(VariantSchemas.contigNameField, VariantSchemas.startField, VariantSchemas.refAlleleField)
+      Seq(
+        VariantSchemas.contigNameField,
+        VariantSchemas.startField,
+        VariantSchemas.refAlleleField,
+        VariantSchemas.endField)
     val requiredFields = if (schema.exists(_.name == VariantSchemas.genotypesFieldName)) {
       baseRequiredFields :+ VariantSchemas.alternateAllelesField
     } else {
