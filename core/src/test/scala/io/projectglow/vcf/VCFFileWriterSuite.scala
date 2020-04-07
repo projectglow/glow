@@ -245,6 +245,29 @@ abstract class VCFFileWriterSuite(val sourceName: String)
       }
   }
 
+  test("variant context validation settings obey stringency") {
+    def parseRow(stringency: ValidationStringency): Unit = {
+      // htsjdk will throw an error if end < start
+      val data =
+        VCFRow("contig", 1, 0, Seq.empty, null, Seq.empty, None, Seq.empty, Map.empty, Seq.empty)
+      spark
+        .createDataFrame(Seq(data))
+        .drop("contigName")
+        .write
+        .mode("overwrite")
+        .option("validationStringency", stringency.toString)
+        .option("vcfHeader", NA12878)
+        .format(sourceName)
+        .save(Files.createTempDirectory("vcf").resolve("vcf").toString)
+    }
+
+    parseRow(ValidationStringency.SILENT)
+    parseRow(ValidationStringency.LENIENT)
+    intercept[SparkException] {
+      parseRow(ValidationStringency.STRICT)
+    }
+  }
+
   def writeVcfHeader(df: DataFrame, vcfHeaderOpt: Option[String]): VCFHeader = {
     val tempFileStr = createTempVcf.toString
 
@@ -387,12 +410,7 @@ abstract class VCFFileWriterSuite(val sourceName: String)
     val tempFile = createTempVcf.toString
     optionalFields.foreach { field =>
       // Write should succeed
-      df.drop(field)
-        .write
-        .format(sourceName)
-        .mode("overwrite")
-        .option("validationStringency", "strict")
-        .save(tempFile)
+      df.drop(field).write.format(sourceName).mode("overwrite").option("validationStringency", "strict").save(tempFile)
     }
   }
 

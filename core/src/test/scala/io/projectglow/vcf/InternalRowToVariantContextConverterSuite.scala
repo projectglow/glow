@@ -125,18 +125,4 @@ class InternalRowToVariantContextConverterSuite extends GlowBaseTest {
       genotype.getExtendedAttribute("string_array").asInstanceOf[JList[String]].asScala
       == Seq("monkey4"))
   }
-
-  test("obeys stringency on conversion errors") {
-    // htsjdk throws an error if you try to create a VC without a contigName
-    val df = spark.read.format("vcf").load(NA12878).drop("contigName")
-    val row = df.queryExecution.toRdd.first()
-    def makeConverter(stringency: ValidationStringency): InternalRowToVariantContextConverter = {
-      new InternalRowToVariantContextConverter(df.schema, headerLines, stringency)
-    }
-    intercept[IllegalArgumentException] {
-      makeConverter(ValidationStringency.STRICT).convert(row)
-    }
-    makeConverter(ValidationStringency.SILENT).convert(row)
-    makeConverter(ValidationStringency.LENIENT).convert(row)
-  }
 }
