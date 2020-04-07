@@ -131,6 +131,43 @@ jobs:
             - /home/circleci/conda
           key: conda-deps-v1-{{ checksum "python/environment.yml" }}
 
+  spark-3-tests:
+    <<: *setup_base
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - conda-deps-v1-{{ checksum "python/environment.yml" }}
+      - *install_deps
+      - run: # Evict PySpark 2.4.3 in favor of PySpark 3.0.0.dev2; do not save the cache after this change
+          name: Use latest PySpark release
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            wget https://archive.apache.org/dist/spark/spark-3.0.0-preview2/pyspark-3.0.0.dev2.tar.gz
+            pip install pyspark-3.0.0.dev2.tar.gz
+      - run:
+          name: Run Scala tests
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            export SPARK_VERSION="3.0.0-SNAPSHOT"
+            sbt core_2_12/test exit
+      - run:
+          name: Run Python tests
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            export SPARK_VERSION="3.0.0-SNAPSHOT"
+            sbt python_2_12/test exit
+      - run:
+          name: Run docs tests
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            export SPARK_VERSION="3.0.0-SNAPSHOT"
+            sbt docs_2_12/test exit
+
 workflows:
   version: 2
   test:
@@ -138,3 +175,14 @@ workflows:
       - check-links
       - scala-2_11-tests
       - scala-2_12-tests
+      - spark-3-tests
+  nightly:
+    triggers:
+      - schedule:
+          cron: "0 0 * * *"
+          filters:
+            branches:
+              only:
+                - master
+    jobs:
+      - spark-3-tests
