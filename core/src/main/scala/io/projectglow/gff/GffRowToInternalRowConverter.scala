@@ -27,12 +27,15 @@ import org.apache.spark.sql.catalyst.util.GenericArrayData
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
-class GffRowToInternalRowConverter(schema: StructType) extends GlowLogging {
+class GffRowToInternalRowConverter(
+    parserSchema: StructType,
+    requiredSchema: StructType
+) extends GlowLogging {
 
   private var delimiter: Option[Char] = None
 
   private val converter = {
-    val fns = schema.map { field =>
+    val fns = requiredSchema.map { field =>
       val fn: RowConverter.Updater[(InternalRow, Map[String, String])] = field match {
         case f
             if Seq(
@@ -72,11 +75,11 @@ class GffRowToInternalRowConverter(schema: StructType) extends GlowLogging {
       }
       fn
     }
-    new RowConverter[(InternalRow, Map[String, String])](schema, fns.toArray)
+    new RowConverter[(InternalRow, Map[String, String])](requiredSchema, fns.toArray)
   }
 
   def convertRow(csvRow: InternalRow): InternalRow = {
-    val attrStr = csvRow.getString(gffCsvSchema.fieldIndex(attributesField.name))
+    val attrStr = csvRow.getString(parserSchema.fieldIndex(attributesField.name))
     val tagValueMap = parseAttributes(attrStr)
     converter((csvRow, tagValueMap))
   }

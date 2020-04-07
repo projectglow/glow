@@ -198,8 +198,15 @@ class GffFileFormat
         case Some((startPos, endPos)) =>
           // need to read all as strings then convert to correct types as some numeric
           // columns can have string values such as "."
+          val parserSchema = StructType(
+            gffCsvSchema
+              .fields
+              .filter(f =>
+                requiredSchema.fieldNames.contains(f.name) || f.name == attributesField.name)
+          )
+
           val parser =
-            new UnivocityParser(gffCsvSchema, gffCsvSchema, parsedOptions)
+            new UnivocityParser(gffCsvSchema, parserSchema, parsedOptions)
 
           val lines = {
             val linesReader = new HadoopLineIterator(
@@ -227,7 +234,7 @@ class GffFileFormat
 
           val filteredLines = filterCommentEmptyAndFasta(lines)
 
-          val rowConverter = new GffRowToInternalRowConverter(requiredSchema)
+          val rowConverter = new GffRowToInternalRowConverter(parserSchema, requiredSchema)
 
           filteredLines.map(l => rowConverter.convertRow(parser.parse(l)))
 
@@ -304,7 +311,8 @@ object GffFileFormat {
     gffBaseSchema
       .fields
       .toSeq
-      .map(f => StructField(f.name, StringType)) :+ attributesField
+      .map(f => StructField(f.name, StringType))
+    :+ attributesField
   )
 
   private[gff] val COLUMN_DELIMITER = "\t"

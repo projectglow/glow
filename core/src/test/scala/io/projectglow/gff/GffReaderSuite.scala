@@ -103,7 +103,6 @@ class GffReaderSuite extends GlowBaseTest {
     assert(dfRow == expectedRow)
   }
 
-
   test("updateAttFieldsWithParsedTags") {
     val currentToken = ParsedAttributesToken(None, Set(idField.name, nameField.name))
     val attributes = s"${idField.name}=1234;${aliasField.name}=monkey"
@@ -122,6 +121,16 @@ class GffReaderSuite extends GlowBaseTest {
       df.write.format(sourceName).save("noop")
     }
     assert(e.getMessage.contains("GFF data source does not currently support writing."))
+  }
+
+  test("Read gff glob") {
+    val df = spark
+      .read
+      .format(sourceName)
+      .load(s"$testRoot/*")
+
+    assert(df.count() == 60)
+    assert(df.filter("start == 0").count() == 3)
   }
 
 }
