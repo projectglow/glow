@@ -120,7 +120,7 @@ lazy val coreDependencies = (providedSparkDependencies ++ testCoreDependencies +
   "org.slf4j" % "slf4j-log4j12" % "1.7.25",
   "org.jdbi" % "jdbi" % "2.63.1",
   // Exclude extraneous GATK dependencies
-  ("org.broadinstitute" % "gatk" % "4.0.11.0")
+  ("org.broadinstitute" % "gatk" % "4.1.6.0")
     .exclude("biz.k11i", "xgboost-predictor")
     .exclude("com.esotericsoftware", "kryo")
     .exclude("com.esotericsoftware", "reflectasm")
@@ -158,7 +158,7 @@ lazy val coreDependencies = (providedSparkDependencies ++ testCoreDependencies +
   "org.apache.hadoop" % "hadoop-client" % "2.7.3",
   "io.netty" % "netty" % "3.9.9.Final",
   "io.netty" % "netty-all" % "4.1.17.Final",
-  "com.github.samtools" % "htsjdk" % "2.20.3",
+  "com.github.samtools" % "htsjdk" % "2.21.2",
   "org.yaml" % "snakeyaml" % "1.16"
 )).map(_.exclude("com.google.code.findbugs", "jsr305"))
 
