@@ -98,9 +98,11 @@ class GffReaderSuite extends GlowBaseTest {
   }
 
   test("updateAttFieldsWithParsedTags") {
-    val currentToken = ParsedAttributesToken(Some('='), Set(idField.name, nameField.name))
+    val currentToken = ParsedAttributesToken(None, Set(idField.name, nameField.name))
     val attributes = s"${idField.name}=1234;${aliasField.name}=monkey"
-    val expected = Set(idField.name, nameField.name, aliasField.name)
+    val expected = ParsedAttributesToken(
+      Some(GFF3_TAG_VALUE_DELIMITER),
+      Set(idField.name, nameField.name, aliasField.name))
     assert(updateAttributesToken(currentToken, attributes) == expected)
   }
 
