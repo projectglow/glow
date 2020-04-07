@@ -104,8 +104,7 @@ class GffFileFormat
       gffOfficialAttributeFields.foldLeft(Seq[StructField]()) { (s, f) =>
         if (attributesToken
             .tags
-            .map(_.toLowerCase)
-            .map(_.replaceAll("_", ""))
+            .map(t => deUnderscore(t.toLowerCase))
             .contains(f.name.toLowerCase)) {
           s :+ f
         } else {
@@ -119,7 +118,7 @@ class GffFileFormat
         t =>
           !officialAttributeFields
             .map(_.name.toLowerCase)
-            .contains(t.replaceAll("_", "").toLowerCase)
+            .contains(deUnderscore(t.toLowerCase)) && !t.isEmpty
       )
 
     val unofficialAttributeFields = remainingTags.foldLeft(Seq[StructField]()) { (s, t) =>
@@ -293,6 +292,10 @@ object GffFileFormat {
       !trimmed.startsWith(CONTIG_IDENTIFIER) &&
       !(trimmed.matches(FASTA_LINE_REGEX))
     }
+  }
+
+  def deUnderscore(s: String): String = {
+    s.replaceAll("_", "")
   }
 
   case class ParsedAttributesToken(sep: Option[Char], tags: Set[String])

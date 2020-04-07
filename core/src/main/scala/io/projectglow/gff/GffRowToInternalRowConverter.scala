@@ -54,7 +54,7 @@ class GffRowToInternalRowConverter(schema: StructType) extends GlowLogging {
           (rowAndMap, gffRow, idx) => updatePhase(rowAndMap._1, gffRow, idx)
         case f =>
           (rowAndMap, gffRow, idx) => {
-            val value = rowAndMap._2.get(f.name.toLowerCase)
+            val value = rowAndMap._2.get(deUnderscore(f.name.toLowerCase))
             value match {
               case None => ()
               case Some(v) =>
@@ -97,9 +97,10 @@ class GffRowToInternalRowConverter(schema: StructType) extends GlowLogging {
     var attrMap = Map[String, String]()
 
     while (i < attributes.length) {
-      val tag = attributes(i).takeWhile(_ != delimiter.get).toLowerCase.trim
+      val tag = attributes(i).takeWhile(_ != delimiter.get).toLowerCase
       val value = attributes(i).drop(tag.length + 1).trim
-      attrMap += tag -> value
+      val trimmedTag = deUnderscore(tag.trim.toLowerCase)
+      attrMap += trimmedTag -> value
       i += 1
     }
     attrMap
