@@ -252,7 +252,6 @@ abstract class VCFFileWriterSuite(val sourceName: String)
         VCFRow("contig", 1, 0, Seq.empty, null, Seq.empty, None, Seq.empty, Map.empty, Seq.empty)
       spark
         .createDataFrame(Seq(data))
-        .drop("contigName")
         .write
         .mode("overwrite")
         .option("validationStringency", stringency.toString)
