@@ -438,7 +438,10 @@ abstract class VCFFileWriterSuite(val sourceName: String)
   }
 
   test("validate genotype schema before write") {
-    val df = spark.read.format(readSourceName).load(NA12878)
+    val df = spark
+      .read
+      .format(readSourceName)
+      .load(NA12878)
       .select("contigName", "start", "end", "referenceAllele", "alternateAlleles", "genotypes")
     validateVCFRoundTrip(df)
     val tempFile = createTempVcf.toString
