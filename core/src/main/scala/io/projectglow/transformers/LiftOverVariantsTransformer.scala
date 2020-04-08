@@ -252,7 +252,7 @@ object LiftOverVariantsTransformer extends GlowLogging {
     val outputVc = outputVcOpt.get
     val refStr = refSeq.getBaseString.substring(outputVc.getStart - 1, outputVc.getEnd)
 
-    if (outputVc.getReference.getBaseString.toLowerCase != refStr.toLowerCase) {
+    if (!refStr.equalsIgnoreCase(outputVc.getReference.getBaseString)) {
       if (outputVc.isBiallelic && outputVc.isSNP && refStr.equalsIgnoreCase(
           outputVc.getAlternateAllele(0).getBaseString)) {
         val swappedArrayFields =
