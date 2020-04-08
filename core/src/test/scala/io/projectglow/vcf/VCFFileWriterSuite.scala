@@ -402,15 +402,22 @@ abstract class VCFFileWriterSuite(val sourceName: String)
     assert(sampleIds.head == Seq("sample_1", "sample_2", "sample_3"))
   }
 
+  private def validateVCFRoundTrip(df: DataFrame): Unit = {
+    val tempFile = createTempVcf.toString
+    df.write.format(sourceName).option("validationStringency", "strict").save(tempFile)
+    val fields = df.schema.map(_.name)
+    val rereadDf = spark.read.format("vcf").load(tempFile).select(fields.head, fields.tail: _*)
+    assert(df.except(rereadDf).isEmpty)
+  }
+
   test("write succeeds if optional fields are dropped") {
     val df = spark.read.format(readSourceName).load(NA12878)
     // Note: alternate alleles is optional if there are no genotypes (verified in separate test)
     val requiredFields = Seq("contigName", "start", "end", "referenceAllele", "alternateAlleles")
     val optionalFields = df.schema.map(_.name).filter(!requiredFields.contains(_))
-    val tempFile = createTempVcf.toString
     optionalFields.foreach { field =>
       // Write should succeed
-      df.drop(field).write.format(sourceName).mode("overwrite").option("validationStringency", "strict").save(tempFile)
+      validateVCFRoundTrip(df.drop(field))
     }
   }
 
@@ -420,11 +427,11 @@ abstract class VCFFileWriterSuite(val sourceName: String)
     val requiredFields = Seq("contigName", "start", "end", "referenceAllele")
     val dfWithRequiredFields =
       df.select(requiredFields.head, requiredFields.tail: _*)
-    dfWithRequiredFields.write.format(sourceName).save(tempFile) // Make sure there's no error
+    validateVCFRoundTrip(dfWithRequiredFields)
 
     requiredFields.foreach { field =>
       intercept[AnalysisException] {
-        // contigName, start, referenceAllele are required
+        // contigName, start, end, referenceAllele are required
         df.drop(field).write.format(sourceName).save(tempFile)
       }
     }
@@ -432,10 +439,9 @@ abstract class VCFFileWriterSuite(val sourceName: String)
 
   test("validate genotype schema before write") {
     val df = spark.read.format(readSourceName).load(NA12878)
+      .select("contigName", "start", "end", "referenceAllele", "alternateAlleles", "genotypes")
+    validateVCFRoundTrip(df)
     val tempFile = createTempVcf.toString
-    df.select("contigName", "start", "end", "referenceAllele", "alternateAlleles", "genotypes")
-      .write
-      .format(sourceName)
     intercept[AnalysisException] {
       // alternateAlleles are required if genotypes are present
       df.select("start", "end", "referenceAllele", "genotypes")

@@ -275,7 +275,6 @@ object VCFFileFormat {
   }
 
   def requireWritableAsVCF(schema: StructType): Unit = {
-    return ()
     val baseRequiredFields =
       Seq(
         VariantSchemas.contigNameField,
