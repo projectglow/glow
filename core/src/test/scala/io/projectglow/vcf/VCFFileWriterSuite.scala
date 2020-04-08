@@ -27,7 +27,7 @@ import htsjdk.samtools.ValidationStringency
 import htsjdk.samtools.util.{BlockCompressedInputStream, BlockCompressedStreamConstants}
 import htsjdk.variant.variantcontext.writer.VCFHeaderWriter
 import htsjdk.variant.vcf.{VCFCompoundHeaderLine, VCFHeader, VCFHeaderLine}
-import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.{AnalysisException, DataFrame}
 import org.apache.spark.sql.functions.expr
 import org.apache.spark.{SparkConf, SparkException}
 
@@ -247,11 +247,11 @@ abstract class VCFFileWriterSuite(val sourceName: String)
 
   test("variant context validation settings obey stringency") {
     def parseRow(stringency: ValidationStringency): Unit = {
+      // htsjdk will throw an error if end < start
       val data =
-        VCFRow(null, 0, 1, Seq.empty, null, Seq.empty, None, Seq.empty, Map.empty, Seq.empty)
+        VCFRow("contig", 1, 0, Seq.empty, null, Seq.empty, None, Seq.empty, Map.empty, Seq.empty)
       spark
         .createDataFrame(Seq(data))
-        .drop("contigName")
         .write
         .mode("overwrite")
         .option("validationStringency", stringency.toString)
@@ -399,6 +399,58 @@ abstract class VCFFileWriterSuite(val sourceName: String)
     val sampleIds = rereadDf.select("genotypes.sampleId").distinct().as[Seq[String]].collect
     assert(sampleIds.length == 1)
     assert(sampleIds.head == Seq("sample_1", "sample_2", "sample_3"))
+  }
+
+  private def validateVCFRoundTrip(df: DataFrame): Unit = {
+    val tempFile = createTempVcf.toString
+    df.write.format(sourceName).option("validationStringency", "strict").save(tempFile)
+    val fields = df.schema.map(_.name)
+    val rereadDf = spark.read.format("vcf").load(tempFile).select(fields.head, fields.tail: _*)
+    assert(df.except(rereadDf).isEmpty)
+  }
+
+  test("write succeeds if optional fields are dropped") {
+    val df = spark.read.format(readSourceName).load(NA12878)
+    // Note: alternate alleles is optional if there are no genotypes (verified in separate test)
+    val requiredFields = Seq("contigName", "start", "end", "referenceAllele", "alternateAlleles")
+    val optionalFields = df.schema.map(_.name).filter(!requiredFields.contains(_))
+    optionalFields.foreach { field =>
+      // Write should succeed
+      validateVCFRoundTrip(df.drop(field))
+    }
+  }
+
+  test("validate schema before write") {
+    val df = spark.read.format(readSourceName).load(NA12878)
+    val tempFile = createTempVcf.toString
+    val requiredFields = Seq("contigName", "start", "end", "referenceAllele")
+    val dfWithRequiredFields =
+      df.select(requiredFields.head, requiredFields.tail: _*)
+    validateVCFRoundTrip(dfWithRequiredFields)
+
+    requiredFields.foreach { field =>
+      intercept[AnalysisException] {
+        // contigName, start, end, referenceAllele are required
+        df.drop(field).write.format(sourceName).save(tempFile)
+      }
+    }
+  }
+
+  test("validate genotype schema before write") {
+    val df = spark
+      .read
+      .format(readSourceName)
+      .load(NA12878)
+      .select("contigName", "start", "end", "referenceAllele", "alternateAlleles", "genotypes")
+    validateVCFRoundTrip(df)
+    val tempFile = createTempVcf.toString
+    intercept[AnalysisException] {
+      // alternateAlleles are required if genotypes are present
+      df.select("start", "end", "referenceAllele", "genotypes")
+        .write
+        .format(sourceName)
+        .save(tempFile)
+    }
   }
 }
 
