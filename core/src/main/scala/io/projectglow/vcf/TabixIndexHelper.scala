@@ -25,11 +25,11 @@ import com.google.common.annotations.VisibleForTesting
 import htsjdk.tribble.index.tabix._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
-
 import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.sources.{Filter, _}
 import org.broadinstitute.hellbender.utils.SimpleInterval
-import io.projectglow.common.{CompressionUtils, GlowLogging, WithUtils}
+
+import io.projectglow.common.{GlowLogging, WithUtils}
 
 /** An extended Contig class used by filter parser that keeps an Option(contigName)
  * updated under And and Or operations and provides other required functionalities
@@ -438,7 +438,7 @@ object TabixIndexHelper extends GlowLogging {
 
     val path = new Path(file.filePath)
     val indexFile = new Path(file.filePath + VCFFileFormat.INDEX_SUFFIX)
-    val isGzip = CompressionUtils.isGzip(file, conf)
+    val isGzip = VCFFileFormat.isGzip(file, conf)
 
     filteredSimpleInterval match {
       case Some(interval) =>
@@ -454,7 +454,7 @@ object TabixIndexHelper extends GlowLogging {
         } else if (!useIndex) {
           logger.info("Tabix index use disabled by the user...")
           Some((file.start, file.start + file.length))
-        } else if (!CompressionUtils.isValidBGZ(path, conf)) {
+        } else if (!VCFFileFormat.isValidBGZ(path, conf)) {
           logger.info("The file is not bgzipped... not using tabix index...")
           Some((file.start, file.start + file.length))
         } else if (interval.getContig.isEmpty) {

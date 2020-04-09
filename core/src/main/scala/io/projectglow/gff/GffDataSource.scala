@@ -18,15 +18,15 @@ package io.projectglow.gff
 
 import io.projectglow.common.FeatureSchemas._
 import io.projectglow.common.logging.HlsEventRecorder
-import io.projectglow.common.{CompressionUtils, GlowLogging}
-import io.projectglow.gff.GffFileFormat._
+import io.projectglow.common.GlowLogging
+import io.projectglow.gff.GffDataSource._
 import io.projectglow.sql.util.{HadoopLineIterator, SerializableConfiguration}
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileStatus, Path}
 import org.apache.hadoop.io.compress.{CompressionCodecFactory, SplittableCompressionCodec}
 import org.apache.hadoop.mapreduce.Job
 
-import org.apache.spark.TaskContext
+import org.apache.spark.{SparkContext, TaskContext}
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.datasources.csv.{CSVFileFormat, CSVOptions, UnivocityParser}
 import org.apache.spark.sql.execution.datasources.{DataSource, OutputWriterFactory, PartitionedFile, TextBasedFileFormat}
@@ -35,7 +35,7 @@ import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, SparkSession}
 
-class GffFileFormat
+class GffDataSource
     extends TextBasedFileFormat
     with DataSourceRegister
     with HlsEventRecorder
@@ -74,7 +74,7 @@ class GffFileFormat
       sparkSession.sessionState.conf.sessionLocalTimeZone
     )
 
-    val csv = GffFileFormat
+    val csv = GffDataSource
       .createBaseDataset(sparkSession, files, parsedOptions)
       .select(attributesField.name)
       .filter(col(attributesField.name).isNotNull)
@@ -169,6 +169,10 @@ class GffFileFormat
 
     partitionedFile => {
       val path = new Path(partitionedFile.filePath)
+      val readerContext = new SparkContext(spark.conf)
+      val data = spark.read.csv(partitionedFile.filePath)
+      //data.show()
+
       val hadoopFs = path.getFileSystem(serializableConf.value)
 
       val isGzip =
@@ -243,7 +247,7 @@ class GffFileFormat
   }
 }
 
-object GffFileFormat {
+object GffDataSource {
 
   def createBaseDataset(
       sparkSession: SparkSession,

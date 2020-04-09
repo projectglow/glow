@@ -17,11 +17,10 @@
 package io.projectglow.gff
 
 import io.projectglow.common.FeatureSchemas._
-import io.projectglow.gff.GffFileFormat._
+import io.projectglow.gff.GffDataSource._
 import io.projectglow.sql.GlowBaseTest
 
 import org.apache.spark.sql.Row
-import org.apache.spark.sql.functions.expr
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 
 class GffReaderSuite extends GlowBaseTest {
@@ -63,7 +62,8 @@ class GffReaderSuite extends GlowBaseTest {
     assert(df.schema.equals(expectedSchema))
   }
 
-  gridTest("Read gff3")(
+
+  gridTest("Read gff3, gzipped gff3 and bgzipped gff3 with inferred schema")(
     Seq(testGff3, testGff3Gzip, testGff3Bgzip)
   ) { file =>
     val dfRow = spark
@@ -99,7 +99,28 @@ class GffReaderSuite extends GlowBaseTest {
       null,
       null
     )
+    assert(dfRow == expectedRow)
+  }
 
+  test("Read gff with user specified schema containing attributesField") {
+    val dfRow = spark.read
+      .schema(StructType(gffBaseSchema.fields :+ attributesField))
+      .format(sourceName)
+      .load(testGff3)
+      .orderBy("seqId", "start")
+      .take(1)(0)
+
+    val expectedRow = Row(
+      "NC_000001.11",
+      "RefSeq",
+      "region",
+      0,
+      248956422,
+      null,
+      "+",
+      1,
+      "ID=NC_000001.11:1..248956422;Dbxref=taxon:9606,test;Name=1;chromosome=1;gbkey=Src;genome=chromosome;mol_type=genomic DNA;Is_circular=false"
+    )
     assert(dfRow == expectedRow)
   }
 
@@ -131,6 +152,45 @@ class GffReaderSuite extends GlowBaseTest {
 
     assert(df.count() == 60)
     assert(df.filter("start == 0").count() == 3)
+  }
+
+  test("Read empty gff") {
+    val df = spark.read
+      .format(sourceName)
+      .load(testGffEmpty)
+
+    assert(df.count() == 0)
+    assert(df.schema == gffBaseSchema)
+  }
+
+  test("Read gff with user specified schema containing attributes subfields") {
+    val df = spark.read
+      .schema(
+        StructType(
+          gffBaseSchema.fields ++ Seq(
+            idField,
+            isCircularField,
+            dbxrefField,
+            StructField("gene", StringType)
+          )
+        )
+      ).format(sourceName)
+      .load(testGff3)
+
+    df.show()
+  }
+
+  test("test gff") {
+    val df = spark.read
+      // .schema(StructType(gffBaseSchema.fields :+ attributesField))
+      .format(sourceName)
+      .load("file:/Users/kiavash.kianfar/glow/test-data/gff/test_gff_with_fasta.gff")
+
+
+
+    // .load(s"$testRoot/GCF_000001405.39_GRCh38.p13_genomic.gff.bgz")
+
+    df.show()
   }
 
 }
