@@ -674,6 +674,17 @@ class VCFDatasourceSuite extends GlowBaseTest {
         null
       ))
   }
+
+  test("Do not break when reading index file") {
+    spark
+      .read
+      .format(sourceName)
+      .load(s"$testDataHome/tabix-test-vcf/NA12878_21_10002403.vcf.gz.tbi")
+  }
+
+  test("Do not break when reading directory with index files") {
+    spark.read.format(sourceName).load(s"$testDataHome/tabix-test-vcf")
+  }
 }
 
 // For testing only: schema based on CEUTrio VCF header

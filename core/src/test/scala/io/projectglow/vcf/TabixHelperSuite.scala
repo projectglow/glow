@@ -823,4 +823,16 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     )
   }
 
+  test("Do not try to read index files") {
+    val tbi = testBigVcf + ".tbi"
+    val path = new Path(tbi)
+    val conf = sparkContext.hadoopConfiguration
+    val fs = path.getFileSystem(conf)
+    val partitionedFile = PartitionedFile(InternalRow.empty, tbi, 0, 2)
+    val interval = Some(new SimpleInterval("0", 1, 2))
+    assert(
+      TabixIndexHelper
+        .getFileRangeToRead(fs, partitionedFile, conf, false, false, interval)
+        .isEmpty)
+  }
 }

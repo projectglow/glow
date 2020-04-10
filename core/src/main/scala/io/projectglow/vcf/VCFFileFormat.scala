@@ -150,11 +150,6 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
       val path = new Path(partitionedFile.filePath)
       val hadoopFs = path.getFileSystem(serializableConf.value)
 
-      // In case of a partitioned file that only contains part of the header, codec.readActualHeader
-      // will throw an error for a malformed header. We therefore allow the header reader to read
-      // past the boundaries of the partitions; it will throw/return when done reading the header.
-      val (header, codec) = VCFFileFormat.createVCFCodec(path.toString, serializableConf.value)
-
       // Get the file offset=(startPos,endPos) that must be read from this partitionedFile.
       // Currently only one offset is generated for each partitionedFile.
       val offset = TabixIndexHelper.getFileRangeToRead(
@@ -171,6 +166,11 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
           // Filter parser has detected that the filter conditions yield an empty set of results.
           Iterator.empty
         case Some((startPos, endPos)) =>
+          // In case of a partitioned file that only contains part of the header, codec.readActualHeader
+          // will throw an error for a malformed header. We therefore allow the header reader to read
+          // past the boundaries of the partitions; it will throw/return when done reading the header.
+          val (header, codec) = VCFFileFormat.createVCFCodec(path.toString, serializableConf.value)
+
           // Modify the start and end of reader according to the offset provided by
           // tabixIndexHelper.filteredVariantBlockRange
           val reader = new HadoopLineIterator(
