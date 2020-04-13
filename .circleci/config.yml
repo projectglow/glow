@@ -156,13 +156,6 @@ jobs:
             - spark3-conda-deps-v1-{{ checksum "python/environment.yml" }}
       - *install_spark3_conda_deps
       - run:
-          name: Use latest PySpark release
-          environment:
-          command: |
-            export PATH=$HOME/conda/envs/glow/bin:$PATH
-            wget https://archive.apache.org/dist/spark/spark-3.0.0-preview2/pyspark-3.0.0.dev2.tar.gz
-            pip install pyspark-3.0.0.dev2.tar.gz
-      - run:
           name: Run Scala tests
           environment:
           command: |
