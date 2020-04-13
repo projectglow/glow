@@ -185,4 +185,5 @@ workflows:
               only:
                 - master
     jobs:
+      - check-links
       - spark-3-tests
