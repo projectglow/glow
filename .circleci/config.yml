@@ -26,6 +26,7 @@ install_spark3_conda_deps: &install_spark3_conda_deps
         wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
         /bin/bash Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/conda
         conda env create -f python/environment.yml
+        conda activate glow
         wget https://archive.apache.org/dist/spark/spark-3.0.0-preview2/pyspark-3.0.0.dev2.tar.gz
         pip install pyspark-3.0.0.dev2.tar.gz
       else
