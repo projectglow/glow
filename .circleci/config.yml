@@ -3,7 +3,7 @@ setup_base: &setup_base
   docker:
     - image: circleci/openjdk:8
 
-install_deps: &install_deps
+install_conda_deps: &install_conda_deps
   run:
     name: Install dependencies
     command: |
@@ -14,6 +14,23 @@ install_deps: &install_deps
         conda env create -f python/environment.yml
       else
         echo "Conda already installed"
+      fi
+
+
+install_spark3_conda_deps: &install_spark3_conda_deps
+  run: # Evict PySpark 2.4.3 in favor of PySpark 3.0.0.dev2
+    name: Install dependencies
+    command: |
+      export PATH=$HOME/conda/bin:$PATH
+      if [ ! -d "/home/circleci/conda" ]; then
+        wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh
+        /bin/bash Miniconda3-latest-Linux-x86_64.sh -b -p $HOME/conda
+        conda env create -f python/environment.yml
+        conda activate glow
+        wget https://archive.apache.org/dist/spark/spark-3.0.0-preview2/pyspark-3.0.0.dev2.tar.gz
+        pip install pyspark-3.0.0.dev2.tar.gz
+      else
+        echo "Conda environment for Spark 3 already installed"
       fi
 
 check_clean_repo: &check_clean_repo
@@ -42,7 +59,7 @@ jobs:
       - restore_cache:
           keys:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}
-      - *install_deps
+      - *install_conda_deps
       - run:
           name: Check docs links
           environment:
@@ -62,7 +79,7 @@ jobs:
       - restore_cache:
           keys:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}
-      - *install_deps
+      - *install_conda_deps
       - run:
           name: Run Scala tests
           environment:
@@ -101,7 +118,7 @@ jobs:
       - restore_cache:
           keys:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}
-      - *install_deps
+      - *install_conda_deps
       - run:
           name: Run Scala tests
           environment:
@@ -137,15 +154,8 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - conda-deps-v1-{{ checksum "python/environment.yml" }}
-      - *install_deps
-      - run: # Evict PySpark 2.4.3 in favor of PySpark 3.0.0.dev2; do not save the cache after this change
-          name: Use latest PySpark release
-          environment:
-          command: |
-            export PATH=$HOME/conda/envs/glow/bin:$PATH
-            wget https://archive.apache.org/dist/spark/spark-3.0.0-preview2/pyspark-3.0.0.dev2.tar.gz
-            pip install pyspark-3.0.0.dev2.tar.gz
+            - spark3-conda-deps-v1-{{ checksum "python/environment.yml" }}
+      - *install_spark3_conda_deps
       - run:
           name: Run Scala tests
           environment:
@@ -167,6 +177,10 @@ jobs:
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             export SPARK_VERSION="3.0.0-SNAPSHOT"
             sbt docs_2_12/test exit
+      - save_cache:
+          paths:
+            - /home/circleci/conda
+          key: spark3-conda-deps-v1-{{ checksum "python/environment.yml" }}
 
 workflows:
   version: 2
