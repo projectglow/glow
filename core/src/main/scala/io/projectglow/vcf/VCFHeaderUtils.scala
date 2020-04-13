@@ -92,9 +92,13 @@ object VCFHeaderUtils extends GlowLogging {
     spark
       .sparkContext
       .parallelize(files)
-      .map { path =>
-        val (header, _) = VCFFileFormat.createVCFCodec(path, serializableConf.value)
-        header
+      .flatMap { path =>
+        if (path.endsWith(VCFFileFormat.INDEX_SUFFIX)) {
+          None
+        } else {
+          val (header, _) = VCFFileFormat.createVCFCodec(path, serializableConf.value)
+          Some(header)
+        }
       }
   }
 
