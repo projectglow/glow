@@ -1,0 +1,7 @@
+##fileformat=VCFv4.2
+##FORMAT=<ID=AD,Number=1,Type=Integer,Description="Allelic depths for the ref and alt alleles in theorder listed">
+##INFO=<ID=DP,Number=1,Type=Integer,Description="Approximate read depth; some reads may have beenfiltered">
+##contig=<ID=1>
+##contig=<ID=2>
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	SAMPLE1
+1	1	a	A	G	.	.	.	AD	1,2
