@@ -21,7 +21,7 @@ import io.projectglow.gff.GffDataSource._
 import io.projectglow.sql.GlowBaseTest
 
 import org.apache.spark.sql.Row
-import org.apache.spark.sql.types.{StringType, StructField, StructType}
+import org.apache.spark.sql.types.{DoubleType, IntegerType, StringType, StructField, StructType}
 
 class GffReaderSuite extends GlowBaseTest {
   lazy val testRoot = s"$testDataHome/gff"
@@ -123,7 +123,7 @@ class GffReaderSuite extends GlowBaseTest {
     )
     assert(dfRow == expectedRow)
   }
-
+/*
   test("updateAttFieldsWithParsedTags") {
     val currentToken = ParsedAttributesToken(None, Set(idField.name, nameField.name))
     val attributes = s"${idField.name}=1234;${aliasField.name}=monkey"
@@ -132,7 +132,7 @@ class GffReaderSuite extends GlowBaseTest {
       Set(idField.name, nameField.name, aliasField.name))
     assert(updateAttributesToken(currentToken, attributes) == expected)
   }
-
+*/
   test("GFF file format does not support writing") {
     val df = spark
       .read
@@ -181,12 +181,27 @@ class GffReaderSuite extends GlowBaseTest {
   }
 
   test("test gff") {
+    val testSchema = StructType(
+      Seq(
+        seqIdField,
+        sourceField,
+        typeField,
+        startField,
+        endField,
+        StructField("score", StringType),
+        strandField,
+        StructField("phase", StringType),
+        attributesField
+      )
+    )
     val df = spark.read
+      // .schema(testSchema)
       // .schema(StructType(gffBaseSchema.fields :+ attributesField))
       .format(sourceName)
       .load("file:/Users/kiavash.kianfar/glow/test-data/gff/test_gff_with_fasta.gff")
+    //  .filter(""" type = "region" """)
 
-
+    df.printSchema()
 
     // .load(s"$testRoot/GCF_000001405.39_GRCh38.p13_genomic.gff.bgz")
 

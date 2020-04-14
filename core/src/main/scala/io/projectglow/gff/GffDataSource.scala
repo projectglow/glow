@@ -17,103 +17,166 @@
 package io.projectglow.gff
 
 import io.projectglow.common.FeatureSchemas._
-import io.projectglow.common.logging.HlsEventRecorder
-import io.projectglow.common.GlowLogging
 import io.projectglow.gff.GffDataSource._
-import io.projectglow.sql.util.{HadoopLineIterator, SerializableConfiguration}
-import org.apache.hadoop.conf.Configuration
-import org.apache.hadoop.fs.{FileStatus, Path}
-import org.apache.hadoop.io.compress.{CompressionCodecFactory, SplittableCompressionCodec}
-import org.apache.hadoop.mapreduce.Job
 
-import org.apache.spark.{SparkContext, TaskContext}
-import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.execution.datasources.csv.{CSVFileFormat, CSVOptions, UnivocityParser}
-import org.apache.spark.sql.execution.datasources.{DataSource, OutputWriterFactory, PartitionedFile, TextBasedFileFormat}
+import org.apache.spark.rdd.RDD
+import org.apache.spark.sql._
+import org.apache.spark.sql.catalyst.ScalaReflection
+import org.apache.spark.sql.catalyst.expressions.StringSplit
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
-import org.apache.spark.sql.types.{StringType, StructField, StructType}
-import org.apache.spark.sql.{DataFrame, SparkSession}
+import org.apache.spark.sql.sources.{BaseRelation, DataSourceRegister, Filter, PrunedFilteredScan, RelationProvider, SchemaRelationProvider, TableScan}
+import org.apache.spark.sql.types._
+import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 
-class GffDataSource
-    extends TextBasedFileFormat
-    with DataSourceRegister
-    with HlsEventRecorder
-    with GlowLogging {
 
-  private var codecFactory: CompressionCodecFactory = _
+class GffDataSource extends RelationProvider with SchemaRelationProvider with DataSourceRegister {
 
   override def shortName(): String = "gff"
 
-  override def isSplitable(
-      sparkSession: SparkSession,
-      options: Map[String, String],
-      path: Path): Boolean = {
-    if (codecFactory == null) {
-      codecFactory = new CompressionCodecFactory(
-        CompressionUtils
-          .hadoopConfWithBGZ(sparkSession.sessionState.newHadoopConf())
-      )
-    }
+  /**
+   * Creates relation
+   *
+   * @param sqlContext spark sql context
+   * @param parameters parameters for job
+   * @return Base relation
+   */
+  override def createRelation(sqlContext: SQLContext, parameters: Map[String, String]): BaseRelation = {
 
-    // Note: we check if a file is gzipped vs block gzipped during reading, so this will be true
-    // for .gz files even if they aren't actually splittable
-    codecFactory.getCodec(path).isInstanceOf[SplittableCompressionCodec]
+    createRelation(sqlContext, parameters, null)
   }
 
-  override def inferSchema(
-      sparkSession: SparkSession,
-      options: Map[String, String],
-      files: Seq[FileStatus]): Option[StructType] = {
+  /**
+   * Creates relation with user schema
+   *
+   * @param sqlContext spark sql context
+   * @param parameters parameters for job
+   * @param schema     user defined schema
+   * @return Base relation
+   */
+  override def createRelation(sqlContext: SQLContext, parameters: Map[String, String], schema: StructType): BaseRelation = {
+    val path = parameters.get("path")
+    path match {
+      case Some(p) =>
+        val requiredSchema = if (schema == null) {
+          inferSchema (sqlContext, p)
+        } else {
+          schema
+        }
 
-    val optionsWithDelimiter = options + ("sep" -> COLUMN_DELIMITER)
+        new GffResourceRelation(sqlContext, p, requiredSchema)
+      case _ => throw new IllegalArgumentException("Path is required")
+    }
+  }
 
-    val parsedOptions = new CSVOptions(
-      optionsWithDelimiter,
-      columnPruning = sparkSession.sessionState.conf.csvColumnPruning,
-      sparkSession.sessionState.conf.sessionLocalTimeZone
+}
+
+
+class GffResourceRelation(
+  val sqlContext: SQLContext,
+  path: String,
+  requiredSchema: StructType
+) extends BaseRelation with TableScan  { // TODO: investigate use of PrunedFilteredScan
+
+  private val spark = sqlContext.sparkSession
+
+
+  override def schema: StructType = {
+    requiredSchema
+  }
+
+
+  override def buildScan(): RDD[Row] = {
+    val csvDf = spark
+      .read
+      .option("sep", COLUMN_DELIMITER)
+      .schema(GffDataSource.gffCsvSchema)
+      .csv(path)
+
+    val dfWithMappedAttributes = convertAttributesToMap(
+      filterCommentsAndFasta(
+        csvDf
+      )
     )
 
-    val csv = GffDataSource
-      .createBaseDataset(sparkSession, files, parsedOptions)
-      .select(attributesField.name)
-      .filter(col(attributesField.name).isNotNull)
+    requiredSchema.foldLeft(dfWithMappedAttributes)((df, f) =>
+      f match {
+        case f if structFieldsEqualExceptNullability(f, startField) =>
+          df.withColumn(
+            f.name,
+            col(f.name).cast(f.dataType) - 1
+          )
+        case f if structFieldsEqualExceptNullability(f, endField) =>
+          df.withColumn(
+            f.name,
+            col(f.name).cast(f.dataType)
+          )
+        case f if structFieldsEqualExceptNullability(f, scoreField) |
+          structFieldsEqualExceptNullability(f, strandField) |
+          structFieldsEqualExceptNullability(f, phaseField) =>
+          df.withColumn(
+            f.name,
+            when(
+              col(f.name) =!= lit(NULL_IDENTIFIER),
+              col(f.name).cast(f.dataType)
+            ).otherwise(lit(null))
+          )
+        case f => // TODO: To be completed (also rectify column names)
+          df.withColumn(
+            f.name,
+            element_at(col(attributesMapColumnName), f.name)
+          )
+      }
+    )
+      .drop(attributesField.name, attributesMapColumnName) // TODO: Complete the option of keeping attributes field
+      .rdd
+  }
+}
 
-    // Use of ParsedAttributesToken helps update sep as soon as detected and avoid looking into
-    // attributes array again to detect the separator when it is detected once.
-    val attributesTokenZero = ParsedAttributesToken(None, Set[String]())
+object GffDataSource {
 
-    val attributesToken =
-      csv
-        .queryExecution
-        .toRdd
-        .aggregate(attributesTokenZero)(
-          { (t, r) =>
-            val attrStr = r.getString(0)
-            updateAttributesToken(t, attrStr)
-          }, { (t1, t2) =>
-            ParsedAttributesToken(
-              t1.sep.orElse(t2.sep.orElse(None)),
-              t1.tags ++ t2.tags
-            )
-          }
+  def inferSchema(sqlContext: SQLContext, path: String): StructType = {
+    val spark = sqlContext.sparkSession
+    val csvDf = spark
+      .read
+      .option("sep", COLUMN_DELIMITER)
+      .schema(GffDataSource.gffCsvSchema)
+      .csv(path)
+
+
+    val attributeTags = convertAttributesToMap(
+      filterCommentsAndFasta(
+        csvDf
+      )
+    )
+      .select(attributesMapColumnName)
+      .withColumn(
+        attributesMapColumnName,
+        explode(
+          map_keys(
+            col(attributesMapColumnName)
+          )
         )
+      )
+      .agg(
+        collect_set(
+          attributesMapColumnName
+        )
+      )
+      .collect()(0).getAs[Seq[String]](0)
 
-    // Fields in gffBaseSchema first, then official attributes fields, then unofficial fields
+    // generate the schema. The field names will be case and underscore insensitive
     val officialAttributeFields =
       gffOfficialAttributeFields.foldLeft(Seq[StructField]()) { (s, f) =>
-        if (attributesToken
-            .tags
-            .map(t => deUnderscore(t.toLowerCase))
-            .contains(f.name.toLowerCase)) {
+        if (attributeTags
+          .map(t => deUnderscore(t.toLowerCase))
+          .contains(f.name.toLowerCase)) {
           s :+ f
         } else {
           s
         }
       }
 
-    val remainingTags = attributesToken
-      .tags
+    val remainingTags = attributeTags
       .filter(
         t =>
           !officialAttributeFields
@@ -125,204 +188,54 @@ class GffDataSource
       s :+ StructField(t, StringType)
     }
 
-    Option(
-      StructType(
-        gffBaseSchema.fields ++ officialAttributeFields ++ unofficialAttributeFields
+    StructType(
+      gffBaseSchema.fields ++ officialAttributeFields ++ unofficialAttributeFields
+    )
+
+  }
+
+  def filterCommentsAndFasta(df: DataFrame): DataFrame = {
+    df.where(
+        !gffCsvSchema.fieldNames.drop(1).foldLeft(lit(true))(
+          (f1, f2) =>
+            f1 && isnull(col(f2))
+        ) &&
+          substring(col(seqIdField.name), 1, 1) =!= lit(COMMENT_IDENTIFIER) &&
+          substring(col(seqIdField.name), 1, 1) =!= lit(CONTIG_IDENTIFIER)
       )
-    )
-
   }
 
-  override def prepareWrite(
-      sparkSession: SparkSession,
-      job: Job,
-      options: Map[String, String],
-      dataSchema: StructType): OutputWriterFactory = {
-    throw new UnsupportedOperationException(
-      "GFF data source does not currently support writing."
-    )
-  }
-
-  override def buildReader(
-      spark: SparkSession,
-      dataSchema: StructType,
-      partitionSchema: StructType,
-      requiredSchema: StructType,
-      filters: Seq[Filter],
-      options: Map[String, String],
-      hadoopConf: Configuration
-  ): PartitionedFile => Iterator[InternalRow] = {
-
-    // TODO: record gffRead event in the log along with the options
-
-    val serializableConf = new SerializableConfiguration(
-      CompressionUtils.hadoopConfWithBGZ(hadoopConf)
-    )
-
-    val optionsWithDelimiter = options + ("sep" -> COLUMN_DELIMITER)
-
-    val parsedOptions = new CSVOptions(
-      optionsWithDelimiter,
-      spark.sessionState.conf.csvColumnPruning,
-      spark.sessionState.conf.sessionLocalTimeZone
-    )
-
-    partitionedFile => {
-      val path = new Path(partitionedFile.filePath)
-      val readerContext = new SparkContext(spark.conf)
-      val data = spark.read.csv(partitionedFile.filePath)
-      //data.show()
-
-      val hadoopFs = path.getFileSystem(serializableConf.value)
-
-      val isGzip =
-        CompressionUtils.isGzip(partitionedFile, serializableConf.value)
-
-      val offset: Option[(Long, Long)] =
-        if (isGzip && partitionedFile.start == 0) {
-          // Reading gzip file from beginning to end
-          val fileLength = hadoopFs.getFileStatus(path).getLen
-          Some((0, fileLength))
-        } else if (isGzip) {
-          // Skipping gzip file because task starts in the middle of the file
-          None
-        } else {
-          Some(
-            (
-              partitionedFile.start,
-              partitionedFile.start + partitionedFile.length
-            )
-          )
-        }
-
-      offset match {
-        case None =>
-          Iterator.empty
-
-        case Some((startPos, endPos)) =>
-          // need to read all as strings then convert to correct types as some numeric
-          // columns can have string values such as "."
-          val parserSchema = StructType(
-            gffCsvSchema
-              .fields
-              .filter(f =>
-                requiredSchema.fieldNames.contains(f.name) || f.name == attributesField.name)
-          )
-
-          val parser =
-            new UnivocityParser(gffCsvSchema, parserSchema, parsedOptions)
-
-          val lines = {
-            val linesReader = new HadoopLineIterator(
-              partitionedFile.filePath,
-              startPos,
-              endPos - startPos,
-              None,
-              serializableConf.value
-            )
-
-            Option(TaskContext.get()).foreach(
-              _.addTaskCompletionListener[Unit](_ => linesReader.close())
-            )
-
-            linesReader.map(
-              line =>
-                new String(
-                  line.getBytes,
-                  0,
-                  line.getLength,
-                  parser.options.charset
-                )
-            )
-          }
-
-          val filteredLines = filterCommentEmptyAndFasta(lines)
-
-          val rowConverter = new GffRowToInternalRowConverter(parserSchema, requiredSchema)
-
-          filteredLines.map(l => rowConverter.convertRow(parser.parse(l)))
-
-      }
-    }
-  }
-}
-
-object GffDataSource {
-
-  def createBaseDataset(
-      sparkSession: SparkSession,
-      inputPaths: Seq[FileStatus],
-      options: CSVOptions): DataFrame = {
-
-    val paths = inputPaths.map(_.getPath.toString)
-
-    sparkSession.baseRelationToDataFrame(
-      DataSource
-        .apply(
-          sparkSession,
-          paths = paths,
-          userSpecifiedSchema = Some(gffCsvSchema),
-          className = classOf[CSVFileFormat].getName,
-          options = options.parameters
+  def convertAttributesToMap(df: DataFrame): DataFrame = {
+    df.withColumn(
+        attributesMapColumnName,
+        expr(
+          s"""str_to_map(${attributesField.name},
+             | "$ATTRIBUTES_DELIMITER",
+             |  "$GFF3_TAG_VALUE_DELIMITER")""".stripMargin
         )
-        .resolveRelation(checkFilesExist = false)
-    )
+      )
   }
 
-  def updateAttributesToken(
-      currentToken: ParsedAttributesToken,
-      attrStr: String): ParsedAttributesToken = {
 
-    val attributes = attrStr.split(ATTRIBUTES_DELIMITER)
-    val updatedSep: Char = if (currentToken.sep.isEmpty) {
-      if (attributes(0).contains(GFF3_TAG_VALUE_DELIMITER)) {
-        GFF3_TAG_VALUE_DELIMITER
-      } else {
-        GTF_TAG_VALUE_DELIMITER
-      }
-    } else {
-      currentToken.sep.get
-    }
-
-    var i = 0
-    var updatedTags = currentToken.tags
-
-    while (i < attributes.length) {
-      updatedTags += attributes(i).takeWhile(_ != updatedSep).trim
-      i += 1
-    }
-
-    ParsedAttributesToken(Option(updatedSep), updatedTags)
-  }
-
-  def filterCommentEmptyAndFasta(iter: Iterator[String]): Iterator[String] = {
-    iter.filter { line =>
-      val trimmed = line.trim
-      trimmed.nonEmpty &&
-      !trimmed.startsWith(COMMENT_IDENTIFIER) &&
-      !trimmed.startsWith(CONTIG_IDENTIFIER) &&
-      !(trimmed.matches(FASTA_LINE_REGEX))
-    }
-  }
 
   def deUnderscore(s: String): String = {
     s.replaceAll("_", "")
   }
-
-  case class ParsedAttributesToken(sep: Option[Char], tags: Set[String])
 
   private[gff] val gffCsvSchema = StructType(
     gffBaseSchema
       .fields
       .toSeq
       .map(f => StructField(f.name, StringType))
-    :+ attributesField
+      :+ attributesField
   )
+
+  private[gff] val attributesMapColumnName = "attributesMap"
 
   private[gff] val COLUMN_DELIMITER = "\t"
   private[gff] val ATTRIBUTES_DELIMITER = ";"
-  private[gff] val GFF3_TAG_VALUE_DELIMITER = '='
-  private[gff] val GTF_TAG_VALUE_DELIMITER = ' '
+  private[gff] val GFF3_TAG_VALUE_DELIMITER = "="
+  private[gff] val GTF_TAG_VALUE_DELIMITER = " "
   private[gff] val COMMENT_IDENTIFIER = "#"
   private[gff] val CONTIG_IDENTIFIER = ">"
   private[gff] val FASTA_LINE_REGEX = "(?i)[acgt]*"
