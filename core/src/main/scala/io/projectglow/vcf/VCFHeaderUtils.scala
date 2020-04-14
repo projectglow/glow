@@ -103,19 +103,23 @@ object VCFHeaderUtils extends GlowLogging {
   }
 
   /**
-   * Find the unique header lines from an RDD of VCF headers.
+   * Find the unique desired header lines from an RDD of VCF headers.
    * If lines of the same class found with the same ID, we pick one unless they are incompatible.
    * If there are incompatible lines, [[IllegalArgumentException]] is thrown.
    * Incompatible lines are:
    * - FORMAT or INFO lines with the same ID but different types or counts
    * - contig lines with the same ID but different lengths
    */
-  def getUniqueHeaderLines(headers: RDD[VCFHeader]): Seq[VCFHeaderLine] = {
+  def getUniqueHeaderLines(
+      headers: RDD[VCFHeader],
+      getNonSchemaHeaderLines: Boolean): Seq[VCFHeaderLine] = {
     headers.flatMap { header =>
       val infoHeaderLines = header.getInfoHeaderLines.asScala
       val formatHeaderLines = header.getFormatHeaderLines.asScala
-      val contigHeaderLines = header.getContigLines.asScala
-      val filterHeaderLines = header.getFilterLines.asScala
+      val contigHeaderLines =
+        if (getNonSchemaHeaderLines) header.getContigLines.asScala else Seq.empty
+      val filterHeaderLines =
+        if (getNonSchemaHeaderLines) header.getFilterLines.asScala else Seq.empty
       infoHeaderLines ++ formatHeaderLines ++ contigHeaderLines ++ filterHeaderLines
     }.keyBy(line => (line.getClass.getName, line.getID))
       .reduceByKey {
@@ -138,16 +142,22 @@ object VCFHeaderUtils extends GlowLogging {
               s"and $line2. Header lines with the same ID must have the same length.")
           }
         case (line1: VCFFilterHeaderLine, _: VCFFilterHeaderLine) => line1
+        case (line1, _) =>
+          throw new IllegalArgumentException(
+            s"Collected unexpected header line type: ${line1.getClass.getName}")
       }
       .values
       .collect()
   }
 
   /**
-   * A convenience function to parse the headers from a set of VCF files and return the unique
+   * A convenience function to parse the headers from a set of VCF files and return the unique desired
    * header lines.
    */
-  def readHeaderLines(spark: SparkSession, files: Seq[String]): Seq[VCFHeaderLine] = {
-    getUniqueHeaderLines(createHeaderRDD(spark, files))
+  def readHeaderLines(
+      spark: SparkSession,
+      files: Seq[String],
+      getNonSchemaHeaderLines: Boolean): Seq[VCFHeaderLine] = {
+    getUniqueHeaderLines(createHeaderRDD(spark, files), getNonSchemaHeaderLines)
   }
 }
