@@ -109,18 +109,24 @@ object VCFHeaderUtils extends GlowLogging {
    * Incompatible lines are:
    * - FORMAT or INFO lines with the same ID but different types or counts
    * - contig lines with the same ID but different lengths
+   *
+   * @param headers VCF headers to parse header lines from
+   * @param getNonSchemaHeaderLines If false, parses only INFO and FORMAT lines.
+   *                                If true, also parses contig and filter lines.
    */
   def getUniqueHeaderLines(
       headers: RDD[VCFHeader],
       getNonSchemaHeaderLines: Boolean): Seq[VCFHeaderLine] = {
     headers.flatMap { header =>
-      val infoHeaderLines = header.getInfoHeaderLines.asScala
-      val formatHeaderLines = header.getFormatHeaderLines.asScala
-      val contigHeaderLines =
-        if (getNonSchemaHeaderLines) header.getContigLines.asScala else Seq.empty
-      val filterHeaderLines =
-        if (getNonSchemaHeaderLines) header.getFilterLines.asScala else Seq.empty
-      infoHeaderLines ++ formatHeaderLines ++ contigHeaderLines ++ filterHeaderLines
+      val schemaHeaderLines = header.getInfoHeaderLines.asScala ++ header
+          .getFormatHeaderLines
+          .asScala
+      val nonSchemaHeaderLines = if (getNonSchemaHeaderLines) {
+        header.getContigLines.asScala ++ header.getFilterLines.asScala
+      } else {
+        Seq.empty
+      }
+      schemaHeaderLines ++ nonSchemaHeaderLines
     }.keyBy(line => (line.getClass.getName, line.getID))
       .reduceByKey {
         case (line1: VCFCompoundHeaderLine, line2: VCFCompoundHeaderLine) =>
@@ -151,8 +157,12 @@ object VCFHeaderUtils extends GlowLogging {
   }
 
   /**
-   * A convenience function to parse the headers from a set of VCF files and return the unique desired
+   * A convenience function to parse the headers from a set of VCF files and return the desired
    * header lines.
+   *
+   * @param files VCF files to parse header lines from
+   * @param getNonSchemaHeaderLines If false, parses only INFO and FORMAT lines.
+   *                                If true, also parses contig and filter lines.
    */
   def readHeaderLines(
       spark: SparkSession,
