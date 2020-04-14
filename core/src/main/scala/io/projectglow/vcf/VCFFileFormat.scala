@@ -480,7 +480,7 @@ private[vcf] object SchemaDelegate {
     val infoHeaderLines = ArrayBuffer[VCFInfoHeaderLine]()
     val formatHeaderLines = ArrayBuffer[VCFFormatHeaderLine]()
     VCFHeaderUtils
-      .readHeaderLines(spark, files.map(_.getPath.toString))
+      .readHeaderLines(spark, files.map(_.getPath.toString), getNonSchemaHeaderLines = false)
       .foreach {
         case i: VCFInfoHeaderLine => infoHeaderLines += i
         case f: VCFFormatHeaderLine => formatHeaderLines += f
