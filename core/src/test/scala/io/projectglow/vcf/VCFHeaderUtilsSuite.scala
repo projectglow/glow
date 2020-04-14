@@ -228,4 +228,13 @@ class VCFHeaderUtilsSuite extends GlowBaseTest {
     val paths = writeVCFHeaders(Seq(file1, file2))
     VCFHeaderUtils.readHeaderLines(spark, paths) // no exception
   }
+
+  test("does not try to read tabix indices") {
+    assert(
+      VCFHeaderUtils
+        .readHeaderLines(
+          spark,
+          Seq(s"$testDataHome/tabix-test-vcf/NA12878_21_10002403NoTbi.vcf.gz.tbi"))
+        .isEmpty)
+  }
 }
