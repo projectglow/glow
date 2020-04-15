@@ -182,7 +182,8 @@ object FeatureSchemas {
       endField,
       scoreField,
       strandField,
-      phaseField
+      phaseField,
+      attributesField
     )
   )
 

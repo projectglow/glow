@@ -16,15 +16,17 @@
 
 package io.projectglow.gff
 
+import java.text.Normalizer
+
 import io.projectglow.common.FeatureSchemas._
 import io.projectglow.gff.GffDataSource._
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql._
-import org.apache.spark.sql.catalyst.ScalaReflection
+import org.apache.spark.sql.catalyst.{InternalRow, ScalaReflection}
 import org.apache.spark.sql.catalyst.expressions.StringSplit
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.sources.{BaseRelation, DataSourceRegister, Filter, PrunedFilteredScan, RelationProvider, SchemaRelationProvider, TableScan}
+import org.apache.spark.sql.sources.{BaseRelation, DataSourceRegister, Filter, PrunedFilteredScan, PrunedScan, RelationProvider, SchemaRelationProvider, TableScan}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 
@@ -42,7 +44,14 @@ class GffDataSource extends RelationProvider with SchemaRelationProvider with Da
    */
   override def createRelation(sqlContext: SQLContext, parameters: Map[String, String]): BaseRelation = {
 
-    createRelation(sqlContext, parameters, null)
+    val path = parameters.get("path")
+    path match {
+      case Some(p) =>
+        val inferredSchema = inferSchema(sqlContext, p)
+        createRelation(sqlContext, parameters, inferredSchema)
+
+      case _ => throw new IllegalArgumentException("Path is required")
+    }
   }
 
   /**
@@ -57,17 +66,11 @@ class GffDataSource extends RelationProvider with SchemaRelationProvider with Da
     val path = parameters.get("path")
     path match {
       case Some(p) =>
-        val requiredSchema = if (schema == null) {
-          inferSchema (sqlContext, p)
-        } else {
-          schema
-        }
+        new GffResourceRelation(sqlContext, p, schema)
 
-        new GffResourceRelation(sqlContext, p, requiredSchema)
       case _ => throw new IllegalArgumentException("Path is required")
     }
   }
-
 }
 
 
@@ -75,50 +78,35 @@ class GffResourceRelation(
   val sqlContext: SQLContext,
   path: String,
   requiredSchema: StructType
-) extends BaseRelation with TableScan  { // TODO: investigate use of PrunedFilteredScan
+) extends BaseRelation with PrunedScan {
 
   private val spark = sqlContext.sparkSession
 
+  override def needConversion: Boolean = false
 
   override def schema: StructType = {
     requiredSchema
   }
 
 
-  override def buildScan(): RDD[Row] = {
+  override def buildScan(requiredColumns: Array[String]): RDD[Row] = {
     val csvDf = spark
       .read
-      .option("sep", COLUMN_DELIMITER)
-      .schema(GffDataSource.gffCsvSchema)
+      .options(csvReadOptions)
+      .schema(gffBaseSchema)
       .csv(path)
 
-    val dfWithMappedAttributes = convertAttributesToMap(
-      filterCommentsAndFasta(
-        csvDf
-      )
-    )
+    csvDf.show()
+
+    val dfWithMappedAttributes = addAttributesMapColumn(csvDf)
+
 
     requiredSchema.foldLeft(dfWithMappedAttributes)((df, f) =>
       f match {
         case f if structFieldsEqualExceptNullability(f, startField) =>
           df.withColumn(
             f.name,
-            col(f.name).cast(f.dataType) - 1
-          )
-        case f if structFieldsEqualExceptNullability(f, endField) =>
-          df.withColumn(
-            f.name,
-            col(f.name).cast(f.dataType)
-          )
-        case f if structFieldsEqualExceptNullability(f, scoreField) |
-          structFieldsEqualExceptNullability(f, strandField) |
-          structFieldsEqualExceptNullability(f, phaseField) =>
-          df.withColumn(
-            f.name,
-            when(
-              col(f.name) =!= lit(NULL_IDENTIFIER),
-              col(f.name).cast(f.dataType)
-            ).otherwise(lit(null))
+            col(f.name) - 1
           )
         case f => // TODO: To be completed (also rectify column names)
           df.withColumn(
@@ -127,8 +115,9 @@ class GffResourceRelation(
           )
       }
     )
-      .drop(attributesField.name, attributesMapColumnName) // TODO: Complete the option of keeping attributes field
-      .rdd
+      .drop(attributesMapColumnName) // TODO: Complete the option of keeping attributes field
+      .select(requiredColumns(0), requiredColumns.tail: _*)
+      .queryExecution.toRdd.asInstanceOf[RDD[Row]]
   }
 }
 
@@ -136,20 +125,17 @@ object GffDataSource {
 
   def inferSchema(sqlContext: SQLContext, path: String): StructType = {
     val spark = sqlContext.sparkSession
+
     val csvDf = spark
       .read
-      .option("sep", COLUMN_DELIMITER)
-      .schema(GffDataSource.gffCsvSchema)
+       .options(csvReadOptions)
+      .schema(gffBaseSchema)
       .csv(path)
 
 
-    val attributeTags = convertAttributesToMap(
-      filterCommentsAndFasta(
-        csvDf
-      )
-    )
+    val attributeTags = addAttributesMapColumn(csvDf)
       .select(attributesMapColumnName)
-      .withColumn(
+          .withColumn(
         attributesMapColumnName,
         explode(
           map_keys(
@@ -163,12 +149,17 @@ object GffDataSource {
         )
       )
       .collect()(0).getAs[Seq[String]](0)
+      .filter(!_.isEmpty)
 
-    // generate the schema. The field names will be case and underscore insensitive
+
+    // Generate the schema. Official fields will have names and types assigned in
+    // [[io.projectglow.common.FeatureSchemas.gffOfficialAttributeFields]]. Correspondence between
+    // attribute tags and official attribute field names will be case and underscore insensitive.
+    // Unofficial fields will have the same exact name as in attribute tag and will be of StringType.
     val officialAttributeFields =
       gffOfficialAttributeFields.foldLeft(Seq[StructField]()) { (s, f) =>
         if (attributeTags
-          .map(t => deUnderscore(t.toLowerCase))
+          .map(_.toLowerCase)
           .contains(f.name.toLowerCase)) {
           s :+ f
         } else {
@@ -176,13 +167,11 @@ object GffDataSource {
         }
       }
 
-    val remainingTags = attributeTags
-      .filter(
-        t =>
-          !officialAttributeFields
-            .map(_.name.toLowerCase)
-            .contains(deUnderscore(t.toLowerCase)) && !t.isEmpty
-      )
+    val remainingTags = attributeTags.filter(t =>
+      !officialAttributeFields
+        .map(_.name.toLowerCase)
+        .contains(deUnderscore(t.toLowerCase))
+    )
 
     val unofficialAttributeFields = remainingTags.foldLeft(Seq[StructField]()) { (s, t) =>
       s :+ StructField(t, StringType)
@@ -191,21 +180,10 @@ object GffDataSource {
     StructType(
       gffBaseSchema.fields ++ officialAttributeFields ++ unofficialAttributeFields
     )
-
   }
 
-  def filterCommentsAndFasta(df: DataFrame): DataFrame = {
-    df.where(
-        !gffCsvSchema.fieldNames.drop(1).foldLeft(lit(true))(
-          (f1, f2) =>
-            f1 && isnull(col(f2))
-        ) &&
-          substring(col(seqIdField.name), 1, 1) =!= lit(COMMENT_IDENTIFIER) &&
-          substring(col(seqIdField.name), 1, 1) =!= lit(CONTIG_IDENTIFIER)
-      )
-  }
 
-  def convertAttributesToMap(df: DataFrame): DataFrame = {
+  def addAttributesMapColumn(df: DataFrame): DataFrame = {
     df.withColumn(
         attributesMapColumnName,
         expr(
@@ -222,13 +200,6 @@ object GffDataSource {
     s.replaceAll("_", "")
   }
 
-  private[gff] val gffCsvSchema = StructType(
-    gffBaseSchema
-      .fields
-      .toSeq
-      .map(f => StructField(f.name, StringType))
-      :+ attributesField
-  )
 
   private[gff] val attributesMapColumnName = "attributesMap"
 
@@ -242,4 +213,10 @@ object GffDataSource {
   private[gff] val NULL_IDENTIFIER = "."
   private[gff] val ARRAY_DELIMITER = ","
 
+  private[gff] val csvReadOptions = Map(
+    "sep" -> COLUMN_DELIMITER,
+    "comment" -> COMMENT_IDENTIFIER,
+    "mode" -> "DROPMALFORMED",
+    "nullValue" -> NULL_IDENTIFIER
+  )
 }

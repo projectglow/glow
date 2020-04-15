@@ -16,6 +16,8 @@
 
 package io.projectglow.gff
 
+import java.text.Normalizer
+
 import io.projectglow.common.FeatureSchemas._
 import io.projectglow.gff.GffDataSource._
 import io.projectglow.sql.GlowBaseTest
@@ -28,6 +30,7 @@ class GffReaderSuite extends GlowBaseTest {
   lazy val testGff3 = s"$testRoot/test_gff_with_fasta.gff"
   lazy val testGff3Gzip = s"$testRoot/test_gff_with_fasta_gzip.gff.gz"
   lazy val testGff3Bgzip = s"$testRoot/test_gff_with_fasta_bgzip.gff.bgz"
+  lazy val testGff3BgzipWithGzSuffix = s"$testRoot/test_gff_with_fasta_bgzip.gff.bgz"
   lazy val testGffEmpty = s"$testRoot/test_gff_empty.gff"
 
   private val sourceName = "gff"
@@ -198,12 +201,10 @@ class GffReaderSuite extends GlowBaseTest {
       // .schema(testSchema)
       // .schema(StructType(gffBaseSchema.fields :+ attributesField))
       .format(sourceName)
-      .load("file:/Users/kiavash.kianfar/glow/test-data/gff/test_gff_with_fasta.gff")
-    //  .filter(""" type = "region" """)
+      .load(testGff3)
+        .select(seqIdField.name)
 
     df.printSchema()
-
-    // .load(s"$testRoot/GCF_000001405.39_GRCh38.p13_genomic.gff.bgz")
 
     df.show()
   }
