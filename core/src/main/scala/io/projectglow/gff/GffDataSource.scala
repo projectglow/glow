@@ -96,8 +96,9 @@ class GffResourceRelation(
       .fieldNames
       .filter(!gffBaseSchema.fieldNames.contains(_))
 
-    val dfWithMappedAttributes = addAttributesMapColumn(csvDf)
-
+    val dfWithMappedAttributes = normalizeAttributesMapKeys(
+      addAttributesMapColumn(csvDf)
+    )
 
     requiredSchema.foldLeft(dfWithMappedAttributes)((df, f) =>
       f match {
@@ -114,7 +115,10 @@ class GffResourceRelation(
           df.withColumn(
             f.name,
             if (dataTypesEqualExceptNullability(f.dataType, ArrayType(StringType))) {
-              split(element_at(col(attributesMapColumnName), normalizeString(f.name)), ",")
+              split(
+                element_at(col(attributesMapColumnName), normalizeString(f.name)),
+                ARRAY_DELIMITER
+              )
             } else {
               element_at(col(attributesMapColumnName), normalizeString(f.name))
                 .cast(f.dataType)
@@ -132,6 +136,25 @@ class GffResourceRelation(
 
 object GffDataSource {
 
+  private[gff] val attributesMapColumnName = "attributesMap"
+
+  private[gff] val COLUMN_DELIMITER = "\t"
+  private[gff] val ATTRIBUTES_DELIMITER = ";"
+  private[gff] val GFF3_TAG_VALUE_DELIMITER = "="
+  private[gff] val GTF_TAG_VALUE_DELIMITER = " "
+  private[gff] val COMMENT_IDENTIFIER = "#"
+  private[gff] val NULL_IDENTIFIER = "."
+  private[gff] val ARRAY_DELIMITER = ","
+
+  private[gff] val csvReadOptions = Map(
+    "sep" -> COLUMN_DELIMITER,
+    "comment" -> COMMENT_IDENTIFIER,
+    "mode" -> "DROPMALFORMED",
+    "nullValue" -> NULL_IDENTIFIER
+  )
+
+  private[gff] val officialFieldNames = gffOfficialAttributeFields.map(_.name)
+
   def inferSchema(sqlContext: SQLContext, path: String): StructType = {
     val spark = sqlContext.sparkSession
 
@@ -140,7 +163,6 @@ object GffDataSource {
        .options(csvReadOptions)
       .schema(gffBaseSchema)
       .csv(path)
-
 
     val attributeTags = addAttributesMapColumn(csvDf)
       .select(attributesMapColumnName)
@@ -160,7 +182,6 @@ object GffDataSource {
       .collect()(0).getAs[Seq[String]](0)
       .filter(!_.isEmpty)
 
-
     // Generate the schema
     // Names: All attribute fields will have names exactly as in tags.
     // Types: Official attribute fields will have the types in
@@ -168,9 +189,8 @@ object GffDataSource {
     //        official field names among tags are case-and-underscore-insensitive. Unofficial
     //        attribute fields will have StringType.
     // Ordering: gffBaseSchema fields come first, followed by official attributes fields as ordered
-    // in [[io.projectglow.common.FeatureSchemas.gffOfficialAttributeFields]], followed by unofficial
-    // attribute fields in case-insensitive alphabetical order.
-
+    //           in [[io.projectglow.common.FeatureSchemas.gffOfficialAttributeFields]], followed by
+    //           unofficial attribute fields in case-insensitive alphabetical order.
     val attributeFields = attributeTags.foldLeft(Seq[StructField]()) { (s, t) =>
       val officialIdx = officialFieldNames.indexOf(normalizeString(t))
       if (officialIdx > -1) {
@@ -185,19 +205,21 @@ object GffDataSource {
     )
   }
 
-
   def addAttributesMapColumn(df: DataFrame): DataFrame = {
     df.withColumn(
       attributesMapColumnName,
       expr(
         s"""str_to_map(
-        |       ${attributesField.name},
-        |       "$ATTRIBUTES_DELIMITER",
-        |       "$GFF3_TAG_VALUE_DELIMITER"
-        |   )""".stripMargin
+           |       ${attributesField.name},
+           |       "$ATTRIBUTES_DELIMITER",
+           |       "$GFF3_TAG_VALUE_DELIMITER"
+           |   )""".stripMargin
       )
     )
-      .withColumn(
+  }
+
+  def normalizeAttributesMapKeys(df: DataFrame): DataFrame = {
+      df.withColumn(
         attributesMapColumnName,
         map_from_arrays(
           expr(
@@ -211,33 +233,9 @@ object GffDataSource {
       )
   }
 
-
-
   def normalizeString(s: String): String = {
     s.toLowerCase.replaceAll("_", "")
   }
-
-
-  private[gff] val attributesMapColumnName = "attributesMap"
-
-  private[gff] val COLUMN_DELIMITER = "\t"
-  private[gff] val ATTRIBUTES_DELIMITER = ";"
-  private[gff] val GFF3_TAG_VALUE_DELIMITER = "="
-  private[gff] val GTF_TAG_VALUE_DELIMITER = " "
-  private[gff] val COMMENT_IDENTIFIER = "#"
-  private[gff] val CONTIG_IDENTIFIER = ">"
-  private[gff] val FASTA_LINE_REGEX = "(?i)[acgt]*"
-  private[gff] val NULL_IDENTIFIER = "."
-  private[gff] val ARRAY_DELIMITER = ","
-
-  private[gff] val csvReadOptions = Map(
-    "sep" -> COLUMN_DELIMITER,
-    "comment" -> COMMENT_IDENTIFIER,
-    "mode" -> "DROPMALFORMED",
-    "nullValue" -> NULL_IDENTIFIER
-  )
-
-  private[gff] val officialFieldNames = gffOfficialAttributeFields.map(_.name)
 
   object FieldNameOrdering extends Ordering[String] {
     def compare(a: String, b: String): Int = {
@@ -245,8 +243,8 @@ object GffDataSource {
       val bIdx = officialFieldNames.indexOf(normalizeString(b))
       (aIdx, bIdx) match {
         case (-1, -1) => a.compareToIgnoreCase(b)
-        case (-1, j) => 1
-        case (i, -1) => -1
+        case (-1, _) => 1
+        case (_, -1) => -1
         case (i, j) => i - j
       }
     }

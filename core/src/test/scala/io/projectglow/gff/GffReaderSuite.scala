@@ -189,15 +189,13 @@ class GffReaderSuite extends GlowBaseTest {
       )
     )
     val df = spark.read
-      // .schema(testSchema)
       .schema(
-      StructType(
-        gffBaseSchema.fields :+
-          StructField("Dbx_ref", StringType) :+
-          StructField("iscircular", StringType)
-
+        StructType(
+          gffBaseSchema.fields :+
+            StructField("Dbx_ref", StringType) :+
+            StructField("iscircular", StringType)
+        )
       )
-    )
       .format(sourceName)
       .load(testGff3)
     //  .select(seqIdField.name)
