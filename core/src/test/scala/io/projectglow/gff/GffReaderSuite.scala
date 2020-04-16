@@ -23,7 +23,7 @@ import io.projectglow.gff.GffDataSource._
 import io.projectglow.sql.GlowBaseTest
 
 import org.apache.spark.sql.Row
-import org.apache.spark.sql.types.{DoubleType, IntegerType, StringType, StructField, StructType}
+import org.apache.spark.sql.types.{ArrayType, BooleanType, StringType, StructField, StructType}
 
 class GffReaderSuite extends GlowBaseTest {
   lazy val testRoot = s"$testDataHome/gff"
@@ -126,17 +126,8 @@ class GffReaderSuite extends GlowBaseTest {
     )
     assert(dfRow == expectedRow)
   }
-/*
-  test("updateAttFieldsWithParsedTags") {
-    val currentToken = ParsedAttributesToken(None, Set(idField.name, nameField.name))
-    val attributes = s"${idField.name}=1234;${aliasField.name}=monkey"
-    val expected = ParsedAttributesToken(
-      Some(GFF3_TAG_VALUE_DELIMITER),
-      Set(idField.name, nameField.name, aliasField.name))
-    assert(updateAttributesToken(currentToken, attributes) == expected)
-  }
-*/
-  test("GFF file format does not support writing") {
+
+  /* test("GFF file format does not support writing") {
     val df = spark
       .read
       .format(sourceName)
@@ -145,7 +136,7 @@ class GffReaderSuite extends GlowBaseTest {
       df.write.format(sourceName).save("noop")
     }
     assert(e.getMessage.contains("GFF data source does not currently support writing."))
-  }
+  } */
 
   test("Read gff glob") {
     val df = spark
@@ -199,10 +190,17 @@ class GffReaderSuite extends GlowBaseTest {
     )
     val df = spark.read
       // .schema(testSchema)
-      // .schema(StructType(gffBaseSchema.fields :+ attributesField))
+      .schema(
+      StructType(
+        gffBaseSchema.fields :+
+          StructField("Dbx_ref", StringType) :+
+          StructField("iscircular", StringType)
+
+      )
+    )
       .format(sourceName)
       .load(testGff3)
-        .select(seqIdField.name)
+    //  .select(seqIdField.name)
 
     df.printSchema()
 

@@ -16,19 +16,15 @@
 
 package io.projectglow.gff
 
-import java.text.Normalizer
-
 import io.projectglow.common.FeatureSchemas._
 import io.projectglow.gff.GffDataSource._
 
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.SQLUtils.{dataTypesEqualExceptNullability, structFieldsEqualExceptNullability}
 import org.apache.spark.sql._
-import org.apache.spark.sql.catalyst.{InternalRow, ScalaReflection}
-import org.apache.spark.sql.catalyst.expressions.StringSplit
 import org.apache.spark.sql.functions._
-import org.apache.spark.sql.sources.{BaseRelation, DataSourceRegister, Filter, PrunedFilteredScan, PrunedScan, RelationProvider, SchemaRelationProvider, TableScan}
+import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 
 
 class GffDataSource extends RelationProvider with SchemaRelationProvider with DataSourceRegister {
@@ -43,14 +39,14 @@ class GffDataSource extends RelationProvider with SchemaRelationProvider with Da
    * @return Base relation
    */
   override def createRelation(sqlContext: SQLContext, parameters: Map[String, String]): BaseRelation = {
-
     val path = parameters.get("path")
     path match {
       case Some(p) =>
         val inferredSchema = inferSchema(sqlContext, p)
         createRelation(sqlContext, parameters, inferredSchema)
 
-      case _ => throw new IllegalArgumentException("Path is required")
+      case _ =>
+        throw new IllegalArgumentException("Path is required")
     }
   }
 
@@ -68,7 +64,8 @@ class GffDataSource extends RelationProvider with SchemaRelationProvider with Da
       case Some(p) =>
         new GffResourceRelation(sqlContext, p, schema)
 
-      case _ => throw new IllegalArgumentException("Path is required")
+      case _ =>
+        throw new IllegalArgumentException("Path is required")
     }
   }
 }
@@ -88,7 +85,6 @@ class GffResourceRelation(
     requiredSchema
   }
 
-
   override def buildScan(requiredColumns: Array[String]): RDD[Row] = {
     val csvDf = spark
       .read
@@ -96,7 +92,9 @@ class GffResourceRelation(
       .schema(gffBaseSchema)
       .csv(path)
 
-    csvDf.show()
+    val attributeColumnNamesInSchema = requiredSchema
+      .fieldNames
+      .filter(!gffBaseSchema.fieldNames.contains(_))
 
     val dfWithMappedAttributes = addAttributesMapColumn(csvDf)
 
@@ -108,14 +106,25 @@ class GffResourceRelation(
             f.name,
             col(f.name) - 1
           )
-        case f => // TODO: To be completed (also rectify column names)
+
+        // Correspond each column name to a tag in the map and extract the value to populate the
+        // column and cast it into the correct data type. The correspondence between tags and column
+        // names is case-and-underscore-insensitive.
+        case f if attributeColumnNamesInSchema.contains(f.name) =>
           df.withColumn(
             f.name,
-            element_at(col(attributesMapColumnName), f.name)
+            if (dataTypesEqualExceptNullability(f.dataType, ArrayType(StringType))) {
+              split(element_at(col(attributesMapColumnName), normalizeString(f.name)), ",")
+            } else {
+              element_at(col(attributesMapColumnName), normalizeString(f.name))
+                .cast(f.dataType)
+            }
           )
+        case _ =>
+          df
       }
     )
-      .drop(attributesMapColumnName) // TODO: Complete the option of keeping attributes field
+      .drop(attributesMapColumnName)
       .select(requiredColumns(0), requiredColumns.tail: _*)
       .queryExecution.toRdd.asInstanceOf[RDD[Row]]
   }
@@ -152,52 +161,60 @@ object GffDataSource {
       .filter(!_.isEmpty)
 
 
-    // Generate the schema. Official fields will have names and types assigned in
-    // [[io.projectglow.common.FeatureSchemas.gffOfficialAttributeFields]]. Correspondence between
-    // attribute tags and official attribute field names will be case and underscore insensitive.
-    // Unofficial fields will have the same exact name as in attribute tag and will be of StringType.
-    val officialAttributeFields =
-      gffOfficialAttributeFields.foldLeft(Seq[StructField]()) { (s, f) =>
-        if (attributeTags
-          .map(_.toLowerCase)
-          .contains(f.name.toLowerCase)) {
-          s :+ f
-        } else {
-          s
-        }
+    // Generate the schema
+    // Names: All attribute fields will have names exactly as in tags.
+    // Types: Official attribute fields will have the types in
+    //        [[io.projectglow.common.FeatureSchemas.gffOfficialAttributeFields]]. Detection of
+    //        official field names among tags are case-and-underscore-insensitive. Unofficial
+    //        attribute fields will have StringType.
+    // Ordering: gffBaseSchema fields come first, followed by official attributes fields as ordered
+    // in [[io.projectglow.common.FeatureSchemas.gffOfficialAttributeFields]], followed by unofficial
+    // attribute fields in case-insensitive alphabetical order.
+
+    val attributeFields = attributeTags.foldLeft(Seq[StructField]()) { (s, t) =>
+      val officialIdx = officialFieldNames.indexOf(normalizeString(t))
+      if (officialIdx > -1) {
+      s :+ StructField(t, gffOfficialAttributeFields(officialIdx).dataType)
+      } else {
+        s :+ StructField(t, StringType)
       }
-
-    val remainingTags = attributeTags.filter(t =>
-      !officialAttributeFields
-        .map(_.name.toLowerCase)
-        .contains(deUnderscore(t.toLowerCase))
-    )
-
-    val unofficialAttributeFields = remainingTags.foldLeft(Seq[StructField]()) { (s, t) =>
-      s :+ StructField(t, StringType)
-    }
+    }.sortBy(_.name)(FieldNameOrdering)
 
     StructType(
-      gffBaseSchema.fields ++ officialAttributeFields ++ unofficialAttributeFields
+      gffBaseSchema.fields.dropRight(1) ++ attributeFields
     )
   }
 
 
   def addAttributesMapColumn(df: DataFrame): DataFrame = {
     df.withColumn(
+      attributesMapColumnName,
+      expr(
+        s"""str_to_map(
+        |       ${attributesField.name},
+        |       "$ATTRIBUTES_DELIMITER",
+        |       "$GFF3_TAG_VALUE_DELIMITER"
+        |   )""".stripMargin
+      )
+    )
+      .withColumn(
         attributesMapColumnName,
-        expr(
-          s"""str_to_map(${attributesField.name},
-             | "$ATTRIBUTES_DELIMITER",
-             |  "$GFF3_TAG_VALUE_DELIMITER")""".stripMargin
+        map_from_arrays(
+          expr(
+            s"""transform(
+            |       map_keys($attributesMapColumnName),
+            |       k -> regexp_replace(lower(k), "_", "")
+            |   )""".stripMargin
+          ),
+          map_values(col(attributesMapColumnName))
         )
       )
   }
 
 
 
-  def deUnderscore(s: String): String = {
-    s.replaceAll("_", "")
+  def normalizeString(s: String): String = {
+    s.toLowerCase.replaceAll("_", "")
   }
 
 
@@ -219,4 +236,19 @@ object GffDataSource {
     "mode" -> "DROPMALFORMED",
     "nullValue" -> NULL_IDENTIFIER
   )
+
+  private[gff] val officialFieldNames = gffOfficialAttributeFields.map(_.name)
+
+  object FieldNameOrdering extends Ordering[String] {
+    def compare(a: String, b: String): Int = {
+      val aIdx = officialFieldNames.indexOf(normalizeString(a))
+      val bIdx = officialFieldNames.indexOf(normalizeString(b))
+      (aIdx, bIdx) match {
+        case (-1, -1) => a.compareToIgnoreCase(b)
+        case (-1, j) => 1
+        case (i, -1) => -1
+        case (i, j) => i - j
+      }
+    }
+  }
 }

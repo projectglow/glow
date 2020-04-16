@@ -156,18 +156,18 @@ object FeatureSchemas {
   val phaseField = StructField("phase", IntegerType)
   val attributesField = StructField("attributes", StringType)
 
-  // GFF3 tags
+  // GFF3 tags (names are in all lower case for correct column ordering by the reader)
   val idField = StructField("id", StringType)
   val nameField = StructField("name", StringType)
   val aliasField = StructField("alias", ArrayType(StringType))
   val parentField = StructField("parent", ArrayType(StringType))
   val targetField = StructField("target", StringType)
   val gapField = StructField("gap", StringType)
-  val derivesFromField = StructField("derivesFrom", StringType)
+  val derivesFromField = StructField("derivesfrom", StringType)
   val noteField = StructField("note", ArrayType(StringType))
   val dbxrefField = StructField("dbxref", ArrayType(StringType))
-  val ontologyTermField = StructField("ontologyTerm", ArrayType(StringType))
-  val isCircularField = StructField("isCircular", BooleanType)
+  val ontologyTermField = StructField("ontologyterm", ArrayType(StringType))
+  val isCircularField = StructField("iscircular", BooleanType)
 
   // GTF specific tags
   val geneIdField = StructField("geneId", StringType)
