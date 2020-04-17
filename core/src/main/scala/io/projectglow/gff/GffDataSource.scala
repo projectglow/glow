@@ -56,7 +56,8 @@ class GffDataSource
   }
 
   /**
-   * Creates relation with user schema
+   * Creates relation with user schema. User-specified schema can have a subset of attribute columns
+   * as they will be parsed out of "attributes" column
    *
    * @param sqlContext spark sql context
    * @param parameters parameters for job

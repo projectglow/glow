@@ -54,6 +54,30 @@ class GffReaderSuite extends GlowBaseTest {
     StructField("transcript_id", StringType)
   )
 
+  private val testSchemaAllSmall = StructType(
+    gffBaseSchema.fields :+
+    StructField("dbxref", ArrayType(StringType))
+    :+ StructField("iscircular", BooleanType)
+  )
+
+  private val testSchemaMixedCase = StructType(
+    gffBaseSchema.fields :+
+    StructField("Dbxref", ArrayType(StringType))
+    :+ StructField("isCircular", BooleanType)
+  )
+
+  private val testSchemaWithUnderscore = StructType(
+    gffBaseSchema.fields :+
+    StructField("dbx_Ref", ArrayType(StringType))
+    :+ StructField("is_Circular", BooleanType)
+  )
+
+  private val testSchemaExpected = StructType(
+    gffBaseSchema.fields :+
+    StructField("Dbxref", ArrayType(StringType))
+    :+ StructField("Is_circular", BooleanType)
+  )
+
   test("Schema inference") {
     val df = spark
       .read
@@ -65,6 +89,34 @@ class GffReaderSuite extends GlowBaseTest {
     )
 
     assert(df.schema.equals(expectedSchema))
+  }
+
+  gridTest("Case-and-underscore-insensitive attribute column names in user-specified schema")(
+    Seq(testSchemaAllSmall, testSchemaMixedCase, testSchemaWithUnderscore)
+  ) { s =>
+    val dfRow = spark
+      .read
+      .format(sourceName)
+      .schema(s)
+      .load(testGff3)
+      .orderBy("seqId", "start")
+      .take(1)(0)
+
+    val expectedRow = Row(
+      "NC_000001.11",
+      "RefSeq",
+      "region",
+      0,
+      248956422,
+      null,
+      "+",
+      1,
+      "ID=NC_000001.11:1..248956422;Dbxref=taxon:9606,test;Name=1;chromosome=1;" +
+      "gbkey=Src;genome=chromosome;mol_type=genomic DNA;Is_circular=false",
+      Array("taxon:9606", "test").toSeq,
+      false
+    )
+    assert(dfRow == expectedRow)
   }
 
   gridTest("Read gff3, gzipped gff3 and bgzipped gff3 with inferred schema")(
