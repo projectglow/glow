@@ -144,9 +144,8 @@ object VariantSchemas {
 }
 
 object FeatureSchemas {
-
   // GFF fields
-  val seqIdField = StructField("seqid", StringType)
+  val seqIdField = StructField("seqId", StringType)
   val sourceField = StructField("source", StringType)
   val typeField = StructField("type", StringType)
   val startField = StructField("start", LongType)

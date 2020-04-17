@@ -16,58 +16,59 @@
 
 package io.projectglow.gff
 
-import java.text.Normalizer
-
 import io.projectglow.common.FeatureSchemas._
-import io.projectglow.gff.GffDataSource._
 import io.projectglow.sql.GlowBaseTest
 
 import org.apache.spark.sql.Row
-import org.apache.spark.sql.types.{ArrayType, BooleanType, StringType, StructField, StructType}
+import org.apache.spark.sql.types._
 
 class GffReaderSuite extends GlowBaseTest {
   lazy val testRoot = s"$testDataHome/gff"
   lazy val testGff3 = s"$testRoot/test_gff_with_fasta.gff"
   lazy val testGff3Gzip = s"$testRoot/test_gff_with_fasta_gzip.gff.gz"
   lazy val testGff3Bgzip = s"$testRoot/test_gff_with_fasta_bgzip.gff.bgz"
-  lazy val testGff3BgzipWithGzSuffix = s"$testRoot/test_gff_with_fasta_bgzip.gff.bgz"
+  lazy val testGff3BgzipWithGzSuffix = s"$testRoot/test_gff_with_fasta_bgzip.gff.gz"
   lazy val testGffEmpty = s"$testRoot/test_gff_empty.gff"
 
   private val sourceName = "gff"
 
-  // TODO: Add tests
+  private val testOfficialFields = Seq(
+    StructField("ID", StringType),
+    StructField("Name", StringType),
+    StructField("Parent", ArrayType(StringType)),
+    StructField("Dbxref", ArrayType(StringType)),
+    StructField("Is_circular", BooleanType)
+  )
 
-  test("schema") {
-    val unofficialFields = Seq(
-      StructField("description", StringType),
-      StructField("gene_biotype", StringType),
-      StructField("gene_synonym", StringType),
-      StructField("chromosome", StringType),
-      StructField("transcript_id", StringType),
-      StructField("gbkey", StringType),
-      StructField("genome", StringType),
-      StructField("mol_type", StringType),
-      StructField("gene", StringType),
-      StructField("pseudo", StringType),
-      StructField("product", StringType)
-    )
+  private val testUnofficialFields = Seq(
+    StructField("chromosome", StringType),
+    StructField("description", StringType),
+    StructField("gbkey", StringType),
+    StructField("gene", StringType),
+    StructField("gene_biotype", StringType),
+    StructField("gene_synonym", StringType),
+    StructField("genome", StringType),
+    StructField("mol_type", StringType),
+    StructField("product", StringType),
+    StructField("pseudo", StringType),
+    StructField("transcript_id", StringType)
+  )
 
-    val expectedSchema = StructType(
-      gffBaseSchema.fields.toSeq ++
-      Seq(idField, nameField, parentField, dbxrefField, isCircularField) ++
-      unofficialFields
-    )
+  test("Schema inference") {
     val df = spark
       .read
       .format(sourceName)
       .load(testGff3)
 
+    val expectedSchema = StructType(
+      gffBaseSchema.fields.dropRight(1) ++ testOfficialFields ++ testUnofficialFields
+    )
+
     assert(df.schema.equals(expectedSchema))
   }
 
-
   gridTest("Read gff3, gzipped gff3 and bgzipped gff3 with inferred schema")(
-    Seq(testGff3, testGff3Gzip, testGff3Bgzip)
+    Seq(testGff3, testGff3Gzip, testGff3Bgzip, testGff3BgzipWithGzSuffix)
   ) { file =>
     val dfRow = spark
       .read
@@ -88,26 +89,32 @@ class GffReaderSuite extends GlowBaseTest {
       "NC_000001.11:1..248956422",
       "1",
       null,
-      Seq("taxon:9606", "test"),
+      Array("taxon:9606", "test").toSeq,
       false,
-      null,
-      null,
-      null,
       "1",
       null,
       "Src",
+      null,
+      null,
+      null,
       "chromosome",
       "genomic DNA",
       null,
       null,
       null
     )
+
     assert(dfRow == expectedRow)
   }
 
-  test("Read gff with user specified schema containing attributesField") {
-    val dfRow = spark.read
-      .schema(StructType(gffBaseSchema.fields :+ attributesField))
+  test("Read gff with user-specified schema containing attributesField") {
+    val schemaWithAttributesField = StructType(
+      gffBaseSchema.fields ++ testOfficialFields ++ testUnofficialFields
+    )
+
+    val dfRow = spark
+      .read
+      .schema(schemaWithAttributesField)
       .format(sourceName)
       .load(testGff3)
       .orderBy("seqId", "start")
@@ -122,21 +129,37 @@ class GffReaderSuite extends GlowBaseTest {
       null,
       "+",
       1,
-      "ID=NC_000001.11:1..248956422;Dbxref=taxon:9606,test;Name=1;chromosome=1;gbkey=Src;genome=chromosome;mol_type=genomic DNA;Is_circular=false"
+      "ID=NC_000001.11:1..248956422;Dbxref=taxon:9606,test;Name=1;chromosome=1;" +
+      "gbkey=Src;genome=chromosome;mol_type=genomic DNA;Is_circular=false",
+      "NC_000001.11:1..248956422",
+      "1",
+      null,
+      Array("taxon:9606", "test").toSeq,
+      false,
+      "1",
+      null,
+      "Src",
+      null,
+      null,
+      null,
+      "chromosome",
+      "genomic DNA",
+      null,
+      null,
+      null
     )
     assert(dfRow == expectedRow)
   }
 
-  /* test("GFF file format does not support writing") {
+  // See the comment in io.projectglow.gff.GffResourceRelation.buildScan on use of filterFastaLines
+  test("df.count vs df.rdd.count") {
     val df = spark
       .read
       .format(sourceName)
       .load(testGff3)
-    val e = intercept[UnsupportedOperationException] {
-      df.write.format(sourceName).save("noop")
-    }
-    assert(e.getMessage.contains("GFF data source does not currently support writing."))
-  } */
+    assert(df.count() == 20)
+    assert(df.count() == df.rdd.count())
+  }
 
   test("Read gff glob") {
     val df = spark
@@ -144,65 +167,31 @@ class GffReaderSuite extends GlowBaseTest {
       .format(sourceName)
       .load(s"$testRoot/*")
 
-    assert(df.count() == 60)
-    assert(df.filter("start == 0").count() == 3)
+    assert(df.count() == 80)
+    assert(df.filter("start == 0").count() == 4)
   }
 
   test("Read empty gff") {
-    val df = spark.read
+    val df = spark
+      .read
       .format(sourceName)
       .load(testGffEmpty)
 
-    assert(df.count() == 0)
-    assert(df.schema == gffBaseSchema)
+    assert(df.schema == StructType(gffBaseSchema.fields.dropRight(1)))
+    assert(df.count() == 0) // requiredColumns will be empty
+    assert(df.rdd.count() == 0) // requiredColumns will be nonEmpty
+
   }
 
-  test("Read gff with user specified schema containing attributes subfields") {
-    val df = spark.read
-      .schema(
-        StructType(
-          gffBaseSchema.fields ++ Seq(
-            idField,
-            isCircularField,
-            dbxrefField,
-            StructField("gene", StringType)
-          )
-        )
-      ).format(sourceName)
-      .load(testGff3)
-
-    df.show()
-  }
-
-  test("test gff") {
-    val testSchema = StructType(
-      Seq(
-        seqIdField,
-        sourceField,
-        typeField,
-        startField,
-        endField,
-        StructField("score", StringType),
-        strandField,
-        StructField("phase", StringType),
-        attributesField
-      )
-    )
-    val df = spark.read
-      .schema(
-        StructType(
-          gffBaseSchema.fields :+
-            StructField("Dbx_ref", StringType) :+
-            StructField("iscircular", StringType)
-        )
-      )
+  test("GFF file format does not support writing") {
+    val df = spark
+      .read
       .format(sourceName)
       .load(testGff3)
-    //  .select(seqIdField.name)
-
-    df.printSchema()
-
-    df.show()
+    val e = intercept[UnsupportedOperationException] {
+      df.write.format(sourceName).save("noop")
+    }
+    assert(e.getMessage.contains("GFF data source does not support writing!"))
   }
 
 }

@@ -26,8 +26,11 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types._
 
-
-class GffDataSource extends RelationProvider with SchemaRelationProvider with DataSourceRegister {
+class GffDataSource
+    extends RelationProvider
+    with SchemaRelationProvider
+    with CreatableRelationProvider
+    with DataSourceRegister {
 
   override def shortName(): String = "gff"
 
@@ -38,7 +41,9 @@ class GffDataSource extends RelationProvider with SchemaRelationProvider with Da
    * @param parameters parameters for job
    * @return Base relation
    */
-  override def createRelation(sqlContext: SQLContext, parameters: Map[String, String]): BaseRelation = {
+  override def createRelation(
+      sqlContext: SQLContext,
+      parameters: Map[String, String]): BaseRelation = {
     val path = parameters.get("path")
     path match {
       case Some(p) =>
@@ -58,7 +63,10 @@ class GffDataSource extends RelationProvider with SchemaRelationProvider with Da
    * @param schema     user defined schema
    * @return Base relation
    */
-  override def createRelation(sqlContext: SQLContext, parameters: Map[String, String], schema: StructType): BaseRelation = {
+  override def createRelation(
+      sqlContext: SQLContext,
+      parameters: Map[String, String],
+      schema: StructType): BaseRelation = {
     val path = parameters.get("path")
     path match {
       case Some(p) =>
@@ -68,69 +76,118 @@ class GffDataSource extends RelationProvider with SchemaRelationProvider with Da
         throw new IllegalArgumentException("Path is required")
     }
   }
+
+  /**
+   * Saves a DataFrame to a destination (not supported in this DataSource.)
+   */
+  override def createRelation(
+      sqlContext: SQLContext,
+      mode: SaveMode,
+      parameters: Map[String, String],
+      data: DataFrame): BaseRelation = {
+    throw new UnsupportedOperationException(
+      "GFF data source does not support writing!"
+    )
+  }
 }
 
-
 class GffResourceRelation(
-  val sqlContext: SQLContext,
-  path: String,
-  requiredSchema: StructType
-) extends BaseRelation with PrunedScan {
+    val sqlContext: SQLContext,
+    path: String,
+    requiredSchema: StructType
+) extends BaseRelation
+    with PrunedScan {
 
   private val spark = sqlContext.sparkSession
 
+  // To be able to use RDD[InternalRow] asInstanceOf RDD[Row] in buildScan
   override def needConversion: Boolean = false
 
   override def schema: StructType = {
     requiredSchema
   }
 
+  /**
+   * buildScan for a BaseRelation that can eliminate unneeded columns before producing an RDD.
+   * It uses csv data source to read the gff file. In addition to base columns, it parses
+   * "attributes" column to populate the flattened attribute columns in the schema in correct
+   * data type. If schema contains "attributes" columns the original attributes
+   * column will be included as well.
+   *
+   * @param requiredColumns
+   * @return: generated RDD[Rows]
+   */
   override def buildScan(requiredColumns: Array[String]): RDD[Row] = {
+
+    val originalColumnPruning: Boolean =
+      spark.conf.get(columnPruningConf).toBoolean
+
+    // csv column pruning is turned off temporarily for the malformed rows to/ get filtered
+    // by DROPMALFORMED option of csv reader no matter which columns are selected
+    // in the query. See https://issues.apache.org/jira/browse/SPARK-28058
+    if (originalColumnPruning) {
+      spark.conf.set(columnPruningConf, false)
+    }
+
     val csvDf = spark
       .read
       .options(csvReadOptions)
       .schema(gffBaseSchema)
       .csv(path)
 
-    val attributeColumnNamesInSchema = requiredSchema
+    val attributeColumnNamesInSchema = schema
       .fieldNames
       .filter(!gffBaseSchema.fieldNames.contains(_))
 
     val dfWithMappedAttributes = normalizeAttributesMapKeys(
-      addAttributesMapColumn(csvDf)
+      addAttributesMapColumn(
+        // Although DROPMALFORMED option is used, due to a bug in Spark 2.4.4 and before
+        // (see https://issues.apache.org/jira/browse/SPARK-29101), the DataFrame.count() function
+        // still includes malformed rows in the count. Therefore, for the count function to work
+        // correctly on DataFrames created by gff data source we need to explicitly filter fasta lines.
+        // TODO: Remove this after upgrade to Spark 2.4.5 and above
+        filterFastaLines(csvDf)
+      )
     )
 
-    requiredSchema.foldLeft(dfWithMappedAttributes)((df, f) =>
-      f match {
-        case f if structFieldsEqualExceptNullability(f, startField) =>
-          df.withColumn(
-            f.name,
-            col(f.name) - 1
-          )
+    val finalRdd = schema
+      .foldLeft(dfWithMappedAttributes)((df, f) =>
+        f match {
+          case f if structFieldsEqualExceptNullability(f, startField) =>
+            df.withColumn(
+              f.name,
+              col(f.name) - 1
+            )
 
-        // Correspond each column name to a tag in the map and extract the value to populate the
-        // column and cast it into the correct data type. The correspondence between tags and column
-        // names is case-and-underscore-insensitive.
-        case f if attributeColumnNamesInSchema.contains(f.name) =>
-          df.withColumn(
-            f.name,
-            if (dataTypesEqualExceptNullability(f.dataType, ArrayType(StringType))) {
-              split(
-                element_at(col(attributesMapColumnName), normalizeString(f.name)),
-                ARRAY_DELIMITER
-              )
-            } else {
-              element_at(col(attributesMapColumnName), normalizeString(f.name))
-                .cast(f.dataType)
-            }
-          )
-        case _ =>
-          df
-      }
-    )
+          // Correspond each column name to a tag in the map and extract the value to populate the
+          // column and cast it into the correct data type. The correspondence between tags and column
+          // names is case-and-underscore-insensitive.
+          case f if attributeColumnNamesInSchema.contains(f.name) =>
+            df.withColumn(
+              f.name,
+              if (dataTypesEqualExceptNullability(f.dataType, ArrayType(StringType))) {
+                split(
+                  element_at(col(attributesMapColumnName), normalizeString(f.name)),
+                  ARRAY_DELIMITER
+                )
+              } else {
+                element_at(col(attributesMapColumnName), normalizeString(f.name))
+                  .cast(f.dataType)
+              }
+            )
+
+          case _ =>
+            df
+        })
       .drop(attributesMapColumnName)
-      .select(requiredColumns(0), requiredColumns.tail: _*)
-      .queryExecution.toRdd.asInstanceOf[RDD[Row]]
+      .select(requiredColumns.map(col(_)): _*)
+      .queryExecution
+      .toRdd
+      .asInstanceOf[RDD[Row]]
+
+    spark.conf.set(columnPruningConf, originalColumnPruning)
+
+    finalRdd
   }
 }
 
@@ -153,20 +210,48 @@ object GffDataSource {
     "nullValue" -> NULL_IDENTIFIER
   )
 
+  private[gff] val columnPruningConf = "spark.sql.csv.parser.columnPruning.enabled"
+
   private[gff] val officialFieldNames = gffOfficialAttributeFields.map(_.name)
 
+  /**
+   * Infers the schema by reading the gff fileusing csv datasource and parsing the attributes fields
+   * to get official and unofficial attribute columns. Drops the original "attributes" column. Names,
+   * types and ordering of columns will be as follows:
+   * Names: All attribute fields will have names exactly as in tags.
+   * Types: Official attribute fields will have the types in
+   *       [[io.projectglow.common.FeatureSchemas.gffOfficialAttributeFields]]. Detection of
+   *       official field names among tags are case-and-underscore-insensitive. Unofficial
+   *       attribute fields will have StringType.
+   * Ordering: gffBaseSchema fields come first, followed by official attributes fields as ordered
+   *           in [[io.projectglow.common.FeatureSchemas.gffOfficialAttributeFields]], followed by
+   *           unofficial attribute fields in case-insensitive alphabetical order.
+   *
+   * @param sqlContext
+   * @param path: path to gff file or glob
+   * @return inferred schema
+   */
   def inferSchema(sqlContext: SQLContext, path: String): StructType = {
     val spark = sqlContext.sparkSession
 
+    val originalColumnPruning: Boolean =
+      spark.conf.get(columnPruningConf).toBoolean
+
+    // csv column pruning is turned off temporarily for the malformed rows (such as Fasta rows) to
+    // get filtered by DROPMALFORMED mode option of csv reader no matter which columns are selected
+    // in the query. See https://issues.apache.org/jira/browse/SPARK-28058
+    if (originalColumnPruning) {
+      spark.conf.set(columnPruningConf, false)
+    }
+
     val csvDf = spark
       .read
-       .options(csvReadOptions)
+      .options(csvReadOptions)
       .schema(gffBaseSchema)
       .csv(path)
 
     val attributeTags = addAttributesMapColumn(csvDf)
-      .select(attributesMapColumnName)
-          .withColumn(
+      .withColumn(
         attributesMapColumnName,
         explode(
           map_keys(
@@ -179,26 +264,22 @@ object GffDataSource {
           attributesMapColumnName
         )
       )
-      .collect()(0).getAs[Seq[String]](0)
+      .collect()(0)
+      .getAs[Seq[String]](0)
       .filter(!_.isEmpty)
 
-    // Generate the schema
-    // Names: All attribute fields will have names exactly as in tags.
-    // Types: Official attribute fields will have the types in
-    //        [[io.projectglow.common.FeatureSchemas.gffOfficialAttributeFields]]. Detection of
-    //        official field names among tags are case-and-underscore-insensitive. Unofficial
-    //        attribute fields will have StringType.
-    // Ordering: gffBaseSchema fields come first, followed by official attributes fields as ordered
-    //           in [[io.projectglow.common.FeatureSchemas.gffOfficialAttributeFields]], followed by
-    //           unofficial attribute fields in case-insensitive alphabetical order.
-    val attributeFields = attributeTags.foldLeft(Seq[StructField]()) { (s, t) =>
-      val officialIdx = officialFieldNames.indexOf(normalizeString(t))
-      if (officialIdx > -1) {
-      s :+ StructField(t, gffOfficialAttributeFields(officialIdx).dataType)
-      } else {
-        s :+ StructField(t, StringType)
+    spark.conf.set(columnPruningConf, originalColumnPruning)
+
+    val attributeFields = attributeTags
+      .foldLeft(Seq[StructField]()) { (s, t) =>
+        val officialIdx = officialFieldNames.indexOf(normalizeString(t))
+        if (officialIdx > -1) {
+          s :+ StructField(t, gffOfficialAttributeFields(officialIdx).dataType)
+        } else {
+          s :+ StructField(t, StringType)
+        }
       }
-    }.sortBy(_.name)(FieldNameOrdering)
+      .sortBy(_.name)(FieldNameOrdering)
 
     StructType(
       gffBaseSchema.fields.dropRight(1) ++ attributeFields
@@ -219,18 +300,30 @@ object GffDataSource {
   }
 
   def normalizeAttributesMapKeys(df: DataFrame): DataFrame = {
-      df.withColumn(
-        attributesMapColumnName,
-        map_from_arrays(
-          expr(
-            s"""transform(
+    df.withColumn(
+      attributesMapColumnName,
+      map_from_arrays(
+        expr(
+          s"""transform(
             |       map_keys($attributesMapColumnName),
             |       k -> regexp_replace(lower(k), "_", "")
             |   )""".stripMargin
-          ),
-          map_values(col(attributesMapColumnName))
-        )
+        ),
+        map_values(col(attributesMapColumnName))
       )
+    )
+  }
+
+  def filterFastaLines(df: DataFrame): DataFrame = {
+    df.where(
+      !gffBaseSchema
+        .fieldNames
+        .drop(1)
+        .dropRight(1)
+        .foldLeft(lit(true))(
+          (f1, f2) => f1 && isnull(col(f2))
+        )
+    )
   }
 
   def normalizeString(s: String): String = {
