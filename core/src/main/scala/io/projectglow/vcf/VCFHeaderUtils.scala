@@ -92,27 +92,41 @@ object VCFHeaderUtils extends GlowLogging {
     spark
       .sparkContext
       .parallelize(files)
-      .map { path =>
-        val (header, _) = VCFFileFormat.createVCFCodec(path, serializableConf.value)
-        header
+      .flatMap { path =>
+        if (path.endsWith(VCFFileFormat.INDEX_SUFFIX)) {
+          None
+        } else {
+          val (header, _) = VCFFileFormat.createVCFCodec(path, serializableConf.value)
+          Some(header)
+        }
       }
   }
 
   /**
-   * Find the unique header lines from an RDD of VCF headers.
+   * Find the unique desired header lines from an RDD of VCF headers.
    * If lines of the same class found with the same ID, we pick one unless they are incompatible.
    * If there are incompatible lines, [[IllegalArgumentException]] is thrown.
    * Incompatible lines are:
    * - FORMAT or INFO lines with the same ID but different types or counts
    * - contig lines with the same ID but different lengths
+   *
+   * @param headers VCF headers to parse header lines from
+   * @param getNonSchemaHeaderLines If false, parses only INFO and FORMAT lines.
+   *                                If true, also parses contig and filter lines.
    */
-  def getUniqueHeaderLines(headers: RDD[VCFHeader]): Seq[VCFHeaderLine] = {
+  def getUniqueHeaderLines(
+      headers: RDD[VCFHeader],
+      getNonSchemaHeaderLines: Boolean): Seq[VCFHeaderLine] = {
     headers.flatMap { header =>
-      val infoHeaderLines = header.getInfoHeaderLines.asScala
-      val formatHeaderLines = header.getFormatHeaderLines.asScala
-      val contigHeaderLines = header.getContigLines.asScala
-      val filterHeaderLines = header.getFilterLines.asScala
-      infoHeaderLines ++ formatHeaderLines ++ contigHeaderLines ++ filterHeaderLines
+      val schemaHeaderLines = header.getInfoHeaderLines.asScala ++ header
+          .getFormatHeaderLines
+          .asScala
+      val nonSchemaHeaderLines = if (getNonSchemaHeaderLines) {
+        header.getContigLines.asScala ++ header.getFilterLines.asScala
+      } else {
+        Seq.empty
+      }
+      schemaHeaderLines ++ nonSchemaHeaderLines
     }.keyBy(line => (line.getClass.getName, line.getID))
       .reduceByKey {
         case (line1: VCFCompoundHeaderLine, line2: VCFCompoundHeaderLine) =>
@@ -134,16 +148,26 @@ object VCFHeaderUtils extends GlowLogging {
               s"and $line2. Header lines with the same ID must have the same length.")
           }
         case (line1: VCFFilterHeaderLine, _: VCFFilterHeaderLine) => line1
+        case (line1, _) =>
+          throw new IllegalArgumentException(
+            s"Collected unexpected header line type: ${line1.getClass.getName}")
       }
       .values
       .collect()
   }
 
   /**
-   * A convenience function to parse the headers from a set of VCF files and return the unique
+   * A convenience function to parse the headers from a set of VCF files and return the desired
    * header lines.
+   *
+   * @param files VCF files to parse header lines from
+   * @param getNonSchemaHeaderLines If false, parses only INFO and FORMAT lines.
+   *                                If true, also parses contig and filter lines.
    */
-  def readHeaderLines(spark: SparkSession, files: Seq[String]): Seq[VCFHeaderLine] = {
-    getUniqueHeaderLines(createHeaderRDD(spark, files))
+  def readHeaderLines(
+      spark: SparkSession,
+      files: Seq[String],
+      getNonSchemaHeaderLines: Boolean): Seq[VCFHeaderLine] = {
+    getUniqueHeaderLines(createHeaderRDD(spark, files), getNonSchemaHeaderLines)
   }
 }

@@ -135,7 +135,7 @@ class VCFHeaderUtilsSuite extends GlowBaseTest {
     }
   }
 
-  test("merge header lines") {
+  gridTest("merge all header lines")(Seq(true, false)) { getNonSchemaHeaderLines =>
     val file1 =
       s"""
          |##fileformat=VCFv4.2
@@ -155,28 +155,35 @@ class VCFHeaderUtilsSuite extends GlowBaseTest {
          |##contig=<ID=21,length=48129895>
        """.stripMargin
     val paths = writeVCFHeaders(Seq(file1, file2))
-    val lines = VCFHeaderUtils.readHeaderLines(spark, paths)
+    val lines = VCFHeaderUtils.readHeaderLines(spark, paths, getNonSchemaHeaderLines)
 
-    val expectedLines = Set(
+    val expectedSchemaLines = Set(
       new VCFInfoHeaderLine("animal", 1, VCFHeaderLineType.String, "monkey"),
       new VCFInfoHeaderLine("color", VCFHeaderLineCount.G, VCFHeaderLineType.String, ""),
       new VCFFormatHeaderLine("AD", VCFHeaderLineCount.R, VCFHeaderLineType.Integer, ""),
-      new VCFFormatHeaderLine("DP", 1, VCFHeaderLineType.Integer, ""),
-      new VCFFilterHeaderLine("LowQual", "Low Quality"),
-      new VCFContigHeaderLine("<ID=20,length=63025520>", VCFHeaderVersion.VCF4_2, "contig", 0),
-      new VCFContigHeaderLine("<ID=21,length=48129895>", VCFHeaderVersion.VCF4_2, "contig", 1)
+      new VCFFormatHeaderLine("DP", 1, VCFHeaderLineType.Integer, "")
     )
+    val expectedNonSchemaLines = if (getNonSchemaHeaderLines) {
+      Set(
+        new VCFFilterHeaderLine("LowQual", "Low Quality"),
+        new VCFContigHeaderLine("<ID=20,length=63025520>", VCFHeaderVersion.VCF4_2, "contig", 0),
+        new VCFContigHeaderLine("<ID=21,length=48129895>", VCFHeaderVersion.VCF4_2, "contig", 1)
+      )
+    } else {
+      Set.empty
+    }
 
     // We compare the string-encoded versions of the header lines to avoid direct object comparisons
     val sortedLines = lines.map(_.toString).toSet
-    val sortedExpectedLines = expectedLines.map(_.toString)
+    val sortedExpectedLines = (expectedSchemaLines ++ expectedNonSchemaLines).map(_.toString)
     assert(lines.size == sortedLines.size)
     assert(sortedLines == sortedExpectedLines)
   }
 
   def checkLinesIncompatible(file1: String, file2: String): Unit = {
     val paths = writeVCFHeaders(Seq(file1, file2))
-    val ex = intercept[SparkException](VCFHeaderUtils.readHeaderLines(spark, paths))
+    val ex = intercept[SparkException](
+      VCFHeaderUtils.readHeaderLines(spark, paths, getNonSchemaHeaderLines = true))
     assert(ex.getCause.isInstanceOf[IllegalArgumentException])
   }
 
@@ -226,6 +233,16 @@ class VCFHeaderUtilsSuite extends GlowBaseTest {
          |##FORMAT=<ID=animal,Number=2,Type=String,Description="monkey">
        """.stripMargin
     val paths = writeVCFHeaders(Seq(file1, file2))
-    VCFHeaderUtils.readHeaderLines(spark, paths) // no exception
+    VCFHeaderUtils.readHeaderLines(spark, paths, getNonSchemaHeaderLines = true) // no exception
+  }
+
+  test("does not try to read tabix indices") {
+    assert(
+      VCFHeaderUtils
+        .readHeaderLines(
+          spark,
+          Seq(s"$testDataHome/tabix-test-vcf/NA12878_21_10002403NoTbi.vcf.gz.tbi"),
+          getNonSchemaHeaderLines = true)
+        .isEmpty)
   }
 }
