@@ -685,6 +685,17 @@ class VCFDatasourceSuite extends GlowBaseTest {
   test("Do not break when reading directory with index files") {
     spark.read.format(sourceName).load(s"$testDataHome/tabix-test-vcf")
   }
+
+  test("Do not break when reading VCFs with contig lines missing length") {
+    // Read two copies of the same file to trigger a header line merge
+    // May break if we parse contig header lines missing length
+    spark
+      .read
+      .format(sourceName)
+      .load(
+        s"$testDataHome/vcf/missing_contig_length.vcf",
+        s"$testDataHome/vcf/missing_contig_length.vcf")
+  }
 }
 
 // For testing only: schema based on CEUTrio VCF header
