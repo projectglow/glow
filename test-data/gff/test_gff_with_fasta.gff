@@ -8,7 +8,7 @@
 ##sequence-region NC_000001.11 1 248956422
 ##species https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=9606
 NC_000001.11	RefSeq	region	1	248956422	.	+	1	ID=NC_000001.11:1..248956422;Dbxref=taxon:9606,test;Name=1;chromosome=1;gbkey=Src;genome=chromosome;mol_type=genomic DNA;Is_circular=false
-NC_000001.11	BestRefSeq	pseudogene	11874	14409	.	.	.	ID=gene-DDX11L1;Dbxref=GeneID:100287102,HGNC:HGNC:37102;Name=DDX11L1;description=DEAD/H-box helicase 11 like 1 (pseudogene);gbkey=Gene;gene=DDX11L1;gene_biotype=transcribed_pseudogene;pseudo=true
+NC_000001.11	BestRefSeq	pseudogene	11874	14409	.	.	.	ID=gene-DDX11L1;Dbxref=GeneID:100287102,HGNC:HGNC:37102;Name=DDX11L1;description=DEAD/H-box helicase 11 like 1 (pseudogene);gbkey=Gene;gene=DDX11L1;gene_biotype=transcribed_pseudogene;pseudo=true;test space=passed
 NC_000001.11	BestRefSeq	transcript	11874	14409	.	+	.	ID=rna-NR_046018.2;Parent=gene-DDX11L1;Dbxref=GeneID:100287102,Genbank:NR_046018.2,HGNC:HGNC:37102;Name=NR_046018.2;gbkey=misc_RNA;gene=DDX11L1;product=DEAD/H-box helicase 11 like 1 (pseudogene);transcript_id=NR_046018.2
 NC_000001.11	BestRefSeq	exon	11874	12227	1.5	+	.	ID=exon-NR_046018.2-1;Parent=rna-NR_046018.2;Dbxref=GeneID:100287102,Genbank:NR_046018.2,HGNC:HGNC:37102;gbkey=misc_RNA;gene=DDX11L1;product=DEAD/H-box helicase 11 like 1 (pseudogene);transcript_id=NR_046018.2
 NC_000001.11	BestRefSeq	exon	12613	12721	.	+	.	ID=exon-NR_046018.2-2;Parent=rna-NR_046018.2;Dbxref=GeneID:100287102,Genbank:NR_046018.2,HGNC:HGNC:37102;gbkey=misc_RNA;gene=DDX11L1;product=DEAD/H-box helicase 11 like 1 (pseudogene);transcript_id=NR_046018.2

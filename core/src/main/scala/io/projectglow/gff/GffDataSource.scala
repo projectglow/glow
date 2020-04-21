@@ -26,6 +26,25 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.sources._
 import org.apache.spark.sql.types._
 
+/**
+ * Gff data source to read GFF3 files.
+ *
+ * The data source is able to infer the schema or accept a user-specified schema. It flattens the
+ * attributes field by creating a column for each tag that appears in the attributes column of
+ * the gff file.
+ *
+ * The inferred schema will have base fields corresponding to the first 8 columns of gff3 called
+ * seqId, source, type, start, end, score, strand, and phase, followed by any official
+ * attribute field among id, name, alias, parent, target, gap, derivesfrom, note, dbxref,
+ * ontologyterm, and iscircular that appears in the gff tags followed by any unofficial attribute
+ * field that appears in the tag. In the inferred schema, the base and official fields will be in
+ * the same order as listed above. The unofficial fields will be in alphabetical order.
+ *
+ * Any user-specified schema can have any subset of fields corresponding to the 9 columns of gff3
+ * (named seqId, source, type, start, end, score, strand, phase, and attributes), the
+ * official attribute fields, and the unofficial attribute fields. The name of the official and
+ * unofficial fields should match the tag name in a case-and-underscore-insensitive fashion.
+ */
 class GffDataSource
     extends RelationProvider
     with SchemaRelationProvider
@@ -44,15 +63,8 @@ class GffDataSource
   override def createRelation(
       sqlContext: SQLContext,
       parameters: Map[String, String]): BaseRelation = {
-    val path = parameters.get("path")
-    path match {
-      case Some(p) =>
-        val inferredSchema = inferSchema(sqlContext, p)
-        createRelation(sqlContext, parameters, inferredSchema)
-
-      case _ =>
-        throw new IllegalArgumentException("Path is required")
-    }
+    val inferredSchema = inferSchema(sqlContext, checkAndGetPath(parameters))
+    createRelation(sqlContext, parameters, inferredSchema)
   }
 
   /**
@@ -68,14 +80,7 @@ class GffDataSource
       sqlContext: SQLContext,
       parameters: Map[String, String],
       schema: StructType): BaseRelation = {
-    val path = parameters.get("path")
-    path match {
-      case Some(p) =>
-        new GffResourceRelation(sqlContext, p, schema)
-
-      case _ =>
-        throw new IllegalArgumentException("Path is required")
-    }
+    new GffResourceRelation(sqlContext, checkAndGetPath(parameters), schema)
   }
 
   /**
@@ -213,7 +218,13 @@ object GffDataSource {
 
   private[gff] val columnPruningConf = "spark.sql.csv.parser.columnPruning.enabled"
 
-  private[gff] val officialFieldNames = gffOfficialAttributeFields.map(_.name)
+  def checkAndGetPath(options: Map[String, String]): String = {
+    options.get("path") match {
+      case Some(p) => p
+      case _ =>
+        throw new IllegalArgumentException("Path is required")
+    }
+  }
 
   /**
    * Infers the schema by reading the gff fileusing csv datasource and parsing the attributes fields
@@ -272,18 +283,25 @@ object GffDataSource {
     spark.conf.set(columnPruningConf, originalColumnPruning)
 
     val attributeFields = attributeTags
-      .foldLeft(Seq[StructField]()) { (s, t) =>
-        val officialIdx = officialFieldNames.indexOf(normalizeString(t))
-        if (officialIdx > -1) {
-          s :+ StructField(t, gffOfficialAttributeFields(officialIdx).dataType)
-        } else {
-          s :+ StructField(t, StringType)
-        }
-      }
-      .sortBy(_.name)(FieldNameOrdering)
+      .map(
+        t =>
+          StructField(
+            t,
+            gffOfficialAttributeFields
+              .find(f => f.name == normalizeString(t))
+              .map(_.dataType)
+              .getOrElse(StringType)))
+      .sortBy(f =>
+        (gffOfficialAttributeFields.map(_.name).indexOf(normalizeString(f.name)) match {
+          case -1 => gffOfficialAttributeFields.length + 1
+          case i => i
+        }, f.name))
 
     StructType(
-      gffBaseSchema.fields.dropRight(1) ++ attributeFields
+      gffBaseSchema
+        .fields
+        .dropRight(1) // dropping attributes which is the last field in gffBaseSchema
+      ++ attributeFields
     )
   }
 
@@ -317,30 +335,15 @@ object GffDataSource {
 
   def filterFastaLines(df: DataFrame): DataFrame = {
     df.where(
-      !gffBaseSchema
-        .fieldNames
-        .drop(1)
-        .dropRight(1)
-        .foldLeft(lit(true))(
-          (f1, f2) => f1 && isnull(col(f2))
+      !isnull(
+        coalesce(
+          gffBaseSchema.fieldNames.drop(1).map(col(_)): _*
         )
+      )
     )
   }
 
   def normalizeString(s: String): String = {
     s.toLowerCase.replaceAll("_", "")
-  }
-
-  object FieldNameOrdering extends Ordering[String] {
-    def compare(a: String, b: String): Int = {
-      val aIdx = officialFieldNames.indexOf(normalizeString(a))
-      val bIdx = officialFieldNames.indexOf(normalizeString(b))
-      (aIdx, bIdx) match {
-        case (-1, -1) => a.compareToIgnoreCase(b)
-        case (-1, _) => 1
-        case (_, -1) => -1
-        case (i, j) => i - j
-      }
-    }
   }
 }

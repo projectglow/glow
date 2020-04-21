@@ -25,10 +25,10 @@ import org.apache.spark.sql.types._
 class GffReaderSuite extends GlowBaseTest {
   lazy val testRoot = s"$testDataHome/gff"
   lazy val testGff3 = s"$testRoot/test_gff_with_fasta.gff"
-  lazy val testGff3Gzip = s"$testRoot/test_gff_with_fasta_gzip.gff.gz"
-  lazy val testGff3Bgzip = s"$testRoot/test_gff_with_fasta_bgzip.gff.bgz"
+  lazy val testGff3Gzip = s"$testRoot/test_gff_with_fasta.gff.gz"
+  lazy val testGff3Bgzip = s"$testRoot/test_gff_with_fasta.gff.bgz"
   lazy val testGff3BgzipWithGzSuffix = s"$testRoot/test_gff_with_fasta_bgzip.gff.gz"
-  lazy val testGffEmpty = s"$testRoot/test_gff_empty.gff"
+  lazy val testGff3Empty = s"$testRoot/test_gff_empty.gff"
 
   private val sourceName = "gff"
 
@@ -51,6 +51,7 @@ class GffReaderSuite extends GlowBaseTest {
     StructField("mol_type", StringType),
     StructField("product", StringType),
     StructField("pseudo", StringType),
+    StructField("test space", StringType),
     StructField("transcript_id", StringType)
   )
 
@@ -122,41 +123,70 @@ class GffReaderSuite extends GlowBaseTest {
   gridTest("Read gff3, gzipped gff3 and bgzipped gff3 with inferred schema")(
     Seq(testGff3, testGff3Gzip, testGff3Bgzip, testGff3BgzipWithGzSuffix)
   ) { file =>
-    val dfRow = spark
+    val dfRows = spark
       .read
       .format(sourceName)
       .load(file)
-      .orderBy("seqId", "start")
-      .take(1)(0)
+      .orderBy("seqId", "start", "source")
+      .take(2)
 
-    val expectedRow = Row(
-      "NC_000001.11",
-      "RefSeq",
-      "region",
-      0,
-      248956422,
-      null,
-      "+",
-      1,
-      "NC_000001.11:1..248956422",
-      "1",
-      null,
-      Array("taxon:9606", "test").toSeq,
-      false,
-      "1",
-      null,
-      "Src",
-      null,
-      null,
-      null,
-      "chromosome",
-      "genomic DNA",
-      null,
-      null,
-      null
+    val expectedRows = Array(
+      Row(
+        "NC_000001.11",
+        "RefSeq",
+        "region",
+        0,
+        248956422,
+        null,
+        "+",
+        1,
+        "NC_000001.11:1..248956422",
+        "1",
+        null,
+        Array("taxon:9606", "test").toSeq,
+        false,
+        "1",
+        null,
+        "Src",
+        null,
+        null,
+        null,
+        "chromosome",
+        "genomic DNA",
+        null,
+        null,
+        null,
+        null
+      ),
+      Row(
+        "NC_000001.11",
+        "BestRefSeq",
+        "pseudogene",
+        11873,
+        14409,
+        null,
+        null,
+        null,
+        "gene-DDX11L1",
+        "DDX11L1",
+        null,
+        Array("GeneID:100287102", "HGNC:HGNC:37102").toSeq,
+        null,
+        null,
+        "DEAD/H-box helicase 11 like 1 (pseudogene)",
+        "Gene",
+        "DDX11L1",
+        "transcribed_pseudogene",
+        null,
+        null,
+        null,
+        null,
+        "true",
+        "passed",
+        null
+      )
     )
-
-    assert(dfRow == expectedRow)
+    assert(dfRows.sameElements(expectedRows))
   }
 
   test("Read gff with user-specified schema containing attributesField") {
@@ -198,6 +228,7 @@ class GffReaderSuite extends GlowBaseTest {
       "genomic DNA",
       null,
       null,
+      null,
       null
     )
     assert(dfRow == expectedRow)
@@ -227,7 +258,7 @@ class GffReaderSuite extends GlowBaseTest {
     val df = spark
       .read
       .format(sourceName)
-      .load(testGffEmpty)
+      .load(testGff3Empty)
 
     assert(df.schema == StructType(gffBaseSchema.fields.dropRight(1)))
     assert(df.count() == 0) // requiredColumns will be empty
