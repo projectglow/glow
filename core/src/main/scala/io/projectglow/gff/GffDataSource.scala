@@ -37,7 +37,7 @@ import org.apache.spark.sql.types._
  * seqId, source, type, start, end, score, strand, and phase, followed by any official
  * attribute field among id, name, alias, parent, target, gap, derivesfrom, note, dbxref,
  * ontologyterm, and iscircular that appears in the gff tags followed by any unofficial attribute
- * field that appears in the tag. In the inferred schema, the base and official fields will be in
+ * field that appears in the tags. In the inferred schema, the base and official fields will be in
  * the same order as listed above. The unofficial fields will be in alphabetical order.
  *
  * Any user-specified schema can have any subset of fields corresponding to the 9 columns of gff3

@@ -120,6 +120,67 @@ class GffReaderSuite extends GlowBaseTest {
     assert(dfRow == expectedRow)
   }
 
+  test("Read gff with user-specified schema containing attributesField") {
+    val schemaWithAttributesField = StructType(
+      gffBaseSchema.fields ++ testOfficialFields ++ testUnofficialFields
+    )
+
+    val dfRow = spark
+      .read
+      .schema(schemaWithAttributesField)
+      .format(sourceName)
+      .load(testGff3)
+      .orderBy("seqId", "start")
+      .take(1)(0)
+
+    val expectedRow = Row(
+      "NC_000001.11",
+      "RefSeq",
+      "region",
+      0,
+      248956422,
+      null,
+      "+",
+      1,
+      "ID=NC_000001.11:1..248956422;Dbxref=taxon:9606,test;Name=1;chromosome=1;" +
+      "gbkey=Src;genome=chromosome;mol_type=genomic DNA;Is_circular=false",
+      "NC_000001.11:1..248956422",
+      "1",
+      null,
+      Array("taxon:9606", "test").toSeq,
+      false,
+      "1",
+      null,
+      "Src",
+      null,
+      null,
+      null,
+      "chromosome",
+      "genomic DNA",
+      null,
+      null,
+      null,
+      null
+    )
+    assert(dfRow == expectedRow)
+  }
+
+  test("Read gff with user-specified schema containing nonexistent column") {
+    val schemaWithAttributesField = StructType(
+      gffBaseSchema.fields ++ testOfficialFields :+ StructField("nonexistent", StringType)
+    )
+    // must return an all-null column
+    assert(
+      spark
+        .read
+        .schema(schemaWithAttributesField)
+        .format(sourceName)
+        .load(testGff3)
+        .collect()
+        .forall(_(14) == null)
+    )
+  }
+
   gridTest("Read gff3, gzipped gff3 and bgzipped gff3 with inferred schema")(
     Seq(testGff3, testGff3Gzip, testGff3Bgzip, testGff3BgzipWithGzSuffix)
   ) { file =>
@@ -189,49 +250,47 @@ class GffReaderSuite extends GlowBaseTest {
     assert(dfRows.sameElements(expectedRows))
   }
 
-  test("Read gff with user-specified schema containing attributesField") {
-    val schemaWithAttributesField = StructType(
-      gffBaseSchema.fields ++ testOfficialFields ++ testUnofficialFields
-    )
-
-    val dfRow = spark
+  test("Column pruning") {
+    val dfRows = spark
       .read
-      .schema(schemaWithAttributesField)
       .format(sourceName)
       .load(testGff3)
-      .orderBy("seqId", "start")
-      .take(1)(0)
+      .select(
+        "seqId",
+        "source",
+        "start",
+        "end",
+        "Dbxref",
+        "Is_circular",
+        "gbkey",
+        "test space"
+      )
+      .orderBy("seqId", "start", "source")
+      .take(2)
 
-    val expectedRow = Row(
-      "NC_000001.11",
-      "RefSeq",
-      "region",
-      0,
-      248956422,
-      null,
-      "+",
-      1,
-      "ID=NC_000001.11:1..248956422;Dbxref=taxon:9606,test;Name=1;chromosome=1;" +
-      "gbkey=Src;genome=chromosome;mol_type=genomic DNA;Is_circular=false",
-      "NC_000001.11:1..248956422",
-      "1",
-      null,
-      Array("taxon:9606", "test").toSeq,
-      false,
-      "1",
-      null,
-      "Src",
-      null,
-      null,
-      null,
-      "chromosome",
-      "genomic DNA",
-      null,
-      null,
-      null,
-      null
+    val expectedRows = Array(
+      Row(
+        "NC_000001.11",
+        "RefSeq",
+        0,
+        248956422,
+        Array("taxon:9606", "test").toSeq,
+        false,
+        "Src",
+        null
+      ),
+      Row(
+        "NC_000001.11",
+        "BestRefSeq",
+        11873,
+        14409,
+        Array("GeneID:100287102", "HGNC:HGNC:37102").toSeq,
+        null,
+        "Gene",
+        "passed"
+      )
     )
-    assert(dfRow == expectedRow)
+    assert(dfRows.sameElements(expectedRows))
   }
 
   // See the comment in io.projectglow.gff.GffResourceRelation.buildScan on use of filterFastaLines
