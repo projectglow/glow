@@ -1,0 +1,41 @@
+##gff-version 3
+#!gff-spec-version 1.21
+#!processor NCBI annotwriter
+#!genome-build GRCh38.p13
+#!genome-build-accession NCBI_Assembly:GCF_000001405.39
+#!annotation-date 02/28/2020
+#!annotation-source NCBI Homo sapiens Updated Annotation Release 109.20200228
+##sequence-region NC_000001.11 1 248956422
+##species https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=9606
+NC_000001.11	RefSeq	region	1	248956422	.	+	1	ID=NC_000001.11:1..248956422;Dbxref=taxon:9606,test;Name=1;chromosome=1;gbkey=Src;genome=chromosome;mol_type=genomic DNA;Is_circular=false
+NC_000001.11	BestRefSeq	pseudogene	11874	14409	.	.	.	ID=gene-DDX11L1;Dbxref=GeneID:100287102,HGNC:HGNC:37102;Name=DDX11L1;description=DEAD/H-box helicase 11 like 1 (pseudogene);gbkey=Gene;gene=DDX11L1;gene_biotype=transcribed_pseudogene;pseudo=true;test space=passed
+NC_000001.11	BestRefSeq	transcript	11874	14409	.	+	.	ID=rna-NR_046018.2;Parent=gene-DDX11L1;Dbxref=GeneID:100287102,Genbank:NR_046018.2,HGNC:HGNC:37102;Name=NR_046018.2;gbkey=misc_RNA;gene=DDX11L1;product=DEAD/H-box helicase 11 like 1 (pseudogene);transcript_id=NR_046018.2
+NC_000001.11	BestRefSeq	exon	11874	12227	1.5	+	.	ID=exon-NR_046018.2-1;Parent=rna-NR_046018.2;Dbxref=GeneID:100287102,Genbank:NR_046018.2,HGNC:HGNC:37102;gbkey=misc_RNA;gene=DDX11L1;product=DEAD/H-box helicase 11 like 1 (pseudogene);transcript_id=NR_046018.2
+NC_000001.11	BestRefSeq	exon	12613	12721	.	+	.	ID=exon-NR_046018.2-2;Parent=rna-NR_046018.2;Dbxref=GeneID:100287102,Genbank:NR_046018.2,HGNC:HGNC:37102;gbkey=misc_RNA;gene=DDX11L1;product=DEAD/H-box helicase 11 like 1 (pseudogene);transcript_id=NR_046018.2
+NC_000001.11	BestRefSeq	exon	13221	14409	.	+	.	ID=exon-NR_046018.2-3;Parent=rna-NR_046018.2;Dbxref=GeneID:100287102,Genbank:NR_046018.2,HGNC:HGNC:37102;gbkey=misc_RNA;gene=DDX11L1;product=DEAD/H-box helicase 11 like 1 (pseudogene);transcript_id=NR_046018.2
+NC_000001.11	BestRefSeq	pseudogene	14362	29370	.	-	.	ID=gene-WASH7P;Dbxref=GeneID:653635,HGNC:HGNC:38034;Name=WASH7P;description=WASP family homolog 7%2C pseudogene;gbkey=Gene;gene=WASH7P;gene_biotype=transcribed_pseudogene;gene_synonym=FAM39F,WASH5P;pseudo=true
+NC_000001.11	BestRefSeq	transcript	14362	29370	.	-	.	ID=rna-NR_024540.1;Parent=gene-WASH7P;Dbxref=GeneID:653635,Genbank:NR_024540.1,HGNC:HGNC:38034;Name=NR_024540.1;gbkey=misc_RNA;gene=WASH7P;product=WASP family homolog 7%2C pseudogene;transcript_id=NR_024540.1;Is_circular=false
+NC_000001.11	BestRefSeq	exon	29321	29370	.	-	.	ID=exon-NR_024540.1-1;Parent=rna-NR_024540.1;Dbxref=GeneID:653635,Genbank:NR_024540.1,HGNC:HGNC:38034;gbkey=misc_RNA;gene=WASH7P;product=WASP family homolog 7%2C pseudogene;transcript_id=NR_024540.1
+NC_000001.11	BestRefSeq	exon	24738	24891	.	-	.	ID=exon-NR_024540.1-2;Parent=rna-NR_024540.1;Dbxref=GeneID:653635,Genbank:NR_024540.1,HGNC:HGNC:38034;gbkey=misc_RNA;gene=WASH7P;product=WASP family homolog 7%2C pseudogene;transcript_id=NR_024540.1
+NC_000001.11	BestRefSeq	exon	18268	18366	.	-	.	ID=exon-NR_024540.1-3;Parent=rna-NR_024540.1;Dbxref=GeneID:653635,Genbank:NR_024540.1,HGNC:HGNC:38034;gbkey=misc_RNA;gene=WASH7P;product=WASP family homolog 7%2C pseudogene;transcript_id=NR_024540.1
+NC_000001.11	BestRefSeq	exon	17915	18061	.	-	.	ID=exon-NR_024540.1-4;Parent=rna-NR_024540.1;Dbxref=GeneID:653635,Genbank:NR_024540.1,HGNC:HGNC:38034;gbkey=misc_RNA;gene=WASH7P;product=WASP family homolog 7%2C pseudogene;transcript_id=NR_024540.1
+NC_000001.11	BestRefSeq	exon	17606	17742	.	?	2	ID=exon-NR_024540.1-5;Parent=rna-NR_024540.1;Dbxref=GeneID:653635,Genbank:NR_024540.1,HGNC:HGNC:38034;gbkey=misc_RNA;gene=WASH7P;product=WASP family homolog 7%2C pseudogene;transcript_id=NR_024540.1
+NC_000001.11	BestRefSeq	exon	17233	17368	.	-	.	ID=exon-NR_024540.1-6;Parent=rna-NR_024540.1;Dbxref=GeneID:653635,Genbank:NR_024540.1,HGNC:HGNC:38034;gbkey=misc_RNA;gene=WASH7P;product=WASP family homolog 7%2C pseudogene;transcript_id=NR_024540.1
+NC_000001.11	BestRefSeq	exon	16858	17055	.	-	0	ID=exon-NR_024540.1-7;Parent=rna-NR_024540.1;Dbxref=GeneID:653635,Genbank:NR_024540.1,HGNC:HGNC:38034;gbkey=misc_RNA;gene=WASH7P;product=WASP family homolog 7%2C pseudogene;transcript_id=NR_024540.1
+NC_000001.11	BestRefSeq	exon	16607	16765	.	-	.	ID=exon-NR_024540.1-8;Parent=rna-NR_024540.1;Dbxref=GeneID:653635,Genbank:NR_024540.1,HGNC:HGNC:38034;gbkey=misc_RNA;gene=WASH7P;product=WASP family homolog 7%2C pseudogene;transcript_id=NR_024540.1
+NC_000001.11	BestRefSeq	exon	15796	15947	.	-	.	ID=exon-NR_024540.1-9;Parent=rna-NR_024540.1;Dbxref=GeneID:653635,Genbank:NR_024540.1,HGNC:HGNC:38034;gbkey=misc_RNA;gene=WASH7P;product=WASP family homolog 7%2C pseudogene;transcript_id=NR_024540.1
+NC_000001.11	BestRefSeq	exon	14970	15038	.	-	.	ID=exon-NR_024540.1-10;Parent=rna-NR_024540.1;Dbxref=GeneID:653635,Genbank:NR_024540.1,HGNC:HGNC:38034;gbkey=misc_RNA;gene=WASH7P;product=WASP family homolog 7%2C pseudogene;transcript_id=NR_024540.1
+NC_000001.11	BestRefSeq	exon	14362	14829	.	-	.	ID=exon-NR_024540.1-11;Parent=rna-NR_024540.1;Dbxref=GeneID:653635,Genbank:NR_024540.1,HGNC:HGNC:38034;gbkey=misc_RNA;gene=WASH7P;product=WASP family homolog 7%2C pseudogene;transcript_id=NR_024540.1
+NC_000001.11	BestRefSeq	gene	17369	17436	.	-	.	ID=gene-MIR6859-1;Dbxref=GeneID:102466751,HGNC:HGNC:50039,miRBase:MI0022705;Name=MIR6859-1;description=microRNA 6859-1;gbkey=Gene;gene=MIR6859-1;gene_biotype=miRNA;gene_synonym=hsa-mir-6859-1
+##FASTA
+>ctg123
+cttctgggcgtacccgattctcggagaacttgccgcaccattccgccttg
+tgttcattgctgcctgcatgttcattgtctacctcggctacgtgtggcta
+tctttcctcggtgccctcgtgcacggagtcgagaaaccaaagaacaaaaa
+aagaaattaaaatatttattttgctgtggtttttgatgtgtgttttttat
+aatgatttttgatgtgaccaattgtacttttcctttaaatgaaatgtaat
+cttaaatgtatttccgacgaattcgaggcctgaaaagtgtgacgccattc
+gtatttgatttgggtttactatcgaataatgagaattttcaggcttaggc
+ttaggcttaggcttaggcttaggcttaggcttaggcttaggcttaggctt
+aggcttaggcttaggcttaggcttaggcttaggcttaggcttaggcttag
+aatctagctagctatccgaaattcgaggcctgaaaagtgtgacgccattc
