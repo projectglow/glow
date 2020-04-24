@@ -17,6 +17,7 @@
 package io.projectglow
 
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.catalyst.expressions.ExpressionInfo
 
 // Spark APIs that are not inter-version compatible
@@ -35,6 +36,9 @@ trait SparkShimBase {
       examples: String,
       note: String,
       since: String): ExpressionInfo
+
+  def createSerializer[T](encoder: ExpressionEncoder[T]): T => InternalRow
+  def createDeserializer[T](encoder: ExpressionEncoder[T]): InternalRow => T
 
   abstract class QuaternaryExpression
 }
