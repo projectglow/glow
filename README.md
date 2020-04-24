@@ -106,7 +106,7 @@ If you use IntelliJ, you'll want to set up [scalafmt on save](https://scalameta.
 To run Python unit tests from inside IntelliJ, you must:
 - Open the "Terminal" tab in IntelliJ
 - Activate the glow conda environment (`conda activate glow`)
-- Start an sbt shell from inside the terminal
+- Start an sbt shell from inside the terminal (`sbt`)
 
 The "sbt shell" tab in IntelliJ will NOT work since it does not use the glow conda environment.
 
