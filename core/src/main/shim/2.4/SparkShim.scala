@@ -53,11 +53,11 @@ object SparkShim extends SparkShimBase {
   }
 
   override def createSerializer[T](encoder: ExpressionEncoder[T]): T => InternalRow = {
-    encoder.copy().toRow _
+    encoder.copy().toRow
   }
 
   override def createDeserializer[T](encoder: ExpressionEncoder[T]): InternalRow => T = {
-    encoder.copy().fromRow _
+    encoder.copy().fromRow
   }
 
   /**
