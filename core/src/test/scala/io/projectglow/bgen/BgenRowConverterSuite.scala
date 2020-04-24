@@ -111,13 +111,13 @@ class BgenRowConverterSuite extends BgenConverterBaseTest {
       defaultPloidy,
       defaultPhasing
     )
-    val encoder = RowEncoder.apply(BgenRow.schema)
+    val toRow = SparkShim.createSerializer(RowEncoder.apply(BgenRow.schema))
 
     val df = Seq(v).toDF
     if (shouldThrow) {
-      assertThrows[IllegalStateException](converter.convert(encoder.toRow(df.collect.head)))
+      assertThrows[IllegalStateException](converter.convert(toRow(df.collect.head)))
     } else {
-      val row = converter.convert(encoder.toRow(df.collect.head))
+      val row = converter.convert(toRow(df.collect.head))
       assert(row.genotypes.head.phased.get == phased)
       assert(row.genotypes.head.ploidy.get == ploidy)
     }
@@ -184,7 +184,7 @@ class BgenRowConverterSuite extends BgenConverterBaseTest {
     import sess.implicits._
 
     val converter = new InternalRowToBgenRowConverter(BgenRow.schema, 10, 2, false)
-    val encoder = RowEncoder.apply(BgenRow.schema)
+    val toRow = SparkShim.createSerializer(RowEncoder.apply(BgenRow.schema))
 
     val mixedRow = BgenRow(
       "chr1",
@@ -210,6 +210,6 @@ class BgenRowConverterSuite extends BgenConverterBaseTest {
     )
 
     val row = Seq(mixedRow).toDF.collect.head
-    assertThrows[IllegalStateException](converter.convert(encoder.toRow(row)))
+    assertThrows[IllegalStateException](converter.convert(toRow(row)))
   }
 }
