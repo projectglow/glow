@@ -17,6 +17,7 @@
 package io.projectglow
 
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.catalyst.expressions.codegen.Block._
 import org.apache.spark.sql.catalyst.expressions.codegen._
 import org.apache.spark.sql.catalyst.expressions.{Expression, ExpressionInfo}
@@ -49,6 +50,14 @@ object SparkShim extends SparkShimBase {
       note,
       since
     )
+  }
+
+  override def createSerializer[T](encoder: ExpressionEncoder[T]): T => InternalRow = {
+    encoder.copy().toRow
+  }
+
+  override def createDeserializer[T](encoder: ExpressionEncoder[T]): InternalRow => T = {
+    encoder.copy().fromRow
   }
 
   /**
