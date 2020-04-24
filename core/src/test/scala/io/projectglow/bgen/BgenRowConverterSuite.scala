@@ -18,6 +18,7 @@ package io.projectglow.bgen
 
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 
+import io.projectglow.SparkShim
 import io.projectglow.common.{BgenGenotype, BgenRow}
 
 class BgenRowConverterSuite extends BgenConverterBaseTest {
@@ -45,7 +46,7 @@ class BgenRowConverterSuite extends BgenConverterBaseTest {
       .load(testVcf)
 
     val converter = new InternalRowToBgenRowConverter(vcfDs.schema, 10, 2, defaultPhasing)
-    val encoder = RowEncoder.apply(vcfDs.schema)
+    val toRow = SparkShim.createSerializer(RowEncoder.apply(vcfDs.schema))
 
     bgenDs
       .sort("contigName", "start")
@@ -53,7 +54,7 @@ class BgenRowConverterSuite extends BgenConverterBaseTest {
       .zip(vcfDs.sort("contigName", "start").collect)
       .foreach {
         case (br, vr) =>
-          checkBgenRowsEqual(br, converter.convert(encoder.toRow(vr)), false, bitsPerProb)
+          checkBgenRowsEqual(br, converter.convert(toRow(vr)), false, bitsPerProb)
       }
   }
 
