@@ -237,10 +237,6 @@ object LiftOverVariantsTransformer extends GlowLogging {
       return (None, Some(LiftoverVcf.FILTER_INDEL_STRADDLES_TWO_INTERVALS))
     }
 
-    if (outputInterval.isNegativeStrand && (inputVc.isMixed || inputVc.isIndel && !inputVc.isBiallelic)) {
-      return (None, Some(LiftoverVcf.FILTER_CANNOT_LIFTOVER_INDEL))
-    }
-
     val refSeqOpt = refSeqMap.get(outputInterval.getContig)
     if (refSeqOpt.isEmpty) {
       return (None, Some(LiftoverVcf.FILTER_NO_TARGET))
@@ -250,13 +246,13 @@ object LiftOverVariantsTransformer extends GlowLogging {
     val outputVcOpt = Option(
       LiftoverUtils.liftVariant(inputVc, outputInterval, refSeq, false, false))
     if (outputVcOpt.isEmpty) {
-      return (None, Some(LiftoverVcf.FILTER_CANNOT_LIFTOVER_INDEL))
+      return (None, Some(LiftoverVcf.FILTER_CANNOT_LIFTOVER_REV_COMP))
     }
 
     val outputVc = outputVcOpt.get
     val refStr = refSeq.getBaseString.substring(outputVc.getStart - 1, outputVc.getEnd)
 
-    if (outputVc.getReference.getBaseString.toLowerCase != refStr.toLowerCase) {
+    if (!refStr.equalsIgnoreCase(outputVc.getReference.getBaseString)) {
       if (outputVc.isBiallelic && outputVc.isSNP && refStr.equalsIgnoreCase(
           outputVc.getAlternateAllele(0).getBaseString)) {
         val swappedArrayFields =

@@ -2,6 +2,7 @@
 ##INFO=<ID=ReverseComplementedAlleles,Number=0,Type=Flag,Description="The REF and the ALT alleles have been reverse complemented in liftover since the mapping from the previous reference to the current one was on the negative strand.">
 ##INFO=<ID=SwappedAlleles,Number=0,Type=Flag,Description="The REF and the ALT alleles have been swapped in liftover due to changes in the reference. It is possible that not all INFO annotations reflect this swap, and in the genotypes, only the GT, PL, and AD fields have been modified. You should check the TAGS_TO_REVERSE parameter that was used during the LiftOver to be sure.">
 ##contig=<ID=chr1,length=1085>
+##reference=file:/Users/karen.feng/glow/test-data/liftover/picard/dummy.two.block.reference.fasta
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
 chr1	1	.	C	A	.	PASS	.
 chr1	61	.	CAAA	CAA	.	PASS	.

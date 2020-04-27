@@ -1,16 +1,17 @@
 ##fileformat=VCFv4.2
+##FORMAT=<ID=AD,Number=R,Type=Integer,Description="Allelic depths for the ref and alt alleles in the order listed">
+##FORMAT=<ID=GP,Number=G,Type=Float,Description="Genotype posterior probabilities">
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=PL,Number=G,Type=Integer,Description="Normalized, Phred-scaled likelihoods for genotypes as defined in the VCF specification">
 ##INFO=<ID=AF,Number=A,Type=Float,Description="Allele Frequency, for each ALT allele, in the same order as listed">
 ##INFO=<ID=FLIPPED_AF,Number=A,Type=Float,Description="Flipped Allele Frequency, for testing">
 ##INFO=<ID=MAX_AF,Number=A,Type=Float,Description="Maximal Allele Frequency">
-##INFO=<ID=TEST,Number=R,Type=String,Description="Test array">
 ##INFO=<ID=ReverseComplementedAlleles,Number=0,Type=Flag,Description="The REF and the ALT alleles have been reverse complemented in liftover since the mapping from the previous reference to the current one was on the negative strand.">
 ##INFO=<ID=SwappedAlleles,Number=0,Type=Flag,Description="The REF and the ALT alleles have been swapped in liftover due to changes in the reference. It is possible that not all INFO annotations reflect this swap, and in the genotypes, only the GT, PL, and AD fields have been modified. You should check the TAGS_TO_REVERSE parameter that was used during the LiftOver to be sure.">
-##FORMAT=<ID=AD,Number=R,Type=Integer,Description="Allelic depths for the ref and alt alleles in the order listed">
-##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
-##FORMAT=<ID=PL,Number=G,Type=Integer,Description="Normalized, Phred-scaled likelihoods for genotypes as defined in the VCF specification">
-##FORMAT=<ID=GP,Number=G,Type=Float,Description="Genotype posterior probabilities">
+##INFO=<ID=TEST,Number=R,Type=String,Description="Test array">
 ##contig=<ID=chr1,length=540>
+##reference=file:/Users/karen.feng/glow/test-data/liftover/picard/dummy.reference.fasta
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	Sample1
-chr1	301	.	CA	C	100	PASS	AF=1.0;MAX_AF=0.0;TEST=foo,bar;ReverseComplementedAlleles	GT:AD:PL:GP	./1:.:.:.
-chr1	480	.	A	T	100	PASS	AF=1.00;FLIPPED_AF=1.0;TEST=bar,foo;ReverseComplementedAlleles;SwappedAlleles	GT:AD:PL:GP	1/0:4,5:766,0,86:0.6,0.5,0.4
-chr1	540	.	A	G	100	PASS	AF=0.800;FLIPPED_AF=0.8;TEST=bar,foo;ReverseComplementedAlleles;SwappedAlleles	GT:AD:PL:GP	./1:0,2:899,52,0:0.3,0.2,0.1
+chr1	301	.	CA	C	100	PASS	AF=1.0;MAX_AF=0.0;ReverseComplementedAlleles;TEST=foo,bar	GT	./1
+chr1	480	.	A	T	100	PASS	AF=1.00;FLIPPED_AF=1.0;ReverseComplementedAlleles;SwappedAlleles;TEST=bar,foo	GT:AD:GP:PL	1/0:4,5:0.6,0.5,0.4:766,0,86
+chr1	540	.	A	G	100	PASS	AF=0.800;FLIPPED_AF=0.8;ReverseComplementedAlleles;SwappedAlleles;TEST=bar,foo	GT:AD:GP:PL	./1:0,2:0.3,0.2,0.1:899,52,0
