@@ -1,0 +1,9 @@
+##gff-version 3
+#!gff-spec-version 1.21
+#!processor NCBI annotwriter
+#!genome-build GRCh38.p13
+#!genome-build-accession NCBI_Assembly:GCF_000001405.39
+#!annotation-date 02/28/2020
+#!annotation-source NCBI Homo sapiens Updated Annotation Release 109.20200228
+##sequence-region NC_000001.11 1 248956422
+##species https://www.ncbi.nlm.nih.gov/Taxonomy/Browser/wwwtax.cgi?id=9606

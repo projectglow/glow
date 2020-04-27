@@ -1,6 +1,7 @@
 # Standard file formats
 io.projectglow.bgen.BgenFileFormat
 io.projectglow.bgen.BigBgenDatasource
+io.projectglow.gff.GffDataSource
 io.projectglow.plink.PlinkFileFormat
 io.projectglow.vcf.BigVCFDatasource
 io.projectglow.vcf.VCFFileFormat

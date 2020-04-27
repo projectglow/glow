@@ -22,6 +22,7 @@ import htsjdk.samtools.ValidationStringency
 import htsjdk.variant.variantcontext.{VariantContext => HtsjdkVariantContext}
 import htsjdk.variant.vcf.VCFHeader
 
+import io.projectglow.SparkShim
 import io.projectglow.common.VCFRow
 
 /**
@@ -34,7 +35,7 @@ class VCFRowToVariantContextConverter(
     extends Serializable {
 
   // Encoders are not thread safe, so make a copy here
-  private val vcfRowEncoder = VCFRow.encoder.copy()
+  private val toRow = SparkShim.createSerializer(VCFRow.encoder)
   private val internalRowConverter =
     new InternalRowToVariantContextConverter(
       VCFRow.schema,
@@ -43,7 +44,7 @@ class VCFRowToVariantContextConverter(
 
   def convert(vcfRow: VCFRow): HtsjdkVariantContext = {
     internalRowConverter
-      .convert(vcfRowEncoder.toRow(vcfRow))
+      .convert(toRow(vcfRow))
       .getOrElse(throw new IllegalStateException(s"Could not convert VCFRow $vcfRow"))
   }
 }
