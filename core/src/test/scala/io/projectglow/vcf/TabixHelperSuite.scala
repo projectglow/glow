@@ -16,17 +16,15 @@
 
 package io.projectglow.vcf
 
-import org.apache.hadoop.fs.Path
-import org.apache.spark.SparkConf
-import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.execution.datasources.PartitionedFile
-import org.apache.spark.sql.sources._
-import org.broadinstitute.hellbender.utils.SimpleInterval
-import org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec
-
+import io.projectglow.common.GenomicIntervalUtils.{Contig, LongInterval}
 import io.projectglow.common.{GlowLogging, VCFRow}
 import io.projectglow.sql.GlowBaseTest
 import io.projectglow.vcf.TabixIndexHelper._
+import org.apache.hadoop.fs.Path
+
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.execution.datasources.PartitionedFile
+import org.apache.spark.sql.sources._
 
 class TabixHelperSuite extends GlowBaseTest with GlowLogging {
 
@@ -38,38 +36,14 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
   lazy val testNoTbiVcf = s"$tabixTestVcf/NA12878_21_10002403NoTbi.vcf.gz"
   lazy val oneRowGzipVcf = s"$testDataHome/vcf/1row_not_bgz.vcf.gz"
 
-  def printFilterContig(filterContig: FilterContig): Unit = {
-    filterContig.getContigName.foreach(i => logger.debug(s"$i"))
-  }
-
-  def printFilterInterval(filterInterval: FilterInterval): Unit = {
-    filterInterval
-      .getSimpleInterval
-      .foreach(i => logger.debug(s"${i.getContig}, ${i.getStart}, ${i.getEnd}"))
-  }
-
-  def printParsedFilterResult(parsedFilterResult: ParsedFilterResult): Unit = {
-    printFilterContig(parsedFilterResult.contig)
-    printFilterInterval(parsedFilterResult.startInterval)
-    printFilterInterval(parsedFilterResult.endInterval)
-  }
-
-  def isSameOptionSimpleInterval(i: Option[SimpleInterval], j: Option[SimpleInterval]): Boolean = {
-    (i, j) match {
-      case (Some(i), Some(j)) =>
-        if (i.getContig == "") {
-          i.getContig == j.getContig
-        } else {
-          i.getContig == j.getContig && i.getStart == j.getStart && i.getEnd == j.getEnd
-        }
-      case (None, _) => j.isEmpty
-      case (_, None) => i.isEmpty
-    }
+  def isSameContigAndInterval(i: ContigAndInterval, j: ContigAndInterval): Boolean = {
+    i.contig.isSame(j.contig) && i.interval.isSame(j.interval)
   }
 
   def isSameParsedFilterResult(i: ParsedFilterResult, j: ParsedFilterResult): Boolean = {
     i.contig.isSame(j.contig) &&
-    i.startInterval.isSame(j.startInterval) && i.endInterval.isSame(j.endInterval)
+    i.startInterval.isSame(j.startInterval) &&
+    i.endInterval.isSame(j.endInterval)
   }
 
   /**
@@ -83,13 +57,8 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
       ee: Long,
       xs: Long,
       xe: Long): Unit = {
-    val actual = getSmallestQueryInterval(new FilterInterval(ss, se), new FilterInterval(es, ee))
-    val expected = new FilterInterval(xs, xe)
-    actual
-      .getSimpleInterval
-      .foreach(i => logger.debug(s"${i.getContig}, ${i.getStart}, ${i.getEnd}"))
-    printFilterInterval(actual)
-    printFilterInterval(expected)
+    val actual = getSmallestQueryInterval(new LongInterval(ss, se), new LongInterval(es, ee))
+    val expected = new LongInterval(xs, xe)
     assert(actual.isSame(expected))
   }
 
@@ -139,12 +108,27 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
       es: Long,
       ee: Long): Unit = {
     val actual = parseFilter(filters)
+    val expected =
+      ParsedFilterResult(new Contig(contigName), new LongInterval(ss, se), new LongInterval(es, ee))
+    assert(isSameParsedFilterResult(actual, expected))
+  }
+
+  def testParseFilter(filters: Seq[Filter], ss: Long, se: Long, es: Long, ee: Long): Unit = {
+    val actual = parseFilter(filters)
+    val expected =
+      ParsedFilterResult(new Contig(), new LongInterval(ss, se), new LongInterval(es, ee))
+    assert(isSameParsedFilterResult(actual, expected))
+  }
+
+  def testParseFilter(
+      filters: Seq[Filter]
+  ): Unit = {
+    val actual = parseFilter(filters)
     val expected = ParsedFilterResult(
-      new FilterContig(contigName),
-      new FilterInterval(ss, se),
-      new FilterInterval(es, ee))
-    printParsedFilterResult(actual)
-    printParsedFilterResult(expected)
+      new Contig(true),
+      new LongInterval(1, MAX_GENOME_COORDINATE),
+      new LongInterval(1, MAX_GENOME_COORDINATE)
+    )
     assert(isSameParsedFilterResult(actual, expected))
   }
 
@@ -238,8 +222,8 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     )
   }
 
-  test("parseFilter: No contig, No Start, No End") {
-    testParseFilter(Seq(), "", 1, Int.MaxValue, 1, Int.MaxValue)
+  test("parseFilter: no contig, no start, no end") {
+    testParseFilter(Seq())
   }
 
   test("parseFilter: inconsistent contig") {
@@ -253,7 +237,6 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
         EqualTo("end", 10004775L),
         EqualTo("contigName", "12")
       ),
-      null,
       10004771,
       10004771,
       10004775,
@@ -417,34 +400,68 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
   }
 
   /**
-   * Tests to ensure makeFilteredInterval returns the correct Option[SimpleInterval]
+   * Tests to ensure makeFilteredContigAndIntereval returns the correct ContigAndInterval
    * given different filter situations
    */
-  def testMakeFilteredInterval(
+  def testMakeFilteredContigAndInterval(
       filters: Seq[Filter],
       useFilterParser: Boolean,
       useIndex: Boolean,
       contigName: String,
       s: Int,
       e: Int): Unit = {
-    val actual = makeFilteredInterval(filters, useFilterParser, useIndex)
-    val expected = Option(new SimpleInterval(contigName, s, e))
-    actual.foreach(i => logger.debug(s"${i.getContig}, ${i.getStart}, ${i.getEnd}"))
-    expected.foreach(i => logger.debug(s"${i.getContig}, ${i.getStart}, ${i.getEnd}"))
-    assert(isSameOptionSimpleInterval(actual, expected))
+    val actual = makeFilteredContigAndInterval(filters, useFilterParser, useIndex)
+    val expected = ContigAndInterval(
+      new Contig(contigName),
+      new LongInterval(s, e)
+    )
+    assert(isSameContigAndInterval(actual, expected))
   }
 
-  def testMakeFilteredInterval(
+  def testMakeFilteredContigAndInterval(
       filters: Seq[Filter],
       useFilterParser: Boolean,
-      useIndex: Boolean): Unit = {
-    val actual = makeFilteredInterval(filters, useFilterParser, useIndex)
-    actual.foreach(i => logger.debug(s"${i.getContig}, ${i.getStart}, ${i.getEnd}"))
-    assert(isSameOptionSimpleInterval(actual, None))
+      useIndex: Boolean,
+      contigName: String): Unit = {
+    val actual = makeFilteredContigAndInterval(filters, useFilterParser, useIndex)
+    val expected = ContigAndInterval(
+      new Contig(contigName),
+      new LongInterval()
+    )
+    assert(isSameContigAndInterval(actual, expected))
   }
 
-  test("makeFilteredInterval: start and end intervals non-overlapping") {
-    testMakeFilteredInterval(
+  def testMakeFilteredContigAndInterval(
+      filters: Seq[Filter],
+      useFilterParser: Boolean,
+      useIndex: Boolean,
+      s: Int,
+      e: Int): Unit = {
+    val actual = makeFilteredContigAndInterval(filters, useFilterParser, useIndex)
+    val expected = ContigAndInterval(
+      new Contig(),
+      new LongInterval(s, e)
+    )
+    assert(isSameContigAndInterval(actual, expected))
+  }
+
+  def testMakeFilteredContigAndInterval(
+      filters: Seq[Filter],
+      useFilterParser: Boolean,
+      useIndex: Boolean,
+      isAnyContig: Boolean,
+      s: Int,
+      e: Int): Unit = {
+    val actual = makeFilteredContigAndInterval(filters, useFilterParser, useIndex)
+    val expected = ContigAndInterval(
+      new Contig(isAnyContig),
+      new LongInterval(s, e)
+    )
+    assert(isSameContigAndInterval(actual, expected))
+  }
+
+  test("makeFilteredContigAndIntereval: start and end intervals non-overlapping") {
+    testMakeFilteredContigAndInterval(
       Seq(
         IsNotNull("contigName"),
         IsNotNull("end"),
@@ -461,8 +478,8 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     )
   }
 
-  test("makeFilteredInterval: start and end intervals non-overlapping touching ") {
-    testMakeFilteredInterval(
+  test("makeFilteredContigAndIntereval: start and end intervals non-overlapping touching ") {
+    testMakeFilteredContigAndInterval(
       Seq(
         IsNotNull("contigName"),
         IsNotNull("end"),
@@ -479,8 +496,8 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     )
   }
 
-  test("makeFilteredInterval: start and end intervals non-overlapping by 1 ") {
-    testMakeFilteredInterval(
+  test("makeFilteredContigAndIntereval: start and end intervals non-overlapping by 1 ") {
+    testMakeFilteredContigAndInterval(
       Seq(
         IsNotNull("contigName"),
         IsNotNull("end"),
@@ -497,8 +514,8 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     )
   }
 
-  test("makeFilteredInterval: start and end intervals overlapping more than 1") {
-    testMakeFilteredInterval(
+  test("makeFilteredContigAndIntereval: start and end intervals overlapping more than 1") {
+    testMakeFilteredContigAndInterval(
       Seq(
         IsNotNull("contigName"),
         IsNotNull("end"),
@@ -515,8 +532,8 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     )
   }
 
-  test("makeFilteredInterval: start after end") {
-    testMakeFilteredInterval(
+  test("makeFilteredContigAndIntereval: start after end") {
+    testMakeFilteredContigAndInterval(
       Seq(
         IsNotNull("contigName"),
         IsNotNull("end"),
@@ -526,12 +543,13 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
         LessThanOrEqual("end", 10004770L)
       ),
       true,
-      true
+      true,
+      "20"
     )
   }
 
-  test("makeFilteredInterval: start almost after end") {
-    testMakeFilteredInterval(
+  test("makeFilteredContigAndIntereval: start almost after end") {
+    testMakeFilteredContigAndInterval(
       Seq(
         IsNotNull("contigName"),
         IsNotNull("end"),
@@ -548,8 +566,8 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     )
   }
 
-  test("makeFilteredInterval: no contig") {
-    testMakeFilteredInterval(
+  test("makeFilteredContigAndIntereval: no contig") {
+    testMakeFilteredContigAndInterval(
       Seq(
         IsNotNull("contigName"),
         IsNotNull("end"),
@@ -559,14 +577,14 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
       ),
       true,
       true,
-      "",
-      1,
-      1
+      true,
+      10004771,
+      10004771
     )
   }
 
-  test("makeFilteredInterval: inconsistent contig") {
-    testMakeFilteredInterval(
+  test("makeFilteredContigAndIntereval: inconsistent contig") {
+    testMakeFilteredContigAndInterval(
       Seq(
         IsNotNull("contigName"),
         IsNotNull("end"),
@@ -577,12 +595,14 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
         EqualTo("contigName", "21")
       ),
       true,
-      true
+      true,
+      10004771,
+      10004771
     )
   }
 
-  test("makeFilteredInterval: no start") {
-    testMakeFilteredInterval(
+  test("makeFilteredContigAndIntereval: no start") {
+    testMakeFilteredContigAndInterval(
       Seq(
         IsNotNull("contigName"),
         IsNotNull("end"),
@@ -598,8 +618,8 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     )
   }
 
-  test("makeFilteredInterval: no end") {
-    testMakeFilteredInterval(
+  test("makeFilteredContigAndIntereval: no end") {
+    testMakeFilteredContigAndInterval(
       Seq(
         IsNotNull("contigName"),
         IsNotNull("end"),
@@ -700,16 +720,16 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     val fs = path.getFileSystem(conf)
     val fileLength = fs.getFileStatus(path).getLen
     val partitionedFile = PartitionedFile(InternalRow.empty, oneRowGzipVcf, 0, 2)
-    val interval = Some(new SimpleInterval("0", 1, 2))
+    val contigAndInterval = ContigAndInterval(new Contig("0"), new LongInterval(1, 2))
     assert(
       TabixIndexHelper
-        .getFileRangeToRead(fs, partitionedFile, conf, false, false, interval)
+        .getFileRangeToRead(fs, partitionedFile, conf, false, false, contigAndInterval)
         .contains((0L, fileLength)))
 
     val partitionedFileWithoutStart = partitionedFile.copy(start = 1)
     assert(
       TabixIndexHelper
-        .getFileRangeToRead(fs, partitionedFileWithoutStart, conf, false, false, interval)
+        .getFileRangeToRead(fs, partitionedFileWithoutStart, conf, false, false, contigAndInterval)
         .isEmpty)
   }
 
@@ -761,9 +781,6 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     if (dfNN.count() == dfFT.count() && dfNN.count() == dfFN.count()) {
       withFT.zip(withFN).zip(withNN).foreach {
         case ((ft, fn), nn) =>
-          logger.debug(s"${ft.contigName}, ${ft.start}")
-          logger.debug(s"${fn.contigName}, ${fn.start}")
-          logger.debug(s"${nn.contigName}, ${nn.start}")
           assert(ft.contigName == nn.contigName && fn.contigName == nn.contigName)
           assert(ft.start == nn.start && fn.start == nn.start)
       }
@@ -776,42 +793,33 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     testParserAndTabix(fileName, condition, false)
   }
 
-  test("Parser/Tabix vs Not") {
-    testParserAndTabix(testBigVcf, "contigName= '20' and start > 0")
-    testParserAndTabix(testBigVcf, "contigName= '20' and start >= 0")
-
-    // Filter parser skips negative parameters and defers to spark
-    testParserAndTabix(testBigVcf, "contigName= '20' and start > -1")
-    testParserAndTabix(testBigVcf, "contigName= '20' and start = 10004193 and end > -12")
-
-    // Some corner cases
-    testParserAndTabix(testBigVcf, "contigName= '20' and start > 10004193")
-    testParserAndTabix(testBigVcf, "contigName= '20' and start >= 10004193")
-    testParserAndTabix(testBigVcf, "contigName= '20' and start <= 10004768 and end >= 10004779")
-    testParserAndTabix(testBigVcf, "contigName= '20' and start <= 10004768 and end > 10004779")
-    testParserAndTabix(testBigVcf, "contigName= '20' and start < 10004768 and end >= 10004779")
-
-    testParserAndTabix(testBigVcf, "contigName= '20' and start > 10001433 and end < 10001445")
-    testParserAndTabix(
-      testBigVcf,
+  gridTest("Parser/Tabix vs Not")(
+    Seq(
+      "contigName= '20' and start > 0",
+      "contigName= '20' and start >= 0",
+      // Filter parser skips negative parameters and defers to spark
+      "contigName= '20' and start > -1",
+      "contigName= '20' and start = 10004193 and end > -12",
+      // Some corner cases
+      "contigName= '20' and start > 10004193",
+      "contigName= '20' and start >= 10004193",
+      "contigName= '20' and start <= 10004768 and end >= 10004779",
+      "contigName= '20' and start <= 10004768 and end > 10004779",
+      "contigName= '20' and start < 10004768 and end >= 10004779",
+      "contigName= '20' and start > 10001433 and end < 10001445",
       "contigName = '20' and ((start>10004223 and end <10004500) or " +
-      "(start > 10003500 and end < 10004000))")
-
-    testParserAndTabix(
-      testBigVcf,
+      "(start > 10003500 and end < 10004000))",
       "contigName= '20' and ((start>10004223 and end <10004500) or " +
-      "(start > 10003500 and end < 10004000) or (end= 10004725))")
-    testParserAndTabix(testBigVcf, "contigName= '20' and (start=10000211 or end=10003817)")
-    testParserAndTabix(
-      testBigVcf,
+      "(start > 10003500 and end < 10004000) or (end= 10004725))",
+      "contigName= '20' and (start=10000211 or end=10003817)",
       "contigName= '20' and ((start>10004223 and end <10004500) or " +
-      "(start > 10003500 and end < 10004000)) and contigName='20'")
-
-    // FilterParser unsupported logical operators must be handled correctly as well.
-    testParserAndTabix(
-      testBigVcf,
+      "(start > 10003500 and end < 10004000)) and contigName='20'",
+      // FilterParser unsupported logical operators must be handled correctly as well.
       "contigName= '20' and (not(start>10004223 and end <10004500) " +
-      "or not(start > 10003500 and end < 10004000))")
+      "or not(start > 10003500 and end < 10004000))"
+    )
+  ) { condition =>
+    testParserAndTabix(testBigVcf, condition)
   }
 
   // Test multi-allelic case works as well
@@ -829,10 +837,10 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     val conf = sparkContext.hadoopConfiguration
     val fs = path.getFileSystem(conf)
     val partitionedFile = PartitionedFile(InternalRow.empty, tbi, 0, 2)
-    val interval = Some(new SimpleInterval("0", 1, 2))
+    val contigAndInterval = ContigAndInterval(new Contig("0"), new LongInterval(1, 2))
     assert(
       TabixIndexHelper
-        .getFileRangeToRead(fs, partitionedFile, conf, false, false, interval)
+        .getFileRangeToRead(fs, partitionedFile, conf, false, false, contigAndInterval)
         .isEmpty)
   }
 }
