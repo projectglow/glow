@@ -143,6 +143,64 @@ object VariantSchemas {
   }
 }
 
+object FeatureSchemas {
+  // GFF fields
+  val seqIdField = StructField("seqId", StringType)
+  val sourceField = StructField("source", StringType)
+  val typeField = StructField("type", StringType)
+  val startField = StructField("start", LongType)
+  val endField = StructField("end", LongType)
+  val scoreField = StructField("score", DoubleType)
+  val strandField = StructField("strand", StringType)
+  val phaseField = StructField("phase", IntegerType)
+  val attributesField = StructField("attributes", StringType)
+
+  // GFF3 tags (names are in all lower case for correct column ordering by the reader)
+  val idField = StructField("id", StringType)
+  val nameField = StructField("name", StringType)
+  val aliasField = StructField("alias", ArrayType(StringType))
+  val parentField = StructField("parent", ArrayType(StringType))
+  val targetField = StructField("target", StringType)
+  val gapField = StructField("gap", StringType)
+  val derivesFromField = StructField("derivesfrom", StringType)
+  val noteField = StructField("note", ArrayType(StringType))
+  val dbxrefField = StructField("dbxref", ArrayType(StringType))
+  val ontologyTermField = StructField("ontologyterm", ArrayType(StringType))
+  val isCircularField = StructField("iscircular", BooleanType)
+
+  // GTF specific tags
+  val geneIdField = StructField("geneId", StringType)
+  val transcriptIdField = StructField("transcriptId", StringType)
+
+  val gffBaseSchema = StructType(
+    Seq(
+      seqIdField,
+      sourceField,
+      typeField,
+      startField,
+      endField,
+      scoreField,
+      strandField,
+      phaseField,
+      attributesField
+    )
+  )
+
+  val gffOfficialAttributeFields = Seq(
+    idField,
+    nameField,
+    aliasField,
+    parentField,
+    targetField,
+    gapField,
+    derivesFromField,
+    noteField,
+    dbxrefField,
+    ontologyTermField,
+    isCircularField
+  )
+}
+
 case class GenotypeFields(
     sampleId: Option[String],
     phased: Option[Boolean],

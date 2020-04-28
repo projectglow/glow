@@ -161,21 +161,21 @@ jobs:
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="3.0.0-SNAPSHOT"
+            export SPARK_VERSION="3.0.1-SNAPSHOT"
             sbt core_2_12/test exit
       - run:
           name: Run Python tests
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="3.0.0-SNAPSHOT"
+            export SPARK_VERSION="3.0.1-SNAPSHOT"
             sbt python_2_12/test exit
       - run:
           name: Run docs tests
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="3.0.0-SNAPSHOT"
+            export SPARK_VERSION="3.0.1-SNAPSHOT"
             sbt docs_2_12/test exit
       - save_cache:
           paths:

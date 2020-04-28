@@ -25,6 +25,7 @@ import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.functions.{expr, monotonically_increasing_id}
 import org.apache.spark.sql.{AnalysisException, Encoders}
 
+import io.projectglow.SparkShim
 import io.projectglow.sql.GlowBaseTest
 import io.projectglow.sql.expressions.{LikelihoodRatioTest, LogisticRegressionGwas, LogitTestResults, NewtonResult}
 import io.projectglow.tertiary.RegressionTestUtils._
@@ -68,6 +69,7 @@ class LogisticRegressionSuite extends GlowBaseTest {
         .product[LogitTestResults]
         .asInstanceOf[ExpressionEncoder[LogitTestResults]]
         .resolveAndBind()
+      val fromRow = SparkShim.createDeserializer(encoder)
       val covariatesMatrix = twoDArrayToSparkMatrix(testData.covariates.toArray)
       val t = LogisticRegressionGwas.logitTests(logitTest)
       val nullFit = t.init(testData.phenotypes.toArray, covariatesMatrix)
@@ -76,7 +78,7 @@ class LogisticRegressionSuite extends GlowBaseTest {
         val y = new DenseVector[Double](testData.phenotypes.toArray)
         val internalRow = t
           .runTest(new DenseVector[Double](g.toArray), y, nullFit)
-        encoder.fromRow(internalRow)
+        fromRow(internalRow)
       }
     }
   }
