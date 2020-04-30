@@ -49,7 +49,7 @@ Status](https://readthedocs.org/projects/glow/badge/?version=latest)](https://gl
 [![Coverage Status](https://codecov.io/gh/projectglow/glow/branch/master/graph/badge.svg)](https://codecov.io/gh/projectglow/glow)
 
 # Building and Testing
-This project is built using sbt: https://www.scala-sbt.org/1.0/docs/Setup.html
+This project is built using [sbt](https://www.scala-sbt.org/1.0/docs/Setup.html) and Java 8.
 
 Start an sbt shell using the `sbt` command.
 
@@ -94,14 +94,23 @@ To run the Scala, Python and documentation tests on both Scala 2.11 and Scala 2.
 test
 ```
 
+To run Scala 2.11 tests against the staged Maven artifact with the current stable version:
+```
+stagedRelease_2_11/test
+```
+
+## IntelliJ Tips
+
 If you use IntelliJ, you'll want to set up [scalafmt on save](https://scalameta.org/scalafmt/docs/installation.html).
+
+To run Python unit tests from inside IntelliJ, you must:
+- Open the "Terminal" tab in IntelliJ
+- Activate the glow conda environment (`conda activate glow`)
+- Start an sbt shell from inside the terminal (`sbt`)
+
+The "sbt shell" tab in IntelliJ will NOT work since it does not use the glow conda environment.
 
 To test or testOnly in remote debug mode with IntelliJ IDEA set the remote debug configuration in IntelliJ to 'Attach to remote JVM' mode and a specific port number (here the default port number 5005 is used) and then modify the definition of options in groupByHash function in build.sbt to
 ```
 val options = ForkOptions().withRunJVMOptions(Vector("-Xmx1024m")).withRunJVMOptions(Vector("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"))
-```
-
-To run Scala 2.11 tests against the staged Maven artifact with the current stable version:
-```
-stagedRelease_2_11/test
 ```

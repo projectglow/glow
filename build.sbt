@@ -127,45 +127,44 @@ lazy val coreDependencies = (providedSparkDependencies ++ testCoreDependencies +
   "org.slf4j" % "slf4j-log4j12" % "1.7.25",
   "org.jdbi" % "jdbi" % "2.63.1",
   // Exclude extraneous GATK dependencies
-  ("org.broadinstitute" % "gatk" % "4.0.11.0")
+  ("org.broadinstitute" % "gatk" % "4.1.6.0")
     .exclude("biz.k11i", "xgboost-predictor")
     .exclude("com.esotericsoftware", "kryo")
     .exclude("com.esotericsoftware", "reflectasm")
+    .exclude("com.github.fommil.netlib", "*")
     .exclude("com.github.jsr203hadoop", "jsr203hadoop")
     .exclude("com.google.cloud", "google-cloud-nio")
     .exclude("com.google.cloud.bigdataoss", "gcs-connector")
-    .exclude("com.intel", "genomicsdb")
+    .exclude("com.google.guava", "guava")
     .exclude("com.intel.gkl", "gkl")
     .exclude("com.opencsv", "opencsv")
+    .exclude("com.thoughtworks.paranamer", "paranamer")
+    .exclude("commons-beanutils", "commons-beanutils")
     .exclude("commons-io", "commons-io")
+    .exclude("de.javakaffee", "kryo-serializers")
     .exclude("gov.nist.math.jama", "gov.nist.math.jama")
     .exclude("it.unimi.dsi", "fastutil")
+    .exclude("net.grey-panther", "natural-comparator")
     .exclude("org.aeonbits.owner", "owner")
-    .exclude("org.apache.commons", "commons-lang3")
-    .exclude("org.apache.commons", "commons-math3")
-    .exclude("org.apache.commons", "commons-collections4")
-    .exclude("org.apache.commons", "commons-vfs2")
+    .exclude("org.apache.commons", "*")
     .exclude("org.apache.hadoop", "hadoop-client")
-    .exclude("org.apache.spark", s"spark-mllib_2.11")
-    .exclude("org.bdgenomics.adam", s"adam-core-spark2_2.11")
-    .exclude("org.broadinstitute", "barclay")
-    .exclude("org.broadinstitute", "hdf5-java-bindings")
-    .exclude("org.broadinstitute", "gatk-native-bindings")
-    .exclude("org.broadinstitute", "gatk-bwamem-jni")
-    .exclude("org.broadinstitute", "gatk-fermilite-jni")
+    .exclude("org.apache.spark", "spark-mllib_2.11")
+    .exclude("org.bdgenomics.adam", "adam-core-spark2_2.11")
+    .exclude("org.bdgenomics.bdg-formats", "bdg-formats")
+    .exclude("org.broadinstitute", "*")
+    .exclude("org.disq-bio", "disq")
+    .exclude("org.genomicsdb", "genomicsdb")
     .exclude("org.jgrapht", "jgrapht-core")
     .exclude("org.objenesis", "objenesis")
     .exclude("org.ojalgo", "ojalgo")
     .exclude("org.ojalgo", "ojalgo-commons-math3")
     .exclude("org.reflections", "reflections")
-    .exclude("org.seqdoop", "hadoop-bam")
-    .exclude("org.xerial", "sqlite-jdbc")
-    .exclude("com.github.fommil.netlib", "*"),
+    .exclude("org.xerial", "sqlite-jdbc"),
   // Fix versions of libraries that are depended on multiple times
   "org.apache.hadoop" % "hadoop-client" % "2.7.3",
   "io.netty" % "netty" % "3.9.9.Final",
   "io.netty" % "netty-all" % "4.1.17.Final",
-  "com.github.samtools" % "htsjdk" % "2.20.3",
+  "com.github.samtools" % "htsjdk" % "2.21.2",
   "org.yaml" % "snakeyaml" % "1.16"
 )).map(_.exclude("com.google.code.findbugs", "jsr305"))
 

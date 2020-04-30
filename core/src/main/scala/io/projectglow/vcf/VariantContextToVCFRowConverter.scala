@@ -23,6 +23,7 @@ import htsjdk.samtools.ValidationStringency
 import htsjdk.variant.variantcontext.{VariantContext => HtsjdkVariantContext}
 import htsjdk.variant.vcf.{VCFEncoderUtils, VCFHeader}
 
+import io.projectglow.SparkShim
 import io.projectglow.common.{GlowLogging, VCFRow}
 
 object VariantContextToVCFRowConverter {
@@ -67,10 +68,10 @@ class VariantContextToVCFRowConverter(
     writeSampleIds = includeSampleIds
   )
 
-  private val rowToVCFRowConverter = VCFRow.encoder.resolveAndBind()
+  private val rowToVCFRowConverter = SparkShim.createDeserializer((VCFRow.encoder.resolveAndBind()))
 
   def convert(variantContext: HtsjdkVariantContext): VCFRow = {
     val internalRow = converter.convertRow(variantContext, isSplit = false)
-    rowToVCFRowConverter.fromRow(internalRow)
+    rowToVCFRowConverter(internalRow)
   }
 }
