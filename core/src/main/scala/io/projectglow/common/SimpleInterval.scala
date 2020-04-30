@@ -20,6 +20,7 @@ import htsjdk.samtools.util.Locatable
 
 /**
  * Minimal immutable class representing a 1-based closed ended genomic interval
+ * Simplified version of org.broadinstitute.hellbender.utils.SimpleInterval
  */
 case class SimpleInterval(contig: String, start: Int, end: Int)
     extends Locatable
