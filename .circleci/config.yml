@@ -12,6 +12,8 @@ install_conda_deps: &install_conda_deps
         wget https://repo.continuum.io/miniconda/Miniconda3-4.7.10-Linux-x86_64.sh
         /bin/bash Miniconda3-4.7.10-Linux-x86_64.sh -b -p $HOME/conda
         conda env create -f python/environment.yml
+        conda init
+        exec bash
       else
         echo "Conda already installed"
       fi
