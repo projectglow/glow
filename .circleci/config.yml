@@ -23,7 +23,7 @@ install_pyspark3: &install_pyspark3
     command: |
       export PATH=$HOME/conda/bin:$PATH
       if [ ! -e "pyspark-3.0.0.dev2.tar.gz" ]; then
-        conda activate glow
+        source activate glow
         wget https://archive.apache.org/dist/spark/spark-3.0.0-preview2/pyspark-3.0.0.dev2.tar.gz
         pip install pyspark-3.0.0.dev2.tar.gz
       else
