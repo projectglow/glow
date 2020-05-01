@@ -61,7 +61,7 @@ class VariantContextToInternalRowConverter(
   private val infoKeysParsedWithoutHeader = mutable.HashSet.empty[String]
   private val formatKeysParsedWithoutHeader = mutable.HashSet.empty[String]
 
-  private def makeConverter = {
+  private def makeConverter(forSplit: Boolean) = {
     val fns = schema.map { field =>
       val fn: RowConverter.Updater[VariantContext] = field match {
         case f if structFieldsEqualExceptNullability(f, contigNameField) => updateContigName
@@ -73,6 +73,8 @@ class VariantContextToInternalRowConverter(
         case f if structFieldsEqualExceptNullability(f, qualField) => updateQual
         case f if structFieldsEqualExceptNullability(f, filtersField) => updateFilters
         case f if structFieldsEqualExceptNullability(f, attributesField) => updateAttributes
+        case f if structFieldsEqualExceptNullability(f, splitFromMultiAllelicField) =>
+          (vc, row, i) => row.update(i, forSplit)
         case f if f.name.startsWith(VariantSchemas.infoFieldPrefix) =>
           (vc, row, i) => updateInfoField(vc, field, row, i)
         case f if f.name == VariantSchemas.genotypesFieldName =>
@@ -131,12 +133,23 @@ class VariantContextToInternalRowConverter(
     new RowConverter[(JMap[Allele, Int], HTSJDKGenotype)](gSchema, fns.toArray)
   }
 
-  def convertRow(vc: VariantContext): InternalRow = {
-    makeConverter(vc)
+  private val splitConverter = makeConverter(true)
+  private val nonSplitConverter = makeConverter(false)
+
+  def convertRow(vc: VariantContext, isSplit: Boolean): InternalRow = {
+    if (isSplit) {
+      splitConverter(vc)
+    } else {
+      nonSplitConverter(vc)
+    }
   }
 
-  def convertRow(vc: VariantContext, priorRow: InternalRow): InternalRow = {
-    makeConverter(vc, priorRow)
+  def convertRow(vc: VariantContext, priorRow: InternalRow, isSplit: Boolean): InternalRow = {
+    if (isSplit) {
+      splitConverter(vc, priorRow)
+    } else {
+      nonSplitConverter(vc, priorRow)
+    }
   }
 
   private def buildAlleleMap(vc: VariantContext): JMap[Allele, Int] = {

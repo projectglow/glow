@@ -71,7 +71,7 @@ class VariantContextToVCFRowConverter(
   private val rowToVCFRowConverter = SparkShim.createDeserializer((VCFRow.encoder.resolveAndBind()))
 
   def convert(variantContext: HtsjdkVariantContext): VCFRow = {
-    val internalRow = converter.convertRow(variantContext)
+    val internalRow = converter.convertRow(variantContext, isSplit = false)
     rowToVCFRowConverter(internalRow)
   }
 }

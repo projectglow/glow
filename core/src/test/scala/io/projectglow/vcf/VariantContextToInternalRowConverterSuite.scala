@@ -58,7 +58,7 @@ class VariantContextToInternalRowConverterSuite extends GlowBaseTest {
     }
     val vc = vcb.make
 
-    val internalRow = converter.convertRow(vc)
+    val internalRow = converter.convertRow(vc, false)
     assert(
       internalRow
         .getArray(schema.fieldIndex("INFO_" + intArrayHeaderLine.getID))

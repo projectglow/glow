@@ -113,7 +113,7 @@ class LiftOverVariantsTransformer extends DataFrameTransformer {
             case (Some(outputVc), None) =>
               // If liftover succeeds, convert the output row to the output schema using the input row as a prior
               val liftedRow =
-                vcToInternalRowConverter.convertRow(outputVc, inputRowInOutputSchema)
+                vcToInternalRowConverter.convertRow(outputVc, inputRowInOutputSchema, false)
               (liftedRow, true, None)
             case (None, Some(msg)) =>
               // If liftover fails, use the input row and set the added liftover INFO columns to null

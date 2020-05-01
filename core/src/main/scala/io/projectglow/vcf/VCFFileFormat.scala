@@ -439,7 +439,7 @@ private[vcf] object SchemaDelegate {
         writeSampleIds = includeSampleIds
       )
       iterator.map { vc =>
-        converter.convertRow(vc)
+        converter.convertRow(vc, false)
       }
     }
   }
@@ -457,7 +457,7 @@ private[vcf] object SchemaDelegate {
         iterator: Iterator[VariantContext]): Iterator[InternalRow] = {
       val converter = new VariantContextToInternalRowConverter(header, requiredSchema, stringency)
       iterator.map { vc =>
-        converter.convertRow(vc)
+        converter.convertRow(vc, false)
       }
     }
   }
@@ -477,7 +477,7 @@ private[vcf] object SchemaDelegate {
 
       val converter = new VariantContextToInternalRowConverter(header, requiredSchema, stringency)
       iterator.map { vc =>
-        converter.convertRow(vc)
+        converter.convertRow(vc, false)
       }
     }
   }

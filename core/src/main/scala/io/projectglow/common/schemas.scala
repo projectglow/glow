@@ -46,7 +46,8 @@ object VariantSchemas {
       refAlleleField,
       alternateAllelesField,
       qualField,
-      filtersField
+      filtersField,
+      splitFromMultiAllelicField
     )
   )
 
@@ -248,7 +249,8 @@ case class VCFRow(
     qual: Option[Double],
     filters: Seq[String],
     attributes: scala.collection.Map[String, String],
-    genotypes: Seq[GenotypeFields])
+    genotypes: Seq[GenotypeFields],
+    splitFromMultiAllelic: Boolean = false)
 
 object VCFRow {
   lazy val schema: StructType = ScalaReflection
