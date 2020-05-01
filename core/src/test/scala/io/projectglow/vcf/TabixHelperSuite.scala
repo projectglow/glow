@@ -814,15 +814,6 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
       "or not(start > 10003500 and end < 10004000))")
   }
 
-  // Test multi-allelic case works as well
-  test("Parser/Tabix vs Not: Multi-allelic ") {
-    testParserAndTabix(
-      multiAllelicVcf,
-      "contigName= 'chr20' and (start = 18210074 or end = 18210084)",
-      true
-    )
-  }
-
   test("Do not try to read index files") {
     val tbi = testBigVcf + ".tbi"
     val path = new Path(tbi)
