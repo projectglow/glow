@@ -27,25 +27,24 @@ import htsjdk.samtools.util.{BlockCompressedInputStream, OverlapDetector}
 import htsjdk.tribble.readers.{AsciiLineReader, AsciiLineReaderIterator, PositionalBufferedStream}
 import htsjdk.variant.variantcontext.VariantContext
 import htsjdk.variant.vcf._
-import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
-import io.projectglow.common._
-import io.projectglow.sql.util.{BGZFCodec, ComDatabricksDataSource, HadoopLineIterator, SerializableConfiguration}
-import io.projectglow.transformers.splitmultiallelics.SplitMultiallelicsTransformer
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileStatus, Path}
 import org.apache.hadoop.io.Text
 import org.apache.hadoop.io.compress.{CodecPool, CompressionCodecFactory, SplittableCompressionCodec}
 import org.apache.hadoop.mapreduce.{Job, TaskAttemptContext}
-import org.broadinstitute.hellbender.utils.SimpleInterval
-import org.seqdoop.hadoop_bam.util.{BGZFEnhancedGzipCodec, DatabricksBGZFOutputStream}
 
 import org.apache.spark.TaskContext
+import org.apache.spark.sql.{SQLUtils, SparkSession}
 import org.apache.spark.sql.catalyst.util.CompressionCodecs
 import org.apache.spark.sql.catalyst.{InternalRow, ScalaReflection}
 import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
 import org.apache.spark.sql.types._
-import org.apache.spark.sql.{SQLUtils, SparkSession}
+import org.seqdoop.hadoop_bam.util.{BGZFEnhancedGzipCodec, DatabricksBGZFOutputStream}
+import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
+import io.projectglow.common.{CommonOptions, GlowLogging, SimpleInterval, VCFOptions, VCFRow, VariantSchemas, WithUtils}
+import io.projectglow.sql.util.{BGZFCodec, ComDatabricksDataSource, HadoopLineIterator, SerializableConfiguration}
+import io.projectglow.transformers.splitmultiallelics.SplitMultiallelicsTransformer
 
 class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HlsEventRecorder {
   var codecFactory: CompressionCodecFactory = _
