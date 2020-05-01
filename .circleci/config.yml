@@ -58,6 +58,10 @@ jobs:
           keys:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}
       - *install_conda_deps
+      - save_cache:
+          paths:
+            - /home/circleci/conda
+          key: conda-deps-v1-{{ checksum "python/environment.yml" }}
       - run:
           name: Check docs links
           environment:
@@ -65,10 +69,6 @@ jobs:
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             cd docs
             make linkcheck
-      - save_cache:
-          paths:
-            - /home/circleci/conda
-          key: conda-deps-v1-{{ checksum "python/environment.yml" }}
 
   scala-2_11-tests:
     <<: *setup_base
@@ -78,6 +78,10 @@ jobs:
           keys:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}
       - *install_conda_deps
+      - save_cache:
+          paths:
+            - /home/circleci/conda
+          key: conda-deps-v1-{{ checksum "python/environment.yml" }}
       - run:
           name: Run Scala tests
           environment:
@@ -104,10 +108,6 @@ jobs:
           path: ~/glow/core/target/scala-2.11/test-reports
       - codecov/upload:
           file: "core/target/scala-2.11/scoverage-report/scoverage.xml"
-      - save_cache:
-          paths:
-            - /home/circleci/conda
-          key: conda-deps-v1-{{ checksum "python/environment.yml" }}
 
   scala-2_12-tests:
     <<: *setup_base
@@ -117,6 +117,10 @@ jobs:
           keys:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}
       - *install_conda_deps
+      - save_cache:
+          paths:
+            - /home/circleci/conda
+          key: conda-deps-v1-{{ checksum "python/environment.yml" }}
       - run:
           name: Run Scala tests
           environment:
@@ -141,10 +145,6 @@ jobs:
           destination: unit-tests.log
       - store_test_results:
           path: ~/glow/core/target/scala-2.12/test-reports
-      - save_cache:
-          paths:
-            - /home/circleci/conda
-          key: conda-deps-v1-{{ checksum "python/environment.yml" }}
 
   spark-3-tests:
     <<: *setup_base
@@ -152,13 +152,12 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - spark3-conda-deps-v1-{{ checksum "python/environment.yml" }}
+            - conda-deps-v1-{{ checksum "python/environment.yml" }}
       - *install_conda_deps
-      # Save cache before installing pyspark3 so that we pick up new updates
       - save_cache:
           paths:
             - /home/circleci/conda
-          key: spark3-conda-deps-v1-{{ checksum "python/environment.yml" }}
+          key: conda-deps-v1-{{ checksum "python/environment.yml" }}
       - *install_pyspark3
       - run:
           name: Run Scala tests
