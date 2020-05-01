@@ -40,12 +40,11 @@ import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
 import org.apache.spark.sql.types._
 import org.broadinstitute.hellbender.tools.walkers.genotyper.GenotypeAssignmentMethod
-import org.broadinstitute.hellbender.utils.SimpleInterval
 import org.broadinstitute.hellbender.utils.variant.GATKVariantContextUtils
 import org.seqdoop.hadoop_bam.util.{BGZFEnhancedGzipCodec, DatabricksBGZFOutputStream}
 
 import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
-import io.projectglow.common.{CommonOptions, GlowLogging, VCFOptions, VCFRow, VariantSchemas, WithUtils}
+import io.projectglow.common.{CommonOptions, GlowLogging, SimpleInterval, VCFOptions, VCFRow, VariantSchemas, WithUtils}
 import io.projectglow.sql.util.{BGZFCodec, ComDatabricksDataSource, HadoopLineIterator, SerializableConfiguration}
 
 class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with HlsEventRecorder {
@@ -386,7 +385,7 @@ private[vcf] class VCFIterator(
       // being queried or filter parser being disabled by the user.
       true
     } else {
-      val vcInterval = new SimpleInterval(vc.getContig, vc.getStart, vc.getEnd)
+      val vcInterval = SimpleInterval(vc.getContig, vc.getStart, vc.getEnd)
       overlapDetector.overlapsAny(vcInterval)
     }
   }
