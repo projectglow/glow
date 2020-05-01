@@ -373,7 +373,7 @@ private[vcf] class VCFIterator(
       // being queried or filter parser being disabled by the user.
       true
     } else {
-      val vcInterval = new SimpleInterval(vc.getContig, vc.getStart, vc.getEnd)
+      val vcInterval = SimpleInterval(vc.getContig, vc.getStart, vc.getEnd)
       overlapDetector.overlapsAny(vcInterval)
     }
   }

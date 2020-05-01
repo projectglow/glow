@@ -25,11 +25,10 @@ import com.google.common.annotations.VisibleForTesting
 import htsjdk.tribble.index.tabix._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
+
 import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.sources.{Filter, _}
-import org.broadinstitute.hellbender.utils.SimpleInterval
-
-import io.projectglow.common.{GlowLogging, WithUtils}
+import io.projectglow.common.{GlowLogging, SimpleInterval, WithUtils}
 
 /** An extended Contig class used by filter parser that keeps an Option(contigName)
  * updated under And and Or operations and provides other required functionalities
@@ -81,7 +80,6 @@ class FilterContig(contigName: String) {
 
 /** An extended 1-based Interval class used by filter parser that keeps an Option(SimpleInterval)
  *  updated under And and Or operations and provides other required functionalities
- *  [Note: SimpleInterval class is org.broadinstitute.hellbender.utils.SimpleInterval]
  */
 class FilterInterval(start: Long, end: Long) {
 
@@ -90,7 +88,7 @@ class FilterInterval(start: Long, end: Long) {
   }
 
   private var interval: Option[SimpleInterval] = try {
-    Option(new SimpleInterval("", start.toInt, end.toInt))
+    Option(SimpleInterval("", start.toInt, end.toInt))
   } catch {
     case e: IllegalArgumentException => None
   }
@@ -378,7 +376,7 @@ object TabixIndexHelper extends GlowLogging {
           if (si.overlaps(ei)) {
             smallestQueryInterval = si.intersect(ei)
           } else {
-            smallestQueryInterval = new SimpleInterval("", ei.getStart, ei.getStart)
+            smallestQueryInterval = SimpleInterval("", ei.getStart, ei.getStart)
           }
           new FilterInterval(smallestQueryInterval.getStart, smallestQueryInterval.getEnd)
         }
@@ -408,7 +406,7 @@ object TabixIndexHelper extends GlowLogging {
           parsedFilterResult.endInterval
         ).getSimpleInterval
       ) match {
-        case (Some(c), Some(i)) => Option(new SimpleInterval(c, i.getStart, i.getEnd))
+        case (Some(c), Some(i)) => Option(SimpleInterval(c, i.getStart, i.getEnd))
         case _ => None
       }
     } else {
@@ -416,7 +414,7 @@ object TabixIndexHelper extends GlowLogging {
         logger.info("Error: Filter parser is deactivated while requesting index use.")
         throw new IllegalArgumentException
       }
-      Option(new SimpleInterval("", 1, Int.MaxValue))
+      Option(SimpleInterval("", 1, Int.MaxValue))
     }
   }
 

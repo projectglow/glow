@@ -16,17 +16,14 @@
 
 package io.projectglow.vcf
 
+import io.projectglow.common.{GlowLogging, SimpleInterval, VCFRow}
+import io.projectglow.sql.GlowBaseTest
+import io.projectglow.vcf.TabixIndexHelper._
 import org.apache.hadoop.fs.Path
-import org.apache.spark.SparkConf
+
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.datasources.PartitionedFile
 import org.apache.spark.sql.sources._
-import org.broadinstitute.hellbender.utils.SimpleInterval
-import org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec
-
-import io.projectglow.common.{GlowLogging, VCFRow}
-import io.projectglow.sql.GlowBaseTest
-import io.projectglow.vcf.TabixIndexHelper._
 
 class TabixHelperSuite extends GlowBaseTest with GlowLogging {
 
@@ -428,7 +425,7 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
       s: Int,
       e: Int): Unit = {
     val actual = makeFilteredInterval(filters, useFilterParser, useIndex)
-    val expected = Option(new SimpleInterval(contigName, s, e))
+    val expected = Option(SimpleInterval(contigName, s, e))
     actual.foreach(i => logger.debug(s"${i.getContig}, ${i.getStart}, ${i.getEnd}"))
     expected.foreach(i => logger.debug(s"${i.getContig}, ${i.getStart}, ${i.getEnd}"))
     assert(isSameOptionSimpleInterval(actual, expected))
@@ -700,7 +697,7 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     val fs = path.getFileSystem(conf)
     val fileLength = fs.getFileStatus(path).getLen
     val partitionedFile = PartitionedFile(InternalRow.empty, oneRowGzipVcf, 0, 2)
-    val interval = Some(new SimpleInterval("0", 1, 2))
+    val interval = Some(SimpleInterval("0", 1, 2))
     assert(
       TabixIndexHelper
         .getFileRangeToRead(fs, partitionedFile, conf, false, false, interval)
@@ -820,7 +817,7 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     val conf = sparkContext.hadoopConfiguration
     val fs = path.getFileSystem(conf)
     val partitionedFile = PartitionedFile(InternalRow.empty, tbi, 0, 2)
-    val interval = Some(new SimpleInterval("0", 1, 2))
+    val interval = Some(SimpleInterval("0", 1, 2))
     assert(
       TabixIndexHelper
         .getFileRangeToRead(fs, partitionedFile, conf, false, false, interval)
