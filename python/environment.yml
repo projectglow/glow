@@ -3,6 +3,7 @@ channels:
   - bioconda
 dependencies:
   - python=3.7
+  - bedtools
   - jinja2
   - numpy=1.17.4
   - nomkl # Skip MKL for local development
@@ -12,7 +13,6 @@ dependencies:
   - pyspark=2.4.5
   - pytest
   - pyyaml
-  - bedtools
   - sphinx
   - sphinx_rtd_theme
   - pip:
