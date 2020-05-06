@@ -59,11 +59,14 @@ You can control the behavior of the VCF reader with a few parameters. All parame
 +==========================+=========+=============+=========================================================================================================================================================+
 | ``includeSampleIds``     | boolean | ``true``    | If true, each genotype includes the name of the sample ID it belongs to. Sample names increases the size of each row, both in memory and on storage.    |
 +--------------------------+---------+-------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
-| ``splitToBiallelic``     | boolean | ``false``   | If true, multiallelic variants are split into two or more biallelic variants.                                                                           |
-+--------------------------+---------+-------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
 | ``flattenInfoFields``    | boolean | ``true``    | If true, each info field in the input VCF will be converted into a column in the output DataFrame with each column typed as specified in the VCF header.|
 |                          |         |             | If false, all info fields will be contained in a single column with a string -> string map of info keys to values.                                      |
 +--------------------------+---------+-------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+
+.. note::
+
+   Starting from Glow 0.4.0, the ``splitToBiallelic`` option for the VCF reader no longer exists. To split multiallelic variants to biallelics use the :ref:`split_multiallelics<split_multiallelics>` transformer after loading the VCF.
+
 
 .. important:: The VCF reader uses the 0-start, half-open (zero-based) coordinate system.
 
