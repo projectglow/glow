@@ -32,7 +32,7 @@ import org.apache.spark.sql.{AnalysisException, DataFrame}
 import org.apache.spark.sql.functions.expr
 import org.apache.spark.sql.types.StructType
 
-import io.projectglow.common.{VCFRow, VariantSchemas, WithUtils}
+import io.projectglow.common.{GenotypeFields, VCFRow, VariantSchemas, WithUtils}
 import io.projectglow.sql.GlowBaseTest
 
 abstract class VCFFileWriterSuite(val sourceName: String)
@@ -162,22 +162,25 @@ abstract class VCFFileWriterSuite(val sourceName: String)
   }
 
   def compareWithImputedSampleIds(dfWithoutSampleIds: DataFrame, dfWithSampleIds: DataFrame): Unit = {
-    val dfWithImputedSampleIds = dfWithoutSampleIds.withColumn(
-      "genotypes",
-      expr("transform(genotypes, (gt, idx) -> add_struct_fields(gt, 'sampleId', concat('sample_', idx + 1)))")
-    )
-    val sharedFields = InternalRowToVariantContextConverter
-      .getGenotypeSchema(dfWithImputedSampleIds.schema)
+    val nonSampleIdGenotypeFields = InternalRowToVariantContextConverter
+      .getGenotypeSchema(dfWithSampleIds.schema)
       .get
       .fieldNames
-      .map { f => s"'$f'" }
+      .filter(_ != "sampleId")
+      .map { f => s"'$f', gt.$f" }
       .mkString(",")
-    val dfWithSampleIdsWithSharedSchema = dfWithSampleIds.withColumn(
+    val dfWithImputedSampleIds = dfWithoutSampleIds.withColumn(
       "genotypes",
-      expr(s"transform(genotypes, (gt, idx) -> subset_struct(gt, $sharedFields))")
+      expr(
+        s"""
+          |transform(genotypes, (gt, idx) ->
+          |   named_struct('sampleId', concat('sample_', idx + 1), $nonSampleIdGenotypeFields)
+          |)
+        """.stripMargin
+      )
     )
 
-    dfWithImputedSampleIds.collect.zip(dfWithSampleIdsWithSharedSchema.collect).foreach {
+    dfWithImputedSampleIds.collect.zip(dfWithSampleIds.collect).foreach {
       case (vc1, vc2) =>
         assert(vc1 == vc2)
     }
@@ -710,22 +713,28 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
     val presentSampleIds = spark
       .read
       .format(readSourceName)
+      .schema(VCFRow.schema)
       .load(TGP)
-      .withColumn("genotypesWithSampleIds", expr(s"slice(genotypes, $start, $numPresentSampleIds)"))
-      .drop("genotypes")
+      .withColumn("genotypes", expr(s"slice(genotypes, $start, $numPresentSampleIds)"))
 
+    val nonSampleIdGenotypeFields = GenotypeFields
+      .schema
+      .fieldNames
+      .filter(_ != "sampleId")
+      .map { f => s"'$f', gt.$f" }
+      .mkString(",")
     val missingSampleIds = spark
       .read
       .format(readSourceName)
-      .option("includeSampleIds", "false")
+      .schema(VCFRow.schema)
       .load(TGP)
       .withColumn(
-        "genotypesWithoutSampleIds",
-        expr(s"slice(genotypes, $start, $numMissingSampleIds)"))
-      .drop("genotypes", "attributes")
+        "genotypes",
+        expr(s"transform(slice(genotypes, $start, $numMissingSampleIds), (gt, idx) -> named_struct('sampleId', cast(null as string), $nonSampleIdGenotypeFields))"))
+      .drop("attributes")
 
-    presentSampleIds
-      .join(missingSampleIds, VariantSchemas.vcfBaseSchema.map(_.name))
+    presentSampleIds.withColumnRenamed("genotypes", "genotypesWithSampleIds")
+      .join(missingSampleIds.withColumnRenamed("genotypes", "genotypesWithoutSampleIds"), VariantSchemas.vcfBaseSchema.map(_.name))
       .withColumn("genotypes", expr("concat(genotypesWithSampleIds, genotypesWithoutSampleIds)"))
       .drop("genotypesWithSampleIds", "genotypesWithoutSampleIds")
   }
@@ -739,11 +748,11 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
       .format(sourceName)
       .save(tempFile)
 
-    val rereadDf =
-      spark
-        .read
-        .format(readSourceName)
-        .load(tempFile)
+    val rereadDf = spark
+      .read
+      .format(readSourceName)
+      .schema(VCFRow.schema)
+      .load(tempFile)
 
     val sess = spark
     import sess.implicits._
