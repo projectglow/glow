@@ -35,9 +35,7 @@ import org.apache.spark.sql.types.StructType
 import io.projectglow.common.{GenotypeFields, VCFRow, VariantSchemas, WithUtils}
 import io.projectglow.sql.GlowBaseTest
 
-abstract class VCFFileWriterSuite(val sourceName: String)
-    extends GlowBaseTest
-    with VCFConverterBaseTest {
+abstract class VCFFileWriterSuite(val sourceName: String) extends VCFConverterBaseTest {
 
   lazy val NA12878 = s"$testDataHome/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf"
   lazy val TGP = s"$testDataHome/1000genomes-phase3-1row.vcf"
@@ -164,25 +162,7 @@ abstract class VCFFileWriterSuite(val sourceName: String)
   def compareWithImputedSampleIds(
       dfWithoutSampleIds: DataFrame,
       dfWithSampleIds: DataFrame): Unit = {
-    val nonSampleIdGenotypeFields = InternalRowToVariantContextConverter
-      .getGenotypeSchema(dfWithSampleIds.schema)
-      .get
-      .fieldNames
-      .filter(_ != "sampleId")
-      .map { f =>
-        s"'$f', gt.$f"
-      }
-      .mkString(",")
-    val dfWithImputedSampleIds = dfWithoutSampleIds.withColumn(
-      "genotypes",
-      expr(
-        s"""
-          |transform(genotypes, (gt, idx) ->
-          |   named_struct('sampleId', concat('sample_', idx + 1), $nonSampleIdGenotypeFields)
-          |)
-        """.stripMargin
-      )
-    )
+    val dfWithImputedSampleIds = setSampleIds(dfWithoutSampleIds, "concat('sample_', idx + 1)")
 
     dfWithImputedSampleIds.collect.zip(dfWithSampleIds.collect).foreach {
       case (vc1, vc2) =>

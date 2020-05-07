@@ -102,7 +102,7 @@ trait VCFConverterBaseTest extends GlowBaseTest {
     convertToVCFRows(Seq(internalRow)).head
   }
 
-  def setMissingSampleIds(df: DataFrame): DataFrame = {
+  def setSampleIds(df: DataFrame, sampleIdExpr: String): DataFrame = {
     val nonSampleIdGenotypeFields = InternalRowToVariantContextConverter
       .getGenotypeSchema(df.schema)
       .get
@@ -118,10 +118,14 @@ trait VCFConverterBaseTest extends GlowBaseTest {
         s"""
            |transform(
            |  genotypes,
-           |  gt -> named_struct('sampleId', cast(null as string), $nonSampleIdGenotypeFields)
+           |  (gt, idx) -> named_struct('sampleId', $sampleIdExpr, $nonSampleIdGenotypeFields)
            |)
            """.stripMargin
       )
     )
+  }
+
+  def setMissingSampleIds(df: DataFrame): DataFrame = {
+    setSampleIds(df, "cast(null as string)")
   }
 }
