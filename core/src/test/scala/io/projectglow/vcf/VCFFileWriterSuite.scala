@@ -735,23 +735,15 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
         s"'$f', gt.$f"
       }
       .mkString(",")
-    val missingSampleIds = spark
-      .read
-      .format(readSourceName)
-      .schema(VCFRow.schema)
-      .load(TGP)
-      .withColumn(
-        "genotypes",
-        expr(
-          s"""
-             |transform(
-             |  slice(genotypes, $start, $numMissingSampleIds),
-             |  gt -> named_struct('sampleId', cast(null as string), $nonSampleIdGenotypeFields)
-             |)
-           """.stripMargin
-        )
-      )
-      .drop("attributes")
+    val missingSampleIds = setMissingSampleIds(
+      spark
+        .read
+        .format(readSourceName)
+        .schema(VCFRow.schema)
+        .load(TGP)
+        .withColumn("genotypes", expr(s"slice(genotypes, $start, $numMissingSampleIds)"))
+        .drop("attributes")
+    )
 
     presentSampleIds
       .withColumnRenamed("genotypes", "genotypesWithSampleIds")

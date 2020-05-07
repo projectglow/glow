@@ -18,8 +18,9 @@ package io.projectglow.vcf
 
 import scala.reflect.runtime.universe._
 
+import org.apache.spark.sql.{DataFrame, SQLUtils}
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.SQLUtils
+import org.apache.spark.sql.functions.expr
 
 import io.projectglow.common.{GenotypeFields, VCFRow}
 import io.projectglow.sql.GlowBaseTest
@@ -99,5 +100,28 @@ trait VCFConverterBaseTest extends GlowBaseTest {
 
   def convertToVCFRow(internalRow: InternalRow): VCFRow = {
     convertToVCFRows(Seq(internalRow)).head
+  }
+
+  def setMissingSampleIds(df: DataFrame): DataFrame = {
+    val nonSampleIdGenotypeFields = InternalRowToVariantContextConverter
+      .getGenotypeSchema(df.schema)
+      .get
+      .fieldNames
+      .filter(_ != "sampleId")
+      .map { f =>
+        s"'$f', gt.$f"
+      }
+      .mkString(",")
+    df.withColumn(
+      "genotypes",
+      expr(
+        s"""
+           |transform(
+           |  genotypes,
+           |  gt -> named_struct('sampleId', cast(null as string), $nonSampleIdGenotypeFields)
+           |)
+           """.stripMargin
+      )
+    )
   }
 }
