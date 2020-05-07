@@ -237,11 +237,6 @@ object GenotypeFields {
 
   val aliases: Map[String, Seq[String]] = baseReverseAliases.map { case (k, v) => (v, Seq(k)) } +
     ("GT" -> Seq("phased", "calls"))
-
-  lazy val schema: StructType = ScalaReflection
-    .schemaFor[GenotypeFields]
-    .dataType
-    .asInstanceOf[StructType]
 }
 
 case class VCFRow(

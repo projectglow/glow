@@ -161,13 +161,17 @@ abstract class VCFFileWriterSuite(val sourceName: String)
     }
   }
 
-  def compareWithImputedSampleIds(dfWithoutSampleIds: DataFrame, dfWithSampleIds: DataFrame): Unit = {
+  def compareWithImputedSampleIds(
+      dfWithoutSampleIds: DataFrame,
+      dfWithSampleIds: DataFrame): Unit = {
     val nonSampleIdGenotypeFields = InternalRowToVariantContextConverter
       .getGenotypeSchema(dfWithSampleIds.schema)
       .get
       .fieldNames
       .filter(_ != "sampleId")
-      .map { f => s"'$f', gt.$f" }
+      .map { f =>
+        s"'$f', gt.$f"
+      }
       .mkString(",")
     val dfWithImputedSampleIds = dfWithoutSampleIds.withColumn(
       "genotypes",
@@ -205,7 +209,9 @@ abstract class VCFFileWriterSuite(val sourceName: String)
       schemaOption = ("flattenInfoFields", "true"),
       partitions = Some(100)
     )
-    compareWithImputedSampleIds(df.sort("contigName", "start"), rewrittenDf.sort("contigName", "start"))
+    compareWithImputedSampleIds(
+      df.sort("contigName", "start"),
+      rewrittenDf.sort("contigName", "start"))
   }
 
   test("Use VCF parser with sample IDs (many partitions)") {
@@ -215,9 +221,12 @@ abstract class VCFFileWriterSuite(val sourceName: String)
       NA12878,
       partitions = Some(100)
     )
-    df.sort("contigName", "start").collect.zip(rewrittenDf.sort("contigName", "start").collect).foreach {
-      case (vc1, vc2) => assert(vc1 == vc2)
-    }
+    df.sort("contigName", "start")
+      .collect
+      .zip(rewrittenDf.sort("contigName", "start").collect)
+      .foreach {
+        case (vc1, vc2) => assert(vc1 == vc2)
+      }
   }
 
   test("Strict validation stringency") {
@@ -717,11 +726,14 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
       .load(TGP)
       .withColumn("genotypes", expr(s"slice(genotypes, $start, $numPresentSampleIds)"))
 
-    val nonSampleIdGenotypeFields = GenotypeFields
-      .schema
+    val nonSampleIdGenotypeFields = InternalRowToVariantContextConverter
+      .getGenotypeSchema(presentSampleIds.schema)
+      .get
       .fieldNames
       .filter(_ != "sampleId")
-      .map { f => s"'$f', gt.$f" }
+      .map { f =>
+        s"'$f', gt.$f"
+      }
       .mkString(",")
     val missingSampleIds = spark
       .read
@@ -730,11 +742,22 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
       .load(TGP)
       .withColumn(
         "genotypes",
-        expr(s"transform(slice(genotypes, $start, $numMissingSampleIds), (gt, idx) -> named_struct('sampleId', cast(null as string), $nonSampleIdGenotypeFields))"))
+        expr(
+          s"""
+             |transform(
+             |  slice(genotypes, $start, $numMissingSampleIds),
+             |  gt -> named_struct('sampleId', cast(null as string), $nonSampleIdGenotypeFields)
+             |)
+           """.stripMargin
+        )
+      )
       .drop("attributes")
 
-    presentSampleIds.withColumnRenamed("genotypes", "genotypesWithSampleIds")
-      .join(missingSampleIds.withColumnRenamed("genotypes", "genotypesWithoutSampleIds"), VariantSchemas.vcfBaseSchema.map(_.name))
+    presentSampleIds
+      .withColumnRenamed("genotypes", "genotypesWithSampleIds")
+      .join(
+        missingSampleIds.withColumnRenamed("genotypes", "genotypesWithoutSampleIds"),
+        VariantSchemas.vcfBaseSchema.map(_.name))
       .withColumn("genotypes", expr("concat(genotypesWithSampleIds, genotypesWithoutSampleIds)"))
       .drop("genotypesWithSampleIds", "genotypesWithoutSampleIds")
   }

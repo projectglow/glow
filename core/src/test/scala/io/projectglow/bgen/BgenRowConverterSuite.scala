@@ -53,11 +53,10 @@ class BgenRowConverterSuite extends BgenConverterBaseTest {
       .map(converter.convert)
 
     assert(bgenRows.size == vcfRows.size)
-    bgenRows.zip(vcfRows)
-      .foreach {
-        case (br, vr) =>
-          checkBgenRowsEqual(br, vr, false, bitsPerProb)
-      }
+    bgenRows.zip(vcfRows).foreach {
+      case (br, vr) =>
+        checkBgenRowsEqual(br, vr, false, bitsPerProb)
+    }
   }
 
   test("unphased 8 bit") {
