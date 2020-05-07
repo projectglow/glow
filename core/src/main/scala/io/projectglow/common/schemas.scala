@@ -18,7 +18,6 @@ package io.projectglow.common
 
 import org.apache.spark.sql.Encoders
 import org.apache.spark.sql.catalyst.ScalaReflection
-import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.types._
 
 object VariantSchemas {
