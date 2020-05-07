@@ -18,7 +18,6 @@ package io.projectglow.bgen
 
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 
-import io.projectglow.SparkShim
 import io.projectglow.common.{BgenGenotype, BgenRow}
 
 class BgenRowConverterSuite extends BgenConverterBaseTest {
@@ -44,9 +43,7 @@ class BgenRowConverterSuite extends BgenConverterBaseTest {
       .format("vcf")
       .option("includeSampleIds", true)
       .load(testVcf)
-
-    val converter = new InternalRowToBgenRowConverter(vcfDs.schema, 10, 2, defaultPhasing)
-    val toRow = SparkShim.createSerializer(RowEncoder.apply(vcfDs.schema))
+      .as[BgenRow]
 
     bgenDs
       .sort("contigName", "start")
@@ -54,7 +51,7 @@ class BgenRowConverterSuite extends BgenConverterBaseTest {
       .zip(vcfDs.sort("contigName", "start").collect)
       .foreach {
         case (br, vr) =>
-          checkBgenRowsEqual(br, converter.convert(toRow(vr)), false, bitsPerProb)
+          checkBgenRowsEqual(br, vr, false, bitsPerProb)
       }
   }
 
@@ -111,13 +108,12 @@ class BgenRowConverterSuite extends BgenConverterBaseTest {
       defaultPloidy,
       defaultPhasing
     )
-    val toRow = SparkShim.createSerializer(RowEncoder.apply(BgenRow.schema))
 
-    val df = Seq(v).toDF
+    val internalRow = convertBgenRowToInternalRow(v)
     if (shouldThrow) {
-      assertThrows[IllegalStateException](converter.convert(toRow(df.collect.head)))
+      assertThrows[IllegalStateException](converter.convert(internalRow))
     } else {
-      val row = converter.convert(toRow(df.collect.head))
+      val row = converter.convert(internalRow)
       assert(row.genotypes.head.phased.get == phased)
       assert(row.genotypes.head.ploidy.get == ploidy)
     }
@@ -184,7 +180,6 @@ class BgenRowConverterSuite extends BgenConverterBaseTest {
     import sess.implicits._
 
     val converter = new InternalRowToBgenRowConverter(BgenRow.schema, 10, 2, false)
-    val toRow = SparkShim.createSerializer(RowEncoder.apply(BgenRow.schema))
 
     val mixedRow = BgenRow(
       "chr1",
@@ -209,7 +204,7 @@ class BgenRowConverterSuite extends BgenConverterBaseTest {
       )
     )
 
-    val row = Seq(mixedRow).toDF.collect.head
-    assertThrows[IllegalStateException](converter.convert(toRow(row)))
+    val internalRow = convertBgenRowToInternalRow(mixedRow)
+    assertThrows[IllegalStateException](converter.convert(internalRow))
   }
 }

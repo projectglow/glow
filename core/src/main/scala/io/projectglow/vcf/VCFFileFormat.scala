@@ -398,9 +398,7 @@ private[vcf] object SchemaDelegate {
   def makeDelegate(options: Map[String, String]): SchemaDelegate = {
     val stringency = VCFOptionParser.getValidationStringency(options)
     val includeSampleId = options.get(CommonOptions.INCLUDE_SAMPLE_IDS).forall(_.toBoolean)
-    if (options.get(VCFOptions.VCF_ROW_SCHEMA).exists(_.toBoolean)) {
-      new VCFRowSchemaDelegate(stringency, includeSampleId)
-    } else if (options.get(VCFOptions.FLATTEN_INFO_FIELDS).forall(_.toBoolean)) {
+    if (options.get(VCFOptions.FLATTEN_INFO_FIELDS).forall(_.toBoolean)) {
       new FlattenedInfoDelegate(includeSampleId, stringency)
     } else {
       new NormalDelegate(includeSampleId, stringency)
@@ -420,28 +418,6 @@ private[vcf] object SchemaDelegate {
         case _ => // Don't do anything with other header lines
       }
     (infoHeaderLines, formatHeaderLines)
-  }
-
-  private class VCFRowSchemaDelegate(stringency: ValidationStringency, includeSampleIds: Boolean)
-      extends SchemaDelegate {
-    override def schema(sparkSession: SparkSession, files: Seq[FileStatus]): StructType = {
-      ScalaReflection.schemaFor[VCFRow].dataType.asInstanceOf[StructType]
-    }
-
-    override def toRows(
-        header: VCFHeader,
-        requiredSchema: StructType,
-        iterator: Iterator[VariantContext]): Iterator[InternalRow] = {
-      val converter = new VariantContextToInternalRowConverter(
-        header,
-        requiredSchema,
-        stringency,
-        writeSampleIds = includeSampleIds
-      )
-      iterator.map { vc =>
-        converter.convertRow(vc, false)
-      }
-    }
   }
 
   private class NormalDelegate(includeSampleIds: Boolean, stringency: ValidationStringency)

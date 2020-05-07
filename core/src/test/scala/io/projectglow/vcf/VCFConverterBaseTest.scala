@@ -17,10 +17,12 @@
 package io.projectglow.vcf
 
 import scala.reflect.runtime.universe._
+import org.apache.spark.sql.catalyst.InternalRow
+import io.projectglow.common.{GenotypeFields, VCFRow}
+import io.projectglow.sql.GlowBaseTest
+import org.apache.spark.sql.SQLUtils
 
-import io.projectglow.common.{GenotypeFields, TestUtils, VCFRow}
-
-trait VCFConverterBaseTest extends TestUtils {
+trait VCFConverterBaseTest extends GlowBaseTest {
 
   final lazy val defaultContigName = ""
   final lazy val defaultStart = 0L
@@ -71,5 +73,28 @@ trait VCFConverterBaseTest extends TestUtils {
     typeOf[T].members.sorted.collect {
       case m: MethodSymbol if m.isParamAccessor => m.name.toString
     }
+  }
+
+  def convertToInternalRow(vcfRow: VCFRow): InternalRow = {
+    val sess = spark
+    import sess.implicits._
+    Seq(vcfRow).toDF.queryExecution.toRdd.collect.head
+  }
+
+  def convertToVCFRows(internalRows: Seq[InternalRow]): Seq[VCFRow] = {
+    val sess = spark
+    import sess.implicits._
+    SQLUtils.internalCreateDataFrame(
+      spark,
+      spark.sparkContext.parallelize(internalRows),
+      VCFRow.schema,
+      false
+    )
+    .as[VCFRow]
+    .collect
+  }
+
+  def convertToVCFRow(internalRow: InternalRow): VCFRow = {
+    convertToVCFRows(Seq(internalRow)).head
   }
 }

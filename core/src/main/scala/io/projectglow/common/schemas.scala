@@ -257,9 +257,6 @@ object VCFRow {
     .schemaFor[VCFRow]
     .dataType
     .asInstanceOf[StructType]
-  lazy val encoder: ExpressionEncoder[VCFRow] = Encoders
-    .product[VCFRow]
-    .asInstanceOf[ExpressionEncoder[VCFRow]]
 }
 
 private[projectglow] case class BgenGenotype(

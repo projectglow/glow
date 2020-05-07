@@ -29,27 +29,35 @@ import htsjdk.variant.vcf.{VCFFileReader, VCFHeader}
 import io.projectglow.common.{GenotypeFields, VCFRow}
 import io.projectglow.sql.GlowBaseTest
 
-class VariantContextToVCFRowConverterSuite extends GlowBaseTest with VCFConverterBaseTest {
+class VariantContextToVCFRowConverterSuite extends VCFConverterBaseTest {
 
   lazy val NA12878 = s"$testDataHome/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf"
   lazy val TGP = s"$testDataHome/1000genomes-phase3-1row.vcf"
   lazy val GVCF = s"$testDataHome/NA12878_21_10002403.g.vcf"
 
   lazy val defaultHeader = new VCFHeader()
-  lazy val defaultConverter = new VariantContextToVCFRowConverter(defaultHeader)
+  lazy val lenientConverter = new VariantContextToInternalRowConverter(
+    defaultHeader,
+    VCFRow.schema,
+    ValidationStringency.LENIENT
+  )
+  lazy val strictConverter = new VariantContextToInternalRowConverter(
+    defaultHeader,
+    VCFRow.schema,
+    ValidationStringency.STRICT
+  )
 
   def compareVcfRows(vcf: String): Unit = {
     val sess = spark
     import sess.implicits._
 
     val header = VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, vcf)
-    val converter = new VariantContextToVCFRowConverter(header)
+    val converter = new VariantContextToInternalRowConverter(header, VCFRow.schema, ValidationStringency.LENIENT)
 
     val sparkVcfRowList = spark
       .read
       .format("vcf")
-      .option("includeSampleIds", true)
-      .option("vcfRowSchema", true)
+      .schema(VCFRow.schema)
       .load(vcf)
       .as[VCFRow]
       .collect
@@ -57,7 +65,7 @@ class VariantContextToVCFRowConverterSuite extends GlowBaseTest with VCFConverte
     val file = new File(vcf)
     val reader = new VCFFileReader(file, false)
     val htsjdkVcList = reader.iterator.toList.asScala
-    val htsjdkVcfRowList = htsjdkVcList.map(converter.convert)
+    val htsjdkVcfRowList = convertToVCFRows(htsjdkVcList.map(converter.convertRow(_, false)))
 
     assert(sparkVcfRowList.length == htsjdkVcfRowList.length)
     sparkVcfRowList.zip(htsjdkVcfRowList).map {
@@ -96,7 +104,7 @@ class VariantContextToVCFRowConverterSuite extends GlowBaseTest with VCFConverte
     vcb.alleles(Seq(refAllele).asJava)
     val defaultVc = vcb.make
 
-    val vcfRow = defaultConverter.convert(defaultVc)
+    val vcfRow = convertToVCFRow(lenientConverter.convertRow(defaultVc, false))
 
     val convertedDefaultVc = defaultVcfRow.copy(end = 1, referenceAllele = "A", genotypes = Nil)
     assert(vcfRow == convertedDefaultVc)
@@ -110,7 +118,7 @@ class VariantContextToVCFRowConverterSuite extends GlowBaseTest with VCFConverte
     vcb.genotypes(new GenotypeBuilder().make)
     val vcWithDefaultGt = vcb.make.fullyDecode(defaultHeader, true)
 
-    val vcfRow = defaultConverter.convert(vcWithDefaultGt)
+    val vcfRow = convertToVCFRow(lenientConverter.convertRow(vcWithDefaultGt, false))
 
     val convertedVcWithDefaultGt = defaultVcfRow.copy(
       end = 1,
@@ -179,7 +187,7 @@ class VariantContextToVCFRowConverterSuite extends GlowBaseTest with VCFConverte
 
     val vc = vcb.make
 
-    val vcfRow = defaultConverter.convert(vc)
+    val vcfRow = convertToVCFRow(lenientConverter.convertRow(vc, false))
 
     val convertedGt1 = GenotypeFields(
       sampleId = Some("sample1"),
@@ -239,8 +247,7 @@ class VariantContextToVCFRowConverterSuite extends GlowBaseTest with VCFConverte
     vcb.attribute("Key", "Value")
     val vc = vcb.make
 
-    val converter = new VariantContextToVCFRowConverter(defaultHeader, ValidationStringency.STRICT)
-    assertThrows[IllegalArgumentException](converter.convert(vc))
+    assertThrows[IllegalArgumentException](strictConverter.convertRow(vc, false))
   }
 
   test("Throw for missing FORMAT header line with strict validation stringency") {
@@ -255,8 +262,7 @@ class VariantContextToVCFRowConverterSuite extends GlowBaseTest with VCFConverte
     vcb.genotypes(gb.make)
     val vc = vcb.make
 
-    val converter = new VariantContextToVCFRowConverter(defaultHeader, ValidationStringency.STRICT)
-    assertThrows[IllegalArgumentException](converter.convert(vc))
+    assertThrows[IllegalArgumentException](strictConverter.convertRow(vc, false))
   }
 
   val objectsParsedAsStrings: Seq[(AnyRef, String)] = Seq(
@@ -272,7 +278,7 @@ class VariantContextToVCFRowConverterSuite extends GlowBaseTest with VCFConverte
 
   gridTest("Convert objects to strings")(objectsParsedAsStrings) {
     case (obj, str) =>
-      val parsedObj = VariantContextToVCFRowConverter.parseObjectAsString(obj)
+      val parsedObj = VariantContextToInternalRowConverter.parseObjectAsString(obj)
       assert(parsedObj == str)
   }
 }

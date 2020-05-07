@@ -30,14 +30,23 @@ import org.apache.commons.io.FileUtils
 import io.projectglow.common.{GenotypeFields, VCFRow}
 import io.projectglow.sql.GlowBaseTest
 
-class VCFRowToVariantContextConverterSuite extends GlowBaseTest with VCFConverterBaseTest {
+class VCFRowToVariantContextConverterSuite extends VCFConverterBaseTest {
 
   lazy val NA12878 = s"$testDataHome/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf"
   lazy val TGP = s"$testDataHome/1000genomes-phase3-1row.vcf"
   lazy val GVCF = s"$testDataHome/NA12878_21_10002403.g.vcf"
 
-  lazy val defaultHeader = new VCFHeader(VCFRowHeaderLines.allHeaderLines.toSet.asJava)
-  lazy val defaultConverter = new VCFRowToVariantContextConverter(defaultHeader)
+  lazy val lenientConverter = new InternalRowToVariantContextConverter(
+    VCFRow.schema,
+    VCFRowHeaderLines.allHeaderLines.toSet,
+    ValidationStringency.LENIENT
+  )
+
+  lazy val strictConverter = new InternalRowToVariantContextConverter(
+    VCFRow.schema,
+    VCFRowHeaderLines.allHeaderLines.toSet,
+    ValidationStringency.STRICT
+  )
 
   lazy val vcfRow: VCFRow = defaultVcfRow.copy(referenceAllele = "A", end = defaultVcfRow.start + 1)
 
@@ -52,17 +61,24 @@ class VCFRowToVariantContextConverterSuite extends GlowBaseTest with VCFConverte
     import sess.implicits._
 
     val header = VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, vcf)
-    val converter = new VCFRowToVariantContextConverter(header)
 
-    val sparkVcfRowList = spark
+    val sparkVcList = spark
       .read
       .format("vcf")
-      .option("includeSampleIds", true)
-      .option("vcfRowSchema", true)
+      .schema(VCFRow.schema)
       .load(vcf)
-      .as[VCFRow]
+      .sort("contigName", "start", "end")
+      .queryExecution
+      .toRdd
+      .mapPartitions { it =>
+        val converter = new InternalRowToVariantContextConverter(
+          VCFRow.schema,
+          header.getMetaDataInInputOrder.asScala.toSet,
+          ValidationStringency.LENIENT
+        )
+        it.flatMap(converter.convert)
+      }
       .collect
-    val sparkVcList = sparkVcfRowList.map(converter.convert)
 
     val file = new File(vcf)
     val reader = new VCFFileReader(file, false)
@@ -92,7 +108,7 @@ class VCFRowToVariantContextConverterSuite extends GlowBaseTest with VCFConverte
   }
 
   test("Default VCF row") {
-    val vc = defaultConverter.convert(vcfRow)
+    val vc = lenientConverter.convert(convertToInternalRow(vcfRow)).get
     assert(vc.getContig == defaultVcfRow.contigName)
     assert(vc.getStart == defaultVcfRow.start + 1)
     assert(vc.getEnd == vcfRow.end)
@@ -157,7 +173,7 @@ class VCFRowToVariantContextConverterSuite extends GlowBaseTest with VCFConverte
       genotypes = Seq(genotypeFields1, genotypeFields2)
     )
 
-    val vc = defaultConverter.convert(setVcfRow)
+    val vc = lenientConverter.convert(convertToInternalRow(setVcfRow)).get
     assert(vc.getContig == "contigName")
     assert(vc.getStart == 101)
     assert(vc.getEnd == 200)
@@ -229,7 +245,7 @@ class VCFRowToVariantContextConverterSuite extends GlowBaseTest with VCFConverte
     val genotypeField = defaultGenotypeFields.copy(genotypeLikelihoods = Some(gl))
     val setVcfRow = vcfRow.copy(genotypes = Seq(genotypeField))
 
-    val vc = defaultConverter.convert(setVcfRow)
+    val vc = lenientConverter.convert(convertToInternalRow(setVcfRow)).get
 
     val glAsPl = GenotypeLikelihoods.fromLog10Likelihoods(gl.toArray).getAsPLs
     val gtSeq = vc.getGenotypesOrderedByName.asScala.toSeq
@@ -238,43 +254,37 @@ class VCFRowToVariantContextConverterSuite extends GlowBaseTest with VCFConverte
   }
 
   test("No genotypes") {
-    val vc = defaultConverter.convert(vcfRow.copy(genotypes = Nil))
+    val vc = lenientConverter.convert(convertToInternalRow(vcfRow.copy(genotypes = Nil))).get
     assert(vc.getGenotypesOrderedByName.asScala.isEmpty)
   }
 
   test("No GT field") {
-    val vc = defaultConverter.convert(vcfRow)
+    val vc = lenientConverter.convert(convertToInternalRow(vcfRow)).get
 
     val gtSeq = vc.getGenotypesOrderedByName.asScala.toSeq
     assert(gtSeq.head.getAlleles.isEmpty)
   }
 
   test("Throws IllegalArgumentException with no reference allele") {
-    assertThrows[IllegalArgumentException](defaultConverter.convert(defaultVcfRow))
+    assertThrows[IllegalArgumentException](lenientConverter.convert(convertToInternalRow(defaultVcfRow)))
   }
 
   test("Throws ArrayIndexOutOfBoundsException with allele index out of range") {
     val genotypeField = defaultGenotypeFields.copy(calls = Some(Seq(3)))
     val setVcfRow = vcfRow.copy(genotypes = Seq(genotypeField))
 
-    assertThrows[IndexOutOfBoundsException](defaultConverter.convert(setVcfRow))
+    assertThrows[IndexOutOfBoundsException](lenientConverter.convert(convertToInternalRow(setVcfRow)))
   }
 
   test("Throw for missing INFO header line with strict validation stringency") {
-
     val setVcfRow = vcfRow.copy(attributes = Map("Key" -> "Value"))
-
-    val strictConverter =
-      new VCFRowToVariantContextConverter(defaultHeader, ValidationStringency.STRICT)
-    assertThrows[IllegalArgumentException](strictConverter.convert(setVcfRow))
+    assertThrows[IllegalArgumentException](strictConverter.convert(convertToInternalRow(setVcfRow)))
   }
 
   test("Throw for missing FORMAT header line with strict validation stringency") {
     val genotypeField = defaultGenotypeFields.copy(otherFields = Map("Key" -> "Value"))
     val setVcfRow = vcfRow.copy(genotypes = Seq(genotypeField))
 
-    val strictConverter =
-      new VCFRowToVariantContextConverter(defaultHeader, ValidationStringency.STRICT)
-    assertThrows[IllegalArgumentException](strictConverter.convert(setVcfRow))
+    assertThrows[IllegalArgumentException](strictConverter.convert(convertToInternalRow(setVcfRow)))
   }
 }

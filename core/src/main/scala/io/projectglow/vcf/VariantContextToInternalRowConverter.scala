@@ -16,7 +16,7 @@
 
 package io.projectglow.vcf
 
-import java.lang.{Boolean => JBoolean}
+import java.lang.{Boolean => JBoolean, Double => JDouble}
 import java.util.{HashMap => JHashMap, List => JList, Map => JMap}
 
 import scala.collection.JavaConverters._
@@ -27,7 +27,7 @@ import scala.util.control.NonFatal
 import htsjdk.samtools.ValidationStringency
 import htsjdk.tribble.util.ParsingUtils
 import htsjdk.variant.variantcontext.{Allele, VariantContext, Genotype => HTSJDKGenotype}
-import htsjdk.variant.vcf.{VCFConstants, VCFHeader, VCFUtils}
+import htsjdk.variant.vcf.{VCFConstants, VCFEncoderUtils, VCFHeader, VCFUtils}
 import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
@@ -57,6 +57,7 @@ class VariantContextToInternalRowConverter(
     with Serializable {
 
   import io.projectglow.common.VariantSchemas._
+  import VariantContextToInternalRowConverter._
 
   private val infoKeysParsedWithoutHeader = mutable.HashSet.empty[String]
   private val formatKeysParsedWithoutHeader = mutable.HashSet.empty[String]
@@ -258,8 +259,7 @@ class VariantContextToInternalRowConverter(
           infoKeysParsedWithoutHeader.add(attKey)
         }
         keys.append(UTF8String.fromString(attKey))
-        val valueStr =
-          VariantContextToVCFRowConverter.parseObjectAsString(obj2any(identity)(attVal))
+        val valueStr = parseObjectAsString(obj2any(identity)(attVal))
         values.append(UTF8String.fromString(valueStr))
       }
     }
@@ -556,8 +556,7 @@ class VariantContextToInternalRowConverter(
               )
             case _ =>
               keys.append(UTF8String.fromString(key))
-              val valueStr =
-                VariantContextToVCFRowConverter.parseObjectAsString(obj2any(identity)(value))
+              val valueStr = parseObjectAsString(obj2any(identity)(value))
               values.append(UTF8String.fromString(valueStr))
           }
         }
@@ -592,7 +591,7 @@ class VariantContextToInternalRowConverter(
     case null => null.asInstanceOf[T]
     case o: T => o
     case s: String => converter(s)
-    case other: Any => converter(VariantContextToVCFRowConverter.parseObjectAsString(other))
+    case other: Any => converter(parseObjectAsString(other))
   }
 
   private def obj2array[T <: AnyRef: ClassTag, R <: AnyVal](
@@ -612,6 +611,31 @@ class VariantContextToInternalRowConverter(
         arr
       case s: String => string2list(converter)(s)
     }
+}
+
+object VariantContextToInternalRowConverter {
+  def parseObjectAsString(obj: Object): String = {
+    obj match {
+      case d: JDouble => d.toString
+      case dArray: Array[Double] =>
+        val sArray = new Array[String](dArray.length)
+        var i = 0
+        while (i < dArray.length) {
+          sArray(i) = dArray(i).toString
+          i += 1
+        }
+        VCFEncoderUtils.formatVCFField(sArray)
+      case dList: JList[Double] =>
+        val sArray = new Array[String](dList.size)
+        var i = 0
+        while (i < dList.size) {
+          sArray(i) = dList.get(i).toString
+          i += 1
+        }
+        VCFEncoderUtils.formatVCFField(sArray)
+      case _ => VCFEncoderUtils.formatVCFField(obj)
+    }
+  }
 }
 
 object FieldTypes {
