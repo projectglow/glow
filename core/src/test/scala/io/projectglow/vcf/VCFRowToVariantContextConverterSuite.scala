@@ -266,14 +266,16 @@ class VCFRowToVariantContextConverterSuite extends VCFConverterBaseTest {
   }
 
   test("Throws IllegalArgumentException with no reference allele") {
-    assertThrows[IllegalArgumentException](lenientConverter.convert(convertToInternalRow(defaultVcfRow)))
+    assertThrows[IllegalArgumentException](
+      lenientConverter.convert(convertToInternalRow(defaultVcfRow)))
   }
 
   test("Throws ArrayIndexOutOfBoundsException with allele index out of range") {
     val genotypeField = defaultGenotypeFields.copy(calls = Some(Seq(3)))
     val setVcfRow = vcfRow.copy(genotypes = Seq(genotypeField))
 
-    assertThrows[IndexOutOfBoundsException](lenientConverter.convert(convertToInternalRow(setVcfRow)))
+    assertThrows[IndexOutOfBoundsException](
+      lenientConverter.convert(convertToInternalRow(setVcfRow)))
   }
 
   test("Throw for missing INFO header line with strict validation stringency") {

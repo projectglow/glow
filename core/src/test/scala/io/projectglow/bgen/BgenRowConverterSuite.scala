@@ -32,23 +32,28 @@ class BgenRowConverterSuite extends BgenConverterBaseTest {
     val sess = spark
     import sess.implicits._
 
-    val bgenDs = spark
+    val bgenRows = spark
       .read
       .format(sourceName)
       .schema(BgenRow.schema)
       .load(testBgen)
+      .sort("contigName", "start", "names")
       .as[BgenRow]
-    val vcfDs = spark
+      .collect
+    val vcfDf = spark
       .read
       .format("vcf")
-      .option("includeSampleIds", true)
       .load(testVcf)
-      .as[BgenRow]
-
-    bgenDs
-      .sort("contigName", "start")
+      .sort("contigName", "start", "names")
+    val converter = new InternalRowToBgenRowConverter(vcfDf.schema, 10, 2, defaultPhasing)
+    val vcfRows = vcfDf
+      .queryExecution
+      .toRdd
       .collect
-      .zip(vcfDs.sort("contigName", "start").collect)
+      .map(converter.convert)
+
+    assert(bgenRows.size == vcfRows.size)
+    bgenRows.zip(vcfRows)
       .foreach {
         case (br, vr) =>
           checkBgenRowsEqual(br, vr, false, bitsPerProb)
@@ -109,7 +114,7 @@ class BgenRowConverterSuite extends BgenConverterBaseTest {
       defaultPhasing
     )
 
-    val internalRow = convertBgenRowToInternalRow(v)
+    val internalRow = convertToInternalRow(v)
     if (shouldThrow) {
       assertThrows[IllegalStateException](converter.convert(internalRow))
     } else {
@@ -204,7 +209,7 @@ class BgenRowConverterSuite extends BgenConverterBaseTest {
       )
     )
 
-    val internalRow = convertBgenRowToInternalRow(mixedRow)
+    val internalRow = convertToInternalRow(mixedRow)
     assertThrows[IllegalStateException](converter.convert(internalRow))
   }
 }

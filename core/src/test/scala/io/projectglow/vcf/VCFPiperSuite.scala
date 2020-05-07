@@ -197,8 +197,7 @@ class VCFPiperSuite extends GlowBaseTest {
     val input = spark
       .read
       .format("vcf")
-      .option("includeSampleIds", "true")
-      .option("vcfRowSchema", "true")
+      .schema(VCFRow.schema)
       .load(na12878)
       .as[VCFRow]
     val df = input.map { el =>
@@ -221,7 +220,7 @@ class VCFPiperSuite extends GlowBaseTest {
     val inputDf = spark
       .read
       .option("includeSampleIds", "false")
-      .option("vcfRowSchema", "true")
+      .schema(VCFRow.schema)
       .format("vcf")
       .load(TGP)
 

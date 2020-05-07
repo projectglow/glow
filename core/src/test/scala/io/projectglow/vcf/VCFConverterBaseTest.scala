@@ -17,10 +17,12 @@
 package io.projectglow.vcf
 
 import scala.reflect.runtime.universe._
+
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.SQLUtils
+
 import io.projectglow.common.{GenotypeFields, VCFRow}
 import io.projectglow.sql.GlowBaseTest
-import org.apache.spark.sql.SQLUtils
 
 trait VCFConverterBaseTest extends GlowBaseTest {
 
@@ -84,14 +86,15 @@ trait VCFConverterBaseTest extends GlowBaseTest {
   def convertToVCFRows(internalRows: Seq[InternalRow]): Seq[VCFRow] = {
     val sess = spark
     import sess.implicits._
-    SQLUtils.internalCreateDataFrame(
-      spark,
-      spark.sparkContext.parallelize(internalRows),
-      VCFRow.schema,
-      false
-    )
-    .as[VCFRow]
-    .collect
+    SQLUtils
+      .internalCreateDataFrame(
+        spark,
+        spark.sparkContext.parallelize(internalRows),
+        VCFRow.schema,
+        false
+      )
+      .as[VCFRow]
+      .collect
   }
 
   def convertToVCFRow(internalRow: InternalRow): VCFRow = {

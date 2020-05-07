@@ -78,7 +78,7 @@ trait BgenConverterBaseTest extends GlowBaseTest {
     }
   }
 
-  def convertBgenRowToInternalRow(bgenRow: BgenRow): InternalRow = {
+  def convertToInternalRow(bgenRow: BgenRow): InternalRow = {
     val sess = spark
     import sess.implicits._
     Seq(bgenRow).toDF.queryExecution.toRdd.collect.head

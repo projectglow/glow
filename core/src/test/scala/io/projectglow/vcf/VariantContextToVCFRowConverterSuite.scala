@@ -52,7 +52,8 @@ class VariantContextToVCFRowConverterSuite extends VCFConverterBaseTest {
     import sess.implicits._
 
     val header = VCFMetadataLoader.readVcfHeader(sparkContext.hadoopConfiguration, vcf)
-    val converter = new VariantContextToInternalRowConverter(header, VCFRow.schema, ValidationStringency.LENIENT)
+    val converter =
+      new VariantContextToInternalRowConverter(header, VCFRow.schema, ValidationStringency.LENIENT)
 
     val sparkVcfRowList = spark
       .read
