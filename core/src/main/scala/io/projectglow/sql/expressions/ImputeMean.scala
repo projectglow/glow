@@ -39,7 +39,11 @@ case class ImputeMean(array: Expression, missingValue: Expression) extends Rewri
   }
 
   override def rewrite: Expression = {
-    val nLv = NamedLambdaVariable("numArg", array.dataType.asInstanceOf[ArrayType].elementType, true)
+    val nLv = NamedLambdaVariable(
+      "numArg",
+      array.dataType.asInstanceOf[ArrayType].elementType,
+      true
+    )
     val sLv = NamedLambdaVariable("structArg", StructType.fromDDL("sum double, count long"), true)
 
     // Average non-missing values
