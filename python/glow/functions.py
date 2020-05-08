@@ -318,7 +318,7 @@ def normalize_variant(contigName: Union[Column, str], start: Union[Column, str],
 
 def impute_mean(array: Union[Column, str], missingValue: Union[Column, str] = None) -> Column:
     """
-    Imputes an array with missing values with the average value. Any values that are negative, NaN, or null are considered missing. See :ref:`variant-data-transformations` for more details.
+    Imputes an array that may contain missing values with the average value of the non-missing values. Any values that are NaN, null or equal to the missing value parameter are considered missing. See :ref:`variant-data-transformations` for more details.
 
     Added in version 0.4.0.
 

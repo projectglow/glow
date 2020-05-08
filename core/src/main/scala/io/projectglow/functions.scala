@@ -217,7 +217,7 @@ object functions {
   }
 
   /**
-   * Imputes an array with missing values with the average value. Any values that are negative, NaN, or null are considered missing. See :ref:`variant-data-transformations` for more details.
+   * Imputes an array that may contain missing values with the average value of the non-missing values. Any values that are NaN, null or equal to the missing value parameter are considered missing. See :ref:`variant-data-transformations` for more details.
    * @group etl
    * @since 0.4.0
    *

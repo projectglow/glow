@@ -46,36 +46,36 @@ case class ImputeMean(array: Expression, missingValue: Expression) extends Rewri
     )
     val sLv = NamedLambdaVariable("structArg", StructType.fromDDL("sum double, count long"), true)
 
+    val isMissing = Or(IsNaN(nLv), Or(IsNull(nLv), EqualTo(nLv, missingValue)))
+    val sumName = Literal("sum", StringType)
+    val countName = Literal("count", StringType)
+    val getSum = GetStructField(sLv, 0, Some("sum"))
+    val getCount = GetStructField(sLv, 1, Some("count"))
+
     // Average non-missing values
     val avg = ArrayAggregate(
       array,
       // Sum and count of non-missing values
       CreateNamedStruct(
         Seq(
-          Literal("sum", StringType),
+          sumName,
           Literal(0d, DoubleType),
-          Literal("count", StringType),
+          countName,
           Literal(0L, LongType)
         )
       ),
       LambdaFunction(
         If(
-          Or(IsNaN(nLv), Or(IsNull(nLv), EqualTo(nLv, missingValue))),
+          isMissing,
           sLv,
           // If value is not missing, add to sum and increment count
           LambdaFunction(
             CreateNamedStruct(
               Seq(
-                Literal("sum", StringType),
-                Add(
-                  GetStructField(sLv, 0, Some("sum")),
-                  nLv
-                ),
-                Literal("count", StringType),
-                Add(
-                  GetStructField(sLv, 1, Some("count")),
-                  Literal(1L, LongType)
-                )
+                sumName,
+                Add(getSum, nLv),
+                countName,
+                Add(getCount, Literal(1L, LongType))
               )
             ),
             Seq(sLv, nLv)
@@ -84,24 +84,14 @@ case class ImputeMean(array: Expression, missingValue: Expression) extends Rewri
         Seq(sLv, nLv)
       ),
       // Calculate average of non-missing values
-      LambdaFunction(
-        Divide(
-          GetStructField(sLv, 0, Some("sum")),
-          GetStructField(sLv, 1, Some("count"))
-        ),
-        Seq(sLv)
-      )
+      LambdaFunction(Divide(getSum, getCount), Seq(sLv))
     )
 
     // Replace missing values with average
     ArrayTransform(
       array,
       LambdaFunction(
-        If(
-          Or(IsNaN(nLv), Or(IsNull(nLv), EqualTo(nLv, missingValue))),
-          avg,
-          nLv
-        ),
+        If(isMissing, avg, nLv),
         Seq(nLv)
       )
     )
