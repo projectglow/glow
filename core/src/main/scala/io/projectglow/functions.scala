@@ -217,6 +217,24 @@ object functions {
   }
 
   /**
+   * Imputes an array with missing values with the average value. Any values that are negative, NaN, or null are considered missing. See :ref:`variant-data-transformations` for more details.
+   * @group etl
+   * @since 0.4.0
+   *
+   * @param array The array of values to impute
+   * @param missingValue A value that should be considered missing. If not provided, this parameter defaults to ``-1``.
+   * @return An array of imputed calls
+   */
+  def impute_mean(array: Column, missingValue: Column): Column = withExpr {
+    new io.projectglow.sql.expressions.ImputeMean(array.expr, missingValue.expr)
+  }
+
+  def impute_mean(array: Column): Column = withExpr {
+    new io.projectglow.sql.expressions.ImputeMean(array.expr)
+  }
+
+
+  /**
    * Computes custom per-sample aggregates.
    * @group quality_control
    * @since 0.3.0
