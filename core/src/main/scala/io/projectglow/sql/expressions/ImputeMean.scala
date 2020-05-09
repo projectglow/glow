@@ -24,6 +24,7 @@ import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCo
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.sql.types.{ArrayType, DataType, DoubleType, LongType, StringType, StructType}
+import org.apache.spark.unsafe.types.UTF8String
 
 /**
  * Imputes the missing values of an array using the mean of the non-missing values. Values that are NaN, null or
@@ -47,8 +48,8 @@ case class ImputeMean(array: Expression, missingValue: Expression) extends Rewri
     val sLv = NamedLambdaVariable("structArg", StructType.fromDDL("sum double, count long"), true)
 
     val isMissing = Or(IsNaN(nLv), Or(IsNull(nLv), EqualTo(nLv, missingValue)))
-    val sumName = Literal("sum", StringType)
-    val countName = Literal("count", StringType)
+    val sumName = Literal(UTF8String.fromString("sum"), StringType)
+    val countName = Literal(UTF8String.fromString("count"), StringType)
     val getSum = GetStructField(sLv, 0, Some("sum"))
     val getCount = GetStructField(sLv, 1, Some("count"))
 
