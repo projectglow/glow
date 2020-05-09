@@ -42,7 +42,7 @@ import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
 import org.apache.spark.sql.types._
 import org.seqdoop.hadoop_bam.util.{BGZFEnhancedGzipCodec, DatabricksBGZFOutputStream}
 import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
-import io.projectglow.common.{CommonOptions, GlowLogging, SimpleInterval, VCFOptions, VCFRow, VariantSchemas, WithUtils}
+import io.projectglow.common.{CommonOptions, GlowLogging, SimpleInterval, VCFOptions, VariantSchemas, WithUtils}
 import io.projectglow.sql.util.{BGZFCodec, ComDatabricksDataSource, HadoopLineIterator, SerializableConfiguration}
 import io.projectglow.transformers.splitmultiallelics.SplitMultiallelicsTransformer
 

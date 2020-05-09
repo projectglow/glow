@@ -21,7 +21,7 @@ import breeze.numerics._
 import com.google.common.annotations.VisibleForTesting
 import org.apache.commons.math3.distribution.{ChiSquaredDistribution, NormalDistribution}
 import org.apache.spark.ml.linalg.{DenseMatrix => SparkDenseMatrix}
-import org.apache.spark.sql.catalyst.{InternalRow, ScalaReflection}
+import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.{ArrayData, CaseInsensitiveMap}
 import org.apache.spark.sql.types.StructType
 
@@ -43,10 +43,6 @@ case class LogitTestResults(
 
 object LogitTestResults {
   val nanRow: InternalRow = InternalRow(NaN, NaN, ArrayData.toArrayData(Seq(NaN, NaN)), NaN)
-  lazy val schema: StructType = ScalaReflection
-    .schemaFor[LogitTestResults]
-    .dataType
-    .asInstanceOf[StructType]
 }
 
 /**
@@ -195,6 +191,7 @@ trait LogitTest extends Serializable {
   /**
    * If true, the [[FitState]] uses per-phenotype information and must be refit for each phenotype.
    * If false, the [[FitState]] only depends on the `covariates`
+   *
    * @return
    */
   def fitStatePerPhenotype: Boolean

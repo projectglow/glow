@@ -21,8 +21,10 @@ import java.io.File
 import breeze.linalg.{DenseMatrix, DenseVector}
 import org.apache.commons.io.FileUtils
 import org.apache.spark.SparkException
-import org.apache.spark.sql.functions.{expr, monotonically_increasing_id}
 import org.apache.spark.sql.{AnalysisException, Encoders, SQLUtils}
+import org.apache.spark.sql.catalyst.ScalaReflection
+import org.apache.spark.sql.functions.{expr, monotonically_increasing_id}
+import org.apache.spark.sql.types.StructType
 
 import io.projectglow.SparkShim
 import io.projectglow.sql.GlowBaseTest
@@ -72,11 +74,16 @@ class LogisticRegressionSuite extends GlowBaseTest {
         t.runTest(new DenseVector[Double](g.toArray), y, nullFit)
       }
 
+      val schema = ScalaReflection
+        .schemaFor[LogitTestResults]
+        .dataType
+        .asInstanceOf[StructType]
+
       SQLUtils
         .internalCreateDataFrame(
           spark,
           spark.sparkContext.parallelize(internalRows),
-          LogitTestResults.schema,
+          schema,
           false
         )
         .as[LogitTestResults]
