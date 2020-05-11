@@ -157,7 +157,7 @@ Please refer to the :ref:`documentation of the split_multiallelics transformer<s
 
 Parsing of Annotation Fields
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-The VCF reader and pipe transformer now parse variant annotations from tools such as `SnpEff <http://snpeff.sourceforge.net/index.html>`_ and `VEP <https://uswest.ensembl.org/info/docs/tools/vep/index.html>`_. This flattens the ANN and CSQ INFO fields, simplifying and accelerating queries on annotations. See the following query and its result in :numref:`figcsqdf` for an example.
+The VCF reader and pipe transformer now parse variant annotations from tools such as `SnpEff <http://snpeff.sourceforge.net/index.html>`_ and `VEP <https://useast.ensembl.org/info/docs/tools/vep/index.html>`_. This flattens the ANN and CSQ INFO fields, simplifying and accelerating queries on annotations. See the following query and its result in :numref:`figcsqdf` for an example.
 
 .. code-block::
 
