@@ -244,23 +244,25 @@ etl:
             A path to the reference genome ``.fasta`` file. The ``.fasta`` file must be accompanied with a ``.fai`` index file in the same folder.
           type: str
       returns: A struct as explained above
-    - name: impute_mean
-      doc: Imputes an array that may contain missing values with the average value of the non-missing values. Any
-        values that are NaN, null or equal to the missing value parameter are considered missing. See
-        :ref:`variant-data-transformations` for more details.
+    - name: impute
+      doc: Imputes an array that may contain missing values using the non-missing values. Any values that are NaN, null
+        or equal to the missing value parameter are considered missing. See :ref:`variant-data-transformations` for more
+        details.
       since: 0.4.0
-      expr_class: io.projectglow.sql.expressions.ImputeMean
+      expr_class: io.projectglow.sql.expressions.Impute
       examples:
         python: |
-          >>> df = spark.createDataFrame([Row(unimputed_values=[float('nan'), None, -1.0, 0.0, 1.0, 2.0, 3.0])])
-          >>> df.select(glow.impute_mean('unimputed_values', lit(-1.0)).alias('imputed_values')).collect()
-          [Row(imputed_values=[1.5, 1.5, 1.5, 0.0, 1.0, 2.0, 3.0])]
+          >>> df = spark.createDataFrame([Row(unimputed_values=[float('nan'), None, 0.0, 1.0, 2.0, 3.0, 4.0])])
+          >>> df.select(glow.impute('unimputed_values', lit('mean'), lit(0.0)).alias('imputed_values')).collect()
+          [Row(imputed_values=[2.5, 2.5, 2.5, 1.0, 2.0, 3.0, 4.0])]
           >>> df = spark.createDataFrame([Row(unimputed_values=[0, 1, 2, 3, -1, None])])
-          >>> df.select(glow.impute_mean('unimputed_values').alias('imputed_values')).collect()
+          >>> df.select(glow.impute('unimputed_values', lit('mean')).alias('imputed_values')).collect()
           [Row(imputed_values=[0.0, 1.0, 2.0, 3.0, 1.5, 1.5])]
       args:
         - name: array
           doc: The array of values to impute
+        - name: strategy
+          doc: The imputation strategy. Currently supports only ``mean``.
         - name: missingValue
           doc: A value that should be considered missing. If not provided, this parameter defaults to ``-1``.
           is_optional: true

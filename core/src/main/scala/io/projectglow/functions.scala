@@ -217,20 +217,21 @@ object functions {
   }
 
   /**
-   * Imputes an array that may contain missing values with the average value of the non-missing values. Any values that are NaN, null or equal to the missing value parameter are considered missing. See :ref:`variant-data-transformations` for more details.
+   * Imputes an array that may contain missing values using the non-missing values. Any values that are NaN, null or equal to the missing value parameter are considered missing. See :ref:`variant-data-transformations` for more details.
    * @group etl
    * @since 0.4.0
    *
    * @param array The array of values to impute
+   * @param strategy The imputation strategy. Currently supports only ``mean``.
    * @param missingValue A value that should be considered missing. If not provided, this parameter defaults to ``-1``.
    * @return An array of imputed calls
    */
-  def impute_mean(array: Column, missingValue: Column): Column = withExpr {
-    new io.projectglow.sql.expressions.ImputeMean(array.expr, missingValue.expr)
+  def impute(array: Column, strategy: Column, missingValue: Column): Column = withExpr {
+    new io.projectglow.sql.expressions.Impute(array.expr, strategy.expr, missingValue.expr)
   }
 
-  def impute_mean(array: Column): Column = withExpr {
-    new io.projectglow.sql.expressions.ImputeMean(array.expr)
+  def impute(array: Column, strategy: Column): Column = withExpr {
+    new io.projectglow.sql.expressions.Impute(array.expr, strategy.expr)
   }
 
 

@@ -152,15 +152,15 @@ Glow supports numeric transformations on variant data for downstream calculation
 
    assert hard_calls_df.head().calls == [2, 0]
 
-- ``impute_mean``: impute an array that may contain missing values with the average value of the non-missing values. Any
-  values that are NaN, null or equal to the missing value parameter are considered missing. If the missing value is not
-  provided, this defaults to ``-1``.
+- ``impute``: impute an array that may contain missing values using the non-missing values. Any values that are NaN,
+  null or equal to the missing value parameter are considered missing and are substituted with the specified strategy.
+  Currently, the only supported strategy is mean. If the missing value is not provided, this defaults to ``-1``.
 
 .. code-block:: python
 
     unimputed_row = Row(unimputed_values=[float('nan'), None, -1.0, 0.0, 1.0, 2.0, 3.0])
     unimputed_df = spark.createDataFrame([unimputed_row])
-    imputed_df = unimputed_df.selectExpr('impute_mean(unimputed_values, -1.0) as imputed_values')
+    imputed_df = unimputed_df.selectExpr("impute(unimputed_values, 'mean', -1.0) as imputed_values")
 
 .. invisible-code-block: python
 
