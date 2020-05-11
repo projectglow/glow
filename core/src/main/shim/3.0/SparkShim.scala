@@ -17,7 +17,6 @@
 package io.projectglow
 
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.catalyst.expressions.ExpressionInfo
 
 // Spark 3.0 APIs that are not inter-version compatible
@@ -50,14 +49,6 @@ object SparkShim extends SparkShimBase {
       usage,
       arguments
     )
-  }
-
-  override def createSerializer[T](encoder: ExpressionEncoder[T]): T => InternalRow = {
-    encoder.createSerializer()
-  }
-
-  override def createDeserializer[T](encoder: ExpressionEncoder[T]): InternalRow => T = {
-    encoder.createDeserializer()
   }
 
   // [SPARK-28077][SQL] Support ANSI SQL OVERLAY function.

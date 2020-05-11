@@ -16,6 +16,8 @@
 
 package io.projectglow.bgen
 
+import org.apache.spark.sql.catalyst.InternalRow
+
 import io.projectglow.common.BgenRow
 import io.projectglow.sql.GlowBaseTest
 
@@ -74,5 +76,11 @@ trait BgenConverterBaseTest extends GlowBaseTest {
           }
         }
     }
+  }
+
+  def convertToInternalRow(bgenRow: BgenRow): InternalRow = {
+    val sess = spark
+    import sess.implicits._
+    Seq(bgenRow).toDF.queryExecution.toRdd.collect.head
   }
 }

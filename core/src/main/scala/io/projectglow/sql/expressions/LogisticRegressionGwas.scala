@@ -191,6 +191,7 @@ trait LogitTest extends Serializable {
   /**
    * If true, the [[FitState]] uses per-phenotype information and must be refit for each phenotype.
    * If false, the [[FitState]] only depends on the `covariates`
+   *
    * @return
    */
   def fitStatePerPhenotype: Boolean

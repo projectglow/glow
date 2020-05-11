@@ -27,16 +27,15 @@ import htsjdk.samtools.ValidationStringency
 import htsjdk.samtools.util.{BlockCompressedInputStream, BlockCompressedStreamConstants}
 import htsjdk.variant.variantcontext.writer.VCFHeaderWriter
 import htsjdk.variant.vcf.{VCFCompoundHeaderLine, VCFHeader, VCFHeaderLine}
+import org.apache.spark.{SparkConf, SparkException}
 import org.apache.spark.sql.{AnalysisException, DataFrame}
 import org.apache.spark.sql.functions.expr
-import org.apache.spark.{SparkConf, SparkException}
+import org.apache.spark.sql.types.StructType
 
-import io.projectglow.common.{VCFRow, VariantSchemas, WithUtils}
+import io.projectglow.common.{GenotypeFields, VCFRow, VariantSchemas, WithUtils}
 import io.projectglow.sql.GlowBaseTest
 
-abstract class VCFFileWriterSuite(val sourceName: String)
-    extends GlowBaseTest
-    with VCFConverterBaseTest {
+abstract class VCFFileWriterSuite(val sourceName: String) extends VCFConverterBaseTest {
 
   lazy val NA12878 = s"$testDataHome/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf"
   lazy val TGP = s"$testDataHome/1000genomes-phase3-1row.vcf"
@@ -58,19 +57,24 @@ abstract class VCFFileWriterSuite(val sourceName: String)
       vcf: String,
       readSampleIds: Boolean = true,
       rereadSampleIds: Boolean = true,
-      schemaOption: (String, String),
+      schemaOption: (String, String) = ("", ""),
+      schema: Option[StructType] = None,
       partitions: Option[Int] = None): (DataFrame, DataFrame) = {
 
     val tempFile = createTempVcf.toString
 
-    val ds = spark
+    val reader = spark
       .read
       .format(readSourceName)
       .option("includeSampleIds", readSampleIds)
       .option(schemaOption._1, schemaOption._2)
-      .load(vcf)
+    val df = if (schema.isDefined) {
+      reader.schema(schema.get).load(vcf)
+    } else {
+      reader.load(vcf)
+    }
 
-    val repartitioned = partitions.map(p => ds.repartition(p)).getOrElse(ds)
+    val repartitioned = partitions.map(p => df.repartition(p)).getOrElse(df)
 
     if (readSampleIds) {
       val originalHeader = scala
@@ -93,16 +97,21 @@ abstract class VCFFileWriterSuite(val sourceName: String)
         .save(tempFile)
     }
 
-    val rewrittenDs = spark
+    val rewrittenReader = spark
       .read
       .format(readSourceName)
       .option("includeSampleIds", rereadSampleIds)
       .option(schemaOption._1, schemaOption._2)
-      .load(tempFile)
-    (ds, rewrittenDs)
+    val rewrittenDf = if (schema.isDefined) {
+      rewrittenReader.schema(schema.get).load(tempFile)
+    } else {
+      rewrittenReader.load(tempFile)
+    }
+
+    (df, rewrittenDf)
   }
 
-  private val schemaOptions = Seq(("vcfRowSchema", "true"), ("flattenInfoFields", "true"), ("", ""))
+  private val schemaOptions = Seq(("flattenInfoFields", "true"), ("", ""))
 
   gridTest("Read single sample VCF with VCF parser")(schemaOptions) { schema =>
     val (ds, rewrittenDs) = writeAndRereadWithDBParser(NA12878, schemaOption = schema)
@@ -150,62 +159,54 @@ abstract class VCFFileWriterSuite(val sourceName: String)
     }
   }
 
+  def compareWithImputedSampleIds(
+      dfWithoutSampleIds: DataFrame,
+      dfWithSampleIds: DataFrame): Unit = {
+    val dfWithImputedSampleIds = setSampleIds(dfWithoutSampleIds, "concat('sample_', idx + 1)")
+
+    dfWithImputedSampleIds.collect.zip(dfWithSampleIds.collect).foreach {
+      case (vc1, vc2) =>
+        assert(vc1 == vc2)
+    }
+  }
+
   test("Use VCF parser without sample IDs") {
     val sess = spark
     import sess.implicits._
-    val (ds, rewrittenDs) = writeAndRereadWithDBParser(
+    val (df, rewrittenDf) = writeAndRereadWithDBParser(
       TGP,
-      readSampleIds = false,
-      schemaOption = ("vcfRowSchema", "true")
+      readSampleIds = false
     )
-    ds.as[VCFRow].collect.zip(rewrittenDs.as[VCFRow].collect).foreach {
-      case (vc1, vc2) =>
-        var missingSampleIdx = 0
-        val gtsWithSampleIds = vc1.genotypes.map { gt =>
-          missingSampleIdx += 1
-          gt.copy(sampleId = Some(s"sample_$missingSampleIdx"))
-        }
-        val vc1WithSampleIds = vc1.copy(genotypes = gtsWithSampleIds)
-        assert(vc1WithSampleIds.equals(vc2), s"VC1 $vc1WithSampleIds VC2 $vc2")
-    }
+    compareWithImputedSampleIds(df, rewrittenDf)
   }
 
   test("Use VCF parser without sample IDs (many partitions)") {
     val sess = spark
     import sess.implicits._
-    val (ds, rewrittenDs) = writeAndRereadWithDBParser(
+    val (df, rewrittenDf) = writeAndRereadWithDBParser(
       NA12878,
       readSampleIds = false,
-      schemaOption = ("vcfRowSchema", "true"),
+      schemaOption = ("flattenInfoFields", "true"),
       partitions = Some(100)
     )
-    val orderedDs1 = ds.orderBy("contigName", "start")
-    val orderedDs2 = rewrittenDs.orderBy("contigName", "start")
-    orderedDs1.as[VCFRow].collect.zip(orderedDs2.as[VCFRow].collect).foreach {
-      case (vc1, vc2) =>
-        var missingSampleIdx = 0
-        val gtsWithSampleIds = vc1.genotypes.map { gt =>
-          missingSampleIdx += 1
-          gt.copy(sampleId = Some(s"sample_$missingSampleIdx"))
-        }
-        val vc1WithSampleIds = vc1.copy(genotypes = gtsWithSampleIds)
-        assert(vc1WithSampleIds.equals(vc2), s"VC1 $vc1WithSampleIds VC2 $vc2")
-    }
+    compareWithImputedSampleIds(
+      df.sort("contigName", "start"),
+      rewrittenDf.sort("contigName", "start"))
   }
 
   test("Use VCF parser with sample IDs (many partitions)") {
     val sess = spark
     import sess.implicits._
-    val (ds, rewrittenDs) = writeAndRereadWithDBParser(
+    val (df, rewrittenDf) = writeAndRereadWithDBParser(
       NA12878,
-      schemaOption = ("vcfRowSchema", "true"),
       partitions = Some(100)
     )
-    val orderedDs1 = ds.orderBy("contigName", "start")
-    val orderedDs2 = rewrittenDs.orderBy("contigName", "start")
-    orderedDs1.as[VCFRow].collect.zip(orderedDs2.as[VCFRow].collect).foreach {
-      case (vc1, vc2) => assert(vc1.equals(vc2), s"VC1 $vc1 VC2 $vc2")
-    }
+    df.sort("contigName", "start")
+      .collect
+      .zip(rewrittenDf.sort("contigName", "start").collect)
+      .foreach {
+        case (vc1, vc2) => assert(vc1 == vc2)
+      }
   }
 
   test("Strict validation stringency") {
@@ -228,7 +229,7 @@ abstract class VCFFileWriterSuite(val sourceName: String)
       test(s"Output $codecName compressed file") {
         val tempFilePath = createTempVcf
 
-        val ds = spark.read.format(readSourceName).option("vcfRowSchema", true).load(TGP)
+        val ds = spark.read.format(readSourceName).load(TGP)
         val outpath = tempFilePath.toString + extension
         ds.write
           .format(sourceName)
@@ -359,7 +360,6 @@ abstract class VCFFileWriterSuite(val sourceName: String)
     val rewrittenDs = spark
       .read
       .format(readSourceName)
-      .option("vcfRowSchema", true)
       .load(tempFile)
 
     assert(rewrittenDs.collect.isEmpty)
@@ -483,7 +483,7 @@ class MultiFileVCFWriterSuite extends VCFFileWriterSuite("vcf") {
       .read
       .format(readSourceName)
       .option("includeSampleIds", true)
-      .option("vcfRowSchema", true)
+      .schema(VCFRow.schema)
       .load(NA12878)
       .as[VCFRow]
     assertThrows[SparkException](
@@ -519,7 +519,7 @@ class MultiFileVCFWriterSuite extends VCFFileWriterSuite("vcf") {
       .read
       .format(readSourceName)
       .option("includeSampleIds", row1HasSamples)
-      .option("vcfRowSchema", true)
+      .schema(VCFRow.schema)
       .load(TGP)
       .withColumn("subsetGenotypes", expr("slice(genotypes, 1, 3)"))
       .drop("genotypes")
@@ -530,7 +530,7 @@ class MultiFileVCFWriterSuite extends VCFFileWriterSuite("vcf") {
       .read
       .format(readSourceName)
       .option("includeSampleIds", row2HasSamples)
-      .option("vcfRowSchema", true)
+      .schema(VCFRow.schema)
       .load(TGP)
       .withColumn("subsetGenotypes", expr("slice(genotypes, 3, 4)"))
       .drop("genotypes")
@@ -597,7 +597,7 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
       .read
       .format(readSourceName)
       .option("includeSampleIds", true)
-      .option("vcfRowSchema", true)
+      .schema(VCFRow.schema)
       .load(NA12878)
       .as[VCFRow]
     assertThrows[IllegalArgumentException](
@@ -702,24 +702,34 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
     val presentSampleIds = spark
       .read
       .format(readSourceName)
-      .option("vcfRowSchema", "true")
+      .schema(VCFRow.schema)
       .load(TGP)
-      .withColumn("genotypesWithSampleIds", expr(s"slice(genotypes, $start, $numPresentSampleIds)"))
-      .drop("genotypes")
+      .withColumn("genotypes", expr(s"slice(genotypes, $start, $numPresentSampleIds)"))
 
-    val missingSampleIds = spark
-      .read
-      .format(readSourceName)
-      .option("includeSampleIds", "false")
-      .option("vcfRowSchema", "true")
-      .load(TGP)
-      .withColumn(
-        "genotypesWithoutSampleIds",
-        expr(s"slice(genotypes, $start, $numMissingSampleIds)"))
-      .drop("genotypes", "attributes")
+    val nonSampleIdGenotypeFields = InternalRowToVariantContextConverter
+      .getGenotypeSchema(presentSampleIds.schema)
+      .get
+      .fieldNames
+      .filter(_ != "sampleId")
+      .map { f =>
+        s"'$f', gt.$f"
+      }
+      .mkString(",")
+    val missingSampleIds = setMissingSampleIds(
+      spark
+        .read
+        .format(readSourceName)
+        .schema(VCFRow.schema)
+        .load(TGP)
+        .withColumn("genotypes", expr(s"slice(genotypes, $start, $numMissingSampleIds)"))
+        .drop("attributes")
+    )
 
     presentSampleIds
-      .join(missingSampleIds, VariantSchemas.vcfBaseSchema.map(_.name))
+      .withColumnRenamed("genotypes", "genotypesWithSampleIds")
+      .join(
+        missingSampleIds.withColumnRenamed("genotypes", "genotypesWithoutSampleIds"),
+        VariantSchemas.vcfBaseSchema.map(_.name))
       .withColumn("genotypes", expr("concat(genotypesWithSampleIds, genotypesWithoutSampleIds)"))
       .drop("genotypesWithSampleIds", "genotypesWithoutSampleIds")
   }
@@ -733,12 +743,11 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
       .format(sourceName)
       .save(tempFile)
 
-    val rereadDf =
-      spark
-        .read
-        .format(readSourceName)
-        .option("vcfRowSchema", "true")
-        .load(tempFile)
+    val rereadDf = spark
+      .read
+      .format(readSourceName)
+      .schema(VCFRow.schema)
+      .load(tempFile)
 
     val sess = spark
     import sess.implicits._

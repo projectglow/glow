@@ -640,7 +640,7 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     val dfEmptyFilter = spark
       .read
       .format(sourceName)
-      .option("vcfRowSchema", true)
+      .schema(VCFRow.schema)
       .load(testVcf)
       .filter("contigName >= 20 ")
 
@@ -651,7 +651,7 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     val dfNoFilter = spark
       .read
       .format(sourceName)
-      .option("vcfRowSchema", true)
+      .schema(VCFRow.schema)
       .load(testVcf)
 
     dfNoFilter.rdd.count()
@@ -725,7 +725,7 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     val dfFT = spark
       .read
       .format(sourceName)
-      .option("vcfRowSchema", true)
+      .schema(VCFRow.schema)
       .load(fileName)
       .filter(condition)
     dfFT.rdd.count()
@@ -735,7 +735,7 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
       .read
       .format(sourceName)
       .option("useTabixIndex", false)
-      .option("vcfRowSchema", true)
+      .schema(VCFRow.schema)
       .load(fileName)
       .filter(condition)
     dfFN.rdd.count()
@@ -746,7 +746,7 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
       .format(sourceName)
       .option("useTabixIndex", false)
       .option("useFilterParser", false)
-      .option("vcfRowSchema", true)
+      .schema(VCFRow.schema)
       .load(fileName)
       .filter(condition)
     dfNN.rdd.count()
