@@ -90,7 +90,7 @@ class VCFDatasourceSuite extends GlowBaseTest {
     val datasource = spark
       .read
       .format(sourceName)
-      .option("vcfRowSchema", true)
+      .schema(VCFRow.schema)
       .load(testVcf)
     val expected = VCFRow(
       "20",
@@ -190,7 +190,7 @@ class VCFDatasourceSuite extends GlowBaseTest {
     spark
       .read
       .format(sourceName)
-      .option("vcfRowSchema", true)
+      .schema(VCFRow.schema)
       .load(file.toString)
       .as[VCFRow]
   }
@@ -542,7 +542,7 @@ class VCFDatasourceSuite extends GlowBaseTest {
     val vcfRows = spark
       .read
       .format(sourceName)
-      .option("vcfRowSchema", true)
+      .schema(VCFRow.schema)
       .load(s"$testDataHome/vcf/test_withNanQual.vcf")
       .as[VCFRow]
       .collect()

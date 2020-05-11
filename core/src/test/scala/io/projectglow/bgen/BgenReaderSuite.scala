@@ -57,8 +57,7 @@ class BgenReaderSuite extends GlowBaseTest {
     val vcf = spark
       .read
       .format("vcf")
-      .option("includeSampleIds", true)
-      .option("vcfRowSchema", true)
+      .schema(VCFRow.schema)
       .load(vcfPath)
       .orderBy("contigName", "start")
       .as[VCFRow]

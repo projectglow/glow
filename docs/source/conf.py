@@ -217,4 +217,6 @@ todo_include_todos = True
 linkcheck_ignore = [
     # Intermittent 104s from linkchecker
     r'https://academic.oup.com*',
+    # Certificate verification failure
+    r'https://www.ensembl.org*'
 ]
