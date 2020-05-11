@@ -330,9 +330,8 @@ class VariantQcExprsSuite extends GlowBaseTest {
   }
 
   test("null array") {
-    import sess.implicits._
     val test = spark
-      .createDataFrame(Seq(OptDoubleDatum(null)))
+      .createDataFrame(Seq(Datum(null)))
       .selectExpr("impute(numbers, 'mean', -1)")
       .collect()
       .head
@@ -340,11 +339,20 @@ class VariantQcExprsSuite extends GlowBaseTest {
     assert(test == null)
   }
 
+  test("empty array") {
+    val test = spark
+      .createDataFrame(Seq(Datum(Array.emptyDoubleArray)))
+      .selectExpr("impute(numbers, 'mean', -1)")
+      .collect()
+      .head
+      .getSeq[Double](0)
+    assert(test.isEmpty)
+  }
+
   test("null strategy") {
-    import sess.implicits._
     val e = intercept[IllegalArgumentException] {
       spark
-        .createDataFrame(Seq(OptDoubleDatum(null)))
+        .createDataFrame(Seq(Datum(Array.emptyDoubleArray)))
         .selectExpr("impute(numbers, null, -1)")
         .collect()
     }
@@ -352,10 +360,9 @@ class VariantQcExprsSuite extends GlowBaseTest {
   }
 
   test("unsupported strategy") {
-    import sess.implicits._
     val e = intercept[IllegalArgumentException] {
       spark
-        .createDataFrame(Seq(OptDoubleDatum(null)))
+        .createDataFrame(Seq(Datum(Array.emptyDoubleArray)))
         .selectExpr("impute(numbers, 'median', -1)")
         .collect()
     }
@@ -363,7 +370,6 @@ class VariantQcExprsSuite extends GlowBaseTest {
   }
 
   test("unsupported array type") {
-    import sess.implicits._
     val e = intercept[IllegalArgumentException] {
       spark
         .createDataFrame(Seq(StringDatum(Array("hello", "world"))))
@@ -374,7 +380,6 @@ class VariantQcExprsSuite extends GlowBaseTest {
   }
 
   test("unsupported type for array arg") {
-    import sess.implicits._
     val e = intercept[IllegalArgumentException] {
       spark
         .createDataFrame(Seq(SingletonDatum(10)))

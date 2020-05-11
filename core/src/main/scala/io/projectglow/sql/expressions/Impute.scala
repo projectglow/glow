@@ -42,15 +42,6 @@ case class Impute(array: Expression, strategy: Expression, missingValue: Express
     this(array, strategy, Literal(-1))
   }
 
-  override def checkInputDataTypes(): TypeCheckResult = {
-    super.checkInputDataTypes()
-    if (!strategy.foldable) {
-      TypeCheckResult.TypeCheckFailure("Strategy must be a constant value")
-    } else {
-      TypeCheckResult.TypeCheckSuccess
-    }
-  }
-
   override def rewrite: Expression = {
     if (!array.dataType.isInstanceOf[ArrayType] ||
       !array.dataType.asInstanceOf[ArrayType].elementType.isInstanceOf[NumericType]) {
