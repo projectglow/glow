@@ -36,26 +36,20 @@ import org.apache.spark.unsafe.types.UTF8String
  * If the missing value is not provided, the parameter defaults to -1.
  */
 case class Impute(array: Expression, strategy: Expression, missingValue: Expression) extends RewriteAfterResolution {
+  private lazy val nLv = NamedLambdaVariable("numArg", array.dataType.asInstanceOf[ArrayType].elementType, true)
+  private lazy val isMissing = IsNaN(nLv) || IsNull(nLv) || nLv === missingValue
+
+  private lazy val getImputedValue: Map[String, Expression] = Map(
+    "mean" -> getMean
+  )
+
   override def children: Seq[Expression] = Seq(array, strategy, missingValue)
 
   def this(array: Expression, strategy: Expression) = {
     this(array, strategy, Literal(-1))
   }
 
-  override def rewrite: Expression = {
-    if (!array.dataType.isInstanceOf[ArrayType] ||
-      !array.dataType.asInstanceOf[ArrayType].elementType.isInstanceOf[NumericType]) {
-      throw new IllegalArgumentException(s"Can only impute numeric array; provided type is ${array.dataType}.")
-    }
-
-    if (!strategy.dataType.isInstanceOf[StringType] ||
-      strategy.eval().asInstanceOf[UTF8String].toString != "mean") {
-      throw new IllegalArgumentException("The only supported strategy is `mean`.")
-    }
-
-    val nLv = NamedLambdaVariable("numArg", array.dataType.asInstanceOf[ArrayType].elementType, true)
-    val isMissing = IsNaN(nLv) || IsNull(nLv) || nLv === missingValue
-
+  def getMean: Expression = {
     val sLv = NamedLambdaVariable("structArg", StructType.fromDDL("sum double, count long"), true)
     val sumName = Literal(UTF8String.fromString("sum"), StringType)
     val countName = Literal(UTF8String.fromString("count"), StringType)
@@ -81,19 +75,32 @@ case class Impute(array: Expression, strategy: Expression, missingValue: Express
     // Calculate average of non-missing values
     val finalizeFn = LambdaFunction(getSum / getCount, Seq(sLv))
 
-    // Average non-missing values
-    val avg = ArrayAggregate(
+    ArrayAggregate(
       array,
       zeros,
       updateFn,
       finalizeFn
     )
+  }
 
-    // Replace missing values with average
+  override def rewrite: Expression = {
+    if (!array.dataType.isInstanceOf[ArrayType] ||
+      !array.dataType.asInstanceOf[ArrayType].elementType.isInstanceOf[NumericType]) {
+      throw new IllegalArgumentException(s"Can only impute numeric array; provided type is ${array.dataType}.")
+    }
+
+    if (!strategy.dataType.isInstanceOf[StringType] ||
+      strategy.eval().asInstanceOf[UTF8String].toString != "mean") {
+      throw new IllegalArgumentException("The only supported strategy is `mean`.")
+    }
+
+    // Replace missing values with the provided strategy
+    val strategyStr = strategy.eval().asInstanceOf[UTF8String].toString
+    val imputedValue = getImputedValue(strategyStr)
     ArrayTransform(
       array,
       LambdaFunction(
-        If(isMissing, avg, nLv),
+        If(isMissing, imputedValue, nLv),
         Seq(nLv)
       )
     )

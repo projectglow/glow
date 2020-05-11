@@ -349,6 +349,26 @@ class VariantQcExprsSuite extends GlowBaseTest {
     assert(test.isEmpty)
   }
 
+  test("array with all missing values") {
+    val test = spark
+      .createDataFrame(Seq(OptDoubleDatum(Array(None, None))))
+      .selectExpr("impute(numbers, 'mean', -1)")
+      .collect()
+      .head
+      .getSeq[Double](0)
+    assert(test == Seq(null, null))
+  }
+
+  test("array with no missing values") {
+    val test = spark
+      .createDataFrame(Seq(OptDoubleDatum(Array(Some(0.0), Some(1.0)))))
+      .selectExpr("impute(numbers, 'mean', -1)")
+      .collect()
+      .head
+      .getSeq[Double](0)
+    assert(test == Seq(0.0, 1.0))
+  }
+
   test("null strategy") {
     val e = intercept[IllegalArgumentException] {
       spark
