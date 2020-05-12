@@ -2,9 +2,9 @@ Introduction to Glow
 ====================
 
 Genomics data has been doubling every seven months globally. It has now reached a scale where genomics has 
-become a big data problem. However, most of the tools designed for working with genomics data are designed 
-to work on single nodes and will no longer scale. Furthermore, it has become extremely challenging for
-scientists to manage storage of massive volumes of public data.
+become a big data problem. However, most of the tools for working with genomics data are built to work on 
+single nodes and will no longer scale. Furthermore, it has become extremely challenging for scientists to 
+manage storage of massive volumes of public data.
 
 Glow solves these problems by bridging bioinformatics into the big data ecosystem. The library enables bioinformaticians 
 and computational biologists to leverage best practices used by data engineers and data scientists across industry.
