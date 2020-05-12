@@ -297,84 +297,44 @@ class VariantQcExprsSuite extends GlowBaseTest {
           "Genotype struct was missing required fields: (name: calls, type: ArrayType(IntegerType,true))"))
   }
 
-  test("impute by median for even number of non-missing elements") {
-    val test = spark
-      .createDataFrame(Seq(OptIntDatum(Array(None, Some(0), Some(1), Some(3), Some(10)))))
-      .selectExpr("impute(numbers, 'median', 0)")
-      .collect()
-      .head
-      .getSeq[Double](0)
-    assert(test == Seq(3, 3, 1, 3, 10))
-  }
-
-  test("impute by median for odd number of non-missing elements") {
-    val test = spark
-      .createDataFrame(Seq(OptIntDatum(Array(None, Some(1), Some(3), Some(4), Some(10)))))
-      .selectExpr("impute(numbers, 'median', 0)")
-      .collect()
-      .head
-      .getSeq[Double](0)
-    assert(test == Seq(3.5, 1, 3, 4, 10))
-  }
-
-  test("impute by median with one non-missing element") {
-    val test = spark
-      .createDataFrame(Seq(OptDoubleDatum(Array(Some(-1), Some(2)))))
-      .selectExpr("impute(numbers, 'median', -1)")
-      .collect()
-      .head
-      .getSeq[Double](0)
-    assert(test == Seq(2, 2))
-  }
-
-  test("impute by median with all missing elements") {
-    val test = spark
-      .createDataFrame(Seq(OptDoubleDatum(Array(None, None, Some(-5)))))
-      .selectExpr("impute(numbers, 'median', 5)")
-      .collect()
-      .head
-      .getSeq[Double](0)
-    assert(test == Seq(-5, -5, -5))
-  }
-
-  test("impute by mean for array of doubles") {
+  test("impute for array of doubles") {
     val test = spark
       .createDataFrame(
         Seq(
           OptDoubleDatum(
             Array(Some(Double.NaN), None, Some(0.0), Some(1.0), Some(2.0), Some(3.0), Some(4.0))
           )))
-      .selectExpr("impute(numbers, 'mean', 0.0)")
+      .selectExpr("impute_array(numbers, 0.0)")
       .collect()
       .head
       .getSeq[Double](0)
     assert(test == Seq(2.5, 2.5, 2.5, 1.0, 2.0, 3.0, 4.0))
   }
 
-  test("impute by mean for array of ints") {
+  test("impute for array of ints") {
     val test = spark
       .createDataFrame(Seq(OptIntDatum(Array(None, Some(0), Some(1), Some(2), Some(3), Some(4)))))
-      .selectExpr("impute(numbers, 'mean', 0)")
+      .selectExpr("impute_array(numbers, 0)")
       .collect()
       .head
       .getSeq[Double](0)
     assert(test == Seq(2.5, 2.5, 1.0, 2.0, 3.0, 4.0))
   }
 
-  test("impute by mean with one non-missing element") {
+  test("impute with one non-missing element") {
     val test = spark
       .createDataFrame(Seq(OptDoubleDatum(Array(Some(-1), Some(2)))))
-      .selectExpr("impute(numbers, 'mean', -1)")
+      .selectExpr("impute_array(numbers, -1)")
       .collect()
       .head
       .getSeq[Double](0)
     assert(test == Seq(2, 2))
   }
 
-  test("impute by mean with all missing elements") {
+  test("impute with all missing elements") {
     val test = spark
       .createDataFrame(Seq(OptDoubleDatum(Array(None, None, Some(-5)))))
-      .selectExpr("impute(numbers, 'mean', -5)")
+      .selectExpr("impute_array(numbers, -5)")
       .collect()
       .head
       .getSeq[Double](0)
@@ -384,7 +344,7 @@ class VariantQcExprsSuite extends GlowBaseTest {
   test("imputation's default missing value is -1") {
     val test = spark
       .createDataFrame(Seq(OptIntDatum(Array(None, Some(-1), Some(0), Some(1), Some(2), Some(3)))))
-      .selectExpr("impute(numbers, 'mean', -1)")
+      .selectExpr("impute_array(numbers, -1)")
       .collect()
       .head
       .getSeq[Double](0)
@@ -394,7 +354,7 @@ class VariantQcExprsSuite extends GlowBaseTest {
   test("null array") {
     val test = spark
       .createDataFrame(Seq(Datum(null)))
-      .selectExpr("impute(numbers, 'mean', -1)")
+      .selectExpr("impute_array(numbers, -1)")
       .collect()
       .head
       .getSeq[Double](0)
@@ -404,7 +364,7 @@ class VariantQcExprsSuite extends GlowBaseTest {
   test("empty array") {
     val test = spark
       .createDataFrame(Seq(Datum(Array.emptyDoubleArray)))
-      .selectExpr("impute(numbers, 'mean', -1)")
+      .selectExpr("impute_array(numbers, -1)")
       .collect()
       .head
       .getSeq[Double](0)
@@ -414,38 +374,18 @@ class VariantQcExprsSuite extends GlowBaseTest {
   test("array with no missing values") {
     val test = spark
       .createDataFrame(Seq(OptDoubleDatum(Array(Some(0.0), Some(1.0)))))
-      .selectExpr("impute(numbers, 'mean', -1)")
+      .selectExpr("impute_array(numbers, -1)")
       .collect()
       .head
       .getSeq[Double](0)
     assert(test == Seq(0.0, 1.0))
   }
 
-  test("null strategy") {
-    val e = intercept[IllegalArgumentException] {
-      spark
-        .createDataFrame(Seq(Datum(Array.emptyDoubleArray)))
-        .selectExpr("impute(numbers, null, -1)")
-        .collect()
-    }
-    assert(e.getMessage.contains("Supported strategies are"))
-  }
-
-  test("unsupported strategy") {
-    val e = intercept[IllegalArgumentException] {
-      spark
-        .createDataFrame(Seq(Datum(Array.emptyDoubleArray)))
-        .selectExpr("impute(numbers, 'fake', -1)")
-        .collect()
-    }
-    assert(e.getMessage.contains("Supported strategies are"))
-  }
-
   test("unsupported array type") {
     val e = intercept[IllegalArgumentException] {
       spark
         .createDataFrame(Seq(StringDatum(Array("hello", "world"))))
-        .selectExpr("impute(strings, 'mean')")
+        .selectExpr("impute_array(strings)")
         .collect()
     }
     assert(
@@ -457,7 +397,7 @@ class VariantQcExprsSuite extends GlowBaseTest {
     val e = intercept[IllegalArgumentException] {
       spark
         .createDataFrame(Seq(SingletonDatum(10)))
-        .selectExpr("impute(number, 'mean')")
+        .selectExpr("impute_array(number)")
         .collect()
     }
     assert(e.getMessage.contains("Can only impute numeric array; provided type is DoubleType"))
@@ -467,7 +407,7 @@ class VariantQcExprsSuite extends GlowBaseTest {
     val e = intercept[IllegalArgumentException] {
       spark
         .createDataFrame(Seq(OptIntDatum(Array(None, Some(0), Some(1), Some(2), Some(3), Some(4)))))
-        .selectExpr("impute(numbers, 'mean', 'str')")
+        .selectExpr("impute_array(numbers, 'str')")
         .collect()
     }
     assert(

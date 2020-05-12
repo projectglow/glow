@@ -316,23 +316,22 @@ def normalize_variant(contigName: Union[Column, str], start: Union[Column, str],
     return output
 
 
-def impute(array: Union[Column, str], strategy: Union[Column, str], missingValue: Union[Column, str] = None) -> Column:
+def impute_array(array: Union[Column, str], missingValue: Union[Column, str] = None) -> Column:
     """
-    Imputes an array that may contain missing values using the non-missing values. Any values that are NaN, null or equal to the missing value parameter are considered missing. See :ref:`variant-data-transformations` for more details.
+    Imputes an array that may contain missing values using the mean of the non-missing values. Any values that are NaN, null or equal to the missing value parameter are considered missing. See :ref:`variant-data-transformations` for more details.
 
     Added in version 0.4.0.
 
     Examples:
         >>> df = spark.createDataFrame([Row(unimputed_values=[float('nan'), None, 0.0, 1.0, 2.0, 3.0, 4.0])])
-        >>> df.select(glow.impute('unimputed_values', lit('mean'), lit(0.0)).alias('imputed_values')).collect()
+        >>> df.select(glow.impute_array('unimputed_values', lit(0.0)).alias('imputed_values')).collect()
         [Row(imputed_values=[2.5, 2.5, 2.5, 1.0, 2.0, 3.0, 4.0])]
         >>> df = spark.createDataFrame([Row(unimputed_values=[0, 1, 2, 3, -1, None])])
-        >>> df.select(glow.impute('unimputed_values', lit('mean')).alias('imputed_values')).collect()
+        >>> df.select(glow.impute_array('unimputed_values').alias('imputed_values')).collect()
         [Row(imputed_values=[0.0, 1.0, 2.0, 3.0, 1.5, 1.5])]
 
     Args:
         array : The array of values to impute
-        strategy : The imputation strategy. Currently supports only ``mean``.
         missingValue : A value that should be considered missing. If not provided, this parameter defaults to ``-1``.
 
     Returns:
@@ -340,9 +339,9 @@ def impute(array: Union[Column, str], strategy: Union[Column, str], missingValue
     """
     assert check_argument_types()
     if missingValue is None:
-        output = Column(sc()._jvm.io.projectglow.functions.impute(_to_java_column(array), _to_java_column(strategy)))
+        output = Column(sc()._jvm.io.projectglow.functions.impute_array(_to_java_column(array)))
     else:
-        output = Column(sc()._jvm.io.projectglow.functions.impute(_to_java_column(array), _to_java_column(strategy), _to_java_column(missingValue)))
+        output = Column(sc()._jvm.io.projectglow.functions.impute_array(_to_java_column(array), _to_java_column(missingValue)))
     assert check_return_type(output)
     return output
 

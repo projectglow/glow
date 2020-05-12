@@ -29,26 +29,29 @@ import org.apache.spark.sql.types.{ArrayType, DataType, IntegerType, NumericType
 import org.apache.spark.unsafe.types.UTF8String
 
 /**
- * Imputes the missing values of an array using the non-missing values. Values that are NaN, null or equal to the
- * missing value parameter are not included in the aggregation, and are substituted with the specified strategy.
- * Currently, the supported strategies are mean and median. If all values are missing, they are substituted with the
- * missing value.
+ * Imputes the missing values of an array using the mean of the non-missing values. Values that are NaN, null or equal
+ * to the missing value parameter are not included in the aggregation, and are substituted with the mean of the non-
+ * missing values. If all values are missing, they are substituted with the missing value.
  *
  * If the missing value is not provided, the parameter defaults to -1.
  */
-case class Impute(array: Expression, strategy: Expression, missingValue: Expression)
+case class ImputeArray(array: Expression, missingValue: Expression, strategy: Expression)
     extends RewriteAfterResolution {
 
-  override def children: Seq[Expression] = Seq(array, strategy, missingValue)
+  override def children: Seq[Expression] = Seq(array, missingValue, strategy)
 
-  def this(array: Expression, strategy: Expression) = {
-    this(array, strategy, Literal(-1))
+  // In the future, we may want to support other imputation strategies (eg. median)
+  def this(array: Expression, missingValue: Expression) = {
+    this(array, missingValue, Literal(UTF8String.fromString("mean"), StringType))
+  }
+
+  def this(array: Expression) = {
+    this(array, Literal(-1))
   }
 
   // Mapping from imputation strategy to the imputed value
   lazy val imputationStrategies: Map[String, Expression] = Map(
-    "mean" -> getMean,
-    "median" -> getMedian
+    "mean" -> getMean
   )
 
   // A value is considered missing if it is NaN, null or equal to the missing value parameter
@@ -99,44 +102,6 @@ case class Impute(array: Expression, strategy: Expression, missingValue: Express
     )
   }
 
-  def getMedian: Expression = {
-    val nLv =
-      NamedLambdaVariable("numArg", array.dataType.asInstanceOf[ArrayType].elementType, true)
-
-    // Non-missing elements
-    val filteredArray = ArrayFilter(
-      array,
-      LambdaFunction(
-        If(
-          isMissing(nLv),
-          false,
-          true
-        ),
-        Seq(nLv)
-      )
-    )
-    // Sorted non-missing elements
-    val sortedArray = new ArraySort(filteredArray)
-    val numNonMissingElements = Size(sortedArray)
-
-    // The index of the middle element if the array has odd cardinality
-    // The index of the lower of the middle two elements if the array has even cardinality
-    val halfIdx = Ceil(numNonMissingElements / 2).cast(IntegerType)
-
-    If(
-      numNonMissingElements === 0,
-      // If all values were missing, substitute with missing value
-      missingValue,
-      If(
-        numNonMissingElements % 2 === 0,
-        // If the array has even cardinality, get the average of the middle two elements
-        (ElementAt(sortedArray, halfIdx) + ElementAt(sortedArray, halfIdx + 1)) / 2,
-        // If the array has odd cardinality, get the middle element
-        ElementAt(sortedArray, halfIdx)
-      )
-    )
-  }
-
   override def rewrite: Expression = {
     if (!array.dataType.isInstanceOf[ArrayType] ||
       !array.dataType.asInstanceOf[ArrayType].elementType.isInstanceOf[NumericType]) {
@@ -144,15 +109,16 @@ case class Impute(array: Expression, strategy: Expression, missingValue: Express
         s"Can only impute numeric array; provided type is ${array.dataType}.")
     }
 
+    if (!missingValue.dataType.isInstanceOf[NumericType]) {
+      throw new IllegalArgumentException(
+        s"Missing value must be of numeric type; provided type is ${missingValue.dataType}.")
+    }
+
+    // Strategy is not exposed publicly
     if (!strategy.dataType.isInstanceOf[StringType] ||
       !imputationStrategies.keySet.contains(strategy.eval().asInstanceOf[UTF8String].toString)) {
       throw new IllegalArgumentException(
         s"Supported strategies are: ${imputationStrategies.keys.mkString(", ")}")
-    }
-
-    if (!missingValue.dataType.isInstanceOf[NumericType]) {
-      throw new IllegalArgumentException(
-        s"Missing value must be of numeric type; provided type is ${missingValue.dataType}.")
     }
 
     // Replace missing values with the provided strategy

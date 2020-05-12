@@ -169,7 +169,7 @@ etl:
           doc: Whether the probabilities are phased. If phased, we expect one ``2 * numAlts`` values
             in the probabilities array. If unphased, we expect one probability per possible genotype.
         - name: threshold
-          doc: The minimum probability to make a call. If no probability falls into the range 
+          doc: The minimum probability to make a call. If no probability falls into the range
             of ``[0, 1 - threshold]`` or ``[threshold, 1]``, a no-call (represented by ``-1`` s) will be emitted.
             If not provided, this parameter defaults to ``0.9``.
           type: double
@@ -244,25 +244,23 @@ etl:
             A path to the reference genome ``.fasta`` file. The ``.fasta`` file must be accompanied with a ``.fai`` index file in the same folder.
           type: str
       returns: A struct as explained above
-    - name: impute
-      doc: Imputes an array that may contain missing values using the non-missing values. Any values that are NaN, null
-        or equal to the missing value parameter are considered missing. See :ref:`variant-data-transformations` for more
-        details.
+    - name: impute_array
+      doc: Imputes an array that may contain missing values using the mean of the non-missing values. Any values that
+        are NaN, null or equal to the missing value parameter are considered missing. See
+        :ref:`variant-data-transformations` for more details.
       since: 0.4.0
-      expr_class: io.projectglow.sql.expressions.Impute
+      expr_class: io.projectglow.sql.expressions.ImputeArray
       examples:
         python: |
           >>> df = spark.createDataFrame([Row(unimputed_values=[float('nan'), None, 0.0, 1.0, 2.0, 3.0, 4.0])])
-          >>> df.select(glow.impute('unimputed_values', lit('mean'), lit(0.0)).alias('imputed_values')).collect()
+          >>> df.select(glow.impute_array('unimputed_values', lit(0.0)).alias('imputed_values')).collect()
           [Row(imputed_values=[2.5, 2.5, 2.5, 1.0, 2.0, 3.0, 4.0])]
           >>> df = spark.createDataFrame([Row(unimputed_values=[0, 1, 2, 3, -1, None])])
-          >>> df.select(glow.impute('unimputed_values', lit('mean')).alias('imputed_values')).collect()
+          >>> df.select(glow.impute_array('unimputed_values').alias('imputed_values')).collect()
           [Row(imputed_values=[0.0, 1.0, 2.0, 3.0, 1.5, 1.5])]
       args:
         - name: array
           doc: The array of values to impute
-        - name: strategy
-          doc: The imputation strategy. Currently supports only ``mean``.
         - name: missingValue
           doc: A value that should be considered missing. If not provided, this parameter defaults to ``-1``.
           is_optional: true
@@ -366,7 +364,7 @@ quality_control:
           >>> df.select(glow.sample_call_summary_stats('genotypes', 'refAllele', 'alternateAlleles').alias('stats')).collect()
           [Row(stats=[Row(sampleId='NA12878', callRate=1.0, nCalled=3, nUncalled=0, nHomRef=1, nHet=1, nHomVar=1, nSnp=2, nInsertion=0, nDeletion=1, nTransition=2, nTransversion=0, nSpanningDeletion=0, rTiTv=inf, rInsertionDeletion=0.0, rHetHomVar=1.0)])]
       expr_class: io.projectglow.sql.expressions.CallSummaryStats
-      args: 
+      args:
         - name: genotypes
           doc: An array of genotype structs with ``calls`` field
         - name: refAllele
@@ -425,7 +423,7 @@ gwas_functions:
           >>> df = spark.createDataFrame([Row(genotypes=genotypes, phenotypes=phenotypes, covariates=covariates)])
           >>> df.select(glow.expand_struct(glow.linear_regression_gwas('genotypes', 'phenotypes', 'covariates'))).collect()
           [Row(beta=0.9999999999999998, standardError=1.4901161193847656e-08, pValue=9.486373847239922e-09)]
-      args: 
+      args:
         - name: genotypes
           doc: A numeric array of genotypes
         - name: phenotypes
