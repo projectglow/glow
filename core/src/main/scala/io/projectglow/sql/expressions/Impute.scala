@@ -20,27 +20,27 @@ import io.projectglow.sql.util.RewriteAfterResolution
 
 import org.apache.spark.sql.SQLUtils
 import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
+import org.apache.spark.sql.catalyst.dsl.expressions._
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.expressions.aggregate.Average
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCode}
-import org.apache.spark.sql.catalyst.dsl.expressions._
 import org.apache.spark.sql.catalyst.util.ArrayData
-import org.apache.spark.sql.types.{ArrayType, DataType, NumericType, StringType, StructType}
+import org.apache.spark.sql.types.{ArrayType, DataType, IntegerType, NumericType, StringType, StructType}
 import org.apache.spark.unsafe.types.UTF8String
 
 /**
  * Imputes the missing values of an array using the non-missing values. Values that are NaN, null or equal to the
  * missing value parameter are not included in the aggregation, and are substituted with the specified strategy.
- * Currently, the only supported strategy is mean.
+ * Currently, the supported strategies are mean and median. If all values are missing, they are substituted with the
+ * missing value.
  *
  * If the missing value is not provided, the parameter defaults to -1.
  */
-case class Impute(array: Expression, strategy: Expression, missingValue: Expression) extends RewriteAfterResolution {
-  private lazy val nLv = NamedLambdaVariable("numArg", array.dataType.asInstanceOf[ArrayType].elementType, true)
-  private lazy val isMissing = IsNaN(nLv) || IsNull(nLv) || nLv === missingValue
-
-  private lazy val getImputedValue: Map[String, Expression] = Map(
-    "mean" -> getMean
+case class Impute(array: Expression, strategy: Expression, missingValue: Expression)
+    extends RewriteAfterResolution {
+  lazy val imputationStrategies: Map[String, Expression] = Map(
+    "mean" -> getMean,
+    "median" -> getMedian
   )
 
   override def children: Seq[Expression] = Seq(array, strategy, missingValue)
@@ -49,7 +49,11 @@ case class Impute(array: Expression, strategy: Expression, missingValue: Express
     this(array, strategy, Literal(-1))
   }
 
+  def isMissing(lv: NamedLambdaVariable): Predicate = IsNaN(lv) || IsNull(lv) || lv === missingValue
+
   def getMean: Expression = {
+    val nLv =
+      NamedLambdaVariable("numArg", array.dataType.asInstanceOf[ArrayType].elementType, true)
     val sLv = NamedLambdaVariable("structArg", StructType.fromDDL("sum double, count long"), true)
     val sumName = Literal(UTF8String.fromString("sum"), StringType)
     val countName = Literal(UTF8String.fromString("count"), StringType)
@@ -57,11 +61,11 @@ case class Impute(array: Expression, strategy: Expression, missingValue: Express
     val getCount = GetStructField(sLv, 1, Some("count"))
 
     // Sum and count of non-missing values
-    val zeros = namedStruct(sumName, Literal(0d), countName, Literal(0l))
+    val zeros = namedStruct(sumName, Literal(0d), countName, Literal(0L))
     // Update sum and count with array value
     val updateFn = LambdaFunction(
       If(
-        isMissing,
+        isMissing(nLv),
         // If value is missing, do not update sum and count
         sLv,
         // If value is not missing, add to sum and increment count
@@ -72,8 +76,17 @@ case class Impute(array: Expression, strategy: Expression, missingValue: Express
       ),
       Seq(sLv, nLv)
     )
-    // Calculate average of non-missing values
-    val finalizeFn = LambdaFunction(getSum / getCount, Seq(sLv))
+    // Calculate value for imputation
+    val finalizeFn = LambdaFunction(
+      If(
+        getCount > 0,
+        // If non-missing values were found, calculate the average
+        getSum / getCount,
+        // If all values were missing, substitute with missing value
+        missingValue
+      ),
+      Seq(sLv)
+    )
 
     ArrayAggregate(
       array,
@@ -83,24 +96,55 @@ case class Impute(array: Expression, strategy: Expression, missingValue: Express
     )
   }
 
+  def getMedian: Expression = {
+    val nLv =
+      NamedLambdaVariable("numArg", array.dataType.asInstanceOf[ArrayType].elementType, true)
+    val filteredArray = ArrayFilter(
+      array,
+      LambdaFunction(
+        If(
+          isMissing(nLv),
+          false,
+          true
+        ),
+        Seq(nLv)
+      )
+    )
+    val sortedArray = ArraySort(filteredArray)
+    val halfIdx = Ceil(Size(sortedArray) / 2).cast(IntegerType)
+    If(
+      Size(sortedArray) === 0,
+      missingValue,
+      If(
+        Size(sortedArray) % 2 === 0,
+        (ElementAt(sortedArray, halfIdx) + ElementAt(sortedArray, halfIdx + 1)) / 2,
+        ElementAt(sortedArray, halfIdx)
+      )
+    )
+  }
+
   override def rewrite: Expression = {
     if (!array.dataType.isInstanceOf[ArrayType] ||
       !array.dataType.asInstanceOf[ArrayType].elementType.isInstanceOf[NumericType]) {
-      throw new IllegalArgumentException(s"Can only impute numeric array; provided type is ${array.dataType}.")
+      throw new IllegalArgumentException(
+        s"Can only impute numeric array; provided type is ${array.dataType}.")
     }
 
     if (!strategy.dataType.isInstanceOf[StringType] ||
-      strategy.eval().asInstanceOf[UTF8String].toString != "mean") {
-      throw new IllegalArgumentException("The only supported strategy is `mean`.")
+      !imputationStrategies.keySet.contains(strategy.eval().asInstanceOf[UTF8String].toString)) {
+      throw new IllegalArgumentException(
+        "Supported strategies are: " + imputationStrategies.keys.mkString(", "))
     }
 
     // Replace missing values with the provided strategy
     val strategyStr = strategy.eval().asInstanceOf[UTF8String].toString
-    val imputedValue = getImputedValue(strategyStr)
+    val imputedValue = imputationStrategies(strategyStr)
+    val nLv =
+      NamedLambdaVariable("numArg", array.dataType.asInstanceOf[ArrayType].elementType, true)
     ArrayTransform(
       array,
       LambdaFunction(
-        If(isMissing, imputedValue, nLv),
+        If(isMissing(nLv), imputedValue, nLv),
         Seq(nLv)
       )
     )

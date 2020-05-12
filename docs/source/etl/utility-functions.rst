@@ -154,7 +154,8 @@ Glow supports numeric transformations on variant data for downstream calculation
 
 - ``impute``: impute an array that may contain missing values using the non-missing values. Any values that are NaN,
   null or equal to the missing value parameter are considered missing and are substituted with the specified strategy.
-  Currently, the only supported strategy is mean. If the missing value is not provided, this defaults to ``-1``.
+  Currently, the supported strategies are mean and median. If all values are missing, they are substituted with the
+  missing value. If the missing value is not provided, this defaults to ``-1``.
 
 .. code-block:: python
 
