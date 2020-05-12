@@ -470,7 +470,8 @@ class VariantQcExprsSuite extends GlowBaseTest {
         .selectExpr("impute(numbers, 'mean', 'str')")
         .collect()
     }
-    assert(e.getMessage.contains("Missing value must be of numeric type; provided type is StringType"))
+    assert(
+      e.getMessage.contains("Missing value must be of numeric type; provided type is StringType"))
   }
 }
 

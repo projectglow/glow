@@ -55,7 +55,8 @@ case class Impute(array: Expression, strategy: Expression, missingValue: Express
   def isMissing(lv: NamedLambdaVariable): Predicate = IsNaN(lv) || IsNull(lv) || lv === missingValue
 
   def getMean: Expression = {
-    val nLv = NamedLambdaVariable("numArg", array.dataType.asInstanceOf[ArrayType].elementType, true)
+    val nLv =
+      NamedLambdaVariable("numArg", array.dataType.asInstanceOf[ArrayType].elementType, true)
     val sLv = NamedLambdaVariable("structArg", StructType.fromDDL("sum double, count long"), true)
     val sumName = Literal(UTF8String.fromString("sum"), StringType)
     val countName = Literal(UTF8String.fromString("count"), StringType)
@@ -157,7 +158,8 @@ case class Impute(array: Expression, strategy: Expression, missingValue: Express
     // Replace missing values with the provided strategy
     val strategyStr = strategy.eval().asInstanceOf[UTF8String].toString
     val imputedValue = imputationStrategies(strategyStr)
-    val nLv = NamedLambdaVariable("numArg", array.dataType.asInstanceOf[ArrayType].elementType, true)
+    val nLv =
+      NamedLambdaVariable("numArg", array.dataType.asInstanceOf[ArrayType].elementType, true)
     ArrayTransform(
       array,
       LambdaFunction(
