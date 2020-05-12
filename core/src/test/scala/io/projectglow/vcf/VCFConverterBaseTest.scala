@@ -18,9 +18,14 @@ package io.projectglow.vcf
 
 import scala.reflect.runtime.universe._
 
-import io.projectglow.common.{GenotypeFields, TestUtils, VCFRow}
+import org.apache.spark.sql.{DataFrame, SQLUtils}
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.functions.expr
 
-trait VCFConverterBaseTest extends TestUtils {
+import io.projectglow.common.{GenotypeFields, VCFRow}
+import io.projectglow.sql.GlowBaseTest
+
+trait VCFConverterBaseTest extends GlowBaseTest {
 
   final lazy val defaultContigName = ""
   final lazy val defaultStart = 0L
@@ -71,5 +76,56 @@ trait VCFConverterBaseTest extends TestUtils {
     typeOf[T].members.sorted.collect {
       case m: MethodSymbol if m.isParamAccessor => m.name.toString
     }
+  }
+
+  def convertToInternalRow(vcfRow: VCFRow): InternalRow = {
+    val sess = spark
+    import sess.implicits._
+    Seq(vcfRow).toDF.queryExecution.toRdd.collect.head
+  }
+
+  def convertToVCFRows(internalRows: Seq[InternalRow]): Seq[VCFRow] = {
+    val sess = spark
+    import sess.implicits._
+    SQLUtils
+      .internalCreateDataFrame(
+        spark,
+        spark.sparkContext.parallelize(internalRows),
+        VCFRow.schema,
+        false
+      )
+      .as[VCFRow]
+      .collect
+  }
+
+  def convertToVCFRow(internalRow: InternalRow): VCFRow = {
+    convertToVCFRows(Seq(internalRow)).head
+  }
+
+  def setSampleIds(df: DataFrame, sampleIdExpr: String): DataFrame = {
+    val nonSampleIdGenotypeFields = InternalRowToVariantContextConverter
+      .getGenotypeSchema(df.schema)
+      .get
+      .fieldNames
+      .filter(_ != "sampleId")
+      .map { f =>
+        s"'$f', gt.$f"
+      }
+      .mkString(",")
+    df.withColumn(
+      "genotypes",
+      expr(
+        s"""
+           |transform(
+           |  genotypes,
+           |  (gt, idx) -> named_struct('sampleId', $sampleIdExpr, $nonSampleIdGenotypeFields)
+           |)
+           """.stripMargin
+      )
+    )
+  }
+
+  def setMissingSampleIds(df: DataFrame): DataFrame = {
+    setSampleIds(df, "cast(null as string)")
   }
 }

@@ -27,10 +27,9 @@ import org.apache.spark.{SparkException, TaskContext}
 
 import io.projectglow.Glow
 import io.projectglow.common.VCFRow
-import io.projectglow.sql.GlowBaseTest
 import io.projectglow.transformers.pipe.ProcessHelper
 
-class VCFPiperSuite extends GlowBaseTest {
+class VCFPiperSuite extends VCFConverterBaseTest {
   lazy val sess = spark
   private val na12878 = s"$testDataHome/NA12878_21_10002403.vcf"
   private val TGP = s"$testDataHome/1000genomes-phase3-1row.vcf"
@@ -197,8 +196,7 @@ class VCFPiperSuite extends GlowBaseTest {
     val input = spark
       .read
       .format("vcf")
-      .option("includeSampleIds", "true")
-      .option("vcfRowSchema", "true")
+      .schema(VCFRow.schema)
       .load(na12878)
       .as[VCFRow]
     val df = input.map { el =>
@@ -218,17 +216,18 @@ class VCFPiperSuite extends GlowBaseTest {
   test("missing sample names") {
     import sess.implicits._
 
-    val inputDf = spark
-      .read
-      .option("includeSampleIds", "false")
-      .option("vcfRowSchema", "true")
-      .format("vcf")
-      .load(TGP)
+    val inputDf = setMissingSampleIds(
+      spark
+        .read
+        .schema(VCFRow.schema)
+        .format("vcf")
+        .load(TGP)
+    )
 
     val options = Map(
       "inputFormatter" -> "vcf",
       "outputFormatter" -> "vcf",
-      "in_vcfHeader" -> "infer",
+      "inVcfHeader" -> "infer",
       "cmd" -> s"""["cat", "-"]"""
     )
     val outputDf = Glow.transform("pipe", inputDf.toDF, options)
