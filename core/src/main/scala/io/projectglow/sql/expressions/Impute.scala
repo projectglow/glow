@@ -38,10 +38,6 @@ import org.apache.spark.unsafe.types.UTF8String
  */
 case class Impute(array: Expression, strategy: Expression, missingValue: Expression)
     extends RewriteAfterResolution {
-  lazy val imputationStrategies: Map[String, Expression] = Map(
-    "mean" -> getMean,
-    "median" -> getMedian
-  )
 
   override def children: Seq[Expression] = Seq(array, strategy, missingValue)
 
@@ -49,11 +45,17 @@ case class Impute(array: Expression, strategy: Expression, missingValue: Express
     this(array, strategy, Literal(-1))
   }
 
+  // Mapping from imputation strategy to the imputed value
+  lazy val imputationStrategies: Map[String, Expression] = Map(
+    "mean" -> getMean,
+    "median" -> getMedian
+  )
+
+  // A value is considered missing if it is NaN, null or equal to the missing value parameter
   def isMissing(lv: NamedLambdaVariable): Predicate = IsNaN(lv) || IsNull(lv) || lv === missingValue
 
   def getMean: Expression = {
-    val nLv =
-      NamedLambdaVariable("numArg", array.dataType.asInstanceOf[ArrayType].elementType, true)
+    val nLv = NamedLambdaVariable("numArg", array.dataType.asInstanceOf[ArrayType].elementType, true)
     val sLv = NamedLambdaVariable("structArg", StructType.fromDDL("sum double, count long"), true)
     val sumName = Literal(UTF8String.fromString("sum"), StringType)
     val countName = Literal(UTF8String.fromString("count"), StringType)
@@ -99,6 +101,8 @@ case class Impute(array: Expression, strategy: Expression, missingValue: Express
   def getMedian: Expression = {
     val nLv =
       NamedLambdaVariable("numArg", array.dataType.asInstanceOf[ArrayType].elementType, true)
+
+    // Non-missing elements
     val filteredArray = ArrayFilter(
       array,
       LambdaFunction(
@@ -110,14 +114,23 @@ case class Impute(array: Expression, strategy: Expression, missingValue: Express
         Seq(nLv)
       )
     )
-    val sortedArray = ArraySort(filteredArray)
-    val halfIdx = Ceil(Size(sortedArray) / 2).cast(IntegerType)
+    // Sorted non-missing elements
+    val sortedArray = new ArraySort(filteredArray)
+    val numNonMissingElements = Size(sortedArray)
+
+    // The index of the middle element if the array has odd cardinality
+    // The index of the lower of the middle two elements if the array has even cardinality
+    val halfIdx = Ceil(numNonMissingElements / 2).cast(IntegerType)
+
     If(
-      Size(sortedArray) === 0,
+      numNonMissingElements === 0,
+      // If all values were missing, substitute with missing value
       missingValue,
       If(
-        Size(sortedArray) % 2 === 0,
+        numNonMissingElements % 2 === 0,
+        // If the array has even cardinality, get the average of the middle two elements
         (ElementAt(sortedArray, halfIdx) + ElementAt(sortedArray, halfIdx + 1)) / 2,
+        // If the array has odd cardinality, get the middle element
         ElementAt(sortedArray, halfIdx)
       )
     )
@@ -133,14 +146,18 @@ case class Impute(array: Expression, strategy: Expression, missingValue: Express
     if (!strategy.dataType.isInstanceOf[StringType] ||
       !imputationStrategies.keySet.contains(strategy.eval().asInstanceOf[UTF8String].toString)) {
       throw new IllegalArgumentException(
-        "Supported strategies are: " + imputationStrategies.keys.mkString(", "))
+        s"Supported strategies are: ${imputationStrategies.keys.mkString(", ")}")
+    }
+
+    if (!missingValue.dataType.isInstanceOf[NumericType]) {
+      throw new IllegalArgumentException(
+        s"Missing value must be of numeric type; provided type is ${missingValue.dataType}.")
     }
 
     // Replace missing values with the provided strategy
     val strategyStr = strategy.eval().asInstanceOf[UTF8String].toString
     val imputedValue = imputationStrategies(strategyStr)
-    val nLv =
-      NamedLambdaVariable("numArg", array.dataType.asInstanceOf[ArrayType].elementType, true)
+    val nLv = NamedLambdaVariable("numArg", array.dataType.asInstanceOf[ArrayType].elementType, true)
     ArrayTransform(
       array,
       LambdaFunction(

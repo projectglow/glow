@@ -462,6 +462,16 @@ class VariantQcExprsSuite extends GlowBaseTest {
     }
     assert(e.getMessage.contains("Can only impute numeric array; provided type is DoubleType"))
   }
+
+  test("unsupported missing value type") {
+    val e = intercept[IllegalArgumentException] {
+      spark
+        .createDataFrame(Seq(OptIntDatum(Array(None, Some(0), Some(1), Some(2), Some(3), Some(4)))))
+        .selectExpr("impute(numbers, 'mean', 'str')")
+        .collect()
+    }
+    assert(e.getMessage.contains("Missing value must be of numeric type; provided type is StringType"))
+  }
 }
 
 case class ArraySummaryStats(
