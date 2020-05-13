@@ -297,54 +297,54 @@ class VariantQcExprsSuite extends GlowBaseTest {
           "Genotype struct was missing required fields: (name: calls, type: ArrayType(IntegerType,true))"))
   }
 
-  test("impute for array of doubles") {
+  test("mean substitute for array of doubles") {
     val test = spark
       .createDataFrame(
         Seq(
           OptDoubleDatum(
             Array(Some(Double.NaN), None, Some(0.0), Some(1.0), Some(2.0), Some(3.0), Some(4.0))
           )))
-      .selectExpr("impute_array(numbers, 0.0)")
+      .selectExpr("mean_substitute(numbers, 0.0)")
       .collect()
       .head
       .getSeq[Double](0)
     assert(test == Seq(2.5, 2.5, 2.5, 1.0, 2.0, 3.0, 4.0))
   }
 
-  test("impute for array of ints") {
+  test("mean substitute for array of ints") {
     val test = spark
       .createDataFrame(Seq(OptIntDatum(Array(None, Some(0), Some(1), Some(2), Some(3), Some(4)))))
-      .selectExpr("impute_array(numbers, 0)")
+      .selectExpr("mean_substitute(numbers, 0)")
       .collect()
       .head
       .getSeq[Double](0)
     assert(test == Seq(2.5, 2.5, 1.0, 2.0, 3.0, 4.0))
   }
 
-  test("impute with one non-missing element") {
+  test("mean substitute with one non-missing element") {
     val test = spark
       .createDataFrame(Seq(OptDoubleDatum(Array(Some(-1), Some(2)))))
-      .selectExpr("impute_array(numbers, -1)")
+      .selectExpr("mean_substitute(numbers, -1)")
       .collect()
       .head
       .getSeq[Double](0)
     assert(test == Seq(2, 2))
   }
 
-  test("impute with all missing elements") {
+  test("mean substitute with all missing elements") {
     val test = spark
       .createDataFrame(Seq(OptDoubleDatum(Array(None, None, Some(-5)))))
-      .selectExpr("impute_array(numbers, -5)")
+      .selectExpr("mean_substitute(numbers, -5)")
       .collect()
       .head
       .getSeq[Double](0)
     assert(test == Seq(-5, -5, -5))
   }
 
-  test("imputation's default missing value is -1") {
+  test("mean substitution's default missing value is -1") {
     val test = spark
       .createDataFrame(Seq(OptIntDatum(Array(None, Some(-1), Some(0), Some(1), Some(2), Some(3)))))
-      .selectExpr("impute_array(numbers, -1)")
+      .selectExpr("mean_substitute(numbers, -1)")
       .collect()
       .head
       .getSeq[Double](0)
@@ -354,7 +354,7 @@ class VariantQcExprsSuite extends GlowBaseTest {
   test("null array") {
     val test = spark
       .createDataFrame(Seq(Datum(null)))
-      .selectExpr("impute_array(numbers, -1)")
+      .selectExpr("mean_substitute(numbers, -1)")
       .collect()
       .head
       .getSeq[Double](0)
@@ -364,7 +364,7 @@ class VariantQcExprsSuite extends GlowBaseTest {
   test("empty array") {
     val test = spark
       .createDataFrame(Seq(Datum(Array.emptyDoubleArray)))
-      .selectExpr("impute_array(numbers, -1)")
+      .selectExpr("mean_substitute(numbers, -1)")
       .collect()
       .head
       .getSeq[Double](0)
@@ -374,7 +374,7 @@ class VariantQcExprsSuite extends GlowBaseTest {
   test("array with no missing values") {
     val test = spark
       .createDataFrame(Seq(OptDoubleDatum(Array(Some(0.0), Some(1.0)))))
-      .selectExpr("impute_array(numbers, -1)")
+      .selectExpr("mean_substitute(numbers, -1)")
       .collect()
       .head
       .getSeq[Double](0)
@@ -385,29 +385,32 @@ class VariantQcExprsSuite extends GlowBaseTest {
     val e = intercept[IllegalArgumentException] {
       spark
         .createDataFrame(Seq(StringDatum(Array("hello", "world"))))
-        .selectExpr("impute_array(strings)")
+        .selectExpr("mean_substitute(strings)")
         .collect()
     }
     assert(
       e.getMessage
-        .contains("Can only impute numeric array; provided type is ArrayType(StringType,true)"))
+        .contains(
+          "Can only perform mean substitution on numeric array; provided type is ArrayType(StringType,true)"))
   }
 
   test("unsupported type for array arg") {
     val e = intercept[IllegalArgumentException] {
       spark
         .createDataFrame(Seq(SingletonDatum(10)))
-        .selectExpr("impute_array(number)")
+        .selectExpr("mean_substitute(number)")
         .collect()
     }
-    assert(e.getMessage.contains("Can only impute numeric array; provided type is DoubleType"))
+    assert(e
+      .getMessage
+      .contains("Can only perform mean substitution on numeric array; provided type is DoubleType"))
   }
 
   test("unsupported missing value type") {
     val e = intercept[IllegalArgumentException] {
       spark
         .createDataFrame(Seq(OptIntDatum(Array(None, Some(0), Some(1), Some(2), Some(3), Some(4)))))
-        .selectExpr("impute_array(numbers, 'str')")
+        .selectExpr("mean_substitute(numbers, 'str')")
         .collect()
     }
     assert(

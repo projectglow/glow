@@ -29,30 +29,20 @@ import org.apache.spark.sql.types.{ArrayType, DataType, IntegerType, NumericType
 import org.apache.spark.unsafe.types.UTF8String
 
 /**
- * Imputes the missing values of an array using the mean of the non-missing values. Values that are NaN, null or equal
- * to the missing value parameter are not included in the aggregation, and are substituted with the mean of the non-
- * missing values. If all values are missing, they are substituted with the missing value.
+ * Substitutes the missing values of an array using the mean of the non-missing values. Values that are NaN, null or
+ * equal to the missing value parameter are not included in the aggregation, and are substituted with the mean of the
+ * non-missing values. If all values are missing, they are substituted with the missing value.
  *
  * If the missing value is not provided, the parameter defaults to -1.
  */
-case class ImputeArray(array: Expression, missingValue: Expression, strategy: Expression)
+case class MeanSubstitute(array: Expression, missingValue: Expression)
     extends RewriteAfterResolution {
 
-  override def children: Seq[Expression] = Seq(array, missingValue, strategy)
-
-  // In the future, we may want to support other imputation strategies (eg. median)
-  def this(array: Expression, missingValue: Expression) = {
-    this(array, missingValue, Literal(UTF8String.fromString("mean"), StringType))
-  }
+  override def children: Seq[Expression] = Seq(array, missingValue)
 
   def this(array: Expression) = {
     this(array, Literal(-1))
   }
-
-  // Mapping from imputation strategy to the imputed value
-  lazy val imputationStrategies: Map[String, Expression] = Map(
-    "mean" -> getMean
-  )
 
   // A value is considered missing if it is NaN, null or equal to the missing value parameter
   def isMissing(lv: NamedLambdaVariable): Predicate = IsNaN(lv) || IsNull(lv) || lv === missingValue
@@ -106,7 +96,7 @@ case class ImputeArray(array: Expression, missingValue: Expression, strategy: Ex
     if (!array.dataType.isInstanceOf[ArrayType] ||
       !array.dataType.asInstanceOf[ArrayType].elementType.isInstanceOf[NumericType]) {
       throw new IllegalArgumentException(
-        s"Can only impute numeric array; provided type is ${array.dataType}.")
+        s"Can only perform mean substitution on numeric array; provided type is ${array.dataType}.")
     }
 
     if (!missingValue.dataType.isInstanceOf[NumericType]) {
@@ -114,22 +104,13 @@ case class ImputeArray(array: Expression, missingValue: Expression, strategy: Ex
         s"Missing value must be of numeric type; provided type is ${missingValue.dataType}.")
     }
 
-    // Strategy is not exposed publicly
-    if (!strategy.dataType.isInstanceOf[StringType] ||
-      !imputationStrategies.keySet.contains(strategy.eval().asInstanceOf[UTF8String].toString)) {
-      throw new IllegalArgumentException(
-        s"Supported strategies are: ${imputationStrategies.keys.mkString(", ")}")
-    }
-
     // Replace missing values with the provided strategy
-    val strategyStr = strategy.eval().asInstanceOf[UTF8String].toString
-    val imputedValue = imputationStrategies(strategyStr)
     val nLv =
       NamedLambdaVariable("numArg", array.dataType.asInstanceOf[ArrayType].elementType, true)
     ArrayTransform(
       array,
       LambdaFunction(
-        If(isMissing(nLv), imputedValue, nLv),
+        If(isMissing(nLv), getMean, nLv),
         Seq(nLv)
       )
     )
