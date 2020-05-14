@@ -30,6 +30,8 @@ object SparkShim extends SparkShimBase {
     parser.parse(input)
   }
 
+  // [SPARK-31429][SQL][DOC] Automatically generates a SQL document for built-in functions
+  // Adds 'group' argument to the ExpressionInfo constructor
   // [SPARK-27328][SQL] Add 'deprecated' in ExpressionDescription for extended usage and SQL doc
   // Adds 'deprecated' argument to the ExpressionInfo constructor
   override def createExpressionInfo(
@@ -41,13 +43,17 @@ object SparkShim extends SparkShimBase {
       examples: String,
       note: String,
       since: String): ExpressionInfo = {
-    // TODO fix this up later.
     new ExpressionInfo(
       className,
       db,
       name,
       usage,
-      arguments
+      arguments,
+      examples,
+      note,
+      "", // group
+      since,
+      "" // deprecated
     )
   }
 
