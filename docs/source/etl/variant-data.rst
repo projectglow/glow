@@ -226,9 +226,9 @@ files must be located at ``{prefix}.bim`` and ``{prefix}.fam``.
 +======================+=========+=================+=====================================================================================================+
 | ``includeSampleIds`` | boolean | ``true``        | If true, each genotype includes the name of the sample ID it belongs to.                            |
 +----------------------+---------+-----------------+-----------------------------------------------------------------------------------------------------+
-| ``bimDelimiter``     | string  | (space)         | Whitespace delimiter in the ``{prefix}.bim`` file.                                                  |
+| ``bimDelimiter``     | string  | (tab)           | Whitespace delimiter in the ``{prefix}.bim`` file.                                                  |
 +----------------------+---------+-----------------+-----------------------------------------------------------------------------------------------------+
-| ``famDelimiter``     | string  | (tab)           | Whitespace delimiter in the ``{prefix}.fam`` file.                                                  |
+| ``famDelimiter``     | string  | (space)         | Whitespace delimiter in the ``{prefix}.fam`` file.                                                  |
 +----------------------+---------+-----------------+-----------------------------------------------------------------------------------------------------+
 | ``mergeFidIid``      | boolean | ``true``        | If true, sets the sample ID to the family ID and individual ID merged with an underscore delimiter. |
 |                      |         |                 | If false, sets the sample ID to the individual ID.                                                  |
