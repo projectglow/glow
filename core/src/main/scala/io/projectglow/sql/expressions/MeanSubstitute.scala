@@ -53,39 +53,37 @@ case class MeanSubstitute(array: Expression, missingValue: Expression)
     namedStruct(sumName, sumValue, countName, countValue)
   }
 
-  def getNumericLambdaVariable(name: String): NamedLambdaVariable =
-    NamedLambdaVariable(name, array.dataType.asInstanceOf[ArrayType].elementType, true)
-  def getStructLambdaVariable(name: String): NamedLambdaVariable =
-    NamedLambdaVariable(name, StructType.fromDDL("sum double, count long"), true)
+  def getNumericLambdaVariable(): NamedLambdaVariable =
+    NamedLambdaVariable("numArg", array.dataType.asInstanceOf[ArrayType].elementType, true)
+  def getStructLambdaVariable(): NamedLambdaVariable =
+    NamedLambdaVariable("structArg", StructType.fromDDL("sum double, count long"), true)
 
   def getSum(lv: NamedLambdaVariable): GetStructField = GetStructField(lv, 0, Some("sum"))
   def getCount(lv: NamedLambdaVariable): GetStructField = GetStructField(lv, 1, Some("count"))
 
   // Update sum and count with array value
   def updateFn: LambdaFunction = {
-    val onLv = getNumericLambdaVariable("outerNumArg")
-    val inLv = getNumericLambdaVariable("innerNumArg")
-    val osLv = getStructLambdaVariable("outerStructArg")
-    val isLv = getStructLambdaVariable(name = "innerStructArg")
+    val nLv = getNumericLambdaVariable()
+    val sLv = getStructLambdaVariable()
 
     LambdaFunction(
       If(
-        isMissing(onLv),
+        isMissing(nLv),
         // If value is missing, do not update sum and count
-        osLv,
+        sLv,
         // If value is not missing, add to sum and increment count
         LambdaFunction(
-          getNamedStruct(getSum(osLv) + onLv, getCount(osLv) + 1),
-          Seq(osLv, onLv)
+          getNamedStruct(getSum(sLv) + nLv, getCount(sLv) + 1),
+          Seq(sLv, nLv)
         )
       ),
-      Seq(osLv, onLv)
+      Seq(sLv, nLv)
     )
   }
 
   // Calculate mean for imputation
   def finalizeFn: LambdaFunction = {
-    val sLv = getStructLambdaVariable("structArg")
+    val sLv = getStructLambdaVariable()
 
     LambdaFunction(
       If(
@@ -124,7 +122,7 @@ case class MeanSubstitute(array: Expression, missingValue: Expression)
     }
 
     // Replace missing values with the provided strategy
-    val nLv = getNumericLambdaVariable("numArg")
+    val nLv = getNumericLambdaVariable()
     ArrayTransform(
       array,
       LambdaFunction(
