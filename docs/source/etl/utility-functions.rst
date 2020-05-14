@@ -151,3 +151,17 @@ Glow supports numeric transformations on variant data for downstream calculation
 .. invisible-code-block: python
 
    assert hard_calls_df.head().calls == [2, 0]
+
+- ``mean_substitute``: substitutes the missing values of a numeric array using the mean of the non-missing values. Any
+  values that are NaN, null or equal to the missing value parameter are considered missing. If all values are missing,
+  they are substituted with the missing value. If the missing value is not provided, this defaults to ``-1``.
+
+.. code-block:: python
+
+    unsubstituted_row = Row(unsubstituted_values=[float('nan'), None, -1.0, 0.0, 1.0, 2.0, 3.0])
+    unsubstituted_df = spark.createDataFrame([unsubstituted_row])
+    substituted_df = unsubstituted_df.selectExpr("mean_substitute(unsubstituted_values, -1.0) as substituted_values")
+
+.. invisible-code-block: python
+
+   assert substituted_df.head().substituted_values == [1.5, 1.5, 1.5, 0, 1, 2, 3]
