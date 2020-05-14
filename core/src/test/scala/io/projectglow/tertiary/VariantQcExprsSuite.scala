@@ -382,7 +382,7 @@ class VariantQcExprsSuite extends GlowBaseTest {
   }
 
   test("unsupported array type") {
-    val e = intercept[IllegalArgumentException] {
+    val e = intercept[AnalysisException] {
       spark
         .createDataFrame(Seq(StringDatum(Array("hello", "world"))))
         .selectExpr("mean_substitute(strings)")
@@ -395,7 +395,7 @@ class VariantQcExprsSuite extends GlowBaseTest {
   }
 
   test("unsupported type for array arg") {
-    val e = intercept[IllegalArgumentException] {
+    val e = intercept[AnalysisException] {
       spark
         .createDataFrame(Seq(SingletonDatum(10)))
         .selectExpr("mean_substitute(number)")
@@ -407,7 +407,7 @@ class VariantQcExprsSuite extends GlowBaseTest {
   }
 
   test("unsupported missing value type") {
-    val e = intercept[IllegalArgumentException] {
+    val e = intercept[AnalysisException] {
       spark
         .createDataFrame(Seq(OptIntDatum(Array(None, Some(0), Some(1), Some(2), Some(3), Some(4)))))
         .selectExpr("mean_substitute(numbers, 'str')")
