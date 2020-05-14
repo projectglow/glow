@@ -217,6 +217,24 @@ object functions {
   }
 
   /**
+   * Sustitutes the missing values of a numeric array using the mean of the non-missing values. Any values that are NaN, null or equal to the missing value parameter are considered missing. See :ref:`variant-data-transformations` for more details.
+   * @group etl
+   * @since 0.4.0
+   *
+   * @param array A numeric array that may contain missing values
+   * @param missingValue A value that should be considered missing. If not provided, this parameter defaults to ``-1``.
+   * @return A numeric array with substituted missing values
+   */
+  def mean_substitute(array: Column, missingValue: Column): Column = withExpr {
+    new io.projectglow.sql.expressions.MeanSubstitute(array.expr, missingValue.expr)
+  }
+
+  def mean_substitute(array: Column): Column = withExpr {
+    new io.projectglow.sql.expressions.MeanSubstitute(array.expr)
+  }
+
+
+  /**
    * Computes custom per-sample aggregates.
    * @group quality_control
    * @since 0.3.0

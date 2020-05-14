@@ -297,6 +297,125 @@ class VariantQcExprsSuite extends GlowBaseTest {
           "Genotype struct was missing required fields: (name: calls, type: ArrayType(IntegerType,true))"))
   }
 
+  test("mean substitute for array of doubles") {
+    val test = spark
+      .createDataFrame(
+        Seq(
+          OptDoubleDatum(
+            Array(Some(Double.NaN), None, Some(0.0), Some(1.0), Some(2.0), Some(3.0), Some(4.0))
+          )))
+      .selectExpr("mean_substitute(numbers, 0.0)")
+      .collect()
+      .head
+      .getSeq[Double](0)
+    assert(test == Seq(2.5, 2.5, 2.5, 1.0, 2.0, 3.0, 4.0))
+  }
+
+  test("mean substitute for array of ints") {
+    val test = spark
+      .createDataFrame(Seq(OptIntDatum(Array(None, Some(0), Some(1), Some(2), Some(3), Some(4)))))
+      .selectExpr("mean_substitute(numbers, 0)")
+      .collect()
+      .head
+      .getSeq[Double](0)
+    assert(test == Seq(2.5, 2.5, 1.0, 2.0, 3.0, 4.0))
+  }
+
+  test("mean substitute with one non-missing element") {
+    val test = spark
+      .createDataFrame(Seq(OptDoubleDatum(Array(Some(-1), Some(2)))))
+      .selectExpr("mean_substitute(numbers, -1)")
+      .collect()
+      .head
+      .getSeq[Double](0)
+    assert(test == Seq(2, 2))
+  }
+
+  test("mean substitute with all missing elements") {
+    val test = spark
+      .createDataFrame(Seq(OptDoubleDatum(Array(None, None, Some(-5)))))
+      .selectExpr("mean_substitute(numbers, -5)")
+      .collect()
+      .head
+      .getSeq[Double](0)
+    assert(test == Seq(-5, -5, -5))
+  }
+
+  test("mean substitution's default missing value is -1") {
+    val test = spark
+      .createDataFrame(Seq(OptIntDatum(Array(None, Some(-1), Some(0), Some(1), Some(2), Some(3)))))
+      .selectExpr("mean_substitute(numbers, -1)")
+      .collect()
+      .head
+      .getSeq[Double](0)
+    assert(test == Seq(1.5, 1.5, 0.0, 1.0, 2.0, 3.0))
+  }
+
+  test("null array") {
+    val test = spark
+      .createDataFrame(Seq(Datum(null)))
+      .selectExpr("mean_substitute(numbers, -1)")
+      .collect()
+      .head
+      .getSeq[Double](0)
+    assert(test == null)
+  }
+
+  test("empty array") {
+    val test = spark
+      .createDataFrame(Seq(Datum(Array.emptyDoubleArray)))
+      .selectExpr("mean_substitute(numbers, -1)")
+      .collect()
+      .head
+      .getSeq[Double](0)
+    assert(test.isEmpty)
+  }
+
+  test("array with no missing values") {
+    val test = spark
+      .createDataFrame(Seq(OptDoubleDatum(Array(Some(0.0), Some(1.0)))))
+      .selectExpr("mean_substitute(numbers, -1)")
+      .collect()
+      .head
+      .getSeq[Double](0)
+    assert(test == Seq(0.0, 1.0))
+  }
+
+  test("unsupported array type") {
+    val e = intercept[AnalysisException] {
+      spark
+        .createDataFrame(Seq(StringDatum(Array("hello", "world"))))
+        .selectExpr("mean_substitute(strings)")
+        .collect()
+    }
+    assert(
+      e.getMessage
+        .contains(
+          "Can only perform mean substitution on numeric array; provided type is ArrayType(StringType,true)"))
+  }
+
+  test("unsupported type for array arg") {
+    val e = intercept[AnalysisException] {
+      spark
+        .createDataFrame(Seq(SingletonDatum(10)))
+        .selectExpr("mean_substitute(number)")
+        .collect()
+    }
+    assert(e
+      .getMessage
+      .contains("Can only perform mean substitution on numeric array; provided type is DoubleType"))
+  }
+
+  test("unsupported missing value type") {
+    val e = intercept[AnalysisException] {
+      spark
+        .createDataFrame(Seq(OptIntDatum(Array(None, Some(0), Some(1), Some(2), Some(3), Some(4)))))
+        .selectExpr("mean_substitute(numbers, 'str')")
+        .collect()
+    }
+    assert(
+      e.getMessage.contains("Missing value must be of numeric type; provided type is StringType"))
+  }
 }
 
 case class ArraySummaryStats(
@@ -305,6 +424,10 @@ case class ArraySummaryStats(
     min: Option[Double],
     max: Option[Double])
 case class Datum(numbers: Array[Double])
+case class OptDoubleDatum(numbers: Array[Option[Double]])
+case class OptIntDatum(numbers: Array[Option[Int]])
+case class SingletonDatum(number: Double)
+case class StringDatum(strings: Array[String])
 case class HardyWeinbergStats(hetFreqHwe: Double, pValueHwe: Double)
 case class CStats(
     callRate: Double,
