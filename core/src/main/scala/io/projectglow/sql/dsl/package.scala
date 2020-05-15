@@ -20,7 +20,6 @@ import org.apache.spark.sql.catalyst.analysis.UnresolvedAttribute
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.types.DataType
 
-
 package object dsl {
 
   trait ImplicitOperators {
@@ -46,7 +45,10 @@ package object dsl {
     def filter(f: (Expression, Expression) => Expression): Expression = {
       ArrayFilter(expr, makeLambdaFunction(f))
     }
-    def aggregate(initialValue: Expression, merge: (Expression, Expression) => Expression, finish: Expression => Expression = identity): Expression = {
+    def aggregate(
+        initialValue: Expression,
+        merge: (Expression, Expression) => Expression,
+        finish: Expression => Expression = identity): Expression = {
       ArrayAggregate(
         expr,
         initialValue,
