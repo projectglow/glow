@@ -23,7 +23,7 @@ import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.expressions.aggregate.Average
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCode}
 import org.apache.spark.sql.catalyst.util.ArrayData
-import org.apache.spark.sql.types.{ArrayType, DataType, IntegerType, NumericType, StringType, StructType}
+import org.apache.spark.sql.types.{ArrayType, NumericType, StringType, StructType}
 import org.apache.spark.unsafe.types.UTF8String
 
 import io.projectglow.sql.dsl._
@@ -44,6 +44,9 @@ case class MeanSubstitute(array: Expression, missingValue: Expression) extends R
     this(array, Literal(-1))
   }
 
+  val stateStructType = StructType.fromDDL("sum double, count long")
+  lazy val arrayElementType = array.dataType.asInstanceOf[ArrayType].elementType
+
   // A value is considered missing if it is NaN, null or equal to the missing value parameter
   def isMissing(arrayElement: Expression): Predicate =
     IsNaN(arrayElement) || IsNull(arrayElement) || arrayElement === missingValue
@@ -55,26 +58,27 @@ case class MeanSubstitute(array: Expression, missingValue: Expression) extends R
   }
 
   def getSum(stateStruct: Expression): GetStructField = GetStructField(stateStruct, 0, Some("sum"))
-  def getCount(stateStruct: Expression): GetStructField = GetStructField(stateStruct, 1, Some("count"))
-
-  // Update sum and count with non-missing array element
-  def updateSumAndCount(stateStruct: Expression, arrayElement: Expression): Expression = {
-    createNamedStruct(getSum(stateStruct) + arrayElement, getCount(stateStruct) + 1)
-  }
+  def getCount(stateStruct: Expression): GetStructField =
+    GetStructField(stateStruct, 1, Some("count"))
 
   // Update sum and count with array element if not missing
-  def updateSumAndCountConditionally(stateStruct: Expression, arrayElement: Expression): Expression = {
+  def updateSumAndCountConditionally(
+      stateStruct: NamedLambdaVariable,
+      arrayElement: NamedLambdaVariable): Expression = {
     If(
       isMissing(arrayElement),
       // If value is missing, do not update sum and count
       stateStruct,
       // If value is not missing, add to sum and increment count
-      makeLambdaFunction(updateSumAndCount(_, _))
+      LambdaFunction(
+        createNamedStruct(getSum(stateStruct) + arrayElement, getCount(stateStruct) + 1),
+        Seq(stateStruct, arrayElement)
+      )
     )
   }
 
   // Calculate mean for imputation
-  def calculateMean(stateStruct: Expression): Expression = {
+  def calculateMean(stateStruct: NamedLambdaVariable): Expression = {
     If(
       getCount(stateStruct) > 0,
       // If non-missing values were found, calculate the average
@@ -89,17 +93,19 @@ case class MeanSubstitute(array: Expression, missingValue: Expression) extends R
     array.aggregate(
       createNamedStruct(Literal(0d), Literal(0L)),
       updateSumAndCountConditionally,
-      calculateMean
+      (stateStructType, arrayElementType),
+      calculateMean,
+      stateStructType
     )
   }
 
-  def substituteWithMean(arrayElement: Expression): Expression = {
+  def substituteWithMean(arrayElement: NamedLambdaVariable): Expression = {
     If(isMissing(arrayElement), arrayMean, arrayElement)
   }
 
   override def rewrite: Expression = {
     if (!array.dataType.isInstanceOf[ArrayType] ||
-      !array.dataType.asInstanceOf[ArrayType].elementType.isInstanceOf[NumericType]) {
+      !arrayElementType.isInstanceOf[NumericType]) {
       throw SQLUtils.newAnalysisException(
         s"Can only perform mean substitution on numeric array; provided type is ${array.dataType}.")
     }
@@ -110,6 +116,9 @@ case class MeanSubstitute(array: Expression, missingValue: Expression) extends R
     }
 
     // Replace missing values with the provided strategy
-    array.arrayTransform(substituteWithMean(_))
+    array.arrayTransform(
+      substituteWithMean(_),
+      arrayElementType
+    )
   }
 }
