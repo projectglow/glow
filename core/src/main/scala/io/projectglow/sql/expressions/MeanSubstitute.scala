@@ -47,24 +47,26 @@ case class MeanSubstitute(array: Expression, missingValue: Expression)
   // A value is considered missing if it is NaN, null or equal to the missing value parameter
   def isMissing(lv: NamedLambdaVariable): Predicate = IsNaN(lv) || IsNull(lv) || lv === missingValue
 
-  def getNamedStruct(sumValue: Expression, countValue: Expression): Expression = {
+  def createNamedStruct(sumValue: Expression, countValue: Expression): Expression = {
     val sumName = Literal(UTF8String.fromString("sum"), StringType)
     val countName = Literal(UTF8String.fromString("count"), StringType)
     namedStruct(sumName, sumValue, countName, countValue)
   }
 
-  def getNumericLambdaVariable(): NamedLambdaVariable =
+  def createNumericLambdaVariable(): NamedLambdaVariable =
     NamedLambdaVariable("numArg", array.dataType.asInstanceOf[ArrayType].elementType, true)
-  def getStructLambdaVariable(): NamedLambdaVariable =
+  def createStructLambdaVariable(): NamedLambdaVariable =
     NamedLambdaVariable("structArg", StructType.fromDDL("sum double, count long"), true)
 
-  def getSum(lv: NamedLambdaVariable): GetStructField = GetStructField(lv, 0, Some("sum"))
-  def getCount(lv: NamedLambdaVariable): GetStructField = GetStructField(lv, 1, Some("count"))
+  def getSum(stateStruct: NamedLambdaVariable): GetStructField =
+    GetStructField(stateStruct, 0, Some("sum"))
+  def getCount(stateStruct: NamedLambdaVariable): GetStructField =
+    GetStructField(stateStruct, 1, Some("count"))
 
   // Update sum and count with array value
-  def updateFn: LambdaFunction = {
-    val nLv = getNumericLambdaVariable()
-    val sLv = getStructLambdaVariable()
+  lazy val updateFn: LambdaFunction = {
+    val nLv = createNumericLambdaVariable()
+    val sLv = createStructLambdaVariable()
 
     LambdaFunction(
       If(
@@ -73,7 +75,7 @@ case class MeanSubstitute(array: Expression, missingValue: Expression)
         sLv,
         // If value is not missing, add to sum and increment count
         LambdaFunction(
-          getNamedStruct(getSum(sLv) + nLv, getCount(sLv) + 1),
+          createNamedStruct(getSum(sLv) + nLv, getCount(sLv) + 1),
           Seq(sLv, nLv)
         )
       ),
@@ -82,8 +84,8 @@ case class MeanSubstitute(array: Expression, missingValue: Expression)
   }
 
   // Calculate mean for imputation
-  def finalizeFn: LambdaFunction = {
-    val sLv = getStructLambdaVariable()
+  lazy val finalizeFn: LambdaFunction = {
+    val sLv = createStructLambdaVariable()
 
     LambdaFunction(
       If(
@@ -97,9 +99,9 @@ case class MeanSubstitute(array: Expression, missingValue: Expression)
     )
   }
 
-  def getMean: Expression = {
+  lazy val arrayMean: Expression = {
     // Sum and count of non-missing values
-    val zeros = getNamedStruct(Literal(0d), Literal(0L))
+    val zeros = createNamedStruct(Literal(0d), Literal(0L))
 
     ArrayAggregate(
       array,
@@ -122,11 +124,11 @@ case class MeanSubstitute(array: Expression, missingValue: Expression)
     }
 
     // Replace missing values with the provided strategy
-    val nLv = getNumericLambdaVariable()
+    val nLv = createNumericLambdaVariable()
     ArrayTransform(
       array,
       LambdaFunction(
-        If(isMissing(nLv), getMean, nLv),
+        If(isMissing(nLv), arrayMean, nLv),
         Seq(nLv)
       )
     )
