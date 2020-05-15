@@ -36,7 +36,8 @@ import io.projectglow.sql.util.RewriteAfterResolution
  *
  * If the missing value is not provided, the parameter defaults to -1.
  */
-case class MeanSubstitute(array: Expression, missingValue: Expression) extends RewriteAfterResolution {
+case class MeanSubstitute(array: Expression, missingValue: Expression)
+    extends RewriteAfterResolution {
 
   override def children: Seq[Expression] = Seq(array, missingValue)
 
@@ -104,8 +105,7 @@ case class MeanSubstitute(array: Expression, missingValue: Expression) extends R
   }
 
   override def rewrite: Expression = {
-    if (!array.dataType.isInstanceOf[ArrayType] ||
-      !arrayElementType.isInstanceOf[NumericType]) {
+    if (!array.dataType.isInstanceOf[ArrayType] || !arrayElementType.isInstanceOf[NumericType]) {
       throw SQLUtils.newAnalysisException(
         s"Can only perform mean substitution on numeric array; provided type is ${array.dataType}.")
     }
@@ -116,9 +116,6 @@ case class MeanSubstitute(array: Expression, missingValue: Expression) extends R
     }
 
     // Replace missing values with the provided strategy
-    array.arrayTransform(
-      substituteWithMean(_),
-      arrayElementType
-    )
+    array.arrayTransform(substituteWithMean(_), arrayElementType)
   }
 }
