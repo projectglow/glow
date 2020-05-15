@@ -19,7 +19,7 @@ Glow is used to:
 - Run quality control, statistical analysis, and  association studies on population-scale datasets.
 - Build reproducible, production-grade genomics data pipelines that will scale to petabytes and beyond.
 
-![Glow architecture](/_static/images/glow_ref_arch_genomics.png)
+.. image:: _static/images/glow_ref_arch_genomics.png
 
 Glow features:
 
