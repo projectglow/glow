@@ -45,8 +45,7 @@ case class MeanSubstitute(array: Expression, missingValue: Expression)
     this(array, Literal(-1))
   }
 
-  val stateStructType = StructType.fromDDL("sum double, count long")
-  lazy val arrayElementType = array.dataType.asInstanceOf[ArrayType].elementType
+  private lazy val arrayElementType = array.dataType.asInstanceOf[ArrayType].elementType
 
   // A value is considered missing if it is NaN, null or equal to the missing value parameter
   def isMissing(arrayElement: Expression): Predicate =
@@ -58,32 +57,25 @@ case class MeanSubstitute(array: Expression, missingValue: Expression)
     namedStruct(sumName, sumValue, countName, countValue)
   }
 
-  def getSum(stateStruct: Expression): GetStructField = GetStructField(stateStruct, 0, Some("sum"))
-  def getCount(stateStruct: Expression): GetStructField =
-    GetStructField(stateStruct, 1, Some("count"))
-
   // Update sum and count with array element if not missing
   def updateSumAndCountConditionally(
-      stateStruct: NamedLambdaVariable,
-      arrayElement: NamedLambdaVariable): Expression = {
+      stateStruct: Expression,
+      arrayElement: Expression): Expression = {
     If(
       isMissing(arrayElement),
       // If value is missing, do not update sum and count
       stateStruct,
       // If value is not missing, add to sum and increment count
-      LambdaFunction(
-        createNamedStruct(getSum(stateStruct) + arrayElement, getCount(stateStruct) + 1),
-        Seq(stateStruct, arrayElement)
-      )
+      createNamedStruct(stateStruct.getField("sum") + arrayElement, stateStruct.getField("count") + 1)
     )
   }
 
   // Calculate mean for imputation
-  def calculateMean(stateStruct: NamedLambdaVariable): Expression = {
+  def calculateMean(stateStruct: Expression): Expression = {
     If(
-      getCount(stateStruct) > 0,
+      stateStruct.getField("count") > 0,
       // If non-missing values were found, calculate the average
-      getSum(stateStruct) / getCount(stateStruct),
+      stateStruct.getField("sum") / stateStruct.getField("count"),
       // If all values were missing, substitute with missing value
       missingValue
     )
@@ -94,13 +86,11 @@ case class MeanSubstitute(array: Expression, missingValue: Expression)
     array.aggregate(
       createNamedStruct(Literal(0d), Literal(0L)),
       updateSumAndCountConditionally,
-      (stateStructType, arrayElementType),
-      calculateMean,
-      stateStructType
+      calculateMean
     )
   }
 
-  def substituteWithMean(arrayElement: NamedLambdaVariable): Expression = {
+  def substituteWithMean(arrayElement: Expression): Expression = {
     If(isMissing(arrayElement), arrayMean, arrayElement)
   }
 
@@ -116,6 +106,6 @@ case class MeanSubstitute(array: Expression, missingValue: Expression)
     }
 
     // Replace missing values with the provided strategy
-    array.arrayTransform(substituteWithMean(_), arrayElementType)
+    array.arrayTransform(substituteWithMean(_))
   }
 }

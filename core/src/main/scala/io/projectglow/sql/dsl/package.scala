@@ -20,50 +20,38 @@ import org.apache.spark.sql.catalyst.analysis.UnresolvedAttribute
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.types.DataType
 
+
 package object dsl {
 
   trait ImplicitOperators {
     def expr: Expression
-    private def makeLambdaFunction(
-        f: NamedLambdaVariable => Expression,
-        dt: DataType): LambdaFunction = {
-      val x = NamedLambdaVariable("lv", dt, true)
+    private def makeLambdaFunction(f: Expression => Expression): LambdaFunction = {
+      val x = UnresolvedNamedLambdaVariable(Seq("x"))
       LambdaFunction(f(x), Seq(x))
     }
-    private def makeLambdaFunction(
-        f: (NamedLambdaVariable, NamedLambdaVariable) => Expression,
-        dt: (DataType, DataType)): LambdaFunction = {
-      val x = NamedLambdaVariable("lv1", dt._1, true)
-      val y = NamedLambdaVariable("lv2", dt._2, true)
+    private def makeLambdaFunction(f: (Expression, Expression) => Expression): LambdaFunction = {
+      val x = UnresolvedNamedLambdaVariable(Seq("x"))
+      val y = UnresolvedNamedLambdaVariable(Seq("y"))
       LambdaFunction(f(x, y), Seq(x, y))
     }
-    def arrayTransform(f: NamedLambdaVariable => Expression, dt: DataType): Expression = {
-      ArrayTransform(expr, makeLambdaFunction(f, dt))
+    def arrayTransform(fn: Expression => Expression): Expression = {
+      ArrayTransform(expr, makeLambdaFunction(fn))
     }
-    def arrayTransform(
-        f: (NamedLambdaVariable, NamedLambdaVariable) => Expression,
-        dt: (DataType, DataType)): Expression = {
-      ArrayTransform(expr, makeLambdaFunction(f, dt))
+    def arrayTransform(fn: (Expression, Expression) => Expression): Expression = {
+      ArrayTransform(expr, makeLambdaFunction(fn))
     }
-    def filter(f: NamedLambdaVariable => Expression, dt: DataType): Expression = {
-      ArrayFilter(expr, makeLambdaFunction(f, dt))
+    def filter(f: Expression => Expression): Expression = {
+      ArrayFilter(expr, makeLambdaFunction(f))
     }
-    def filter(
-        f: (NamedLambdaVariable, NamedLambdaVariable) => Expression,
-        dt: (DataType, DataType)): Expression = {
-      ArrayFilter(expr, makeLambdaFunction(f, dt))
+    def filter(f: (Expression, Expression) => Expression): Expression = {
+      ArrayFilter(expr, makeLambdaFunction(f))
     }
-    def aggregate(
-        initialValue: Expression,
-        mergeFunction: (NamedLambdaVariable, NamedLambdaVariable) => Expression,
-        mergeDataTypes: (DataType, DataType),
-        finishFunction: NamedLambdaVariable => Expression,
-        finishDataType: DataType): Expression = {
+    def aggregate(initialValue: Expression, merge: (Expression, Expression) => Expression, finish: Expression => Expression = identity): Expression = {
       ArrayAggregate(
         expr,
         initialValue,
-        makeLambdaFunction(mergeFunction, mergeDataTypes),
-        makeLambdaFunction(finishFunction, finishDataType)
+        makeLambdaFunction(merge),
+        makeLambdaFunction(finish)
       )
     }
   }
