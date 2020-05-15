@@ -66,7 +66,9 @@ case class MeanSubstitute(array: Expression, missingValue: Expression)
       // If value is missing, do not update sum and count
       stateStruct,
       // If value is not missing, add to sum and increment count
-      createNamedStruct(stateStruct.getField("sum") + arrayElement, stateStruct.getField("count") + 1)
+      createNamedStruct(
+        stateStruct.getField("sum") + arrayElement,
+        stateStruct.getField("count") + 1)
     )
   }
 
