@@ -217,7 +217,7 @@ object functions {
   }
 
   /**
-   * Sustitutes the missing values of a numeric array using the mean of the non-missing values. Any values that are NaN, null or equal to the missing value parameter are considered missing. See :ref:`variant-data-transformations` for more details.
+   * Subtitutes the missing values of a numeric array using the mean of the non-missing values. Any values that are NaN, null or equal to the missing value parameter are considered missing. See :ref:`variant-data-transformations` for more details.
    * @group etl
    * @since 0.4.0
    *
