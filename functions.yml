@@ -245,7 +245,7 @@ etl:
           type: str
       returns: A struct as explained above
     - name: mean_substitute
-      doc: Subtitutes the missing values of a numeric array using the mean of the non-missing values. Any values that
+      doc: Substitutes the missing values of a numeric array using the mean of the non-missing values. Any values that
         are NaN, null or equal to the missing value parameter are considered missing. See
         :ref:`variant-data-transformations` for more details.
       since: 0.4.0

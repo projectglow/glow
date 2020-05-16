@@ -12,8 +12,8 @@ class NdarrayConverter(object):
         >>> import numpy as np
         >>> from pyspark.sql.functions import lit
         >>> from pyspark.sql.types import StringType
-        >>> strList = ['a', 'b']
-        >>> df = spark.createDataFrame(strList, StringType())
+        >>> str_list = ['a', 'b']
+        >>> df = spark.createDataFrame(str_list, StringType())
         >>> ndarray = np.array([[1.0, 2.1, 3.2], [4.3, 5.4, 6.5]])
         >>> df.withColumn("matrix", lit(ndarray)).collect()
         [Row(value='a', matrix=DenseMatrix(2, 3, [1.0, 2.1, 3.2, 4.3, 5.4, 6.5], False)), Row(value='b', matrix=DenseMatrix(2, 3, [1.0, 2.1, 3.2, 4.3, 5.4, 6.5], False))]
