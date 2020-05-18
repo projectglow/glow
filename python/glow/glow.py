@@ -42,7 +42,7 @@ def transform(operation: str, df: DataFrame, arg_map: Dict[str, str]=None,
 
 def register(session: SparkSession):
     """
-    Register SQL extensions for a Spark session.
+    Register SQL extensions and py4j converters for a Spark session.
 
     Args:
         session: Spark session
