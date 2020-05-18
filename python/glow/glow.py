@@ -1,4 +1,4 @@
-from conversions import OneDimensionalDoubleNumpyArrayConverter, TwoDimensionalDoubleNumpyArrayConverter
+from glow.conversions import OneDimensionalDoubleNumpyArrayConverter, TwoDimensionalDoubleNumpyArrayConverter
 from py4j.protocol import register_input_converter
 from pyspark import SparkContext
 from pyspark.sql import DataFrame, SQLContext, SparkSession
