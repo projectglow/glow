@@ -1,6 +1,5 @@
 import numpy as np
 from py4j.java_collections import JavaArray
-from py4j.protocol import register_input_converter
 from pyspark import SparkContext
 from typeguard import check_argument_types, check_return_type
 
@@ -85,7 +84,3 @@ class TwoDimensionalDoubleNumpyArrayConverter(object):
         literal_matrix = sc._jvm.org.apache.spark.sql.catalyst.expressions.Literal.create(
             converter.apply(dense_matrix), matrix_udt)
         return literal_matrix
-
-
-register_input_converter(OneDimensionalDoubleNumpyArrayConverter(), prepend = True)
-register_input_converter(TwoDimensionalDoubleNumpyArrayConverter(), prepend = True)

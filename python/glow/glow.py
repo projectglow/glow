@@ -1,3 +1,5 @@
+from conversions import OneDimensionalDoubleNumpyArrayConverter, TwoDimensionalDoubleNumpyArrayConverter
+from py4j.protocol import register_input_converter
 from pyspark import SparkContext
 from pyspark.sql import DataFrame, SQLContext, SparkSession
 from typing import Dict
@@ -51,3 +53,5 @@ def register(session: SparkSession):
     """
     assert check_argument_types()
     session._jvm.io.projectglow.Glow.register(session._jsparkSession)
+    register_input_converter(OneDimensionalDoubleNumpyArrayConverter(), prepend = True)
+    register_input_converter(TwoDimensionalDoubleNumpyArrayConverter(), prepend = True)
