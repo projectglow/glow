@@ -347,9 +347,9 @@ object functions {
    * @since 0.3.0
    *
    * @param genotypes A numeric array of genotypes
-   * @param phenotypes A numeric array of phenotypes
+   * @param phenotypes A numeric array or ``spark.ml`` ``Matrix`` of phenotypes
    * @param covariates A ``spark.ml`` ``Matrix`` of covariates
-   * @return A struct containing ``beta``, ``standardError``, and ``pValue`` fields. See :ref:`linear-regression`.
+   * @return A struct containing ``beta``, ``standardError``, and ``pValue`` fields for a single-phenotype test, and an array of such structs otherwise. See :ref:`linear-regression`.
    */
   def linear_regression_gwas(genotypes: Column, phenotypes: Column, covariates: Column): Column = withExpr {
     new io.projectglow.sql.expressions.LinearRegressionExpr(genotypes.expr, phenotypes.expr, covariates.expr)
@@ -361,10 +361,10 @@ object functions {
    * @since 0.3.0
    *
    * @param genotypes An numeric array of genotypes
-   * @param phenotypes A double array of phenotype values
+   * @param phenotypes A double array or ``spark.ml`` ``Matrix`` of phenotype values
    * @param covariates A ``spark.ml`` ``Matrix`` of covariates
    * @param test Which logistic regression test to use. Can be ``LRT`` or ``Firth``
-   * @return A struct containing ``beta``, ``oddsRatio``, ``waldConfidenceInterval``, and ``pValue`` fields. See :ref:`logistic-regression`.
+   * @return A struct containing ``beta``, ``oddsRatio``, ``waldConfidenceInterval``, and ``pValue`` fields for a single-phenotype test, and an array of such structs otherwise. See :ref:`logistic-regression`.
    */
   def logistic_regression_gwas(genotypes: Column, phenotypes: Column, covariates: Column, test: String): Column = withExpr {
     new io.projectglow.sql.expressions.LogisticRegressionExpr(genotypes.expr, phenotypes.expr, covariates.expr, Literal(test))

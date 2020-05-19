@@ -75,7 +75,7 @@ Parameters
       0th element in the ``genotypes`` array. This matrix must be constant for each row in the
       dataset. If desired, you must explicitly include an intercept covariate in this matrix.
   * - ``phenotypes``
-    - ``array<double>`` (or numeric type that can be cast to ``double``)
+    - ``array<double>`` (or numeric type that can be cast to ``double``) or ``spark.ml`` ``Matrix``
     - A numeric representation of the phenotype for each sample. This parameter may vary for each
       row in the dataset. The indexing of this array must match the ``genotypes`` and
       ``covariates`` parameters.
@@ -166,7 +166,7 @@ parameter ``test`` to specify the hypothesis test method.
       0th element in the ``genotypes`` array. This matrix must be constant for each row in the
       dataset. If desired, you must explicitly include an intercept covariate in this matrix.
   * - ``phenotypes``
-    - ``array<double>`` (or numeric type that can be cast to ``double``)
+    - ``array<double>`` (or numeric type that can be cast to ``double``) or ``spark.ml`` ``Matrix``
     - A numeric representation of the phenotype for each sample. This parameter may vary for each
       row in the dataset. The indexing of this array must match the ``genotypes`` and
       ``covariates`` parameters.

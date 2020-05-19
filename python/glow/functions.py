@@ -546,14 +546,18 @@ def linear_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Colu
         >>> df = spark.createDataFrame([Row(genotypes=genotypes, phenotypes=phenotypes, covariates=covariates)])
         >>> df.select(glow.expand_struct(glow.linear_regression_gwas('genotypes', 'phenotypes', 'covariates'))).collect()
         [Row(beta=0.9999999999999998, standardError=1.4901161193847656e-08, pValue=9.486373847239922e-09)]
+        >>> phenotypes = DenseMatrix(numRows=2, numCols=3, values=[2, 4, 3, 6, 4, 8])
+        >>> df = spark.createDataFrame([Row(genotypes=genotypes, phenotypes=phenotypes, covariates=covariates)])
+        >>> df.select(glow.linear_regression_gwas('genotypes', 'phenotypes', 'covariates').alias('results')).collect()
+        [Row(results=[Row(beta=0.9999999999999998, standardError=1.4901161193847656e-08, pValue=9.486373847239922e-09), Row(beta=1.9999999999999996, standardError=2.9802322387695312e-08, pValue=9.486373847239922e-09)])]
 
     Args:
         genotypes : A numeric array of genotypes
-        phenotypes : A numeric array of phenotypes
+        phenotypes : A numeric array or ``spark.ml`` ``Matrix`` of phenotypes
         covariates : A ``spark.ml`` ``Matrix`` of covariates
 
     Returns:
-        A struct containing ``beta``, ``standardError``, and ``pValue`` fields. See :ref:`linear-regression`.
+        A struct containing ``beta``, ``standardError``, and ``pValue`` fields for a single-phenotype test, and an array of such structs otherwise. See :ref:`linear-regression`.
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.linear_regression_gwas(_to_java_column(genotypes), _to_java_column(phenotypes), _to_java_column(covariates)))
@@ -577,15 +581,19 @@ def logistic_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Co
         [Row(beta=0.7418937644793101, oddsRatio=2.09990848346903, waldConfidenceInterval=[0.2509874689201784, 17.569066925598555], pValue=0.3952193664793294)]
         >>> df.select(glow.expand_struct(glow.logistic_regression_gwas('genotypes', 'phenotypes', 'covariates', 'LRT'))).collect()
         [Row(beta=1.1658962684583645, oddsRatio=3.208797540870915, waldConfidenceInterval=[0.2970960052553798, 34.65674891673014], pValue=0.2943946848756771)]
+        >>> phenotypes = DenseMatrix(numRows=2, numCols=5, values=[1, 0, 0, 1, 0, 1, 1, 0, 1, 0])
+        >>> df = spark.createDataFrame([Row(genotypes=genotypes, phenotypes=phenotypes, covariates=covariates)])
+        >>> df.select(glow.logistic_regression_gwas('genotypes', 'phenotypes', 'covariates', 'LRT').alias('results')).collect()
+        [Row(results=[Row(beta=1.1658962684583645, oddsRatio=3.208797538802116, waldConfidenceInterval=[0.29709600522888285, 34.65674887513274], pValue=0.2943946848756769), Row(beta=-1.1658962684583645, oddsRatio=0.31164322083508966, waldConfidenceInterval=[0.028854408808020954, 3.365915335110613], pValue=0.2943946848756771)])]
 
     Args:
         genotypes : An numeric array of genotypes
-        phenotypes : A double array of phenotype values
+        phenotypes : A double array or ``spark.ml`` ``Matrix`` of phenotype values
         covariates : A ``spark.ml`` ``Matrix`` of covariates
         test : Which logistic regression test to use. Can be ``LRT`` or ``Firth``
 
     Returns:
-        A struct containing ``beta``, ``oddsRatio``, ``waldConfidenceInterval``, and ``pValue`` fields. See :ref:`logistic-regression`.
+        A struct containing ``beta``, ``oddsRatio``, ``waldConfidenceInterval``, and ``pValue`` fields for a single-phenotype test, and an array of such structs otherwise. See :ref:`logistic-regression`.
     """
     assert check_argument_types()
     output = Column(sc()._jvm.io.projectglow.functions.logistic_regression_gwas(_to_java_column(genotypes), _to_java_column(phenotypes), _to_java_column(covariates), test))
