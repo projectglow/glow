@@ -29,6 +29,7 @@ class GffReaderSuite extends GlowBaseTest {
   lazy val testGff3Bgzip = s"$testRoot/test_gff_with_fasta.gff.bgz"
   lazy val testGff3BgzipWithGzSuffix = s"$testRoot/test_gff_with_fasta_bgzip.gff.gz"
   lazy val testGff3Empty = s"$testRoot/test_gff_empty.gff"
+  lazy val testGff3MultiCaseAttribute = s"$testRoot/test_gff_with_fasta_multicase_attribute.gff"
 
   private val sourceName = "gff"
 
@@ -79,11 +80,19 @@ class GffReaderSuite extends GlowBaseTest {
     :+ StructField("Is_circular", BooleanType)
   )
 
-  test("Schema inference") {
+  gridTest("Schema inference")(
+    Seq(
+      testGff3,
+      // test schema is inferred correctly when the attribute tag is not consistent across the rows
+      // in terms of being lower or upper case (Name tag has different cases across the rows of this
+      // test file.)
+      testGff3MultiCaseAttribute
+    )
+  ) { file =>
     val df = spark
       .read
       .format(sourceName)
-      .load(testGff3)
+      .load(file)
 
     val expectedSchema = StructType(
       gffBaseSchema.fields.dropRight(1) ++ testOfficialFields ++ testUnofficialFields
@@ -91,6 +100,10 @@ class GffReaderSuite extends GlowBaseTest {
 
     assert(df.schema.equals(expectedSchema))
   }
+
+  // test schema is inferred correctly when the attribute tag is not consistent across the rows
+  // in terms of being lower or upper case
+
 
   gridTest("Case-and-underscore-insensitive attribute column names in user-specified schema")(
     Seq(testSchemaAllSmall, testSchemaMixedCase, testSchemaWithUnderscore)
@@ -309,8 +322,8 @@ class GffReaderSuite extends GlowBaseTest {
       .format(sourceName)
       .load(s"$testRoot/*")
 
-    assert(df.count() == 80)
-    assert(df.filter("start == 0").count() == 4)
+    assert(df.count() == 100)
+    assert(df.filter("start == 0").count() == 5)
   }
 
   test("Read empty gff") {
@@ -336,4 +349,12 @@ class GffReaderSuite extends GlowBaseTest {
     assert(e.getMessage.contains("GFF data source does not support writing!"))
   }
 
+  test("temp") {
+    val df = spark
+      .read
+      .format(sourceName)
+      .load("test-data/gff/GCF_000001405.39_GRCh38.p13_genomic_ncbi.gff.gz")
+      .show()
+
+  }
 }
