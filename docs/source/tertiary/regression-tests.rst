@@ -8,9 +8,9 @@ Genome-wide Association Study Regression Tests
     glow.register(spark)
 
     genotypes_vcf = 'test-data/gwas/genotypes.vcf'
-    covariates_csv = 'test-data/gwas/covariates.csv'
-    continuous_phenotypes_csv = 'test-data/gwas/continuous-phenotypes.csv'
-    binary_phenotypes_csv = 'test-data/gwas/binary-phenotypes.csv'
+    covariates_csv = 'test-data/gwas/covariates.csv.gz'
+    continuous_phenotypes_csv = 'test-data/gwas/continuous-phenotypes.csv.gz'
+    binary_phenotypes_csv = 'test-data/gwas/binary-phenotypes.csv.gz'
 
 Glow contains functions for performing simple regression analyses used in
 genome-wide association studies (GWAS).
