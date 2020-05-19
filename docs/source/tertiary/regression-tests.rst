@@ -37,7 +37,7 @@ Example
   # Read in VCF file
   genotypes = glow.transform('split_multiallelics', spark.read.format('vcf').load(genotypes_vcf)).cache()
 
-  # Read covariates from a CSV file
+  # Read covariates from a CSV file and add an intercept
   covariates = pd.read_csv(continuous_phenotypes_csv, index_col=0)
   covariates['intercept'] = 1.
   covariates_matrix = DenseMatrix(covariates.shape[0], covariates.shape[1], covariates.to_numpy().ravel())
