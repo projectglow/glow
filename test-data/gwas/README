@@ -1,0 +1,29 @@
+The genotypes are sampled from the Thousand Genomes Project Phase 3 release chr22 VCF
+(ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf).
+
+The covariates and continuous phenotypes are simulated with PhenotypeSimulator
+(https://github.com/HannahVMeyer/PhenotypeSimulator) and the 1KG chr22 PLINK files as follows.
+
+Rscript -e "PhenotypeSimulator::simulatePhenotypes()" \
+  --args \
+  --genotypefile=ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes \
+  --format=plink \
+  --NrSamples=2504 \
+  --NrPhenotypes=10 \
+  --genVar=0.4 \
+  --h2s=0.025 \
+  --phi=0.6 \
+  --delta=0.3 \
+  --pcorr=0.8 \
+  --NrFixedEffects=4 \
+  --NrConfounders=1,2,1,2 \
+  --pIndependentConfounders=0,1,1,0.5 \
+  --distConfounders=bin,cat_norm,cat_unif,norm \
+  --probConfounders=0.2 \
+  --catConfounders=3,4 \
+  --directory=/pheno-sim \
+  --subdirectory=test_simulation \
+  --saveTable
+
+The binary phenotypes are created by binarizing the continuous phenotypes such that all phenotypes < 0 are set to 0,
+and those >=0 are set to 1.
