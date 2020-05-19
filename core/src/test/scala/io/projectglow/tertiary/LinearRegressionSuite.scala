@@ -59,6 +59,14 @@ class LinearRegressionSuite extends GlowBaseTest {
     }
   }
 
+  def multiPhenoTestDataToOlsBaseline(testData: MultiPhenoTestData): Seq[Seq[RegressionStats]] = {
+    testData.genotypes.map { g =>
+      testData.phenotypes.map { p =>
+        olsBaseline(g.toArray, p.toArray, testData.covariates.toArray)
+      }
+    }
+  }
+
   def olsBaseline(
       genotypes: Array[Double],
       phenotypes: Array[Double],
@@ -107,17 +115,20 @@ class LinearRegressionSuite extends GlowBaseTest {
     RegressionStats(beta, genoSE, pvalue)
   }
 
-  private def generateTestData(
+  private def generateMultiPhenoTestData(
       nSamples: Int,
       nVariants: Int,
       nRandomCovariates: Int,
+      nPhenotypes: Int,
       includeIntercept: Boolean = true,
-      multiplier: Int = 1): TestData = {
+      multiplier: Int = 1): MultiPhenoTestData = {
     val genotypes = Range(0, nVariants).map { _ =>
       Range(0, nSamples).map(_ => multiplier * random.nextDouble())
     }
 
-    val phenotypes = Range(0, nSamples).map(_ => multiplier * random.nextDouble())
+    val phenotypes = Range(0, nPhenotypes).map { _ =>
+      Range(0, nSamples).toArray.map(_ => multiplier * random.nextDouble())
+    }
     val nCovariates = if (includeIntercept) nRandomCovariates + 1 else nRandomCovariates
     val covariates = Range(0, nSamples).map(_ => new Array[Double](nCovariates))
     val startIdx = if (includeIntercept) {
@@ -130,7 +141,23 @@ class LinearRegressionSuite extends GlowBaseTest {
     Range(startIdx, nCovariates).foreach { i =>
       covariates.foreach(_(i) = multiplier * random.nextDouble())
     }
-    TestData(genotypes, phenotypes, covariates)
+    MultiPhenoTestData(genotypes, phenotypes, covariates)
+  }
+
+  private def generateTestData(
+      nSamples: Int,
+      nVariants: Int,
+      nRandomCovariates: Int,
+      includeIntercept: Boolean = true,
+      multiplier: Int = 1): TestData = {
+    val mptd = generateMultiPhenoTestData(
+      nSamples,
+      nVariants,
+      nRandomCovariates,
+      nPhenotypes = 1,
+      includeIntercept = includeIntercept,
+      multiplier = multiplier)
+    TestData(mptd.genotypes, mptd.phenotypes.head, mptd.covariates)
   }
 
   private def timeIt[T](opName: String)(f: => T): T = {
@@ -294,21 +321,27 @@ class LinearRegressionSuite extends GlowBaseTest {
   test("multiple phenotypes") {
     import sess.implicits._
 
-    val testData = generateTestData(30, 1, 1, true, 1)
-    val testData2 = testData.copy(phenotypes = testData.phenotypes.map(_ => Random.nextDouble()))
-    val rows = testDataToRows(testData) ++ testDataToRows(testData2)
+    val nVariants = 10
+    val nPhenotypes = 5
+    val testData = generateMultiPhenoTestData(30, nVariants, 7, nPhenotypes = nPhenotypes, true, 1)
+    val rows = multiPhenoTestDataToRows(testData)
     val results = spark
       .createDataFrame(rows)
       .withColumn("id", monotonically_increasing_id())
       .withColumn("linreg", expr("linear_regression_gwas(genotypes, phenotypes, covariates)"))
       .orderBy("id")
-      .selectExpr("expand_struct(linreg)")
-      .as[RegressionStats]
+      .selectExpr("linreg")
+      .as[Seq[RegressionStats]]
       .collect()
       .toSeq
-    assert(results.size == 2)
-    results.zip(testDataToOlsBaseline(testData) ++ testDataToOlsBaseline(testData2)).foreach {
-      case (stats1, stats2) => compareRegressionStats(stats1, stats2)
+    assert(results.size == nVariants)
+    results.zip(multiPhenoTestDataToOlsBaseline(testData)).foreach {
+      case (statsSeq1, statsSeq2) =>
+        assert(statsSeq1.length == nPhenotypes)
+        assert(statsSeq2.length == nPhenotypes)
+        statsSeq1.zip(statsSeq2).foreach { case (stats1, stats2) =>
+          compareRegressionStats(stats1, stats2)
+        }
     }
   }
 
@@ -365,7 +398,7 @@ class LinearRegressionSuite extends GlowBaseTest {
     }
     checkIllegalArgumentException(
       rows,
-      "Number of samples differs between genotype and phenotype arrays")
+      "Number of samples differs between genotype array (9) and phenotype array (10)")
   }
 
   test("throws exception if number of samples does not match between genotypes and covariates") {
@@ -378,6 +411,6 @@ class LinearRegressionSuite extends GlowBaseTest {
     }
     checkIllegalArgumentException(
       rows,
-      "Number of samples differs between genotype array and covariate matrix")
+      "Number of samples differs between genotype array (9) and covariate matrix (10)")
   }
 }

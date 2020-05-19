@@ -29,19 +29,35 @@ object LinearRegressionExpr {
   private val matrixUDT = SQLUtils.newMatrixUDT()
   private val state = new ThreadLocal[CovariateQRContext]
 
-  def doLinearRegression(genotypes: Any, phenotypes: Any, covariates: Any): InternalRow = {
-
+  def getState(covariates: Any): CovariateQRContext = {
     if (state.get() == null) {
       // Save the QR factorization of the covariate matrix since it's the same for every row
       state.set(CovariateQRContext.computeQR(matrixUDT.deserialize(covariates).toDense))
       TaskContext.get().addTaskCompletionListener[Unit](_ => state.remove())
     }
+    state.get()
+  }
 
+  def doSinglePhenoLinearRegression(genotypes: Any, phenotypes: Any, covariates: Any): InternalRow = {
     LinearRegressionGwas.linearRegressionGwas(
       new DenseVector[Double](genotypes.asInstanceOf[ArrayData].toDoubleArray()),
       new DenseVector[Double](phenotypes.asInstanceOf[ArrayData].toDoubleArray()),
-      state.get()
+      getState(covariates)
     )
+  }
+
+  def doMultiPhenoLinearRegression(genotypes: Any, phenotypes: Any, covariates: Any): ArrayData = {
+    val convertedGenotypes = new DenseVector[Double](genotypes.asInstanceOf[ArrayData].toDoubleArray())
+    val covariateQRContext = getState(covariates)
+
+    val results = matrixUDT.deserialize(phenotypes).toDense.rowIter.map { singlePhenotype =>
+      LinearRegressionGwas.linearRegressionGwas(
+        convertedGenotypes,
+        new DenseVector[Double](singlePhenotype.toArray),
+        covariateQRContext
+      )
+    }
+    ArrayData.toArrayData(results.toArray)
   }
 }
 
@@ -54,29 +70,48 @@ case class LinearRegressionExpr(
 
   private val matrixUDT = SQLUtils.newMatrixUDT()
 
-  override def dataType: DataType =
-    StructType(
-      Seq(
-        StructField("beta", DoubleType),
-        StructField("standardError", DoubleType),
-        StructField("pValue", DoubleType)))
+  val perPhenotypeDataType: DataType = StructType(
+    Seq(
+      StructField("beta", DoubleType),
+      StructField("standardError", DoubleType),
+      StructField("pValue", DoubleType)))
 
-  override def inputTypes: Seq[DataType] =
-    Seq(ArrayType(DoubleType), ArrayType(DoubleType), matrixUDT)
+  def hasMultiplePhenotypes: Boolean = phenotypes.dataType match {
+    case ArrayType(DoubleType, _) => false
+    case matrixUdt => true
+  }
+
+  override def dataType: DataType = if (hasMultiplePhenotypes) {
+    ArrayType(perPhenotypeDataType)
+  } else {
+    perPhenotypeDataType
+  }
+
+  override def inputTypes: Seq[SQLUtils.ADT] =
+    Seq(ArrayType(DoubleType), SQLUtils.createTypeCollection(ArrayType(DoubleType), matrixUDT), matrixUDT)
 
   override def children: Seq[Expression] = Seq(genotypes, phenotypes, covariates)
 
   override protected def nullSafeEval(genotypes: Any, phenotypes: Any, covariates: Any): Any = {
-    LinearRegressionExpr.doLinearRegression(genotypes, phenotypes, covariates)
+    if (hasMultiplePhenotypes) {
+      LinearRegressionExpr.doMultiPhenoLinearRegression(genotypes, phenotypes, covariates)
+    } else {
+      LinearRegressionExpr.doSinglePhenoLinearRegression(genotypes, phenotypes, covariates)
+    }
   }
 
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
+    val fn = if (hasMultiplePhenotypes) {
+      "doMultiPhenoLinearRegression"
+    } else {
+      "doSinglePhenoLinearRegression"
+    }
     nullSafeCodeGen(
       ctx,
       ev,
       (genotypes, phenotypes, covariates) => {
         s"""
-         |${ev.value} = io.projectglow.sql.expressions.LinearRegressionExpr.doLinearRegression($genotypes, $phenotypes, $covariates);
+         |${ev.value} = io.projectglow.sql.expressions.LinearRegressionExpr.$fn($genotypes, $phenotypes, $covariates);
        """.stripMargin
       }
     )

@@ -37,7 +37,7 @@ case class ExpandStruct(struct: Expression) extends Expression with Unevaluable 
   override def nullable: Boolean = throw new UnresolvedException(this, "nullable")
   def expand(): Seq[NamedExpression] = {
     if (!struct.dataType.isInstanceOf[StructType]) {
-      throw SQLUtils.newAnalysisException("Only structs can be expanded.")
+      throw SQLUtils.newAnalysisException(s"Only structs can be expanded, provided: ${struct.dataType}")
     }
 
     struct.dataType.asInstanceOf[StructType].zipWithIndex.map {

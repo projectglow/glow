@@ -24,9 +24,19 @@ case class RegressionRow(
     phenotypes: Array[Double],
     covariates: SparkDenseMatrix)
 
+case class MultiPhenoRegressionRow(
+    genotypes: Array[Double],
+    phenotypes: SparkDenseMatrix,
+    covariates: SparkDenseMatrix)
+
 case class TestData(
     genotypes: Seq[Seq[Double]],
     phenotypes: Seq[Double],
+    covariates: Seq[Array[Double]])
+
+case class MultiPhenoTestData(
+    genotypes: Seq[Seq[Double]],
+    phenotypes: Seq[Array[Double]],
     covariates: Seq[Array[Double]])
 
 object RegressionTestUtils {
@@ -34,7 +44,8 @@ object RegressionTestUtils {
     new SparkDenseMatrix(
       input.length,
       input.head.length,
-      input(0).indices.flatMap(i => input.map(_(i))).toArray)
+      input(0).indices.flatMap(i => input.map(_(i))).toArray
+    )
   }
 
   def twoDArrayToBreezeMatrix(input: Array[Array[Double]]): BreezeDenseMatrix[Double] = {
@@ -49,6 +60,15 @@ object RegressionTestUtils {
       RegressionRow(
         g.toArray,
         testData.phenotypes.toArray,
+        twoDArrayToSparkMatrix(testData.covariates.toArray))
+    }
+  }
+
+  def multiPhenoTestDataToRows(testData: MultiPhenoTestData): Seq[MultiPhenoRegressionRow] = {
+    testData.genotypes.map { g =>
+      MultiPhenoRegressionRow(
+        g.toArray,
+        twoDArrayToSparkMatrix(testData.phenotypes.toArray),
         twoDArrayToSparkMatrix(testData.covariates.toArray))
     }
   }

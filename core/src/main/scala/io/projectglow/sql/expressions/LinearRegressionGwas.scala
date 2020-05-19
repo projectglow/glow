@@ -44,10 +44,10 @@ object LinearRegressionGwas extends GlowLogging {
       covariateQRContext: CovariateQRContext): RegressionStats = {
     require(
       genotypes.length == phenotypes.length,
-      "Number of samples differs between genotype and phenotype arrays")
+      s"Number of samples differs between genotype array (${genotypes.length}) and phenotype array (${phenotypes.length})")
     require(
       covariateQRContext.covQt.cols == genotypes.length,
-      "Number of samples differs between genotype array and covariate matrix")
+      s"Number of samples differs between genotype array (${genotypes.length}) and covariate matrix (${covariateQRContext.covQt.cols})")
 
     val qtx = covariateQRContext.covQt * genotypes
     val qty = covariateQRContext.covQt * phenotypes
