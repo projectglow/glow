@@ -32,7 +32,6 @@ class GffReaderSuite extends GlowBaseTest {
 
   lazy val testGff3MultiCaseAttribute = s"$testRoot/test_gff_with_fasta_multicase_attribute.gff"
 
-
   private val sourceName = "gff"
 
   private val testOfficialFields = Seq(
