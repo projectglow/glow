@@ -195,6 +195,12 @@ class LogisticRegressionSuite extends GlowBaseTest {
       Seq(-1.495994, 3.242234).map(Math.exp),
       0.3609153)
 
+  private val interceptOnlyV1And2 = MultiPhenoTestData(
+    interceptOnlyV1.genotypes,
+    Seq(interceptOnlyV1.phenotypes.toArray, interceptOnlyV2.phenotypes.toArray),
+    interceptOnlyV1.covariates
+  )
+
   private val gtsAndCovariates = TestData(
     Seq(Seq(0, 1, 2, 0, 0, 1)),
     Seq(0, 0, 1, 1, 1, 1),
@@ -377,10 +383,10 @@ class LogisticRegressionSuite extends GlowBaseTest {
     assert(ex.getMessage.toLowerCase.contains("must have at least one column"))
   }
 
-  test("Run multiple regressions") {
+  test("multiple phenotypes") {
     import sess.implicits._
 
-    val rows = testDataToRows(interceptOnlyV1) ++ testDataToRows(interceptOnlyV2)
+    val rows = multiPhenoTestDataToRows(interceptOnlyV1And2)
 
     val ourStats = spark
       .createDataFrame(rows)
@@ -390,12 +396,12 @@ class LogisticRegressionSuite extends GlowBaseTest {
         "logit",
         expr("logistic_regression_gwas(genotypes, phenotypes, covariates, 'LRT')"))
       .orderBy("id")
-      .selectExpr("expand_struct(logit)")
-      .as[LogitTestResults]
+      .selectExpr("logit")
+      .as[Seq[LogitTestResults]]
       .collect()
       .toSeq
 
-    Seq(interceptOnlyV1Stats, interceptOnlyV2Stats).zip(ourStats).foreach {
+    Seq(interceptOnlyV1Stats, interceptOnlyV2Stats).zip(ourStats.head).foreach {
       case (golden, our) =>
         compareLogitTestResults(golden, our)
     }

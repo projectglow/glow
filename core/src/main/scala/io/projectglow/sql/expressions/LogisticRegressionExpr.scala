@@ -168,7 +168,12 @@ case class LogisticRegressionExpr(
     case _ => true
   }
 
-  override def dataType: DataType = logitTest.resultSchema
+  override def dataType: DataType =
+    if (hasMultiplePhenotypes) {
+      ArrayType(logitTest.resultSchema)
+    } else {
+      logitTest.resultSchema
+    }
 
   override def inputTypes: Seq[SQLUtils.ADT] =
     Seq(
