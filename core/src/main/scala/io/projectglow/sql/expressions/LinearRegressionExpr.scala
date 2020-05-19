@@ -38,7 +38,10 @@ object LinearRegressionExpr {
     state.get()
   }
 
-  def doSinglePhenoLinearRegression(genotypes: Any, phenotypes: Any, covariates: Any): InternalRow = {
+  def doSinglePhenoLinearRegression(
+      genotypes: Any,
+      phenotypes: Any,
+      covariates: Any): InternalRow = {
     LinearRegressionGwas.linearRegressionGwas(
       new DenseVector[Double](genotypes.asInstanceOf[ArrayData].toDoubleArray()),
       new DenseVector[Double](phenotypes.asInstanceOf[ArrayData].toDoubleArray()),
@@ -47,15 +50,17 @@ object LinearRegressionExpr {
   }
 
   def doMultiPhenoLinearRegression(genotypes: Any, phenotypes: Any, covariates: Any): ArrayData = {
-    val convertedGenotypes = new DenseVector[Double](genotypes.asInstanceOf[ArrayData].toDoubleArray())
+    val convertedGenotypes =
+      new DenseVector[Double](genotypes.asInstanceOf[ArrayData].toDoubleArray())
     val covariateQRContext = getState(covariates)
 
-    val results = matrixUDT.deserialize(phenotypes).toDense.rowIter.map { singlePhenotype =>
-      LinearRegressionGwas.linearRegressionGwas(
-        convertedGenotypes,
-        new DenseVector[Double](singlePhenotype.toArray),
-        covariateQRContext
-      )
+    val results = matrixUDT.deserialize(phenotypes).toDense.rowIter.map(_.toArray).map {
+      phenotypeArray =>
+        LinearRegressionGwas.linearRegressionGwas(
+          convertedGenotypes,
+          new DenseVector[Double](phenotypeArray),
+          covariateQRContext
+        )
     }
     ArrayData.toArrayData(results.toArray)
   }
@@ -76,19 +81,23 @@ case class LinearRegressionExpr(
       StructField("standardError", DoubleType),
       StructField("pValue", DoubleType)))
 
-  def hasMultiplePhenotypes: Boolean = phenotypes.dataType match {
+  lazy val hasMultiplePhenotypes: Boolean = phenotypes.dataType match {
     case ArrayType(DoubleType, _) => false
-    case matrixUdt => true
+    case _ => true
   }
 
-  override def dataType: DataType = if (hasMultiplePhenotypes) {
-    ArrayType(perPhenotypeDataType)
-  } else {
-    perPhenotypeDataType
-  }
+  override def dataType: DataType =
+    if (hasMultiplePhenotypes) {
+      ArrayType(perPhenotypeDataType)
+    } else {
+      perPhenotypeDataType
+    }
 
   override def inputTypes: Seq[SQLUtils.ADT] =
-    Seq(ArrayType(DoubleType), SQLUtils.createTypeCollection(ArrayType(DoubleType), matrixUDT), matrixUDT)
+    Seq(
+      ArrayType(DoubleType),
+      SQLUtils.createTypeCollection(ArrayType(DoubleType), matrixUDT),
+      matrixUDT)
 
   override def children: Seq[Expression] = Seq(genotypes, phenotypes, covariates)
 

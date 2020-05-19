@@ -64,6 +64,8 @@ class LogisticRegressionState(testStr: String) {
 
 object LogisticRegressionExpr {
   private lazy val state = new ThreadLocal[LogisticRegressionState]()
+  val matrixUDT = SQLUtils.newMatrixUDT()
+
   def getState(test: String): LogisticRegressionState = {
     if (state.get() == null) {
       state.set(new LogisticRegressionState(test))
@@ -72,7 +74,7 @@ object LogisticRegressionExpr {
     state.get()
   }
 
-  def doLogisticRegression(
+  def doSinglePhenoLogisticRegression(
       test: String,
       genotypes: Any,
       phenotypes: Any,
@@ -102,6 +104,42 @@ object LogisticRegressionExpr {
         nullFitState
       )
   }
+
+  def doMultiPhenoLogisticRegression(
+      test: String,
+      genotypes: Any,
+      phenotypes: Any,
+      covariates: Any): ArrayData = {
+
+    val state = getState(test)
+    val covariatesStruct = covariates.asInstanceOf[InternalRow]
+    val covariateRows = covariatesStruct.getInt(1)
+    val covariateCols = covariatesStruct.getInt(2)
+    val genotypeArray = genotypes.asInstanceOf[ArrayData].toDoubleArray
+    val genotypeVector = new DenseVector[Double](genotypeArray)
+
+    val results = matrixUDT.deserialize(phenotypes).toDense.rowIter.map(_.toArray).map {
+      phenotypeArray =>
+        require(
+          genotypeArray.length == phenotypeArray.length,
+          "Number of samples differs between genotype and phenotype arrays")
+        require(covariateCols > 0, "Covariate matrix must have at least one column")
+        require(
+          covariateRows == phenotypeArray.length,
+          "Number of samples do not match between phenotype vector and covariate matrix"
+        )
+
+        val nullFitState = state.getFitState(phenotypeArray, covariates)
+        state
+          .logitTest
+          .runTest(
+            genotypeVector,
+            new DenseVector[Double](phenotypeArray),
+            nullFitState
+          )
+    }
+    ArrayData.toArrayData(results.toArray)
+  }
 }
 
 case class LogisticRegressionExpr(
@@ -125,10 +163,19 @@ case class LogisticRegressionExpr(
         s"Supported tests are currently: ${LogisticRegressionGwas.logitTests.keys.mkString(", ")}")
     )
 
+  lazy val hasMultiplePhenotypes: Boolean = phenotypes.dataType match {
+    case ArrayType(DoubleType, _) => false
+    case _ => true
+  }
+
   override def dataType: DataType = logitTest.resultSchema
 
-  override def inputTypes: Seq[DataType] =
-    Seq(ArrayType(DoubleType), ArrayType(DoubleType), matrixUDT, StringType)
+  override def inputTypes: Seq[SQLUtils.ADT] =
+    Seq(
+      ArrayType(DoubleType),
+      SQLUtils.createTypeCollection(ArrayType(DoubleType), matrixUDT),
+      matrixUDT,
+      StringType)
 
   override def children: Seq[Expression] = Seq(genotypes, phenotypes, covariates, test)
 
@@ -146,17 +193,34 @@ case class LogisticRegressionExpr(
       phenotypes: Any,
       covariates: Any,
       test: Any): Any = {
-    LogisticRegressionExpr.doLogisticRegression(testStr, genotypes, phenotypes, covariates)
+    if (hasMultiplePhenotypes) {
+      LogisticRegressionExpr.doMultiPhenoLogisticRegression(
+        testStr,
+        genotypes,
+        phenotypes,
+        covariates)
+    } else {
+      LogisticRegressionExpr.doSinglePhenoLogisticRegression(
+        testStr,
+        genotypes,
+        phenotypes,
+        covariates)
+    }
   }
 
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
+    val fn = if (hasMultiplePhenotypes) {
+      "doMultiPhenoLogisticRegression"
+    } else {
+      "doSinglePhenoLogisticRegression"
+    }
     nullSafeCodeGen(
       ctx,
       ev,
       (genotypes, phenotypes, covariates, _) => {
         s"""
          |
-         |${ev.value} = io.projectglow.sql.expressions.LogisticRegressionExpr.doLogisticRegression("$testStr", $genotypes, $phenotypes, $covariates);
+         |${ev.value} = io.projectglow.sql.expressions.LogisticRegressionExpr.$fn("$testStr", $genotypes, $phenotypes, $covariates);
        """.stripMargin
       }
     )
