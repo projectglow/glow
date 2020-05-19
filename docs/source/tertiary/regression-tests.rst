@@ -7,7 +7,7 @@ Genome-wide Association Study Regression Tests
     import glow
     glow.register(spark)
 
-    genotypes_vcf = 'test-data/gwas/genotypes.vcf'
+    genotypes_vcf = 'test-data/gwas/genotypes.vcf.gz'
     covariates_csv = 'test-data/gwas/covariates.csv.gz'
     continuous_phenotypes_csv = 'test-data/gwas/continuous-phenotypes.csv.gz'
     binary_phenotypes_csv = 'test-data/gwas/binary-phenotypes.csv.gz'
