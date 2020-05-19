@@ -347,13 +347,4 @@ class GffReaderSuite extends GlowBaseTest {
     }
     assert(e.getMessage.contains("GFF data source does not support writing!"))
   }
-
-  test("temp") {
-    val df = spark
-      .read
-      .format(sourceName)
-      .load("test-data/gff/GCF_000001405.39_GRCh38.p13_genomic_ncbi.gff.gz")
-      .show()
-
-  }
 }
