@@ -197,7 +197,9 @@ class LogisticRegressionSuite extends GlowBaseTest {
 
   private val interceptOnlyV1And2 = MultiPhenoTestData(
     interceptOnlyV1.genotypes,
-    Seq(interceptOnlyV1.phenotypes.toArray, interceptOnlyV2.phenotypes.toArray),
+    interceptOnlyV1.phenotypes.zip(interceptOnlyV2.phenotypes).map {
+      case (v1, v2) => Array(v1, v2)
+    },
     interceptOnlyV1.covariates
   )
 

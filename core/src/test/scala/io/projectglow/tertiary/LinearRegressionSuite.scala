@@ -61,8 +61,11 @@ class LinearRegressionSuite extends GlowBaseTest {
 
   def multiPhenoTestDataToOlsBaseline(testData: MultiPhenoTestData): Seq[Seq[RegressionStats]] = {
     testData.genotypes.map { g =>
-      testData.phenotypes.map { p =>
-        olsBaseline(g.toArray, p.toArray, testData.covariates.toArray)
+      testData.phenotypes.head.indices.map { pIdx =>
+        olsBaseline(
+          g.toArray,
+          testData.phenotypes.map(_.apply(pIdx)).toArray,
+          testData.covariates.toArray)
       }
     }
   }
@@ -126,8 +129,8 @@ class LinearRegressionSuite extends GlowBaseTest {
       Range(0, nSamples).map(_ => multiplier * random.nextDouble())
     }
 
-    val phenotypes = Range(0, nPhenotypes).map { _ =>
-      Range(0, nSamples).toArray.map(_ => multiplier * random.nextDouble())
+    val phenotypes = Range(0, nSamples).map { _ =>
+      Range(0, nPhenotypes).toArray.map(_ => multiplier * random.nextDouble())
     }
     val nCovariates = if (includeIntercept) nRandomCovariates + 1 else nRandomCovariates
     val covariates = Range(0, nSamples).map(_ => new Array[Double](nCovariates))
@@ -157,7 +160,7 @@ class LinearRegressionSuite extends GlowBaseTest {
       nPhenotypes = 1,
       includeIntercept = includeIntercept,
       multiplier = multiplier)
-    TestData(mptd.genotypes, mptd.phenotypes.head, mptd.covariates)
+    TestData(mptd.genotypes, mptd.phenotypes.map(_.head), mptd.covariates)
   }
 
   private def timeIt[T](opName: String)(f: => T): T = {
@@ -339,8 +342,9 @@ class LinearRegressionSuite extends GlowBaseTest {
       case (statsSeq1, statsSeq2) =>
         assert(statsSeq1.length == nPhenotypes)
         assert(statsSeq2.length == nPhenotypes)
-        statsSeq1.zip(statsSeq2).foreach { case (stats1, stats2) =>
-          compareRegressionStats(stats1, stats2)
+        statsSeq1.zip(statsSeq2).foreach {
+          case (stats1, stats2) =>
+            compareRegressionStats(stats1, stats2)
         }
     }
   }

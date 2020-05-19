@@ -54,7 +54,7 @@ object LinearRegressionExpr {
       new DenseVector[Double](genotypes.asInstanceOf[ArrayData].toDoubleArray())
     val covariateQRContext = getState(covariates)
 
-    val results = matrixUDT.deserialize(phenotypes).toDense.rowIter.map(_.toArray).map {
+    val results = matrixUDT.deserialize(phenotypes).toDense.colIter.map(_.toArray).map {
       phenotypeArray =>
         LinearRegressionGwas.linearRegressionGwas(
           convertedGenotypes,

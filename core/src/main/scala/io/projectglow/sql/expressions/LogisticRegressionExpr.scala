@@ -74,18 +74,10 @@ object LogisticRegressionExpr {
     state.get()
   }
 
-  def doSinglePhenoLogisticRegression(
-      test: String,
-      genotypes: Any,
-      phenotypes: Any,
-      covariates: Any): InternalRow = {
-
-    val state = getState(test)
-    val covariatesStruct = covariates.asInstanceOf[InternalRow]
+  def checkDimensions(genotypeArray: Array[Double], phenotypeArray: Array[Double], covariatesStruct: InternalRow): Unit = {
     val covariateRows = covariatesStruct.getInt(1)
     val covariateCols = covariatesStruct.getInt(2)
-    val genotypeArray = genotypes.asInstanceOf[ArrayData].toDoubleArray
-    val phenotypeArray = phenotypes.asInstanceOf[ArrayData].toDoubleArray
+
     require(
       genotypeArray.length == phenotypeArray.length,
       "Number of samples differs between genotype and phenotype arrays")
@@ -94,6 +86,19 @@ object LogisticRegressionExpr {
       covariateRows == phenotypeArray.length,
       "Number of samples do not match between phenotype vector and covariate matrix"
     )
+  }
+
+  def doSinglePhenoLogisticRegression(
+      test: String,
+      genotypes: Any,
+      phenotypes: Any,
+      covariates: Any): InternalRow = {
+
+    val state = getState(test)
+    val genotypeArray = genotypes.asInstanceOf[ArrayData].toDoubleArray
+    val phenotypeArray = phenotypes.asInstanceOf[ArrayData].toDoubleArray
+    val covariatesStruct = covariates.asInstanceOf[InternalRow]
+    checkDimensions(genotypeArray, phenotypeArray, covariatesStruct)
 
     val nullFitState = state.getFitState(phenotypeArray, covariates)
     state
@@ -112,22 +117,13 @@ object LogisticRegressionExpr {
       covariates: Any): ArrayData = {
 
     val state = getState(test)
-    val covariatesStruct = covariates.asInstanceOf[InternalRow]
-    val covariateRows = covariatesStruct.getInt(1)
-    val covariateCols = covariatesStruct.getInt(2)
     val genotypeArray = genotypes.asInstanceOf[ArrayData].toDoubleArray
     val genotypeVector = new DenseVector[Double](genotypeArray)
+    val covariatesStruct = covariates.asInstanceOf[InternalRow]
 
-    val results = matrixUDT.deserialize(phenotypes).toDense.rowIter.map(_.toArray).map {
+    val results = matrixUDT.deserialize(phenotypes).toDense.colIter.map(_.toArray).map {
       phenotypeArray =>
-        require(
-          genotypeArray.length == phenotypeArray.length,
-          "Number of samples differs between genotype and phenotype arrays")
-        require(covariateCols > 0, "Covariate matrix must have at least one column")
-        require(
-          covariateRows == phenotypeArray.length,
-          "Number of samples do not match between phenotype vector and covariate matrix"
-        )
+        checkDimensions(genotypeArray, phenotypeArray, covariatesStruct)
 
         val nullFitState = state.getFitState(phenotypeArray, covariates)
         state
