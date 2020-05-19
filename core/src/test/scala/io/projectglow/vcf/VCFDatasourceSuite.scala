@@ -90,7 +90,7 @@ class VCFDatasourceSuite extends GlowBaseTest {
     val datasource = spark
       .read
       .format(sourceName)
-      .option("vcfRowSchema", true)
+      .schema(VCFRow.schema)
       .load(testVcf)
     val expected = VCFRow(
       "20",
@@ -190,7 +190,7 @@ class VCFDatasourceSuite extends GlowBaseTest {
     spark
       .read
       .format(sourceName)
-      .option("vcfRowSchema", true)
+      .schema(VCFRow.schema)
       .load(file.toString)
       .as[VCFRow]
   }
@@ -304,25 +304,16 @@ class VCFDatasourceSuite extends GlowBaseTest {
     assert(input.count == 5)
   }
 
-  test("split to biallelic variant contexts") {
-    val sess = spark
-    import sess.implicits._
-
+  test("splitToBiallelic option error message") {
     val ds = spark
       .read
       .format(sourceName)
       .option("splitToBiallelic", true)
-      .option("vcfRowSchema", true)
       .load(multiAllelicVcf)
-      .as[VCFRow]
-    ds.collect.foreach { vc =>
-      assert(vc.alternateAlleles.length < 2)
-      if (vc.start < 18210074) {
-        assert(!vc.splitFromMultiAllelic)
-      } else {
-        assert(vc.splitFromMultiAllelic)
-      }
+    val e = intercept[IllegalArgumentException] {
+      ds.collect()
     }
+    assert(e.getMessage.contains("split_multiallelics transformer"))
   }
 
   test("strict validation stringency") {
@@ -551,7 +542,7 @@ class VCFDatasourceSuite extends GlowBaseTest {
     val vcfRows = spark
       .read
       .format(sourceName)
-      .option("vcfRowSchema", true)
+      .schema(VCFRow.schema)
       .load(s"$testDataHome/vcf/test_withNanQual.vcf")
       .as[VCFRow]
       .collect()

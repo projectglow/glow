@@ -94,7 +94,7 @@
 ##INFO=<ID=ReverseComplementedAlleles,Number=0,Type=Flag,Description="The REF and the ALT alleles have been reverse complemented in liftover since the mapping from the previous reference to the current one was on the negative strand.">
 ##INFO=<ID=SwappedAlleles,Number=0,Type=Flag,Description="The REF and the ALT alleles have been swapped in liftover due to changes in the reference. It is possible that not all INFO annotations reflect this swap, and in the genotypes, only the GT, PL, and AD fields have been modified. You should check the TAGS_TO_REVERSE parameter that was used during the LiftOver to be sure.">
 ##contig=<ID=chr20,length=63025520>
-##reference=file:/Users/karen.feng/spark-genomics/test-data/liftover/hg19.chr20.fa.gz
+##reference=file:/Users/karen.feng/glow/test-data/liftover/hg19.chr20.fa.gz
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	HG00096	HG00268	NA19625
 chr20	18190715	.	G	<NON_REF>	.	PASS	.	GT:GQ:MIN_DP:PL:DP	0/0:52:29:0,52,899:29	0/0:70:28:0,70,864:28	0/0:0:12:0,0,278:12
 chr20	18190716	.	A	<NON_REF>	.	PASS	.	GT:GQ:MIN_DP:PL:DP	0/0:66:28:0,66,990:28	0/0:72:25:0,72,759:28	0/0:24:9:0,24,360:11

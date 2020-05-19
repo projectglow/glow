@@ -32,29 +32,31 @@ class BgenRowConverterSuite extends BgenConverterBaseTest {
     val sess = spark
     import sess.implicits._
 
-    val bgenDs = spark
+    val bgenRows = spark
       .read
       .format(sourceName)
       .schema(BgenRow.schema)
       .load(testBgen)
+      .sort("contigName", "start", "names")
       .as[BgenRow]
-    val vcfDs = spark
+      .collect
+    val vcfDf = spark
       .read
       .format("vcf")
-      .option("includeSampleIds", true)
       .load(testVcf)
-
-    val converter = new InternalRowToBgenRowConverter(vcfDs.schema, 10, 2, defaultPhasing)
-    val encoder = RowEncoder.apply(vcfDs.schema)
-
-    bgenDs
-      .sort("contigName", "start")
+      .sort("contigName", "start", "names")
+    val converter = new InternalRowToBgenRowConverter(vcfDf.schema, 10, 2, defaultPhasing)
+    val vcfRows = vcfDf
+      .queryExecution
+      .toRdd
       .collect
-      .zip(vcfDs.sort("contigName", "start").collect)
-      .foreach {
-        case (br, vr) =>
-          checkBgenRowsEqual(br, converter.convert(encoder.toRow(vr)), false, bitsPerProb)
-      }
+      .map(converter.convert)
+
+    assert(bgenRows.size == vcfRows.size)
+    bgenRows.zip(vcfRows).foreach {
+      case (br, vr) =>
+        checkBgenRowsEqual(br, vr, false, bitsPerProb)
+    }
   }
 
   test("unphased 8 bit") {
@@ -110,13 +112,12 @@ class BgenRowConverterSuite extends BgenConverterBaseTest {
       defaultPloidy,
       defaultPhasing
     )
-    val encoder = RowEncoder.apply(BgenRow.schema)
 
-    val df = Seq(v).toDF
+    val internalRow = convertToInternalRow(v)
     if (shouldThrow) {
-      assertThrows[IllegalStateException](converter.convert(encoder.toRow(df.collect.head)))
+      assertThrows[IllegalStateException](converter.convert(internalRow))
     } else {
-      val row = converter.convert(encoder.toRow(df.collect.head))
+      val row = converter.convert(internalRow)
       assert(row.genotypes.head.phased.get == phased)
       assert(row.genotypes.head.ploidy.get == ploidy)
     }
@@ -183,7 +184,6 @@ class BgenRowConverterSuite extends BgenConverterBaseTest {
     import sess.implicits._
 
     val converter = new InternalRowToBgenRowConverter(BgenRow.schema, 10, 2, false)
-    val encoder = RowEncoder.apply(BgenRow.schema)
 
     val mixedRow = BgenRow(
       "chr1",
@@ -208,7 +208,7 @@ class BgenRowConverterSuite extends BgenConverterBaseTest {
       )
     )
 
-    val row = Seq(mixedRow).toDF.collect.head
-    assertThrows[IllegalStateException](converter.convert(encoder.toRow(row)))
+    val internalRow = convertToInternalRow(mixedRow)
+    assertThrows[IllegalStateException](converter.convert(internalRow))
   }
 }

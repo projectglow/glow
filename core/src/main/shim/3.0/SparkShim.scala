@@ -41,16 +41,13 @@ object SparkShim extends SparkShimBase {
       examples: String,
       note: String,
       since: String): ExpressionInfo = {
+    // TODO fix this up later.
     new ExpressionInfo(
       className,
       db,
       name,
       usage,
-      arguments,
-      examples,
-      note,
-      since,
-      "" // deprecated
+      arguments
     )
   }
 

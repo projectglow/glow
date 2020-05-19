@@ -16,17 +16,14 @@
 
 package io.projectglow.vcf
 
+import io.projectglow.common.{GlowLogging, SimpleInterval, VCFRow}
+import io.projectglow.sql.GlowBaseTest
+import io.projectglow.vcf.TabixIndexHelper._
 import org.apache.hadoop.fs.Path
-import org.apache.spark.SparkConf
+
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.datasources.PartitionedFile
 import org.apache.spark.sql.sources._
-import org.broadinstitute.hellbender.utils.SimpleInterval
-import org.seqdoop.hadoop_bam.util.BGZFEnhancedGzipCodec
-
-import io.projectglow.common.{GlowLogging, VCFRow}
-import io.projectglow.sql.GlowBaseTest
-import io.projectglow.vcf.TabixIndexHelper._
 
 class TabixHelperSuite extends GlowBaseTest with GlowLogging {
 
@@ -428,7 +425,7 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
       s: Int,
       e: Int): Unit = {
     val actual = makeFilteredInterval(filters, useFilterParser, useIndex)
-    val expected = Option(new SimpleInterval(contigName, s, e))
+    val expected = Option(SimpleInterval(contigName, s, e))
     actual.foreach(i => logger.debug(s"${i.getContig}, ${i.getStart}, ${i.getEnd}"))
     expected.foreach(i => logger.debug(s"${i.getContig}, ${i.getStart}, ${i.getEnd}"))
     assert(isSameOptionSimpleInterval(actual, expected))
@@ -643,7 +640,7 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     val dfEmptyFilter = spark
       .read
       .format(sourceName)
-      .option("vcfRowSchema", true)
+      .schema(VCFRow.schema)
       .load(testVcf)
       .filter("contigName >= 20 ")
 
@@ -654,7 +651,7 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     val dfNoFilter = spark
       .read
       .format(sourceName)
-      .option("vcfRowSchema", true)
+      .schema(VCFRow.schema)
       .load(testVcf)
 
     dfNoFilter.rdd.count()
@@ -700,7 +697,7 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     val fs = path.getFileSystem(conf)
     val fileLength = fs.getFileStatus(path).getLen
     val partitionedFile = PartitionedFile(InternalRow.empty, oneRowGzipVcf, 0, 2)
-    val interval = Some(new SimpleInterval("0", 1, 2))
+    val interval = Some(SimpleInterval("0", 1, 2))
     assert(
       TabixIndexHelper
         .getFileRangeToRead(fs, partitionedFile, conf, false, false, interval)
@@ -720,7 +717,7 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
    * 2. Filter parser is used but tabix index is not.
    * 3. Neither is used.
    */
-  def testParserAndTabix(fileName: String, condition: String, splitToBiallelic: Boolean): Unit = {
+  def testParserAndTabix(fileName: String, condition: String): Unit = {
 
     val sess = spark
     import sess.implicits._
@@ -728,8 +725,7 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     val dfFT = spark
       .read
       .format(sourceName)
-      .option("splitToBiallelic", splitToBiallelic)
-      .option("vcfRowSchema", true)
+      .schema(VCFRow.schema)
       .load(fileName)
       .filter(condition)
     dfFT.rdd.count()
@@ -738,9 +734,8 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     val dfFN = spark
       .read
       .format(sourceName)
-      .option("splitToBiallelic", splitToBiallelic)
       .option("useTabixIndex", false)
-      .option("vcfRowSchema", true)
+      .schema(VCFRow.schema)
       .load(fileName)
       .filter(condition)
     dfFN.rdd.count()
@@ -749,10 +744,9 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     val dfNN = spark
       .read
       .format(sourceName)
-      .option("splitToBiallelic", splitToBiallelic)
       .option("useTabixIndex", false)
       .option("useFilterParser", false)
-      .option("vcfRowSchema", true)
+      .schema(VCFRow.schema)
       .load(fileName)
       .filter(condition)
     dfNN.rdd.count()
@@ -772,55 +766,33 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     }
   }
 
-  def testParserAndTabix(fileName: String, condition: String): Unit = {
-    testParserAndTabix(fileName, condition, false)
-  }
-
-  test("Parser/Tabix vs Not") {
-    testParserAndTabix(testBigVcf, "contigName= '20' and start > 0")
-    testParserAndTabix(testBigVcf, "contigName= '20' and start >= 0")
-
-    // Filter parser skips negative parameters and defers to spark
-    testParserAndTabix(testBigVcf, "contigName= '20' and start > -1")
-    testParserAndTabix(testBigVcf, "contigName= '20' and start = 10004193 and end > -12")
-
-    // Some corner cases
-    testParserAndTabix(testBigVcf, "contigName= '20' and start > 10004193")
-    testParserAndTabix(testBigVcf, "contigName= '20' and start >= 10004193")
-    testParserAndTabix(testBigVcf, "contigName= '20' and start <= 10004768 and end >= 10004779")
-    testParserAndTabix(testBigVcf, "contigName= '20' and start <= 10004768 and end > 10004779")
-    testParserAndTabix(testBigVcf, "contigName= '20' and start < 10004768 and end >= 10004779")
-
-    testParserAndTabix(testBigVcf, "contigName= '20' and start > 10001433 and end < 10001445")
-    testParserAndTabix(
-      testBigVcf,
+  gridTest("Parser/Tabix vs Not")(
+    Seq(
+      "contigName= '20' and start > 0",
+      "contigName= '20' and start >= 0",
+      // Filter parser skips negative parameters and defers to spark
+      "contigName= '20' and start > -1",
+      "contigName= '20' and start = 10004193 and end > -12",
+      // Some corner cases
+      "contigName= '20' and start > 10004193",
+      "contigName= '20' and start >= 10004193",
+      "contigName= '20' and start <= 10004768 and end >= 10004779",
+      "contigName= '20' and start <= 10004768 and end > 10004779",
+      "contigName= '20' and start < 10004768 and end >= 10004779",
+      "contigName= '20' and start > 10001433 and end < 10001445",
       "contigName = '20' and ((start>10004223 and end <10004500) or " +
-      "(start > 10003500 and end < 10004000))")
-
-    testParserAndTabix(
-      testBigVcf,
+      "(start > 10003500 and end < 10004000))",
       "contigName= '20' and ((start>10004223 and end <10004500) or " +
-      "(start > 10003500 and end < 10004000) or (end= 10004725))")
-    testParserAndTabix(testBigVcf, "contigName= '20' and (start=10000211 or end=10003817)")
-    testParserAndTabix(
-      testBigVcf,
+      "(start > 10003500 and end < 10004000) or (end= 10004725))",
+      "contigName= '20' and (start=10000211 or end=10003817)",
       "contigName= '20' and ((start>10004223 and end <10004500) or " +
-      "(start > 10003500 and end < 10004000)) and contigName='20'")
-
-    // FilterParser unsupported logical operators must be handled correctly as well.
-    testParserAndTabix(
-      testBigVcf,
+      "(start > 10003500 and end < 10004000)) and contigName='20'",
+      // FilterParser unsupported logical operators must be handled correctly as well.
       "contigName= '20' and (not(start>10004223 and end <10004500) " +
-      "or not(start > 10003500 and end < 10004000))")
-  }
-
-  // Test multi-allelic case works as well
-  test("Parser/Tabix vs Not: Multi-allelic ") {
-    testParserAndTabix(
-      multiAllelicVcf,
-      "contigName= 'chr20' and (start = 18210074 or end = 18210084)",
-      true
+      "or not(start > 10003500 and end < 10004000))"
     )
+  ) { condition =>
+    testParserAndTabix(testBigVcf, condition)
   }
 
   test("Do not try to read index files") {
@@ -829,7 +801,7 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     val conf = sparkContext.hadoopConfiguration
     val fs = path.getFileSystem(conf)
     val partitionedFile = PartitionedFile(InternalRow.empty, tbi, 0, 2)
-    val interval = Some(new SimpleInterval("0", 1, 2))
+    val interval = Some(SimpleInterval("0", 1, 2))
     assert(
       TabixIndexHelper
         .getFileRangeToRead(fs, partitionedFile, conf, false, false, interval)

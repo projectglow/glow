@@ -23,8 +23,8 @@ object CommonOptions {
 object VCFOptions {
   // Reader-only options
   val FLATTEN_INFO_FIELDS = "flattenInfoFields"
+  @deprecated
   val SPLIT_TO_BIALLELIC = "splitToBiallelic"
-  val VCF_ROW_SCHEMA = "vcfRowSchema"
   val USE_TABIX_INDEX = "useTabixIndex"
   val USE_FILTER_PARSER = "useFilterParser"
 

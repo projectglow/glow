@@ -23,7 +23,7 @@ import org.apache.spark.sql.catalyst.util.{ArrayData, GenericArrayData}
 import org.apache.spark.sql.catalyst.{InternalRow, ScalaReflection}
 import org.apache.spark.sql.types._
 
-import io.projectglow.common.{GlowLogging, VCFRow, VariantSchemas}
+import io.projectglow.common.{GlowLogging, VariantSchemas}
 import io.projectglow.sql.util.{ExpectsGenotypeFields, LeveneHaldane, Rewrite}
 
 /**
@@ -209,8 +209,7 @@ object VariantQcExprs extends GlowLogging {
    * the fields.
    *
    * We use this function for many of the variant QC functions so that each function can require
-   * a specific schema without requiring that the [[VCFRow]] schema remain
-   * fixed for all time.
+   * a specific schema.
    *
    * @param schema the desired schema
    * @param expr an array of struct-typed expressions that contains a superset of the fields in

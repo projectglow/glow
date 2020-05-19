@@ -284,6 +284,7 @@ object GffDataSource {
       .values
       .to[collection.immutable.Seq] // toSeq does not work
 
+
     spark.conf.set(columnPruningConf, originalColumnPruning)
 
     val attributeFields = attributeTags

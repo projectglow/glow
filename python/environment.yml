@@ -3,17 +3,19 @@ channels:
   - bioconda
 dependencies:
   - python=3.7
+  - bedtools
   - jinja2
+  - numpy=1.17.4
+  - nomkl # Skip MKL for local development
+  - pandas=0.25.3
   - pip
+  - pyarrow=0.13.0
+  - pyspark=2.4.5
   - pytest
   - pyyaml
-  - bedtools
   - sphinx
   - sphinx_rtd_theme
   - pip:
-    - numpy==1.17.4
-    - pandas==0.25.3
-    - pyspark==2.4.3
     - setuptools==41.2.0 # Python packaging
     - typeguard==2.5.0
     - twine==2.0.0 # Pypi publishing

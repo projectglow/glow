@@ -98,7 +98,7 @@ object VCFWriterUtils extends GlowLogging {
       val entry = iterator.next()
       vcBuilder.attribute(
         entry.getKey,
-        VariantContextToVCFRowConverter.parseObjectAsString(entry.getValue))
+        VariantContextToInternalRowConverter.parseObjectAsString(entry.getValue))
     }
     vcBuilder
   }

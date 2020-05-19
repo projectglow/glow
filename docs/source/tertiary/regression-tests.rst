@@ -30,10 +30,7 @@ Example
   import numpy as np
 
   # Read in VCF file
-  df = spark.read.format('vcf') \
-    .option("splitToBiallelic", True) \
-    .load(path) \
-    .cache()
+  df = glow.transform("split_multiallelics", spark.read.format('vcf').load(path)).cache()
 
   # Generate random phenotypes and an intercept-only covariate matrix
   n_samples = df.select(fx.size('genotypes')).first()[0]

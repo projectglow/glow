@@ -29,7 +29,9 @@ class GffReaderSuite extends GlowBaseTest {
   lazy val testGff3Bgzip = s"$testRoot/test_gff_with_fasta.gff.bgz"
   lazy val testGff3BgzipWithGzSuffix = s"$testRoot/test_gff_with_fasta_bgzip.gff.gz"
   lazy val testGff3Empty = s"$testRoot/test_gff_empty.gff"
+
   lazy val testGff3MultiCaseAttribute = s"$testRoot/test_gff_with_fasta_multicase_attribute.gff"
+
 
   private val sourceName = "gff"
 
@@ -83,7 +85,7 @@ class GffReaderSuite extends GlowBaseTest {
   gridTest("Schema inference")(
     Seq(
       testGff3,
-      // test schema is inferred correctly when the attribute tag is not consistent across the rows
+      // test if schema is inferred correctly when the attribute tag is not consistent across the rows
       // in terms of being lower or upper case (Name tag has different cases across the rows of this
       // test file.)
       testGff3MultiCaseAttribute
@@ -100,9 +102,6 @@ class GffReaderSuite extends GlowBaseTest {
 
     assert(df.schema.equals(expectedSchema))
   }
-
-  // test schema is inferred correctly when the attribute tag is not consistent across the rows
-  // in terms of being lower or upper case
 
   gridTest("Case-and-underscore-insensitive attribute column names in user-specified schema")(
     Seq(testSchemaAllSmall, testSchemaMixedCase, testSchemaWithUnderscore)
