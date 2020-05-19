@@ -82,7 +82,9 @@ Parameters
 Return
 ------
 
-The function returns a struct with the following fields. The computation of each value matches the
+For a single-phenotype regression, the function returns a struct with the following fields.
+For a multiple-phenotype regression, the function returns a list of structs with the following fields.
+The computation of each value matches the
 `lm R package <https://www.rdocumentation.org/packages/stats/versions/3.6.1/topics/lm>`_.
 
 .. list-table::
@@ -176,7 +178,9 @@ parameter ``test`` to specify the hypothesis test method.
 Return
 ------
 
-The function returns a struct with the following fields. The computation of each value matches the
+For a single-phenotype regression, the function returns a struct with the following fields.
+For a multiple-phenotype regression, the function returns a list of structs with the following fields.
+The computation of each value matches the
 `glm R package <https://www.rdocumentation.org/packages/stats/versions/3.6.1/topics/glm>`_ for the
 likelihood ratio test and the
 `logistf R package <https://cran.r-project.org/web/packages/logistf/logistf.pdf>`_ for the Firth
