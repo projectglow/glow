@@ -140,6 +140,16 @@ object VariantSchemas {
   def plinkSchema(hasSampleIds: Boolean): StructType = {
     StructType(plinkBaseSchema :+ plinkGenotypeSchema(hasSampleIds))
   }
+
+  // BlockedGT Fields
+  val headerField = StructField("header", StringType)
+  val sizeField = StructField("size", IntegerType)
+  val valuesField = StructField("values", ArrayType(DoubleType))
+  val headerBlockIdField = StructField("header_block", StringType)
+  val sampleBlockIdField = StructField("sample_block", StringType)
+  val sortKeyField = StructField("sort_key", LongType)
+  val meanField = StructField("mu", DoubleType)
+  val stdDevField = StructField("sig", DoubleType)
 }
 
 object FeatureSchemas {

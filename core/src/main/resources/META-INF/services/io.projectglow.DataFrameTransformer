@@ -1,4 +1,5 @@
 io.projectglow.transformers.LiftOverVariantsTransformer
+io.projectglow.transformers.blockvariantsandsamples.BlockVariantsAndSamplesTransformer
 io.projectglow.transformers.normalizevariants.NormalizeVariantsTransformer
 io.projectglow.transformers.splitmultiallelics.SplitMultiallelicsTransformer
 io.projectglow.transformers.pipe.PipeTransformer
