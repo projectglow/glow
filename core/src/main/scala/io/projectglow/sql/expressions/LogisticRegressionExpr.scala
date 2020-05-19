@@ -74,18 +74,32 @@ object LogisticRegressionExpr {
     state.get()
   }
 
-  def checkDimensions(genotypeArray: Array[Double], phenotypeArray: Array[Double], covariatesStruct: InternalRow): Unit = {
+  private def doLogisticRegression(
+      lrState: LogisticRegressionState,
+      genotypeVector: DenseVector[Double],
+      phenotypeVector: DenseVector[Double],
+      covariates: Any): InternalRow = {
+    val covariatesStruct = covariates.asInstanceOf[InternalRow]
     val covariateRows = covariatesStruct.getInt(1)
     val covariateCols = covariatesStruct.getInt(2)
 
     require(
-      genotypeArray.length == phenotypeArray.length,
+      genotypeVector.length == phenotypeVector.length,
       "Number of samples differs between genotype and phenotype arrays")
     require(covariateCols > 0, "Covariate matrix must have at least one column")
     require(
-      covariateRows == phenotypeArray.length,
+      covariateRows == phenotypeVector.length,
       "Number of samples do not match between phenotype vector and covariate matrix"
     )
+
+    val nullFitState = lrState.getFitState(phenotypeVector.data, covariates)
+    lrState
+      .logitTest
+      .runTest(
+        genotypeVector,
+        phenotypeVector,
+        nullFitState
+      )
   }
 
   def doSinglePhenoLogisticRegression(
@@ -95,19 +109,10 @@ object LogisticRegressionExpr {
       covariates: Any): InternalRow = {
 
     val state = getState(test)
-    val genotypeArray = genotypes.asInstanceOf[ArrayData].toDoubleArray
-    val phenotypeArray = phenotypes.asInstanceOf[ArrayData].toDoubleArray
-    val covariatesStruct = covariates.asInstanceOf[InternalRow]
-    checkDimensions(genotypeArray, phenotypeArray, covariatesStruct)
+    val genotypeVector = new DenseVector[Double](genotypes.asInstanceOf[ArrayData].toDoubleArray)
+    val phenotypeVector = new DenseVector[Double](phenotypes.asInstanceOf[ArrayData].toDoubleArray)
 
-    val nullFitState = state.getFitState(phenotypeArray, covariates)
-    state
-      .logitTest
-      .runTest(
-        new DenseVector[Double](genotypeArray),
-        new DenseVector[Double](phenotypeArray),
-        nullFitState
-      )
+    doLogisticRegression(state, genotypeVector, phenotypeVector, covariates)
   }
 
   def doMultiPhenoLogisticRegression(
@@ -117,22 +122,11 @@ object LogisticRegressionExpr {
       covariates: Any): ArrayData = {
 
     val state = getState(test)
-    val genotypeArray = genotypes.asInstanceOf[ArrayData].toDoubleArray
-    val genotypeVector = new DenseVector[Double](genotypeArray)
-    val covariatesStruct = covariates.asInstanceOf[InternalRow]
+    val genotypeArray = new DenseVector[Double](genotypes.asInstanceOf[ArrayData].toDoubleArray)
 
     val results = matrixUDT.deserialize(phenotypes).toDense.colIter.map(_.toArray).map {
       phenotypeArray =>
-        checkDimensions(genotypeArray, phenotypeArray, covariatesStruct)
-
-        val nullFitState = state.getFitState(phenotypeArray, covariates)
-        state
-          .logitTest
-          .runTest(
-            genotypeVector,
-            new DenseVector[Double](phenotypeArray),
-            nullFitState
-          )
+        doLogisticRegression(state, genotypeArray, new DenseVector[Double](phenotypeArray), covariates)
     }
     ArrayData.toArrayData(results.toArray)
   }
