@@ -321,6 +321,27 @@ class LinearRegressionSuite extends GlowBaseTest {
     compareToApacheOLS(testData, true)
   }
 
+  test("varying phenotypes") {
+    import sess.implicits._
+
+    val testData = generateTestData(30, 1, 1, true, 1)
+    val testData2 = testData.copy(phenotypes = testData.phenotypes.map(_ => Random.nextDouble()))
+    val rows = testDataToRows(testData) ++ testDataToRows(testData2)
+    val results = spark
+      .createDataFrame(rows)
+      .withColumn("id", monotonically_increasing_id())
+      .withColumn("linreg", expr("linear_regression_gwas(genotypes, phenotypes, covariates)"))
+      .orderBy("id")
+      .selectExpr("expand_struct(linreg)")
+      .as[RegressionStats]
+      .collect()
+      .toSeq
+    assert(results.size == 2)
+    results.zip(testDataToOlsBaseline(testData) ++ testDataToOlsBaseline(testData2)).foreach {
+      case (stats1, stats2) => compareRegressionStats(stats1, stats2)
+    }
+  }
+
   test("multiple phenotypes") {
     import sess.implicits._
 

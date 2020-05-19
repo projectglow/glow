@@ -385,6 +385,30 @@ class LogisticRegressionSuite extends GlowBaseTest {
     assert(ex.getMessage.toLowerCase.contains("must have at least one column"))
   }
 
+  test("Run multiple regressions") {
+    import sess.implicits._
+
+    val rows = testDataToRows(interceptOnlyV1) ++ testDataToRows(interceptOnlyV2)
+
+    val ourStats = spark
+      .createDataFrame(rows)
+      .withColumn("id", monotonically_increasing_id())
+      .repartition(10)
+      .withColumn(
+        "logit",
+        expr("logistic_regression_gwas(genotypes, phenotypes, covariates, 'LRT')"))
+      .orderBy("id")
+      .selectExpr("expand_struct(logit)")
+      .as[LogitTestResults]
+      .collect()
+      .toSeq
+
+    Seq(interceptOnlyV1Stats, interceptOnlyV2Stats).zip(ourStats).foreach {
+      case (golden, our) =>
+        compareLogitTestResults(golden, our)
+    }
+  }
+
   test("multiple phenotypes") {
     import sess.implicits._
 

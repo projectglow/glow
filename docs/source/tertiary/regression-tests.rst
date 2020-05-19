@@ -77,8 +77,7 @@ Parameters
   * - ``phenotypes``
     - ``array<double>`` (or numeric type that can be cast to ``double``) or ``spark.ml`` ``Matrix``
     - A numeric representation of the phenotype for each sample. This parameter may vary for each
-      row in the dataset. The indexing of this array must match the ``genotypes`` and
-      ``covariates`` parameters.
+      row in the dataset. The indexing must match the ``genotypes`` and ``covariates`` parameters.
 
 Return
 ------
@@ -168,8 +167,7 @@ parameter ``test`` to specify the hypothesis test method.
   * - ``phenotypes``
     - ``array<double>`` (or numeric type that can be cast to ``double``) or ``spark.ml`` ``Matrix``
     - A numeric representation of the phenotype for each sample. This parameter may vary for each
-      row in the dataset. The indexing of this array must match the ``genotypes`` and
-      ``covariates`` parameters.
+      row in the dataset. The indexing must match the ``genotypes`` and ``covariates`` parameters.
   * - ``test``
     - ``string``
     - The hypothesis test method to use. Currently likelihood ratio (``LRT``) and Firth 
