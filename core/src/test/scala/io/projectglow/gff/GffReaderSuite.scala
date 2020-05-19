@@ -104,7 +104,6 @@ class GffReaderSuite extends GlowBaseTest {
   // test schema is inferred correctly when the attribute tag is not consistent across the rows
   // in terms of being lower or upper case
 
-
   gridTest("Case-and-underscore-insensitive attribute column names in user-specified schema")(
     Seq(testSchemaAllSmall, testSchemaMixedCase, testSchemaWithUnderscore)
   ) { s =>
