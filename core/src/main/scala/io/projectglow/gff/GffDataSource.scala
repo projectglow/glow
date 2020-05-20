@@ -279,6 +279,10 @@ object GffDataSource {
       .collect()(0)
       .getAs[Seq[String]](0)
       .filter(!_.isEmpty)
+      .groupBy(_.toLowerCase)
+      .mapValues(_.head)
+      .values
+      .to[collection.immutable.Seq] // toSeq does not work
 
     spark.conf.set(columnPruningConf, originalColumnPruning)
 
