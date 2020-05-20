@@ -305,7 +305,7 @@ releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,
   inquireVersions,
   runClean,
-  runTest,
+  // runTest,
   setReleaseVersion,
   updateStableVersion,
   commitReleaseVersion,
