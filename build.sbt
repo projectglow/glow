@@ -186,25 +186,13 @@ def currentGitHash(dir: File): String = {
 lazy val sparkClasspath = taskKey[String]("sparkClasspath")
 lazy val sparkHome = taskKey[String]("sparkHome")
 lazy val pythonPath = taskKey[String]("pythonPath")
-lazy val yapf = inputKey[Unit]("yapf")
 
 lazy val pythonSettings = Seq(
   libraryDependencies ++= testSparkDependencies,
   sparkClasspath := (fullClasspath in Test).value.files.map(_.getCanonicalPath).mkString(":"),
   sparkHome := (ThisBuild / baseDirectory).value.absolutePath,
   pythonPath := ((ThisBuild / baseDirectory).value / "python").absolutePath,
-  publish / skip := true,
-  yapf := {
-    val args = spaceDelimited("<arg>").parsed
-    val baseArgs = Seq(
-      "yapf",
-      "--recursive",
-      "--diff",
-      "--style",
-      ((ThisBuild / baseDirectory).value / "python" / ".style.yapf").absolutePath)
-    val yapfDiffs = Process(baseArgs ++ args).lineStream
-    require(yapfDiffs.isEmpty, "Python style tests failed with " + args)
-  }
+  publish / skip := true
 )
 
 lazy val python =
@@ -213,7 +201,16 @@ lazy val python =
       pythonSettings,
       functionGenerationSettings,
       test in Test := {
-        yapf.toTask(" python").value
+        val yapfDiffs = Process(
+          Seq(
+            "yapf",
+            "--recursive",
+            "--exclude",
+            "'python/glow/functions.py'",
+            "--diff",
+            "python"
+          )).!
+        require(yapfDiffs == 0, "Python style tests failed")
         // Pass the test classpath to pyspark so that we run the same bits as the Scala tests
         val ret = Process(
           Seq("pytest", "--doctest-modules", "python"),
@@ -237,7 +234,6 @@ lazy val docs = (project in file("docs"))
   .settings(
     pythonSettings,
     test in Test := {
-      yapf.toTask(" docs").value
       // Pass the test classpath to pyspark so that we run the same bits as the Scala tests
       val ret = Process(
         Seq("pytest", "docs"),
