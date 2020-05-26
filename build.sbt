@@ -1,6 +1,5 @@
 import scala.sys.process._
 
-import complete.DefaultParsers._
 import org.apache.commons.lang3.StringUtils
 import sbt.Tests._
 import sbt.Keys._
@@ -204,10 +203,12 @@ lazy val python =
         val yapfDiffs = Process(
           Seq(
             "yapf",
+            "--style",
+            "python/.style.yapf",
             "--recursive",
-            "--exclude",
-            "'python/glow/functions.py'",
             "--diff",
+            "--exclude",
+            "python/glow/functions.py",
             "python"
           )).!
         require(yapfDiffs == 0, "Python style tests failed")
