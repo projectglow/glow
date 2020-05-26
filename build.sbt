@@ -1,5 +1,6 @@
 import scala.sys.process._
 
+import complete.DefaultParsers._
 import org.apache.commons.lang3.StringUtils
 import sbt.Tests._
 import sbt.Keys._
@@ -84,6 +85,7 @@ ThisBuild / generatorScript := (ThisBuild / baseDirectory).value / "python" / "r
 lazy val generatedFunctionsOutput = settingKey[File]("generatedFunctionsOutput")
 lazy val functionsTemplate = settingKey[File]("functionsTemplate")
 lazy val generateFunctions = taskKey[Seq[File]]("generateFunctions")
+lazy val pytest = inputKey[Unit]("pytest")
 
 def runCmd(args: File*): Unit = {
   args.map(_.getPath).!!
@@ -191,7 +193,18 @@ lazy val pythonSettings = Seq(
   sparkClasspath := (fullClasspath in Test).value.files.map(_.getCanonicalPath).mkString(":"),
   sparkHome := (ThisBuild / baseDirectory).value.absolutePath,
   pythonPath := ((ThisBuild / baseDirectory).value / "python").absolutePath,
-  publish / skip := true
+  publish / skip := true,
+  pytest := {
+    val args = spaceDelimited("<arg>").parsed
+    val ret = Process(
+      Seq("pytest") ++ args,
+      None,
+      "SPARK_CLASSPATH" -> sparkClasspath.value,
+      "SPARK_HOME" -> sparkHome.value,
+      "PYTHONPATH" -> pythonPath.value
+    ).!
+    require(ret == 0, "Python tests failed")
+  }
 )
 
 lazy val python =
@@ -200,6 +213,7 @@ lazy val python =
       pythonSettings,
       functionGenerationSettings,
       test in Test := {
+        // Yapf style test
         val yapfDiffs = Process(
           Seq(
             "yapf",
@@ -212,14 +226,8 @@ lazy val python =
             "python"
           )).!
         require(yapfDiffs == 0, "Python style tests failed")
-        // Pass the test classpath to pyspark so that we run the same bits as the Scala tests
-        val ret = Process(
-          Seq("pytest", "--doctest-modules", "python"),
-          None,
-          "SPARK_CLASSPATH" -> sparkClasspath.value,
-          "SPARK_HOME" -> sparkHome.value
-        ).!
-        require(ret == 0, "Python tests failed")
+        // Pytest
+        pytest.toTask(" --doctest-modules python").value
       },
       generatedFunctionsOutput := baseDirectory.value / "glow" / "functions.py",
       functionsTemplate := baseDirectory.value / "glow" / "functions.py.TEMPLATE",
@@ -235,15 +243,7 @@ lazy val docs = (project in file("docs"))
   .settings(
     pythonSettings,
     test in Test := {
-      // Pass the test classpath to pyspark so that we run the same bits as the Scala tests
-      val ret = Process(
-        Seq("pytest", "docs"),
-        None,
-        "SPARK_CLASSPATH" -> sparkClasspath.value,
-        "SPARK_HOME" -> sparkHome.value,
-        "PYTHONPATH" -> pythonPath.value
-      ).!
-      require(ret == 0, "Docs tests failed")
+      pytest.toTask(" docs").value
     }
   )
   .cross
