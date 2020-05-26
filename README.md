@@ -52,10 +52,15 @@ Status](https://readthedocs.org/projects/glow/badge/?version=latest)](https://gl
 This project is built using [sbt](https://www.scala-sbt.org/1.0/docs/Setup.html) and Java 8.
 
 To build and run Glow, you must [install conda](https://docs.conda.io/en/latest/miniconda.html) and
-activate the environmet in `python/environment.yml`. 
+activate the environment in `python/environment.yml`. 
 ```
 conda env create -f python/environment.yml
-conda activate  glow
+conda activate glow
+```
+
+When the environment file changes, you must update the environment:
+```
+conda env update -f python/environment.yml
 ```
 
 Start an sbt shell using the `sbt` command.
@@ -84,7 +89,7 @@ python_2_11/test
 ```
 These tests will run with the same Spark classpath as the Scala 2.11 tests.
 
-To test a specific python file:
+To test a specific Python test file:
 ```
 python_2_11/pytest python/test_render_template.py
 ```
