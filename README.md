@@ -51,6 +51,13 @@ Status](https://readthedocs.org/projects/glow/badge/?version=latest)](https://gl
 # Building and Testing
 This project is built using [sbt](https://www.scala-sbt.org/1.0/docs/Setup.html) and Java 8.
 
+To build and run Glow, you must [install conda](https://docs.conda.io/en/latest/miniconda.html) and
+activate the environmet in `python/environment.yml`. 
+```
+conda env create -f python/environment.yml
+conda activate  glow
+```
+
 Start an sbt shell using the `sbt` command.
 
 > **FYI**: The following SBT projects with the suffix `2_11` are built on Scala 2.11.
@@ -71,18 +78,19 @@ To test a specific suite:
 core_2_11/testOnly *VCFDataSourceSuite
 ```
 
-To run Python tests, you must [install conda](https://docs.conda.io/en/latest/miniconda.html) and
-activate the environmet in `python/environment.yml`. 
-```
-conda env create -f python/environment.yml
-conda activate  glow
-```
-
-You can then run tests from sbt:
+To run all Python tests:
 ```
 python_2_11/test
 ```
 These tests will run with the same Spark classpath as the Scala 2.11 tests.
+
+To test a specific python file:
+```
+python_2_11/pytest python/test_render_template.py
+```
+
+When using the `pytest` key, all arguments are passed directly to the
+[pytest runner](https://docs.pytest.org/en/latest/usage.html).
 
 To run documentation tests:
 ```
