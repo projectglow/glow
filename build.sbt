@@ -207,12 +207,31 @@ lazy val pythonSettings = Seq(
   }
 )
 
+lazy val yapf = inputKey[Unit]("yapf")
+ThisBuild / yapf := {
+  val args = spaceDelimited("<arg>").parsed
+  val ret = Process(
+    Seq("yapf") ++ args ++ Seq(
+      "--style",
+      "python/.style.yapf",
+      "--recursive",
+      "--exclude",
+      "python/glow/functions.py",
+      "python")
+  ).!
+  require(ret == 0, "Python style tests failed")
+}
+
+val yapfAll = taskKey[Unit]("Execute the yapf task in-place for all Python files.")
+ThisBuild / yapfAll := yapf.toTask(" --in-place").value
+
 lazy val python =
   (project in file("python"))
     .settings(
       pythonSettings,
       functionGenerationSettings,
       test in Test := {
+        yapf.toTask(" --diff").value
         pytest.toTask(" --doctest-modules python").value
       },
       generatedFunctionsOutput := baseDirectory.value / "glow" / "functions.py",
