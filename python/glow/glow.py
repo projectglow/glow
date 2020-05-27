@@ -4,7 +4,9 @@ from typing import Dict
 from typeguard import check_argument_types, check_return_type
 
 
-def transform(operation: str, df: DataFrame, arg_map: Dict[str, str]=None,
+def transform(operation: str,
+              df: DataFrame,
+              arg_map: Dict[str, str] = None,
               **kwargs: str) -> DataFrame:
     """
     Apply a named transformation to a DataFrame of genomic data. All parameters apart from the input
@@ -37,6 +39,7 @@ def transform(operation: str, df: DataFrame, arg_map: Dict[str, str]=None,
 
     assert check_return_type(output_df)
     return output_df
+
 
 def register(session: SparkSession):
     """
