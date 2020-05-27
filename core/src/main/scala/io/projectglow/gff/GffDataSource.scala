@@ -227,7 +227,7 @@ object GffDataSource {
   }
 
   /**
-   * Infers the schema by reading the gff fileusing csv datasource and parsing the attributes fields
+   * Infers the schema by reading the gff file using csv data source and parsing the attributes fields
    * to get official and unofficial attribute columns. Drops the original "attributes" column. Names,
    * types and ordering of columns will be as follows:
    * Names: All attribute fields will have names exactly as in tags.
