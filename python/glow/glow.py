@@ -1,13 +1,13 @@
 from pyspark import SparkContext
 from pyspark.sql import DataFrame, SQLContext, SparkSession
-from typing import Dict
+from typing import Any, Dict
 from typeguard import check_argument_types, check_return_type
 
 
 def transform(operation: str,
               df: DataFrame,
-              arg_map: Dict[str, str] = None,
-              **kwargs: str) -> DataFrame:
+              arg_map: Dict[str, Any] = None,
+              **kwargs: Any) -> DataFrame:
     """
     Apply a named transformation to a DataFrame of genomic data. All parameters apart from the input
     data and its schema are provided through the case-insensitive options map.
@@ -18,13 +18,13 @@ def transform(operation: str,
     Args:
         operation: Name of the operation to perform
         df: The input DataFrame
-        arg_map: A string -> string map of arguments
-        kwargs: Named string arguments. If the arg_map is not specified, transformer args will be
+        arg_map: A string -> any map of arguments
+        kwargs: Named arguments. If the arg_map is not specified, transformer args will be
           pulled from these keyword args.
 
     Example:
         >>> df = spark.read.format('vcf').load('test-data/1kg_sample.vcf')
-        >>> piped_df = glow.transform('pipe', df, cmd='["cat"]', input_formatter='vcf', output_formatter='vcf', in_vcf_header='infer')
+        >>> piped_df = glow.transform('pipe', df, cmd=["cat"], input_formatter='vcf', output_formatter='vcf', in_vcf_header='infer')
 
     Returns:
         The transformed DataFrame

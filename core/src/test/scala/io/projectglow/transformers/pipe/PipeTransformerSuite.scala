@@ -101,6 +101,19 @@ class PipeTransformerSuite extends GlowBaseTest {
     }
     assert(e.getMessage.contains("Could not find an output formatter for fake_out"))
   }
+
+  test("pass command as a Seq") {
+    val sess = spark
+    import sess.implicits._
+    val inputDf = spark.createDataFrame(Seq(Tuple1("monkey")))
+    val options = Map(
+      "inputFormatter" -> "text",
+      "outputFormatter" -> "text",
+      "cmd" -> Seq("sed", "-e", "s/$/!/"))
+    val output = Glow.transform("pipe", inputDf, options).as[String].head
+    assert(output == "monkey!")
+    Glow.transform("pipe_cleanup", inputDf, Map.empty[String, String])
+  }
 }
 
 class DummyInputFormatterFactory() extends InputFormatterFactory {
