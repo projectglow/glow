@@ -1,3 +1,6 @@
+from glow.conversions import OneDimensionalDoubleNumpyArrayConverter, TwoDimensionalDoubleNumpyArrayConverter
+from py4j import protocol
+from py4j.protocol import register_input_converter
 from pyspark import SparkContext
 from pyspark.sql import DataFrame, SQLContext, SparkSession
 from typing import Dict
@@ -43,7 +46,7 @@ def transform(operation: str,
 
 def register(session: SparkSession):
     """
-    Register SQL extensions for a Spark session.
+    Register SQL extensions and py4j converters for a Spark session.
 
     Args:
         session: Spark session
@@ -54,3 +57,9 @@ def register(session: SparkSession):
     """
     assert check_argument_types()
     session._jvm.io.projectglow.Glow.register(session._jsparkSession)
+
+# Register input converters in idempotent fashion
+glow_input_converters = [OneDimensionalDoubleNumpyArrayConverter, TwoDimensionalDoubleNumpyArrayConverter]
+for gic in glow_input_converters:
+    if not any(type(pic) is gic for pic in protocol.INPUT_CONVERTER):
+        register_input_converter(gic(), prepend = True)
