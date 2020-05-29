@@ -87,12 +87,15 @@ jobs:
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
+            export ARROW_PRE_0_15_IPC_FORMAT=1
             sbt coverage core_2_11/test coverageReport exit
       - run:
           name: Run Python tests
+          no_output_timeout: 30m
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
+            export ARROW_PRE_0_15_IPC_FORMAT=1
             sbt python_2_11/test exit
       - run:
           name: Run docs tests
@@ -129,15 +132,18 @@ jobs:
             sbt core_2_12/test exit
       - run:
           name: Run Python tests
+          no_output_timeout: 30m
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
+            export ARROW_PRE_0_15_IPC_FORMAT=1
             sbt python_2_12/test exit
       - run:
           name: Run docs tests
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
+            export ARROW_PRE_0_15_IPC_FORMAT=1
             sbt docs_2_12/test exit
       - *check_clean_repo
       - store_artifacts:
@@ -168,6 +174,7 @@ jobs:
             sbt core_2_12/test exit
       - run:
           name: Run Python tests
+          no_output_timeout: 30m
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
