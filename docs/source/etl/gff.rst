@@ -123,6 +123,7 @@ As with any Spark data source, the user can specify the schema while using the `
 
   - The base field names in the user-specified schema must match the names in the :ref:`list above <base_fields>` in a case-sensitive manner.
   - The official and unofficial fields will be matched with their corresponding tags in the GFF3 file in a case-and-underscore-insensitive manner. For example, if the GFF3 file contains the official tag ``db_xref``, a user-specified schema field with the name ``dbxref``, ``Db_Xref``, or any other case-and-underscore-insensitive match will correspond to that tag.
+  - The user can also include the original ``attributes`` column of the GFF3 file as a string field by including ``StructField('attributes', StringType())`` in the schema.
 
 
 .. notebook:: .. etl/gff.html
