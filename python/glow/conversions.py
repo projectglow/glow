@@ -6,8 +6,7 @@ from typeguard import check_argument_types, check_return_type
 
 def _is_numpy_double_array(object, dimensions: int) -> bool:
     assert check_argument_types()
-    output = isinstance(object, np.ndarray) and len(
-        object.shape) == dimensions and object.dtype.type == np.double
+    output = isinstance(object, np.ndarray) and len(object.shape) == dimensions and object.dtype.type == np.double
     assert check_return_type(output)
     return output
 
@@ -45,8 +44,9 @@ class OneDimensionalDoubleNumpyArrayConverter(object):
         >>> df.withColumn("array", lit(ndarray)).collect()
         [Row(value='a', array=[1.0, 2.1, 3.2]), Row(value='b', array=[1.0, 2.1, 3.2])]
     """
+
     def can_convert(self, object):
-        return _is_numpy_double_array(object, dimensions=1)
+        return _is_numpy_double_array(object, dimensions = 1)
 
     def convert(self, object, gateway_client):
         sc = SparkContext._active_spark_context
@@ -70,18 +70,17 @@ class TwoDimensionalDoubleNumpyArrayConverter(object):
         >>> df.withColumn("matrix", lit(ndarray)).collect()
         [Row(value='a', matrix=DenseMatrix(2, 3, [1.0, 2.1, 3.2, 4.3, 5.4, 6.5], False)), Row(value='b', matrix=DenseMatrix(2, 3, [1.0, 2.1, 3.2, 4.3, 5.4, 6.5], False))]
     """
+
     def can_convert(self, object):
-        return _is_numpy_double_array(object, dimensions=2)
+        return _is_numpy_double_array(object, dimensions = 2)
 
     def convert(self, object, gateway_client):
         sc = SparkContext._active_spark_context
         flat_arr = object.ravel()
         java_arr = _convert_numpy_to_java_array(flat_arr)
-        dense_matrix = sc._jvm.org.apache.spark.ml.linalg.DenseMatrix(object.shape[0],
-                                                                      object.shape[1], java_arr)
+        dense_matrix = sc._jvm.org.apache.spark.ml.linalg.DenseMatrix(object.shape[0], object.shape[1], java_arr)
         matrix_udt = sc._jvm.org.apache.spark.ml.linalg.MatrixUDT()
-        converter = sc._jvm.org.apache.spark.sql.catalyst.CatalystTypeConverters.createToCatalystConverter(
-            matrix_udt)
+        converter = sc._jvm.org.apache.spark.sql.catalyst.CatalystTypeConverters.createToCatalystConverter(matrix_udt)
         literal_matrix = sc._jvm.org.apache.spark.sql.catalyst.expressions.Literal.create(
             converter.apply(dense_matrix), matrix_udt)
         return literal_matrix

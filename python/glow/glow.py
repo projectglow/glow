@@ -58,11 +58,8 @@ def register(session: SparkSession):
     assert check_argument_types()
     session._jvm.io.projectglow.Glow.register(session._jsparkSession)
 
-
 # Register input converters in idempotent fashion
-glow_input_converters = [
-    OneDimensionalDoubleNumpyArrayConverter, TwoDimensionalDoubleNumpyArrayConverter
-]
+glow_input_converters = [OneDimensionalDoubleNumpyArrayConverter, TwoDimensionalDoubleNumpyArrayConverter]
 for gic in glow_input_converters:
     if not any(type(pic) is gic for pic in protocol.INPUT_CONVERTER):
-        register_input_converter(gic(), prepend=True)
+        register_input_converter(gic(), prepend = True)
