@@ -7,8 +7,12 @@ import glow
 def test_transform(spark):
     df = spark.read.format("vcf")\
         .load("test-data/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf")
-    converted = glow.transform("pipe", df, input_formatter="vcf", output_formatter="vcf",
-                             cmd='["cat"]', in_vcf_header="infer")
+    converted = glow.transform("pipe",
+                               df,
+                               input_formatter="vcf",
+                               output_formatter="vcf",
+                               cmd='["cat"]',
+                               in_vcf_header="infer")
     assert converted.count() == 1075
 
 

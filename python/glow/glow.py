@@ -1,10 +1,15 @@
+from glow.conversions import OneDimensionalDoubleNumpyArrayConverter, TwoDimensionalDoubleNumpyArrayConverter
+from py4j import protocol
+from py4j.protocol import register_input_converter
 from pyspark import SparkContext
 from pyspark.sql import DataFrame, SQLContext, SparkSession
 from typing import Dict
 from typeguard import check_argument_types, check_return_type
 
 
-def transform(operation: str, df: DataFrame, arg_map: Dict[str, str]=None,
+def transform(operation: str,
+              df: DataFrame,
+              arg_map: Dict[str, str] = None,
               **kwargs: str) -> DataFrame:
     """
     Apply a named transformation to a DataFrame of genomic data. All parameters apart from the input
@@ -38,9 +43,10 @@ def transform(operation: str, df: DataFrame, arg_map: Dict[str, str]=None,
     assert check_return_type(output_df)
     return output_df
 
+
 def register(session: SparkSession):
     """
-    Register SQL extensions for a Spark session.
+    Register SQL extensions and py4j converters for a Spark session.
 
     Args:
         session: Spark session
@@ -51,3 +57,9 @@ def register(session: SparkSession):
     """
     assert check_argument_types()
     session._jvm.io.projectglow.Glow.register(session._jsparkSession)
+
+# Register input converters in idempotent fashion
+glow_input_converters = [OneDimensionalDoubleNumpyArrayConverter, TwoDimensionalDoubleNumpyArrayConverter]
+for gic in glow_input_converters:
+    if not any(type(pic) is gic for pic in protocol.INPUT_CONVERTER):
+        register_input_converter(gic(), prepend = True)
