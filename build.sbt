@@ -205,7 +205,8 @@ lazy val python =
           Seq("pytest", "--doctest-modules", "python"),
           None,
           "SPARK_CLASSPATH" -> sparkClasspath.value,
-          "SPARK_HOME" -> sparkHome.value
+          "SPARK_HOME" -> sparkHome.value,
+          "PYTHONPATH" -> pythonPath.value
         ).!
         require(ret == 0, "Python tests failed")
       },

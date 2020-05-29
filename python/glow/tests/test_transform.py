@@ -1,5 +1,4 @@
 import pytest
-from pyspark.sql.functions import expr, lit
 from pyspark.sql.utils import IllegalArgumentException
 import glow
 

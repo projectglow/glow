@@ -16,16 +16,16 @@
 
 package io.projectglow.transformers.blockvariantsandsamples
 
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.SQLUtils
+import org.apache.spark.sql.types._
+
 import io.projectglow.Glow
 import io.projectglow.common.GlowLogging
 import io.projectglow.sql.GlowBaseTest
 import io.projectglow.common.VariantSchemas._
 import io.projectglow.functions.genotype_states
-
-import org.apache.spark.sql.functions._
 import io.projectglow.transformers.blockvariantsandsamples.BlockVariantsAndSamplesTransformer._
-
-import org.apache.spark.sql.types._
 
 class BlockVariantsAndSamplesTransformerSuite extends GlowBaseTest with GlowLogging {
 
@@ -121,5 +121,28 @@ class BlockVariantsAndSamplesTransformerSuite extends GlowBaseTest with GlowLogg
       20,
       7
     )
+  }
+
+  test("test schema") {
+    val vcfDf = spark
+      .read
+      .format("vcf")
+      .load(testVcf)
+      .withColumn("values", expr("genotype_states(genotypes)").cast(ArrayType(DoubleType)))
+    val options = Map(VARIANTS_PER_BLOCK -> "10", SAMPLE_BLOCK_COUNT -> "20")
+    val testSchema = Glow.transform(TRANSFORMER_NAME, vcfDf, options).schema
+
+    val expectedSchema = spark
+      .read
+      .format("parquet")
+      .load(s"$testDataHome/levels/ridge-regression/blockedGT.snappy.parquet")
+      .drop("indices")
+      .schema
+
+    assert(testSchema.length == expectedSchema.length)
+    testSchema.zip(expectedSchema).foreach {
+      case (t, e) =>
+        assert(SQLUtils.structFieldsEqualExceptNullability(t, e), s"Expected\n$e\nBlocked\n$t")
+    }
   }
 }

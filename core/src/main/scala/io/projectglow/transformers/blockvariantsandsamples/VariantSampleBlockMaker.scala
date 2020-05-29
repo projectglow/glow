@@ -38,7 +38,7 @@ private[projectglow] object VariantSampleBlockMaker extends GlowLogging {
     variantDf
       .withColumn(
         sortKeyField.name,
-        col(startField.name)
+        col(startField.name).cast(IntegerType)
       )
       .withColumn(
         headerField.name,

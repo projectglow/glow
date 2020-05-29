@@ -10,7 +10,7 @@ dependencies:
   - nomkl # Skip MKL for local development
   - pandas=0.25.3
   - pip
-  - pyarrow=0.13.0
+  - pyarrow=0.15.1
   - pyspark=2.4.5
   - pytest
   - pyyaml

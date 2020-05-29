@@ -1,4 +1,3 @@
-import pandas as pd
 import numpy as np
 from scipy.sparse import csr_matrix
 import itertools
@@ -134,7 +133,7 @@ def new_headers(header_block, alpha_names, row_indexer):
     Returns:
         new_header_block : A new header_block name, typically the chromosome (e.g. chr1), but might be 'all' if there are no more levels to
         reduce over.
-        positions : Array of sortable integers to specify the ordering of the new matrix headers.
+        sort_keys : Array of sortable integers to specify the ordering of the new matrix headers.
         headers : List of new matrix headers.
     """
     tokens = header_block.split('_')
@@ -149,14 +148,14 @@ def new_headers(header_block, alpha_names, row_indexer):
         outer_index, inner_index = tokens[1:4:2]
         new_header_block = f'chr_{outer_index}'
 
-    positions, headers = [], []
+    sort_keys, headers = [], []
     for i, (a, l) in row_indexer:
-        position = int(inner_index)*len(alpha_names) + int(a.split('_')[1])
+        sort_key = int(inner_index)*len(alpha_names) + int(a.split('_')[1])
         header = f'{new_header_block}_block_{inner_index}_{a}_label_{l}'
-        positions.append(position)
+        sort_keys.append(sort_key)
         headers.append(header)
 
-    return new_header_block, positions, headers
+    return new_header_block, sort_keys, headers
 
 
 def r_squared(XB, Y):

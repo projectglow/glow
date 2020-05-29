@@ -39,7 +39,7 @@ class RidgeReducer:
         map_key_pattern = ['header_block', 'sample_block']
         reduce_key_pattern = ['header_block', 'header']
 
-        if 'label'in blockdf.columns:
+        if 'label' in blockdf.columns:
             map_key_pattern.append('label')
             reduce_key_pattern.append('label')
 
@@ -76,7 +76,7 @@ class RidgeReducer:
 
         transform_udf = pandas_udf(lambda key, pdf: apply_model(key, transform_key_pattern, pdf, labeldf, self.alphas), reduced_matrix_struct, PandasUDFType.GROUPED_MAP)
 
-        return blockdf.join(modeldf.drop('position'), ['header_block', 'sample_block', 'header']) \
+        return blockdf.join(modeldf.drop('sort_key'), ['header_block', 'sample_block', 'header']) \
             .groupBy(transform_key_pattern) \
             .apply(transform_udf)
 
@@ -138,7 +138,7 @@ class RidgeRegression:
             .apply(model_udf)
 
         cvdf = blockdf\
-            .join(modeldf.drop('header_block', 'position'), ['header', 'sample_block'], 'inner') \
+            .join(modeldf.drop('header_block', 'sort_key'), ['header', 'sample_block'], 'inner') \
             .groupBy(map_key_pattern) \
             .apply(score_udf) \
             .groupBy('label', 'alpha').agg(f.mean('r2').alias('r2_mean')) \
@@ -171,7 +171,7 @@ class RidgeRegression:
 
         transform_udf = pandas_udf(lambda key, pdf: apply_model(key, transform_key_pattern, pdf, labeldf, self.alphas), reduced_matrix_struct, PandasUDFType.GROUPED_MAP)
 
-        return blockdf.drop('header_block').join(modeldf.drop('header_block', 'position'), ['sample_block', 'header']) \
+        return blockdf.drop('header_block').join(modeldf.drop('header_block', 'sort_key'), ['sample_block', 'header']) \
             .groupBy(transform_key_pattern) \
             .apply(transform_udf) \
             .join(cvdf, ['label', 'alpha'], 'inner') \
