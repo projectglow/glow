@@ -23,40 +23,47 @@ PYTHON_TYPES = {
     'lambda2': 'Column'
 }
 
+
 def wrap(value, before, after):
     return before + str(value) + after
+
 
 def scala_type(value):
     if not 'type' in value:
         return 'Column'
     return SCALA_TYPES[value['type']]
 
+
 def python_type(value):
     if not 'type' in value:
         return 'Union[Column, str]'
     return PYTHON_TYPES[value['type']]
+
 
 def fmt_scala_signature(value):
     if value.get('is_var_args'):
         return f'{value["name"]}: {scala_type(value)}*'
     return value['name'] + ': ' + scala_type(value)
 
+
 def fmt_scala_call(value):
     if value.get('is_var_args') and not 'type' in value:
         return f'{value["name"]}.map(_.expr)'
     if value.get('is_var_args'):
         return f'{value["name"]}.map(Literal(_))'
-    if not 'type' in value: # no type means column
+    if not 'type' in value:  # no type means column
         return value['name'] + '.expr'
     if value['type'] in ['lambda1', 'lambda2']:
         return f'createLambda({value["name"]})'
     return f"Literal({value['name']})"
+
 
 def fmt_python_signature(value):
     if value.get('is_var_args'):
         return f'*{value["name"]}: {python_type(value)}'
     default = ' = None' if value.get('is_optional') else ''
     return f'{value["name"]}: {python_type(value)}{default}'
+
 
 def fmt_python_call(value):
     if value.get('is_var_args'):
@@ -67,6 +74,7 @@ def fmt_python_call(value):
     if not 'type' in value or value['type'] in ['lambda1', 'lambda2']:
         return f'_to_java_column({value["name"]})'
     return value["name"]
+
 
 def prepare_definitions(groups):
     '''
@@ -92,16 +100,15 @@ def prepare_definitions(groups):
                     'list can be var args'
     return groups
 
+
 def check_field_defined(value, field):
     assert value.get(field), f'Must provide "{field}" field'
 
 
-
 def render_template(template_path, output_path, **kwargs):
-    env = jinja2.Environment(
-            loader=jinja2.FileSystemLoader('/'),
-            trim_blocks=True, 
-            lstrip_blocks=True)
+    env = jinja2.Environment(loader=jinja2.FileSystemLoader('/'),
+                             trim_blocks=True,
+                             lstrip_blocks=True)
 
     env.filters['wrap'] = wrap
     env.filters['fmt_scala_signature'] = fmt_scala_signature
@@ -111,15 +118,17 @@ def render_template(template_path, output_path, **kwargs):
 
     template = env.get_template(template_path)
     if output_path is None:
-        print(template.render(kwargs)) 
+        print(template.render(kwargs))
     else:
         template.stream(kwargs).dump(output_path)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Render function template')
     parser.add_argument('template_path', help='Path to input template')
-    parser.add_argument('output_path', 
-            nargs='?',
+    parser.add_argument(
+        'output_path',
+        nargs='?',
         help='Where to put rendered template. If not provided, template will be rendered to stdout')
     args = parser.parse_args()
 
