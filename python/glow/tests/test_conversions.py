@@ -1,6 +1,6 @@
 from glow.conversions import OneDimensionalDoubleNumpyArrayConverter, TwoDimensionalDoubleNumpyArrayConverter
+from importlib import reload
 import numpy as np
-from py4j import protocol
 from py4j.protocol import Py4JJavaError
 from pyspark.ml.linalg import DenseMatrix
 from pyspark.sql.functions import lit
@@ -47,15 +47,16 @@ def test_convert_array_checks_type(spark):
         lit(ndarray)
 
 
-def register_converters_idempotent(spark):
+def test_register_converters_idempotent(spark):
     for _ in range(3):
+        import glow.glow
+        reload(glow.glow)
         one_d_converters = 0
         two_d_converters = 0
-        for c in protocol.INPUT_CONVERTERS:
+        for c in spark._sc._gateway._gateway_client.converters:
             if type(c) is OneDimensionalDoubleNumpyArrayConverter:
                 one_d_converters += 1
             if type(c) is TwoDimensionalDoubleNumpyArrayConverter:
                 two_d_converters += 1
         assert(one_d_converters == 1)
         assert(two_d_converters == 1)
-        import glow
