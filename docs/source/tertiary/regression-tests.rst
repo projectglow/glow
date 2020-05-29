@@ -31,35 +31,39 @@ Example
   import pandas as pd
   from pyspark.ml.linalg import DenseMatrix
   from pyspark.sql import Row
-  import pyspark.sql.functions as fx
+  from pyspark.sql.functions import col, lit
   import numpy as np
 
   # Read in VCF file
-  genotypes = glow.transform('split_multiallelics', spark.read.format('vcf').load(genotypes_vcf)).cache()
+  variants = spark.read.format('vcf').load(genotypes_vcf)
+
+  # genotype_states returns the number of alt alleles for each sample
+  # mean_substitute replaces any missing genotype states with the mean of the non-missing states
+  genotypes = glow.transform('split_multiallelics', variants) \
+    .withColumn('gt', glow.mean_substitute(glow.genotype_states(col('genotypes')))) \
+    .cache()
 
   # Read covariates from a CSV file and add an intercept
   covariates = pd.read_csv(continuous_phenotypes_csv, index_col=0)
   covariates['intercept'] = 1.
-  covariates_matrix = DenseMatrix(covariates.shape[0], covariates.shape[1], covariates.to_numpy().ravel())
-  covariates_df = spark.createDataFrame([Row(covariates=covariates_matrix)])
 
   # Read phenotypes from a CSV file
   continuous_phenotypes = pd.read_csv(continuous_phenotypes_csv, index_col=0)
   continuous_phenotypes_rows = [Row(trait=index, phenotypes=data.to_numpy().tolist()) for index, data in continuous_phenotypes.iteritems()]
   continuous_phenotypes_df = spark.createDataFrame(continuous_phenotypes_rows)
 
-  # Join the covariates and phenotypes
-  covariates_and_continuous_phenotypes = covariates_df.crossJoin(continuous_phenotypes_df)
-
   # Run linear regression test
-  lin_reg_df = genotypes.crossJoin(covariates_and_continuous_phenotypes).selectExpr(
+  lin_reg_df = genotypes.crossJoin(continuous_phenotypes_df).select(
     'contigName',
     'start',
     'names',
     'trait',
-    # genotype_states returns the number of alt alleles for each sample
-    # mean_substitute replaces any missing genotype states with the mean of the non-missing states
-    'expand_struct(linear_regression_gwas(mean_substitute(genotype_states(genotypes)), phenotypes, covariates))')
+    glow.expand_struct(glow.linear_regression_gwas(
+        col('gt'),
+        col('phenotypes'),
+        lit(covariates.to_numpy())
+    ))
+  )
 
 .. invisible-code-block: python
 
@@ -141,29 +145,35 @@ Example
 
 .. code-block:: python
 
-  # Read phenotypes from a CSV file
-  binary_phenotypes = pd.read_csv(binary_phenotypes_csv, index_col=0)
-  binary_phenotypes_rows = [Row(trait=index, phenotypes=data.to_numpy().tolist()) for index, data in binary_phenotypes.iteritems()]
-  binary_phenotypes_df = spark.createDataFrame(binary_phenotypes_rows)
-
-  # Join the covariates and phenotypes
-  covariates_and_binary_phenotypes = covariates_df.crossJoin(binary_phenotypes_df)
+  # Read a single phenotype from a CSV file
+  binary_trait = 'Binary_Trait_1'
+  binary_phenotype = np.hstack(pd.read_csv(binary_phenotypes_csv, index_col=0)[[binary_trait]].to_numpy()).astype('double')
 
   # Likelihood ratio test
-  lrt_log_reg_df = genotypes.crossJoin(covariates_and_binary_phenotypes).selectExpr(
+  lrt_log_reg_df = genotypes.select(
     'contigName',
     'start',
     'names',
-    'trait',
-    'expand_struct(logistic_regression_gwas(mean_substitute(genotype_states(genotypes)), phenotypes, covariates, \'LRT\'))')
+    glow.expand_struct(glow.logistic_regression_gwas(
+        col('gt'),
+        lit(binary_phenotype),
+        lit(covariates.to_numpy()),
+        'LRT'
+    ))
+  )
 
   # Firth test
-  firth_log_reg_df = genotypes.crossJoin(covariates_and_binary_phenotypes).selectExpr(
+  firth_log_reg_df = genotypes.select(
     'contigName',
     'start',
     'names',
-    'trait',
-    'expand_struct(logistic_regression_gwas(mean_substitute(genotype_states(genotypes)), phenotypes, covariates, \'Firth\'))')
+    glow.expand_struct(glow.logistic_regression_gwas(
+        col('gt'),
+        lit(binary_phenotype),
+        lit(covariates.to_numpy()),
+        'Firth'
+    ))
+  )
 
 .. invisible-code-block: python
 
@@ -171,7 +181,6 @@ Example
      contigName='22',
      start=16050114,
      names=['rs587755077'],
-     trait='Binary_Trait_1',
      beta=1.090437825673577,
      oddsRatio=2.975576571225158,
      waldConfidenceInterval=[1.20650888812006, 7.338574973136046],
@@ -183,7 +192,6 @@ Example
      contigName='22',
      start=16050114,
      names=['rs587755077'],
-     trait='Binary_Trait_1',
      beta=1.02785127295274,
      oddsRatio=2.795053570449542,
      waldConfidenceInterval=[1.1524111551151088, 6.779112148478289],
