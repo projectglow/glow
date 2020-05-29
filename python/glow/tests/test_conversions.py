@@ -14,8 +14,8 @@ def test_convert_matrix(spark):
     ndarray = np.array([[1.0, 2.1, 3.2], [4.3, 5.4, 6.5]])
     output_rows = df.withColumn("matrix", lit(ndarray)).collect()
     expected_matrix = DenseMatrix(2, 3, [1.0, 2.1, 3.2, 4.3, 5.4, 6.5])
-    assert(output_rows[0].matrix == expected_matrix)
-    assert(output_rows[1].matrix == expected_matrix)
+    assert (output_rows[0].matrix == expected_matrix)
+    assert (output_rows[1].matrix == expected_matrix)
 
 
 def test_convert_array(spark):
@@ -24,8 +24,8 @@ def test_convert_array(spark):
     ndarray = np.array([1.0, 2.1, 3.2])
     output_rows = df.withColumn("array", lit(ndarray)).collect()
     expected_array = [1.0, 2.1, 3.2]
-    assert(output_rows[0].array == expected_array)
-    assert(output_rows[1].array == expected_array)
+    assert (output_rows[0].array == expected_array)
+    assert (output_rows[1].array == expected_array)
 
 
 def test_convert_checks_dimension(spark):
@@ -58,5 +58,5 @@ def test_register_converters_idempotent(spark):
                 one_d_converters += 1
             if type(c) is TwoDimensionalDoubleNumpyArrayConverter:
                 two_d_converters += 1
-        assert(one_d_converters == 1)
-        assert(two_d_converters == 1)
+        assert (one_d_converters == 1)
+        assert (two_d_converters == 1)
