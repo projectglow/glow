@@ -48,8 +48,8 @@ def test_convert_array_checks_type(spark):
 
 
 def test_register_converters_idempotent(spark):
+    import glow.glow
     for _ in range(3):
-        import glow.glow
         reload(glow.glow)
         one_d_converters = 0
         two_d_converters = 0
