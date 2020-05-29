@@ -318,7 +318,7 @@ def normalize_variant(contigName: Union[Column, str], start: Union[Column, str],
 
 def mean_substitute(array: Union[Column, str], missingValue: Union[Column, str] = None) -> Column:
     """
-    Sustitutes the missing values of a numeric array using the mean of the non-missing values. Any values that are NaN, null or equal to the missing value parameter are considered missing. See :ref:`variant-data-transformations` for more details.
+    Substitutes the missing values of a numeric array using the mean of the non-missing values. Any values that are NaN, null or equal to the missing value parameter are considered missing. See :ref:`variant-data-transformations` for more details.
 
     Added in version 0.4.0.
 
