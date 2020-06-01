@@ -4,6 +4,7 @@ import complete.DefaultParsers._
 import org.apache.commons.lang3.StringUtils
 import sbt.Tests._
 import sbt.Keys._
+import sbt.librarymanagement.ModuleID
 import sbt.nio.Keys._
 
 lazy val scala212 = "2.12.8"
@@ -18,7 +19,7 @@ def majorMinorVersion(version: String): String = {
   }
 }
 
-ThisBuild / scalaVersion := scala211
+ThisBuild / scalaVersion := sys.env.getOrElse("SCALA_VERSION", scala211)
 ThisBuild / organization := "io.projectglow"
 ThisBuild / scalastyleConfig := baseDirectory.value / "scalastyle-config.xml"
 ThisBuild / publish / skip := true
@@ -138,8 +139,18 @@ lazy val coreDependencies = (providedSparkDependencies ++ testCoreDependencies +
   "org.yaml" % "snakeyaml" % "1.16"
 )).map(_.exclude("com.google.code.findbugs", "jsr305"))
 
-lazy val root = (project in file("."))
-  .aggregate(core_2_11, python_2_11, docs_2_11, core_2_12, python_2_12, docs_2_12)
+lazy val root = (project in file(".")).aggregate(core, python, docs)
+
+lazy val scalaLoggingDependency = settingKey[ModuleID]("scalaLoggingDependency")
+ThisBuild / scalaLoggingDependency := {
+  (ThisBuild / scalaVersion).value match {
+    case `scala211` => "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2"
+    case `scala212` => "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2"
+    case _ =>
+      throw new IllegalArgumentException(
+        "Only supported Scala versions are: " + Seq(scala211, scala212))
+  }
+}
 
 lazy val core = (project in file("core"))
   .settings(
@@ -152,7 +163,7 @@ lazy val core = (project in file("core"))
     packageOptions in (Compile, packageBin) +=
     Package.ManifestAttributes("Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
     bintrayRepository := "glow",
-    libraryDependencies ++= coreDependencies,
+    libraryDependencies ++= coreDependencies :+ scalaLoggingDependency.value,
     Compile / unmanagedSourceDirectories +=
     baseDirectory.value / "src" / "main" / "shim" / majorMinorVersion(sparkVersion),
     Test / unmanagedSourceDirectories +=
@@ -160,17 +171,6 @@ lazy val core = (project in file("core"))
     functionsTemplate := baseDirectory.value / "functions.scala.TEMPLATE",
     generatedFunctionsOutput := (Compile / scalaSource).value / "io" / "projectglow" / "functions.scala",
     sourceGenerators in Compile += generateFunctions
-  )
-  .cross
-
-lazy val core_2_11 = core(scala211)
-  .settings(
-    libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2"
-  )
-
-lazy val core_2_12 = core(scala212)
-  .settings(
-    libraryDependencies += "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2"
   )
 
 /**
@@ -239,11 +239,7 @@ lazy val python =
       functionsTemplate := baseDirectory.value / "glow" / "functions.py.TEMPLATE",
       sourceGenerators in Compile += generateFunctions
     )
-    .cross
     .dependsOn(core % "test->test")
-
-lazy val python_2_11 = python(scala211)
-lazy val python_2_12 = python(scala212)
 
 lazy val docs = (project in file("docs"))
   .settings(
@@ -252,11 +248,7 @@ lazy val docs = (project in file("docs"))
       pytest.toTask(" docs").value
     }
   )
-  .cross
   .dependsOn(core % "test->test", python)
-
-lazy val docs_2_11 = docs(scala211)
-lazy val docs_2_12 = docs(scala212)
 
 // Publish to Bintray
 ThisBuild / description := "An open-source toolkit for large-scale genomic analysis"
@@ -309,10 +301,6 @@ lazy val stagedRelease = (project in file("core/src/test"))
       .SettingKeys
       .sbtIdeaIgnoreModule := true // Do not import this SBT project into IDEA
   )
-  .cross
-
-lazy val stagedRelease_2_11 = stagedRelease(scala211)
-lazy val stagedRelease_2_12 = stagedRelease(scala212)
 
 import ReleaseTransformations._
 
@@ -323,6 +311,9 @@ releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,
   inquireVersions,
   runClean,
+  releaseStepCommandAndRemaining(s"set ThisBuild / scalaVersion := $scala211"),
+  runTest,
+  releaseStepCommandAndRemaining(s"set ThisBuild / scalaVersion := $scala212"),
   runTest,
   setReleaseVersion,
   updateStableVersion,
@@ -330,8 +321,10 @@ releaseProcess := Seq[ReleaseStep](
   commitStableVersion,
   tagRelease,
   publishArtifacts,
-  releaseStepCommandAndRemaining("stagedRelease_2_11/test"),
-  releaseStepCommandAndRemaining("stagedRelease_2_12/test"),
+  releaseStepCommandAndRemaining(s"set ThisBuild / scalaVersion := $scala211"),
+  releaseStepCommandAndRemaining("stagedRelease/test"),
+  releaseStepCommandAndRemaining(s"set ThisBuild / scalaVersion := $scala212"),
+  releaseStepCommandAndRemaining("stagedRelease/test"),
   setNextVersion,
   commitNextVersion
 )

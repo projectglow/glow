@@ -126,18 +126,21 @@ jobs:
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
+            export SCALA_VERSION="2.12.8"
             sbt core_2_12/test exit
       - run:
           name: Run Python tests
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
+            export SCALA_VERSION="2.12.8"
             sbt python_2_12/test exit
       - run:
           name: Run docs tests
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
+            export SCALA_VERSION="2.12.8"
             sbt docs_2_12/test exit
       - *check_clean_repo
       - store_artifacts:
