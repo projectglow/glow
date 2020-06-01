@@ -94,7 +94,9 @@ object ResolveExpandStructRule extends Rule[LogicalPlan] {
  */
 object ResolveGenotypeFields extends Rule[LogicalPlan] {
   override def apply(plan: LogicalPlan): LogicalPlan = plan.transformAllExpressions {
-    case e: ExpectsGenotypeFields if !e.resolved && e.childrenResolved && e.checkInputDataTypes() == TypeCheckResult.TypeCheckSuccess =>
+    case e: ExpectsGenotypeFields
+        if !e.resolved && e.childrenResolved && e
+          .checkInputDataTypes() == TypeCheckResult.TypeCheckSuccess =>
       e.resolveGenotypeInfo()
   }
 }

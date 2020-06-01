@@ -245,7 +245,9 @@ private[projectglow] object VariantSplitter extends GlowLogging {
                 df
             }
         )
-        .withColumn(genotypesFieldName, arrays_zip(gSchema.get.fieldNames.map(name => col(name).as(name)): _*))
+        .withColumn(
+          genotypesFieldName,
+          arrays_zip(gSchema.get.fieldNames.map(name => col(name).as(name)): _*))
         .drop(gSchema.get.fieldNames: _*)
     }
 

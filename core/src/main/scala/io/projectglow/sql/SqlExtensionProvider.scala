@@ -38,7 +38,11 @@ import io.projectglow.sql.optimizer.{ReplaceExpressionsRule, ResolveAggregateFun
 // we should move all extensions into this class.
 class GlowSQLExtensions extends (SparkSessionExtensions => Unit) {
   val resolutionRules: Seq[Rule[LogicalPlan]] =
-    Seq(ReplaceExpressionsRule, ResolveAggregateFunctionsRule, ResolveExpandStructRule, ResolveGenotypeFields)
+    Seq(
+      ReplaceExpressionsRule,
+      ResolveAggregateFunctionsRule,
+      ResolveExpandStructRule,
+      ResolveGenotypeFields)
   val optimizations: Seq[Rule[LogicalPlan]] = Seq()
 
   def apply(extensions: SparkSessionExtensions): Unit = {

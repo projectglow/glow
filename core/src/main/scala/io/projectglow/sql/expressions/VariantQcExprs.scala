@@ -231,7 +231,9 @@ object VariantQcExprs extends GlowLogging {
   }
 }
 
-case class HardyWeinberg(genotypes: Expression, genotypeInfo: Option[GenotypeInfo]) extends UnaryExpression with ExpectsGenotypeFields {
+case class HardyWeinberg(genotypes: Expression, genotypeInfo: Option[GenotypeInfo])
+    extends UnaryExpression
+    with ExpectsGenotypeFields {
   def this(genotypes: Expression) = this(genotypes, None)
 
   override def dataType: DataType =
@@ -254,11 +256,17 @@ case class HardyWeinberg(genotypes: Expression, genotypeInfo: Option[GenotypeInf
 
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
     val fn = "io.projectglow.sql.expressions.VariantQcExprs.hardyWeinberg"
-    nullSafeCodeGen(ctx, ev, calls => {
-      s"""
-         |${ev.value} = $fn($calls, ${getGenotypeInfo.size}, ${getGenotypeInfo.requiredFieldIndices.head});
+    nullSafeCodeGen(
+      ctx,
+      ev,
+      calls => {
+        s"""
+         |${ev.value} = $fn($calls, ${getGenotypeInfo.size}, ${getGenotypeInfo
+             .requiredFieldIndices
+             .head});
        """.stripMargin
-    })
+      }
+    )
   }
 
   override def nullSafeEval(input: Any): Any = {
@@ -276,7 +284,9 @@ object HardyWeinberg {
 
 case class HardyWeinbergStruct(hetFreqHwe: Double, pValueHwe: Double)
 
-case class CallStats(genotypes: Expression, genotypeInfo: Option[GenotypeInfo]) extends UnaryExpression with ExpectsGenotypeFields {
+case class CallStats(genotypes: Expression, genotypeInfo: Option[GenotypeInfo])
+    extends UnaryExpression
+    with ExpectsGenotypeFields {
   def this(genotypes: Expression) = this(genotypes, None)
 
   lazy val dataType: DataType = CallStats.schema
@@ -293,11 +303,17 @@ case class CallStats(genotypes: Expression, genotypeInfo: Option[GenotypeInfo]) 
 
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
     val fn = "io.projectglow.sql.expressions.VariantQcExprs.callStats"
-    nullSafeCodeGen(ctx, ev, calls => {
-      s"""
-         |${ev.value} = $fn($calls, ${getGenotypeInfo.size}, ${getGenotypeInfo.requiredFieldIndices.head});
+    nullSafeCodeGen(
+      ctx,
+      ev,
+      calls => {
+        s"""
+         |${ev.value} = $fn($calls, ${getGenotypeInfo.size}, ${getGenotypeInfo
+             .requiredFieldIndices
+             .head});
        """.stripMargin
-    })
+      }
+    )
   }
 
   override def nullSafeEval(input: Any): Any = {

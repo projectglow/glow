@@ -53,11 +53,12 @@ case class GenotypeInfo(size: Int, requiredFieldIndices: Seq[Int], optionalField
 
   protected def optionalGenotypeFields: Seq[StructField] = Seq.empty
 
-  private def gStruct = genotypesExpr
-    .dataType
-    .asInstanceOf[ArrayType]
-    .elementType
-    .asInstanceOf[StructType]
+  private def gStruct =
+    genotypesExpr
+      .dataType
+      .asInstanceOf[ArrayType]
+      .elementType
+      .asInstanceOf[StructType]
 
   private def requiredFieldIndices: Seq[Int] = {
     requiredGenotypeFields.map { f =>

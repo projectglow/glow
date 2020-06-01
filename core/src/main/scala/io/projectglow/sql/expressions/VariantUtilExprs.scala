@@ -184,11 +184,17 @@ case class GenotypeStates(genotypes: Expression, genotypeInfo: Option[GenotypeIn
 
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
     val fn = "io.projectglow.sql.expressions.VariantUtilExprs.genotypeStates"
-    nullSafeCodeGen(ctx, ev, calls => {
-      s"""
-         |${ev.value} = $fn($calls, ${getGenotypeInfo.size}, ${getGenotypeInfo.requiredFieldIndices.head});
+    nullSafeCodeGen(
+      ctx,
+      ev,
+      calls => {
+        s"""
+         |${ev.value} = $fn($calls, ${getGenotypeInfo.size}, ${getGenotypeInfo
+             .requiredFieldIndices
+             .head});
        """.stripMargin
-    })
+      }
+    )
   }
 
   override def nullSafeEval(input: Any): Any = {
