@@ -65,33 +65,33 @@ conda env update -f python/environment.yml
 
 Start an sbt shell using the `sbt` command.
 
-> **FYI**: The following SBT projects with the suffix `2_11` are built on Scala 2.11.
-All have an equivalent `2_12` version built on Scala 2.12.
+> **FYI**: The following SBT projects are built on Spark 2.4.3/Scala 2.11.12 by default. To change the Spark version and
+Scala version, set the environment variables `SPARK_VERSION` and `SCALA_VERSION`.
 
 To compile the main code:
 ```
 compile
 ```
 
-To run all Scala  2.11 tests:
+To run all Scala tests:
 ```
-core_2_11/test
+core/test
 ```
 
 To test a specific suite:
 ```
-core_2_11/testOnly *VCFDataSourceSuite
+core/testOnly *VCFDataSourceSuite
 ```
 
 To run all Python tests:
 ```
-python_2_11/test
+python/test
 ```
-These tests will run with the same Spark classpath as the Scala 2.11 tests.
+These tests will run with the same Spark classpath as the Scala tests.
 
 To test a specific Python test file:
 ```
-python_2_11/pytest python/test_render_template.py
+python/pytest python/test_render_template.py
 ```
 
 When using the `pytest` key, all arguments are passed directly to the
@@ -99,17 +99,17 @@ When using the `pytest` key, all arguments are passed directly to the
 
 To run documentation tests:
 ```
-docs_2_11/test
+docs/test
 ```
 
-To run the Scala, Python and documentation tests on both Scala 2.11 and Scala 2.12:
+To run the Scala, Python and documentation tests:
 ```
 test
 ```
 
-To run Scala 2.11 tests against the staged Maven artifact with the current stable version:
+To run Scala tests against the staged Maven artifact with the current stable version:
 ```
-stagedRelease_2_11/test
+stagedRelease/test
 ```
 
 ## IntelliJ Tips
