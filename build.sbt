@@ -306,24 +306,31 @@ import ReleaseTransformations._
 // Don't use sbt-release's cross facility	
 releaseCrossBuild := false
 
+def wrapReleaseStep(step: ReleaseStep): Seq[ReleaseStep] = {
+  Seq(
+    releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala211""""),
+    step,
+    releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
+    step
+  )
+}
+
 releaseProcess := Seq[ReleaseStep](
-  checkSnapshotDependencies,
-  inquireVersions,
-  runClean,
-  releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala211""""),
-  runTest,
-  releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
-  runTest,
-  setReleaseVersion,
-  updateStableVersion,
-  commitReleaseVersion,
-  commitStableVersion,
-  tagRelease,
-  publishArtifacts,
-  releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala211""""),
-  releaseStepCommandAndRemaining("stagedRelease/test"),
-  releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
-  releaseStepCommandAndRemaining("stagedRelease/test"),
-  setNextVersion,
-  commitNextVersion
-)
+    checkSnapshotDependencies,
+    inquireVersions,
+    runClean
+  ) ++
+  wrapReleaseStep(runTest) ++
+  Seq(
+    setReleaseVersion,
+    updateStableVersion,
+    commitReleaseVersion,
+    commitStableVersion,
+    tagRelease
+  ) ++
+  wrapReleaseStep(publishArtifacts) ++
+  wrapReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test")) ++
+  Seq(
+    setNextVersion,
+    commitNextVersion
+  )
