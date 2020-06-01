@@ -21,36 +21,57 @@ import org.apache.spark.sql.catalyst.analysis.{TypeCheckResult, UnresolvedExcept
 import org.apache.spark.sql.catalyst.expressions.{Expression, Unevaluable}
 import org.apache.spark.sql.types.{ArrayType, DataType, StructField, StructType}
 
+case class GenotypeInfo(size: Int, requiredFieldIndices: Seq[Int], optionalFieldIndices: Seq[Int])
+
 /**
  * A trait to simplify type checking and reading for expressions that operate on arrays of genotype
  * data with the expectation that certain fields exists.
+ *
+ * Note: This trait introduces complexity during resolution and analysis, and prevents
+ * nested column pruning. Prefer writing new functions as rewrites when possible.
  */
-trait ExpectsGenotypeFields extends Expression {
+@deprecated trait ExpectsGenotypeFields extends Expression {
+  def genotypeInfo: Option[GenotypeInfo]
+  final def getGenotypeInfo: GenotypeInfo = {
+    genotypeInfo.get
+  }
+
+  override lazy val resolved: Boolean = {
+    childrenResolved && genotypeInfo.isDefined
+  }
+
+  protected def withGenotypeInfo(genotypeInfo: GenotypeInfo): Expression
+
+  def resolveGenotypeInfo(): Expression = {
+    val info = GenotypeInfo(genotypeStructSize, requiredFieldIndices, optionalFieldIndices)
+    withGenotypeInfo(info)
+  }
+
   protected def genotypesExpr: Expression
 
-  protected def genotypeFieldsRequired: Seq[StructField]
+  protected def requiredGenotypeFields: Seq[StructField]
 
   protected def optionalGenotypeFields: Seq[StructField] = Seq.empty
 
-  private lazy val gStruct = genotypesExpr
+  private def gStruct = genotypesExpr
     .dataType
     .asInstanceOf[ArrayType]
     .elementType
     .asInstanceOf[StructType]
 
-  protected lazy val genotypeFieldIndices: Seq[Int] = {
-    genotypeFieldsRequired.map { f =>
+  private def requiredFieldIndices: Seq[Int] = {
+    requiredGenotypeFields.map { f =>
       gStruct.indexWhere(SQLUtils.structFieldsEqualExceptNullability(f, _))
     }
   }
 
-  protected lazy val optionalFieldIndices: Seq[Int] = {
+  private def optionalFieldIndices: Seq[Int] = {
     optionalGenotypeFields.map { f =>
       gStruct.indexWhere(SQLUtils.structFieldsEqualExceptNullability(f, _))
     }
   }
 
-  protected lazy val genotypeStructSize: Int = {
+  private def genotypeStructSize: Int = {
     gStruct.length
   }
 
@@ -61,7 +82,7 @@ trait ExpectsGenotypeFields extends Expression {
         return TypeCheckResult.TypeCheckFailure("Genotypes field must be an array of structs")
     }
 
-    val missingFields = genotypeFieldsRequired.zip(genotypeFieldIndices).collect {
+    val missingFields = requiredGenotypeFields.zip(requiredFieldIndices).collect {
       case (f, -1) =>
         f
     }
