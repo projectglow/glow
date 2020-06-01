@@ -115,7 +115,7 @@ stagedRelease/test
 ## IntelliJ Tips
 
 If you use IntelliJ, you'll want to:
-- Delegate running builds to SBT from [IntelliJ])https://www.jetbrains.com/help/idea/sbt-support.html)
+- Download library and SBT sources; use SBT shell for imports and build from [IntelliJ](https://www.jetbrains.com/help/idea/sbt.html)
 - Set up [scalafmt on save](https://scalameta.org/scalafmt/docs/installation.html)
 
 To run Python unit tests from inside IntelliJ, you must:
