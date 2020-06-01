@@ -165,14 +165,4 @@ class SplitMultiallelicsTransformerSuite extends GlowBaseTest with GlowLogging {
     )
 
   }
-
-  test("henry") {
-    import io.projectglow.functions._
-    import org.apache.spark.sql.functions._
-    val vcf = spark.read.format("vcf").load(gatkTestVcf)
-    val split = Glow.transform("split_multiallelics", vcf)
-      split.select(genotype_states(col("genotypes"))).collect()
-//    val gs = GenotypeStates(UnresolvedAttribute("hi"))
-//    println(gs.makeCopy(Array(UnresolvedAttribute("bye"))).productIterator.toList)
-  }
 }
