@@ -15,6 +15,10 @@ Genome-wide Association Study Regression Tests
 Glow contains functions for performing simple regression analyses used in
 genome-wide association studies (GWAS).
 
+.. tip::
+  Glow automatically converts one-dimensional and two-dimensional ``numpy`` ``ndarray`` s of ``double`` s to
+  ``array<double>`` and ``spark.ml`` ``DenseMatrix`` respectively.
+
 .. _linear-regression:
 
 Linear regression
