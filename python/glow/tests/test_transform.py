@@ -35,6 +35,7 @@ def test_arg_map(spark):
     converted = glow.transform("pipe", df, args)
     assert converted.count() == 1075
 
+
 def test_non_string_arg(spark):
     df = spark.read.format("vcf")\
         .load("test-data/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf")
@@ -45,6 +46,7 @@ def test_non_string_arg(spark):
                                cmd=["cat"],
                                in_vcf_header="infer")
     assert converted.count() == 1075
+
 
 def test_non_string_arg_map(spark):
     df = spark.read.format("vcf") \
