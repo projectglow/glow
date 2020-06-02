@@ -29,7 +29,8 @@ class ExpectsGenotypeFieldsSuite extends GlowBaseTest {
   lazy val sess = spark
 
   // This is how we originally detected an issue where ExpectsGenotypeFields succeeds during
-  // resolution but fails during physical planning
+  // resolution but fails during physical planning.
+  // PR: https://github.com/projectglow/glow/pull/224
   test("use genotype_states after splitting multiallelics") {
     val df = spark.read.format("vcf").load(gatkTestVcf)
     val split = Glow.transform("split_multiallelics", df)
