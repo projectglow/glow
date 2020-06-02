@@ -39,7 +39,7 @@ def test_map_normal_eqn(spark):
         lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, labeldf, sample_index),
         normal_eqn_struct, PandasUDFType.GROUPED_MAP)
 
-    outdf = blockdf\
+    outdf = blockdf \
         .groupBy(map_key_pattern) \
         .apply(map_udf) \
         .filter(f'header_block = "{testBlock}" AND sample_block= {testGroup}') \
@@ -84,7 +84,7 @@ def test_reduce_normal_eqn(spark):
     reduce_udf = pandas_udf(lambda key, pdf: reduce_normal_eqn(key, reduce_key_pattern, pdf),
                             normal_eqn_struct, PandasUDFType.GROUPED_MAP)
 
-    mapdf = blockdf\
+    mapdf = blockdf \
         .groupBy(map_key_pattern) \
         .apply(map_udf)
 
@@ -137,7 +137,7 @@ def test_solve_normal_eqn(spark):
         lambda key, pdf: solve_normal_eqn(key, reduce_key_pattern, pdf, labeldf, alphaMap),
         model_struct, PandasUDFType.GROUPED_MAP)
 
-    reducedf = blockdf\
+    reducedf = blockdf \
         .groupBy(map_key_pattern) \
         .apply(map_udf).groupBy(reduce_key_pattern) \
         .apply(reduce_udf)
@@ -199,7 +199,7 @@ def test_apply_model(spark):
         lambda key, pdf: apply_model(key, transform_key_pattern, pdf, labeldf, alphaMap),
         reduced_matrix_struct, PandasUDFType.GROUPED_MAP)
 
-    modeldf = blockdf\
+    modeldf = blockdf \
         .groupBy(map_key_pattern) \
         .apply(map_udf).groupBy(reduce_key_pattern) \
         .apply(reduce_udf).groupBy(map_key_pattern) \
