@@ -30,7 +30,8 @@ case class GenotypeInfo(size: Int, requiredFieldIndices: Seq[Int], optionalField
  * Note: This trait introduces complexity during resolution and analysis, and prevents
  * nested column pruning. Prefer writing new functions as rewrites when possible.
  */
-@deprecated trait ExpectsGenotypeFields extends Expression {
+@deprecated("Write functions as rewrites when possible", "0.4.1")
+trait ExpectsGenotypeFields extends Expression {
   def genotypeInfo: Option[GenotypeInfo]
   final def getGenotypeInfo: GenotypeInfo = {
     genotypeInfo.get
@@ -40,8 +41,18 @@ case class GenotypeInfo(size: Int, requiredFieldIndices: Seq[Int], optionalField
     childrenResolved && genotypeInfo.isDefined
   }
 
+  /**
+   * Make a copy of this expression with [[GenotypeInfo]] filled in.
+   */
   protected def withGenotypeInfo(genotypeInfo: GenotypeInfo): Expression
 
+  /**
+   * Resolve the required field names into positions within the [[genotypesExpr]] element struct.
+   *
+   * This function should only be called after a successful type check.
+   *
+   * @return A new expression with a defined [[GenotypeInfo]]
+   */
   def resolveGenotypeInfo(): Expression = {
     val info = GenotypeInfo(genotypeStructSize, requiredFieldIndices, optionalFieldIndices)
     withGenotypeInfo(info)
