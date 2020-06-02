@@ -24,7 +24,7 @@ import org.apache.spark.sql.catalyst.{InternalRow, ScalaReflection}
 import org.apache.spark.sql.types._
 
 import io.projectglow.common.{GlowLogging, VariantSchemas}
-import io.projectglow.sql.util.{ExpectsGenotypeFields, LeveneHaldane, Rewrite}
+import io.projectglow.sql.util.{ExpectsGenotypeFields, GenotypeInfo, LeveneHaldane, Rewrite}
 
 /**
  * Contains implementations of QC functions. These implementations are called during both
@@ -231,7 +231,11 @@ object VariantQcExprs extends GlowLogging {
   }
 }
 
-case class HardyWeinberg(genotypes: Expression) extends UnaryExpression with ExpectsGenotypeFields {
+case class HardyWeinberg(genotypes: Expression, genotypeInfo: Option[GenotypeInfo])
+    extends UnaryExpression
+    with ExpectsGenotypeFields {
+  def this(genotypes: Expression) = this(genotypes, None)
+
   override def dataType: DataType =
     StructType(
       Seq(
@@ -242,24 +246,34 @@ case class HardyWeinberg(genotypes: Expression) extends UnaryExpression with Exp
 
   override def genotypesExpr: Expression = genotypes
 
-  override def genotypeFieldsRequired: Seq[StructField] = Seq(VariantSchemas.callsField)
+  override def requiredGenotypeFields: Seq[StructField] = Seq(VariantSchemas.callsField)
+
+  override def withGenotypeInfo(genotypeInfo: GenotypeInfo): HardyWeinberg = {
+    copy(genotypeInfo = Some(genotypeInfo))
+  }
 
   override def child: Expression = genotypes
 
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
     val fn = "io.projectglow.sql.expressions.VariantQcExprs.hardyWeinberg"
-    nullSafeCodeGen(ctx, ev, calls => {
-      s"""
-         |${ev.value} = $fn($calls, $genotypeStructSize, ${genotypeFieldIndices.head});
+    nullSafeCodeGen(
+      ctx,
+      ev,
+      calls => {
+        s"""
+         |${ev.value} = $fn($calls, ${getGenotypeInfo.size}, ${getGenotypeInfo
+             .requiredFieldIndices
+             .head});
        """.stripMargin
-    })
+      }
+    )
   }
 
   override def nullSafeEval(input: Any): Any = {
     VariantQcExprs.hardyWeinberg(
       input.asInstanceOf[ArrayData],
-      genotypeStructSize,
-      genotypeFieldIndices.head
+      getGenotypeInfo.size,
+      getGenotypeInfo.requiredFieldIndices.head
     )
   }
 }
@@ -270,29 +284,43 @@ object HardyWeinberg {
 
 case class HardyWeinbergStruct(hetFreqHwe: Double, pValueHwe: Double)
 
-case class CallStats(genotypes: Expression) extends UnaryExpression with ExpectsGenotypeFields {
+case class CallStats(genotypes: Expression, genotypeInfo: Option[GenotypeInfo])
+    extends UnaryExpression
+    with ExpectsGenotypeFields {
+  def this(genotypes: Expression) = this(genotypes, None)
+
   lazy val dataType: DataType = CallStats.schema
 
   override def genotypesExpr: Expression = genotypes
 
-  override def genotypeFieldsRequired: Seq[StructField] = Seq(VariantSchemas.callsField)
+  override def requiredGenotypeFields: Seq[StructField] = Seq(VariantSchemas.callsField)
+
+  override def withGenotypeInfo(genotypeInfo: GenotypeInfo): CallStats = {
+    copy(genotypeInfo = Some(genotypeInfo))
+  }
 
   override def child: Expression = genotypes
 
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
     val fn = "io.projectglow.sql.expressions.VariantQcExprs.callStats"
-    nullSafeCodeGen(ctx, ev, calls => {
-      s"""
-         |${ev.value} = $fn($calls, $genotypeStructSize, ${genotypeFieldIndices.head});
+    nullSafeCodeGen(
+      ctx,
+      ev,
+      calls => {
+        s"""
+         |${ev.value} = $fn($calls, ${getGenotypeInfo.size}, ${getGenotypeInfo
+             .requiredFieldIndices
+             .head});
        """.stripMargin
-    })
+      }
+    )
   }
 
   override def nullSafeEval(input: Any): Any = {
     VariantQcExprs.callStats(
       input.asInstanceOf[ArrayData],
-      genotypeStructSize,
-      genotypeFieldIndices.head
+      getGenotypeInfo.size,
+      getGenotypeInfo.requiredFieldIndices.head
     )
   }
 }
