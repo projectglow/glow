@@ -99,7 +99,7 @@ class DummyTransformer extends DataFrameTransformer {
     }
 
     options.get("pi").foreach { pi =>
-      require(Math.abs(pi.toDouble - Math.PI) < Math.PI * 0.01)
+      require(Math.abs(pi.toDouble - Math.PI) < Math.PI * 0.0001)
     }
 
     df.sparkSession.createDataFrame(animals.map(StringWrapper)).sort()
