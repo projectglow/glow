@@ -21,6 +21,9 @@ import io.projectglow.common.VariantSchemas._
 import io.projectglow.common.{CommonOptions, GlowLogging}
 import io.projectglow.sql.GlowBaseTest
 import org.apache.spark.SparkConf
+import org.apache.spark.sql.catalyst.analysis.UnresolvedAttribute
+
+import io.projectglow.sql.expressions.GenotypeStates
 import io.projectglow.transformers.splitmultiallelics.SplitMultiallelicsTransformer._
 
 class SplitMultiallelicsTransformerSuite extends GlowBaseTest with GlowLogging {
@@ -162,5 +165,4 @@ class SplitMultiallelicsTransformerSuite extends GlowBaseTest with GlowLogging {
     )
 
   }
-
 }
