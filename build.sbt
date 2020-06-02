@@ -19,7 +19,7 @@ def majorMinorVersion(version: String): String = {
   }
 }
 
-ThisBuild / scalaVersion := sys.env.getOrElse("SCALA_VERSION", scala211)
+ThisBuild / scalaVersion := sys.env.getOrElse("SCALA_VERSION", scala212)
 ThisBuild / organization := "io.projectglow"
 ThisBuild / scalastyleConfig := baseDirectory.value / "scalastyle-config.xml"
 ThisBuild / publish / skip := true
@@ -307,7 +307,7 @@ import ReleaseTransformations._
 // Don't use sbt-release's cross facility	
 releaseCrossBuild := false
 
-def wrapReleaseStep(step: ReleaseStep): Seq[ReleaseStep] = {
+def crossReleaseStep(step: ReleaseStep): Seq[ReleaseStep] = {
   Seq(
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala211""""),
     step,
@@ -321,7 +321,7 @@ releaseProcess := Seq[ReleaseStep](
     inquireVersions,
     runClean
   ) ++
-  wrapReleaseStep(runTest) ++
+  crossReleaseStep(runTest) ++
   Seq(
     setReleaseVersion,
     updateStableVersion,
@@ -329,8 +329,8 @@ releaseProcess := Seq[ReleaseStep](
     commitStableVersion,
     tagRelease
   ) ++
-  wrapReleaseStep(publishArtifacts) ++
-  wrapReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test")) ++
+  crossReleaseStep(publishArtifacts) ++
+  crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test")) ++
   Seq(
     setNextVersion,
     commitNextVersion
