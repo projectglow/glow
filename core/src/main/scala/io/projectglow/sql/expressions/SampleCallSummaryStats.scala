@@ -22,7 +22,7 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 import io.projectglow.common.{GlowLogging, VariantSchemas}
-import io.projectglow.sql.util.ExpectsGenotypeFields
+import io.projectglow.sql.util.{ExpectsGenotypeFields, GenotypeInfo}
 import org.apache.spark.SparkEnv
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
@@ -43,6 +43,7 @@ case class CallSummaryStats(
     genotypes: Expression,
     refAllele: Expression,
     altAlleles: Expression,
+    genotypeInfo: Option[GenotypeInfo],
     mutableAggBufferOffset: Int,
     inputAggBufferOffset: Int)
     extends TypedImperativeAggregate[mutable.ArrayBuffer[SampleCallStats]]
@@ -50,17 +51,21 @@ case class CallSummaryStats(
     with GlowLogging {
 
   def this(genotypes: Expression, refAllele: Expression, altAlleles: Expression) = {
-    this(genotypes, refAllele, altAlleles, 0, 0)
+    this(genotypes, refAllele, altAlleles, None, 0, 0)
   }
 
   override def genotypesExpr: Expression = genotypes
 
-  override def genotypeFieldsRequired: Seq[StructField] = {
+  override def requiredGenotypeFields: Seq[StructField] = {
     Seq(VariantSchemas.callsField)
   }
 
   override def optionalGenotypeFields: Seq[StructField] = Seq(VariantSchemas.sampleIdField)
-  private lazy val hasSampleIds = optionalFieldIndices(0) != -1
+
+  override def withGenotypeInfo(genotypeInfo: GenotypeInfo): CallSummaryStats = {
+    copy(genotypeInfo = Some(genotypeInfo))
+  }
+  private lazy val hasSampleIds = getGenotypeInfo.optionalFieldIndices(0) != -1
   override def children: Seq[Expression] = Seq(genotypes, refAllele, altAlleles)
   override def nullable: Boolean = false
 
@@ -116,12 +121,12 @@ case class CallSummaryStats(
     var j = 0
     while (j < genotypesArr.numElements()) {
       val struct = genotypesArr
-        .getStruct(j, genotypeStructSize)
+        .getStruct(j, getGenotypeInfo.size)
 
       // Make sure the buffer has an entry for this sample
       if (j >= buffer.size) {
         val sampleId = if (hasSampleIds) {
-          struct.getUTF8String(optionalFieldIndices(0))
+          struct.getUTF8String(getGenotypeInfo.optionalFieldIndices(0))
         } else {
           null
         }
@@ -130,7 +135,7 @@ case class CallSummaryStats(
 
       val stats = buffer(j)
       val calls = struct
-        .getStruct(genotypeFieldIndices.head, 2)
+        .getStruct(getGenotypeInfo.requiredFieldIndices.head, 2)
         .getArray(0)
       var k = 0
       var isUncalled = false

@@ -25,7 +25,7 @@ import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
 import io.projectglow.common.VariantSchemas
-import io.projectglow.sql.util.ExpectsGenotypeFields
+import io.projectglow.sql.util.{ExpectsGenotypeFields, GenotypeInfo}
 
 /**
  * Implementations of utility functions for transforming variant representations. These
@@ -164,13 +164,19 @@ object VariantType {
  * of the calls array for the sample at that position if no calls are missing, or -1 if any calls
  * are missing.
  */
-case class GenotypeStates(genotypes: Expression)
+case class GenotypeStates(genotypes: Expression, genotypeInfo: Option[GenotypeInfo])
     extends UnaryExpression
     with ExpectsGenotypeFields {
 
+  def this(genotypes: Expression) = this(genotypes, None)
+
   override def genotypesExpr: Expression = genotypes
 
-  override def genotypeFieldsRequired: Seq[StructField] = Seq(VariantSchemas.callsField)
+  override def requiredGenotypeFields: Seq[StructField] = Seq(VariantSchemas.callsField)
+
+  override def withGenotypeInfo(genotypeInfo: GenotypeInfo): GenotypeStates = {
+    copy(genotypes, Some(genotypeInfo))
+  }
 
   override def child: Expression = genotypes
 
@@ -178,18 +184,24 @@ case class GenotypeStates(genotypes: Expression)
 
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
     val fn = "io.projectglow.sql.expressions.VariantUtilExprs.genotypeStates"
-    nullSafeCodeGen(ctx, ev, calls => {
-      s"""
-         |${ev.value} = $fn($calls, $genotypeStructSize, ${genotypeFieldIndices.head});
+    nullSafeCodeGen(
+      ctx,
+      ev,
+      calls => {
+        s"""
+         |${ev.value} = $fn($calls, ${getGenotypeInfo.size}, ${getGenotypeInfo
+             .requiredFieldIndices
+             .head});
        """.stripMargin
-    })
+      }
+    )
   }
 
   override def nullSafeEval(input: Any): Any = {
     VariantUtilExprs.genotypeStates(
       input.asInstanceOf[ArrayData],
-      genotypeStructSize,
-      genotypeFieldIndices.head
+      getGenotypeInfo.size,
+      getGenotypeInfo.requiredFieldIndices.head
     )
   }
 }
