@@ -57,7 +57,6 @@ class GlowBase {
    * @return The transformed DataFrame
    */
   def transform(operationName: String, df: DataFrame, options: Map[String, Any]): DataFrame = {
-    //
     val stringValuedMap = options.mapValues {
       case s: String => s
       case v => mapper.writeValueAsString(v)

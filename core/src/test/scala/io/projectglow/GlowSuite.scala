@@ -85,6 +85,7 @@ class GlowSuite extends GlowBaseTest {
       Glow.transform("dummyTransformer", spark.emptyDataFrame, Map("pi" -> 15.48))
     }
     Glow.transform("dummyTransformer", spark.emptyDataFrame, Map("pi" -> 3.14159))
+    Glow.transform("dummyTransformer", spark.emptyDataFrame, Map("pi" -> "3.14159"))
   }
 }
 
