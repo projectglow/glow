@@ -21,6 +21,13 @@ import org.apache.spark.sql.catalyst.analysis.{TypeCheckResult, UnresolvedExcept
 import org.apache.spark.sql.catalyst.expressions.{Expression, Unevaluable}
 import org.apache.spark.sql.types.{ArrayType, DataType, StructField, StructType}
 
+/**
+ * Stores the indices of required and optional fields within the genotype element struct after
+ * resolution.
+ * @param size The number of fields in the struct
+ * @param requiredFieldIndices The indices of required fields. 0 <= idx < size.
+ * @param optionalFieldIndices The indices of optional fields. -1 if not the field is not present.
+ */
 case class GenotypeInfo(size: Int, requiredFieldIndices: Seq[Int], optionalFieldIndices: Seq[Int])
 
 /**
