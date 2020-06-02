@@ -196,12 +196,20 @@ lazy val pythonSettings = Seq(
   publish / skip := true,
   pytest := {
     val args = spaceDelimited("<arg>").parsed
-    val ret = Process(
-      Seq("pytest") ++ args,
-      None,
+    val baseEnv = Seq(
       "SPARK_CLASSPATH" -> sparkClasspath.value,
       "SPARK_HOME" -> sparkHome.value,
       "PYTHONPATH" -> pythonPath.value
+    )
+    val env = if (majorMinorVersion(sparkVersion) >= "3.0") {
+      baseEnv
+    } else {
+      baseEnv :+ "ARROW_PRE_0_15_IPC_FORMAT" -> "1"
+    }
+    val ret = Process(
+      Seq("pytest") ++ args,
+      None,
+      env: _*
     ).!
     require(ret == 0, "Python tests failed")
   }
