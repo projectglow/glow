@@ -26,4 +26,4 @@ Rscript -e "PhenotypeSimulator::simulatePhenotypes()" \
   --saveTable
 
 The binary phenotypes are created by binarizing the continuous phenotypes such that all phenotypes < 0 are set to 0,
-and those >=0 are set to 1.
+and those >= 0 are set to 1.

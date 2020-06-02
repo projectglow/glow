@@ -44,7 +44,7 @@ Example
     .cache()
 
   # Read covariates from a CSV file and add an intercept
-  covariates = pd.read_csv(continuous_phenotypes_csv, index_col=0)
+  covariates = pd.read_csv(covariates_csv, index_col=0)
   covariates['intercept'] = 1.
 
   # Read phenotypes from a CSV file
@@ -59,9 +59,9 @@ Example
     'names',
     'trait',
     glow.expand_struct(glow.linear_regression_gwas(
-        col('gt'),
-        col('phenotypes'),
-        lit(covariates.to_numpy())
+      col('gt'),
+      col('phenotypes'),
+      lit(covariates.to_numpy())
     ))
   )
 
@@ -72,9 +72,9 @@ Example
      start=16050114,
      names=['rs587755077'],
      trait='Continuous_Trait_1',
-     beta=0.13768008985164235,
-     standardError=0.1780239884225233,
-     pValue=0.43937121582365446
+     beta=0.13672636157787335,
+     standardError=0.1783963733160434,
+     pValue=0.44349953631952943
    )
    assert_rows_equal(lin_reg_df.head(), expected_lin_reg_row)
 
@@ -155,10 +155,10 @@ Example
     'start',
     'names',
     glow.expand_struct(glow.logistic_regression_gwas(
-        col('gt'),
-        lit(binary_phenotype),
-        lit(covariates.to_numpy()),
-        'LRT'
+      col('gt'),
+      lit(binary_phenotype),
+      lit(covariates.to_numpy()),
+      'LRT'
     ))
   )
 
@@ -168,10 +168,10 @@ Example
     'start',
     'names',
     glow.expand_struct(glow.logistic_regression_gwas(
-        col('gt'),
-        lit(binary_phenotype),
-        lit(covariates.to_numpy()),
-        'Firth'
+      col('gt'),
+      lit(binary_phenotype),
+      lit(covariates.to_numpy()),
+      'Firth'
     ))
   )
 
@@ -181,10 +181,10 @@ Example
      contigName='22',
      start=16050114,
      names=['rs587755077'],
-     beta=1.090437825673577,
-     oddsRatio=2.975576571225158,
-     waldConfidenceInterval=[1.20650888812006, 7.338574973136046],
-     pValue=0.009402862417886793
+     beta=0.4655549084480197,
+     oddsRatio=1.5928978561634963,
+     waldConfidenceInterval=[0.7813704896767115, 3.247273366082802],
+     pValue=0.19572327843236637
    )
    assert_rows_equal(lrt_log_reg_df.head(), expected_lrt_log_reg_row)
 
@@ -192,10 +192,10 @@ Example
      contigName='22',
      start=16050114,
      names=['rs587755077'],
-     beta=1.02785127295274,
-     oddsRatio=2.795053570449542,
-     waldConfidenceInterval=[1.1524111551151088, 6.779112148478289],
-     pValue=0.012004144495010194
+     beta=0.45253994775257755,
+     oddsRatio=1.5723006796401617,
+     waldConfidenceInterval=[0.7719062301156017, 3.2026291934794795],
+     pValue=0.20086839802280376
    )
    assert_rows_equal(firth_log_reg_df.head(), expected_firth_log_reg_row)
 
