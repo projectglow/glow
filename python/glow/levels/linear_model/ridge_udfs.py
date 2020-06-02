@@ -1,8 +1,7 @@
+import itertools
 from .functions import *
 import pandas as pd
 from pyspark.sql.types import ArrayType, IntegerType, FloatType, StructType, StructField, StringType, DoubleType
-
-
 '''
 Each function in this module performs a Pandas DataFrame => Pandas DataFrame transformation, and each is intended to be
 used as a Pandas GROUPED_MAP UDF.
@@ -93,25 +92,23 @@ def map_normal_eqn(key, key_pattern, pdf, labeldf, sample_index):
              |    |-- element: double
     """
     header_block, sample_block, label = parse_key(key, key_pattern)
+    sort_in_place(pdf, ['sort_key', 'header'])
     n_rows = pdf['size'][0]
     n_cols = len(pdf)
-    sort_key = pdf['sort_key']
-    header = pdf['header']
-    col_order = [(t[0]) for t in sorted(list(enumerate(zip(sort_key, header))), key = lambda t: (t[1][0], t[1][1]))]
     sample_list = sample_index[sample_block]
-    X = assemble_block(n_rows, n_cols, col_order, pdf)
+    X = assemble_block(n_rows, n_cols, pdf)
     Y = slice_label_rows(labeldf, label, sample_list)
-    XtX = X.T@X
-    XtY = X.T@Y
+    XtX = X.T @ X
+    XtY = X.T @ Y
 
     data = {
-        'header_block' : [header_block]*n_cols,
-        'sample_block' : [sample_block]*n_cols,
-        'label' : [label]*n_cols,
-        'header' : header[col_order].values,
-        'sort_key' : sort_key[col_order].values,
-        'xtx' : XtX.tolist(),
-        'xty' : XtY.tolist()
+        'header_block': header_block,
+        'sample_block': sample_block,
+        'label': label,
+        'header': pdf['header'],
+        'sort_key': pdf['sort_key'],
+        'xtx': list(XtX),
+        'xty': list(XtY)
     }
 
     return pd.DataFrame(data)
@@ -157,18 +154,14 @@ def reduce_normal_eqn(key, key_pattern, pdf):
              |-- xty: array
              |    |-- element: double
     """
+    sum_xtx = pdf['xtx'].sum()
+    sum_xty = pdf['xty'].sum()
 
-    header_block, header, label = parse_key(key, key_pattern)
-    sort_key = pdf['sort_key'][0]
-    n_sample_blocks = len(pdf)
-    sample_blocks = enumerate(pdf['sample_block'])
-    slices = [(g, np.append(np.arange(i), np.arange(i+1, n_sample_blocks))) for i, g in sample_blocks]
-    xtx_stack = np.stack(pdf['xtx'].values)
-    xty_stack = np.stack(pdf['xty'].values)
+    # Use numpy broadcast to subtract each row from the sum
+    pdf['xtx'] = list(sum_xtx - np.vstack(pdf['xtx'].array))
+    pdf['xty'] = list(sum_xty - np.vstack(pdf['xty'].array))
 
-    rows = [[header_block, g, label, header, sort_key, xtx_stack[s, :].sum(axis = 0), xty_stack[s, :].sum(axis = 0)] for g, s in slices]
-
-    return pd.DataFrame(rows, columns = ['header_block', 'sample_block', 'label', 'header', 'sort_key', 'xtx', 'xty'])
+    return pdf
 
 
 def solve_normal_eqn(key, key_pattern, pdf, labeldf, alphas):
@@ -211,22 +204,20 @@ def solve_normal_eqn(key, key_pattern, pdf, labeldf, alphas):
     """
 
     header_block, sample_block, label = parse_key(key, key_pattern)
-    sort_key = pdf['sort_key']
-    header = pdf['header']
-    row_order = [(t[0]) for t in sorted(list(enumerate(zip(sort_key, header))), key = lambda t: (t[1][0], t[1][1]))]
-    alpha_names, alpha_values = zip(*[(k,v) for k, v in sorted(alphas.items(), key = lambda t: t[0])])
-    beta_stack = evaluate_coefficients(pdf, row_order, alpha_values)
-    row_indexer = create_row_indexer(alpha_names, labeldf, label)
-    col_order, alpha_row, label_row = zip(*[(i,a,l) for i,(a,l) in row_indexer])
+    sort_in_place(pdf, ['sort_key', 'header'])
+    alpha_names, alpha_values = zip(*sorted(alphas.items()))
+    beta_stack = evaluate_coefficients(pdf, alpha_values)
+    row_indexer = cross_alphas_and_labels(alpha_names, labeldf, label)
+    alpha_row, label_row = zip(*row_indexer)
     output_length = len(pdf)
     data = {
-        'header_block' : [header_block]*output_length,
-        'sample_block' : [sample_block]*output_length,
-        'header' : header[row_order],
-        'sort_key' : sort_key[row_order],
-        'alphas' : [list(alpha_row)]*output_length,
-        'labels' : [list(label_row)]*output_length,
-        'coefficients' : [r[list(col_order)].tolist() for r in beta_stack]
+        'header_block': header_block,
+        'sample_block': sample_block,
+        'header': pdf['header'],
+        'sort_key': pdf['sort_key'],
+        'alphas': [list(alpha_row)] * output_length,
+        'labels': [list(label_row)] * output_length,
+        'coefficients': list(beta_stack)
     }
 
     return pd.DataFrame(data)
@@ -280,31 +271,30 @@ def apply_model(key, key_pattern, pdf, labeldf, alphas):
     """
 
     header_block, sample_block, label = parse_key(key, key_pattern)
+    sort_in_place(pdf, ['sort_key'])
     n_rows = pdf['size'][0]
     n_cols = len(pdf)
     sort_key = pdf['sort_key']
-    col_order = [(t[0]) for t in sorted(list(enumerate(sort_key)), key = lambda t: t[1])]
-    X = assemble_block(n_rows, n_cols, col_order, pdf)
-    B = np.row_stack(pdf['coefficients'][col_order].values)
-    XB = np.asarray(X@B)
-    mu, sig = XB.mean(axis = 0).tolist(), XB.std(axis = 0).tolist()
-    alpha_names = [k for k, v in sorted(alphas.items(), key = lambda t: t[0])]
-    row_indexer = create_row_indexer(alpha_names, labeldf, label)
-    alpha_col, label_col = zip(*[(a, l) for i, (a, l) in row_indexer])
+    X = assemble_block(n_rows, n_cols, pdf)
+    B = np.row_stack(pdf['coefficients'].array)
+    XB = X @ B
+    mu, sig = XB.mean(axis=0), XB.std(axis=0)
+    alpha_names = sorted(alphas.keys())
+    row_indexer = cross_alphas_and_labels(alpha_names, labeldf, label)
+    alpha_col, label_col = zip(*row_indexer)
     new_header_block, sort_key_col, header_col = new_headers(header_block, alpha_names, row_indexer)
-    n_output_rows = len(row_indexer)
 
     data = {
-        'header' : header_col,
-        'size' : [X.shape[0]]*n_output_rows,
-        'values' : XB.T.tolist(),
-        'header_block' : [new_header_block]*n_output_rows,
-        'sample_block' : [sample_block]*n_output_rows,
-        'sort_key' : sort_key_col,
-        'mu' : mu,
-        'sig' : sig,
-        'alpha' : alpha_col,
-        'label' : label_col
+        'header': header_col,
+        'size': X.shape[0],
+        'values': list(XB.T),
+        'header_block': new_header_block,
+        'sample_block': sample_block,
+        'sort_key': sort_key_col,
+        'mu': mu,
+        'sig': sig,
+        'alpha': alpha_col,
+        'label': label_col
     }
 
     return pd.DataFrame(data)
@@ -351,24 +341,17 @@ def score_models(key, key_pattern, pdf, labeldf, sample_index, alphas):
                  |-- r2: double
     """
     header_block, sample_block, label = parse_key(key, key_pattern)
+    sort_in_place(pdf, ['sort_key'])
     n_rows = pdf['size'][0]
     n_cols = len(pdf)
-    sort_key = pdf['sort_key']
-    col_order = [(t[0]) for t in sorted(list(enumerate(sort_key)), key = lambda t: t[1])]
     sample_list = sample_index[sample_block]
-    X = assemble_block(n_rows, n_cols, col_order, pdf)
-    B = np.row_stack(pdf['coefficients'][col_order].values)
-    XB = np.asarray(X@B)
+    X = assemble_block(n_rows, n_cols, pdf)
+    B = np.row_stack(pdf['coefficients'].array)
+    XB = X @ B
     Y = slice_label_rows(labeldf, label, sample_list)
     scores = r_squared(XB, Y)
-    alpha_names = [k for k, v in sorted(alphas.items(), key = lambda t: t[0])]
-    n_output_rows = len(alpha_names)
+    alpha_names = sorted(alphas.keys())
 
-    data = {
-        'sample_block' : [sample_block]*n_output_rows,
-        'label' : [label]*n_output_rows,
-        'alpha' : alpha_names,
-        'r2' : scores
-    }
+    data = {'sample_block': sample_block, 'label': label, 'alpha': alpha_names, 'r2': scores}
 
     return pd.DataFrame(data)

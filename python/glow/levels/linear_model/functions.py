@@ -1,6 +1,23 @@
 import numpy as np
+import pandas as pd
 from scipy.sparse import csr_matrix
 import itertools
+
+
+def sort_in_place(pdf, columns):
+    """
+    A faster alternative to DataFrame.sort_values. Note that this function is less sophisticated
+    than sort_values and does not allow for control over sort direction or null handling.
+
+    Adapated from https://github.com/pandas-dev/pandas/issues/15389.
+
+    Args:
+        pdf : The pandas DataFrame to sort
+        columns : Columns to sort by
+    """
+    order = np.lexsort([pdf[col].array for col in reversed(columns)])
+    for col in list(pdf.columns):
+        pdf[col].array[:] = pdf[col].array[order]
 
 
 def parse_key(key, key_pattern):
@@ -32,7 +49,7 @@ def parse_key(key, key_pattern):
         return key
 
 
-def assemble_block(n_rows, n_cols, col_order, pdf):
+def assemble_block(n_rows, n_cols, pdf):
     """
     Creates a dense n_rows by n_cols matrix from the array of either sparse or dense vectors in the Pandas DataFrame
     corresponding to a group.  This matrix represents a block.
@@ -46,21 +63,19 @@ def assemble_block(n_rows, n_cols, col_order, pdf):
     Returns:
         Dense n_rows by n_columns matrix where the columns have been 0-centered and standard scaled.
     """
-    mu = pdf['mu'].values
-    sig = pdf['sig'].values
+    mu = pdf['mu'].to_numpy()
+    sig = pdf['sig'].to_numpy()
     if 'indices' not in pdf.columns:
-        X_raw = np.row_stack(pdf['values']).T
+        X_raw = np.row_stack(pdf['values'].array).T
     else:
         X_csr = csr_matrix(
-            (
-                np.concatenate(pdf['values']),
-                (np.concatenate(pdf['indices']), np.concatenate([np.repeat(i, len(v)) for i, v in enumerate(pdf.indices)]))
-            ),
-            shape = (n_rows, n_cols)
-        )
-        X_raw = X_csr.todense()
+            (np.concatenate(pdf['values'].array),
+             (np.concatenate(pdf['indices'].array),
+              np.concatenate([np.repeat(i, len(v)) for i, v in enumerate(pdf.indices.array)]))),
+            shape=(n_rows, n_cols))
+        X_raw = X_csr.todense().A
 
-    return ((X_raw - mu)/sig)[:, col_order]
+    return ((X_raw - mu) / sig)
 
 
 def slice_label_rows(labeldf, label, sample_list):
@@ -77,47 +92,46 @@ def slice_label_rows(labeldf, label, sample_list):
         Matrix of [number of samples in sample_block] x [number of labels to slice]
     """
     if label == 'all':
-        return labeldf.loc[sample_list, :].values
+        return labeldf.loc[sample_list, :].to_numpy()
     else:
-        return labeldf[label].loc[sample_list].values.reshape(-1, 1)
+        return labeldf[label].loc[sample_list].to_numpy().reshape(-1, 1)
 
 
-def evaluate_coefficients(pdf, row_order, alpha_values):
+def evaluate_coefficients(pdf, alpha_values):
     """
     Solves the system (XTX + Ia)^-1 * XtY for each of the a values in alphas.  Returns the resulting coefficients.
 
     Args:
          pdf : Pandas DataFrame for the group
-         row_order : Array of integers representing the intended row ordering of the matrices XtX and XtY
          alpha_values : Array of alpha values (regularization strengths)
 
     Returns:
         Matrix of coefficients of size [number of columns in X] x [number of labels * number of alpha values]
     """
-    XtX = np.stack(pdf['xtx'].values)[row_order]
-    XtY = np.stack(pdf['xty'].values)[row_order]
-    return np.column_stack([(np.linalg.inv(XtX + np.identity(XtX.shape[1])*a)@XtY) for a in alpha_values])
+    XtX = np.stack(pdf['xtx'].array)
+    XtY = np.stack(pdf['xty'].array)
+    return np.column_stack(
+        [(np.linalg.inv(XtX + np.identity(XtX.shape[1]) * a) @ XtY) for a in alpha_values])
 
 
-def create_row_indexer(alpha_names, labeldf, label):
+def cross_alphas_and_labels(alpha_names, labeldf, label):
     """
-    Creates an array of tuples used to keep the ordering of the coefficients in the output of evaluate_coefficients in
-    a consistent order regardless of the order in which the alpha values and labels were provided.
+    Crosses all label and alpha names. The output tuples appear in the same order as the output of
+    evaluate_coefficients.
 
     Args:
         alpha_names : List of string identifiers assigned to the values of alpha
         labeldf : Pandas DataFrame of labels
         label : Label used for this set of coefficients.  Can be 'all' if all labels were used.
     Returns:
-        List of tuples of the form (i,(a, l)) where i is the column index in the matrix of coefficients, a is an alpha
-        name, and l is a label name, sorted by label name, then alpha.
+        List of tuples of the form (alpha_name, label_name)
     """
     if label == 'all':
         label_names = labeldf.columns
     else:
         label_names = [label]
 
-    return sorted(enumerate(itertools.product(alpha_names, label_names)), key = lambda t: (t[1][1], t[1][0]))
+    return list(itertools.product(alpha_names, label_names))
 
 
 def new_headers(header_block, alpha_names, row_indexer):
@@ -149,8 +163,8 @@ def new_headers(header_block, alpha_names, row_indexer):
         new_header_block = f'chr_{outer_index}'
 
     sort_keys, headers = [], []
-    for i, (a, l) in row_indexer:
-        sort_key = int(inner_index)*len(alpha_names) + int(a.split('_')[1])
+    for a, l in row_indexer:
+        sort_key = int(inner_index) * len(alpha_names) + int(a.split('_')[1])
         header = f'{new_header_block}_block_{inner_index}_{a}_label_{l}'
         sort_keys.append(sort_key)
         headers.append(header)
@@ -172,5 +186,5 @@ def r_squared(XB, Y):
         Array of [number of alphas * number of labels]
     """
     tot = np.power(Y - Y.mean(), 2).sum()
-    res = np.power(Y - XB, 2).sum(axis = 0)
-    return 1 - (res/tot)
+    res = np.power(Y - XB, 2).sum(axis=0)
+    return 1 - (res / tot)

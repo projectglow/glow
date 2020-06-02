@@ -87,7 +87,6 @@ jobs:
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export ARROW_PRE_0_15_IPC_FORMAT=1
             export SCALA_VERSION="2.11.12"
             sbt coverage core/test coverageReport exit
       - run:
@@ -96,7 +95,6 @@ jobs:
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export ARROW_PRE_0_15_IPC_FORMAT=1
             export SCALA_VERSION="2.11.12"
             sbt python/test exit
       - run:
@@ -140,7 +138,6 @@ jobs:
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export ARROW_PRE_0_15_IPC_FORMAT=1
             export SCALA_VERSION="2.12.8"
             sbt python/test exit
       - run:
@@ -148,7 +145,6 @@ jobs:
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export ARROW_PRE_0_15_IPC_FORMAT=1
             export SCALA_VERSION="2.12.8"
             sbt docs/test exit
       - *check_clean_repo
