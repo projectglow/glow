@@ -22,16 +22,16 @@ import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 
 import org.apache.spark.SparkEnv
-import org.apache.spark.sql.{AnalysisException, SQLUtils}
+import org.apache.spark.sql.SQLUtils
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.{Expression, GenericInternalRow, Literal, UnaryExpression, Unevaluable}
-import org.apache.spark.sql.catalyst.expressions.aggregate.{ImperativeAggregate, TypedImperativeAggregate}
-import org.apache.spark.sql.catalyst.util.{ArrayBasedMapData, ArrayData, GenericArrayData}
+import org.apache.spark.sql.catalyst.expressions.aggregate.TypedImperativeAggregate
+import org.apache.spark.sql.catalyst.expressions.{Expression, GenericInternalRow, Literal}
+import org.apache.spark.sql.catalyst.util.{ArrayData, GenericArrayData}
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
 import io.projectglow.common.{GlowLogging, VariantSchemas}
-import io.projectglow.sql.util.{ExpectsGenotypeFields, Rewrite}
+import io.projectglow.sql.util.{ExpectsGenotypeFields, GenotypeInfo, Rewrite}
 
 case class SampleSummaryStatsState(var sampleId: String, var momentAggState: MomentAggState) {
   def this() = this(null, null) // need 0-arg constructor for serialization
@@ -48,6 +48,7 @@ case class SampleSummaryStatsState(var sampleId: String, var momentAggState: Mom
 case class PerSampleSummaryStatistics(
     genotypes: Expression,
     field: Expression,
+    genotypeInfo: Option[GenotypeInfo] = None,
     mutableAggBufferOffset: Int = 0,
     inputAggBufferOffset: Int = 0)
     extends TypedImperativeAggregate[mutable.ArrayBuffer[SampleSummaryStatsState]]
@@ -66,7 +67,7 @@ case class PerSampleSummaryStatistics(
     }
 
   override def genotypesExpr: Expression = genotypes
-  override def genotypeFieldsRequired: Seq[StructField] = {
+  override def requiredGenotypeFields: Seq[StructField] = {
     if (!field.foldable || field.dataType != StringType) {
       throw SQLUtils.newAnalysisException("Field must be foldable string")
     }
@@ -81,7 +82,11 @@ case class PerSampleSummaryStatistics(
   }
 
   override def optionalGenotypeFields: Seq[StructField] = Seq(VariantSchemas.sampleIdField)
-  private lazy val hasSampleIds = optionalFieldIndices(0) != -1
+
+  override def withGenotypeInfo(genotypeInfo: GenotypeInfo): PerSampleSummaryStatistics = {
+    copy(genotypeInfo = Some(genotypeInfo))
+  }
+  private lazy val hasSampleIds = getGenotypeInfo.optionalFieldIndices(0) != -1
 
   override def createAggregationBuffer(): ArrayBuffer[SampleSummaryStatsState] = {
     mutable.ArrayBuffer[SampleSummaryStatsState]()
@@ -100,22 +105,22 @@ case class PerSampleSummaryStatistics(
   }
 
   private lazy val updateStateFn: (MomentAggState, InternalRow) => Unit = {
-    genotypeFieldsRequired.head.dataType match {
+    requiredGenotypeFields.head.dataType match {
       case FloatType =>
         (state, genotype) => {
-          state.update(genotype.getFloat(genotypeFieldIndices(0)))
+          state.update(genotype.getFloat(getGenotypeInfo.requiredFieldIndices(0)))
         }
       case DoubleType =>
         (state, genotype) => {
-          state.update(genotype.getDouble(genotypeFieldIndices(0)))
+          state.update(genotype.getDouble(getGenotypeInfo.requiredFieldIndices(0)))
         }
       case IntegerType =>
         (state, genotype) => {
-          state.update(genotype.getInt(genotypeFieldIndices(0)))
+          state.update(genotype.getInt(getGenotypeInfo.requiredFieldIndices(0)))
         }
       case LongType =>
         (state, genotype) => {
-          state.update(genotype.getLong(genotypeFieldIndices(0)))
+          state.update(genotype.getLong(getGenotypeInfo.requiredFieldIndices(0)))
         }
     }
   }
@@ -132,17 +137,17 @@ case class PerSampleSummaryStatistics(
       if (i >= buffer.size) {
         val sampleId = if (hasSampleIds) {
           genotypesArray
-            .getStruct(buffer.size, genotypeStructSize)
-            .getString(optionalFieldIndices(0))
+            .getStruct(buffer.size, getGenotypeInfo.size)
+            .getString(getGenotypeInfo.optionalFieldIndices(0))
         } else {
           null
         }
         buffer.append(SampleSummaryStatsState(sampleId, MomentAggState()))
       }
 
-      val struct = genotypesArray.getStruct(i, genotypeStructSize)
-      if (!struct.isNullAt(genotypeFieldIndices(0))) {
-        updateStateFn(buffer(i).momentAggState, genotypesArray.getStruct(i, genotypeStructSize))
+      val struct = genotypesArray.getStruct(i, getGenotypeInfo.size)
+      if (!struct.isNullAt(getGenotypeInfo.requiredFieldIndices(0))) {
+        updateStateFn(buffer(i).momentAggState, genotypesArray.getStruct(i, getGenotypeInfo.size))
       }
       i += 1
     }

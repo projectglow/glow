@@ -16,14 +16,14 @@
 
 package io.projectglow.sql.optimizer
 
-import org.apache.spark.sql.catalyst.analysis.UnresolvedAlias
+import org.apache.spark.sql.catalyst.analysis.{TypeCheckResult, UnresolvedAlias}
 import org.apache.spark.sql.catalyst.expressions.{Alias, Expression, NamedExpression}
 import org.apache.spark.sql.catalyst.plans.logical.{Aggregate, LogicalPlan, Project}
 import org.apache.spark.sql.catalyst.rules.Rule
 
 import io.projectglow.common.GlowLogging
 import io.projectglow.sql.expressions._
-import io.projectglow.sql.util.RewriteAfterResolution
+import io.projectglow.sql.util.{ExpectsGenotypeFields, RewriteAfterResolution}
 
 /**
  * Simple optimization rule that handles expression rewrites
@@ -84,5 +84,19 @@ object ResolveExpandStructRule extends Rule[LogicalPlan] {
       case e: ExpandStruct => e.expand()
       case e => Seq(e)
     }
+  }
+}
+
+/**
+ * Resolve required genotype fields to their indices within the child expression. Performing
+ * this resolution explicitly guards against expressions like [[org.apache.spark.sql.catalyst.expressions.ArraysZip]]
+ * that can lose field names during physical planning.
+ */
+object ResolveGenotypeFields extends Rule[LogicalPlan] {
+  override def apply(plan: LogicalPlan): LogicalPlan = plan.transformAllExpressions {
+    case e: ExpectsGenotypeFields
+        if !e.resolved && e.childrenResolved && e
+          .checkInputDataTypes() == TypeCheckResult.TypeCheckSuccess =>
+      e.resolveGenotypeInfo()
   }
 }
