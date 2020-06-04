@@ -52,19 +52,20 @@ Example
   covariates['intercept'] = 1.
 
   # Read phenotypes from a CSV file
-  continuous_phenotypes = pd.read_csv(continuous_phenotypes_csv, index_col=0)
-  continuous_phenotypes_rows = [Row(trait=index, phenotypes=data.to_numpy().tolist()) for index, data in continuous_phenotypes.iteritems()]
-  continuous_phenotypes_df = spark.createDataFrame(continuous_phenotypes_rows)
+  pd_phenotypes = pd.read_csv(continuous_phenotypes_csv, index_col=0).T
+  pd_phenotypes['pt'] = pd_phenotypes.values.tolist()
+  pd_phenotypes['trait'] = pd_phenotypes.index
+  phenotypes = spark.createDataFrame(pd_phenotypes[['trait', 'pt']])
 
   # Run linear regression test
-  lin_reg_df = genotypes.crossJoin(continuous_phenotypes_df).select(
+  lin_reg_df = genotypes.crossJoin(phenotypes).select(
     'contigName',
     'start',
     'names',
     'trait',
     glow.expand_struct(glow.linear_regression_gwas(
       col('gt'),
-      col('phenotypes'),
+      col('pt'),
       lit(covariates.to_numpy())
     ))
   )
@@ -150,8 +151,8 @@ Example
 .. code-block:: python
 
   # Read a single phenotype from a CSV file
-  binary_trait = 'Binary_Trait_1'
-  binary_phenotype = np.hstack(pd.read_csv(binary_phenotypes_csv, index_col=0)[[binary_trait]].to_numpy()).astype('double')
+  trait = 'Binary_Trait_1'
+  phenotype = np.hstack(pd.read_csv(binary_phenotypes_csv, index_col=0)[[trait]].to_numpy()).astype('double')
 
   # Likelihood ratio test
   lrt_log_reg_df = genotypes.select(
@@ -160,7 +161,7 @@ Example
     'names',
     glow.expand_struct(glow.logistic_regression_gwas(
       col('gt'),
-      lit(binary_phenotype),
+      lit(phenotype),
       lit(covariates.to_numpy()),
       'LRT'
     ))
@@ -173,7 +174,7 @@ Example
     'names',
     glow.expand_struct(glow.logistic_regression_gwas(
       col('gt'),
-      lit(binary_phenotype),
+      lit(phenotype),
       lit(covariates.to_numpy()),
       'Firth'
     ))
