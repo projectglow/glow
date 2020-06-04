@@ -1,6 +1,6 @@
-# Minimal setup.py for PySpark
-
+# Minimal setup.py for PySpark for Python and docs testing
 from setuptools import setup
+import sys
 
 try:
     exec(open('pyspark/version.py').read())
