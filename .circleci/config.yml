@@ -18,7 +18,7 @@ install_conda_deps: &install_conda_deps
 
 
 install_pyspark3: &install_pyspark3
-  run: # Evict PySpark 2.4.3 in favor of PySpark 3.0.0
+  run: # Evict PySpark 2.4.3 in favor of PySpark 3.0
     name: Install PySpark 3
     command: |
       export PATH=$HOME/conda/bin:$PATH
