@@ -29,7 +29,7 @@ install_pyspark3: &install_pyspark3
       mv setup.py old-setup.py
       cp ~/glow/python/spark-setup.py setup.py
       python setup.py sdist
-      pip install dist/pyspark-3.0.0.*.tar.gz
+      pip install dist/pyspark-3.0.*.tar.gz
 
 check_clean_repo: &check_clean_repo
   run:
