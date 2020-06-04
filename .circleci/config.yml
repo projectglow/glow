@@ -23,8 +23,8 @@ install_pyspark3: &install_pyspark3
     command: |
       export PATH=$HOME/conda/bin:$PATH
       source activate glow
-      conda remove -y pyspark https://github.com/apache/spark.git
-      git clone --depth 1 --branch branch-3.0
+      conda remove -y pyspark
+      git clone --depth 1 --branch branch-3.0 https://github.com/apache/spark.git
       cd spark/python
       mv setup.py old-setup.py
       cp ~/glow/python/spark-setup.py setup.py
