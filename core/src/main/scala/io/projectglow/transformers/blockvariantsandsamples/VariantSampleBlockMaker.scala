@@ -32,7 +32,7 @@ private[projectglow] object VariantSampleBlockMaker extends GlowLogging {
       variantsPerBlock: Int,
       sampleBlockCount: Int): DataFrame = {
     val windowSpec = Window
-      .partitionBy(contigNameField.name)
+      .partitionBy(contigNameField.name, sampleBlockIdField.name)
       .orderBy(startField.name, refAlleleField.name, alternateAllelesField.name)
 
     variantDf
@@ -48,16 +48,6 @@ private[projectglow] object VariantSampleBlockMaker extends GlowLogging {
           col(startField.name),
           col(refAlleleField.name),
           col(alternateAllelesField.name)
-        )
-      )
-      .withColumn(
-        headerBlockIdField.name,
-        concat_ws(
-          "_",
-          lit("chr"),
-          col(contigNameField.name),
-          lit("block"),
-          ((row_number().over(windowSpec) - 1) / variantsPerBlock).cast(IntegerType)
         )
       )
       .withColumn(
@@ -79,6 +69,10 @@ private[projectglow] object VariantSampleBlockMaker extends GlowLogging {
         col("stats.stdDev")
       )
       .withColumn(
+        "fractionalSampleBlockSize",
+        size(col(valuesField.name)) / sampleBlockCount
+      )
+      .withColumn(
         sampleBlockIdField.name,
         explode(
           sequence(
@@ -86,10 +80,6 @@ private[projectglow] object VariantSampleBlockMaker extends GlowLogging {
             lit(sampleBlockCount)
           ).cast(ArrayType(StringType))
         )
-      )
-      .withColumn(
-        "fractionalSampleBlockSize",
-        size(col(valuesField.name)) / sampleBlockCount
       )
       .withColumn(
         valuesField.name,
@@ -104,6 +94,16 @@ private[projectglow] object VariantSampleBlockMaker extends GlowLogging {
       .withColumn(
         sizeField.name,
         size(col(valuesField.name))
+      )
+      .withColumn(
+        headerBlockIdField.name,
+        concat_ws(
+          "_",
+          lit("chr"),
+          col(contigNameField.name),
+          lit("block"),
+          ((row_number().over(windowSpec) - 1) / variantsPerBlock).cast(IntegerType)
+        )
       )
       .select(
         col(headerField.name),

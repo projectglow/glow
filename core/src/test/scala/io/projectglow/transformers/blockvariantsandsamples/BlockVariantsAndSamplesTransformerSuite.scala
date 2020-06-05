@@ -71,6 +71,11 @@ class BlockVariantsAndSamplesTransformerSuite extends GlowBaseTest with GlowLogg
         dfOriginal,
         options
       )
+      .orderBy(
+        headerField.name,
+        headerBlockIdField.name,
+        sampleBlockIdField.name
+      )
 
     val dfExpected = spark
       .read
