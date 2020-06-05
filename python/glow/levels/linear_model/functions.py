@@ -1,5 +1,4 @@
 import numpy as np
-import pandas as pd
 from scipy.sparse import csr_matrix
 import itertools
 
@@ -9,7 +8,7 @@ def sort_in_place(pdf, columns):
     A faster alternative to DataFrame.sort_values. Note that this function is less sophisticated
     than sort_values and does not allow for control over sort direction or null handling.
 
-    Adapated from https://github.com/pandas-dev/pandas/issues/15389.
+    Adapted from https://github.com/pandas-dev/pandas/issues/15389.
 
     Args:
         pdf : The pandas DataFrame to sort
@@ -25,8 +24,7 @@ def parse_key(key, key_pattern):
     Interprets the key corresponding to a group from a groupBy clause.  The key may be of the form:
         (header_block, sample_block),
         (header_block, sample_block, label),
-        (header_block, header),
-        (header_block, header, label),
+        (sample_block),
         (sample_block, label)
     depending on the context.  In each case, a tuple with 3 members is returned, with the missing member filled in by
     'all' where necessary
@@ -36,15 +34,17 @@ def parse_key(key, key_pattern):
         key_pattern : one of the aforementioned key patterns
 
     Returns:
-        tuple of (header_block, sample_block, label) or (header_block, header, label), where header_block or label may be filled with 'all'
-        depending on context.
+        tuple of (header_block, sample_block, label), where header_block or label may be filled with 'all' depending on
+        context.
     """
     if key_pattern == ['header_block', 'sample_block']:
         return key[0], key[1], 'all'
-    elif key_pattern == ['header_block', 'header']:
-        return key[0], key[1], 'all'
+    elif key_pattern == ['sample_block']:
+        return 'all', key[0], 'all'
     elif key_pattern == ['sample_block', 'label']:
         return 'all', key[0], key[1]
+    elif len(key) != 3:
+        raise ValueError(f'Key must have 3 values, pattern is {key_pattern}')
     else:
         return key
 
@@ -57,7 +57,6 @@ def assemble_block(n_rows, n_cols, pdf):
     Args:
          n_rows : The number of rows in the resulting matrix
          n_cols : The number of columns in the resulting matrix
-         col_order : Array of integers representing the desired ordering of the columns in the output matrix
          pdf : Pandas DataFrame corresponding to a group
 
     Returns:
@@ -75,7 +74,7 @@ def assemble_block(n_rows, n_cols, pdf):
             shape=(n_rows, n_cols))
         X_raw = X_csr.todense().A
 
-    return ((X_raw - mu) / sig)
+    return (X_raw - mu) / sig
 
 
 def slice_label_rows(labeldf, label, sample_list):
@@ -83,10 +82,9 @@ def slice_label_rows(labeldf, label, sample_list):
     Selects rows from the Pandas DataFrame of labels corresponding to the samples in a particular sample_block.
 
     Args:
-        pdf : Pandas DataFrame for the group
         labeldf : Pandas DataFrame containing the labels
         label : Header for the particular label to slice.  Can be 'all' if all labels are desired.
-        sample_list : List of sample ids corresponding to the sampleBlock to be sliced out.
+        sample_list : List of sample ids corresponding to the sample_block to be sliced out.
 
     Returns:
         Matrix of [number of samples in sample_block] x [number of labels to slice]
@@ -140,27 +138,27 @@ def new_headers(header_block, alpha_names, row_indexer):
     "block_[header_block_number]_alpha_[alpha_name]_label_[label_name]"
 
     Args:
-        header_block : Identifier for a header_block (e.g., 'chr1_block_0')
+        header_block : Identifier for a header_block (e.g., 'chr_1_block_0')
         alpha_names : List of string identifiers for alpha parameters
         row_indexer : A list of tuples provided by the create_row_indexer function
 
     Returns:
-        new_header_block : A new header_block name, typically the chromosome (e.g. chr1), but might be 'all' if there are no more levels to
-        reduce over.
+        new_header_block : A new header_block name, typically the chromosome (e.g. chr_1), but might be 'all' if
+        there are no more levels to reduce over.
         sort_keys : Array of sortable integers to specify the ordering of the new matrix headers.
         headers : List of new matrix headers.
     """
     tokens = header_block.split('_')
 
     if len(tokens) == 2:
-        outer_index, inner_index = 'all', tokens[1]
-        new_header_block = f'{outer_index}'
+        inner_index = tokens[1]
+        new_header_block = 'all'
     elif len(tokens) == 1:
-        outer_index, inner_index = 'all', 0
-        new_header_block = f'{outer_index}'
+        inner_index = 0
+        new_header_block = 'all'
     else:
-        outer_index, inner_index = tokens[1:4:2]
-        new_header_block = f'chr_{outer_index}'
+        inner_index = tokens[3]
+        new_header_block = f'chr_{tokens[1]}'
 
     sort_keys, headers = [], []
     for a, l in row_indexer:

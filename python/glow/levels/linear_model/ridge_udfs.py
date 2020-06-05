@@ -77,6 +77,7 @@ def map_normal_eqn(key, key_pattern, pdf, labeldf, sample_index):
              |-- alpha: double (Required only if the header is tied to a specific value of alpha)
              |-- label: double (Required only if the header is tied to a specific label)
         labeldf : Pandas DataFrame containing label values (i. e., the Y in the normal equation above).
+        sample_index: dict containing a mapping of sample_block ID to a list of corresponding sample IDs
 
     Returns:
         transformed Pandas DataFrame containing XtX and XtY corresponding to a particular block X.
@@ -114,7 +115,7 @@ def map_normal_eqn(key, key_pattern, pdf, labeldf, sample_index):
     return pd.DataFrame(data)
 
 
-def reduce_normal_eqn(key, key_pattern, pdf):
+def reduce_normal_eqn(pdf):
     """
     This function constructs lists of rows from the XtX and XtY matrices corresponding to a particular header in X but
     evaluated in different sample_blocks, and then reduces those lists by element-wise summation.  This reduction is
@@ -127,8 +128,6 @@ def reduce_normal_eqn(key, key_pattern, pdf):
             List(xtx_sum_excluding_sample_block0, xtx_sum_excluding_sample_block1, ..., xtx_sum_excluding_sample_blockN)
 
     Args:
-        key : unique key identifying the rows emitted by a groupBy statement
-        key_pattern : pattern of columns used in the groupBy statement
         pdf : starting Pandas DataFrame containing the lists of rows from XtX and XtY for block X identified by :key:
             schema (specified by the normal_eqn_struct):
              |-- header_block: string
@@ -231,7 +230,7 @@ def apply_model(key, key_pattern, pdf, labeldf, alphas):
     Args:
         key : unique key identifying the group of rows emitted by a groupBy statement
         key_pattern : pattern of columns used in the groupBy statement that emitted this group of rows
-        pdf : starting Pandas DataFrame containing the lists of rows used to assemble block X and coeffients B
+        pdf : starting Pandas DataFrame containing the lists of rows used to assemble block X and coefficients B
             identified by :key:
             schema:
                  |-- header_block: string
@@ -274,7 +273,6 @@ def apply_model(key, key_pattern, pdf, labeldf, alphas):
     sort_in_place(pdf, ['sort_key'])
     n_rows = pdf['size'][0]
     n_cols = len(pdf)
-    sort_key = pdf['sort_key']
     X = assemble_block(n_rows, n_cols, pdf)
     B = np.row_stack(pdf['coefficients'].array)
     XB = X @ B
@@ -330,6 +328,7 @@ def score_models(key, key_pattern, pdf, labeldf, sample_index, alphas):
                  |-- coefficients: array
                  |    |-- element: double
         labeldf : Pandas DataFrame containing label values that were used in fitting coefficient matrix B.
+        sample_index: dict containing a mapping of sample_block ID to a list of corresponding sample IDs
         alphas : dict of {alphaName : alphaValue} for the alpha values that were used when fitting coefficient matrix B
 
     Returns:
@@ -344,10 +343,10 @@ def score_models(key, key_pattern, pdf, labeldf, sample_index, alphas):
     sort_in_place(pdf, ['sort_key'])
     n_rows = pdf['size'][0]
     n_cols = len(pdf)
-    sample_list = sample_index[sample_block]
     X = assemble_block(n_rows, n_cols, pdf)
     B = np.row_stack(pdf['coefficients'].array)
     XB = X @ B
+    sample_list = sample_index[sample_block]
     Y = slice_label_rows(labeldf, label, sample_list)
     scores = r_squared(XB, Y)
     alpha_names = sorted(alphas.keys())
