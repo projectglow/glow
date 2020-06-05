@@ -20,6 +20,8 @@ import java.util.ServiceLoader
 
 import scala.collection.JavaConverters._
 
+import com.fasterxml.jackson.databind.ObjectMapper
+import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.apache.spark.sql.{DataFrame, SQLUtils, SparkSession}
 
 import io.projectglow.common.Named
@@ -34,6 +36,9 @@ import io.projectglow.transformers.util.{SnakeCaseMap, StringUtils}
  * generic methods with stringly-typed arguments to reduce language-specific maintenance burden.
  */
 class GlowBase {
+
+  val mapper = new ObjectMapper()
+  mapper.registerModule(DefaultScalaModule)
 
   def register(spark: SparkSession): Unit = {
     new GlowSQLExtensions().apply(SQLUtils.getSessionExtensions(spark))
@@ -51,15 +56,19 @@ class GlowBase {
    *
    * @return The transformed DataFrame
    */
-  def transform(operationName: String, df: DataFrame, options: Map[String, String]): DataFrame = {
+  def transform(operationName: String, df: DataFrame, options: Map[String, Any]): DataFrame = {
+    val stringValuedMap = options.mapValues {
+      case s: String => s
+      case v => mapper.writeValueAsString(v)
+    }.map(identity) // output of mapValues is not serializable: https://github.com/scala/bug/issues/7005
     lookupTransformer(operationName) match {
-      case Some(transformer) => transformer.transform(df, new SnakeCaseMap(options))
+      case Some(transformer) => transformer.transform(df, new SnakeCaseMap(stringValuedMap))
       case None =>
         throw new IllegalArgumentException(s"No transformer with name $operationName")
     }
   }
 
-  def transform(operationName: String, df: DataFrame, options: (String, String)*): DataFrame = {
+  def transform(operationName: String, df: DataFrame, options: (String, Any)*): DataFrame = {
     transform(operationName, df, options.toMap)
   }
 
