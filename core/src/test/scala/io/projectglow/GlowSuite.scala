@@ -72,6 +72,21 @@ class GlowSuite extends GlowBaseTest {
         ("snake_animal", "snake"))
     checkTransform(df)
   }
+
+  test("accept non-string values") {
+    intercept[IllegalArgumentException] {
+      Glow.transform("dummyTransformer", spark.emptyDataFrame, Map("must_be_true" -> false))
+    }
+    Glow.transform("dummyTransformer", spark.emptyDataFrame, Map("must_be_true" -> true))
+  }
+
+  test("float arguments") {
+    intercept[IllegalArgumentException] {
+      Glow.transform("dummyTransformer", spark.emptyDataFrame, Map("pi" -> 15.48))
+    }
+    Glow.transform("dummyTransformer", spark.emptyDataFrame, Map("pi" -> 3.14159))
+    Glow.transform("dummyTransformer", spark.emptyDataFrame, Map("pi" -> "3.14159"))
+  }
 }
 
 class DummyTransformer extends DataFrameTransformer {
@@ -79,6 +94,14 @@ class DummyTransformer extends DataFrameTransformer {
 
   override def transform(df: DataFrame, options: Map[String, String]): DataFrame = {
     val animals = Seq(options.get("camel_animal"), options.get("snake_animal")).flatten
+    if (!options.get("must_be_true").forall(_.toBoolean)) {
+      throw new IllegalArgumentException("if provided, this arg must be true")
+    }
+
+    options.get("pi").foreach { pi =>
+      require(Math.abs(pi.toDouble - Math.PI) < Math.PI * 0.0001)
+    }
+
     df.sparkSession.createDataFrame(animals.map(StringWrapper)).sort()
   }
 }
