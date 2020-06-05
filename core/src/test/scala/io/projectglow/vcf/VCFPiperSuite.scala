@@ -313,6 +313,19 @@ class VCFPiperSuite extends VCFConverterBaseTest {
     assert(e.getCause.isInstanceOf[IllegalArgumentException])
     assert(e.getCause.getMessage.contains("Could not build variant context: Contig cannot be null"))
   }
+
+  test("pass command as a Seq") {
+    val inputDf = readVcf(TGP)
+    val options = Map(
+      "inputFormatter" -> "vcf",
+      "outputFormatter" -> "vcf",
+      "inVcfHeader" -> "infer",
+      "cmd" -> Seq("cat", "-u", "-s"))
+    val outputDf = Glow.transform("pipe", inputDf, options)
+    val inputRows = inputDf.collect().toSeq
+    val outputRows = outputDf.collect().toSeq
+    assert(inputRows == outputRows)
+  }
 }
 
 case class SimpleVcfRow(contigName: String, start: Long, genotypes: Seq[SimpleGenotype])
