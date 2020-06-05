@@ -36,7 +36,7 @@ class RidgeReducer:
 
         sample_index = {r.sample_block: r.sample_ids for r in indexdf.collect()}
         map_key_pattern = ['header_block', 'sample_block']
-        reduce_key_pattern = ['header_block', 'header']
+        reduce_key_pattern = ['header']
 
         if 'label' in blockdf.columns:
             map_key_pattern.append('label')
@@ -45,13 +45,13 @@ class RidgeReducer:
         map_udf = pandas_udf(
             lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, labeldf, sample_index),
             normal_eqn_struct, PandasUDFType.GROUPED_MAP)
-        reduce_udf = pandas_udf(lambda key, pdf: reduce_normal_eqn(key, reduce_key_pattern, pdf),
-                                normal_eqn_struct, PandasUDFType.GROUPED_MAP)
+        reduce_udf = pandas_udf(lambda key, pdf: reduce_normal_eqn(pdf), normal_eqn_struct,
+                                PandasUDFType.GROUPED_MAP)
         model_udf = pandas_udf(
             lambda key, pdf: solve_normal_eqn(key, map_key_pattern, pdf, labeldf, self.alphas),
             model_struct, PandasUDFType.GROUPED_MAP)
 
-        return blockdf\
+        return blockdf \
             .groupBy(map_key_pattern) \
             .apply(map_udf) \
             .groupBy(reduce_key_pattern) \
@@ -101,7 +101,7 @@ class RidgeRegression:
         RidgeRegression is initialized with a list of alpha values.
 
         Args:
-            alphas : array_like of alpha values used in the ridge reduction
+            alphas : array_like of alpha values used in the ridge regression
         """
         self.alphas = {f'alpha_{i}': a for i, a in enumerate(alphas)}
 
@@ -123,7 +123,7 @@ class RidgeRegression:
 
         sample_index = {r.sample_block: r.sample_ids for r in indexdf.collect()}
         map_key_pattern = ['sample_block']
-        reduce_key_pattern = ['header_block', 'header']
+        reduce_key_pattern = ['header']
 
         if 'label' in blockdf.columns:
             map_key_pattern.append('label')
@@ -132,8 +132,8 @@ class RidgeRegression:
         map_udf = pandas_udf(
             lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, labeldf, sample_index),
             normal_eqn_struct, PandasUDFType.GROUPED_MAP)
-        reduce_udf = pandas_udf(lambda key, pdf: reduce_normal_eqn(key, reduce_key_pattern, pdf),
-                                normal_eqn_struct, PandasUDFType.GROUPED_MAP)
+        reduce_udf = pandas_udf(lambda key, pdf: reduce_normal_eqn(pdf), normal_eqn_struct,
+                                PandasUDFType.GROUPED_MAP)
         model_udf = pandas_udf(
             lambda key, pdf: solve_normal_eqn(key, map_key_pattern, pdf, labeldf, self.alphas),
             model_struct, PandasUDFType.GROUPED_MAP)
@@ -141,7 +141,7 @@ class RidgeRegression:
             lambda key, pdf: score_models(key, map_key_pattern, pdf, labeldf, sample_index, self.
                                           alphas), cv_struct, PandasUDFType.GROUPED_MAP)
 
-        modeldf = blockdf\
+        modeldf = blockdf \
             .groupBy(map_key_pattern) \
             .apply(map_udf) \
             .groupBy(reduce_key_pattern) \
@@ -149,13 +149,13 @@ class RidgeRegression:
             .groupBy(map_key_pattern) \
             .apply(model_udf)
 
-        cvdf = blockdf\
+        cvdf = blockdf \
             .join(modeldf.drop('header_block', 'sort_key'), ['header', 'sample_block'], 'inner') \
             .groupBy(map_key_pattern) \
             .apply(score_udf) \
             .groupBy('label', 'alpha').agg(f.mean('r2').alias('r2_mean')) \
-            .withColumn('modelRank', f.dense_rank().over(Window.partitionBy("label").orderBy(f.desc("r2_mean"))))\
-            .filter(f'modelRank = 1')\
+            .withColumn('modelRank', f.dense_rank().over(Window.partitionBy("label").orderBy(f.desc("r2_mean")))) \
+            .filter('modelRank = 1') \
             .drop('modelRank')
 
         return modeldf, cvdf
@@ -185,7 +185,8 @@ class RidgeRegression:
             lambda key, pdf: apply_model(key, transform_key_pattern, pdf, labeldf, self.alphas),
             reduced_matrix_struct, PandasUDFType.GROUPED_MAP)
 
-        return blockdf.drop('header_block').join(modeldf.drop('header_block', 'sort_key'), ['sample_block', 'header']) \
+        return blockdf.drop('header_block') \
+            .join(modeldf.drop('header_block', 'sort_key'), ['sample_block', 'header']) \
             .groupBy(transform_key_pattern) \
             .apply(transform_udf) \
             .join(cvdf, ['label', 'alpha'], 'inner') \

@@ -18,6 +18,9 @@ maven-repo/
 **/__pycache__
 *.pyc
 
+# Jupyter notebook checkpoints
+.ipynb_checkpoints/
+
 # Sphinx documentation
 docs/build
 
