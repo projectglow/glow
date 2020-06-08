@@ -7,10 +7,17 @@ Genome-wide Association Study Regression Tests
     import glow
     glow.register(spark)
 
-    path = 'test-data/1000G.phase3.broad.withGenotypes.chr20.10100000.vcf'
+    genotypes_vcf = 'test-data/gwas/genotypes.vcf.gz'
+    covariates_csv = 'test-data/gwas/covariates.csv.gz'
+    continuous_phenotypes_csv = 'test-data/gwas/continuous-phenotypes.csv.gz'
+    binary_phenotypes_csv = 'test-data/gwas/binary-phenotypes.csv.gz'
 
 Glow contains functions for performing simple regression analyses used in
 genome-wide association studies (GWAS).
+
+.. tip::
+  Glow automatically converts literal one-dimensional and two-dimensional ``numpy`` ``ndarray`` s of ``double`` s
+  to ``array<double>`` and ``spark.ml`` ``DenseMatrix`` respectively.
 
 .. _linear-regression:
 
@@ -25,34 +32,56 @@ Example
 
 .. code-block:: python
 
+  import pandas as pd
   from pyspark.ml.linalg import DenseMatrix
-  import pyspark.sql.functions as fx
+  from pyspark.sql import Row
+  from pyspark.sql.functions import col, lit
   import numpy as np
 
   # Read in VCF file
-  df = glow.transform("split_multiallelics", spark.read.format('vcf').load(path)).cache()
+  variants = spark.read.format('vcf').load(genotypes_vcf)
 
-  # Generate random phenotypes and an intercept-only covariate matrix
-  n_samples = df.select(fx.size('genotypes')).first()[0]
-  covariates = DenseMatrix(n_samples, 1, np.ones(n_samples))
-  np.random.seed(500)
-  phenotypes = np.random.random(n_samples).tolist()
-  covariates_and_phenotypes = spark.createDataFrame([[covariates, phenotypes]],
-    ['covariates', 'phenotypes'])
+  # genotype_states returns the number of alt alleles for each sample
+  # mean_substitute replaces any missing genotype states with the mean of the non-missing states
+  genotypes = glow.transform('split_multiallelics', variants) \
+    .withColumn('gt', glow.mean_substitute(glow.genotype_states(col('genotypes')))) \
+    .cache()
+
+  # Read covariates from a CSV file and add an intercept
+  covariates = pd.read_csv(covariates_csv, index_col=0)
+  covariates['intercept'] = 1.
+
+  # Read phenotypes from a CSV file
+  pd_phenotypes = pd.read_csv(continuous_phenotypes_csv, index_col=0).T
+  pd_phenotypes['pt'] = pd_phenotypes.values.tolist()
+  pd_phenotypes['trait'] = pd_phenotypes.index
+  phenotypes = spark.createDataFrame(pd_phenotypes[['trait', 'pt']])
 
   # Run linear regression test
-  lin_reg_df = df.crossJoin(covariates_and_phenotypes).selectExpr(
+  lin_reg_df = genotypes.crossJoin(phenotypes).select(
     'contigName',
     'start',
     'names',
-    # genotype_states returns the number of alt alleles for each sample
-    'expand_struct(linear_regression_gwas(genotype_states(genotypes), phenotypes, covariates))')
+    'trait',
+    glow.expand_struct(glow.linear_regression_gwas(
+      col('gt'),
+      col('pt'),
+      lit(covariates.to_numpy())
+    ))
+  )
 
 .. invisible-code-block: python
 
-   from pyspark.sql import Row
-   assert_rows_equal(lin_reg_df.head(), Row(contigName='20', start=10000053, names=[], beta=-0.012268942487586866, standardError=0.03986890589124242, pValue=0.7583114855349732))
-
+   expected_lin_reg_row = Row(
+     contigName='22',
+     start=16050114,
+     names=['rs587755077'],
+     trait='Continuous_Trait_1',
+     beta=0.13672636157787335,
+     standardError=0.1783963733160434,
+     pValue=0.44349953631952943
+   )
+   assert_rows_equal(lin_reg_df.head(), expected_lin_reg_row)
 
 Parameters
 ----------
@@ -121,25 +150,59 @@ Example
 
 .. code-block:: python
 
+  # Read a single phenotype from a CSV file
+  trait = 'Binary_Trait_1'
+  phenotype = np.hstack(pd.read_csv(binary_phenotypes_csv, index_col=0)[[trait]].to_numpy()).astype('double')
+
   # Likelihood ratio test
-  log_reg_df = df.crossJoin(covariates_and_phenotypes).selectExpr(
+  lrt_log_reg_df = genotypes.select(
     'contigName',
     'start',
     'names',
-    'expand_struct(logistic_regression_gwas(genotype_states(genotypes), phenotypes, covariates, \'LRT\'))')
+    glow.expand_struct(glow.logistic_regression_gwas(
+      col('gt'),
+      lit(phenotype),
+      lit(covariates.to_numpy()),
+      'LRT'
+    ))
+  )
 
   # Firth test
-  firth_log_reg_df = df.crossJoin(covariates_and_phenotypes).selectExpr(
+  firth_log_reg_df = genotypes.select(
     'contigName',
     'start',
     'names',
-    'expand_struct(logistic_regression_gwas(genotype_states(genotypes), phenotypes, covariates, \'Firth\'))')
+    glow.expand_struct(glow.logistic_regression_gwas(
+      col('gt'),
+      lit(phenotype),
+      lit(covariates.to_numpy()),
+      'Firth'
+    ))
+  )
 
 .. invisible-code-block: python
 
-   assert_rows_equal(log_reg_df.head(), Row(contigName='20', start=10000053, names=[], beta=-0.04909334516505058, oddsRatio=0.9520922523419953, waldConfidenceInterval=[0.5523036168612923, 1.6412705426792646], pValue=0.8161087491239676))
-   assert_rows_equal(firth_log_reg_df.head(), Row(contigName='20', start=10000053, names=[], beta=-0.04737592899383216, oddsRatio=0.9537287958835796, waldConfidenceInterval=[0.5532645977026418, 1.644057147112848], pValue=0.8205226692490032))
+   expected_lrt_log_reg_row = Row(
+     contigName='22',
+     start=16050114,
+     names=['rs587755077'],
+     beta=0.4655549084480197,
+     oddsRatio=1.5928978561634963,
+     waldConfidenceInterval=[0.7813704896767115, 3.247273366082802],
+     pValue=0.19572327843236637
+   )
+   assert_rows_equal(lrt_log_reg_df.head(), expected_lrt_log_reg_row)
 
+   expected_firth_log_reg_row = Row(
+     contigName='22',
+     start=16050114,
+     names=['rs587755077'],
+     beta=0.45253994775257755,
+     oddsRatio=1.5723006796401617,
+     waldConfidenceInterval=[0.7719062301156017, 3.2026291934794795],
+     pValue=0.20086839802280376
+   )
+   assert_rows_equal(firth_log_reg_df.head(), expected_firth_log_reg_row)
 
 Parameters
 ----------
