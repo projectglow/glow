@@ -203,7 +203,7 @@ lazy val pythonSettings = Seq(
       "PYTHONPATH" -> pythonPath.value
     )
     val env = if (majorMinorVersion(sparkVersion) >= "3.0") {
-      baseEnv
+      baseEnv :+ "PYSPARK_ROW_FIELD_SORTING_ENABLED" -> "true"
     } else {
       baseEnv :+ "ARROW_PRE_0_15_IPC_FORMAT" -> "1"
     }
