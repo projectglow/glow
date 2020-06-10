@@ -20,7 +20,7 @@ class RidgeReducer:
         """
         self.alphas = {f'alpha_{i}': a for i, a in enumerate(alphas)}
 
-    def fit(self, blockdf, labeldf, indexdf):
+    def fit(self, blockdf, labeldf, sample_blocks):
         """
         Fits a ridge reducer model, represented by a Spark DataFrame containing coefficients for each of the ridge
         alpha parameters, for each block in the starting matrix, for each label in the target labels.
@@ -28,13 +28,12 @@ class RidgeReducer:
         Args:
             blockdf : Spark DataFrame representing the beginning block matrix X
             labeldf : Pandas DataFrame containing the target labels used in fitting the ridge models
-            indexdf : Spark DataFrame containing a mapping of sample_block ID to a list of corresponding sample IDs
+            sample_blocks : Dict containing a mapping of sample_block ID to a list of corresponding sample IDs
 
         Returns:
             Spark DataFrame containing the model resulting from the fitting routine.
         """
 
-        sample_index = {r.sample_block: r.sample_ids for r in indexdf.collect()}
         map_key_pattern = ['header_block', 'sample_block']
         reduce_key_pattern = ['header']
 
@@ -43,7 +42,7 @@ class RidgeReducer:
             reduce_key_pattern.append('label')
 
         map_udf = pandas_udf(
-            lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, labeldf, sample_index),
+            lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks),
             normal_eqn_struct, PandasUDFType.GROUPED_MAP)
         reduce_udf = pandas_udf(lambda key, pdf: reduce_normal_eqn(pdf), normal_eqn_struct,
                                 PandasUDFType.GROUPED_MAP)
@@ -105,7 +104,7 @@ class RidgeRegression:
         """
         self.alphas = {f'alpha_{i}': a for i, a in enumerate(alphas)}
 
-    def fit(self, blockdf, labeldf, indexdf):
+    def fit(self, blockdf, labeldf, sample_blocks):
         """
         Fits a ridge regression model, represented by a Spark DataFrame containing coefficients for each of the ridge
         alpha parameters, for each block in the starting matrix, for each label in the target labels, as well as a
@@ -114,14 +113,13 @@ class RidgeRegression:
         Args:
             blockdf : Spark DataFrame representing the beginning block matrix X
             labeldf : Pandas DataFrame containing the target labels used in fitting the ridge models
-            indexdf : Spark DataFrame containing a mapping of sample_block ID to a list of corresponding sample IDs
+            sample_blocks : Dict containing a mapping of sample_block ID to a list of corresponding sample IDs
 
         Returns:
             Two Spark DataFrames, one containing the model resulting from the fitting routine and one containing the
             results of the cross validation procedure.
         """
 
-        sample_index = {r.sample_block: r.sample_ids for r in indexdf.collect()}
         map_key_pattern = ['sample_block']
         reduce_key_pattern = ['header']
 
@@ -130,7 +128,7 @@ class RidgeRegression:
             reduce_key_pattern.append('label')
 
         map_udf = pandas_udf(
-            lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, labeldf, sample_index),
+            lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks),
             normal_eqn_struct, PandasUDFType.GROUPED_MAP)
         reduce_udf = pandas_udf(lambda key, pdf: reduce_normal_eqn(pdf), normal_eqn_struct,
                                 PandasUDFType.GROUPED_MAP)
@@ -138,7 +136,7 @@ class RidgeRegression:
             lambda key, pdf: solve_normal_eqn(key, map_key_pattern, pdf, labeldf, self.alphas),
             model_struct, PandasUDFType.GROUPED_MAP)
         score_udf = pandas_udf(
-            lambda key, pdf: score_models(key, map_key_pattern, pdf, labeldf, sample_index, self.
+            lambda key, pdf: score_models(key, map_key_pattern, pdf, labeldf, sample_blocks, self.
                                           alphas), cv_struct, PandasUDFType.GROUPED_MAP)
 
         modeldf = blockdf \

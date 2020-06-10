@@ -27,6 +27,32 @@ import org.apache.spark.sql.types.{ArrayType, IntegerType, StringType}
 
 private[projectglow] object VariantSampleBlockMaker extends GlowLogging {
 
+  def makeSampleBlocks(df: DataFrame, sampleBlockCount: Int): DataFrame = {
+    df.withColumn(
+        "fractionalSampleBlockSize",
+        size(col(valuesField.name)) / sampleBlockCount
+      )
+      .withColumn(
+        sampleBlockIdField.name,
+        explode(
+          sequence(
+            lit(1),
+            lit(sampleBlockCount)
+          ).cast(ArrayType(StringType))
+        )
+      )
+      .withColumn(
+        valuesField.name,
+        expr(
+          s"""slice(
+             |   ${valuesField.name},
+             |   round((${sampleBlockIdField.name} - 1) * fractionalSampleBlockSize) + 1,
+             |   round(${sampleBlockIdField.name} * fractionalSampleBlockSize) - round((${sampleBlockIdField.name} - 1) * fractionalSampleBlockSize)
+             |)""".stripMargin
+        )
+      )
+  }
+
   def makeVariantAndSampleBlocks(
       variantDf: DataFrame,
       variantsPerBlock: Int,
@@ -35,7 +61,7 @@ private[projectglow] object VariantSampleBlockMaker extends GlowLogging {
       .partitionBy(contigNameField.name, sampleBlockIdField.name)
       .orderBy(startField.name, refAlleleField.name, alternateAllelesField.name)
 
-    variantDf
+    val baseDf = variantDf
       .withColumn(
         sortKeyField.name,
         col(startField.name).cast(IntegerType)
@@ -68,29 +94,8 @@ private[projectglow] object VariantSampleBlockMaker extends GlowLogging {
         stdDevField.name,
         col("stats.stdDev")
       )
-      .withColumn(
-        "fractionalSampleBlockSize",
-        size(col(valuesField.name)) / sampleBlockCount
-      )
-      .withColumn(
-        sampleBlockIdField.name,
-        explode(
-          sequence(
-            lit(1),
-            lit(sampleBlockCount)
-          ).cast(ArrayType(StringType))
-        )
-      )
-      .withColumn(
-        valuesField.name,
-        expr(
-          s"""slice(
-             |   ${valuesField.name},
-             |   round((${sampleBlockIdField.name} - 1) * fractionalSampleBlockSize) + 1,
-             |   round(${sampleBlockIdField.name} * fractionalSampleBlockSize) - round((${sampleBlockIdField.name} - 1) * fractionalSampleBlockSize)
-             |)""".stripMargin
-        )
-      )
+
+    makeSampleBlocks(baseDf, sampleBlockCount)
       .withColumn(
         sizeField.name,
         size(col(valuesField.name))
