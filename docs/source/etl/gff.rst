@@ -63,7 +63,7 @@ If no user-specified schema is provided (as in the example above), the data sour
 
   .. note:: Although the ``start`` column in the GFF3 file is 1-based, the ``start`` field in the DataFrame will be 0-based to match the general practice in Glow.
 
-- The next fields in the inferred schema will be created as the result of parsing the ``attributes`` column of the GFF3 file. Each tag will have its own field in the schema. Fields corresponding to any "official" tag (those referred to as `tags with pre-defined meaning <https://github.com/The-Sequence-Ontology/Specifications/blob/master/gff3.md>`_) come first, followed by fields corresponding to any other tag ("unofficial" tags) in the alphabetical order.
+- The next fields in the inferred schema will be created as the result of parsing the ``attributes`` column of the GFF3 file. Each tag will have its own field in the schema. Fields corresponding to any "official" tag (those referred to as `tags with pre-defined meaning <https://github.com/The-Sequence-Ontology/Specifications/blob/master/gff3.md>`_) come first, followed by fields corresponding to any other tag ("unofficial" tags) in alphabetical order.
 
   The complete list of official fields, their data types, and order are as shown below:
 
