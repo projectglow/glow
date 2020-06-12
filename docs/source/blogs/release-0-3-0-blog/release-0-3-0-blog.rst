@@ -5,7 +5,7 @@ Glow 0.3.0 Introduces Several New Large-Scale Genomic Analysis Features
 | Author: `Kiavash Kianfar <https://github.com/kianfar77>`_
 | March 2, 2020
 
-Glow 0.3.0 was released on February 21, 2020, improving Glow's power and ease of use in performing large-scale genomic analysis. In this blog, we highlight features and and improvements introduced in this release.
+Glow 0.3.0 was released on February 21, 2020, improving Glow's power and ease of use in performing large-scale genomic analysis. In this blog, we highlight features and improvements introduced in this release.
 
 
 .. _python_scala_apis:
