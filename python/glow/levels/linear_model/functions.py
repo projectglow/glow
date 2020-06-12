@@ -1,9 +1,14 @@
-import numpy as np
-from scipy.sparse import csr_matrix
 import itertools
+from nptyping import Int, Float, NDArray
+import numpy as np
+import pandas as pd
+from scipy.sparse import csr_matrix
+from typeguard import typechecked
+from typing import Iterable, List, Tuple
 
 
-def sort_in_place(pdf, columns):
+@typechecked
+def sort_in_place(pdf: pd.DataFrame, columns: List[str]) -> None:
     """
     A faster alternative to DataFrame.sort_values. Note that this function is less sophisticated
     than sort_values and does not allow for control over sort direction or null handling.
@@ -19,7 +24,8 @@ def sort_in_place(pdf, columns):
         pdf[col].array[:] = pdf[col].array[order]
 
 
-def parse_key(key, key_pattern):
+@typechecked
+def parse_key(key: Tuple, key_pattern: List[str]) -> Tuple[str, str, str]:
     """
     Interprets the key corresponding to a group from a groupBy clause.  The key may be of the form:
         (header_block, sample_block),
@@ -49,7 +55,8 @@ def parse_key(key, key_pattern):
         return key
 
 
-def assemble_block(n_rows, n_cols, pdf):
+@typechecked
+def assemble_block(n_rows: Int, n_cols: Int, pdf: pd.DataFrame) -> NDArray[Float]:
     """
     Creates a dense n_rows by n_cols matrix from the array of either sparse or dense vectors in the Pandas DataFrame
     corresponding to a group.  This matrix represents a block.
@@ -64,6 +71,10 @@ def assemble_block(n_rows, n_cols, pdf):
     """
     mu = pdf['mu'].to_numpy()
     sig = pdf['sig'].to_numpy()
+
+    if 0 in sig:
+        raise ValueError(f'Standard deviation cannot be 0.')
+
     if 'indices' not in pdf.columns:
         X_raw = np.row_stack(pdf['values'].array).T
     else:
@@ -77,7 +88,8 @@ def assemble_block(n_rows, n_cols, pdf):
     return (X_raw - mu) / sig
 
 
-def slice_label_rows(labeldf, label, sample_list):
+@typechecked
+def slice_label_rows(labeldf: pd.DataFrame, label: str, sample_list: List[str]) -> NDArray[Float]:
     """
     Selects rows from the Pandas DataFrame of labels corresponding to the samples in a particular sample_block.
 
@@ -95,7 +107,8 @@ def slice_label_rows(labeldf, label, sample_list):
         return labeldf[label].loc[sample_list].to_numpy().reshape(-1, 1)
 
 
-def evaluate_coefficients(pdf, alpha_values):
+@typechecked
+def evaluate_coefficients(pdf: pd.DataFrame, alpha_values: Iterable[Float]) -> NDArray[Float]:
     """
     Solves the system (XTX + Ia)^-1 * XtY for each of the a values in alphas.  Returns the resulting coefficients.
 
@@ -112,7 +125,9 @@ def evaluate_coefficients(pdf, alpha_values):
         [(np.linalg.inv(XtX + np.identity(XtX.shape[1]) * a) @ XtY) for a in alpha_values])
 
 
-def cross_alphas_and_labels(alpha_names, labeldf, label):
+@typechecked
+def cross_alphas_and_labels(alpha_names: Iterable[str], labeldf: pd.DataFrame,
+                            label: str) -> List[Tuple[str, str]]:
     """
     Crosses all label and alpha names. The output tuples appear in the same order as the output of
     evaluate_coefficients.
@@ -132,7 +147,9 @@ def cross_alphas_and_labels(alpha_names, labeldf, label):
     return list(itertools.product(alpha_names, label_names))
 
 
-def new_headers(header_block, alpha_names, row_indexer):
+@typechecked
+def new_headers(header_block: str, alpha_names: Iterable[str],
+                row_indexer: List[Tuple[str, str]]) -> Tuple[str, List[int], List[str]]:
     """
     Creates new headers for the output of a matrix reduction step.  Generally produces names like
     "block_[header_block_number]_alpha_[alpha_name]_label_[label_name]"
@@ -140,7 +157,7 @@ def new_headers(header_block, alpha_names, row_indexer):
     Args:
         header_block : Identifier for a header_block (e.g., 'chr_1_block_0')
         alpha_names : List of string identifiers for alpha parameters
-        row_indexer : A list of tuples provided by the create_row_indexer function
+        row_indexer : A list of tuples provided by the cross_alphas_and_labels function
 
     Returns:
         new_header_block : A new header_block name, typically the chromosome (e.g. chr_1), but might be 'all' if
@@ -170,7 +187,8 @@ def new_headers(header_block, alpha_names, row_indexer):
     return new_header_block, sort_keys, headers
 
 
-def r_squared(XB, Y):
+@typechecked
+def r_squared(XB: NDArray[Float], Y: NDArray[Float]):
     """
     Computes the coefficient of determination (R2) metric between the matrix resulting from X*B and the matrix of labels
     Y.

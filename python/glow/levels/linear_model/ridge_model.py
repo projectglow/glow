@@ -1,9 +1,15 @@
 from .ridge_udfs import *
+from nptyping import Float, NDArray
+import pandas as pd
+from pyspark.sql import DataFrame
 from pyspark.sql.functions import pandas_udf, PandasUDFType
 import pyspark.sql.functions as f
 from pyspark.sql.window import Window
+from typeguard import typechecked
+from typing import Any, Dict, List
 
 
+@typechecked
 class RidgeReducer:
     """
     The RidgeReducer class is intended to reduce the feature space of an N by M block matrix X to an N by P<<M block
@@ -11,16 +17,19 @@ class RidgeReducer:
     block with L columns to begin with will be reduced to a block with K columns, where each column is the prediction
     of one ridge model for one target label.
     """
-    def __init__(self, alphas):
+    def __init__(self, alphas: NDArray[(Any, ), Float]) -> None:
         """
         RidgeReducer is initialized with a list of alpha values.
 
         Args:
             alphas : array_like of alpha values used in the ridge reduction
         """
+        if not (alphas >= 0).all():
+            raise Exception('Alpha values must all be non-negative.')
         self.alphas = {f'alpha_{i}': a for i, a in enumerate(alphas)}
 
-    def fit(self, blockdf, labeldf, sample_blocks):
+    def fit(self, blockdf: DataFrame, labeldf: pd.DataFrame,
+            sample_blocks: Dict[str, List[str]]) -> DataFrame:
         """
         Fits a ridge reducer model, represented by a Spark DataFrame containing coefficients for each of the ridge
         alpha parameters, for each block in the starting matrix, for each label in the target labels.
@@ -58,7 +67,7 @@ class RidgeReducer:
             .groupBy(map_key_pattern) \
             .apply(model_udf)
 
-    def transform(self, blockdf, labeldf, modeldf):
+    def transform(self, blockdf: DataFrame, labeldf: pd.DataFrame, modeldf: DataFrame) -> DataFrame:
         """
         Transforms a starting block matrix to the reduced block matrix, using a reducer model produced by the
         RidgeReducer fit method.
@@ -86,6 +95,7 @@ class RidgeReducer:
             .apply(transform_udf)
 
 
+@typechecked
 class RidgeRegression:
     """
     The RidgeRegression class is used to fit ridge models against one or labels optimized over a provided list of
@@ -95,16 +105,19 @@ class RidgeRegression:
     coefficients.  The optimal ridge alpha value is chosen for each label by maximizing the average out of fold r2
     score.
     """
-    def __init__(self, alphas):
+    def __init__(self, alphas: NDArray[(Any, ), Float]) -> None:
         """
         RidgeRegression is initialized with a list of alpha values.
 
         Args:
             alphas : array_like of alpha values used in the ridge regression
         """
+        if not (alphas >= 0).all():
+            raise Exception('Alpha values must all be non-negative.')
         self.alphas = {f'alpha_{i}': a for i, a in enumerate(alphas)}
 
-    def fit(self, blockdf, labeldf, sample_blocks):
+    def fit(self, blockdf: DataFrame, labeldf: pd.DataFrame,
+            sample_blocks: Dict[str, List[str]]) -> (DataFrame, DataFrame):
         """
         Fits a ridge regression model, represented by a Spark DataFrame containing coefficients for each of the ridge
         alpha parameters, for each block in the starting matrix, for each label in the target labels, as well as a
@@ -158,7 +171,8 @@ class RidgeRegression:
 
         return modeldf, cvdf
 
-    def transform(self, blockdf, labeldf, modeldf, cvdf):
+    def transform(self, blockdf: DataFrame, labeldf: pd.DataFrame, modeldf: DataFrame,
+                  cvdf: DataFrame) -> DataFrame:
         """
         Generates predictions for the target labels in the provided label DataFrame by applying the model resulting from
         the RidgeRegression fit method to the starting block matrix.
