@@ -1,10 +1,9 @@
 import itertools
-from nptyping import Int, Float, NDArray
+from nptyping import Float, Int, NDArray
 import numpy as np
 import pandas as pd
-from scipy.sparse import csr_matrix
 from typeguard import typechecked
-from typing import Iterable, List, Tuple
+from typing import Any, Iterable, List, Tuple
 
 
 @typechecked
@@ -30,7 +29,8 @@ def parse_key(key: Tuple, key_pattern: List[str]) -> Tuple[str, str, str]:
     Interprets the key corresponding to a group from a groupBy clause.  The key may be of the form:
         (header_block, sample_block),
         (header_block, sample_block, label),
-        (sample_block),
+        (header_block, header),
+        (header_block, header, label),
         (sample_block, label)
     depending on the context.  In each case, a tuple with 3 members is returned, with the missing member filled in by
     'all' where necessary
@@ -40,13 +40,13 @@ def parse_key(key: Tuple, key_pattern: List[str]) -> Tuple[str, str, str]:
         key_pattern : one of the aforementioned key patterns
 
     Returns:
-        tuple of (header_block, sample_block, label), where header_block or label may be filled with 'all' depending on
-        context.
+        tuple of (header_block, sample_block, label) or (header_block, header, label), where header_block or label may be filled with 'all'
+        depending on context.
     """
     if key_pattern == ['header_block', 'sample_block']:
         return key[0], key[1], 'all'
-    elif key_pattern == ['sample_block']:
-        return 'all', key[0], 'all'
+    elif key_pattern == ['header_block', 'header']:
+        return key[0], key[1], 'all'
     elif key_pattern == ['sample_block', 'label']:
         return 'all', key[0], key[1]
     elif len(key) != 3:
@@ -56,7 +56,8 @@ def parse_key(key: Tuple, key_pattern: List[str]) -> Tuple[str, str, str]:
 
 
 @typechecked
-def assemble_block(n_rows: Int, n_cols: Int, pdf: pd.DataFrame) -> NDArray[Float]:
+def assemble_block(n_rows: Int, n_cols: Int, pdf: pd.DataFrame,
+                   cov_matrix: NDArray[(Any, Any), Float]) -> NDArray[Float]:
     """
     Creates a dense n_rows by n_cols matrix from the array of either sparse or dense vectors in the Pandas DataFrame
     corresponding to a group.  This matrix represents a block.
@@ -65,6 +66,8 @@ def assemble_block(n_rows: Int, n_cols: Int, pdf: pd.DataFrame) -> NDArray[Float
          n_rows : The number of rows in the resulting matrix
          n_cols : The number of columns in the resulting matrix
          pdf : Pandas DataFrame corresponding to a group
+         cov_matrix: 2D numpy array representing covariate columns that should be prepended to matrix X from the block.  Can be
+            empty if covariates are not being applied.
 
     Returns:
         Dense n_rows by n_columns matrix where the columns have been 0-centered and standard scaled.
@@ -76,16 +79,18 @@ def assemble_block(n_rows: Int, n_cols: Int, pdf: pd.DataFrame) -> NDArray[Float
         raise ValueError(f'Standard deviation cannot be 0.')
 
     if 'indices' not in pdf.columns:
-        X_raw = np.row_stack(pdf['values'].array).T
+        X_raw = np.column_stack(pdf['values'].array)
     else:
-        X_csr = csr_matrix(
-            (np.concatenate(pdf['values'].array),
-             (np.concatenate(pdf['indices'].array),
-              np.concatenate([np.repeat(i, len(v)) for i, v in enumerate(pdf.indices.array)]))),
-            shape=(n_rows, n_cols))
-        X_raw = X_csr.todense().A
+        X_raw = np.zeros([n_rows, n_cols])
+        for column, row in enumerate(pdf[['indices', 'values']].itertuples()):
+            X_raw[row.indices, column] = row.values
 
-    return (X_raw - mu) / sig
+    X = ((X_raw - mu) / sig)
+
+    if cov_matrix.any():
+        return np.column_stack((cov_matrix, X))
+    else:
+        return X
 
 
 @typechecked
@@ -108,21 +113,26 @@ def slice_label_rows(labeldf: pd.DataFrame, label: str, sample_list: List[str]) 
 
 
 @typechecked
-def evaluate_coefficients(pdf: pd.DataFrame, alpha_values: Iterable[Float]) -> NDArray[Float]:
+def evaluate_coefficients(pdf: pd.DataFrame, alpha_values: Iterable[Float],
+                          n_cov: int) -> NDArray[Float]:
     """
     Solves the system (XTX + Ia)^-1 * XtY for each of the a values in alphas.  Returns the resulting coefficients.
 
     Args:
          pdf : Pandas DataFrame for the group
          alpha_values : Array of alpha values (regularization strengths)
+         n_cov: Number of covariate columns on the left-most side of matrix X.  These are regularized with a constant
+         value of alpha = 1, regardless of the alpha value being used for the rest of the matrix X.
 
     Returns:
         Matrix of coefficients of size [number of columns in X] x [number of labels * number of alpha values]
     """
     XtX = np.stack(pdf['xtx'].array)
     XtY = np.stack(pdf['xty'].array)
-    return np.column_stack(
-        [(np.linalg.inv(XtX + np.identity(XtX.shape[1]) * a) @ XtY) for a in alpha_values])
+    diags = [
+        np.concatenate([np.ones(n_cov), np.ones(XtX.shape[1] - n_cov) * a]) for a in alpha_values
+    ]
+    return np.column_stack([(np.linalg.inv(XtX + np.diag(d)) @ XtY) for d in diags])
 
 
 @typechecked

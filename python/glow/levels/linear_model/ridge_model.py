@@ -28,8 +28,12 @@ class RidgeReducer:
             raise Exception('Alpha values must all be non-negative.')
         self.alphas = {f'alpha_{i}': a for i, a in enumerate(alphas)}
 
-    def fit(self, blockdf: DataFrame, labeldf: pd.DataFrame,
-            sample_blocks: Dict[str, List[str]]) -> DataFrame:
+    def fit(
+        self,
+        blockdf: DataFrame,
+        labeldf: pd.DataFrame,
+        sample_blocks: Dict[str, List[str]],
+        covdf: pd.DataFrame = pd.DataFrame({})) -> DataFrame:
         """
         Fits a ridge reducer model, represented by a Spark DataFrame containing coefficients for each of the ridge
         alpha parameters, for each block in the starting matrix, for each label in the target labels.
@@ -38,26 +42,28 @@ class RidgeReducer:
             blockdf : Spark DataFrame representing the beginning block matrix X
             labeldf : Pandas DataFrame containing the target labels used in fitting the ridge models
             sample_blocks : Dict containing a mapping of sample_block ID to a list of corresponding sample IDs
+            covdf : Pandas DataFrame containing covariates to be included in every model in the stacking
+                ensemble (optional).
 
         Returns:
             Spark DataFrame containing the model resulting from the fitting routine.
         """
 
         map_key_pattern = ['header_block', 'sample_block']
-        reduce_key_pattern = ['header']
+        reduce_key_pattern = ['header_block', 'header']
 
         if 'label' in blockdf.columns:
             map_key_pattern.append('label')
             reduce_key_pattern.append('label')
 
         map_udf = pandas_udf(
-            lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks),
-            normal_eqn_struct, PandasUDFType.GROUPED_MAP)
-        reduce_udf = pandas_udf(lambda key, pdf: reduce_normal_eqn(pdf), normal_eqn_struct,
-                                PandasUDFType.GROUPED_MAP)
+            lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks, covdf
+                                            ), normal_eqn_struct, PandasUDFType.GROUPED_MAP)
+        reduce_udf = pandas_udf(lambda key, pdf: reduce_normal_eqn(key, reduce_key_pattern, pdf),
+                                normal_eqn_struct, PandasUDFType.GROUPED_MAP)
         model_udf = pandas_udf(
-            lambda key, pdf: solve_normal_eqn(key, map_key_pattern, pdf, labeldf, self.alphas),
-            model_struct, PandasUDFType.GROUPED_MAP)
+            lambda key, pdf: solve_normal_eqn(key, map_key_pattern, pdf, labeldf, self.alphas, covdf
+                                              ), model_struct, PandasUDFType.GROUPED_MAP)
 
         return blockdf \
             .groupBy(map_key_pattern) \
@@ -67,7 +73,12 @@ class RidgeReducer:
             .groupBy(map_key_pattern) \
             .apply(model_udf)
 
-    def transform(self, blockdf: DataFrame, labeldf: pd.DataFrame, modeldf: DataFrame) -> DataFrame:
+    def transform(self,
+                  blockdf: DataFrame,
+                  labeldf: pd.DataFrame,
+                  sample_blocks: Dict[str, List[str]],
+                  modeldf: DataFrame,
+                  covdf: pd.DataFrame = pd.DataFrame({})) -> DataFrame:
         """
         Transforms a starting block matrix to the reduced block matrix, using a reducer model produced by the
         RidgeReducer fit method.
@@ -75,7 +86,10 @@ class RidgeReducer:
         Args:
             blockdf : Spark DataFrame representing the beginning block matrix
             labeldf : Pandas DataFrame containing the target labels used in fitting the ridge models
+            sample_blocks: Dict containing a mapping of sample_block ID to a list of corresponding sample IDs
             modeldf : Spark DataFrame produced by the RidgeReducer fit method, representing the reducer model
+            covdf : Pandas DataFrame containing covariates to be included in every model in the stacking
+                ensemble (optional).
 
         Returns:
              Spark DataFrame representing the reduced block matrix
@@ -85,12 +99,18 @@ class RidgeReducer:
 
         if 'label' in blockdf.columns:
             transform_key_pattern.append('label')
+            joined = blockdf.drop('sort_key').join(modeldf, ['header_block', 'sample_block', 'header'], 'right') \
+                .withColumn('label', f.coalesce(f.col('label'), f.col('labels').getItem(0)))
+        else:
+            joined = blockdf.drop('sort_key').join(
+                modeldf, ['header_block', 'sample_block', 'header'], 'right')
 
         transform_udf = pandas_udf(
-            lambda key, pdf: apply_model(key, transform_key_pattern, pdf, labeldf, self.alphas),
-            reduced_matrix_struct, PandasUDFType.GROUPED_MAP)
+            lambda key, pdf: apply_model(key, transform_key_pattern, pdf, labeldf, sample_blocks,
+                                         self.alphas, covdf), reduced_matrix_struct,
+            PandasUDFType.GROUPED_MAP)
 
-        return blockdf.join(modeldf.drop('sort_key'), ['header_block', 'sample_block', 'header']) \
+        return joined \
             .groupBy(transform_key_pattern) \
             .apply(transform_udf)
 
@@ -116,8 +136,13 @@ class RidgeRegression:
             raise Exception('Alpha values must all be non-negative.')
         self.alphas = {f'alpha_{i}': a for i, a in enumerate(alphas)}
 
-    def fit(self, blockdf: DataFrame, labeldf: pd.DataFrame,
-            sample_blocks: Dict[str, List[str]]) -> (DataFrame, DataFrame):
+    def fit(
+        self,
+        blockdf: DataFrame,
+        labeldf: pd.DataFrame,
+        sample_blocks: Dict[str, List[str]],
+        covdf: pd.DataFrame = pd.DataFrame({})
+    ) -> (DataFrame, DataFrame):
         """
         Fits a ridge regression model, represented by a Spark DataFrame containing coefficients for each of the ridge
         alpha parameters, for each block in the starting matrix, for each label in the target labels, as well as a
@@ -127,30 +152,28 @@ class RidgeRegression:
             blockdf : Spark DataFrame representing the beginning block matrix X
             labeldf : Pandas DataFrame containing the target labels used in fitting the ridge models
             sample_blocks : Dict containing a mapping of sample_block ID to a list of corresponding sample IDs
+            covdf : Pandas DataFrame containing covariates to be included in every model in the stacking
+                ensemble (optional).
 
         Returns:
             Two Spark DataFrames, one containing the model resulting from the fitting routine and one containing the
             results of the cross validation procedure.
         """
 
-        map_key_pattern = ['sample_block']
-        reduce_key_pattern = ['header']
-
-        if 'label' in blockdf.columns:
-            map_key_pattern.append('label')
-            reduce_key_pattern.append('label')
+        map_key_pattern = ['sample_block', 'label']
+        reduce_key_pattern = ['header_block', 'header', 'label']
 
         map_udf = pandas_udf(
-            lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks),
-            normal_eqn_struct, PandasUDFType.GROUPED_MAP)
-        reduce_udf = pandas_udf(lambda key, pdf: reduce_normal_eqn(pdf), normal_eqn_struct,
-                                PandasUDFType.GROUPED_MAP)
+            lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks, covdf
+                                            ), normal_eqn_struct, PandasUDFType.GROUPED_MAP)
+        reduce_udf = pandas_udf(lambda key, pdf: reduce_normal_eqn(key, reduce_key_pattern, pdf),
+                                normal_eqn_struct, PandasUDFType.GROUPED_MAP)
         model_udf = pandas_udf(
-            lambda key, pdf: solve_normal_eqn(key, map_key_pattern, pdf, labeldf, self.alphas),
-            model_struct, PandasUDFType.GROUPED_MAP)
+            lambda key, pdf: solve_normal_eqn(key, map_key_pattern, pdf, labeldf, self.alphas, covdf
+                                              ), model_struct, PandasUDFType.GROUPED_MAP)
         score_udf = pandas_udf(
             lambda key, pdf: score_models(key, map_key_pattern, pdf, labeldf, sample_blocks, self.
-                                          alphas), cv_struct, PandasUDFType.GROUPED_MAP)
+                                          alphas, covdf), cv_struct, PandasUDFType.GROUPED_MAP)
 
         modeldf = blockdf \
             .groupBy(map_key_pattern) \
@@ -160,19 +183,25 @@ class RidgeRegression:
             .groupBy(map_key_pattern) \
             .apply(model_udf)
 
-        cvdf = blockdf \
-            .join(modeldf.drop('header_block', 'sort_key'), ['header', 'sample_block'], 'inner') \
+        cvdf = blockdf.drop('header_block', 'sort_key') \
+            .join(modeldf, ['header', 'sample_block'], 'right') \
+            .withColumn('label', f.coalesce(f.col('label'), f.col('labels').getItem(0)))\
             .groupBy(map_key_pattern) \
             .apply(score_udf) \
             .groupBy('label', 'alpha').agg(f.mean('r2').alias('r2_mean')) \
             .withColumn('modelRank', f.dense_rank().over(Window.partitionBy("label").orderBy(f.desc("r2_mean")))) \
-            .filter('modelRank = 1') \
+            .filter(f'modelRank = 1') \
             .drop('modelRank')
 
         return modeldf, cvdf
 
-    def transform(self, blockdf: DataFrame, labeldf: pd.DataFrame, modeldf: DataFrame,
-                  cvdf: DataFrame) -> DataFrame:
+    def transform(self,
+                  blockdf: DataFrame,
+                  labeldf: pd.DataFrame,
+                  sample_blocks: Dict[str, List[str]],
+                  modeldf: DataFrame,
+                  cvdf: DataFrame,
+                  covdf: pd.DataFrame = pd.DataFrame({})) -> DataFrame:
         """
         Generates predictions for the target labels in the provided label DataFrame by applying the model resulting from
         the RidgeRegression fit method to the starting block matrix.
@@ -180,25 +209,26 @@ class RidgeRegression:
         Args:
             blockdf : Spark DataFrame representing the beginning block matrix X
             labeldf : Pandas DataFrame containing the target labels used in fitting the ridge models
+            sample_blocks: Dict containing a mapping of sample_block ID to a list of corresponding sample IDs
             modeldf : Spark DataFrame produced by the RidgeRegression fit method, representing the reducer model
             cvdf : Spark DataFrame produced by the RidgeRegression fit method, containing the results of the cross
             validation routine.
+            covdf : Pandas DataFrame containing covariates to be included in every model in the stacking
+                ensemble (optional).
 
         Returns:
             Spark DataFrame containing prediction y_hat values for each sample_block of samples for each label
         """
 
-        transform_key_pattern = ['sample_block']
-
-        if 'label' in blockdf.columns:
-            transform_key_pattern.append('label')
+        transform_key_pattern = ['sample_block', 'label']
 
         transform_udf = pandas_udf(
-            lambda key, pdf: apply_model(key, transform_key_pattern, pdf, labeldf, self.alphas),
-            reduced_matrix_struct, PandasUDFType.GROUPED_MAP)
+            lambda key, pdf: apply_model(key, transform_key_pattern, pdf, labeldf, sample_blocks,
+                                         self.alphas, covdf), reduced_matrix_struct,
+            PandasUDFType.GROUPED_MAP)
 
-        return blockdf.drop('header_block') \
-            .join(modeldf.drop('header_block', 'sort_key'), ['sample_block', 'header']) \
+        return blockdf.drop('header_block', 'sort_key').join(modeldf.drop('header_block'), ['sample_block', 'header'], 'right') \
+            .withColumn('label', f.coalesce(f.col('label'), f.col('labels').getItem(0))) \
             .groupBy(transform_key_pattern) \
             .apply(transform_udf) \
             .join(cvdf, ['label', 'alpha'], 'inner') \
