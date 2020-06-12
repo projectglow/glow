@@ -4,9 +4,13 @@ import pandas as pd
 
 data_root = 'test-data/levels/ridge-regression'
 X0 = pd.read_csv(f'{data_root}/X0.csv').set_index('sample_id')
+X0.index = X0.index.astype(str, copy=False)
 X1 = pd.read_csv(f'{data_root}/X1.csv').set_index('sample_id')
+X1.index = X1.index.astype(str, copy=False)
 X2 = pd.read_csv(f'{data_root}/X2.csv').set_index('sample_id')
+X2.index = X2.index.astype(str, copy=False)
 labeldf = pd.read_csv(f'{data_root}/pts.csv').set_index('sample_id')
+labeldf.index = labeldf.index.astype(str, copy=False)
 alphas = np.array([0.1, 1, 10])
 alphaMap = {f'alpha_{i}': a for i, a in enumerate(alphas)}
 

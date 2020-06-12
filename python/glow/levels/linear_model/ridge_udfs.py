@@ -1,7 +1,9 @@
-import itertools
 from .functions import *
+from nptyping import Float
 import pandas as pd
 from pyspark.sql.types import ArrayType, IntegerType, FloatType, StructType, StructField, StringType, DoubleType
+from typeguard import typechecked
+from typing import Dict, List
 '''
 Each function in this module performs a Pandas DataFrame => Pandas DataFrame transformation, and each is intended to be
 used as a Pandas GROUPED_MAP UDF.
@@ -47,7 +49,9 @@ cv_struct = StructType([
 ])
 
 
-def map_normal_eqn(key, key_pattern, pdf, labeldf, sample_index):
+@typechecked
+def map_normal_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf: pd.DataFrame,
+                   sample_index: Dict[str, List[str]]) -> pd.DataFrame:
     """
     This function constructs matrices X and Y, and returns X_transpose * X (XtX) and X_transpose * Y (XtY), where X
     corresponds to a block from a block matrix.
@@ -115,7 +119,8 @@ def map_normal_eqn(key, key_pattern, pdf, labeldf, sample_index):
     return pd.DataFrame(data)
 
 
-def reduce_normal_eqn(pdf):
+@typechecked
+def reduce_normal_eqn(pdf: pd.DataFrame):
     """
     This function constructs lists of rows from the XtX and XtY matrices corresponding to a particular header in X but
     evaluated in different sample_blocks, and then reduces those lists by element-wise summation.  This reduction is
@@ -163,7 +168,9 @@ def reduce_normal_eqn(pdf):
     return pdf
 
 
-def solve_normal_eqn(key, key_pattern, pdf, labeldf, alphas):
+@typechecked
+def solve_normal_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf: pd.DataFrame,
+                     alphas: Dict[str, Float]) -> pd.DataFrame:
     """
     This function assembles the matrices XtX and XtY for a particular sample_block (where the contribution of that sample_block
     has been omitted) and solves the equation [(XtX + I*alpha)]-1 * XtY = B for a list of alpha values, and returns the
@@ -205,6 +212,7 @@ def solve_normal_eqn(key, key_pattern, pdf, labeldf, alphas):
     header_block, sample_block, label = parse_key(key, key_pattern)
     sort_in_place(pdf, ['sort_key', 'header'])
     alpha_names, alpha_values = zip(*sorted(alphas.items()))
+
     beta_stack = evaluate_coefficients(pdf, alpha_values)
     row_indexer = cross_alphas_and_labels(alpha_names, labeldf, label)
     alpha_row, label_row = zip(*row_indexer)
@@ -222,7 +230,9 @@ def solve_normal_eqn(key, key_pattern, pdf, labeldf, alphas):
     return pd.DataFrame(data)
 
 
-def apply_model(key, key_pattern, pdf, labeldf, alphas):
+@typechecked
+def apply_model(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf: pd.DataFrame,
+                alphas: Dict[str, Float]) -> pd.DataFrame:
     """
     This function takes a block X and a coefficient matrix B and performs the multiplication X*B.  The matrix resulting
     from this multiplication represents a block in a new, dimensionally-reduced block matrix.
@@ -298,7 +308,9 @@ def apply_model(key, key_pattern, pdf, labeldf, alphas):
     return pd.DataFrame(data)
 
 
-def score_models(key, key_pattern, pdf, labeldf, sample_index, alphas):
+@typechecked
+def score_models(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf: pd.DataFrame,
+                 sample_index: Dict[str, List[str]], alphas: Dict[str, Float]) -> pd.DataFrame:
     """
     Similar to apply_model, this function performs the multiplication X*B for a block X and corresponding coefficient
     matrix B, however it also evaluates the coefficient of determination (r2) for each of columns in B against the
