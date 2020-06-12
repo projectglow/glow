@@ -1,16 +1,25 @@
 from glow.levels.linear_model import RidgeReducer, RidgeRegression
 from glow.levels.linear_model.ridge_model import *
-import pandas as pd
 
 data_root = 'test-data/levels/ridge-regression'
+
 X0 = pd.read_csv(f'{data_root}/X0.csv').set_index('sample_id')
 X0.index = X0.index.astype(str, copy=False)
+
 X1 = pd.read_csv(f'{data_root}/X1.csv').set_index('sample_id')
 X1.index = X1.index.astype(str, copy=False)
+
 X2 = pd.read_csv(f'{data_root}/X2.csv').set_index('sample_id')
 X2.index = X2.index.astype(str, copy=False)
+
 labeldf = pd.read_csv(f'{data_root}/pts.csv').set_index('sample_id')
 labeldf.index = labeldf.index.astype(str, copy=False)
+
+n_cov = 2
+cov_matrix = np.random.randn(*(labeldf.shape[0], n_cov))
+covdf = pd.DataFrame(data=cov_matrix, columns=['cov1', 'cov2'], index=labeldf.index)
+covdf_empty = pd.DataFrame({})
+
 alphas = np.array([0.1, 1, 10])
 alphaMap = {f'alpha_{i}': a for i, a in enumerate(alphas)}
 
@@ -44,8 +53,8 @@ def test_map_normal_eqn(spark):
     sample_blocks = __get_sample_blocks(indexdf)
     map_key_pattern = ['header_block', 'sample_block']
     map_udf = pandas_udf(
-        lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks),
-        normal_eqn_struct, PandasUDFType.GROUPED_MAP)
+        lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks,
+                                        covdf_empty), normal_eqn_struct, PandasUDFType.GROUPED_MAP)
 
     outdf = blockdf \
         .groupBy(map_key_pattern) \
@@ -82,12 +91,12 @@ def test_reduce_normal_eqn(spark):
 
     sample_blocks = __get_sample_blocks(indexdf)
     map_key_pattern = ['header_block', 'sample_block']
-    reduce_key_pattern = ['header']
+    reduce_key_pattern = ['header_block', 'header']
     map_udf = pandas_udf(
-        lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks),
-        normal_eqn_struct, PandasUDFType.GROUPED_MAP)
-    reduce_udf = pandas_udf(lambda key, pdf: reduce_normal_eqn(pdf), normal_eqn_struct,
-                            PandasUDFType.GROUPED_MAP)
+        lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks,
+                                        covdf_empty), normal_eqn_struct, PandasUDFType.GROUPED_MAP)
+    reduce_udf = pandas_udf(lambda key, pdf: reduce_normal_eqn(key, reduce_key_pattern, pdf),
+                            normal_eqn_struct, PandasUDFType.GROUPED_MAP)
 
     mapdf = blockdf \
         .groupBy(map_key_pattern) \
@@ -129,15 +138,15 @@ def test_solve_normal_eqn(spark):
 
     sample_blocks = __get_sample_blocks(indexdf)
     map_key_pattern = ['header_block', 'sample_block']
-    reduce_key_pattern = ['header']
+    reduce_key_pattern = ['header_block', 'header']
     map_udf = pandas_udf(
-        lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks),
-        normal_eqn_struct, PandasUDFType.GROUPED_MAP)
-    reduce_udf = pandas_udf(lambda key, pdf: reduce_normal_eqn(pdf), normal_eqn_struct,
-                            PandasUDFType.GROUPED_MAP)
+        lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks,
+                                        covdf_empty), normal_eqn_struct, PandasUDFType.GROUPED_MAP)
+    reduce_udf = pandas_udf(lambda key, pdf: reduce_normal_eqn(key, reduce_key_pattern, pdf),
+                            normal_eqn_struct, PandasUDFType.GROUPED_MAP)
     model_udf = pandas_udf(
-        lambda key, pdf: solve_normal_eqn(key, map_key_pattern, pdf, labeldf, alphaMap),
-        model_struct, PandasUDFType.GROUPED_MAP)
+        lambda key, pdf: solve_normal_eqn(key, reduce_key_pattern, pdf, labeldf, alphaMap,
+                                          covdf_empty), model_struct, PandasUDFType.GROUPED_MAP)
 
     reducedf = blockdf \
         .groupBy(map_key_pattern) \
@@ -183,19 +192,20 @@ def test_apply_model(spark):
 
     sample_blocks = __get_sample_blocks(indexdf)
     map_key_pattern = ['header_block', 'sample_block']
-    reduce_key_pattern = ['header']
+    reduce_key_pattern = ['header_block', 'header']
     transform_key_pattern = ['header_block', 'sample_block']
     map_udf = pandas_udf(
-        lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks),
-        normal_eqn_struct, PandasUDFType.GROUPED_MAP)
-    reduce_udf = pandas_udf(lambda key, pdf: reduce_normal_eqn(pdf), normal_eqn_struct,
-                            PandasUDFType.GROUPED_MAP)
+        lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks,
+                                        covdf_empty), normal_eqn_struct, PandasUDFType.GROUPED_MAP)
+    reduce_udf = pandas_udf(lambda key, pdf: reduce_normal_eqn(key, reduce_key_pattern, pdf),
+                            normal_eqn_struct, PandasUDFType.GROUPED_MAP)
     model_udf = pandas_udf(
-        lambda key, pdf: solve_normal_eqn(key, map_key_pattern, pdf, labeldf, alphaMap),
+        lambda key, pdf: solve_normal_eqn(key, map_key_pattern, pdf, labeldf, alphaMap, covdf_empty),
         model_struct, PandasUDFType.GROUPED_MAP)
     transform_udf = pandas_udf(
-        lambda key, pdf: apply_model(key, transform_key_pattern, pdf, labeldf, alphaMap),
-        reduced_matrix_struct, PandasUDFType.GROUPED_MAP)
+        lambda key, pdf: apply_model(key, transform_key_pattern, pdf, labeldf, sample_blocks,
+                                     alphaMap, covdf_empty), reduced_matrix_struct,
+        PandasUDFType.GROUPED_MAP)
 
     modeldf = blockdf \
         .groupBy(map_key_pattern) \
@@ -278,7 +288,7 @@ def test_ridge_reducer_transform(spark):
 
     stack = RidgeReducer(alphas)
     modeldf = stack.fit(blockdf, labeldf, __get_sample_blocks(indexdf))
-    level1df = stack.transform(blockdf, labeldf, modeldf)
+    level1df = stack.transform(blockdf, labeldf, __get_sample_blocks(indexdf), modeldf)
 
     columns = ['values']
     rows = level1df.filter(f'header LIKE "%{testBlock}%" AND sample_block = {testGroup}') \
@@ -288,6 +298,51 @@ def test_ridge_reducer_transform(spark):
     X1_in_stack = np.column_stack(outdf['values'])
 
     assert np.allclose(X1_in_stack, X1_in)
+
+
+def test_ridge_reducer_transform_with_cov(spark):
+
+    indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
+    blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet')
+    testGroup = '0'
+    testBlock = 'chr_1_block_0'
+    ids = indexdf.filter(f'sample_block = {testGroup}').select('sample_ids').head().sample_ids
+    sample_blocks = __get_sample_blocks(indexdf)
+    headers = [
+        r.header
+        for r in blockdf.filter(f'header_block = "{testBlock}" AND sample_block= {testGroup}').
+        orderBy('sort_key').select('header').collect()
+    ]
+
+    C_in = covdf.loc[ids, :].values
+    X_in = X0[headers].loc[ids, :].values
+    X_in_cov = np.column_stack([C_in, X_in])
+    C_out = covdf.drop(ids, axis='rows').values
+    X_out = X0[headers].drop(ids, axis='rows').values
+    X_out_cov = np.column_stack((C_out, X_out))
+    Y_out = labeldf.drop(ids, axis='rows').values
+
+    XtX_out_cov = X_out_cov.T @ X_out_cov
+    XtY_out_cov = X_out_cov.T @ Y_out
+    diags_cov = [
+        np.concatenate([np.ones(n_cov), np.ones(XtX_out_cov.shape[1] - n_cov) * a]) for a in alphas
+    ]
+    B_cov = np.column_stack(
+        [(np.linalg.inv(XtX_out_cov + np.diag(d)) @ XtY_out_cov) for d in diags_cov])
+    X1_in_cov = X_in_cov @ B_cov
+
+    stack = RidgeReducer(alphas)
+    modeldf_cov = stack.fit(blockdf, labeldf, sample_blocks, covdf)
+    level1df_cov = stack.transform(blockdf, labeldf, sample_blocks, modeldf_cov, covdf)
+
+    columns = ['alpha', 'label', 'values']
+    rows_cov = level1df_cov.filter(f'header LIKE "%{testBlock}%" AND sample_block= {testGroup}') \
+        .select(*columns) \
+        .collect()
+    outdf_cov = pd.DataFrame(rows_cov, columns=columns)
+    X1_in_stack_cov = np.column_stack(outdf_cov['values'])
+
+    assert np.allclose(X1_in_stack_cov, X1_in_cov)
 
 
 def test_one_level_regression(spark):
@@ -338,11 +393,11 @@ def test_one_level_regression(spark):
 
     stack0 = RidgeReducer(alphas)
     model0df = stack0.fit(blockdf, labeldf, group2ids)
-    level1df = stack0.transform(blockdf, labeldf, model0df)
+    level1df = stack0.transform(blockdf, labeldf, group2ids, model0df)
 
     regressor = RidgeRegression(alphas)
     model1df, cvdf = regressor.fit(level1df, labeldf, group2ids)
-    yhatdf = regressor.transform(level1df, labeldf, model1df, cvdf)
+    yhatdf = regressor.transform(level1df, labeldf, group2ids, model1df, cvdf)
 
     r = cvdf.filter(f'label = "{testLabel}"').select('alpha', 'r2_mean').head()
     bestAlpha_lvl, bestr2_lvl = (r.alpha, r.r2_mean)
@@ -407,15 +462,101 @@ def test_two_level_regression(spark):
 
     stack0 = RidgeReducer(alphas)
     model0df = stack0.fit(blockdf, labeldf, group2ids)
-    level1df = stack0.transform(blockdf, labeldf, model0df)
+    level1df = stack0.transform(blockdf, labeldf, group2ids, model0df)
 
     stack1 = RidgeReducer(alphas)
     model1df = stack1.fit(level1df, labeldf, group2ids)
-    level2df = stack1.transform(level1df, labeldf, model1df)
+    level2df = stack1.transform(level1df, labeldf, group2ids, model1df)
 
     regressor = RidgeRegression(alphas)
     model2df, cvdf = regressor.fit(level2df, labeldf, group2ids)
-    yhatdf = regressor.transform(level2df, labeldf, model2df, cvdf)
+    yhatdf = regressor.transform(level2df, labeldf, group2ids, model2df, cvdf)
+
+    r = cvdf.filter(f'label = "{testLabel}"').select('alpha', 'r2_mean').head()
+    bestAlpha_lvl, bestr2_lvl = (r.alpha, r.r2_mean)
+    y_hat_lvl = np.concatenate([
+        r.values for r in yhatdf.filter(f'label = "{testLabel}"').orderBy('sample_block').select(
+            'values').collect()
+    ])
+
+    assert (bestAlpha_lvl == bestAlpha and np.isclose(bestr2_lvl, bestr2) and
+            np.allclose(y_hat_lvl, np.array(y_hat)))
+
+
+def test_two_level_regression_with_cov(spark):
+
+    indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
+    blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet')
+    testLabel = 'sim100'
+    columnIndexer = sorted(enumerate(alphaMap.keys()), key=lambda t: t[1])
+    coefOrder = [i for i, a in columnIndexer]
+
+    group2ids = {
+        r.sample_block: r.sample_ids
+        for r in indexdf.select('sample_block', 'sample_ids').collect()
+    }
+    groups = sorted(group2ids.keys(), key=lambda v: v)
+    headersToKeep = [c for c in X2.columns if testLabel in c]
+
+    r2s = []
+
+    for group in groups:
+        ids = group2ids[group]
+        C_in = covdf.loc[ids, :].values
+        X2_in = np.column_stack([C_in, X2[headersToKeep].loc[ids, :].values])
+        C_out = covdf.loc[X2[headersToKeep].drop(ids, axis='rows').index].values
+        X2_out = np.column_stack([C_out, X2[headersToKeep].drop(ids, axis='rows').values])
+        Y_in = labeldf[testLabel].loc[ids].values
+        Y_out = labeldf[testLabel].loc[X2[headersToKeep].drop(ids, axis='rows').index].values
+        X2tX2_out = X2_out.T @ X2_out
+        X2tY_out = X2_out.T @ Y_out
+        n_cov = len(covdf.columns)
+        diags = [
+            np.concatenate([np.ones(n_cov), np.ones(X2tX2_out.shape[1] - n_cov) * a])
+            for a in alphas
+        ]
+        B = np.column_stack(
+            [(np.linalg.inv(X2tX2_out + np.diag(d)) @ X2tY_out) for d in diags])[:, coefOrder]
+        X2B = X2_in @ B
+        r2 = r_squared(X2B, Y_in.reshape(-1, 1))
+        r2s.append(r2)
+
+    r2_mean = np.row_stack(r2s).mean(axis=0)
+    bestAlpha, bestr2 = sorted(zip(alphaMap.keys(), r2_mean), key=lambda t: -t[1])[0]
+
+    y_hat = []
+    r2s_pred = []
+
+    for group in groups:
+        ids = group2ids[group]
+        C_in = covdf.loc[ids, :].values
+        X2_in = np.column_stack([C_in, X2[headersToKeep].loc[ids, :].values])
+        C_out = covdf.loc[X2[headersToKeep].drop(ids, axis='rows').index].values
+        X2_out = np.column_stack([C_out, X2[headersToKeep].drop(ids, axis='rows').values])
+        Y_in = labeldf[testLabel].loc[ids].values
+        Y_out = labeldf[testLabel].loc[X2[headersToKeep].drop(ids, axis='rows').index].values
+        X2tX2_out = X2_out.T @ X2_out
+        X2tY_out = X2_out.T @ Y_out
+        d = np.concatenate(
+            [np.ones(n_cov),
+             np.ones(X2tX2_out.shape[1] - n_cov) * alphaMap[bestAlpha]])
+        b = np.linalg.inv(X2tX2_out + np.diag(d)) @ X2tY_out
+        r2s_pred.append(r_squared(X2_in @ b, Y_in))
+        y_hat.extend((X2_in @ b).tolist())
+
+    y_hat = np.array(y_hat)
+
+    stack0 = RidgeReducer(alphas)
+    model0df = stack0.fit(blockdf, labeldf, group2ids)
+    level1df = stack0.transform(blockdf, labeldf, group2ids, model0df)
+
+    stack1 = RidgeReducer(alphas)
+    model1df = stack1.fit(level1df, labeldf, group2ids)
+    level2df = stack1.transform(level1df, labeldf, group2ids, model1df)
+
+    regressor = RidgeRegression(alphas)
+    model2df, cvdf = regressor.fit(level2df, labeldf, group2ids, covdf)
+    yhatdf = regressor.transform(level2df, labeldf, group2ids, model2df, cvdf, covdf)
 
     r = cvdf.filter(f'label = "{testLabel}"').select('alpha', 'r2_mean').head()
     bestAlpha_lvl, bestr2_lvl = (r.alpha, r.r2_mean)

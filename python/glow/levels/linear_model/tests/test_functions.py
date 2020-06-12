@@ -36,11 +36,11 @@ def test_sort_by_multiple_columns():
 
 def test_assemble_block():
     df = pd.DataFrame({'mu': [0.2], 'sig': [0.1], 'values': [[0.1, 0.3]]})
-    block = assemble_block(n_rows=1, n_cols=2, pdf=df)
+    block = assemble_block(n_rows=1, n_cols=2, pdf=df, cov_matrix=np.array([[]]))
     assert np.allclose(block, np.array([[-1.], [1.]]))
 
 
 def test_assemble_block_zero_sig():
     df = pd.DataFrame({'mu': [0.2, 0], 'sig': [0.1, 0], 'values': [[0.1, 0.3], [0, 0]]})
     with pytest.raises(ValueError):
-        assemble_block(n_rows=2, n_cols=2, pdf=df)
+        assemble_block(n_rows=2, n_cols=2, pdf=df, cov_matrix=np.array([[]]))
