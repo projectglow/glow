@@ -1,7 +1,7 @@
 from .ridge_udfs import *
 from nptyping import Float, NDArray
 import pandas as pd
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, Row
 from pyspark.sql.functions import pandas_udf, PandasUDFType
 import pyspark.sql.functions as f
 from pyspark.sql.window import Window
@@ -99,11 +99,12 @@ class RidgeReducer:
 
         if 'label' in blockdf.columns:
             transform_key_pattern.append('label')
-            joined = blockdf.drop('sort_key').join(modeldf, ['header_block', 'sample_block', 'header'], 'right') \
+            joined = blockdf.drop('sort_key') \
+                .join(modeldf, ['header_block', 'sample_block', 'header'], 'right') \
                 .withColumn('label', f.coalesce(f.col('label'), f.col('labels').getItem(0)))
         else:
-            joined = blockdf.drop('sort_key').join(
-                modeldf, ['header_block', 'sample_block', 'header'], 'right')
+            joined = blockdf.drop('sort_key') \
+                .join(modeldf, ['header_block', 'sample_block', 'header'], 'right')
 
         transform_udf = pandas_udf(
             lambda key, pdf: apply_model(key, transform_key_pattern, pdf, labeldf, sample_blocks,
@@ -149,7 +150,7 @@ class RidgeRegression:
         Spark DataFrame containing the optimal ridge alpha value for each label.
 
         Args:
-            blockdf : Spark DataFrame representing the beginning block matrix X
+            blockdf : Spark DataFrame representing the reduced block matrix X
             labeldf : Pandas DataFrame containing the target labels used in fitting the ridge models
             sample_blocks : Dict containing a mapping of sample_block ID to a list of corresponding sample IDs
             covdf : Pandas DataFrame containing covariates to be included in every model in the stacking
@@ -183,14 +184,20 @@ class RidgeRegression:
             .groupBy(map_key_pattern) \
             .apply(model_udf)
 
+        # Break ties in favor of the larger alpha
+        alpha_df = blockdf.sql_ctx \
+            .createDataFrame([Row(alpha=k, alpha_value=float(v)) for k, v in self.alphas.items()])
+        window_spec = Window.partitionBy('label').orderBy(f.desc('r2_mean'), f.desc('alpha_value'))
+
         cvdf = blockdf.drop('header_block', 'sort_key') \
             .join(modeldf, ['header', 'sample_block'], 'right') \
-            .withColumn('label', f.coalesce(f.col('label'), f.col('labels').getItem(0)))\
+            .withColumn('label', f.coalesce(f.col('label'), f.col('labels').getItem(0))) \
             .groupBy(map_key_pattern) \
             .apply(score_udf) \
-            .groupBy('label', 'alpha').agg(f.mean('r2').alias('r2_mean')) \
-            .withColumn('modelRank', f.dense_rank().over(Window.partitionBy("label").orderBy(f.desc("r2_mean")))) \
-            .filter(f'modelRank = 1') \
+            .join(alpha_df, ['alpha']) \
+            .groupBy('label', 'alpha', 'alpha_value').agg(f.mean('r2').alias('r2_mean')) \
+            .withColumn('modelRank', f.row_number().over(window_spec)) \
+            .filter('modelRank = 1') \
             .drop('modelRank')
 
         return modeldf, cvdf
@@ -201,15 +208,15 @@ class RidgeRegression:
                   sample_blocks: Dict[str, List[str]],
                   modeldf: DataFrame,
                   cvdf: DataFrame,
-                  covdf: pd.DataFrame = pd.DataFrame({})) -> DataFrame:
+                  covdf: pd.DataFrame = pd.DataFrame({})) -> pd.DataFrame:
         """
         Generates predictions for the target labels in the provided label DataFrame by applying the model resulting from
         the RidgeRegression fit method to the starting block matrix.
 
         Args:
-            blockdf : Spark DataFrame representing the beginning block matrix X
+            blockdf : Spark DataFrame representing the reduced block matrix X
             labeldf : Pandas DataFrame containing the target labels used in fitting the ridge models
-            sample_blocks: Dict containing a mapping of sample_block ID to a list of corresponding sample IDs
+            sample_blocks : Dict containing a mapping of sample_block ID to a list of corresponding sample IDs
             modeldf : Spark DataFrame produced by the RidgeRegression fit method, representing the reducer model
             cvdf : Spark DataFrame produced by the RidgeRegression fit method, containing the results of the cross
             validation routine.
@@ -217,7 +224,8 @@ class RidgeRegression:
                 ensemble (optional).
 
         Returns:
-            Spark DataFrame containing prediction y_hat values for each sample_block of samples for each label
+            Pandas DataFrame containing prediction y_hat values. The shape and order match labeldf such that the
+            rows are indexed by sample ID and the columns by label. The column types are float64.
         """
 
         transform_key_pattern = ['sample_block', 'label']
@@ -227,9 +235,24 @@ class RidgeRegression:
                                          self.alphas, covdf), reduced_matrix_struct,
             PandasUDFType.GROUPED_MAP)
 
-        return blockdf.drop('header_block', 'sort_key').join(modeldf.drop('header_block'), ['sample_block', 'header'], 'right') \
+        blocked_prediction_df = blockdf.drop('header_block', 'sort_key') \
+            .join(modeldf.drop('header_block'), ['sample_block', 'header'], 'right') \
             .withColumn('label', f.coalesce(f.col('label'), f.col('labels').getItem(0))) \
             .groupBy(transform_key_pattern) \
             .apply(transform_udf) \
-            .join(cvdf, ['label', 'alpha'], 'inner') \
-            .select('sample_block', 'label', 'alpha', 'values')
+            .join(cvdf, ['label', 'alpha'], 'inner')
+
+        sample_block_df = blockdf.sql_ctx \
+            .createDataFrame(sample_blocks.items(), ['sample_block', 'sample_ids']) \
+            .selectExpr('sample_block', 'posexplode(sample_ids) as (idx, sample_id)')
+
+        flattened_prediction_df = blocked_prediction_df \
+            .selectExpr('sample_block', 'label', 'posexplode(values) as (idx, value)') \
+            .join(sample_block_df, ['sample_block', 'idx'], 'inner') \
+            .select('sample_id', 'label', 'value')
+
+        pivoted_df = flattened_prediction_df.toPandas() \
+            .pivot(index='sample_id', columns='label', values='value') \
+            .reindex(index=labeldf.index, columns=labeldf.columns)
+
+        return pivoted_df
