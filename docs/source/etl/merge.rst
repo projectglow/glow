@@ -11,10 +11,9 @@ Merging Variant Datasets
     path1 = 'test-data/vcf-merge/HG00096.vcf.bgz'
     path2 = 'test-data/vcf-merge/HG00097.vcf.bgz'
 
-Users frequently want to merge multiple VCF, BGEN, or Plink files from non-overlapping sample sets
-into a multi-sample dataset. You can use Glow and Spark to perform this merge operation with a few
-lines of code. In these examples, we will read from VCF files, but the same logic works
-on DataFrames backed by other file formats.
+You can use Glow and Spark to merge genomic variant datasets from non-overlapping sample sets into
+a multi-sample dataset. In these examples, we will read from VCF files, but the same logic works
+on :ref:`variant-data <DataFrames backed by other file formats>`.
 
 First, you need to read the VCF files into a single Spark DataFrame:
 
@@ -23,17 +22,20 @@ First, you need to read the VCF files into a single Spark DataFrame:
   from pyspark.sql.functions import *
 
   df = spark.read.format('vcf').load([path1, path2])
-  df.select('contigName', 'start', col('genotypes').sampleId)\
-    .orderBy('contigName','start').show()
 
-  # Alternatively, you can use the "union" DataFrame method
+  # Alternatively, you can use the "union" DataFrame method if the VCF files have the same schema
   df1 = spark.read.format('vcf').load(path1)
   df2 = spark.read.format('vcf').load(path2)
   df = df1.union(df2)
 
 The resulting DataFrame contains all records from the VCFs you want to merge, but the genotypes from
 different samples at the same site have not been combined. You can use an aggregation to combine the
-genotype arrays:
+genotype arrays.
+
+.. important::
+  
+  When reading VCF files for a merge operation, ``sampleId`` must be the first field in the
+  genotype struct. This is the default Glow schema.
 
 .. code-block:: python
 
@@ -41,8 +43,6 @@ genotype arrays:
 
   merged_df = df.groupBy('contigName', 'start', 'end', 'referenceAllele', 'alternateAlleles')\
     .agg(sort_array(flatten(collect_list('genotypes'))).alias('genotypes'))
-
-  merged_df.show()
 
 .. invisible-code-block:: python
 
@@ -73,8 +73,6 @@ emit an ``INFO_DP`` column that is the sum of the ``INFO_DP`` columns across all
     .agg(sort_array(flatten(collect_list('genotypes'))).alias('genotypes'),
          sum('INFO_DP').alias('INFO_DP'))
 
-  merged_df.select('contigName', 'start', 'INFO_DP').show()
-
 .. invisible-code-block:: python
 
   row = merged_df.orderBy('contigName', 'start').select('contigName', 'start', 'genotypes.sampleId', 'INFO_DP').head()
@@ -85,7 +83,7 @@ emit an ``INFO_DP`` column that is the sum of the ``INFO_DP`` columns across all
 Joint genotyping
 ----------------
 
-The merge logic in this document allows you to quickly aggregate genotype array data or single
+The merge logic in this document allows you to quickly aggregate genotyping array data or single
 sample VCFs. For a more sophisticated aggregation that unifies alleles at overlapping sites and uses
 cohort-level statistics to refine genotype calls, we recommend running a joint genotyping pipeline
 like `the one included in the Databricks Runtime for Genomics
