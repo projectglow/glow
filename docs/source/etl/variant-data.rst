@@ -1,4 +1,4 @@
-.. _variant-data:
+.. _variant_data:
 
 ==============================================
 Read and Write VCF, Plink, and BGEN with Spark
