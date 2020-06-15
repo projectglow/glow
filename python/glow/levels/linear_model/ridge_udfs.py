@@ -350,7 +350,7 @@ def score_models(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf:
     Args:
         key : unique key identifying the group of rows emitted by a groupBy statement
         key_pattern : pattern of columns used in the groupBy statement that emitted this group of rows
-        pdf : starting Pandas DataFrame containing the lists of rows used to assemble block X and coeffients B
+        pdf : starting Pandas DataFrame containing the lists of rows used to assemble block X and coefficients B
             identified by :key:
             schema:
                  |-- header_block: string
