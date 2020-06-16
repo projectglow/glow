@@ -4,7 +4,7 @@
 Merging Variant Datasets
 ========================
 
-.. invisible-code-block:: python
+.. invisible-code-block: python
 
     import glow
     glow.register(spark)
@@ -13,9 +13,9 @@ Merging Variant Datasets
 
 You can use Glow and Spark to merge genomic variant datasets from non-overlapping sample sets into
 a multi-sample dataset. In these examples, we will read from VCF files, but the same logic works
-on :ref:`variant-data <DataFrames backed by other file formats>`.
+on :ref:`DataFrames backed by other file formats <variant_data>`.
 
-First, you need to read the VCF files into a single Spark DataFrame:
+First, read the VCF files into a single Spark DataFrame:
 
 .. code-block:: python
 
@@ -32,11 +32,6 @@ The resulting DataFrame contains all records from the VCFs you want to merge, bu
 different samples at the same site have not been combined. You can use an aggregation to combine the
 genotype arrays.
 
-.. important::
-  
-  When reading VCF files for a merge operation, ``sampleId`` must be the first field in the
-  genotype struct. This is the default Glow schema.
-
 .. code-block:: python
 
   from pyspark.sql.functions import *
@@ -44,12 +39,17 @@ genotype arrays.
   merged_df = df.groupBy('contigName', 'start', 'end', 'referenceAllele', 'alternateAlleles')\
     .agg(sort_array(flatten(collect_list('genotypes'))).alias('genotypes'))
 
-.. invisible-code-block:: python
+.. invisible-code-block: python
 
   from pyspark.sql import Row
 
   row = merged_df.orderBy('contigName', 'start').select('contigName', 'start', 'genotypes.sampleId').head()
   assert_rows_equal(row, Row(contigName='22', start=16050074, sampleId=['HG00096', 'HG00097']))
+
+.. important::
+  
+  When reading VCF files for a merge operation, ``sampleId`` must be the first field in the
+  genotype struct. This is the default Glow schema.
 
 The genotypes from different samples now appear in the same genotypes array.
 
@@ -73,7 +73,7 @@ emit an ``INFO_DP`` column that is the sum of the ``INFO_DP`` columns across all
     .agg(sort_array(flatten(collect_list('genotypes'))).alias('genotypes'),
          sum('INFO_DP').alias('INFO_DP'))
 
-.. invisible-code-block:: python
+.. invisible-code-block: python
 
   row = merged_df.orderBy('contigName', 'start').select('contigName', 'start', 'genotypes.sampleId', 'INFO_DP').head()
   assert_rows_equal(row, Row(contigName='22', start=16050074, sampleId=['HG00096', 'HG00097'],
