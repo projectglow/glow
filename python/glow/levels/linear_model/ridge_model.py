@@ -115,6 +115,29 @@ class RidgeReducer:
             .groupBy(transform_key_pattern) \
             .apply(transform_udf)
 
+    def fit_transform(
+        self,
+        blockdf: DataFrame,
+        labeldf: pd.DataFrame,
+        sample_blocks: Dict[str, List[str]],
+        covdf: pd.DataFrame = pd.DataFrame({})) -> DataFrame:
+        """
+        Fits a ridge reducer model with a block matrix, then transforms the matrix using the model.
+
+        Args:
+            blockdf : Spark DataFrame representing the beginning block matrix X
+            labeldf : Pandas DataFrame containing the target labels used in fitting the ridge models
+            sample_blocks : Dict containing a mapping of sample_block ID to a list of corresponding sample IDs
+            covdf : Pandas DataFrame containing covariates to be included in every model in the stacking
+                ensemble (optional).
+
+        Returns:
+            Spark DataFrame representing the reduced block matrix
+        """
+
+        modeldf = self.fit(blockdf, labeldf, sample_blocks, covdf)
+        return self.transform(blockdf, labeldf, sample_blocks, modeldf, covdf)
+
 
 @typechecked
 class RidgeRegression:
@@ -150,7 +173,7 @@ class RidgeRegression:
         Spark DataFrame containing the optimal ridge alpha value for each label.
 
         Args:
-            blockdf : Spark DataFrame representing the reduced block matrix X
+            blockdf : Spark DataFrame representing the beginning block matrix X
             labeldf : Pandas DataFrame containing the target labels used in fitting the ridge models
             sample_blocks : Dict containing a mapping of sample_block ID to a list of corresponding sample IDs
             covdf : Pandas DataFrame containing covariates to be included in every model in the stacking
@@ -214,7 +237,7 @@ class RidgeRegression:
         the RidgeRegression fit method to the starting block matrix.
 
         Args:
-            blockdf : Spark DataFrame representing the reduced block matrix X
+            blockdf : Spark DataFrame representing the beginning block matrix X
             labeldf : Pandas DataFrame containing the target labels used in fitting the ridge models
             sample_blocks : Dict containing a mapping of sample_block ID to a list of corresponding sample IDs
             modeldf : Spark DataFrame produced by the RidgeRegression fit method, representing the reducer model
@@ -256,3 +279,26 @@ class RidgeRegression:
             .reindex(index=labeldf.index, columns=labeldf.columns)
 
         return pivoted_df
+
+    def fit_transform(
+        self,
+        blockdf: DataFrame,
+        labeldf: pd.DataFrame,
+        sample_blocks: Dict[str, List[str]],
+        covdf: pd.DataFrame = pd.DataFrame({})) -> pd.DataFrame:
+        """
+        Fits a ridge regression model with a block matrix, then transforms the matrix using the model.
+
+        Args:
+            blockdf : Spark DataFrame representing the beginning block matrix X
+            labeldf : Pandas DataFrame containing the target labels used in fitting the ridge models
+            sample_blocks : Dict containing a mapping of sample_block ID to a list of corresponding sample IDs
+            covdf : Pandas DataFrame containing covariates to be included in every model in the stacking
+                ensemble (optional).
+
+        Returns:
+            Pandas DataFrame containing prediction y_hat values. The shape and order match labeldf such that the
+            rows are indexed by sample ID and the columns by label. The column types are float64.
+        """
+        modeldf, cvdf = self.fit(blockdf, labeldf, sample_blocks, covdf)
+        return self.transform(blockdf, labeldf, sample_blocks, modeldf, cvdf, covdf)
