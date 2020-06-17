@@ -19,4 +19,5 @@ enabling seamless manipulation, filtering, quality control and transformation be
    lift-over
    variant-normalization
    variant-splitter
+   merge
    utility-functions
