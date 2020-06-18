@@ -527,7 +527,7 @@ def test_generate_alphas(spark):
     blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet')
 
     group2ids = __get_sample_blocks(indexdf)
-    inferred_alphas = np.array(generate_alphas(blockdf).values())
+    inferred_alphas = np.array(sorted(list(generate_alphas(blockdf).values())))
 
     stack_without_alphas = RidgeReducer()
     stack_with_alphas = RidgeReducer(inferred_alphas)
