@@ -513,6 +513,7 @@ def test_reducer_fit_transform(spark):
 
     __assert_dataframes_equal(fit_transform_df, level1df)
 
+
 def test_regression_fit_transform(spark):
 
     indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')

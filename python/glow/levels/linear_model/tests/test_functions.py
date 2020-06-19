@@ -53,10 +53,10 @@ def test_generate_alphas(spark):
          Row(header='header_one'),
          Row(header='header_two')])
     expected_alphas = {
-        'alpha_0': np.float(2 / 0.01),
-        'alpha_1': np.float(2 / 0.25),
+        'alpha_0': np.float(2 / 0.99),
+        'alpha_1': np.float(2 / 0.75),
         'alpha_2': np.float(2 / 0.5),
-        'alpha_3': np.float(2 / 0.75),
-        'alpha_4': np.float(2 / 0.99)
+        'alpha_3': np.float(2 / 0.25),
+        'alpha_4': np.float(2 / 0.01)
     }
     assert generate_alphas(df) == expected_alphas
