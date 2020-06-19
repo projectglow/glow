@@ -485,7 +485,7 @@ def test_two_level_regression_with_cov(spark):
 def test_tie_break(spark):
 
     indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
-    blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet')
+    blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet').limit(5)
 
     group2ids = __get_sample_blocks(indexdf)
 
@@ -499,10 +499,10 @@ def test_tie_break(spark):
     assert cvdf.count() == len(labeldf.columns)
 
 
-def test_fit_transform(spark):
+def test_reducer_fit_transform(spark):
 
     indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
-    blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet')
+    blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet').limit(5)
 
     group2ids = __get_sample_blocks(indexdf)
 
@@ -513,6 +513,15 @@ def test_fit_transform(spark):
 
     __assert_dataframes_equal(fit_transform_df, level1df)
 
+def test_regression_fit_transform(spark):
+
+    indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
+    blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet').limit(5)
+
+    group2ids = __get_sample_blocks(indexdf)
+    stack0 = RidgeReducer(alphas)
+    level1df = stack0.fit_transform(blockdf, labeldf, group2ids)
+
     regressor = RidgeRegression(alphas)
     model1df, cvdf = regressor.fit(level1df, labeldf, group2ids)
     yhatdf = regressor.transform(level1df, labeldf, group2ids, model1df, cvdf)
@@ -521,10 +530,10 @@ def test_fit_transform(spark):
     assert fit_transform_df.equals(yhatdf)
 
 
-def test_generate_alphas(spark):
+def test_reducer_generate_alphas(spark):
 
     indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
-    blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet')
+    blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet').limit(5)
 
     group2ids = __get_sample_blocks(indexdf)
 
@@ -538,6 +547,16 @@ def test_generate_alphas(spark):
     level1_without_alphas = stack_without_alphas.transform(blockdf, labeldf, group2ids, model0df)
     level1df = stack_with_alphas.transform(blockdf, labeldf, group2ids, model0df)
     __assert_dataframes_equal(level1_without_alphas, level1df)
+
+
+def test_regression_generate_alphas(spark):
+
+    indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
+    blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet').limit(5)
+
+    group2ids = __get_sample_blocks(indexdf)
+    stack0 = RidgeReducer(alphas)
+    level1df = stack0.fit_transform(blockdf, labeldf, group2ids)
 
     regressor_without_alphas = RidgeRegression()
     regressor_with_alphas = RidgeRegression(
