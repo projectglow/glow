@@ -29,7 +29,7 @@ Transformer to reverse each of the strings in the input DataFrame using the ``re
 
             # Create a text-only DataFrame
             df = spark.createDataFrame([['foo'], ['bar'], ['baz']], ['value'])
-            rev_df = glow.transform('pipe', df, cmd='["rev"]', input_formatter='text', output_formatter='text')
+            rev_df = glow.transform('pipe', df, cmd=['rev'], input_formatter='text', output_formatter='text')
 
         .. invisible-code-block: python
 
@@ -37,12 +37,12 @@ Transformer to reverse each of the strings in the input DataFrame using the ``re
 
     .. tab:: Scala
 
-        Provide options as a ``Map[String, String]``.
+        Provide options as a ``Map[String, Any]``.
 
         .. code-block:: scala
 
             Glow.transform("pipe", df, Map(
-                "cmd" -> "[\"grep\", \"-v\", \"#INFO\"]",
+                "cmd" -> Seq("grep", "-v", "#INFO"),
                 "inputFormatter" -> "vcf",
                 "outputFormatter" -> "vcf",
                 "inVcfHeader" -> "infer")
@@ -71,7 +71,7 @@ virtual machine of the Spark cluster.
     intersection_df = glow.transform(
         'pipe',
         df,
-        cmd='["bedtools", "intersect", "-a", "stdin", "-b", "{bed}", "-header", "-wa"]'.format(bed=bed),
+        cmd=['bedtools', 'intersect', '-a', 'stdin', '-b', bed, '-header', '-wa'],
         input_formatter='vcf',
         in_vcf_header='infer',
         output_formatter='vcf'
