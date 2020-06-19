@@ -200,8 +200,8 @@ class RidgeRegression:
             lambda key, pdf: solve_normal_eqn(key, map_key_pattern, pdf, labeldf, alphas, covdf),
             model_struct, PandasUDFType.GROUPED_MAP)
         score_udf = pandas_udf(
-            lambda key, pdf: score_models(key, map_key_pattern, pdf, labeldf, sample_blocks, self.
-                                          alphas, covdf), cv_struct, PandasUDFType.GROUPED_MAP)
+            lambda key, pdf: score_models(key, map_key_pattern, pdf, labeldf, sample_blocks, alphas,
+                                          covdf), cv_struct, PandasUDFType.GROUPED_MAP)
 
         modeldf = blockdf \
             .groupBy(map_key_pattern) \
@@ -261,7 +261,7 @@ class RidgeRegression:
 
         transform_udf = pandas_udf(
             lambda key, pdf: apply_model(key, transform_key_pattern, pdf, labeldf, sample_blocks,
-                                         self.alphas, covdf), reduced_matrix_struct,
+                                         alphas, covdf), reduced_matrix_struct,
             PandasUDFType.GROUPED_MAP)
 
         blocked_prediction_df = blockdf.drop('header_block', 'sort_key') \

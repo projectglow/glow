@@ -242,7 +242,8 @@ def generate_alphas(blockdf: DataFrame) -> Dict[str, Float]:
     Returns:
         Dict of [alpha names, alpha values]
     """
+
     num_headers = blockdf.select('header').distinct().count()
-    heritability_vals = [0.01, 0.25, 0.50, 0.75, 0.99]
+    heritability_vals = [0.99, 0.75, 0.50, 0.25, 0.01]
     alphas = np.array([num_headers / h for h in heritability_vals])
     return create_alpha_dict(alphas)

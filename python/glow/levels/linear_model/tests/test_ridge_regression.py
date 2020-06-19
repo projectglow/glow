@@ -527,10 +527,9 @@ def test_generate_alphas(spark):
     blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet')
 
     group2ids = __get_sample_blocks(indexdf)
-    inferred_alphas = np.array(sorted(list(generate_alphas(blockdf).values())))
 
     stack_without_alphas = RidgeReducer()
-    stack_with_alphas = RidgeReducer(inferred_alphas)
+    stack_with_alphas = RidgeReducer(np.array(sorted(list(generate_alphas(blockdf).values()))))
 
     model0_without_alphas = stack_without_alphas.fit(blockdf, labeldf, group2ids)
     model0df = stack_with_alphas.fit(blockdf, labeldf, group2ids)
@@ -541,13 +540,16 @@ def test_generate_alphas(spark):
     __assert_dataframes_equal(level1_without_alphas, level1df)
 
     regressor_without_alphas = RidgeRegression()
-    regressor_with_alphas = RidgeRegression(inferred_alphas)
+    regressor_with_alphas = RidgeRegression(
+        np.array(sorted(list(generate_alphas(level1df).values()))))
 
-    model1_without_alphas, cv_without_alphas = regressor_without_alphas.fit(level1df, labeldf, group2ids)
+    model1_without_alphas, cv_without_alphas = regressor_without_alphas.fit(
+        level1df, labeldf, group2ids)
     model1df, cvdf = regressor_with_alphas.fit(level1df, labeldf, group2ids)
     __assert_dataframes_equal(model1_without_alphas, model1df)
     __assert_dataframes_equal(cv_without_alphas, cvdf)
 
-    yhat_without_alphas = regressor_without_alphas.transform(level1df, labeldf, group2ids, model1df, cvdf)
+    yhat_without_alphas = regressor_without_alphas.transform(level1df, labeldf, group2ids, model1df,
+                                                             cvdf)
     yhatdf = regressor_with_alphas.transform(level1df, labeldf, group2ids, model1df, cvdf)
     assert yhat_without_alphas.equals(yhatdf)
