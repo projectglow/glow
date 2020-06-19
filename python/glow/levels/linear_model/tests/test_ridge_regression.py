@@ -491,3 +491,38 @@ def test_tie_break(spark):
     _, cvdf = regressor.fit(level1df, labeldf, group2ids)
 
     assert cvdf.count() == len(labeldf.columns)
+
+
+def test_reducer_fit_transform(spark):
+
+    indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
+    blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet')
+
+    group2ids = __get_sample_blocks(indexdf)
+
+    stack0 = RidgeReducer(alphas)
+    model0df = stack0.fit(blockdf, labeldf, group2ids)
+    level1df = stack0.transform(blockdf, labeldf, group2ids, model0df)
+    fit_transform_df = stack0.fit_transform(blockdf, labeldf, group2ids)
+
+    assert fit_transform_df.subtract(level1df).count() == 0
+    assert level1df.subtract(fit_transform_df).count() == 0
+
+
+def test_regression_fit_transform(spark):
+
+    indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
+    blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet')
+
+    group2ids = __get_sample_blocks(indexdf)
+
+    stack0 = RidgeReducer(alphas)
+    model0df = stack0.fit(blockdf, labeldf, group2ids)
+    level1df = stack0.transform(blockdf, labeldf, group2ids, model0df)
+
+    regressor = RidgeRegression(alphas)
+    model1df, cvdf = regressor.fit(level1df, labeldf, group2ids)
+    yhatdf = regressor.transform(level1df, labeldf, group2ids, model1df, cvdf)
+    fit_transform_df = regressor.fit_transform(level1df, labeldf, group2ids)
+
+    assert fit_transform_df.equals(yhatdf)
