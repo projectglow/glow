@@ -32,17 +32,19 @@ import org.apache.hadoop.fs.{FileStatus, Path}
 import org.apache.hadoop.io.Text
 import org.apache.hadoop.io.compress.{CodecPool, CompressionCodecFactory, SplittableCompressionCodec}
 import org.apache.hadoop.mapreduce.{Job, TaskAttemptContext}
-
 import org.apache.spark.TaskContext
 import org.apache.spark.sql.{SQLUtils, SparkSession}
 import org.apache.spark.sql.catalyst.util.CompressionCodecs
 import org.apache.spark.sql.catalyst.{InternalRow, ScalaReflection}
 import org.apache.spark.sql.execution.datasources._
+import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
 import org.apache.spark.sql.types._
 import org.seqdoop.hadoop_bam.util.{BGZFEnhancedGzipCodec, DatabricksBGZFOutputStream}
+
 import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
 import io.projectglow.common.{CommonOptions, GlowLogging, SimpleInterval, VCFOptions, VariantSchemas, WithUtils}
+import io.projectglow.sql.GlowConf
 import io.projectglow.sql.util.{BGZFCodec, ComDatabricksDataSource, HadoopLineIterator, SerializableConfiguration}
 import io.projectglow.transformers.splitmultiallelics.SplitMultiallelicsTransformer
 
@@ -150,6 +152,7 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
     val filteredSimpleInterval =
       TabixIndexHelper.makeFilteredInterval(filters, useFilterParser, useIndex)
 
+    val fastReaderEnabled = SQLConf.get.getConf(GlowConf.FAST_VCF_READER_ENABLED)
     partitionedFile => {
       val path = new Path(partitionedFile.filePath)
       val hadoopFs = path.getFileSystem(serializableConf.value)
@@ -191,13 +194,23 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
             }
           }
 
-          SchemaDelegate
-            .makeDelegate(options)
-            .toRows(
+          if (fastReaderEnabled) {
+            val converter = new VCFLineToInternalRowConverter(
               header,
               requiredSchema,
-              new VCFIterator(reader, codec, filteredSimpleInterval.get)
-            )
+              ValidationStringency.SILENT,
+              false)
+            reader.map { line =>
+              converter.convert(line)
+            }.filter(_ != null)
+          } else {
+            SchemaDelegate.makeDelegate(options)
+              .toRows(
+                header,
+                requiredSchema,
+                new VCFIterator(reader, codec, filteredSimpleInterval.get)
+              )
+          }
       }
     }
 
