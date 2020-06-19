@@ -73,7 +73,7 @@ the unique number of headers in the blocked genotype matrix `v`, and a set of he
     y_hat = pd.DataFrame()
     for contig in all_contigs:
       loco_block_df = reduced_block_df.filter(col('header_block') != lit(contig))
-      loco_model_df = model_df.filter(col('header_block') != lit(contig))
+      loco_model_df = model_df.filter(~col('header_block').startswith(contig))
       loco_y_hat_df = regression.transform(loco_block_df, label_df, sample_blocks, loco_model_df, cv_df, covariates)
       loco_y_hat_df['contigName'] = contig.split('_')[1]
       y_hat = y_hat.append(loco_df)
@@ -94,7 +94,7 @@ To perform GWAS adjusted with WGR, subtract the estimated phenotypes from the in
 
     pdf = label_df - y_hat
     apdf = pdf.T
-    apdf['values'] = list(apdf.drop(['contigName', 'trait'], axis=1).to_numpy())
+    apdf['values'] = list(pdf.drop(['contigName', 'trait'], axis=1).to_numpy())
     apdf.show()
     adjusted_phenotypes = spark.createDataFrame(apdf)
     genotypes.join(adjusted_phenotypes, ['contigName']).select(
