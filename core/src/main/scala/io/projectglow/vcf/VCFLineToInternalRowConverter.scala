@@ -135,6 +135,11 @@ class VCFLineToInternalRowConverter(
       return row
     }
 
+    if (ctx.isLineEnd) {
+      row.update(genotypesIdx, new GenericArrayData(Array.empty[Any]))
+      return row
+    }
+
     ctx.expectTab()
     row.update(genotypesIdx, parseGenotypes(ctx))
 
@@ -279,10 +284,12 @@ class LineCtx(text: Text) {
   }
 
   def parseDouble(stopChar: Byte = '\0'): java.lang.Double = {
-    val s = parseString(stopChar).toLowerCase.toString
-    if (s == null) {
+    val utfStr = parseString(stopChar)
+    if (utfStr == null) {
       return null
     }
+    val s = utfStr.toLowerCase.toString
+
     if (s == "nan") {
       Double.NaN
     } else if (s == "-nan") {
