@@ -255,7 +255,7 @@ class LineCtx(text: Text) {
   }
 
   def eat(char: Byte): Unit = {
-    if (line(pos) == char) {
+    if (pos < text.getLength && line(pos) == char) {
       pos += 1
     }
   }

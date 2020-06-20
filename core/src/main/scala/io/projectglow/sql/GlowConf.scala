@@ -8,5 +8,4 @@ object GlowConf {
       .doc("Use fast VCF reader")
       .booleanConf
       .createWithDefault(false)
-
 }
