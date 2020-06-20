@@ -305,7 +305,7 @@ class LineCtx(text: Text) {
 
   def parseStringArray(sep: Byte = ','): GenericArrayData = {
     stringList.clear()
-    while (!isTab) {
+    while (!isTab && !isDelimiter) {
       stringList.add(parseString(sep))
       eat(sep)
     }
