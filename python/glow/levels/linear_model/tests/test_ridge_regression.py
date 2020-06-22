@@ -1,6 +1,8 @@
 from glow.levels.linear_model import RidgeReducer, RidgeRegression
 from glow.levels.linear_model.functions import generate_alphas
 from glow.levels.linear_model.ridge_model import *
+from py4j.protocol import Py4JJavaError
+import pytest
 
 data_root = 'test-data/levels/ridge-regression'
 
@@ -573,3 +575,34 @@ def test_regression_generate_alphas(spark):
                                                              cvdf)
     yhatdf = regressor_with_alphas.transform(level1df, labeldf, group2ids, model1df, cvdf)
     assert yhat_without_alphas.equals(yhatdf)
+
+
+def test_reducer_missing_alphas(spark):
+    indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
+    blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet').limit(5)
+
+    group2ids = __get_sample_blocks(indexdf)
+    stack_fit = RidgeReducer()
+    stack_transform = RidgeReducer()
+
+    model0df = stack_fit.fit(blockdf, labeldf, group2ids)
+    level1df = stack_transform.transform(blockdf, labeldf, group2ids, model0df)
+    with pytest.raises(Py4JJavaError):
+        level1df.collect()
+
+
+def test_regression_generate_alphas(spark):
+
+    indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
+    blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet').limit(5)
+
+    group2ids = __get_sample_blocks(indexdf)
+    stack0 = RidgeReducer(alphas)
+    level1df = stack0.fit_transform(blockdf, labeldf, group2ids)
+
+    regressor_fit = RidgeRegression()
+    regressor_transform = RidgeRegression()
+
+    model1df, cvdf = regressor_fit.fit(level1df, labeldf, group2ids)
+    with pytest.raises(Py4JJavaError):
+        y_hat = regressor_transform.transform(level1df, labeldf, group2ids, model1df, cvdf)
