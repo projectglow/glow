@@ -1,7 +1,6 @@
 from glow.levels.linear_model import RidgeReducer, RidgeRegression
 from glow.levels.linear_model.functions import generate_alphas
 from glow.levels.linear_model.ridge_model import *
-from py4j.protocol import Py4JJavaError
 import pytest
 
 data_root = 'test-data/levels/ridge-regression'
@@ -587,7 +586,7 @@ def test_reducer_missing_alphas(spark):
 
     model0df = stack_fit.fit(blockdf, labeldf, group2ids)
     level1df = stack_transform.transform(blockdf, labeldf, group2ids, model0df)
-    with pytest.raises(Py4JJavaError):
+    with pytest.raises(Exception):
         level1df.collect()
 
 
