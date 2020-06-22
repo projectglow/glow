@@ -2,5 +2,5 @@
 
 # A simple wrapper around the SparkSubmit main class that allows us to run
 # PySpark unit tests with the same classpath as our Java tests.
-HEAPSIZE=${SPARK_MEMORY:-2g}
+HEAPSIZE=${SPARK_MEMORY:-1024m}
 java -Xmx"$HEAPSIZE" -cp "$SPARK_CLASSPATH" org.apache.spark.deploy.SparkSubmit "$@"

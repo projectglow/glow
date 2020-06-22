@@ -6,10 +6,11 @@ dependencies:
   - bedtools
   - jinja2
   - numpy=1.17.4
+  - scipy=1.4.1
   - nomkl # Skip MKL for local development
   - pandas=0.25.3
   - pip
-  - pyarrow=0.13.0
+  - pyarrow=0.15.1
   - pyspark=2.4.5
   - pytest
   - pyyaml
@@ -23,3 +24,4 @@ dependencies:
     - sphinx-tabs==1.1.13 # Code tabs (Python/Scala)
     - sybil==1.2.0 # Automatic doctest
     - yapf==0.30.0
+    - nptyping==1.1.0

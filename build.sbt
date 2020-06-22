@@ -205,7 +205,7 @@ lazy val pythonSettings = Seq(
     val env = if (majorMinorVersion(sparkVersion) >= "3.0") {
       baseEnv :+ "PYSPARK_ROW_FIELD_SORTING_ENABLED" -> "true"
     } else {
-      baseEnv
+      baseEnv :+ "ARROW_PRE_0_15_IPC_FORMAT" -> "1"
     }
     val ret = Process(
       Seq("pytest") ++ args,

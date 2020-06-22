@@ -91,6 +91,7 @@ jobs:
             sbt coverage core/test coverageReport exit
       - run:
           name: Run Python tests
+          no_output_timeout: 30m
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
@@ -133,6 +134,7 @@ jobs:
             sbt core/test exit
       - run:
           name: Run Python tests
+          no_output_timeout: 30m
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
@@ -175,6 +177,7 @@ jobs:
             sbt core/test exit
       - run:
           name: Run Python tests
+          no_output_timeout: 30m
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
