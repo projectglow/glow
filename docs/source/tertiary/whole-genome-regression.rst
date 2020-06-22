@@ -98,11 +98,76 @@ Example
 Dimensionality reduction
 ------------------------
 
-``RidgeReducer`` performs dimensionality reduction on the blocked genotype matrix.
+The first step in the fitting procedure is to apply a dimensionality reduction to the block matrix *X* using the
+`RidgeReducer`. This is accomplished by fitting multiple ridge models within each block *x* and producing a new block
+matrix where each column represents the prediction of one ridge model applied within one block. This approach to model
+building is generally referred to as **stacking**. We will call the block genotype matrix we started with the
+**level 0** matrix in the stack *X0*, and the output of the ridge reduction step the **level 1** matrix *X1*. The
+`RidgeReducer` class is used for this step, which is initiallized with a list of ridge regularization values (referred
+to here as alpha).  Since ridge models are indexed by these alpha values, the `RidgeReducer` will generate one ridge
+model per value of alpha provided, which in turn will produce one column per block in *X0*, so the final dimensions of
+matrix *X1* will be *Nx(LxK)*, where *L* is the number of header blocks in *X0* and *K* is the number of alpha values
+provided to the `RidgeReducer`.  In practice, we can estimate a span of alpha values in a reasonable order of magnitude
+based on guesses at the heritability of the phenotype we are fitting, but here we will just pick some values.
 
-- ``fit``
-- ``transform``
-- ``fit_transform``
+Initialization
+==============
+
+When the `RidgeReducer` is initialized, it will assign names to the provided alphas and store them in a dictionary
+accessible as `RidgeReducer.alphas`.
+
+Parameters
+----------
+
+Alphas...
+
+Example
+-------
+
+.. code-block:: python
+
+    alphas_reducer = np.logspace(2, 5, 10)
+    reducer = RidgeReducer(alphas_reducer)
+
+Model fitting
+=============
+
+The RidgeReducer.fit(blockdf, labeldf, indexdf) method generates a Spark DataFrame representing the model that we can
+use to reduce *X0* to *X1*.
+
+In explicit terms, the reduction of a block x0 from X0 to the corresponding block x1 from X1 is accomplished by the matrix multiplication x0 * B = x1, where B is a coefficient matrix of size mxK, where m is the number of columns in block x0 and K is the number of alpha values used in the reduction. As an added wrinkle, if the ridge reduction is being performed against multiple phenotypes at once, each phenotype will have its own B, and for convenience we panel these next to each other in the output into a single matrix, so B in that case has dimensions mx(KP)* where P is the number of phenotypes. Each matrix B is specific to a particular block in X0, so the Spark DataFrame produced by the RidgeReducer can be thought of all of as the matrices B from all of the blocks stacked one atop another. The fields in the model DataFrame are:
+
+header_block: An ID assigned to the block x0 corresponding to the coefficients in t
+
+Parameters
+----------
+
+- ``block_df``: Blocked genotype matrix.
+- ``label_df``: Pandas DataFrame of phenotypic data, indexed by sample ID. Each column represents a single phenotype.
+  We assume that there are no missing phenotype values, and that the phenotypes are mean centered at 0.
+- ``sample_blocks``: Sample block mapping.
+- ``covariates``: Optional Pandas DataFrame containing covariate data, indexed by sample ID.
+
+Return
+------
+
+The ``fit`` functions returns a model DataFrame with the following fields:
+
+- ``header_block``: An ID assigned to the block x0 corresponding to the coefficients in this row.
+- ``sample_block``: An ID assigned to the block x0 corresponding to the coefficients in this row.
+- ``header``: The name of a column from the conceptual matrix X0 that correspond with a particular row from the coefficient matrix B.
+- ``alphas``: List of alpha names corresponding to the columns of B.
+- ``labels``: List of label (i.e., phenotypes) corresponding to the columns of B.
+- ``coefficients``: List of the actual values from a row in B
+
+Model transformation
+====================
+
+Parameters
+----------
+
+Return
+------
 
 Example
 =======
@@ -114,10 +179,6 @@ Example
 
     label_df = pd.read_csv(continuous_phenotypes_csv, index_col='sample_id') \
         .apply(lambda x: x-x.mean())[['Continuous_Trait_1', 'Continuous_Trait_2']]
-    alphas_reducer = np.logspace(2, 5, 10)
-    alphas_regression = np.logspace(1, 4, 10)
-
-    reducer = RidgeReducer(alphas_reducer)
     reduced_block_df = reducer.fit_transform(block_df, label_df, sample_blocks, covariates)
 
 --------------------------
@@ -133,6 +194,8 @@ Example
 =======
 
 .. code-block:: python
+
+    alphas_regression = np.logspace(1, 4, 10)
 
     regression = RidgeRegression(alphas_regression)
     model_df, cv_df = regression.fit(reduced_block_df, label_df, sample_blocks, covariates)
@@ -150,6 +213,5 @@ Example
 .. invisible-code-block: python
 
     import math
-
-    print(y_hat_df)
-    assert math.isclose(y_hat.at[('22', 'HG00096'),'Continuous_Trait_1'], -0.37493755917205657)
+    print(y_hat_df.at[('22', 'HG00096'),'Continuous_Trait_1'])
+    assert math.isclose(y_hat_df.at[('22', 'HG00096'),'Continuous_Trait_1'], -0.48094813262232955)
