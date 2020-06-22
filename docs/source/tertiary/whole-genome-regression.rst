@@ -1,6 +1,6 @@
-=======================
-Whole-Genome Regression
-=======================
+===============================
+GlowGR: Whole-Genome Regression
+===============================
 
 .. invisible-code-block: python
 
@@ -12,16 +12,78 @@ Whole-Genome Regression
     continuous_phenotypes_csv = 'test-data/gwas/continuous-phenotypes.csv.gz'
 
 Glow supports Whole Genome Regression (WGR) as GlowGR, a parallelized version of the
-`regenie <https://www.biorxiv.org/content/10.1101/2020.06.19.162354v1>`_ method.
+`regenie <https://rgcgithub.github.io/regenie/>`_ method (see the
+`preprint <https://www.biorxiv.org/content/10.1101/2020.06.19.162354v1>`_).
 
 .. image:: ../_static/images/wgr_runtime.png
    :scale: 50 %
 
-GlowGR consists of the following stages:
+GlowGR consists of the following stages.
 
 - Blocking the genotype matrix across samples and variants.
 - Performing dimension reduction with ridge regression.
 - Estimating phenotypic values with ridge regression.
+
+----------------
+Data preparation
+----------------
+
+GlowGR uses three basic input datasources.
+
+Genotype data
+=============
+
+The genotype data may be read from any variant datasource supported by Glow, such as VCF, BGEN or PLINK. The DataFrame
+must also include a column ``values`` containing a numeric representation of each genotype. The genotypic values may
+not be missing, or equal for every sample in a variant.
+
+Example
+-------
+
+When loading in the variants, perform the following transformations:
+
+- Split multiallelic variants with the ``split_multiallelics`` transformer.
+- Calculate the number of alternate alleles for biallelic variants with ``glow.genotype_states``.
+- Replace any missing values with the mean of the non-missing values using ``glow.mean_substitute``.
+- Filter out all homozygous SNPs.
+
+.. code-block:: python
+
+    from pyspark.sql.functions import col, lit
+
+    variants = spark.read.format('vcf').load(genotypes_vcf)
+    genotypes = glow.transform('split_multiallelics', variants) \
+        .withColumn('values', glow.mean_substitute(glow.genotype_states(col('genotypes')))) \
+        .filter('size(array_distinct(values)) > 1') \
+
+Phenotype data
+==============
+
+The phenotype data is represented as a Pandas DataFrame indexed by the sample ID. Each column represents a single
+phenotype. It is assumed that there are no missing phenotype values, and that the phenotypes are mean centered at 0.
+
+Example
+-------
+
+.. code-block:: python
+
+    import pandas as pd
+
+    label_df = pd.read_csv(continuous_phenotypes_csv, index_col='sample_id') \
+        .apply(lambda x: x-x.mean())[['Continuous_Trait_1', 'Continuous_Trait_2']]
+
+Covariate data
+==============
+
+The covariate data is represented as a Pandas DataFrame indexed by the sample ID.
+
+Example
+-------
+
+.. code-block:: python
+
+    covariates = pd.read_csv(covariates_csv, index_col='sample_id')
+    covariates['intercept'] = 1.
 
 ------------------------
 Genotype matrix blocking
@@ -34,8 +96,7 @@ Parameters
 ==========
 
 - ``genotypes``: Genotype DataFrame created by reading from any variant datasource supported by Glow, such as VCF. Must
-  also include a column ``values`` containing a numeric representation of each genotype, which cannot be the same for
-  all samples in a variant.
+  also include a column ``values`` containing a numeric representation of each genotype.
 - ``sample_ids``: List of sample IDs. Can be created by applying ``glow.wgr.functions.get_sample_ids`` to a genotype
   DataFrame.
 - ``variants_per_block``: Number of variants to include per block.
@@ -84,16 +145,10 @@ Example
     from glow.wgr.linear_model import RidgeReducer, RidgeRegression
     from glow.wgr.functions import block_variants_and_samples, get_sample_ids
     import numpy as np
-    import pandas as pd
     from pyspark.sql.functions import col, lit
 
     variants_per_block = 5
     sample_block_count = 10
-    variants = spark.read.format('vcf').load(genotypes_vcf)
-    genotypes = glow.transform('split_multiallelics', variants) \
-        .withColumn('values', glow.mean_substitute(glow.genotype_states(col('genotypes')))) \
-        .filter('size(array_distinct(values)) > 1') \
-        .cache()
     sample_ids = get_sample_ids(genotypes)
     block_df, sample_blocks = block_variants_and_samples(
         genotypes, sample_ids, variants_per_block, sample_block_count)
@@ -199,11 +254,6 @@ covariates are constant for both the model fitting and transformation.
 
 .. code-block:: python
 
-    covariates = pd.read_csv(covariates_csv, index_col='sample_id')
-    covariates['intercept'] = 1.
-
-    label_df = pd.read_csv(continuous_phenotypes_csv, index_col='sample_id') \
-        .apply(lambda x: x-x.mean())[['Continuous_Trait_1', 'Continuous_Trait_2']]
     reduced_block_df = reducer.fit_transform(block_df, label_df, sample_blocks, covariates)
 
 --------------------------
