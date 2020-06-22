@@ -81,7 +81,7 @@ Example
      standardError=0.1783963733160434,
      pValue=0.44349953631952943
    )
-   assert_rows_equal(lin_reg_df.head(), expected_lin_reg_row)
+   assert_rows_equal(lin_reg_df.filter('contigName = 22 and start = 16050114').head(), expected_lin_reg_row)
 
 Parameters
 ----------
@@ -191,7 +191,7 @@ Example
      waldConfidenceInterval=[0.7813704896767115, 3.247273366082802],
      pValue=0.19572327843236637
    )
-   assert_rows_equal(lrt_log_reg_df.head(), expected_lrt_log_reg_row)
+   assert_rows_equal(lrt_log_reg_df.filter('contigName = 22 and start = 16050114').head(), expected_lrt_log_reg_row)
 
    expected_firth_log_reg_row = Row(
      contigName='22',
@@ -202,7 +202,7 @@ Example
      waldConfidenceInterval=[0.7719062301156017, 3.2026291934794795],
      pValue=0.20086839802280376
    )
-   assert_rows_equal(firth_log_reg_df.head(), expected_firth_log_reg_row)
+   assert_rows_equal(firth_log_reg_df.filter('contigName = 22 and start = 16050114').head(), expected_firth_log_reg_row)
 
 Parameters
 ----------
