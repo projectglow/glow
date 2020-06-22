@@ -21,6 +21,7 @@ import pyspark.sql.functions as f
 from pyspark.sql.window import Window
 from typeguard import typechecked
 from typing import Any, Dict, List
+from glow.logging import record_hls_event
 
 
 @typechecked
@@ -31,16 +32,16 @@ class RidgeReducer:
     block with L columns to begin with will be reduced to a block with K columns, where each column is the prediction
     of one ridge model for one target label.
     """
-    def __init__(self, alphas: NDArray[(Any, ), Float]) -> None:
+    def __init__(self, alphas: NDArray[(Any, ), Float] = np.array([])) -> None:
         """
         RidgeReducer is initialized with a list of alpha values.
 
         Args:
-            alphas : array_like of alpha values used in the ridge reduction
+            alphas : array_like of alpha values used in the ridge reduction (optional).
         """
         if not (alphas >= 0).all():
             raise Exception('Alpha values must all be non-negative.')
-        self.alphas = {f'alpha_{i}': a for i, a in enumerate(alphas)}
+        self.alphas = create_alpha_dict(alphas)
 
     def fit(
         self,
@@ -69,6 +70,8 @@ class RidgeReducer:
         if 'label' in blockdf.columns:
             map_key_pattern.append('label')
             reduce_key_pattern.append('label')
+        if not self.alphas:
+            self.alphas = generate_alphas(blockdf)
 
         map_udf = pandas_udf(
             lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks, covdf
@@ -78,6 +81,8 @@ class RidgeReducer:
         model_udf = pandas_udf(
             lambda key, pdf: solve_normal_eqn(key, map_key_pattern, pdf, labeldf, self.alphas, covdf
                                               ), model_struct, PandasUDFType.GROUPED_MAP)
+
+        record_hls_event('wgrRidgeReduceFit')
 
         return blockdf \
             .groupBy(map_key_pattern) \
@@ -125,6 +130,8 @@ class RidgeReducer:
                                          self.alphas, covdf), reduced_matrix_struct,
             PandasUDFType.GROUPED_MAP)
 
+        record_hls_event('wgrRidgeReduceTransform')
+
         return joined \
             .groupBy(transform_key_pattern) \
             .apply(transform_udf)
@@ -163,16 +170,16 @@ class RidgeRegression:
     coefficients.  The optimal ridge alpha value is chosen for each label by maximizing the average out of fold r2
     score.
     """
-    def __init__(self, alphas: NDArray[(Any, ), Float]) -> None:
+    def __init__(self, alphas: NDArray[(Any, ), Float] = np.array([])) -> None:
         """
         RidgeRegression is initialized with a list of alpha values.
 
         Args:
-            alphas : array_like of alpha values used in the ridge regression
+            alphas : array_like of alpha values used in the ridge regression (optional).
         """
         if not (alphas >= 0).all():
             raise Exception('Alpha values must all be non-negative.')
-        self.alphas = {f'alpha_{i}': a for i, a in enumerate(alphas)}
+        self.alphas = create_alpha_dict(alphas)
 
     def fit(
         self,
@@ -200,6 +207,9 @@ class RidgeRegression:
 
         map_key_pattern = ['sample_block', 'label']
         reduce_key_pattern = ['header_block', 'header', 'label']
+
+        if not self.alphas:
+            self.alphas = generate_alphas(blockdf)
 
         map_udf = pandas_udf(
             lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks, covdf
@@ -236,6 +246,8 @@ class RidgeRegression:
             .withColumn('modelRank', f.row_number().over(window_spec)) \
             .filter('modelRank = 1') \
             .drop('modelRank')
+
+        record_hls_event('wgrRidgeRegressionFit')
 
         return modeldf, cvdf
 
@@ -291,6 +303,8 @@ class RidgeRegression:
         pivoted_df = flattened_prediction_df.toPandas() \
             .pivot(index='sample_id', columns='label', values='value') \
             .reindex(index=labeldf.index, columns=labeldf.columns)
+
+        record_hls_event('wgrRidgeRegressionTransform')
 
         return pivoted_df
 

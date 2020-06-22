@@ -15,6 +15,7 @@
 from glow.wgr.linear_model.functions import *
 import numpy as np
 import pandas as pd
+from pyspark.sql import Row
 import pytest
 
 
@@ -58,3 +59,18 @@ def test_assemble_block_zero_sig():
     df = pd.DataFrame({'mu': [0.2, 0], 'sig': [0.1, 0], 'values': [[0.1, 0.3], [0, 0]]})
     with pytest.raises(ValueError):
         assemble_block(n_rows=2, n_cols=2, pdf=df, cov_matrix=np.array([[]]))
+
+
+def test_generate_alphas(spark):
+    df = spark.createDataFrame(
+        [Row(header='header_one'),
+         Row(header='header_one'),
+         Row(header='header_two')])
+    expected_alphas = {
+        'alpha_0': np.float(2 / 0.99),
+        'alpha_1': np.float(2 / 0.75),
+        'alpha_2': np.float(2 / 0.5),
+        'alpha_3': np.float(2 / 0.25),
+        'alpha_4': np.float(2 / 0.01)
+    }
+    assert generate_alphas(df) == expected_alphas

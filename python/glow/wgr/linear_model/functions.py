@@ -16,8 +16,9 @@ import itertools
 from nptyping import Float, Int, NDArray
 import numpy as np
 import pandas as pd
+from pyspark.sql import DataFrame
 from typeguard import typechecked
-from typing import Any, Iterable, List, Tuple
+from typing import Any, Dict, Iterable, List, Tuple
 
 
 @typechecked
@@ -212,7 +213,7 @@ def new_headers(header_block: str, alpha_names: Iterable[str],
 
 
 @typechecked
-def r_squared(XB: NDArray[Float], Y: NDArray[Float]):
+def r_squared(XB: NDArray[Float], Y: NDArray[Float]) -> NDArray[(Any, ), Float]:
     """
     Computes the coefficient of determination (R2) metric between the matrix resulting from X*B and the matrix of labels
     Y.
@@ -228,3 +229,35 @@ def r_squared(XB: NDArray[Float], Y: NDArray[Float]):
     tot = np.power(Y - Y.mean(), 2).sum()
     res = np.power(Y - XB, 2).sum(axis=0)
     return 1 - (res / tot)
+
+
+@typechecked
+def create_alpha_dict(alphas: NDArray[(Any, ), Float]) -> Dict[str, Float]:
+    """
+    Creates a mapping to attach string identifiers to alpha values.
+
+    Args:
+        alphas : Alpha values
+
+    Returns:
+        Dict of [alpha names, alpha values]
+    """
+    return {f'alpha_{i}': a for i, a in enumerate(alphas)}
+
+
+@typechecked
+def generate_alphas(blockdf: DataFrame) -> Dict[str, Float]:
+    """
+    Generates alpha values using a range of heritability values and the number of headers.
+
+    Args:
+        blockdf : Spark DataFrame representing a block matrix
+
+    Returns:
+        Dict of [alpha names, alpha values]
+    """
+    num_headers = blockdf.select('header').distinct().count()
+    heritability_vals = [0.99, 0.75, 0.50, 0.25, 0.01]
+    alphas = np.array([num_headers / h for h in heritability_vals])
+    print(f"Generated alphas: {alphas}")
+    return create_alpha_dict(alphas)
