@@ -83,4 +83,12 @@ object HlsTagValues {
   val EVENT_BGEN_WRITE = "bgenWrite"
 
   val EVENT_PLINK_READ = "plinkRead"
+
+  val EVENT_WGR_RIDGE_REDUCE_FIT = "wgrRidgeReduceFit"
+
+  val EVENT_WGR_RIDGE_REDUCE_TRANSFORM = "wgrRidgeReduceTransform"
+
+  val EVENT_WGR_RIDGE_REGRESSION_FIT = "wgrRidgeRegressionFit"
+
+  val EVENT_WGR_RIDGE_REGRESSION_TRANSFORM = "wgrRidgeRegressionTransform"
 }

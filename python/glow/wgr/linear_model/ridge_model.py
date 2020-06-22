@@ -21,6 +21,7 @@ import pyspark.sql.functions as f
 from pyspark.sql.window import Window
 from typeguard import typechecked
 from typing import Any, Dict, List
+from glow.logging import record_hls_event
 
 
 @typechecked
@@ -81,6 +82,8 @@ class RidgeReducer:
             lambda key, pdf: solve_normal_eqn(key, map_key_pattern, pdf, labeldf, self.alphas, covdf
                                               ), model_struct, PandasUDFType.GROUPED_MAP)
 
+        record_hls_event('wgrRidgeReduceFit')
+
         return blockdf \
             .groupBy(map_key_pattern) \
             .apply(map_udf) \
@@ -126,6 +129,8 @@ class RidgeReducer:
             lambda key, pdf: apply_model(key, transform_key_pattern, pdf, labeldf, sample_blocks,
                                          self.alphas, covdf), reduced_matrix_struct,
             PandasUDFType.GROUPED_MAP)
+
+        record_hls_event('wgrRidgeReduceTransform')
 
         return joined \
             .groupBy(transform_key_pattern) \
@@ -242,6 +247,8 @@ class RidgeRegression:
             .filter('modelRank = 1') \
             .drop('modelRank')
 
+        record_hls_event('wgrRidgeRegressionFit')
+
         return modeldf, cvdf
 
     def transform(self,
@@ -296,6 +303,8 @@ class RidgeRegression:
         pivoted_df = flattened_prediction_df.toPandas() \
             .pivot(index='sample_id', columns='label', values='value') \
             .reindex(index=labeldf.index, columns=labeldf.columns)
+
+        record_hls_event('wgrRidgeRegressionTransform')
 
         return pivoted_df
 
