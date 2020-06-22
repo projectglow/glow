@@ -12,15 +12,19 @@ Whole-Genome Regression
     continuous_phenotypes_csv = 'test-data/gwas/continuous-phenotypes.csv.gz'
 
 Glow supports Whole Genome Regression (WGR) as GlowGR, a parallelized version of the
-`regenie <https://www.biorxiv.org/content/10.1101/2020.06.19.162354v1>` method.
+`regenie <https://www.biorxiv.org/content/10.1101/2020.06.19.162354v1>`_ method.
+
+.. image:: ../_static/images/wgr_runtime.png
+   :scale: 50 %
 
 GlowGR consists of the following stages:
+
 - Blocking the genotype matrix across samples and variants.
 - Performing dimension reduction with ridge regression.
 - Estimating phenotypic values with ridge regression.
 
 ------------------------
-Blocking genotype matrix
+Genotype matrix blocking
 ------------------------
 
 ``glow.wgr.functions.block_variants_and_samples`` creates two objects: a block genotype matrix and a sample block
@@ -30,8 +34,8 @@ Parameters
 ==========
 
 - ``genotypes``: Genotype DataFrame created by reading from any variant datasource supported by Glow, such as VCF. Must
-  also include a column ``values`` containing a numeric representation of each genotype, which cannot be the same
-  across all samples in a variant.
+  also include a column ``values`` containing a numeric representation of each genotype, which cannot be the same for
+  all samples in a variant.
 - ``sample_ids``: List of sample IDs. Can be created by applying ``glow.wgr.functions.get_sample_ids`` to a genotype
   DataFrame.
 - ``variants_per_block``: Number of variants to include per block.
@@ -99,22 +103,22 @@ Dimensionality reduction
 ------------------------
 
 The first step in the fitting procedure is to apply a dimensionality reduction to the block matrix *X* using the
-`RidgeReducer`. This is accomplished by fitting multiple ridge models within each block *x* and producing a new block
+``RidgeReducer``. This is accomplished by fitting multiple ridge models within each block *x* and producing a new block
 matrix where each column represents the prediction of one ridge model applied within one block. This approach to model
 building is generally referred to as **stacking**. We will call the block genotype matrix we started with the
 **level 0** matrix in the stack *X0*, and the output of the ridge reduction step the **level 1** matrix *X1*. The
-`RidgeReducer` class is used for this step, which is initiallized with a list of ridge regularization values (referred
-to here as alpha).  Since ridge models are indexed by these alpha values, the `RidgeReducer` will generate one ridge
+``RidgeReducer`` class is used for this step, which is initialized with a list of ridge regularization values (referred
+to here as alpha). Since ridge models are indexed by these alpha values, the ``RidgeReducer`` will generate one ridge
 model per value of alpha provided, which in turn will produce one column per block in *X0*, so the final dimensions of
 matrix *X1* will be *Nx(LxK)*, where *L* is the number of header blocks in *X0* and *K* is the number of alpha values
-provided to the `RidgeReducer`.  In practice, we can estimate a span of alpha values in a reasonable order of magnitude
-based on guesses at the heritability of the phenotype we are fitting, but here we will just pick some values.
+provided to the ``RidgeReducer``. In practice, we can estimate a span of alpha values in a reasonable order of
+magnitude based on guesses at the heritability of the phenotype we are fitting.
 
 Initialization
 ==============
 
-When the `RidgeReducer` is initialized, it will assign names to the provided alphas and store them in a dictionary
-accessible as `RidgeReducer.alphas`.
+When the ``RidgeReducer`` is initialized, it will assign names to the provided alphas and store them in a dictionary
+accessible as ``RidgeReducer.alphas``.
 
 .. code-block:: python
 
@@ -130,7 +134,7 @@ columns in block *x0* and *K* is the number of alpha values used in the reductio
 reduction is being performed against multiple phenotypes at once, each phenotype will have its own *B*, and for
 convenience we panel these next to each other in the output into a single matrix, so *B* in that case has dimensions
 *mx(K*P)* where *P* is the number of phenotypes. Each matrix *B* is specific to a particular block in *X0*, so the
-Spark DataFrame produced by the `RidgeReducer` can be thought of all of as the matrices *B* from all of the blocks
+Spark DataFrame produced by the ``RidgeReducer`` can be thought of all of as the matrices *B* from all of the blocks
 stacked one atop another.
 
 Parameters
@@ -157,7 +161,7 @@ The fields in the model DataFrame are:
 Model transformation
 ====================
 
-After fitting, the `RidgeReducer.transform` method can be used to generate `X1` from `X0`.
+After fitting, the ``RidgeReducer.transform`` method can be used to generate *X1* from *X0*.
 
 Parameters
 ----------
@@ -174,11 +178,12 @@ Return
 
 The output of the transformation is closely analogous to the block matrix DataFrame we started with.  The main
 difference is that, rather than representing a single block matrix, it really represents multiple block matrices, with
-one such matrix per label (phenotype).  Comparing the schema of this block matrix DataFrame (`reduced_block_df`) with
-the DataFrame we started with (`block_df`), the new columns are:
+one such matrix per label (phenotype).  Comparing the schema of this block matrix DataFrame (``reduced_block_df``) with
+the DataFrame we started with (``block_df``), the new columns are:
+
 - ``alpha``: This is the name of the alpha value used in fitting the model that produced the values in this row.
 - ``label``: This is the label corresponding to the values in this row.  Since the genotype block matrix *X0* is
-  phenotype-agnostic, the rows in `block_df` were not restricted to any label/phenotype, but the level 1 block
+  phenotype-agnostic, the rows in ``block_df`` were not restricted to any label/phenotype, but the level 1 block
   matrix *X1* represents ridge model predictions for the labels the reducer was fit with, so each row is associated with
   a specific label.
 
@@ -206,12 +211,12 @@ Estimate phenotypic values
 --------------------------
 
 The block matrix *X1* can be used to fit a final predictive model that can generate phenotype predictions *y_hat* using
-the `RidgeRegression` class.
+the ``RidgeRegression`` class.
 
 Initialization
 ==============
 
-As with the `RidgeReducer` class, this class is initialized with a list of alpha values.
+As with the ``RidgeReducer`` class, this class is initialized with a list of alpha values.
 
 .. code-block:: python
 
@@ -235,12 +240,13 @@ Parameters
 Return
 ------
 
-The first output is a model DataFrame analogous to the model DataFrame provided by the `RidgeReducer`.  An important
+The first output is a model DataFrame analogous to the model DataFrame provided by the ``RidgeReducer``.  An important
 difference is that the header block ID for all rows will be 'all', indicating that all headers from all blocks have been
 used in a single fit, rather than fitting within blocks.
 
 The second output is a cross validation report DataFrame, which reports the results of the hyperparameter (i.e., alpha)
 value optimization routine.
+
 - ``label``: This is the label corresponding to the cross cv results on the row.
 - ``alpha``: The name of the optimal alpha value
 - ``r2_mean``: The mean out of fold r2 score for the optimal alpha value
@@ -248,9 +254,9 @@ value optimization routine.
 Model transformation
 ====================
 
-After fitting the `RidgeRegression` model, the model DataFrame and cross validation DataFrame are used to apply the
+After fitting the ``RidgeRegression`` model, the model DataFrame and cross validation DataFrame are used to apply the
 model to the block matrix DataFrame to produce predictions (*y_hat*) for each label in each sample block using the
-`RidgeRegression.transform` method.
+``RidgeRegression.transform`` method.
 
 Parameters
 ----------
@@ -268,10 +274,11 @@ Return
 ------
 
 The resulting *y_hat* DataFrame has the following fields:
-- `sample_block`: The sample block ID for the samples corresponding to the *y_hat* values on this row.
-- `label`:  The label corresponding to the *y_hat* values on this row
-- `alpha`:  The name of the alpha value used to fit the model that produced the *y_hat* values on this row.
-- `values`:  The array of *y_hat* values for the samples in the sample block for this row.
+
+- ``sample_block``: The sample block ID for the samples corresponding to the *y_hat* values on this row.
+- ``label``:  The label corresponding to the *y_hat* values on this row
+- ``alpha``:  The name of the alpha value used to fit the model that produced the *y_hat* values on this row.
+- ``values``:  The array of *y_hat* values for the samples in the sample block for this row.
 
 Example
 =======
@@ -280,6 +287,7 @@ We can produce the leave one chromosome out (LOCO) version of the *y_hat* values
 to the chromosome we wish to drop before applying the transformation.
 
 .. code-block:: python
+
     model_df, cv_df = regression.fit(reduced_block_df, label_df, sample_blocks, covariates)
     all_contigs = [r.header_block for r in reduced_block_df.select('header_block').distinct().collect()]
     all_y_hat_df = pd.DataFrame()
