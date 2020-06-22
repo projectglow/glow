@@ -604,5 +604,5 @@ def test_regression_generate_alphas(spark):
     regressor_transform = RidgeRegression()
 
     model1df, cvdf = regressor_fit.fit(level1df, labeldf, group2ids)
-    with pytest.raises(Py4JJavaError):
+    with pytest.raises(Exception):
         y_hat = regressor_transform.transform(level1df, labeldf, group2ids, model1df, cvdf)
