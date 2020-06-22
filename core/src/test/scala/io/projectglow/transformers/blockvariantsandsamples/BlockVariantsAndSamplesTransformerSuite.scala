@@ -140,7 +140,7 @@ class BlockVariantsAndSamplesTransformerSuite extends GlowBaseTest with GlowLogg
     val expectedSchema = spark
       .read
       .format("parquet")
-      .load(s"$testDataHome/levels/ridge-regression/blockedGT.snappy.parquet")
+      .load(s"$testDataHome/wgr/ridge-regression/blockedGT.snappy.parquet")
       .drop("indices")
       .schema
 

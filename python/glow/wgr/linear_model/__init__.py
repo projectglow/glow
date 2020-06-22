@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-VERSION = '0.4.0'
+from .ridge_model import *

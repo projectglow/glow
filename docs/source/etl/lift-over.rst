@@ -60,9 +60,8 @@ The returned ``struct`` has the following values if liftOver succeeded. If not, 
 
 .. code-block:: python
 
-    from pyspark.sql.functions import expr
-    liftover_expr = "lift_over_coordinates(contigName, start, end, '{chain_file}', .99)".format(chain_file=chain_file)
-    output_df = input_df.withColumn('lifted', expr(liftover_expr))
+    output_df = input_df.withColumn('lifted', glow.lift_over_coordinates('contigName', 'start',
+      'end', chain_file, 0.99))
 
 .. invisible-code-block: python
 
