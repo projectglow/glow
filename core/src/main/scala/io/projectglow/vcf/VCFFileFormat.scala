@@ -204,7 +204,8 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
               converter.convert(line)
             }.filter(_ != null)
           } else {
-            SchemaDelegate.makeDelegate(options)
+            SchemaDelegate
+              .makeDelegate(options)
               .toRows(
                 header,
                 requiredSchema,

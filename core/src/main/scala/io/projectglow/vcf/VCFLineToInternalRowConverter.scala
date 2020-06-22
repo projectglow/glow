@@ -1,3 +1,19 @@
+/*
+ * Copyright 2019 The Glow Authors
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 package io.projectglow.vcf
 
 import java.util
@@ -17,10 +33,10 @@ import org.apache.spark.unsafe.types.UTF8String.{IntWrapper, LongWrapper}
 import io.projectglow.common.{GenotypeFields, VariantSchemas}
 
 class VCFLineToInternalRowConverter(
-  header: VCFHeader,
-  schema: StructType,
-  val stringency: ValidationStringency,
-  writeSampleIds: Boolean = true) {
+    header: VCFHeader,
+    schema: StructType,
+    val stringency: ValidationStringency,
+    writeSampleIds: Boolean = true) {
 
   private val genotypeHolder = new Array[Any](header.getNGenotypeSamples)
 
@@ -37,41 +53,50 @@ class VCFLineToInternalRowConverter(
   private val endIdx = findFieldIdx(VariantSchemas.endField)
   private val genotypesIdx = schema.indexWhere(_.name == VariantSchemas.genotypesFieldName)
   private val splitFromMultiIdx = findFieldIdx(VariantSchemas.splitFromMultiAllelicField)
-  private lazy val sampleIds = header.getSampleNamesInOrder.toArray()
+  private lazy val sampleIds = header
+    .getSampleNamesInOrder
+    .toArray()
     .map(el => UTF8String.fromString(el.asInstanceOf[String]))
 
   private val infoFields = schema
     .zipWithIndex
-    .collect { case (f, idx) if f.name.startsWith("INFO_") =>
-      val name = f.name.stripPrefix("INFO_")
-      val typ = f.dataType
-      (UTF8String.fromString(name), (typ, idx))
-    }.toMap
+    .collect {
+      case (f, idx) if f.name.startsWith("INFO_") =>
+        val name = f.name.stripPrefix("INFO_")
+        val typ = f.dataType
+        (UTF8String.fromString(name), (typ, idx))
+    }
+    .toMap
 
-  private val gSchemaOpt = schema.find(_.name == VariantSchemas.genotypesFieldName)
+  private val gSchemaOpt = schema
+    .find(_.name == VariantSchemas.genotypesFieldName)
     .map(_.dataType.asInstanceOf[ArrayType].elementType.asInstanceOf[StructType])
-
 
   private var callsIdx = -1
   private var phasedIdx = -1
   private var sampleIdIdx = -1
-  private val genotypeFieldsOpt: Option[Map[UTF8String, (DataType, Int)]] = gSchemaOpt.map { schema =>
-    schema.zipWithIndex.flatMap { case (gf, idx) =>
-      if (SQLUtils.structFieldsEqualExceptNullability(gf, VariantSchemas.sampleIdField)) {
-        sampleIdIdx = idx
-        None
-      } else if (SQLUtils.structFieldsEqualExceptNullability(gf, VariantSchemas.callsField)) {
-        callsIdx = idx
-        None
-      } else if (SQLUtils.structFieldsEqualExceptNullability(gf, VariantSchemas.phasedField)) {
-        phasedIdx = idx
-        None
-      } else {
-        val vcfName = GenotypeFields.reverseAliases.getOrElse(gf.name, gf.name)
-        val typ = gf.dataType
-        Some((UTF8String.fromString(vcfName), (typ, idx)))
-      }
-    }.toMap
+  private val genotypeFieldsOpt: Option[Map[UTF8String, (DataType, Int)]] = gSchemaOpt.map {
+    schema =>
+      schema
+        .zipWithIndex
+        .flatMap {
+          case (gf, idx) =>
+            if (SQLUtils.structFieldsEqualExceptNullability(gf, VariantSchemas.sampleIdField)) {
+              sampleIdIdx = idx
+              None
+            } else if (SQLUtils.structFieldsEqualExceptNullability(gf, VariantSchemas.callsField)) {
+              callsIdx = idx
+              None
+            } else if (SQLUtils.structFieldsEqualExceptNullability(gf, VariantSchemas.phasedField)) {
+              phasedIdx = idx
+              None
+            } else {
+              val vcfName = GenotypeFields.reverseAliases.getOrElse(gf.name, gf.name)
+              val typ = gf.dataType
+              Some((UTF8String.fromString(vcfName), (typ, idx)))
+            }
+        }
+        .toMap
   }
 
   private def set(row: InternalRow, idx: Int, value: Any): Unit = {
@@ -119,14 +144,17 @@ class VCFLineToInternalRowConverter(
     ctx.expectTab()
 
     while (!ctx.isTab) {
-      val key = ctx.parseString('=')
+      val key = ctx.parseString('=', ';')
       ctx.eat('=')
-      if (!infoFields.contains(key)) {
+      if (key == UTF8String.fromString("END")) {
+        val value = ctx.parseInfoVal(LongType)
+        set(row, endIdx, value)
+      } else if (!infoFields.contains(key)) {
         ctx.parseString(';')
       } else {
         val (typ, idx) = infoFields(key)
         val value = ctx.parseInfoVal(typ)
-        row.update(idx, value)
+        set(row, idx, value)
       }
       ctx.eat(';')
     }
@@ -203,9 +231,9 @@ class LineCtx(text: Text) {
   val intWrapper = new IntWrapper()
 
   val stringList = new util.ArrayList[UTF8String]()
-  val intList = new util.ArrayList[Int]()
-  val longList = new util.ArrayList[Long]()
-  val doubleList = new util.ArrayList[Double]()
+  val intList = new util.ArrayList[java.lang.Integer]()
+  val longList = new util.ArrayList[java.lang.Long]()
+  val doubleList = new util.ArrayList[java.lang.Double]()
 
   def setInInfoVal(): Unit = {
     delimiter = ';'
@@ -216,22 +244,21 @@ class LineCtx(text: Text) {
   }
 
   def printRemaining(): Unit = {
-    println(new String(line.slice(pos, text.getLength), "UTF-8"))
+    println(new String(line.slice(pos, text.getLength), "UTF-8")) // scalastyle:ignore
   }
 
   def isHeader: Boolean = {
     line.isEmpty || line(0) == '#'
   }
 
-  def parseString(
-    extraStopChar1: Byte = '\0',
-    extraStopChar2: Byte = '\0'): UTF8String = {
-    if (line(pos) == '.') {
+  def parseString(extraStopChar1: Byte = '\0', extraStopChar2: Byte = '\0'): UTF8String = {
+    if (pos >= text.getLength || line(pos) == '.') {
       pos += 1
       null
     } else {
       var stop = pos
-      while (stop < text.getLength && line(stop) != delimiter && line(stop) != '\t' && line(stop) != extraStopChar1 && line(stop) != extraStopChar2) {
+      while (stop < text.getLength && line(stop) != delimiter && line(stop) != '\t' && line(stop) != extraStopChar1 && line(
+          stop) != extraStopChar2) {
         stop += 1
       }
       val out = UTF8String.fromBytes(line, pos, stop - pos)
@@ -249,7 +276,7 @@ class LineCtx(text: Text) {
   }
 
   def isLineEnd: Boolean = {
-    pos >= text.getLength || line(pos) == '\n'
+    pos >= text.getLength || line(pos) == '\n' || line(pos) == '\r'
   }
 
   def expectTab(): Unit = {
@@ -274,7 +301,10 @@ class LineCtx(text: Text) {
     longWrapper.value
   }
 
-  def parseInt(stopChar1: Byte = '\0', stopChar2: Byte = '\0', nullValue: java.lang.Integer = null): java.lang.Integer = {
+  def parseInt(
+      stopChar1: Byte = '\0',
+      stopChar2: Byte = '\0',
+      nullValue: java.lang.Integer = null): java.lang.Integer = {
     val s = parseString(stopChar1, stopChar2)
     if (s == null) {
       return nullValue
@@ -294,6 +324,8 @@ class LineCtx(text: Text) {
       Double.NaN
     } else if (s == "-nan") {
       Double.NaN
+    } else if (s == "+nan") {
+      Double.NaN
     } else if (s == "inf") {
       Double.PositiveInfinity
     } else if (s == "-inf") {
@@ -305,7 +337,7 @@ class LineCtx(text: Text) {
 
   def parseStringArray(sep: Byte = ','): GenericArrayData = {
     stringList.clear()
-    while (!isTab && !isDelimiter) {
+    while (!isLineEnd && !isTab && !isDelimiter) {
       stringList.add(parseString(sep))
       eat(sep)
     }
@@ -314,7 +346,7 @@ class LineCtx(text: Text) {
 
   def parseIntArray(): GenericArrayData = {
     intList.clear()
-    while (!isTab && !isDelimiter) {
+    while (!isLineEnd && !isTab && !isDelimiter) {
       intList.add(parseInt(','))
       eat(',')
     }
@@ -323,7 +355,7 @@ class LineCtx(text: Text) {
 
   def parseDoubleArray(): GenericArrayData = {
     doubleList.clear()
-    while (!isTab && !isDelimiter) {
+    while (!isLineEnd && !isTab && !isDelimiter) {
       doubleList.add(parseDouble(','))
       eat(',')
     }
@@ -331,7 +363,9 @@ class LineCtx(text: Text) {
   }
 
   private def toGenericArrayData(arr: Array[_]): GenericArrayData = {
-    if (arr.length == 1 && arr(0) == null) {
+    if (arr.length == 0) {
+      null
+    } else if (arr.length == 1 && arr(0) == null) {
       new GenericArrayData(Array.empty[Any])
     } else {
       new GenericArrayData(arr.asInstanceOf[Array[Any]])
@@ -370,10 +404,7 @@ class LineCtx(text: Text) {
     parseByType(typ)
   }
 
-  def parseCallsAndPhasing(
-    row: GenericInternalRow,
-    phasedIdx: Int,
-    callsIdx: Int): Unit = {
+  def parseCallsAndPhasing(row: GenericInternalRow, phasedIdx: Int, callsIdx: Int): Unit = {
     setInFormatVal()
     intList.clear()
     val first = parseInt('|', '/', -1)
