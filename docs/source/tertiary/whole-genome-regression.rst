@@ -70,40 +70,23 @@ the unique number of headers in the blocked genotype matrix `v`, and a set of he
     regression = RidgeRegression(alphas_regression)
     model_df, cv_df = regression.fit(reduced_block_df, label_df, sample_blocks, covariates)
     all_contigs = [r.header_block for r in reduced_block_df.select('header_block').distinct().collect()]
-    y_hat = pd.DataFrame()
+    all_y_hat_df = pd.DataFrame()
+
+    reduced_block_df.show()
+    model_df.show()
+    model_df.filter(~col('header').startswith('chr_22')).show()
+
     for contig in all_contigs:
-      loco_block_df = reduced_block_df.filter(col('header_block') != lit(contig))
-      loco_model_df = model_df.filter(~col('header_block').startswith(contig))
-      loco_y_hat_df = regression.transform(loco_block_df, label_df, sample_blocks, loco_model_df, cv_df, covariates)
+      loco_reduced_block_df = reduced_block_df.filter(col('header_block') != lit(contig))
+      loco_model_df = model_df #.filter(~col('header_block').startswith(contig))
+      loco_y_hat_df = regression.transform(loco_reduced_block_df, label_df, sample_blocks, loco_model_df, cv_df, covariates)
       loco_y_hat_df['contigName'] = contig.split('_')[1]
-      y_hat = y_hat.append(loco_df)
-    y_hat.reset_index(inplace=True).set_index(['contigName', 'sample_id'], inplace=True)
+      all_y_hat_df = all_y_hat_df.append(loco_y_hat_df)
+    y_hat_df = all_y_hat_df.reset_index().set_index(['contigName', 'sample_id'])
 
 .. invisible-code-block: python
 
     import math
 
+    print(y_hat_df)
     assert math.isclose(y_hat.at[('22', 'HG00096'),'Continuous_Trait_1'], -0.37493755917205657)
-
-Run linear regression
----------------------
-
-To perform GWAS adjusted with WGR, subtract the estimated phenotypes from the input phenotypes.
-
-.. code-block:: python
-
-    pdf = label_df - y_hat
-    apdf = pdf.T
-    apdf['values'] = list(pdf.drop(['contigName', 'trait'], axis=1).to_numpy())
-    apdf.show()
-    adjusted_phenotypes = spark.createDataFrame(apdf)
-    genotypes.join(adjusted_phenotypes, ['contigName']).select(
-        'contigName',
-        'start',
-        'names',
-        'trait',
-        glow.expand_struct(glow.linear_regression_gwas(
-            col('values'),
-            col('pt'),
-            lit(covariates.to_numpy())
-        )))
