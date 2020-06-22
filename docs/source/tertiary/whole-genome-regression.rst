@@ -305,7 +305,7 @@ Model transformation
 ====================
 
 After fitting the ``RidgeRegression`` model, the model DataFrame and cross validation DataFrame are used to apply the
-model to the block matrix DataFrame to produce predictions (*y_hat*) for each label in each sample block using the
+model to the block matrix DataFrame to produce predictions (*y_hat*) for each label and sample using the
 ``RidgeRegression.transform`` method.
 
 Parameters
@@ -323,12 +323,8 @@ Parameters
 Return
 ------
 
-The resulting *y_hat* DataFrame has the following fields:
-
-- ``sample_block``: The sample block ID for the samples corresponding to the *y_hat* values on this row.
-- ``label``:  The label corresponding to the *y_hat* values on this row
-- ``alpha``:  The name of the alpha value used to fit the model that produced the *y_hat* values on this row.
-- ``values``:  The array of *y_hat* values for the samples in the sample block for this row.
+The resulting *y_hat* Pandas DataFrame is shaped like ``label_df``, indexed by the sample ID with each column
+representing a single phenotype.
 
 Example
 =======
