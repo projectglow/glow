@@ -1,7 +1,7 @@
 import pytest
 from pyspark.sql import Row
 from pyspark.sql.utils import AnalysisException
-from glow.levels import functions
+from glow.wgr import functions
 
 
 def __construct_row(sample_id_1, sample_id_2):

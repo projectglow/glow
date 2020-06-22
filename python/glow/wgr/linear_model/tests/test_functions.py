@@ -1,4 +1,4 @@
-from glow.levels.linear_model.functions import *
+from glow.wgr.linear_model.functions import *
 import numpy as np
 import pandas as pd
 import pytest

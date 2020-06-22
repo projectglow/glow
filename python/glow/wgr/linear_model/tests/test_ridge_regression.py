@@ -1,7 +1,7 @@
-from glow.levels.linear_model import RidgeReducer, RidgeRegression
-from glow.levels.linear_model.ridge_model import *
+from glow.wgr.linear_model import RidgeReducer, RidgeRegression
+from glow.wgr.linear_model.ridge_model import *
 
-data_root = 'test-data/levels/ridge-regression'
+data_root = 'test-data/wgr/ridge-regression'
 
 X0 = pd.read_csv(f'{data_root}/X0.csv').set_index('sample_id')
 X0.index = X0.index.astype(str, copy=False)
