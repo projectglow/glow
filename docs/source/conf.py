@@ -233,5 +233,6 @@ linkcheck_ignore = [
     # Intermittent 104s from linkchecker
     r'https://academic.oup.com*',
     # Certificate verification failure
-    r'https://www.ensembl.org*'
+    r'https://www.ensembl.org*',
+    r'http://www.sequenceontology.org*'
 ]
