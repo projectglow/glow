@@ -34,7 +34,7 @@ trait HlsEventRecorder extends HlsUsageLogging {
 
 }
 
-object PythonEventRecorder extends HlsEventRecorder {
+object PythonHlsEventRecorder extends HlsEventRecorder {
   def recordHlsEvent(tag: String, options: java.util.Map[String, Any]): Unit = {
     super.recordHlsEvent(tag, options.asScala.toMap)
   }
