@@ -33,9 +33,12 @@ GloWGR accepts three input datasources.
 Genotype data
 =============
 
-The genotype data may be read from any variant datasource supported by Glow, such as VCF, BGEN or PLINK. The DataFrame
-must also include a column ``values`` containing a numeric representation of each genotype. The genotypic values may
-not be missing, or equal for every sample in a variant (eg. all samples are homozygous reference).
+The genotype data may be read from any variant datasource supported by Glow, such as one read from
+:ref:`VCF, BGEN or PLINK <variant_data>`. For scalability, recommend ingesting flat genotype files into
+:ref:`Delta tables <vcf2delta>`.
+
+The DataFrame must also include a column ``values`` containing a numeric representation of each genotype. The genotypic
+values may not be missing, or equal for every sample in a variant (eg. all samples are homozygous reference).
 
 Example
 -------
@@ -45,7 +48,7 @@ When loading in the variants, perform the following transformations:
 - Split multiallelic variants with the ``split_multiallelics`` transformer.
 - Calculate the number of alternate alleles for biallelic variants with ``glow.genotype_states``.
 - Replace any missing values with the mean of the non-missing values using ``glow.mean_substitute``.
-- Filter out all homozygous SNPs.
+- Filter out variants whose values are equal across all samples.
 
 .. code-block:: python
 
@@ -218,8 +221,8 @@ Return
 
 The fields in the model DataFrame are:
 
-- ``header_block``: An ID assigned to the block *x0* corresponding to the coefficients in this row.
-- ``sample_block``: An ID assigned to the block *x0* corresponding to the coefficients in this row.
+- ``header_block``: An ID assigned to the header block *x0* corresponding to the coefficients in this row.
+- ``sample_block``: An ID assigned to the sample block *x0* corresponding to the coefficients in this row.
 - ``header``: The name of a column from the conceptual matrix *X0* that correspond with a particular row from the
   coefficient matrix *B*.
 - ``alphas``: List of alpha names corresponding to the columns of *B*.
