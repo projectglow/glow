@@ -24,6 +24,10 @@ GloWGR consists of the following stages.
 - Perform dimensionality reduction with ridge regression.
 - Estimate phenotypic values with ridge regression.
 
+.. note::
+
+   GloWGR currently supports only quantitative phenotypes.
+
 ----------------
 Data preparation
 ----------------
@@ -102,8 +106,8 @@ Parameters
   also include a column ``values`` containing a numeric representation of each genotype.
 - ``sample_ids``: List of sample IDs. Can be created by applying ``glow.wgr.functions.get_sample_ids`` to a genotype
   DataFrame.
-- ``variants_per_block``: Number of variants to include per block.
-- ``sample_block_count``: Number of sample blocks to create.
+- ``variants_per_block``: Number of variants to include per block. We recommend 1000.
+- ``sample_block_count``: Number of sample blocks to create. We recommend 10.
 
 Return
 ======
@@ -150,7 +154,7 @@ Example
     from glow.wgr.functions import block_variants_and_samples, get_sample_ids
     from pyspark.sql.functions import col, lit
 
-    variants_per_block = 5
+    variants_per_block = 1000
     sample_block_count = 10
     sample_ids = get_sample_ids(genotypes)
     block_df, sample_blocks = block_variants_and_samples(
@@ -375,4 +379,4 @@ to the chromosome we wish to drop before applying the transformation.
 .. invisible-code-block: python
 
     import math
-    assert math.isclose(y_hat_df.at[('22', 'HG00096'),'Continuous_Trait_1'], -0.4973672436810818)
+    assert math.isclose(y_hat_df.at[('22', 'HG00096'),'Continuous_Trait_1'], -0.5203890988445584)
