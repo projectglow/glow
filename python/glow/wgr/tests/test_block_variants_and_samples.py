@@ -1,5 +1,5 @@
 from glow import glow
-from glow.levels import functions
+from glow.wgr import functions
 import pytest
 from pyspark.sql import Row
 from pyspark.sql.functions import expr
