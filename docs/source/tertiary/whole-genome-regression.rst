@@ -380,3 +380,9 @@ to the chromosome we wish to drop before applying the transformation.
 
     import math
     assert math.isclose(y_hat_df.at[('22', 'HG00096'),'Continuous_Trait_1'], -0.5203890988445584)
+
+Example notebook
+----------------
+
+.. notebook:: .. tertiary/glowgr.html
+  :title: GloWGR notebook
