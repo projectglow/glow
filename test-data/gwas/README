@@ -1,4 +1,4 @@
-The genotypes are sampled from the Thousand Genomes Project Phase 3 release chr22 VCF
+The genotypes are sampled from the Thousand Genomes Project Phase 3 release chr21 and chr22 VCFs
 (ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf).
 
 The covariates and continuous phenotypes are simulated with PhenotypeSimulator

@@ -13,3 +13,4 @@ Perform population-scale statistical analyses of genetic variants.
    pipe-transformer
    pandas-udf
    regression-tests
+   whole-genome-regression
