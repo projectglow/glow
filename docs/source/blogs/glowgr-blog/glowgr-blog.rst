@@ -19,8 +19,8 @@ June 22, 2020
 
 *The industry partnership between Regeneron and Databricks is
 enabling innovations in genomics data processing and analysis. Today, we
-announce that we are making this work available to the open source
-bioinformatics community as part of Project Glow.*
+announce that we are making a new whole genome regression method available
+to the open source bioinformatics community as part of Project Glow.*
 
 Large cohorts of individuals with paired clinical and genome sequence
 data enable unprecedented insight into human disease biology. Population
