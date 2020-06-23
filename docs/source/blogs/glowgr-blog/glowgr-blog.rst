@@ -214,7 +214,7 @@ Runtime (`Azure`_ | `AWS`_), and you can `start a preview today`_.
 .. _Apache Parquet: http://parquet.apache.org
 .. _Apache Spark: http://spark.apache.org
 .. _pandas: https://pandas.pydata.org/
-.. _built-in association test methods from Glow: https://glow.readthedocs.io/en/stable/tertiary/regression-tests.html
+.. _built-in association test methods from Glow: https://glow.readthedocs.io/en/latest/tertiary/regression-tests.html
 .. _Glow: http://projectglow.io
 .. _hosted on Github: https://github.com/projectglow/glow
 .. _this notebook: https://glow.readthedocs.io/en/latest/tertiary/whole-genome-regression.html
