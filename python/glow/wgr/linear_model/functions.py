@@ -267,7 +267,7 @@ def generate_alphas(blockdf: DataFrame) -> Dict[str, Float]:
 
 
 @typechecked
-def assert_non_missing(df: pd.DataFrame) -> None:
+def assert_non_missing(df: pd.DataFrame, name: str) -> None:
     """
     Raises an error if a pandas DataFrame has missing values.
 
@@ -276,11 +276,11 @@ def assert_non_missing(df: pd.DataFrame) -> None:
     """
     for label, isnull in df.isnull().any().items():
         if isnull:
-            raise ValueError(f"Column {label} has missing values")
+            raise ValueError(f"Missing values are present in the {name} dataframe's {label} column")
 
 
 @typechecked
-def check_standardized(df: pd.DataFrame) -> None:
+def check_standardized(df: pd.DataFrame, name: str) -> None:
     """
     Warns if any column of a pandas DataFrame is not standardized to zero mean and unit (biased) standard deviation.
 
@@ -290,10 +290,13 @@ def check_standardized(df: pd.DataFrame) -> None:
     # Mean should be between [-0.1, 0.1]
     for label, mean in df.mean().items():
         if not math.isclose(mean, 0, abs_tol=1e-9):
-            warnings.warn(f"Mean for column {label} should be 0, is {mean}")
+            warnings.warn(f"Mean for the {name} dataframe's column {label} should be 0, is {mean}",
+                          UserWarning)
     for label, std in df.std(ddof=0).items():
         if not math.isclose(std, 1):
-            warnings.warn(f"Standard deviation for column {label} should be approximately 1, is {std}")
+            warnings.warn(
+                f"Standard deviation for the {name} dataframe's column {label} should be approximately 1, is {std}",
+                UserWarning)
 
 
 @typechecked
@@ -307,6 +310,6 @@ def validate_inputs(labeldf: pd.DataFrame, covdf: pd.DataFrame) -> None:
         labeldf : Pandas DataFrame containing target labels
         covdf : Pandas DataFrame containing covariates
     """
-    assert_non_missing(labeldf)
-    check_standardized(labeldf)
-    assert_non_missing(covdf)
+    assert_non_missing(labeldf, 'label')
+    check_standardized(labeldf, 'label')
+    assert_non_missing(covdf, 'covariate')

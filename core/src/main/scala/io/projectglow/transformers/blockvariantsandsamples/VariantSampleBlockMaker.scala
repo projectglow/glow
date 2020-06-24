@@ -28,7 +28,7 @@ import org.apache.spark.sql.types.{ArrayType, IntegerType, StringType}
 private[projectglow] object VariantSampleBlockMaker extends GlowLogging {
 
   def filterStdDevZero(df: DataFrame): DataFrame = {
-    val filteredDf = df.filter(size(array_distinct(col(valuesField.name))))
+    val filteredDf = df.filter(size(array_distinct(col(valuesField.name))) > 0)
     val numOrig = df.count()
     val numFiltered = filteredDf.count()
     if (numFiltered < numOrig) {
