@@ -17,6 +17,14 @@
 
 Glow is an open-source toolkit to enable bioinformatics at biobank-scale and beyond.
 
+[![CircleCI](https://circleci.com/gh/projectglow/glow.svg?style=svg&circle-token=7511f70b2c810a18e88b5c537b0410e82db8617d)](https://circleci.com/gh/projectglow/glow)
+[![Documentation
+Status](https://readthedocs.org/projects/glow/badge/?version=latest)](https://glow.readthedocs.io/en/latest/?badge=latest)
+[![PyPi](https://img.shields.io/pypi/v/glow.py.svg)](https://pypi.org/project/glow.py/)
+[![Maven Central](https://img.shields.io/maven-central/v/io.projectglow/glow_2.11.svg)](https://mvnrepository.com/artifact/io.projectglow)
+[![Coverage Status](https://codecov.io/gh/projectglow/glow/branch/master/graph/badge.svg)](https://codecov.io/gh/projectglow/glow)
+[![DOI](https://zenodo.org/badge/212904926.svg)](https://zenodo.org/badge/latestdoi/212904926)
+
 # Easy to get started
 The toolkit includes the building blocks that you need to perform the most common analyses right away:
 
@@ -41,12 +49,6 @@ The same APIs allow you to bring your genomic data together with other datasets 
 health records, real world evidence, and medical images. Glow makes it easy to parallelize existing
 tools and libraries implemented as command line tools or Pandas functions.
 
-[![CircleCI](https://circleci.com/gh/projectglow/glow.svg?style=svg&circle-token=7511f70b2c810a18e88b5c537b0410e82db8617d)](https://circleci.com/gh/projectglow/glow)
-[![Documentation
-Status](https://readthedocs.org/projects/glow/badge/?version=latest)](https://glow.readthedocs.io/en/latest/?badge=latest)
-[![PyPi](https://img.shields.io/pypi/v/glow.py.svg)](https://pypi.org/project/glow.py/)
-[![Maven Central](https://img.shields.io/maven-central/v/io.projectglow/glow_2.11.svg)](https://mvnrepository.com/artifact/io.projectglow)
-[![Coverage Status](https://codecov.io/gh/projectglow/glow/branch/master/graph/badge.svg)](https://codecov.io/gh/projectglow/glow)
 
 # Building and Testing
 This project is built using [sbt](https://www.scala-sbt.org/1.0/docs/Setup.html) and Java 8.
