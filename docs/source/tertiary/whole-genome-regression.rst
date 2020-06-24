@@ -1,5 +1,5 @@
 ===============================
-GloWGR: Whole-Genome Regression
+GloWGR: Whole Genome Regression
 ===============================
 
 .. invisible-code-block: python

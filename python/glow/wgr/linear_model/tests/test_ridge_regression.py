@@ -554,7 +554,8 @@ def test_reducer_generate_alphas(spark):
     group2ids = __get_sample_blocks(indexdf)
 
     stack_without_alphas = RidgeReducer()
-    stack_with_alphas = RidgeReducer(np.array(sorted(list(generate_alphas(blockdf).values()))))
+    stack_with_alphas = RidgeReducer(
+        np.array(sorted(list(generate_alphas(blockdf).values()))))
 
     model0_without_alphas = stack_without_alphas.fit(blockdf, labeldf, group2ids)
     model0df = stack_with_alphas.fit(blockdf, labeldf, group2ids)
