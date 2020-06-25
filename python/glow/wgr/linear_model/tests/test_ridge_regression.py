@@ -295,6 +295,7 @@ def test_ridge_reducer_transform(spark):
 
     indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
     blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet')
+    level1df = spark.read.parquet(f'{data_root}/level1BlockedGT.snappy.parquet')
     testGroup = '0'
     testBlock = 'chr_1_block_0'
     ids = indexdf.filter(f'sample_block = {testGroup}').select('sample_ids').head().sample_ids
@@ -313,10 +314,6 @@ def test_ridge_reducer_transform(spark):
     B = np.column_stack(
         [(np.linalg.inv(XtX_out + np.identity(XtX_out.shape[1]) * a) @ XtY_out) for a in alphas])
     X1_in = X_in.to_numpy() @ B
-
-    stack = RidgeReducer(alphas)
-    modeldf = stack.fit(blockdf, labeldf, __get_sample_blocks(indexdf))
-    level1df = stack.transform(blockdf, labeldf, __get_sample_blocks(indexdf), modeldf)
 
     columns = ['values']
     rows = level1df.filter(f'header LIKE "%{testBlock}%" AND sample_block = {testGroup}') \
@@ -505,13 +502,8 @@ def test_two_level_regression_with_cov(spark):
 def test_tie_break(spark):
 
     indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
-    blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet').limit(5)
-
+    level1df = spark.read.parquet(f'{data_root}/level1BlockedGT.snappy.parquet').limit(5)
     group2ids = __get_sample_blocks(indexdf)
-
-    stack0 = RidgeReducer(alphas)
-    model0df = stack0.fit(blockdf, labeldf, group2ids)
-    level1df = stack0.transform(blockdf, labeldf, group2ids, model0df)
 
     regressor = RidgeRegression(np.array([0.1, 0.2, 0.1, 0.2]))
     _, cvdf = regressor.fit(level1df, labeldf, group2ids)
@@ -523,7 +515,6 @@ def test_reducer_fit_transform(spark):
 
     indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
     blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet').limit(5)
-
     group2ids = __get_sample_blocks(indexdf)
 
     stack0 = RidgeReducer(alphas)
@@ -537,11 +528,8 @@ def test_reducer_fit_transform(spark):
 def test_regression_fit_transform(spark):
 
     indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
-    blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet').limit(5)
-
+    level1df = spark.read.parquet(f'{data_root}/level1BlockedGT.snappy.parquet').limit(5)
     group2ids = __get_sample_blocks(indexdf)
-    stack0 = RidgeReducer(alphas)
-    level1df = stack0.fit_transform(blockdf, labeldf, group2ids)
 
     regressor = RidgeRegression(alphas)
     model1df, cvdf = regressor.fit(level1df, labeldf, group2ids)
@@ -555,7 +543,6 @@ def test_reducer_generate_alphas(spark):
 
     indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
     blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet').limit(5)
-
     group2ids = __get_sample_blocks(indexdf)
 
     stack_without_alphas = RidgeReducer()
@@ -573,11 +560,8 @@ def test_reducer_generate_alphas(spark):
 def test_regression_generate_alphas(spark):
 
     indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
-    blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet').limit(5)
-
+    level1df = spark.read.parquet(f'{data_root}/level1BlockedGT.snappy.parquet').limit(5)
     group2ids = __get_sample_blocks(indexdf)
-    stack0 = RidgeReducer(alphas)
-    level1df = stack0.fit_transform(blockdf, labeldf, group2ids)
 
     regressor_without_alphas = RidgeRegression()
     regressor_with_alphas = RidgeRegression(
@@ -598,8 +582,8 @@ def test_regression_generate_alphas(spark):
 def test_reducer_missing_alphas(spark):
     indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
     blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet').limit(5)
-
     group2ids = __get_sample_blocks(indexdf)
+
     stack_fit = RidgeReducer()
     stack_transform = RidgeReducer()
 
@@ -611,12 +595,9 @@ def test_reducer_missing_alphas(spark):
 
 def test_regression_generate_alphas(spark):
     indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
-    blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet').limit(5)
+    level1df = spark.read.parquet(f'{data_root}/level1BlockedGT.snappy.parquet')
 
     group2ids = __get_sample_blocks(indexdf)
-    stack0 = RidgeReducer(alphas)
-    level1df = stack0.fit_transform(blockdf, labeldf, group2ids)
-
     regressor_fit = RidgeRegression()
     regressor_transform = RidgeRegression()
 
