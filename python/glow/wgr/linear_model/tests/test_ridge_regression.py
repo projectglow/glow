@@ -15,6 +15,7 @@
 from glow.wgr.linear_model import RidgeReducer, RidgeRegression
 from glow.wgr.linear_model.ridge_model import *
 from glow.wgr.linear_model.functions import generate_alphas
+import math
 import pytest
 
 data_root = 'test-data/wgr/ridge-regression'
@@ -30,11 +31,15 @@ X2.index = X2.index.astype(str, copy=False)
 
 labeldf = pd.read_csv(f'{data_root}/pts.csv').set_index('sample_id')
 labeldf.index = labeldf.index.astype(str, copy=False)
+label_with_missing = labeldf.copy()
+label_with_missing.loc['1073199471', 'sim58'] = math.nan
 
 n_cov = 2
 cov_matrix = np.random.randn(*(labeldf.shape[0], n_cov))
 covdf = pd.DataFrame(data=cov_matrix, columns=['cov1', 'cov2'], index=labeldf.index)
 covdf_empty = pd.DataFrame({})
+covdf_with_missing = covdf.copy()
+covdf_with_missing.loc['1073199471', 'cov1'] = math.nan
 
 alphas = np.array([0.1, 1, 10])
 alphaMap = {f'alpha_{i}': a for i, a in enumerate(alphas)}
@@ -605,7 +610,6 @@ def test_reducer_missing_alphas(spark):
 
 
 def test_regression_generate_alphas(spark):
-
     indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
     blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet').limit(5)
 
@@ -619,3 +623,73 @@ def test_regression_generate_alphas(spark):
     model1df, cvdf = regressor_fit.fit(level1df, labeldf, group2ids)
     with pytest.raises(Exception):
         y_hat = regressor_transform.transform(level1df, labeldf, group2ids, model1df, cvdf)
+
+
+def test_reducer_fit_validates_inputs(spark):
+    indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
+    blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet').limit(5)
+
+    group2ids = __get_sample_blocks(indexdf)
+    reducer = RidgeReducer(alphas)
+
+    with pytest.raises(ValueError):
+        reducer.fit(blockdf, label_with_missing, group2ids, covdf)
+    with pytest.raises(ValueError):
+        reducer.fit(blockdf, labeldf, group2ids, covdf_with_missing)
+    with pytest.warns(UserWarning):
+        reducer.fit(blockdf, labeldf + 0.5, group2ids)
+    with pytest.warns(UserWarning):
+        reducer.fit(blockdf, labeldf * 1.5, group2ids)
+
+
+def test_reducer_transform_validates_inputs(spark):
+    indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
+    blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet').limit(5)
+
+    group2ids = __get_sample_blocks(indexdf)
+    reducer = RidgeReducer(alphas)
+    model0df = reducer.fit(blockdf, labeldf, group2ids)
+
+    with pytest.raises(ValueError):
+        reducer.transform(blockdf, label_with_missing, group2ids, model0df, covdf)
+    with pytest.raises(ValueError):
+        reducer.transform(blockdf, labeldf, group2ids, model0df, covdf_with_missing)
+    with pytest.warns(UserWarning):
+        reducer.transform(blockdf, labeldf + 0.5, group2ids, model0df)
+    with pytest.warns(UserWarning):
+        reducer.transform(blockdf, labeldf * 1.5, group2ids, model0df)
+
+
+def test_regression_fit_validates_inputs(spark):
+    indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
+    level1df = spark.read.parquet(f'{data_root}/level1BlockedGT.snappy.parquet').limit(5)
+
+    group2ids = __get_sample_blocks(indexdf)
+    regressor = RidgeRegression(alphas)
+
+    with pytest.raises(ValueError):
+        regressor.fit(level1df, label_with_missing, group2ids, covdf)
+    with pytest.raises(ValueError):
+        regressor.fit(level1df, labeldf, group2ids, covdf_with_missing)
+    with pytest.warns(UserWarning):
+        regressor.fit(level1df, labeldf + 0.5, group2ids)
+    with pytest.warns(UserWarning):
+        regressor.fit(level1df, labeldf * 1.5, group2ids)
+
+
+def test_regression_transform_validates_inputs(spark):
+    indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
+    level1df = spark.read.parquet(f'{data_root}/level1BlockedGT.snappy.parquet').limit(5)
+
+    group2ids = __get_sample_blocks(indexdf)
+    regressor = RidgeRegression(alphas)
+    model1df, cvdf = regressor.fit(level1df, labeldf, group2ids)
+
+    with pytest.raises(ValueError):
+        regressor.transform(level1df, label_with_missing, group2ids, model1df, cvdf, covdf)
+    with pytest.raises(ValueError):
+        regressor.transform(level1df, labeldf, group2ids, model1df, cvdf, covdf_with_missing)
+    with pytest.warns(UserWarning):
+        regressor.transform(level1df, labeldf + 0.5, group2ids, model1df, cvdf)
+    with pytest.warns(UserWarning):
+        regressor.transform(level1df, labeldf * 1.5, group2ids, model1df, cvdf)

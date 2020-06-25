@@ -241,7 +241,7 @@ lazy val python =
       functionGenerationSettings,
       test in Test := {
         yapf.toTask(" --diff").value
-        pytest.toTask(" --doctest-modules -W error::UserWarning python").value
+        pytest.toTask(" --doctest-modules python").value
       },
       generatedFunctionsOutput := baseDirectory.value / "glow" / "functions.py",
       functionsTemplate := baseDirectory.value / "glow" / "functions.py.TEMPLATE",
