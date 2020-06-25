@@ -287,7 +287,6 @@ def __check_standardized(df: pd.DataFrame, name: str) -> None:
     Args:
         df : Pandas DataFrame
     """
-    # Mean should be between [-0.1, 0.1]
     for label, mean in df.mean().items():
         if not math.isclose(mean, 0, abs_tol=1e-9):
             warnings.warn(f"Mean for the {name} dataframe's column {label} should be 0, is {mean}",
@@ -311,5 +310,6 @@ def validate_inputs(labeldf: pd.DataFrame, covdf: pd.DataFrame) -> None:
         covdf : Pandas DataFrame containing covariates
     """
     __assert_all_present(labeldf, 'label')
-    __check_standardized(labeldf, 'label')
     __assert_all_present(covdf, 'covariate')
+    __check_standardized(labeldf, 'label')
+    __check_standardized(covdf, 'covariate')

@@ -79,27 +79,41 @@ def test_generate_alphas(spark):
 
 def test_assert_labels_all_present(spark):
     labeldf = pd.DataFrame({'Trait_1': [-1, 1], 'Trait_2': [1, math.nan]})
-    covdf = pd.DataFrame({'Covariate_1': [0.1, 0.2, 0.3], 'Covariate_2': [0.4, 0.5, 0.6]})
+    covdf = pd.DataFrame({'Covariate_1': [1, -1], 'Covariate_2': [-1, 1]})
     with pytest.raises(ValueError):
         validate_inputs(labeldf, covdf)
 
 
 def test_assert_covars_all_present(spark):
     labeldf = pd.DataFrame({'Trait_1': [-1, 1], 'Trait_2': [1, -1]})
-    covdf = pd.DataFrame({'Covariate_1': [0.1, 0.2, 0.3], 'Covariate_2': [0.4, math.nan, 0.6]})
+    covdf = pd.DataFrame({'Covariate_1': [1, -1], 'Covariate_2': [-1, math.nan]})
     with pytest.raises(ValueError):
         validate_inputs(labeldf, covdf)
 
 
 def test_check_labels_zero_mean(spark):
     labeldf = pd.DataFrame({'Trait_1': [-1, 1], 'Trait_2': [1, 3]})
-    covdf = pd.DataFrame({'Covariate_1': [0.1, 0.2, 0.3], 'Covariate_2': [0.4, 0.5, 0.6]})
+    covdf = pd.DataFrame({'Covariate_1': [1, -1], 'Covariate_2': [-1, 1]})
     with pytest.warns(UserWarning):
         validate_inputs(labeldf, covdf)
 
 
 def test_check_labels_unit_stddev(spark):
     labeldf = pd.DataFrame({'Trait_1': [-1, 1], 'Trait_2': [2, -2]})
-    covdf = pd.DataFrame({'Covariate_1': [0.1, 0.2, 0.3], 'Covariate_2': [0.4, 0.5, 0.6]})
+    covdf = pd.DataFrame({'Covariate_1': [1, -1], 'Covariate_2': [-1, 1]})
+    with pytest.warns(UserWarning):
+        validate_inputs(labeldf, covdf)
+
+
+def test_check_covars_zero_mean(spark):
+    labeldf = pd.DataFrame({'Trait_1': [-1, 1], 'Trait_2': [1, -1]})
+    covdf = pd.DataFrame({'Covariate_1': [1, -1], 'Covariate_2': [3, 1]})
+    with pytest.warns(UserWarning):
+        validate_inputs(labeldf, covdf)
+
+
+def test_check_covars_unit_stddev(spark):
+    labeldf = pd.DataFrame({'Trait_1': [-1, 1], 'Trait_2': [1, -1]})
+    covdf = pd.DataFrame({'Covariate_1': [1, -1], 'Covariate_2': [-2, 2]})
     with pytest.warns(UserWarning):
         validate_inputs(labeldf, covdf)

@@ -37,6 +37,7 @@ label_with_missing.loc['1073199471', 'sim58'] = math.nan
 n_cov = 2
 cov_matrix = np.random.randn(*(labeldf.shape[0], n_cov))
 covdf = pd.DataFrame(data=cov_matrix, columns=['cov1', 'cov2'], index=labeldf.index)
+covdf = (covdf - covdf.mean())/ covdf.std(ddof=0)
 covdf_empty = pd.DataFrame({})
 covdf_with_missing = covdf.copy()
 covdf_with_missing.loc['1073199471', 'cov1'] = math.nan
@@ -618,9 +619,15 @@ def test_reducer_fit_validates_inputs(spark):
     with pytest.raises(ValueError):
         reducer.fit(blockdf, labeldf, group2ids, covdf_with_missing)
     with pytest.warns(UserWarning):
-        reducer.fit(blockdf, labeldf + 0.5, group2ids)
+        reducer.fit(blockdf, labeldf + 0.5, group2ids, covdf)
     with pytest.warns(UserWarning):
-        reducer.fit(blockdf, labeldf * 1.5, group2ids)
+        reducer.fit(blockdf, labeldf * 1.5, group2ids, covdf)
+    with pytest.warns(UserWarning):
+        reducer.fit(blockdf, labeldf, group2ids, covdf + 0.5)
+    with pytest.warns(UserWarning):
+        reducer.fit(blockdf, labeldf, group2ids, covdf * 1.5)
+    # Should issue no warnings
+    reducer.fit(blockdf, labeldf, group2ids, covdf)
 
 
 def test_reducer_transform_validates_inputs(spark):
@@ -636,9 +643,15 @@ def test_reducer_transform_validates_inputs(spark):
     with pytest.raises(ValueError):
         reducer.transform(blockdf, labeldf, group2ids, model0df, covdf_with_missing)
     with pytest.warns(UserWarning):
-        reducer.transform(blockdf, labeldf + 0.5, group2ids, model0df)
+        reducer.transform(blockdf, labeldf + 0.5, group2ids, model0df, covdf)
     with pytest.warns(UserWarning):
-        reducer.transform(blockdf, labeldf * 1.5, group2ids, model0df)
+        reducer.transform(blockdf, labeldf * 1.5, group2ids, model0df, covdf)
+    with pytest.warns(UserWarning):
+        reducer.transform(blockdf, labeldf, group2ids, model0df, covdf + 0.5)
+    with pytest.warns(UserWarning):
+        reducer.transform(blockdf, labeldf, group2ids, model0df, covdf * 1.5)
+    # Should issue no warnings
+    reducer.transform(blockdf, labeldf, group2ids, model0df, covdf)
 
 
 def test_regression_fit_validates_inputs(spark):
@@ -653,9 +666,15 @@ def test_regression_fit_validates_inputs(spark):
     with pytest.raises(ValueError):
         regressor.fit(level1df, labeldf, group2ids, covdf_with_missing)
     with pytest.warns(UserWarning):
-        regressor.fit(level1df, labeldf + 0.5, group2ids)
+        regressor.fit(level1df, labeldf + 0.5, group2ids, covdf)
     with pytest.warns(UserWarning):
-        regressor.fit(level1df, labeldf * 1.5, group2ids)
+        regressor.fit(level1df, labeldf * 1.5, group2ids, covdf)
+    with pytest.warns(UserWarning):
+        regressor.fit(level1df, labeldf, group2ids, covdf + 0.5)
+    with pytest.warns(UserWarning):
+        regressor.fit(level1df, labeldf, group2ids, covdf * 1.5)
+    # Should issue no warnings
+    regressor.fit(level1df, labeldf, group2ids, covdf)
 
 
 def test_regression_transform_validates_inputs(spark):
@@ -664,13 +683,19 @@ def test_regression_transform_validates_inputs(spark):
 
     group2ids = __get_sample_blocks(indexdf)
     regressor = RidgeRegression(alphas)
-    model1df, cvdf = regressor.fit(level1df, labeldf, group2ids)
+    model1df, cvdf = regressor.fit(level1df, labeldf, group2ids, covdf)
 
     with pytest.raises(ValueError):
         regressor.transform(level1df, label_with_missing, group2ids, model1df, cvdf, covdf)
     with pytest.raises(ValueError):
         regressor.transform(level1df, labeldf, group2ids, model1df, cvdf, covdf_with_missing)
     with pytest.warns(UserWarning):
-        regressor.transform(level1df, labeldf + 0.5, group2ids, model1df, cvdf)
+        regressor.transform(level1df, labeldf + 0.5, group2ids, model1df, cvdf, covdf)
     with pytest.warns(UserWarning):
-        regressor.transform(level1df, labeldf * 1.5, group2ids, model1df, cvdf)
+        regressor.transform(level1df, labeldf * 1.5, group2ids, model1df, cvdf, covdf)
+    with pytest.warns(UserWarning):
+        regressor.transform(level1df, labeldf, group2ids, model1df, cvdf, covdf + 0.5)
+    with pytest.warns(UserWarning):
+        regressor.transform(level1df, labeldf, group2ids, model1df, cvdf, covdf * 1.5)
+    # Should issue no warnings
+    regressor.transform(level1df, labeldf, group2ids, model1df, cvdf, covdf)
