@@ -54,7 +54,6 @@ def __get_index_map(sample_ids: List[str], sample_block_count: int,
     make_sample_blocks_fn = SparkContext._jvm.io.projectglow.transformers.blockvariantsandsamples.VariantSampleBlockMaker.makeSampleBlocks
     output_jdf = make_sample_blocks_fn(sample_id_df._jdf, sample_block_count)
     output_df = DataFrame(output_jdf, sql_ctx)
-    output_df.printSchema()
     index_map = {r.sample_block: r.values for r in output_df.collect()}
 
     assert check_return_type(index_map)
