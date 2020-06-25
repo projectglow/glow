@@ -37,7 +37,7 @@ label_with_missing.loc['1073199471', 'sim58'] = math.nan
 n_cov = 2
 cov_matrix = np.random.randn(*(labeldf.shape[0], n_cov))
 covdf = pd.DataFrame(data=cov_matrix, columns=['cov1', 'cov2'], index=labeldf.index)
-covdf = (covdf - covdf.mean())/ covdf.std(ddof=0)
+covdf = (covdf - covdf.mean()) / covdf.std(ddof=0)
 covdf_empty = pd.DataFrame({})
 covdf_with_missing = covdf.copy()
 covdf_with_missing.loc['1073199471', 'cov1'] = math.nan

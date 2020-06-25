@@ -13,7 +13,7 @@ GloWGR: Whole Genome Regression
 
 Glow supports Whole Genome Regression (WGR) as GloWGR, a parallelized version of the
 `regenie <https://rgcgithub.github.io/regenie/>`_ method (see the
-`preprint <https://www.biorxiv.org/content/10.1101/2020.06.19.162354v1>`_).
+`preprint <https://www.biorxiv.org/content/10.1101/2020.06.19.162354v2>`_).
 
 .. image:: ../_static/images/wgr_runtime.png
    :scale: 50 %
@@ -65,7 +65,8 @@ Phenotype data
 ==============
 
 The phenotype data is represented as a Pandas DataFrame indexed by the sample ID. Each column represents a single
-phenotype. It is assumed that there are no missing phenotype values, and that the phenotypes are mean centered at 0.
+phenotype. It is assumed that there are no missing phenotype values, and that the phenotypes are standardized with
+zero mean and unit variance.
 
 Example
 -------
@@ -74,13 +75,15 @@ Example
 
     import pandas as pd
 
-    label_df = pd.read_csv(continuous_phenotypes_csv, index_col='sample_id') \
-        .apply(lambda x: x-x.mean())[['Continuous_Trait_1', 'Continuous_Trait_2']]
+    label_df = pd.read_csv(continuous_phenotypes_csv, index_col='sample_id')
+    label_df = ((label_df - label_df.mean())/label_df.std(ddof=0))[['Continuous_Trait_1', 'Continuous_Trait_2']]
 
 Covariate data
 ==============
 
-The covariate data is represented as a Pandas DataFrame indexed by the sample ID.
+The covariate data is represented as a Pandas DataFrame indexed by the sample ID. Each column represents a single
+covariate. It is assumed that there are no missing covariate values, and that the covariates are standardized with
+zero mean and unit variance.
 
 Example
 -------
@@ -88,7 +91,7 @@ Example
 .. code-block:: python
 
     covariates = pd.read_csv(covariates_csv, index_col='sample_id')
-    covariates['intercept'] = 1.
+    covariates = (covariates - covariates.mean())/covariates.std(ddof=0)
 
 ------------------------
 Genotype matrix blocking
@@ -382,7 +385,7 @@ to the chromosome we wish to drop before applying the transformation.
 .. invisible-code-block: python
 
     import math
-    assert math.isclose(y_hat_df.at[('22', 'HG00096'),'Continuous_Trait_1'], -0.5203890988445584)
+    assert math.isclose(y_hat_df.at[('22', 'HG00096'),'Continuous_Trait_1'], -0.5578905823446506)
 
 Example notebook
 ----------------
