@@ -52,7 +52,6 @@ When loading in the variants, perform the following transformations:
 - Split multiallelic variants with the ``split_multiallelics`` transformer.
 - Calculate the number of alternate alleles for biallelic variants with ``glow.genotype_states``.
 - Replace any missing values with the mean of the non-missing values using ``glow.mean_substitute``.
-- Filter out variants whose values are equal across all samples.
 
 .. code-block:: python
 
@@ -60,8 +59,7 @@ When loading in the variants, perform the following transformations:
 
     variants = spark.read.format('vcf').load(genotypes_vcf)
     genotypes = glow.transform('split_multiallelics', variants) \
-        .withColumn('values', glow.mean_substitute(glow.genotype_states(col('genotypes')))) \
-        .filter('size(array_distinct(values)) > 1') \
+        .withColumn('values', glow.mean_substitute(glow.genotype_states(col('genotypes'))))
 
 Phenotype data
 ==============
@@ -113,6 +111,11 @@ Return
 ======
 
 The function returns a block genotype matrix and a sample block mapping.
+
+.. warning::
+
+    Variant rows in the input DataFrame whose genotype values are uniform across all samples are filtered from the
+    output block genotype matrix.
 
 Block genotype matrix
 ---------------------
