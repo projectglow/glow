@@ -293,7 +293,7 @@ def __check_standardized(df: pd.DataFrame, name: str) -> None:
             warnings.warn(f"Mean for the {name} dataframe's column {label} should be 0, is {mean}",
                           UserWarning)
     for label, std in df.std(ddof=0).items():
-        if not math.isclose(std, 1):
+        if not math.isclose(std, 1, abs_tol=0.01):
             warnings.warn(
                 f"Standard deviation for the {name} dataframe's column {label} should be approximately 1, is {std}",
                 UserWarning)
