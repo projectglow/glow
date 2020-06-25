@@ -267,7 +267,7 @@ def generate_alphas(blockdf: DataFrame) -> Dict[str, Float]:
 
 
 @typechecked
-def assert_non_missing(df: pd.DataFrame, name: str) -> None:
+def __assert_all_present(df: pd.DataFrame, name: str) -> None:
     """
     Raises an error if a pandas DataFrame has missing values.
 
@@ -280,7 +280,7 @@ def assert_non_missing(df: pd.DataFrame, name: str) -> None:
 
 
 @typechecked
-def check_standardized(df: pd.DataFrame, name: str) -> None:
+def __check_standardized(df: pd.DataFrame, name: str) -> None:
     """
     Warns if any column of a pandas DataFrame is not standardized to zero mean and unit (biased) standard deviation.
 
@@ -310,6 +310,6 @@ def validate_inputs(labeldf: pd.DataFrame, covdf: pd.DataFrame) -> None:
         labeldf : Pandas DataFrame containing target labels
         covdf : Pandas DataFrame containing covariates
     """
-    assert_non_missing(labeldf, 'label')
-    check_standardized(labeldf, 'label')
-    assert_non_missing(covdf, 'covariate')
+    __assert_all_present(labeldf, 'label')
+    __check_standardized(labeldf, 'label')
+    __assert_all_present(covdf, 'covariate')
