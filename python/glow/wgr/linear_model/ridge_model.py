@@ -327,7 +327,6 @@ class RidgeRegression:
             modeldf : Spark DataFrame produced by the RidgeRegression fit method, representing the reducer model
             cvdf : Spark DataFrame produced by the RidgeRegression fit method, containing the results of the cross
             validation routine.
-            contig_names:
             covdf : Pandas DataFrame containing covariates to be included in every model in the stacking
             ensemble (optional).
             chromosomes : List of chromosomes to perform LOCO with
