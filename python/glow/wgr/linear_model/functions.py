@@ -13,12 +13,14 @@
 # limitations under the License.
 
 import itertools
+import math
 from nptyping import Float, Int, NDArray
 import numpy as np
 import pandas as pd
 from pyspark.sql import DataFrame
 from typeguard import typechecked
 from typing import Any, Dict, Iterable, List, Tuple
+import warnings
 
 
 @typechecked
@@ -252,6 +254,7 @@ def generate_alphas(blockdf: DataFrame) -> Dict[str, Float]:
 
     Args:
         blockdf : Spark DataFrame representing a block matrix
+        labeldf: Pandas DataFrame containing target labels
 
     Returns:
         Dict of [alpha names, alpha values]
@@ -261,3 +264,52 @@ def generate_alphas(blockdf: DataFrame) -> Dict[str, Float]:
     alphas = np.array([num_headers / h for h in heritability_vals])
     print(f"Generated alphas: {alphas}")
     return create_alpha_dict(alphas)
+
+
+@typechecked
+def __assert_all_present(df: pd.DataFrame, name: str) -> None:
+    """
+    Raises an error if a pandas DataFrame has missing values.
+
+    Args:
+        df : Pandas DataFrame
+    """
+    for label, isnull in df.isnull().any().items():
+        if isnull:
+            raise ValueError(f"Missing values are present in the {name} dataframe's {label} column")
+
+
+@typechecked
+def __check_standardized(df: pd.DataFrame, name: str) -> None:
+    """
+    Warns if any column of a pandas DataFrame is not standardized to zero mean and unit (biased) standard deviation.
+
+    Args:
+        df : Pandas DataFrame
+    """
+    for label, mean in df.mean().items():
+        if not math.isclose(mean, 0, abs_tol=1e-9):
+            warnings.warn(f"Mean for the {name} dataframe's column {label} should be 0, is {mean}",
+                          UserWarning)
+    for label, std in df.std(ddof=0).items():
+        if not math.isclose(std, 1, abs_tol=0.01):
+            warnings.warn(
+                f"Standard deviation for the {name} dataframe's column {label} should be approximately 1, is {std}",
+                UserWarning)
+
+
+@typechecked
+def validate_inputs(labeldf: pd.DataFrame, covdf: pd.DataFrame) -> None:
+    """
+    Performs basic input validation on the label and covariates pandas DataFrames. The label DataFrame cannot have
+    missing values, and should be standardized to zero mean and unit standard deviation. The covariates DataFrame
+    cannot have missing values.
+
+    Args:
+        labeldf : Pandas DataFrame containing target labels
+        covdf : Pandas DataFrame containing covariates
+    """
+    __assert_all_present(labeldf, 'label')
+    __assert_all_present(covdf, 'covariate')
+    __check_standardized(labeldf, 'label')
+    __check_standardized(covdf, 'covariate')
