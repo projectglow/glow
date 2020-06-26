@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from glow.wgr.linear_model.functions import *
+import math
 import numpy as np
 import pandas as pd
 from pyspark.sql import Row
@@ -74,3 +75,45 @@ def test_generate_alphas(spark):
         'alpha_4': np.float(2 / 0.01)
     }
     assert generate_alphas(df) == expected_alphas
+
+
+def test_assert_labels_all_present(spark):
+    labeldf = pd.DataFrame({'Trait_1': [-1, 1], 'Trait_2': [1, math.nan]})
+    covdf = pd.DataFrame({'Covariate_1': [1, -1], 'Covariate_2': [-1, 1]})
+    with pytest.raises(ValueError):
+        validate_inputs(labeldf, covdf)
+
+
+def test_assert_covars_all_present(spark):
+    labeldf = pd.DataFrame({'Trait_1': [-1, 1], 'Trait_2': [1, -1]})
+    covdf = pd.DataFrame({'Covariate_1': [1, -1], 'Covariate_2': [-1, math.nan]})
+    with pytest.raises(ValueError):
+        validate_inputs(labeldf, covdf)
+
+
+def test_check_labels_zero_mean(spark):
+    labeldf = pd.DataFrame({'Trait_1': [-1, 1], 'Trait_2': [1, 3]})
+    covdf = pd.DataFrame({'Covariate_1': [1, -1], 'Covariate_2': [-1, 1]})
+    with pytest.warns(UserWarning):
+        validate_inputs(labeldf, covdf)
+
+
+def test_check_labels_unit_stddev(spark):
+    labeldf = pd.DataFrame({'Trait_1': [-1, 1], 'Trait_2': [2, -2]})
+    covdf = pd.DataFrame({'Covariate_1': [1, -1], 'Covariate_2': [-1, 1]})
+    with pytest.warns(UserWarning):
+        validate_inputs(labeldf, covdf)
+
+
+def test_check_covars_zero_mean(spark):
+    labeldf = pd.DataFrame({'Trait_1': [-1, 1], 'Trait_2': [1, -1]})
+    covdf = pd.DataFrame({'Covariate_1': [1, -1], 'Covariate_2': [3, 1]})
+    with pytest.warns(UserWarning):
+        validate_inputs(labeldf, covdf)
+
+
+def test_check_covars_unit_stddev(spark):
+    labeldf = pd.DataFrame({'Trait_1': [-1, 1], 'Trait_2': [1, -1]})
+    covdf = pd.DataFrame({'Covariate_1': [1, -1], 'Covariate_2': [-2, 2]})
+    with pytest.warns(UserWarning):
+        validate_inputs(labeldf, covdf)

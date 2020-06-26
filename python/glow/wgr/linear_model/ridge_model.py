@@ -64,6 +64,7 @@ class RidgeReducer:
             Spark DataFrame containing the model resulting from the fitting routine.
         """
 
+        validate_inputs(labeldf, covdf)
         map_key_pattern = ['header_block', 'sample_block']
         reduce_key_pattern = ['header_block', 'header']
 
@@ -114,6 +115,7 @@ class RidgeReducer:
              Spark DataFrame representing the reduced block matrix
         """
 
+        validate_inputs(labeldf, covdf)
         transform_key_pattern = ['header_block', 'sample_block']
 
         if 'label' in blockdf.columns:
@@ -205,6 +207,7 @@ class RidgeRegression:
             results of the cross validation procedure.
         """
 
+        validate_inputs(labeldf, covdf)
         map_key_pattern = ['sample_block', 'label']
         reduce_key_pattern = ['header_block', 'header', 'label']
 
@@ -277,6 +280,7 @@ class RidgeRegression:
             rows are indexed by sample ID and the columns by label. The column types are float64.
         """
 
+        validate_inputs(labeldf, covdf)
         transform_key_pattern = ['sample_block', 'label']
 
         transform_udf = pandas_udf(

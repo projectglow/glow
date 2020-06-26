@@ -1,0 +1,97 @@
+To generate a blocked TSV, run the following code. Then extract the golden file and rename appropriately.
+
+val variantsPerBlock = 20
+val sampleBlockCount = 7
+
+val windowSpec = Window
+    .partitionBy("contigName", "sample_block")
+    .orderBy("start", "referenceAllele", "alternateAlleles")
+
+val dfBlocked = spark.read.format("vcf")
+    .load(s"$testDataHome/1000G.phase3.broad.withGenotypes.chr20.10100000.vcf")
+    .withColumn("values", slice(genotype_states(col("genotypes")), 1, 100))
+    .filter(size(array_distinct(col("values"))) > 1)
+    .withColumn("sort_key", col("start"))
+    .withColumn(
+        "header",
+        concat_ws(
+          ":",
+          col("contigName"),
+          col("start"),
+          col("referenceAllele"),
+          col("alternateAlleles")
+        )
+    )
+    .withColumn(
+        "stats",
+        subset_struct(
+          array_summary_stats(
+            col("values")
+          ),
+          "mean",
+          "stdDev"
+        )
+    )
+    .withColumn("mean", col("stats.mean"))
+    .withColumn("sig", col("stats.stdDev"))
+    .withColumn(
+        "fractionalSampleBlockSize",
+        size(col("values")) / sampleBlockCount
+    )
+    .withColumn(
+        "sample_block",
+        explode(
+          sequence(
+            lit(1),
+            lit(sampleBlockCount)
+          ).cast(ArrayType(StringType))
+        )
+    )
+    .withColumn(
+        "values",
+        expr(
+          s"""slice(
+             |   values,
+             |   round((sample_block - 1) * fractionalSampleBlockSize) + 1,
+             |   round(sample_block * fractionalSampleBlockSize) - round((sample_block - 1) * fractionalSampleBlockSize)
+             |)""".stripMargin
+        )
+    )
+    .withColumn(
+        "size",
+        size(col("values"))
+    )
+    .withColumn(
+        "header_block",
+        concat_ws(
+            "_",
+            lit("chr"),
+            col("contigName"),
+            lit("block"),
+            ((row_number().over(windowSpec) - 1) / variantsPerBlock).cast(IntegerType)
+        )
+    )
+    .select(
+        col("header"),
+        col("size"),
+        col("values"),
+        col("header_block"),
+        col("sample_block"),
+        col("sort_key"),
+        col("mean"),
+        col("sig")
+    )
+
+dfBlocked.withColumn("values", array_join(col("values"), ","))
+    .coalesce(1)
+    .orderBy(
+        "header",
+        "header_block",
+        "sample_block"
+    )
+    .write
+    .format("csv")
+    .option("delimiter", "\t")
+    .option("header", "true")
+    .mode("overwrite")
+    .save(s"$testFolder/test.tsv")

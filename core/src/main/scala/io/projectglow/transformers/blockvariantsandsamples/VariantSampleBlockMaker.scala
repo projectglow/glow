@@ -27,6 +27,11 @@ import org.apache.spark.sql.types.{ArrayType, IntegerType, StringType}
 
 private[projectglow] object VariantSampleBlockMaker extends GlowLogging {
 
+  def filterOneDistinctValue(df: DataFrame): DataFrame = {
+    logger.info("Filtering variants whose values are all the same.")
+    df.filter(size(array_distinct(col(valuesField.name))) > 1)
+  }
+
   def makeSampleBlocks(df: DataFrame, sampleBlockCount: Int): DataFrame = {
     df.withColumn(
         "fractionalSampleBlockSize",
@@ -61,7 +66,7 @@ private[projectglow] object VariantSampleBlockMaker extends GlowLogging {
       .partitionBy(contigNameField.name, sampleBlockIdField.name)
       .orderBy(startField.name, refAlleleField.name, alternateAllelesField.name)
 
-    val baseDf = variantDf
+    val baseDf = filterOneDistinctValue(variantDf)
       .withColumn(
         sortKeyField.name,
         col(startField.name).cast(IntegerType)
