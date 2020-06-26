@@ -71,6 +71,9 @@ zero mean and unit variance.
 Example
 -------
 
+Standardization can be performed with Pandas or
+`scikit-learn's StandardScaler <https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html>`_.
+
 .. code-block:: python
 
     import pandas as pd
