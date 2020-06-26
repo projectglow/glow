@@ -308,14 +308,14 @@ class RidgeRegression:
 
         return pivoted_df
 
-    def transform_loco(
-        self,
-        blockdf: DataFrame,
-        labeldf: pd.DataFrame,
-        sample_blocks: Dict[str, List[str]],
-        modeldf: DataFrame,
-        cvdf: DataFrame,
-        covdf: pd.DataFrame = pd.DataFrame({})) -> pd.DataFrame:
+    def transform_loco(self,
+                       blockdf: DataFrame,
+                       labeldf: pd.DataFrame,
+                       sample_blocks: Dict[str, List[str]],
+                       modeldf: DataFrame,
+                       cvdf: DataFrame,
+                       covdf: pd.DataFrame = pd.DataFrame({}),
+                       chromosomes: List[str] = []) -> pd.DataFrame:
         """
         Generates predictions for the target labels in the provided label DataFrame by applying the model resulting from
         the RidgeRegression fit method to the starting block matrix using a leave-one-chromosome-out (LOCO) scheme.
@@ -327,8 +327,10 @@ class RidgeRegression:
             modeldf : Spark DataFrame produced by the RidgeRegression fit method, representing the reducer model
             cvdf : Spark DataFrame produced by the RidgeRegression fit method, containing the results of the cross
             validation routine.
+            contig_names:
             covdf : Pandas DataFrame containing covariates to be included in every model in the stacking
             ensemble (optional).
+            chromosomes : List of chromosomes to perform LOCO with
 
         Returns:
             Pandas DataFrame containing prediction y_hat values per chromosome. The rows are indexed by sample ID and
@@ -336,15 +338,23 @@ class RidgeRegression:
             chromosome as the primary sort key, and sample ID as the secondary sort key.
         """
         # level 1 header: chr_3_block_8_alpha_0_label_sim100
-        # level 2 header: all_block_1_alpha
-        all_contigs = [r.header_block for r in reduced_block_df.select('header_block').distinct().collect()]
+        # level 2 header: all_block_3_alpha_0_label_sim100
+        loco_chromosomes = chromosomes if chromosomes else [
+            r.chromosome for r in reduced_block_df.select(
+                f.element_at(
+                    f.split(
+                        f.regexp_extract('header', r"^(all_block_[a-zA-Z0-9]+|chr_[a-zA-Z0-9]+)",
+                                         1), '_'), -1).alias('chromosome')).distinct().collect()
+        ]
         all_y_hat_df = pd.DataFrame()
 
-        for contig in all_contigs:
-          loco_model_df = model_df.filter(~col('header').startswith(contig))
-          loco_y_hat_df = estimator.transform(blockdf, label_df, sample_blocks, loco_model_df, cv_df, covariates)
-          loco_y_hat_df['contigName'] = contig.split('_')[1]
-          all_y_hat_df = all_y_hat_df.append(loco_y_hat_df)
+        for chromosome in loco_chromosomes:
+            loco_model_df = model_df.filter(
+                ~f.col('header').rlike(f'^(all_block_{chromosome}+|chr_{chromosome}+)'))
+            loco_y_hat_df = estimator.transform(blockdf, label_df, sample_blocks, loco_model_df,
+                                                cv_df, covariates)
+            loco_y_hat_df['contigName'] = chromosome
+            all_y_hat_df = all_y_hat_df.append(loco_y_hat_df)
 
         y_hat_df = all_y_hat_df.set_index('contigName', append=True)
         y_hat_df
