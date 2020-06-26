@@ -28,7 +28,7 @@ import org.apache.spark.sql.types.{ArrayType, IntegerType, StringType}
 private[projectglow] object VariantSampleBlockMaker extends GlowLogging {
 
   def filterOneDistinctValue(df: DataFrame): DataFrame = {
-    logger.warn("Filtered variants whose values were all the same.")
+    logger.info("Filtering variants whose values are all the same.")
     df.filter(size(array_distinct(col(valuesField.name))) > 1)
   }
 
