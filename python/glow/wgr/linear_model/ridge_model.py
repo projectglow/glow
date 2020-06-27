@@ -343,24 +343,24 @@ class RidgeRegression:
         # level 1 header: chr_3_block_8_alpha_0_label_sim100
         # level 2 header: all_block_3_alpha_0_label_sim100
         loco_chromosomes = chromosomes if chromosomes else [
-            r.chromosome for r in reduced_block_df.select(
+            r.chromosome for r in blockdf.select(
                 f.element_at(
                     f.split(
                         f.regexp_extract('header', r"^(all_block_[a-zA-Z0-9]+|chr_[a-zA-Z0-9]+)",
                                          1), '_'), -1).alias('chromosome')).distinct().collect()
         ]
-        all_y_hat_df = pd.DataFrame()
+        loco_chromosomes.sort()
+        print(f'Transforming with a LOCO scheme against {loco_chromosomes}')
 
+        all_y_hat_df = pd.DataFrame({})
         for chromosome in loco_chromosomes:
-            loco_model_df = model_df.filter(
+            loco_model_df = modeldf.filter(
                 ~f.col('header').rlike(f'^(all_block_{chromosome}+|chr_{chromosome}+)'))
-            loco_y_hat_df = estimator.transform(blockdf, label_df, sample_blocks, loco_model_df,
-                                                cv_df, covariates)
+            loco_y_hat_df = self.transform(blockdf, labeldf, sample_blocks, loco_model_df, cvdf,
+                                           covdf)
             loco_y_hat_df['contigName'] = chromosome
             all_y_hat_df = all_y_hat_df.append(loco_y_hat_df)
-
-        y_hat_df = all_y_hat_df.set_index('contigName', append=True)
-        y_hat_df
+        return all_y_hat_df.set_index('contigName', append=True)
 
     def fit_transform(
         self,

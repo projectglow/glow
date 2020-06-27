@@ -699,3 +699,32 @@ def test_regression_transform_validates_inputs(spark):
         regressor.transform(level1df, labeldf, group2ids, model1df, cvdf, covdf * 1.5)
     # Should issue no warnings
     regressor.transform(level1df, labeldf, group2ids, model1df, cvdf, covdf)
+
+
+def test_regression_transform_loco_provide_contigs_one_level(spark):
+    indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
+    level1df = spark.read.parquet(f'{data_root}/level1BlockedGT.snappy.parquet')
+
+    group2ids = __get_sample_blocks(indexdf)
+    regressor = RidgeRegression(alphas)
+    model1df, cvdf = regressor.fit(level1df, labeldf, group2ids, covdf)
+
+    y_hat = regressor.transform_loco(level1df, labeldf, group2ids, model1df, cvdf, covdf,
+                                     ['1', '2', '3'])
+    golden_y_hat = pd.read_csv(f'{data_root}/level1YHatLoco.csv').set_index(
+        ['sample_id', 'contigName'])
+    assert y_hat.equals(golden_y_hat)
+
+
+def test_regression_transform_loco_infer_contigs_one_level(spark):
+    indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
+    level1df = spark.read.parquet(f'{data_root}/level1BlockedGT.snappy.parquet')
+
+    group2ids = __get_sample_blocks(indexdf)
+    regressor = RidgeRegression(alphas)
+    model1df, cvdf = regressor.fit(level1df, labeldf, group2ids, covdf)
+
+    y_hat = regressor.transform_loco(level1df, labeldf, group2ids, model1df, cvdf, covdf)
+    golden_y_hat = pd.read_csv(f'{data_root}/level1YHatLoco.csv').set_index(
+        ['sample_id', 'contigName'])
+    assert y_hat.equals(golden_y_hat)
