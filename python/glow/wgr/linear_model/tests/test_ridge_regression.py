@@ -15,22 +15,18 @@
 from glow.wgr.linear_model import RidgeReducer, RidgeRegression
 from glow.wgr.linear_model.ridge_model import *
 from glow.wgr.linear_model.functions import generate_alphas
+import pandas as pd
+from pyspark.sql.functions import *
 import math
 import pytest
 
 data_root = 'test-data/wgr/ridge-regression'
 
-X0 = pd.read_csv(f'{data_root}/X0.csv').set_index('sample_id')
-X0.index = X0.index.astype(str, copy=False)
+X0 = pd.read_csv(f'{data_root}/X0.csv', dtype={'sample_id': 'str'}).set_index('sample_id')
+X1 = pd.read_csv(f'{data_root}/X1.csv', dtype={'sample_id': 'str'}).set_index('sample_id')
+X2 = pd.read_csv(f'{data_root}/X2.csv', dtype={'sample_id': 'str'}).set_index('sample_id')
 
-X1 = pd.read_csv(f'{data_root}/X1.csv').set_index('sample_id')
-X1.index = X1.index.astype(str, copy=False)
-
-X2 = pd.read_csv(f'{data_root}/X2.csv').set_index('sample_id')
-X2.index = X2.index.astype(str, copy=False)
-
-labeldf = pd.read_csv(f'{data_root}/pts.csv').set_index('sample_id')
-labeldf.index = labeldf.index.astype(str, copy=False)
+labeldf = pd.read_csv(f'{data_root}/pts.csv', dtype={'sample_id': 'str'}).set_index('sample_id')
 label_with_missing = labeldf.copy()
 label_with_missing.loc['1073199471', 'sim58'] = math.nan
 
@@ -46,6 +42,17 @@ alphas = np.array([0.1, 1, 10])
 alphaMap = {f'alpha_{i}': a for i, a in enumerate(alphas)}
 columnIndexer = sorted(enumerate(alphaMap.keys()), key=lambda t: t[1])
 coefOrder = [i for i, a in columnIndexer]
+
+level1_yhat_loco_df = pd.read_csv(f'{data_root}/level1YHatLoco.csv',
+                                  dtype={
+                                      'sample_id': 'str',
+                                      'contigName': 'str'
+                                  }).set_index(['sample_id', 'contigName'])
+level2_yhat_loco_df = pd.read_csv(f'{data_root}/level2YHatLoco.csv',
+                                  dtype={
+                                      'sample_id': 'str',
+                                      'contigName': 'str'
+                                  }).set_index(['sample_id', 'contigName'])
 
 
 def __get_sample_blocks(indexdf):
@@ -445,19 +452,11 @@ def test_one_level_regression(spark):
 def test_two_level_regression(spark):
 
     indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
-    blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet')
+    level2df = spark.read.parquet(f'{data_root}/level2BlockedGT.snappy.parquet')
     testLabel = 'sim100'
 
     group2ids = __get_sample_blocks(indexdf)
     bestAlpha, bestr2, y_hat = __calculate_y_hat(X2, group2ids, testLabel)
-
-    stack0 = RidgeReducer(alphas)
-    model0df = stack0.fit(blockdf, labeldf, group2ids)
-    level1df = stack0.transform(blockdf, labeldf, group2ids, model0df)
-
-    stack1 = RidgeReducer(alphas)
-    model1df = stack1.fit(level1df, labeldf, group2ids)
-    level2df = stack1.transform(level1df, labeldf, group2ids, model1df)
 
     regressor = RidgeRegression(alphas)
     model2df, cvdf = regressor.fit(level2df, labeldf, group2ids)
@@ -474,19 +473,11 @@ def test_two_level_regression(spark):
 def test_two_level_regression_with_cov(spark):
 
     indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
-    blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet')
+    level2df = spark.read.parquet(f'{data_root}/level2BlockedGT.snappy.parquet')
     testLabel = 'sim100'
 
     group2ids = __get_sample_blocks(indexdf)
     bestAlpha, bestr2, y_hat = __calculate_y_hat(X2, group2ids, testLabel, covdf)
-
-    stack0 = RidgeReducer(alphas)
-    model0df = stack0.fit(blockdf, labeldf, group2ids)
-    level1df = stack0.transform(blockdf, labeldf, group2ids, model0df)
-
-    stack1 = RidgeReducer(alphas)
-    model1df = stack1.fit(level1df, labeldf, group2ids)
-    level2df = stack1.transform(level1df, labeldf, group2ids, model1df)
 
     regressor = RidgeRegression(alphas)
     model2df, cvdf = regressor.fit(level2df, labeldf, group2ids, covdf)
@@ -701,30 +692,59 @@ def test_regression_transform_validates_inputs(spark):
     regressor.transform(level1df, labeldf, group2ids, model1df, cvdf, covdf)
 
 
-def test_regression_transform_loco_provide_contigs_one_level(spark):
+def test_one_level_regression_transform_loco_provide_contigs(spark):
     indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
     level1df = spark.read.parquet(f'{data_root}/level1BlockedGT.snappy.parquet')
 
     group2ids = __get_sample_blocks(indexdf)
     regressor = RidgeRegression(alphas)
-    model1df, cvdf = regressor.fit(level1df, labeldf, group2ids, covdf)
+    model1df, cvdf = regressor.fit(level1df, labeldf, group2ids)
+    y_hat = regressor.transform_loco(level1df,
+                                     labeldf,
+                                     group2ids,
+                                     model1df,
+                                     cvdf,
+                                     chromosomes=['1', '2', '3'])
 
-    y_hat = regressor.transform_loco(level1df, labeldf, group2ids, model1df, cvdf, covdf,
-                                     ['1', '2', '3'])
-    golden_y_hat = pd.read_csv(f'{data_root}/level1YHatLoco.csv').set_index(
-        ['sample_id', 'contigName'])
-    assert y_hat.equals(golden_y_hat)
+    pd.testing.assert_frame_equal(y_hat, level1_yhat_loco_df)
 
 
-def test_regression_transform_loco_infer_contigs_one_level(spark):
+def test_one_level_regression_transform_loco_infer_contigs(spark):
     indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
     level1df = spark.read.parquet(f'{data_root}/level1BlockedGT.snappy.parquet')
 
     group2ids = __get_sample_blocks(indexdf)
     regressor = RidgeRegression(alphas)
-    model1df, cvdf = regressor.fit(level1df, labeldf, group2ids, covdf)
+    model1df, cvdf = regressor.fit(level1df, labeldf, group2ids)
+    y_hat = regressor.transform_loco(level1df, labeldf, group2ids, model1df, cvdf)
 
-    y_hat = regressor.transform_loco(level1df, labeldf, group2ids, model1df, cvdf, covdf)
-    golden_y_hat = pd.read_csv(f'{data_root}/level1YHatLoco.csv').set_index(
-        ['sample_id', 'contigName'])
-    assert y_hat.equals(golden_y_hat)
+    pd.testing.assert_frame_equal(y_hat, level1_yhat_loco_df)
+
+
+def test_two_level_regression_transform_loco_provide_contigs(spark):
+    indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
+    level2df = spark.read.parquet(f'{data_root}/level2BlockedGT.snappy.parquet')
+
+    group2ids = __get_sample_blocks(indexdf)
+    regressor = RidgeRegression(alphas)
+    model1df, cvdf = regressor.fit(level2df, labeldf, group2ids)
+    y_hat = regressor.transform_loco(level2df,
+                                     labeldf,
+                                     group2ids,
+                                     model1df,
+                                     cvdf,
+                                     chromosomes=['1', '2', '3'])
+
+    pd.testing.assert_frame_equal(y_hat, level2_yhat_loco_df)
+
+
+def test_two_level_regression_transform_loco_infer_contigs(spark):
+    indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
+    level2df = spark.read.parquet(f'{data_root}/level2BlockedGT.snappy.parquet')
+
+    group2ids = __get_sample_blocks(indexdf)
+    regressor = RidgeRegression(alphas)
+    model1df, cvdf = regressor.fit(level2df, labeldf, group2ids)
+    y_hat = regressor.transform_loco(level2df, labeldf, group2ids, model1df, cvdf)
+
+    pd.testing.assert_frame_equal(y_hat, level2_yhat_loco_df)

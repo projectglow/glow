@@ -333,29 +333,28 @@ class RidgeRegression:
             validation routine.
             covdf : Pandas DataFrame containing covariates to be included in every model in the stacking
             ensemble (optional).
-            chromosomes : List of chromosomes to perform LOCO with
+            chromosomes : List of chromosomes to leave out during the LOCO scheme (optional). If not provided, the
+            chromosomes will be inferred from the block matrix.
 
         Returns:
             Pandas DataFrame containing prediction y_hat values per chromosome. The rows are indexed by sample ID and
             chromosome; the columns are indexed by label. The column types are float64. The DataFrame is sorted using
             chromosome as the primary sort key, and sample ID as the secondary sort key.
         """
+        # Regex captures the chromosome name in the header
         # level 1 header: chr_3_block_8_alpha_0_label_sim100
         # level 2 header: all_block_3_alpha_0_label_sim100
         loco_chromosomes = chromosomes if chromosomes else [
             r.chromosome for r in blockdf.select(
-                f.element_at(
-                    f.split(
-                        f.regexp_extract('header', r"^(all_block_[a-zA-Z0-9]+|chr_[a-zA-Z0-9]+)",
-                                         1), '_'), -1).alias('chromosome')).distinct().collect()
+                f.regexp_extract('header', r"^(?:all_block|chr)_([a-zA-Z0-9]+)", 1).alias(
+                    'chromosome')).distinct().collect()
         ]
         loco_chromosomes.sort()
         print(f'Transforming with a LOCO scheme against {loco_chromosomes}')
 
         all_y_hat_df = pd.DataFrame({})
         for chromosome in loco_chromosomes:
-            loco_model_df = modeldf.filter(
-                ~f.col('header').rlike(f'^(all_block_{chromosome}+|chr_{chromosome}+)'))
+            loco_model_df = modeldf.filter(~f.col('header').rlike(f'^(all_block|chr)_{chromosome}'))
             loco_y_hat_df = self.transform(blockdf, labeldf, sample_blocks, loco_model_df, cvdf,
                                            covdf)
             loco_y_hat_df['contigName'] = chromosome
