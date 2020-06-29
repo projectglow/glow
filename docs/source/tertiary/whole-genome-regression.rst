@@ -320,7 +320,7 @@ This works much in the same way as the ridge reducer fitting, except that it ret
 Parameters
 ----------
 
-- ``block_df``: Spark DataFrame representing the beginning block matrix.
+- ``block_df``: Spark DataFrame representing the reduced block matrix.
 - ``label_df``: Pandas DataFrame containing the target labels used in fitting the ridge models.
 - ``sample_blocks``: Dictionary containing a mapping of sample block IDs to a list of corresponding sample IDs.
 - ``covariates``: Pandas DataFrame containing covariates to be included in every model in the stacking
@@ -344,13 +344,13 @@ Model transformation
 ====================
 
 After fitting the ``RidgeRegression`` model, the model DataFrame and cross validation DataFrame are used to apply the
-model to the block matrix DataFrame to produce predictions (*y_hat*) for each label and sample using the
-``RidgeRegression.transform`` method.
+model to the block matrix DataFrame to produce predictions (*y_hat*) for each label and sample based on the
+leave-one-chromosome-out (LOCO) scheme using the ``RidgeRegression.transform_loco`` method.
 
 Parameters
 ----------
 
-- ``block_df``: Spark DataFrame representing the beginning block matrix.
+- ``block_df``: Spark DataFrame representing the reduced block matrix.
 - ``label_df``: Pandas DataFrame containing the target labels used in fitting the ridge models.
 - ``sample_blocks``: Dictionary containing a mapping of sample block IDs to a list of corresponding sample IDs.
 - ``model_df``: Spark DataFrame produced by the ``RidgeRegression.fit`` method, representing the reducer model
@@ -358,37 +358,27 @@ Parameters
   validation routine.
 - ``covariates``: Pandas DataFrame containing covariates to be included in every model in the stacking
   ensemble (optional).
+- ``chromosomes``: List of chromosomes to leave out during the LOCO scheme (optional). If not provided, the
+  chromosomes will be inferred from the block matrix.
 
 Return
 ------
 
-The resulting *y_hat* Pandas DataFrame is shaped like ``label_df``, indexed by the sample ID with each column
-representing a single phenotype.
+The resulting *y_hat* Pandas DataFrame is shaped like ``label_df``, indexed by the sample ID and chromosome with each
+column representing a single phenotype.
 
 Example
 =======
 
-We can produce the leave one chromosome out (LOCO) version of the *y_hat* values by filtering out rows that correspond
-to the chromosome we wish to drop before applying the transformation.
-
 .. code-block:: python
 
     model_df, cv_df = regression.fit(reduced_block_df, label_df, sample_blocks, covariates)
-    all_contigs = [r.header_block for r in reduced_block_df.select('header_block').distinct().collect()]
-    all_y_hat_df = pd.DataFrame()
-
-    for contig in all_contigs:
-      loco_reduced_block_df = reduced_block_df.filter(col('header_block') != lit(contig))
-      loco_model_df = model_df.filter(~col('header').startswith(contig))
-      loco_y_hat_df = regression.transform(loco_reduced_block_df, label_df, sample_blocks, loco_model_df, cv_df, covariates)
-      loco_y_hat_df['contigName'] = contig.split('_')[1]
-      all_y_hat_df = all_y_hat_df.append(loco_y_hat_df)
-    y_hat_df = all_y_hat_df.reset_index().set_index(['contigName', 'sample_id'])
+    y_hat_df = regression.transform_loco(reduced_block_df, label_df, sample_blocks, model_df, cv_df, covariates)
 
 .. invisible-code-block: python
 
     import math
-    assert math.isclose(y_hat_df.at[('22', 'HG00096'),'Continuous_Trait_1'], -0.5578905823446506)
+    assert math.isclose(y_hat_df.at[('HG00096', '22'),'Continuous_Trait_1'], -0.5578905823446506)
 
 Example notebook
 ----------------
