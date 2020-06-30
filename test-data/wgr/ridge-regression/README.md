@@ -34,7 +34,7 @@ The following files were generated to accelerate test runtime:
     stack0 = RidgeReducer(alphas)
 
     level1df = stack0.fit_transform(blockdf, labeldf, group2ids)
-    level1df.coalesce(1).write.parquet((f'{data_root}/level1BlockedGt.snappy.parquet')
+    level1df.coalesce(1).write.parquet(f'{data_root}/level1BlockedGt.snappy.parquet')
 
 * **level2BlockedGt.snappy.parquet**
 
@@ -45,7 +45,7 @@ The following files were generated to accelerate test runtime:
     stack1 = RidgeReducer(alphas)
 
     level2df = stack1.fit_transform(level1df, labeldf, group2ids)
-    level2df.coalesce(1).write.parquet((f'{data_root}/level2BlockedGt.snappy.parquet')
+    level2df.coalesce(1).write.parquet(f'{data_root}/level2BlockedGt.snappy.parquet')
 
 * **level1YHatLoco.csv**
 
