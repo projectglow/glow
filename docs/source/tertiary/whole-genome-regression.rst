@@ -344,8 +344,9 @@ Model transformation
 ====================
 
 After fitting the ``RidgeRegression`` model, the model DataFrame and cross validation DataFrame are used to apply the
-model to the block matrix DataFrame to produce predictions (*y_hat*) for each label and sample based on the
-leave-one-chromosome-out (LOCO) scheme using the ``RidgeRegression.transform_loco`` method.
+model to the block matrix DataFrame to produce predictions (*y_hat*) for each label and sample using the
+``RidgeRegression.transform`` or ``RidgeRegression.transform_loco`` method. We describe the leave-one-chromosome-out
+(LOCO) approach.
 
 Parameters
 ----------
@@ -358,7 +359,7 @@ Parameters
   validation routine.
 - ``covariates``: Pandas DataFrame containing covariates to be included in every model in the stacking
   ensemble (optional).
-- ``chromosomes``: List of chromosomes to leave out during the LOCO scheme (optional). If not provided, the
+- ``chromosomes``: List of chromosomes for which to generate a prediction (optional). If not provided, the
   chromosomes will be inferred from the block matrix.
 
 Return

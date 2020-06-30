@@ -322,7 +322,7 @@ class RidgeRegression:
                        chromosomes: List[str] = []) -> pd.DataFrame:
         """
         Generates predictions for the target labels in the provided label DataFrame by applying the model resulting from
-        the RidgeRegression fit method to the starting block matrix using a leave-one-chromosome-out (LOCO) scheme.
+        the RidgeRegression fit method to the starting block matrix using a leave-one-chromosome-out (LOCO) approach.
 
         Args:
             blockdf : Spark DataFrame representing the beginning block matrix X
@@ -333,7 +333,7 @@ class RidgeRegression:
             validation routine.
             covdf : Pandas DataFrame containing covariates to be included in every model in the stacking
             ensemble (optional).
-            chromosomes : List of chromosomes to leave out during the LOCO scheme (optional). If not provided, the
+            chromosomes : List of chromosomes for which to generate a prediction (optional). If not provided, the
             chromosomes will be inferred from the block matrix.
 
         Returns:
@@ -350,7 +350,7 @@ class RidgeRegression:
                                  1).alias('chromosome')).distinct().collect()
         ]
         loco_chromosomes.sort()
-        print(f'Transforming with a LOCO scheme against {loco_chromosomes}')
+        print(f'Transforming with a LOCO approach against {loco_chromosomes}')
 
         all_y_hat_df = pd.DataFrame({})
         for chromosome in loco_chromosomes:
