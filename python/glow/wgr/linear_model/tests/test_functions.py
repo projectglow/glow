@@ -136,12 +136,8 @@ def test_new_headers_two_level(spark):
                                                          [('alpha_1', 'sim1'), ('alpha_1', 'sim2'),
                                                           ('alpha_2', 'sim1'), ('alpha_2', 'sim2')])
     assert new_header_block == 'all'
-    assert sort_keys == [
-        1097256401697531890459047261467907006866646832203 * 2 + 1,
-        1097256401697531890459047261467907006866646832203 * 2 + 1,
-        1097256401697531890459047261467907006866646832203 * 2 + 2,
-        1097256401697531890459047261467907006866646832203 * 2 + 2
-    ]
+    hash_X = abs(hash('X')) % (10**8)
+    assert sort_keys == [hash_X * 2 + 1, hash_X * 2 + 1, hash_X * 2 + 2, hash_X * 2 + 2]
     assert headers == [
         'chr_X_alpha_1_label_sim1', 'chr_X_alpha_1_label_sim2', 'chr_X_alpha_2_label_sim1',
         'chr_X_alpha_2_label_sim2'

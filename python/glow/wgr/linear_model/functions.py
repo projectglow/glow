@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import hashlib
 import itertools
 import math
 from nptyping import Float, Int, NDArray
@@ -203,9 +202,7 @@ def new_headers(header_block: str, alpha_names: Iterable[str],
         new_header_block = f'chr_{chr}'
     elif match_chr:
         chr = match_chr.group(1)
-        hashobj = hashlib.sha1()
-        hashobj.update(chr.encode())
-        inner_index = int.from_bytes(hashobj.digest(), 'big')
+        inner_index = abs(hash(chr)) % (10**8)  # Hash to 8 digits
         header_prefix = f'chr_{chr}_'
         new_header_block = 'all'
     elif header_block == 'all':
