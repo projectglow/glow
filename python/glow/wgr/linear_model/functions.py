@@ -18,6 +18,7 @@ from nptyping import Float, Int, NDArray
 import numpy as np
 import pandas as pd
 from pyspark.sql import DataFrame
+import re
 from typeguard import typechecked
 from typing import Any, Dict, Iterable, List, Tuple
 import warnings
@@ -192,23 +193,30 @@ def new_headers(header_block: str, alpha_names: Iterable[str],
         sort_keys : Array of sortable integers to specify the ordering of the new matrix headers.
         headers : List of new matrix headers.
     """
-    tokens = header_block.split('_')
-
-    if len(tokens) == 2:
-        inner_index = tokens[1]
+    match_chr_block = re.search(r"^chr_(.*)_block_([0-9]+)$", header_block)
+    match_chr = re.search(r"^chr_(.*)$", header_block)
+    if match_chr_block:
+        chr = match_chr_block.group(1)
+        inner_index = int(match_chr_block.group(2))
+        header_prefix = f'chr_{chr}_block_{inner_index}_'
+        new_header_block = f'chr_{chr}'
+    elif match_chr:
+        chr = match_chr.group(1)
+        inner_index = abs(hash(chr)) % (10**8)  # Hash to 8 digits
+        header_prefix = f'chr_{chr}_'
         new_header_block = 'all'
-    elif len(tokens) == 1:
+    elif header_block == 'all':
         inner_index = 0
+        header_prefix = ''
         new_header_block = 'all'
     else:
-        inner_index = tokens[3]
-        new_header_block = f'chr_{tokens[1]}'
+        raise ValueError(f'Header block {header_block} does not match expected pattern.')
 
     sort_keys, headers = [], []
     for a, l in row_indexer:
-        sort_key = int(inner_index) * len(alpha_names) + int(a.split('_')[1])
-        header = f'{new_header_block}_block_{inner_index}_{a}_label_{l}'
+        sort_key = inner_index * len(alpha_names) + int(re.search(r"^alpha_([0-9]+)", a).group(1))
         sort_keys.append(sort_key)
+        header = f'{header_prefix}{a}_label_{l}'
         headers.append(header)
 
     return new_header_block, sort_keys, headers

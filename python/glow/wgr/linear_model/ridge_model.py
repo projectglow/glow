@@ -312,6 +312,59 @@ class RidgeRegression:
 
         return pivoted_df
 
+    def transform_loco(self,
+                       blockdf: DataFrame,
+                       labeldf: pd.DataFrame,
+                       sample_blocks: Dict[str, List[str]],
+                       modeldf: DataFrame,
+                       cvdf: DataFrame,
+                       covdf: pd.DataFrame = pd.DataFrame({}),
+                       chromosomes: List[str] = []) -> pd.DataFrame:
+        """
+        Generates predictions for the target labels in the provided label DataFrame by applying the model resulting from
+        the RidgeRegression fit method to the starting block matrix using a leave-one-chromosome-out (LOCO) approach.
+
+        Args:
+            blockdf : Spark DataFrame representing the beginning block matrix X
+            labeldf : Pandas DataFrame containing the target labels used in fitting the ridge models
+            sample_blocks : Dict containing a mapping of sample_block ID to a list of corresponding sample IDs
+            modeldf : Spark DataFrame produced by the RidgeRegression fit method, representing the reducer model
+            cvdf : Spark DataFrame produced by the RidgeRegression fit method, containing the results of the cross
+            validation routine.
+            covdf : Pandas DataFrame containing covariates to be included in every model in the stacking
+            ensemble (optional).
+            chromosomes : List of chromosomes for which to generate a prediction (optional). If not provided, the
+            chromosomes will be inferred from the block matrix.
+
+        Returns:
+            Pandas DataFrame containing prediction y_hat values per chromosome. The rows are indexed by sample ID and
+            chromosome; the columns are indexed by label. The column types are float64. The DataFrame is sorted using
+            chromosome as the primary sort key, and sample ID as the secondary sort key.
+        """
+        # Regex captures the chromosome name in the header
+        # level 1 header: chr_3_block_8_alpha_0_label_sim100
+        # level 2 header: chr_3_alpha_0_label_sim100
+        if chromosomes:
+            loco_chromosomes = chromosomes
+        else:
+            loco_chromosomes = [
+                r.chromosome for r in blockdf.select(
+                    f.regexp_extract('header', r"^chr_(.+?)_(alpha|block)", 1).alias(
+                        'chromosome')).distinct().collect()
+            ]
+            print(f'Transforming with a LOCO approach against {loco_chromosomes}')
+        loco_chromosomes.sort()
+
+        all_y_hat_df = pd.DataFrame({})
+        for chromosome in loco_chromosomes:
+            loco_model_df = modeldf.filter(
+                ~f.col('header').rlike(f'^chr_{chromosome}_(alpha|block)'))
+            loco_y_hat_df = self.transform(blockdf, labeldf, sample_blocks, loco_model_df, cvdf,
+                                           covdf)
+            loco_y_hat_df['contigName'] = chromosome
+            all_y_hat_df = all_y_hat_df.append(loco_y_hat_df)
+        return all_y_hat_df.set_index('contigName', append=True)
+
     def fit_transform(
         self,
         blockdf: DataFrame,

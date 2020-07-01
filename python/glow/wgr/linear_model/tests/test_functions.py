@@ -117,3 +117,39 @@ def test_check_covars_unit_stddev(spark):
     covdf = pd.DataFrame({'Covariate_1': [1, -1], 'Covariate_2': [-2, 2]})
     with pytest.warns(UserWarning):
         validate_inputs(labeldf, covdf)
+
+
+def test_new_headers_one_level(spark):
+    (new_header_block, sort_keys, headers) = new_headers('chr_X_block_10', ['alpha_1', 'alpha_2'],
+                                                         [('alpha_1', 'sim1'), ('alpha_1', 'sim2'),
+                                                          ('alpha_2', 'sim1'), ('alpha_2', 'sim2')])
+    assert new_header_block == 'chr_X'
+    assert sort_keys == [10 * 2 + 1, 10 * 2 + 1, 10 * 2 + 2, 10 * 2 + 2]
+    assert headers == [
+        'chr_X_block_10_alpha_1_label_sim1', 'chr_X_block_10_alpha_1_label_sim2',
+        'chr_X_block_10_alpha_2_label_sim1', 'chr_X_block_10_alpha_2_label_sim2'
+    ]
+
+
+def test_new_headers_two_level(spark):
+    (new_header_block, sort_keys, headers) = new_headers('chr_X', ['alpha_1', 'alpha_2'],
+                                                         [('alpha_1', 'sim1'), ('alpha_1', 'sim2'),
+                                                          ('alpha_2', 'sim1'), ('alpha_2', 'sim2')])
+    assert new_header_block == 'all'
+    hash_X = abs(hash('X')) % (10**8)
+    assert sort_keys == [hash_X * 2 + 1, hash_X * 2 + 1, hash_X * 2 + 2, hash_X * 2 + 2]
+    assert headers == [
+        'chr_X_alpha_1_label_sim1', 'chr_X_alpha_1_label_sim2', 'chr_X_alpha_2_label_sim1',
+        'chr_X_alpha_2_label_sim2'
+    ]
+
+
+def test_new_headers_three_levels(spark):
+    (new_header_block, sort_keys, headers) = new_headers('all', ['alpha_1', 'alpha_2'],
+                                                         [('alpha_1', 'sim1'), ('alpha_1', 'sim2'),
+                                                          ('alpha_2', 'sim1'), ('alpha_2', 'sim2')])
+    assert new_header_block == 'all'
+    assert sort_keys == [0 * 2 + 1, 0 * 2 + 1, 0 * 2 + 2, 0 * 2 + 2]
+    assert headers == [
+        'alpha_1_label_sim1', 'alpha_1_label_sim2', 'alpha_2_label_sim1', 'alpha_2_label_sim2'
+    ]
