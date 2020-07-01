@@ -18,6 +18,7 @@ from nptyping import Float, Int, NDArray
 import numpy as np
 import pandas as pd
 from pyspark.sql import DataFrame
+import pyspark.sql.functions as f
 import re
 from typeguard import typechecked
 from typing import Any, Dict, Iterable, List, Tuple
@@ -321,3 +322,26 @@ def validate_inputs(labeldf: pd.DataFrame, covdf: pd.DataFrame) -> None:
     __assert_all_present(covdf, 'covariate')
     __check_standardized(labeldf, 'label')
     __check_standardized(covdf, 'covariate')
+
+
+@typechecked
+def infer_chromosomes(blockdf: DataFrame) -> List[str]:
+    """
+    Extracts chromosomes from a once- or twice-reduced block DataFrame.
+
+    Args:
+        blockdf : Spark DataFrame representing a once- or twice-reduced block matrix.
+
+    Returns:
+        List of chromosomes.
+    """
+    # Regex captures the chromosome name in the header
+    # level 1 header: chr_3_block_8_alpha_0_label_sim100
+    # level 2 header: chr_3_alpha_0_label_sim100
+    chromosomes = [
+        r.chromosome for r in blockdf.select(
+            f.regexp_extract('header', r"^chr_(.+?)_(alpha|block)", 1).alias(
+                'chromosome')).distinct().collect()
+    ]
+    print(f'Inferred chromosomes: {chromosomes}')
+    return chromosomes

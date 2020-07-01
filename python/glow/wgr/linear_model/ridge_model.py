@@ -341,18 +341,7 @@ class RidgeRegression:
             chromosome; the columns are indexed by label. The column types are float64. The DataFrame is sorted using
             chromosome as the primary sort key, and sample ID as the secondary sort key.
         """
-        # Regex captures the chromosome name in the header
-        # level 1 header: chr_3_block_8_alpha_0_label_sim100
-        # level 2 header: chr_3_alpha_0_label_sim100
-        if chromosomes:
-            loco_chromosomes = chromosomes
-        else:
-            loco_chromosomes = [
-                r.chromosome for r in blockdf.select(
-                    f.regexp_extract('header', r"^chr_(.+?)_(alpha|block)", 1).alias(
-                        'chromosome')).distinct().collect()
-            ]
-            print(f'Transforming with a LOCO approach against {loco_chromosomes}')
+        loco_chromosomes = chromosomes if chromosomes else infer_chromosomes(blockdf)
         loco_chromosomes.sort()
 
         all_y_hat_df = pd.DataFrame({})
