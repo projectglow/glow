@@ -343,13 +343,13 @@ class RidgeRegression:
         """
         # Regex captures the chromosome name in the header
         # level 1 header: chr_3_block_8_alpha_0_label_sim100
-        # level 2 header: chr_3_block_all_alpha_0_label_sim100
+        # level 2 header: chr_3_alpha_0_label_sim100
         if chromosomes:
             loco_chromosomes = chromosomes
         else:
             loco_chromosomes = [
                 r.chromosome for r in blockdf.select(
-                    f.regexp_extract('header', r"^chr_(.*)_block", 1).alias(
+                    f.regexp_extract('header', r"^chr_(.+?)_(alpha|block)", 1).alias(
                         'chromosome')).distinct().collect()
             ]
             print(f'Transforming with a LOCO approach against {loco_chromosomes}')
@@ -357,7 +357,8 @@ class RidgeRegression:
 
         all_y_hat_df = pd.DataFrame({})
         for chromosome in loco_chromosomes:
-            loco_model_df = modeldf.filter(~f.col('header').rlike(f'^chr_{chromosome}_block'))
+            loco_model_df = modeldf.filter(
+                ~f.col('header').rlike(f'^chr_{chromosome}_(alpha|block)'))
             loco_y_hat_df = self.transform(blockdf, labeldf, sample_blocks, loco_model_df, cvdf,
                                            covdf)
             loco_y_hat_df['contigName'] = chromosome

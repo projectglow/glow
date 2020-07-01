@@ -76,7 +76,7 @@ The following files were generated to accelerate test runtime:
     model1df, cvdf = regressor.fit(level2df, labeldf, group2ids)
 
     all_y_hat_df = pd.DataFrame()
-    for contig in ['all_block_1', 'all_block_2', 'all_block_3']:
+    for contig in ['chr_1', 'chr_2', 'chr_3']:
         loco_model_df = model1df.filter(~col('header').startswith(contig))
         loco_y_hat_df = regressor.transform(level2df, labeldf, group2ids, loco_model_df, cvdf)
         loco_y_hat_df['contigName'] = contig.split('_')[-1]
