@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import hashlib
 import itertools
 import math
 from nptyping import Float, Int, NDArray
@@ -193,31 +194,32 @@ def new_headers(header_block: str, alpha_names: Iterable[str],
         sort_keys : Array of sortable integers to specify the ordering of the new matrix headers.
         headers : List of new matrix headers.
     """
-    match_chr_block = re.search(r"^chr_([a-zA-Z0-9]+)_block_([0-9]+)$", header_block)
-    match_chr = re.search(r"^chr_([a-zA-Z0-9]+)$", header_block)
+    match_chr_block = re.search(r"^chr_(.*)_block_([0-9]+)$", header_block)
+    match_chr = re.search(r"^chr_(.*)$", header_block)
     if match_chr_block:
         chr = match_chr_block.group(1)
-        block = match_chr_block.group(2)
-        inner_index = block
+        inner_index = int(match_chr_block.group(2))
+        header_prefix = f'chr_{chr}_block_{inner_index}_'
         new_header_block = f'chr_{chr}'
     elif match_chr:
         chr = match_chr.group(1)
-        block = 'all'
-        inner_index = chr
+        hashobj = hashlib.sha1()
+        hashobj.update(chr.encode())
+        inner_index = int.from_bytes(hashobj.digest(), 'big')
+        header_prefix = f'chr_{chr}_'
         new_header_block = 'all'
     elif header_block == 'all':
-        chr = 'all'
-        block = 'all'
-        inner_index = '0'
+        inner_index = 0
+        header_prefix = ''
         new_header_block = 'all'
     else:
         raise ValueError(f'Header block {header_block} does not match expected pattern.')
 
     sort_keys, headers = [], []
     for a, l in row_indexer:
-        sort_key = int(inner_index) * len(alpha_names) + int(a.split('_')[1])
+        sort_key = inner_index * len(alpha_names) + int(re.search(r"^alpha_([0-9]+)", a).group(1))
         sort_keys.append(sort_key)
-        header = f'chr_{chr}_block_{block}_{a}_label_{l}'
+        header = f'{header_prefix}{a}_label_{l}'
         headers.append(header)
 
     return new_header_block, sort_keys, headers
