@@ -13,8 +13,9 @@
 # limitations under the License.
 
 from glow import glow
+import pandas as pd
 from pyspark import SparkContext
-from pyspark.sql import DataFrame, Row, SQLContext
+from pyspark.sql import DataFrame, Row, SparkSession, SQLContext
 from typeguard import check_argument_types, check_return_type
 from typing import Dict, List
 
@@ -128,3 +129,38 @@ def block_variants_and_samples(variant_df: DataFrame, sample_ids: List[str],
     output = blocked_gt, index_map
     assert check_return_type(output)
     return output
+
+
+def pivot_for_gwas(spark: SparkSession, label_df: pd.DataFrame) -> DataFrame:
+    """
+    Pivots a Pandas DataFrame into a Spark DataFrame with a convenient format for Glow's GWAS
+    functions. This function can handle either per-chomosome or global labels.
+
+    Requires that:
+    - The input label DataFrame is indexed by sample id or by (sample id, contig name)
+
+    Args:
+        spark : A Spark session
+        label_df : A pandas DataFrame containing labels. The Data Frame should either be indexed by
+        sample id or multi indexed by (sample id, contig name). Each column is interpreted as a
+        label.
+
+    Returns:
+        A Spark DataFrame with a convenient format for Glow regression functions. Each row contains
+        the label name, the contig name if provided in the input DataFrame, and an array containing
+        the label value for each sample.
+    """
+
+    assert check_argument_types()
+
+    if label_df.index.nlevels == 1:  # Indexed by sample id
+        transposed_df = label_df.T
+        column_names = ['label', 'values']
+    elif label_df.index.nlevels == 2:  # Indexed by sample id and contig name
+        transposed_df = label_df.T.stack()
+        column_names = ['label', 'contigName', 'values']
+    else:
+        raise ValueError('label_df must be indexed by sample id or by (sample id, contig name)')
+
+    transposed_df['values_array'] = transposed_df.to_numpy().tolist()
+    return spark.createDataFrame(transposed_df[['values_array']].reset_index(), column_names)
