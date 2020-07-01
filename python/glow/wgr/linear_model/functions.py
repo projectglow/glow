@@ -17,6 +17,7 @@ import math
 from nptyping import Float, Int, NDArray
 import numpy as np
 import pandas as pd
+import sklearn.linear_model
 from pyspark.sql import DataFrame
 from typeguard import typechecked
 from typing import Any, Dict, Iterable, List, Tuple
@@ -49,6 +50,7 @@ def parse_key(key: Tuple, key_pattern: List[str]) -> Tuple[str, str, str]:
         (header_block, header),
         (header_block, header, label),
         (sample_block, label)
+        (sample_block, label, alpha_name)
     depending on the context.  In each case, a tuple with 3 members is returned, with the missing member filled in by
     'all' where necessary
 
@@ -66,6 +68,8 @@ def parse_key(key: Tuple, key_pattern: List[str]) -> Tuple[str, str, str]:
         return key[0], key[1], 'all'
     elif key_pattern == ['sample_block', 'label']:
         return 'all', key[0], key[1]
+    elif key_pattern == ['sample_block', 'label', 'alpha_name']:
+        return 'all', key[0], key[1], key[2]
     elif len(key) != 3:
         raise ValueError(f'Key must have 3 values, pattern is {key_pattern}')
     else:
@@ -109,6 +113,22 @@ def assemble_block(n_rows: Int, n_cols: Int, pdf: pd.DataFrame,
     else:
         return X
 
+@typechecked
+def get_irls_pieces(X: NDArray[Float], y: NDArray[Float], alpha: Float, p0: Float) -> (NDArray[Float], NDArray[Float], NDArray[Float]):
+    if y.sum() > 0:
+        clf = sklearn.linear_model.LogisticRegression(C = 1/alpha, solver = 'lbfgs', fit_intercept = True, max_iter = 1000)
+        clf.fit(X[:, 1:], y)
+        p = clf.predict_proba(X[:, 1:])[:,1]
+        beta = np.insert(clf.coef_.squeeze(), 0, clf.intercept_)
+    else:
+        p = np.ones(y.size)*p0
+        beta = np.zeros(X.shape[1])
+        beta[0] = np.log(p0/(1-p0))
+
+    XtGX = (X.T*(p*(1-p)))@X
+    XtY = X.T@(p - y)
+    return beta, XtGX, XtY
+
 
 @typechecked
 def slice_label_rows(labeldf: pd.DataFrame, label: str, sample_list: List[str]) -> NDArray[Float]:
@@ -150,6 +170,17 @@ def evaluate_coefficients(pdf: pd.DataFrame, alpha_values: Iterable[Float],
         np.concatenate([np.ones(n_cov), np.ones(XtX.shape[1] - n_cov) * a]) for a in alpha_values
     ]
     return np.column_stack([(np.linalg.inv(XtX + np.diag(d)) @ XtY) for d in diags])
+
+
+@typechecked
+def irls_one_step(pdf: pd.DataFrame, alpha_values: Iterable[Float], rows_per_alpha: int) -> NDArray[Float]:
+    xtgx_stack = np.stack(pdf['xtgx'])
+    diags = [np.insert(np.ones(rows_per_alpha-1), 0, 0) * a for a in alpha_values]
+    xtgxs = [xtgx_stack[i*rows_per_alpha:(i+1)*rows_per_alpha, :] for i in range(len(alpha_values))]
+    xtys = [pdf['xty'][i*rows_per_alpha:(i+1)*rows_per_alpha] for i in range(len(alpha_values))]
+    dbeta_stack = np.column_stack([np.linalg.inv(xtgx + np.diag(diag))@xty for xtgx, diag, xty in zip(xtgxs, diags, xtys)])
+    beta0_stack = np.column_stack([pdf['beta'][i*rows_per_alpha:(i+1)*rows_per_alpha] for i in range(len(alpha_values))])
+    return beta0_stack - dbeta_stack
 
 
 @typechecked
@@ -234,6 +265,17 @@ def r_squared(XB: NDArray[Float], Y: NDArray[Float]) -> NDArray[(Any, ), Float]:
 
 
 @typechecked
+def sigmoid(z: NDArray[Float]) -> NDArray[Float]:
+    return 1/(1+np.exp(-z))
+
+
+@typechecked
+def log_loss(p: NDArray[Float], y: NDArray[Float]) -> NDArray[Float]:
+    eps = 1E-15
+    return -(y*np.log(p + eps) + (1-y)*np.log(1-p + eps)).sum(axis = 0)/y.shape[0]
+
+
+@typechecked
 def create_alpha_dict(alphas: NDArray[(Any, ), Float]) -> Dict[str, Float]:
     """
     Creates a mapping to attach string identifiers to alpha values.
@@ -313,3 +355,21 @@ def validate_inputs(labeldf: pd.DataFrame, covdf: pd.DataFrame) -> None:
     __assert_all_present(covdf, 'covariate')
     __check_standardized(labeldf, 'label')
     __check_standardized(covdf, 'covariate')
+
+
+@typechecked
+def flatten_prediction_df(blockdf: DataFrame, sample_blocks: Dict[str, Iterable[str]], labeldf: pd.DataFrame) -> pd.DataFrame:
+    sample_block_df = blockdf.sql_ctx \
+        .createDataFrame(sample_blocks.items(), ['sample_block', 'sample_ids']) \
+        .selectExpr('sample_block', 'posexplode(sample_ids) as (idx, sample_id)')
+
+    flattened_prediction_df = blockdf \
+        .selectExpr('sample_block', 'label', 'posexplode(values) as (idx, value)') \
+        .join(sample_block_df, ['sample_block', 'idx'], 'inner') \
+        .select('sample_id', 'label', 'value')
+
+    pivoted_df = flattened_prediction_df.toPandas() \
+        .pivot(index='sample_id', columns='label', values='value') \
+        .reindex(index=labeldf.index, columns=labeldf.columns)
+
+    return pivoted_df

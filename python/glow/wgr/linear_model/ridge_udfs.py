@@ -59,7 +59,7 @@ cv_struct = StructType([
     StructField('sample_block', StringType()),
     StructField('label', StringType()),
     StructField('alpha', StringType()),
-    StructField('r2', DoubleType())
+    StructField('score', DoubleType())
 ])
 
 
@@ -147,7 +147,7 @@ def map_normal_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeld
 
 
 @typechecked
-def reduce_normal_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame):
+def reduce_normal_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame) -> pd.DataFrame:
     """
     This function constructs lists of rows from the XtX and XtY matrices corresponding to a particular header in X but
     evaluated in different sample_blocks, and then reduces those lists by element-wise summation.  This reduction is
@@ -355,11 +355,10 @@ def apply_model(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf: 
 @typechecked
 def score_models(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf: pd.DataFrame,
                  sample_index: Dict[str, List[str]], alphas: Dict[str, Float],
-                 covdf: pd.DataFrame) -> pd.DataFrame:
+                 covdf: pd.DataFrame, metric: str) -> pd.DataFrame:
     """
     Similar to apply_model, this function performs the multiplication X*B for a block X and corresponding coefficient
-    matrix B, however it also evaluates the coefficient of determination (r2) for each of columns in B against the
-    corresponding label.
+    matrix B, however it also produces a score for the model, specified by the :metric: parameter.
 
     Args:
         key : unique key identifying the group of rows emitted by a groupBy statement
@@ -388,6 +387,7 @@ def score_models(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf:
         sample_index : sample_index: dict containing a mapping of sample_block ID to a list of corresponding sample IDs
         alphas : dict of {alphaName : alphaValue} for the alpha values that were used when fitting coefficient matrix B
         covdf: Pandas DataFrame containing covariates that should be included with every block X above (can be empty).
+        metric: String specifying what metric to apply, can be 'r2' or 'log_loss'
 
     Returns:
         Pandas DataFrame containing the r2 scores for each combination of alpha and label
@@ -395,7 +395,7 @@ def score_models(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf:
                  |-- sample_block: string
                  |-- label: string
                  |-- alpha: string
-                 |-- r2: double
+                 |-- score: double
     """
     header_block, sample_block, label = parse_key(key, key_pattern)
     sort_in_place(pdf, ['sort_key'])
@@ -417,9 +417,13 @@ def score_models(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf:
     B = np.row_stack(pdf['coefficients'].array)
     XB = X @ B
     Y = slice_label_rows(labeldf, label, sample_list)
-    scores = r_squared(XB, Y)
+    if metric == 'r2':
+        scores = r_squared(XB, Y)
+    elif metric == 'log_loss':
+        Z = sigmoid(XB)
+        scores = log_loss(Z, Y)
     alpha_names = sorted(alphas.keys())
 
-    data = {'sample_block': sample_block, 'label': label, 'alpha': alpha_names, 'r2': scores}
+    data = {'sample_block': sample_block, 'label': label, 'alpha': alpha_names, 'score': scores}
 
     return pd.DataFrame(data)
