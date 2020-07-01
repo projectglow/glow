@@ -120,9 +120,9 @@ def test_check_covars_unit_stddev(spark):
 
 
 def test_new_headers_one_level(spark):
-    (new_header_block, sort_keys, headers) = new_headers('chr_decoy_1_block_10', ['alpha_1', 'alpha_2'],
-                                                         [('alpha_1', 'sim1'), ('alpha_1', 'sim2'),
-                                                          ('alpha_2', 'sim1'), ('alpha_2', 'sim2')])
+    (new_header_block, sort_keys, headers) = new_headers(
+        'chr_decoy_1_block_10', ['alpha_1', 'alpha_2'], [('alpha_1', 'sim1'), ('alpha_1', 'sim2'),
+                                                         ('alpha_2', 'sim1'), ('alpha_2', 'sim2')])
     assert new_header_block == 'chr_decoy_1'
     assert sort_keys == [10 * 2 + 1, 10 * 2 + 1, 10 * 2 + 2, 10 * 2 + 2]
     assert headers == [
@@ -137,10 +137,12 @@ def test_new_headers_two_level(spark):
                                                           ('alpha_2', 'sim1'), ('alpha_2', 'sim2')])
     assert new_header_block == 'all'
     contig_hash = abs(hash('decoy_1')) % (10**8)
-    assert sort_keys == [contig_hash * 2 + 1, contig_hash * 2 + 1, contig_hash * 2 + 2, contig_hash * 2 + 2]
+    assert sort_keys == [
+        contig_hash * 2 + 1, contig_hash * 2 + 1, contig_hash * 2 + 2, contig_hash * 2 + 2
+    ]
     assert headers == [
-        'chr_decoy_1_alpha_1_label_sim1', 'chr_decoy_1_alpha_1_label_sim2', 'chr_decoy_1_alpha_2_label_sim1',
-        'chr_decoy_1_alpha_2_label_sim2'
+        'chr_decoy_1_alpha_1_label_sim1', 'chr_decoy_1_alpha_1_label_sim2',
+        'chr_decoy_1_alpha_2_label_sim1', 'chr_decoy_1_alpha_2_label_sim2'
     ]
 
 
@@ -154,11 +156,13 @@ def test_new_headers_three_levels(spark):
         'alpha_1_label_sim1', 'alpha_1_label_sim2', 'alpha_2_label_sim1', 'alpha_2_label_sim2'
     ]
 
+
 def test_infer_chromosomes(spark):
-    df = spark.createDataFrame(
-        [Row(header='chr_3_block_8_alpha_0_label_sim100'),
-         Row(header='chr_3_alpha_0_label_sim100'),
-         Row(header='chr_X_alpha_0_label_sim100'),
-         Row(header='chr_decoy_1_block_8_alpha_0_label_sim100'),
-         Row(header='chr_decoy_2_alpha_0_label_sim100')])
+    df = spark.createDataFrame([
+        Row(header='chr_3_block_8_alpha_0_label_sim100'),
+        Row(header='chr_3_alpha_0_label_sim100'),
+        Row(header='chr_X_alpha_0_label_sim100'),
+        Row(header='chr_decoy_1_block_8_alpha_0_label_sim100'),
+        Row(header='chr_decoy_2_alpha_0_label_sim100')
+    ])
     assert sorted(infer_chromosomes(df)) == ['3', 'X', 'decoy_1', 'decoy_2']
