@@ -463,6 +463,7 @@ def flatten_prediction_df(blockdf: DataFrame, sample_blocks: Dict[str, Iterable[
     return pivoted_df
 
 
+
 @typechecked
 def infer_chromosomes(blockdf: DataFrame) -> List[str]:
     """
