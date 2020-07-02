@@ -19,6 +19,8 @@ import numpy as np
 import pandas as pd
 import sklearn.linear_model
 from pyspark.sql import DataFrame
+import pyspark.sql.functions as f
+import re
 from typeguard import typechecked
 from typing import Any, Dict, Iterable, List, Tuple
 import warnings
@@ -269,23 +271,30 @@ def new_headers(header_block: str, alpha_names: Iterable[str],
         sort_keys : Array of sortable integers to specify the ordering of the new matrix headers.
         headers : List of new matrix headers.
     """
-    tokens = header_block.split('_')
-
-    if len(tokens) == 2:
-        inner_index = tokens[1]
+    match_chr_block = re.search(r"^chr_(.*)_block_([0-9]+)$", header_block)
+    match_chr = re.search(r"^chr_(.*)$", header_block)
+    if match_chr_block:
+        chr = match_chr_block.group(1)
+        inner_index = int(match_chr_block.group(2))
+        header_prefix = f'chr_{chr}_block_{inner_index}_'
+        new_header_block = f'chr_{chr}'
+    elif match_chr:
+        chr = match_chr.group(1)
+        inner_index = abs(hash(chr)) % (10**8)  # Hash to 8 digits
+        header_prefix = f'chr_{chr}_'
         new_header_block = 'all'
-    elif len(tokens) == 1:
+    elif header_block == 'all':
         inner_index = 0
+        header_prefix = ''
         new_header_block = 'all'
     else:
-        inner_index = tokens[3]
-        new_header_block = f'chr_{tokens[1]}'
+        raise ValueError(f'Header block {header_block} does not match expected pattern.')
 
     sort_keys, headers = [], []
     for a, l in row_indexer:
-        sort_key = int(inner_index) * len(alpha_names) + int(a.split('_')[1])
-        header = f'{new_header_block}_block_{inner_index}_{a}_label_{l}'
+        sort_key = inner_index * len(alpha_names) + int(re.search(r"^alpha_([0-9]+)", a).group(1))
         sort_keys.append(sort_key)
+        header = f'{header_prefix}{a}_label_{l}'
         headers.append(header)
 
     return new_header_block, sort_keys, headers
@@ -452,3 +461,26 @@ def flatten_prediction_df(blockdf: DataFrame, sample_blocks: Dict[str, Iterable[
         .reindex(index=labeldf.index, columns=labeldf.columns)
 
     return pivoted_df
+
+
+@typechecked
+def infer_chromosomes(blockdf: DataFrame) -> List[str]:
+    """
+    Extracts chromosomes from a once- or twice-reduced block DataFrame.
+
+    Args:
+        blockdf : Spark DataFrame representing a once- or twice-reduced block matrix.
+
+    Returns:
+        List of chromosomes.
+    """
+    # Regex captures the chromosome name in the header
+    # level 1 header: chr_3_block_8_alpha_0_label_sim100
+    # level 2 header: chr_3_alpha_0_label_sim100
+    chromosomes = [
+        r.chromosome for r in blockdf.select(
+            f.regexp_extract('header', r"^chr_(.+?)_(alpha|block)", 1).alias(
+                'chromosome')).distinct().collect()
+    ]
+    print(f'Inferred chromosomes: {chromosomes}')
+    return chromosomes
