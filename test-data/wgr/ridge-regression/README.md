@@ -22,3 +22,65 @@ of variants, a regularization (alpha) value, and a phenotype (e.g., the level 1 
 Each row represents an individual, each column represents the output of a level 2 ridge model prediction for a block of 
 level 1 ridge predictions, a regularization (alpha) value, and a phenotype.  At this level, the block represents a 
 chromosome.
+
+The following files were generated to accelerate test runtime:
+
+* **level1BlockedGt.snappy.parquet**
+
+    indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
+    blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet').limit(5)
+
+    group2ids = __get_sample_blocks(indexdf)
+    stack0 = RidgeReducer(alphas)
+
+    level1df = stack0.fit_transform(blockdf, labeldf, group2ids)
+    level1df.coalesce(1).write.parquet(f'{data_root}/level1BlockedGt.snappy.parquet')
+
+* **level2BlockedGt.snappy.parquet**
+
+    indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
+    level1df = spark.read.parquet(f'{data_root}/level1BlockedGt.snappy.parquet')
+
+    group2ids = __get_sample_blocks(indexdf)
+    stack1 = RidgeReducer(alphas)
+
+    level2df = stack1.fit_transform(level1df, labeldf, group2ids)
+    level2df.coalesce(1).write.parquet(f'{data_root}/level2BlockedGt.snappy.parquet')
+
+* **level1YHatLoco.csv**
+
+    indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
+    level1df = spark.read.parquet(f'{data_root}/level1BlockedGT.snappy.parquet')
+
+    group2ids = __get_sample_blocks(indexdf)
+    regressor = RidgeRegression(alphas)
+    model1df, cvdf = regressor.fit(level1df, labeldf, group2ids)
+
+    all_y_hat_df = pd.DataFrame()
+    for contig in ['chr_1', 'chr_2', 'chr_3']:
+        loco_model_df = model1df.filter(~col('header').startswith(contig))
+        loco_y_hat_df = regressor.transform(level1df, labeldf, group2ids, loco_model_df, cvdf)
+        loco_y_hat_df['contigName'] = contig.split('_')[-1]
+        all_y_hat_df = all_y_hat_df.append(loco_y_hat_df)
+
+    y_hat_df = all_y_hat_df.set_index('contigName', append=True)
+    y_hat_df.to_csv(f'{data_root}/level1YHatLoco.csv')
+
+* **level2YHatLoco.csv**
+
+    indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
+    level2df = spark.read.parquet(f'{data_root}/level2BlockedGT.snappy.parquet')
+
+    group2ids = __get_sample_blocks(indexdf)
+    regressor = RidgeRegression(alphas)
+    model1df, cvdf = regressor.fit(level2df, labeldf, group2ids)
+
+    all_y_hat_df = pd.DataFrame()
+    for contig in ['chr_1', 'chr_2', 'chr_3']:
+        loco_model_df = model1df.filter(~col('header').startswith(contig))
+        loco_y_hat_df = regressor.transform(level2df, labeldf, group2ids, loco_model_df, cvdf)
+        loco_y_hat_df['contigName'] = contig.split('_')[-1]
+        all_y_hat_df = all_y_hat_df.append(loco_y_hat_df)
+
+    y_hat_df = all_y_hat_df.set_index('contigName', append=True)
+    y_hat_df.to_csv(f'{data_root}/level2YHatLoco.csv')
