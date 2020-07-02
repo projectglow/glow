@@ -224,7 +224,8 @@ class RidgeRegression:
                                               ), model_struct, PandasUDFType.GROUPED_MAP)
         score_udf = pandas_udf(
             lambda key, pdf: score_models(key, map_key_pattern, pdf, labeldf, sample_blocks, self.
-                                          alphas, covdf), cv_struct, PandasUDFType.GROUPED_MAP)
+                                          alphas, covdf, 'r2'), cv_struct,
+            PandasUDFType.GROUPED_MAP)
 
         modeldf = blockdf \
             .groupBy(map_key_pattern) \
@@ -245,7 +246,7 @@ class RidgeRegression:
             .groupBy(map_key_pattern) \
             .apply(score_udf) \
             .join(alpha_df, ['alpha']) \
-            .groupBy('label', 'alpha', 'alpha_value').agg(f.mean('r2').alias('r2_mean')) \
+            .groupBy('label', 'alpha', 'alpha_value').agg(f.mean('score').alias('r2_mean')) \
             .withColumn('modelRank', f.row_number().over(window_spec)) \
             .filter('modelRank = 1') \
             .drop('modelRank')
@@ -295,18 +296,7 @@ class RidgeRegression:
             .apply(transform_udf) \
             .join(cvdf, ['label', 'alpha'], 'inner')
 
-        sample_block_df = blockdf.sql_ctx \
-            .createDataFrame(sample_blocks.items(), ['sample_block', 'sample_ids']) \
-            .selectExpr('sample_block', 'posexplode(sample_ids) as (idx, sample_id)')
-
-        flattened_prediction_df = blocked_prediction_df \
-            .selectExpr('sample_block', 'label', 'posexplode(values) as (idx, value)') \
-            .join(sample_block_df, ['sample_block', 'idx'], 'inner') \
-            .select('sample_id', 'label', 'value')
-
-        pivoted_df = flattened_prediction_df.toPandas() \
-            .pivot(index='sample_id', columns='label', values='value') \
-            .reindex(index=labeldf.index, columns=labeldf.columns)
+        pivoted_df = flatten_prediction_df(blocked_prediction_df, sample_blocks, labeldf)
 
         record_hls_event('wgrRidgeRegressionTransform')
 

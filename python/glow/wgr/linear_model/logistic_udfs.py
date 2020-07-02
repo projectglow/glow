@@ -37,10 +37,59 @@ logistic_reduced_matrix_struct = StructType([
     StructField('label', StringType())
 ])
 
+
 @typechecked
 def map_irls_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf: pd.DataFrame,
                  sample_blocks: Dict[str, List[str]], covdf: pd.DataFrame,
                  p0_dict: Dict[str, Float], alphas: Dict[str, Float]) -> pd.DataFrame:
+    """
+    This function constructs matrices X and Y, and computes transpose(X)*diag(p(1-p)*X, beta, and transpose(X)*Y, by
+    fitting a logistic model logit(p(Y|X)) ~ X*beta.
+
+    Each block X is uniquely identified by a header_block ID, which maps to a set of contiguous columns in the overall
+    block matrix, and a sample_block ID, which maps to a set of rows in the overall block matrix (and likewise a set
+    of rows in the label matrix Y).  Additionally, each block is associated with a particular label and alpha,
+    so the key for the group is (header_block, sample_block, label, alpha).
+
+    Args:
+        key : unique key identifying the group of rows emitted by a groupBy statement.
+        key_pattern : pattern of columns used in the groupBy statement that emitted this group of rows
+        pdf : starting Pandas DataFrame used to build X and Y for block X identified by :key:.
+            schema:
+             |-- header: string
+             |-- size: integer
+             |-- indices: array (Required only if the matrix is sparse)
+             |    |-- element: integer
+             |-- values: array
+             |    |-- element: double
+             |-- header_block: string
+             |-- sample_block: string
+             |-- sort_key: integer
+             |-- mu: double
+             |-- sig: double
+             |-- label: string
+             |-- alpha_name: string
+        labeldf : Pandas DataFrame containing label values (i. e., the Y in the normal equation above).
+        sample_index : sample_index: dict containing a mapping of sample_block ID to a list of corresponding sample IDs
+        covdf : Pandas DataFrame containing covariates that should be included with every block X above (can be empty).
+        p0_dict : dict of [label: str, p0: float] that maps each label to the observed population prevalence of that label.
+        alphas : dict of [alpah_name: str, alpha_value: float]
+
+    Returns:
+        transformed Pandas DataFrame containing beta, XtgX, and XtY corresponding to a particular block X.
+            schema (specified by the irls_eqn_struct):
+             |-- header_block: string
+             |-- sample_block: string
+             |-- label: string
+             |-- alpha_name : string
+             |-- header: string
+             |-- sort_key: integer
+             |-- beta : double
+             |-- xtgx: array
+             |    |-- element: double
+             |-- xty: array
+             |    |-- element: double
+    """
     header_block, sample_block, label, alpha_name = parse_key(key, key_pattern)
     sort_in_place(pdf, ['sort_key', 'header'])
     n_rows = pdf['size'][0]
@@ -60,14 +109,14 @@ def map_irls_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf:
     beta, XtGX, XtY = get_irls_pieces(X, Y.ravel(), alpha_value, p0)
 
     data = {
-        "header_block" : header_block,
-        "sample_block" : sample_block,
-        "label" : label,
-        "alpha_name" : alpha_name,
-        "header" : header_col,
-        "sort_key" : sort_key_col,
-        "beta" : list(beta),
-        "xtgx" : list(XtGX),
+        "header_block": header_block,
+        "sample_block": sample_block,
+        "label": label,
+        "alpha_name": alpha_name,
+        "header": header_col,
+        "sort_key": sort_key_col,
+        "beta": list(beta),
+        "xtgx": list(XtGX),
         "xty": list(XtY)
     }
 
@@ -76,6 +125,50 @@ def map_irls_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf:
 
 @typechecked
 def reduce_irls_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame) -> pd.DataFrame:
+    """
+    This function constructs lists of rows from the beta, XtGX, and XtY matrices corresponding to a particular header
+    in X and alpha value evaluated in different sample_blocks, and then reduces those lists by element-wise mean in the
+    case of beta and element-wise summation in the case of xtgx and xty. This reduction is repeated once for
+    each sample_block, where the contribution of that sample_block is omitted.  There is therefore a one-to-one
+    mapping of the starting lists and the reduced lists, e.g.:
+
+        Input:
+            List(xtgx_sample_block0, xtgx_sample_block1, ..., xtgx_sample_blockN)
+        Output:
+            List(xtgx_sum_excluding_sample_block0, xtgx_sum_excluding_sample_block1, ..., xtgx_sum_excluding_sample_blockN)
+
+    Args:
+        key : unique key identifying the rows emitted by a groupBy statement
+        key_pattern : pattern of columns used in the groupBy statement
+        pdf : starting Pandas DataFrame containing the lists of rows from XtX and XtY for block X identified by :key:
+            schema (specified by the irls_eqn_struct):
+             |-- header_block: string
+             |-- sample_block: string
+             |-- label: string
+             |-- alpha_name : string
+             |-- header: string
+             |-- sort_key: integer
+             |-- beta : double
+             |-- xtgx: array
+             |    |-- element: double
+             |-- xty: array
+             |    |-- element: double
+
+    Returns:
+        transformed Pandas DataFrame containing the aggregated leave-fold-out rows from XtX and XtY
+            schema (specified by the irls_eqn_struct):
+             |-- header_block: string
+             |-- sample_block: string
+             |-- label: string
+             |-- alpha_name : string
+             |-- header: string
+             |-- sort_key: integer
+             |-- beta : double
+             |-- xtgx: array
+             |    |-- element: double
+             |-- xty: array
+             |    |-- element: double
+    """
     sum_xtgx = pdf['xtgx'].sum()
     sum_xty = pdf['xty'].sum()
     mean_beta = pdf['beta'].mean()
@@ -83,20 +176,60 @@ def reduce_irls_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame) -> pd
     # Use numpy broadcast to subtract each row from the sum
     pdf['xtgx'] = list(sum_xtgx - np.vstack(pdf['xtgx'].array))
     pdf['xty'] = list(sum_xty - pdf['xty'])
-    pdf['beta'] = list((pdf.shape[0]*mean_beta - pdf['beta'])/(pdf.shape[0]-1))
+    pdf['beta'] = list((pdf.shape[0] * mean_beta - pdf['beta']) / (pdf.shape[0] - 1))
 
     return pdf
 
 
 @typechecked
 def solve_irls_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf: pd.DataFrame,
-                   alphas: Dict[str, Float], covdf: pd.DataFrame) -> pd.DataFrame:
+                   alphas: Dict[str, Float]) -> pd.DataFrame:
+    """
+    This function assembles the matrices XtGX, XtY and initial parmaeter guess B0 for a particular sample_block
+    (where the contribution of that sample_block has been omitted) and solves the equation
+    B = B0 - [(XtGX + I*alpha)]-1 * XtY for a list of alpha values, and returns the coefficient matrix B, where B has 1
+    row per header in the block X and 1 column per combination of alpha value.
+
+    Args:
+        key : unique key identifying the group of rows emitted by a groupBy statement
+        key_pattern : pattern of columns used in the groupBy statement that emitted this group of rows
+        pdf : starting Pandas DataFrame containing the lists of rows from beta, XtGX, and XtY for block X identified
+        by :key:
+            schema (specified by the irls_eqn_struct):
+             |-- header_block: string
+             |-- sample_block: string
+             |-- label: string
+             |-- alpha_name : string
+             |-- header: string
+             |-- sort_key: integer
+             |-- beta : double
+             |-- xtgx: array
+             |    |-- element: double
+             |-- xty: array
+             |    |-- element: double
+        labeldf : Pandas DataFrame containing label values (i. e., the Y in the normal equation above).
+        alphas : dict of {alphaName : alphaValue} for the alpha values to be used
+        covdf: Pandas DataFrame containing covariates that should be included with every block X above (can be empty).
+
+    Returns:
+        transformed Pandas DataFrame containing the coefficient matrix B
+            schema (specified by the model_struct):
+                 |-- header_block: string
+                 |-- sample_block: string
+                 |-- header: string
+                 |-- sort_key: integer
+                 |-- alphas: array
+                 |    |-- element: string
+                 |-- labels: array
+                 |    |-- element: string
+                 |-- coefficients: array
+                 |    |-- element: double
+    """
     header_block, sample_block, label = parse_key(key, key_pattern)
-    sort_in_place(pdf, ['alpha_name','sort_key', 'header'])
+    sort_in_place(pdf, ['alpha_name', 'sort_key', 'header'])
     alpha_names, alpha_values = zip(*sorted(alphas.items()))
-    n_cov = len(covdf.columns)
-    rows_per_alpha = int(len(pdf)/len(alpha_values))
-    beta_stack = irls_one_step(pdf, alpha_values, n_cov, rows_per_alpha)
+    rows_per_alpha = int(len(pdf) / len(alpha_values))
+    beta_stack = irls_one_step(pdf, alpha_values, rows_per_alpha)
     row_indexer = cross_alphas_and_labels(alpha_names, labeldf, label)
     alpha_row, label_row = zip(*row_indexer)
     data = {
@@ -112,9 +245,52 @@ def solve_irls_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeld
 
 
 @typechecked
-def apply_logistic_model(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf: pd.DataFrame,
-                         sample_blocks: Dict[str, List[str]], alphas: Dict[str, Float],
-                         covdf: pd.DataFrame) -> pd.DataFrame:
+def apply_logistic_model(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame,
+                         labeldf: pd.DataFrame, sample_blocks: Dict[str, List[str]],
+                         alphas: Dict[str, Float], covdf: pd.DataFrame) -> pd.DataFrame:
+    """
+    This function takes a block X and a coefficient matrix B, performs the multiplication X*B, and returns sigmoid(X*B),
+    representing the output of the logistic model p(y|X) = sigmoid(XB).
+
+    Args:
+        key : unique key identifying the group of rows emitted by a groupBy statement
+        key_pattern : pattern of columns used in the groupBy statement that emitted this group of rows
+        pdf : starting Pandas DataFrame containing the lists of rows used to assemble block X and coefficients B
+            identified by :key:
+            schema:
+                 |-- header_block: string
+                 |-- sample_block: string
+                 |-- header: string
+                 |-- size: integer
+                 |-- indices: array
+                 |    |-- element: integer
+                 |-- values: array
+                 |    |-- element: double
+                 |-- sort_key: integer
+                 |-- alphas: array
+                 |    |-- element: string
+                 |-- labels: array
+                 |    |-- element: string
+                 |-- coefficients: array
+                 |    |-- element: double
+        labeldf : Pandas DataFrame containing label values that were used in fitting coefficient matrix B.
+        sample_index : sample_index: dict containing a mapping of sample_block ID to a list of corresponding sample IDs
+        alphas : dict of {alphaName : alphaValue} for the alpha values that were used when fitting coefficient matrix B
+        covdf: Pandas DataFrame containing covariates that should be included with every block X above (can be empty).
+
+    Returns:
+        transformed Pandas DataFrame containing reduced matrix block produced by the multiplication X*B
+            schema (specified by logistic_reduced_matrix_struct):
+                 |-- header: string
+                 |-- size: integer
+                 |-- values: array
+                 |    |-- element: double
+                 |-- header_block: string
+                 |-- sample_block: string
+                 |-- sort_key: integer
+                 |-- alpha: string
+                 |-- label: string
+    """
     header_block, sample_block, label = parse_key(key, key_pattern)
     sort_in_place(pdf, ['sort_key'])
     # If there is a covdf, we will have null 'values' entries in pdf arising from the right join of blockdf

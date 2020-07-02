@@ -226,7 +226,7 @@ def solve_normal_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labe
 
     Returns:
         transformed Pandas DataFrame containing the coefficient matrix B
-            schema (specified by the normal_eqn_struct):
+            schema (specified by the model_struct):
                  |-- header_block: string
                  |-- sample_block: string
                  |-- header: string
@@ -354,8 +354,8 @@ def apply_model(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf: 
 
 @typechecked
 def score_models(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf: pd.DataFrame,
-                 sample_index: Dict[str, List[str]], alphas: Dict[str, Float],
-                 covdf: pd.DataFrame, metric: str) -> pd.DataFrame:
+                 sample_index: Dict[str, List[str]], alphas: Dict[str, Float], covdf: pd.DataFrame,
+                 metric: str) -> pd.DataFrame:
     """
     Similar to apply_model, this function performs the multiplication X*B for a block X and corresponding coefficient
     matrix B, however it also produces a score for the model, specified by the :metric: parameter.

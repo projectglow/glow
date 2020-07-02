@@ -42,7 +42,7 @@ def sort_in_place(pdf: pd.DataFrame, columns: List[str]) -> None:
 
 
 @typechecked
-def parse_key(key: Tuple, key_pattern: List[str]) -> Tuple[str, str, str]:
+def parse_key(key: Tuple, key_pattern: List[str]):
     """
     Interprets the key corresponding to a group from a groupBy clause.  The key may be of the form:
         (header_block, sample_block),
@@ -113,20 +113,44 @@ def assemble_block(n_rows: Int, n_cols: Int, pdf: pd.DataFrame,
     else:
         return X
 
+
 @typechecked
-def get_irls_pieces(X: NDArray[Float], y: NDArray[Float], alpha: Float, p0: Float) -> (NDArray[Float], NDArray[Float], NDArray[Float]):
+def get_irls_pieces(X: NDArray[Float], y: NDArray[Float], alpha: Float,
+                    p0: Float) -> (NDArray[Float], NDArray[Float], NDArray[Float]):
+    """
+    Fits a logistic regression model logit(p(y|X)) ~ X*beta with L2 shrinkage C = 1/alpha, using scikit-learn.  Returns
+    the vector beta, the matrix transpose(X)*diag(p(1-p))*X, and the vector transpose(X)*(y - p), which are the pieces
+    needed to perform one step of the IRLS algorithm.
+
+    Args:
+         X: Matrix of n samples m features.  Matrix X is expected to include a constant intercept = 1 term as the first
+          column.
+         y : Binary response vector of  length n
+         alpha: Shrinkage parameter to be used in the fit
+         p0: observed population prevalence of label y.
+
+    Returns:
+        beta : m length array representing coefficients found from the fit, including the intercept term as the first
+        element.
+        XtGX : m by m matrix representing transpose(X)*diag(p(1-p))*X.
+        XtY : m length array representing transpose(X)*(y - p)
+
+    """
     if y.sum() > 0:
-        clf = sklearn.linear_model.LogisticRegression(C = 1/alpha, solver = 'lbfgs', fit_intercept = True, max_iter = 1000)
+        clf = sklearn.linear_model.LogisticRegression(C=1 / alpha,
+                                                      solver='lbfgs',
+                                                      fit_intercept=True,
+                                                      max_iter=1000)
         clf.fit(X[:, 1:], y)
-        p = clf.predict_proba(X[:, 1:])[:,1]
+        p = clf.predict_proba(X[:, 1:])[:, 1]
         beta = np.insert(clf.coef_.squeeze(), 0, clf.intercept_)
     else:
-        p = np.ones(y.size)*p0
+        p = np.ones(y.size) * p0
         beta = np.zeros(X.shape[1])
-        beta[0] = np.log(p0/(1-p0))
+        beta[0] = np.log(p0 / (1 - p0))
 
-    XtGX = (X.T*(p*(1-p)))@X
-    XtY = X.T@(p - y)
+    XtGX = (X.T * (p * (1 - p))) @ X
+    XtY = X.T @ (p - y)
     return beta, XtGX, XtY
 
 
@@ -173,13 +197,35 @@ def evaluate_coefficients(pdf: pd.DataFrame, alpha_values: Iterable[Float],
 
 
 @typechecked
-def irls_one_step(pdf: pd.DataFrame, alpha_values: Iterable[Float], rows_per_alpha: int) -> NDArray[Float]:
+def irls_one_step(pdf: pd.DataFrame, alpha_values: Iterable[Float],
+                  rows_per_alpha) -> NDArray[Float]:
+    """
+    Performs one step of the IRLS algorithm using the components found in pdf and a list of shrinkage parameters.
+    Returns the resulting coefficient values for each shrinkage value alpha.
+
+    Args:
+         pdf : Pandas DataFrame for the group.  Contains one set of IRLS equation components (beta, xtgx, xty) for each value of
+             alpha
+         alpha_values : Array of alpha values (regularization strengths)
+         rows_per_alpha : number of rows from pdf corresponding to each value of alpha.
+
+    Returns:
+        Matrix of coefficients of size [number of columns in X] x [number of labels * number of alpha values]
+
+    """
     xtgx_stack = np.stack(pdf['xtgx'])
-    diags = [np.insert(np.ones(rows_per_alpha-1), 0, 0) * a for a in alpha_values]
-    xtgxs = [xtgx_stack[i*rows_per_alpha:(i+1)*rows_per_alpha, :] for i in range(len(alpha_values))]
-    xtys = [pdf['xty'][i*rows_per_alpha:(i+1)*rows_per_alpha] for i in range(len(alpha_values))]
-    dbeta_stack = np.column_stack([np.linalg.inv(xtgx + np.diag(diag))@xty for xtgx, diag, xty in zip(xtgxs, diags, xtys)])
-    beta0_stack = np.column_stack([pdf['beta'][i*rows_per_alpha:(i+1)*rows_per_alpha] for i in range(len(alpha_values))])
+    diags = [np.insert(np.ones(rows_per_alpha - 1), 0, 0) * a for a in alpha_values]
+    xtgxs = [
+        xtgx_stack[i * rows_per_alpha:(i + 1) * rows_per_alpha, :] for i in range(len(alpha_values))
+    ]
+    xtys = [
+        pdf['xty'][i * rows_per_alpha:(i + 1) * rows_per_alpha] for i in range(len(alpha_values))
+    ]
+    dbeta_stack = np.column_stack(
+        [np.linalg.inv(xtgx + np.diag(diag)) @ xty for xtgx, diag, xty in zip(xtgxs, diags, xtys)])
+    beta0_stack = np.column_stack([
+        pdf['beta'][i * rows_per_alpha:(i + 1) * rows_per_alpha] for i in range(len(alpha_values))
+    ])
     return beta0_stack - dbeta_stack
 
 
@@ -266,13 +312,32 @@ def r_squared(XB: NDArray[Float], Y: NDArray[Float]) -> NDArray[(Any, ), Float]:
 
 @typechecked
 def sigmoid(z: NDArray[Float]) -> NDArray[Float]:
-    return 1/(1+np.exp(-z))
+    """
+    Computes the sigmoid function for each element in input z
+
+    Args:
+        z: Input values
+
+    Returns:
+        Sigmoid response corresponding to each input value
+    """
+    return 1 / (1 + np.exp(-z))
 
 
 @typechecked
 def log_loss(p: NDArray[Float], y: NDArray[Float]) -> NDArray[Float]:
+    """
+    Computes the log loss of probability values p and observed binary variable y.
+
+    Args:
+        p : probability values, assumed to have shape n obervations x m models
+        y : observed binary variable, assumed to have shape n observations x 1
+
+    Returns:
+        Array of [n * m]
+    """
     eps = 1E-15
-    return -(y*np.log(p + eps) + (1-y)*np.log(1-p + eps)).sum(axis = 0)/y.shape[0]
+    return -(y * np.log(p + eps) + (1 - y) * np.log(1 - p + eps)).sum(axis=0) / y.shape[0]
 
 
 @typechecked
@@ -358,7 +423,21 @@ def validate_inputs(labeldf: pd.DataFrame, covdf: pd.DataFrame) -> None:
 
 
 @typechecked
-def flatten_prediction_df(blockdf: DataFrame, sample_blocks: Dict[str, Iterable[str]], labeldf: pd.DataFrame) -> pd.DataFrame:
+def flatten_prediction_df(blockdf: DataFrame, sample_blocks: Dict[str, Iterable[str]],
+                          labeldf: pd.DataFrame) -> pd.DataFrame:
+    """
+    Transforms a Spark DataFrame containing a block matrix of model predictions to a flat Pandas DataFrame with the same
+    shape as labeldf.
+
+    Args:
+        blockdf : Spark DataFrame containing a block matrix of predictions for the labels in labeldf
+        sample_blocks : Dict containing a mapping of sample_block ID to a list of corresponding sample IDs
+        labeldf : Pandas DataFrame containing target labels
+
+    Returns:
+        Pandas DataFrame containing prediction values. The shape and order match labeldf such that the
+            rows are indexed by sample ID and the columns by label
+    """
     sample_block_df = blockdf.sql_ctx \
         .createDataFrame(sample_blocks.items(), ['sample_block', 'sample_ids']) \
         .selectExpr('sample_block', 'posexplode(sample_ids) as (idx, sample_id)')
