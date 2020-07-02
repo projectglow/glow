@@ -69,6 +69,7 @@ class RidgeReducer:
             Spark DataFrame containing the model resulting from the fitting routine.
         """
 
+        validate_inputs(labeldf, covdf)
         map_key_pattern = ['header_block', 'sample_block']
         reduce_key_pattern = ['header_block', 'header']
 
@@ -119,6 +120,7 @@ class RidgeReducer:
              Spark DataFrame representing the reduced block matrix
         """
 
+        validate_inputs(labeldf, covdf)
         transform_key_pattern = ['header_block', 'sample_block']
 
         if 'label' in blockdf.columns:
@@ -210,6 +212,7 @@ class RidgeRegression:
             results of the cross validation procedure.
         """
 
+        validate_inputs(labeldf, covdf)
         map_key_pattern = ['sample_block', 'label']
         reduce_key_pattern = ['header_block', 'header', 'label']
 
@@ -282,6 +285,7 @@ class RidgeRegression:
             rows are indexed by sample ID and the columns by label. The column types are float64.
         """
 
+        validate_inputs(labeldf, covdf)
         transform_key_pattern = ['sample_block', 'label']
 
         transform_udf = pandas_udf(
@@ -312,6 +316,48 @@ class RidgeRegression:
         record_hls_event('wgrRidgeRegressionTransform')
 
         return pivoted_df
+
+    def transform_loco(self,
+                       blockdf: DataFrame,
+                       labeldf: pd.DataFrame,
+                       sample_blocks: Dict[str, List[str]],
+                       modeldf: DataFrame,
+                       cvdf: DataFrame,
+                       covdf: pd.DataFrame = pd.DataFrame({}),
+                       chromosomes: List[str] = []) -> pd.DataFrame:
+        """
+        Generates predictions for the target labels in the provided label DataFrame by applying the model resulting from
+        the RidgeRegression fit method to the starting block matrix using a leave-one-chromosome-out (LOCO) approach.
+
+        Args:
+            blockdf : Spark DataFrame representing the beginning block matrix X
+            labeldf : Pandas DataFrame containing the target labels used in fitting the ridge models
+            sample_blocks : Dict containing a mapping of sample_block ID to a list of corresponding sample IDs
+            modeldf : Spark DataFrame produced by the RidgeRegression fit method, representing the reducer model
+            cvdf : Spark DataFrame produced by the RidgeRegression fit method, containing the results of the cross
+            validation routine.
+            covdf : Pandas DataFrame containing covariates to be included in every model in the stacking
+            ensemble (optional).
+            chromosomes : List of chromosomes for which to generate a prediction (optional). If not provided, the
+            chromosomes will be inferred from the block matrix.
+
+        Returns:
+            Pandas DataFrame containing prediction y_hat values per chromosome. The rows are indexed by sample ID and
+            chromosome; the columns are indexed by label. The column types are float64. The DataFrame is sorted using
+            chromosome as the primary sort key, and sample ID as the secondary sort key.
+        """
+        loco_chromosomes = chromosomes if chromosomes else infer_chromosomes(blockdf)
+        loco_chromosomes.sort()
+
+        all_y_hat_df = pd.DataFrame({})
+        for chromosome in loco_chromosomes:
+            loco_model_df = modeldf.filter(
+                ~f.col('header').rlike(f'^chr_{chromosome}_(alpha|block)'))
+            loco_y_hat_df = self.transform(blockdf, labeldf, sample_blocks, loco_model_df, cvdf,
+                                           covdf)
+            loco_y_hat_df['contigName'] = chromosome
+            all_y_hat_df = all_y_hat_df.append(loco_y_hat_df)
+        return all_y_hat_df.set_index('contigName', append=True)
 
     def fit_transform(
         self,

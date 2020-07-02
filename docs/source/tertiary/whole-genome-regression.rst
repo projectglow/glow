@@ -1,5 +1,5 @@
 ===============================
-GloWGR: Whole-Genome Regression
+GloWGR: Whole Genome Regression
 ===============================
 
 .. invisible-code-block: python
@@ -13,7 +13,7 @@ GloWGR: Whole-Genome Regression
 
 Glow supports Whole Genome Regression (WGR) as GloWGR, a parallelized version of the
 `regenie <https://rgcgithub.github.io/regenie/>`_ method (see the
-`preprint <https://www.biorxiv.org/content/10.1101/2020.06.19.162354v1>`_).
+`preprint <https://www.biorxiv.org/content/10.1101/2020.06.19.162354v2>`_).
 
 .. image:: ../_static/images/wgr_runtime.png
    :scale: 50 %
@@ -52,7 +52,6 @@ When loading in the variants, perform the following transformations:
 - Split multiallelic variants with the ``split_multiallelics`` transformer.
 - Calculate the number of alternate alleles for biallelic variants with ``glow.genotype_states``.
 - Replace any missing values with the mean of the non-missing values using ``glow.mean_substitute``.
-- Filter out variants whose values are equal across all samples.
 
 .. code-block:: python
 
@@ -60,29 +59,34 @@ When loading in the variants, perform the following transformations:
 
     variants = spark.read.format('vcf').load(genotypes_vcf)
     genotypes = glow.transform('split_multiallelics', variants) \
-        .withColumn('values', glow.mean_substitute(glow.genotype_states(col('genotypes')))) \
-        .filter('size(array_distinct(values)) > 1') \
+        .withColumn('values', glow.mean_substitute(glow.genotype_states(col('genotypes'))))
 
 Phenotype data
 ==============
 
 The phenotype data is represented as a Pandas DataFrame indexed by the sample ID. Each column represents a single
-phenotype. It is assumed that there are no missing phenotype values, and that the phenotypes are mean centered at 0.
+phenotype. It is assumed that there are no missing phenotype values, and that the phenotypes are standardized with
+zero mean and unit variance.
 
 Example
 -------
+
+Standardization can be performed with Pandas or
+`scikit-learn's StandardScaler <https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html>`_.
 
 .. code-block:: python
 
     import pandas as pd
 
-    label_df = pd.read_csv(continuous_phenotypes_csv, index_col='sample_id') \
-        .apply(lambda x: x-x.mean())[['Continuous_Trait_1', 'Continuous_Trait_2']]
+    label_df = pd.read_csv(continuous_phenotypes_csv, index_col='sample_id')
+    label_df = ((label_df - label_df.mean())/label_df.std(ddof=0))[['Continuous_Trait_1', 'Continuous_Trait_2']]
 
 Covariate data
 ==============
 
-The covariate data is represented as a Pandas DataFrame indexed by the sample ID.
+The covariate data is represented as a Pandas DataFrame indexed by the sample ID. Each column represents a single
+covariate. It is assumed that there are no missing covariate values, and that the covariates are standardized with
+zero mean and unit variance.
 
 Example
 -------
@@ -90,7 +94,7 @@ Example
 .. code-block:: python
 
     covariates = pd.read_csv(covariates_csv, index_col='sample_id')
-    covariates['intercept'] = 1.
+    covariates = (covariates - covariates.mean())/covariates.std(ddof=0)
 
 ------------------------
 Genotype matrix blocking
@@ -113,6 +117,11 @@ Return
 ======
 
 The function returns a block genotype matrix and a sample block mapping.
+
+.. warning::
+
+    Variant rows in the input DataFrame whose genotype values are uniform across all samples are filtered from the
+    output block genotype matrix.
 
 Block genotype matrix
 ---------------------
@@ -311,7 +320,7 @@ This works much in the same way as the ridge reducer fitting, except that it ret
 Parameters
 ----------
 
-- ``block_df``: Spark DataFrame representing the beginning block matrix.
+- ``block_df``: Spark DataFrame representing the reduced block matrix.
 - ``label_df``: Pandas DataFrame containing the target labels used in fitting the ridge models.
 - ``sample_blocks``: Dictionary containing a mapping of sample block IDs to a list of corresponding sample IDs.
 - ``covariates``: Pandas DataFrame containing covariates to be included in every model in the stacking
@@ -336,12 +345,13 @@ Model transformation
 
 After fitting the ``RidgeRegression`` model, the model DataFrame and cross validation DataFrame are used to apply the
 model to the block matrix DataFrame to produce predictions (*y_hat*) for each label and sample using the
-``RidgeRegression.transform`` method.
+``RidgeRegression.transform`` or ``RidgeRegression.transform_loco`` method. We describe the leave-one-chromosome-out
+(LOCO) approach.
 
 Parameters
 ----------
 
-- ``block_df``: Spark DataFrame representing the beginning block matrix.
+- ``block_df``: Spark DataFrame representing the reduced block matrix.
 - ``label_df``: Pandas DataFrame containing the target labels used in fitting the ridge models.
 - ``sample_blocks``: Dictionary containing a mapping of sample block IDs to a list of corresponding sample IDs.
 - ``model_df``: Spark DataFrame produced by the ``RidgeRegression.fit`` method, representing the reducer model
@@ -349,37 +359,27 @@ Parameters
   validation routine.
 - ``covariates``: Pandas DataFrame containing covariates to be included in every model in the stacking
   ensemble (optional).
+- ``chromosomes``: List of chromosomes for which to generate a prediction (optional). If not provided, the
+  chromosomes will be inferred from the block matrix.
 
 Return
 ------
 
-The resulting *y_hat* Pandas DataFrame is shaped like ``label_df``, indexed by the sample ID with each column
-representing a single phenotype.
+The resulting *y_hat* Pandas DataFrame is shaped like ``label_df``, indexed by the sample ID and chromosome with each
+column representing a single phenotype.
 
 Example
 =======
 
-We can produce the leave one chromosome out (LOCO) version of the *y_hat* values by filtering out rows that correspond
-to the chromosome we wish to drop before applying the transformation.
-
 .. code-block:: python
 
     model_df, cv_df = regression.fit(reduced_block_df, label_df, sample_blocks, covariates)
-    all_contigs = [r.header_block for r in reduced_block_df.select('header_block').distinct().collect()]
-    all_y_hat_df = pd.DataFrame()
-
-    for contig in all_contigs:
-      loco_reduced_block_df = reduced_block_df.filter(col('header_block') != lit(contig))
-      loco_model_df = model_df.filter(~col('header').startswith(contig))
-      loco_y_hat_df = regression.transform(loco_reduced_block_df, label_df, sample_blocks, loco_model_df, cv_df, covariates)
-      loco_y_hat_df['contigName'] = contig.split('_')[1]
-      all_y_hat_df = all_y_hat_df.append(loco_y_hat_df)
-    y_hat_df = all_y_hat_df.reset_index().set_index(['contigName', 'sample_id'])
+    y_hat_df = regression.transform_loco(reduced_block_df, label_df, sample_blocks, model_df, cv_df, covariates)
 
 .. invisible-code-block: python
 
     import math
-    assert math.isclose(y_hat_df.at[('22', 'HG00096'),'Continuous_Trait_1'], -0.5203890988445584)
+    assert math.isclose(y_hat_df.at[('HG00096', '22'),'Continuous_Trait_1'], -0.5578905823446506)
 
 Example notebook
 ----------------
