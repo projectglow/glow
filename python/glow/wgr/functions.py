@@ -158,8 +158,10 @@ def reshape_for_gwas(spark: SparkSession, label_df: pd.DataFrame) -> DataFrame:
         transposed_df = label_df.T
         column_names = ['label', 'values']
     elif label_df.index.nlevels == 2:  # Indexed by sample id and contig name
-        sample_ordering = pd.unique(label_df.index.get_level_values(0))
-        transposed_df = label_df.T.stack().reindex(sample_ordering, axis=1)
+        # stacking orders by the new index, so we need to remember the original sample order in case
+        # it's not ordered
+        ordered_cols = pd.unique(label_df.index.get_level_values(0))
+        transposed_df = label_df.T.stack()[ordered_cols]
         column_names = ['label', 'contigName', 'values']
     else:
         raise ValueError('label_df must be indexed by sample id or by (sample id, contig name)')
