@@ -25,7 +25,7 @@ from glow.logging import record_hls_event
 import warnings
 
 # Ignore warning to use applyInPandas instead of apply
-# TODO(hhd): Remove this and start using applyInPnadas once we only support Spark 3.x.
+# TODO(hhd): Remove this and start using applyInPandas once we only support Spark 3.x.
 warnings.filterwarnings('ignore', category=UserWarning, message='.*applyInPandas.*')
 
 
