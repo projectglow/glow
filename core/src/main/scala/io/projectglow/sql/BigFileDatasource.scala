@@ -43,10 +43,10 @@ abstract class BigFileDatasource extends CreatableRelationProvider {
   protected def serializeDataFrame(options: Map[String, String], df: DataFrame): RDD[Array[Byte]]
 
   override def createRelation(
-      sqlContext: SQLContext,
-      mode: SaveMode,
-      options: Map[String, String],
-      data: DataFrame): BaseRelation = {
+                               sqlContext: SQLContext,
+                               mode: SaveMode,
+                               options: Map[String, String],
+                               data: DataFrame): BaseRelation = {
 
     val path = BigFileDatasource.checkPath(options)
     val filesystemPath = new Path(path)
@@ -87,6 +87,7 @@ case class SingleFileRelation(sqlContext: SQLContext, schema: StructType) extend
 
 trait BigFileUploader {
   def canUpload(path: String, conf: Configuration): Boolean
+
   def upload(bytes: RDD[Array[Byte]], path: String, conf: Configuration): Unit
 }
 
@@ -103,7 +104,7 @@ object SingleFileWriter extends GlowLogging {
    *
    * Infers the destination storage system from the provided path.
    *
-   * @param rdd The RDD to write.
+   * @param rdd  The RDD to write.
    * @param path The path to write the RDD to.
    */
   def write(rdd: RDD[Array[Byte]], path: String, hadoopConf: Configuration) {

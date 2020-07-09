@@ -1,1 +1,2 @@
 io.projectglow.sql.DummyFileUploader
+io.projectglow.sql.BigFileDatasourceSuiteFileUploader

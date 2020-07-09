@@ -25,23 +25,34 @@ class SingleFileWriterSuite extends GlowBaseTest {
   test("uses service loader") {
     val outDir = Files.createTempDirectory("writer")
     assert(DummyFileUploader.counter == 0)
-    SingleFileWriter.write(sparkContext.emptyRDD[Array[Byte]], outDir.resolve("monkey").toString)
+    assert(DummyFileUploader.color == "")
+    SingleFileWriter.write(
+      sparkContext.emptyRDD[Array[Byte]],
+      outDir.resolve("monkey").toString,
+      spark.sessionState.newHadoopConfWithOptions(Map("color" -> "orange")))
     assert(DummyFileUploader.counter == 1)
-    SingleFileWriter.write(sparkContext.emptyRDD[Array[Byte]], outDir.resolve("orangutan").toString)
+    assert(DummyFileUploader.color == "orange")
+    SingleFileWriter.write(
+      sparkContext.emptyRDD[Array[Byte]],
+      outDir.resolve("orangutan").toString,
+      spark.sessionState.newHadoopConfWithOptions(Map("color" -> "blue")))
     assert(DummyFileUploader.counter == 1)
+    assert(DummyFileUploader.color == "orange")
   }
 }
 
 class DummyFileUploader extends BigFileUploader {
-  override def canUpload(conf: Configuration, path: String): Boolean = {
+  override def canUpload(path: String, conf: Configuration): Boolean = {
     path.contains("monkey")
   }
 
-  override def upload(bytes: RDD[Array[Byte]], path: String): Unit = {
+  override def upload(bytes: RDD[Array[Byte]], path: String, conf: Configuration): Unit = {
     DummyFileUploader.counter += 1
+    DummyFileUploader.color = conf.get("color")
   }
 }
 
 object DummyFileUploader {
   var counter = 0
+  var color = ""
 }

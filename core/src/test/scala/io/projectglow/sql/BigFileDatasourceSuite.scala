@@ -18,6 +18,7 @@ package io.projectglow.sql
 
 import java.nio.file.{Files, Paths}
 
+import org.apache.hadoop.conf.Configuration
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, SaveMode}
 
@@ -77,6 +78,20 @@ class BigFileDatasourceSuite extends GlowBaseTest {
     val dirPath = Paths.get(outDir)
     assert(Files.isDirectory(dirPath))
   }
+
+  test("new hadoop conf picks up spark confs and options") {
+    val outFile = Files.createTempDirectory("tmp").resolve("tmp").toString
+    val sess = spark
+    sess.conf.set("hello", "world")
+    sess
+      .emptyDataFrame
+      .write
+      .option("foo", "bar")
+      .format("io.projectglow.sql.DummyBigFileDatasource")
+      .save(outFile)
+
+    assert(BigFileDatasourceSuiteFileUploader.hello == "world")
+  }
 }
 
 class DummyBigFileDatasource extends BigFileDatasource {
@@ -85,4 +100,18 @@ class DummyBigFileDatasource extends BigFileDatasource {
       data: DataFrame): RDD[Array[Byte]] = {
     data.sqlContext.sparkContext.parallelize(Seq(Array(0, 1, 2).map(_.toByte)))
   }
+}
+
+class BigFileDatasourceSuiteFileUploader extends BigFileUploader {
+  override def canUpload(path: String, conf: Configuration): Boolean = {
+    conf.get("foo") == "bar"
+  }
+
+  override def upload(bytes: RDD[Array[Byte]], path: String, conf: Configuration): Unit = {
+    BigFileDatasourceSuiteFileUploader.hello = conf.get("hello")
+  }
+}
+
+object BigFileDatasourceSuiteFileUploader {
+  var hello = ""
 }
