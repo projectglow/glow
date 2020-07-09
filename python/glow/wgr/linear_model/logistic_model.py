@@ -102,6 +102,8 @@ class LogisticRegression:
 
         cvdf = cross_validation(blockdf, modeldf, score_udf, score_key_pattern, self.alphas, metric)
 
+        record_hls_event('wgrLogisticRegressionFit')
+
         return modeldf, cvdf
 
     def reduce_block_matrix(self, blockdf: DataFrame, labeldf: pd.DataFrame,
@@ -179,6 +181,8 @@ class LogisticRegression:
                                                        response='linear')
         pivoted_df = flatten_prediction_df(block_prediction_df, sample_blocks, labeldf)
 
+        record_hls_event('wgrLogisticRegressionTransform')
+
         return pivoted_df
 
     def predict_proba(self, blockdf: DataFrame, labeldf: pd.DataFrame,
@@ -209,6 +213,8 @@ class LogisticRegression:
                                                        covdf,
                                                        response='sigmoid')
         pivoted_df = flatten_prediction_df(block_prediction_df, sample_blocks, labeldf)
+
+        record_hls_event('wgrLogisticRegressionPredictProba')
 
         return pivoted_df
 

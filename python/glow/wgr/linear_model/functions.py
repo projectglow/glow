@@ -442,6 +442,7 @@ def validate_inputs(labeldf: pd.DataFrame, covdf: pd.DataFrame, label_type='cont
     Args:
         labeldf : Pandas DataFrame containing target labels
         covdf : Pandas DataFrame containing covariates
+        label_type : Specifies if the labels are continuous data for linear regression or binary data for logistic
     """
     __assert_all_present(labeldf, 'label')
     __assert_all_present(covdf, 'covariate')
@@ -516,6 +517,22 @@ def infer_chromosomes(blockdf: DataFrame) -> List[str]:
 
 
 def cross_validation(blockdf, modeldf, score_udf, score_key_pattern, alphas, metric):
+    """
+    Performs cross-validated optimization over the shrinkage hyperparameters alpha, using the models in modeldf and
+    the block feature matrix blockdf.
+
+    Args:
+        blockdf : Spark DataFrame representing a once- or twice-reduced block matrix.
+        modeldf : Spark DataFrame produced by the LogisticRegression or RidgeRegression fit method, representing the
+        reducer models fit using the shrinkage parameters alpha.
+        score_udf : Pandas UDF used to apply the scoring function to blockdf and modeldf
+        score_key_pattern : Pattern of column names used in the groupBy clause before applying score_udf
+        alphas : dict of alpha_name : alpha_value
+        metric : string specifying either the r2 or the log_loss metric for model scoring
+
+    Returns:
+        Spark DataFrame  containing the results of the cross validation procedure.
+    """
     alpha_df = blockdf.sql_ctx \
         .createDataFrame([Row(alpha=k, alpha_value=float(v)) for k, v in alphas.items()])
     if metric == 'r2':
