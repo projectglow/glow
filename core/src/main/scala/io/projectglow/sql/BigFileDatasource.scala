@@ -87,7 +87,7 @@ case class SingleFileRelation(sqlContext: SQLContext, schema: StructType) extend
 
 trait BigFileUploader {
   def canUpload(path: String, conf: Configuration): Boolean
-  def upload(bytes: RDD[Array[Byte]], path: String): Unit
+  def upload(bytes: RDD[Array[Byte]], path: String, conf: Configuration): Unit
 }
 
 object SingleFileWriter extends GlowLogging {
@@ -112,7 +112,7 @@ object SingleFileWriter extends GlowLogging {
       case Some(uploader) => uploader.upload(rdd, path, hadoopConf)
       case None =>
         logger.info(s"Could not find a parallel uploader for $path, uploading from the driver")
-        writeFileFromDriver(new Path(uri), rdd)
+        writeFileFromDriver(new Path(uri), rdd, hadoopConf)
     }
   }
 
