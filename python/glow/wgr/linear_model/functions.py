@@ -18,8 +18,9 @@ from nptyping import Float, Int, NDArray
 import numpy as np
 import pandas as pd
 import sklearn.linear_model
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, Row
 import pyspark.sql.functions as f
+from pyspark.sql.window import Window
 import re
 from typeguard import typechecked
 from typing import Any, Dict, Iterable, List, Tuple
@@ -150,11 +151,11 @@ def get_irls_pieces(X: NDArray[Float], y: NDArray[Float], alpha: Float,
     needed to perform one step of the IRLS algorithm.
 
     Args:
-         X: Matrix of n samples m features.  Matrix X is expected to include a constant intercept = 1 term as the first
+         X : Matrix of n samples m features.  Matrix X is expected to include a constant intercept = 1 term as the first
           column.
          y : Binary response vector of  length n
-         alpha: Shrinkage parameter to be used in the fit
-         p0: observed population prevalence of label y.
+         alpha : Shrinkage parameter to be used in the fit
+         p0 : observed population prevalence of label y.
 
     Returns:
         beta : m length array representing coefficients found from the fit, including the intercept term as the first
@@ -163,6 +164,8 @@ def get_irls_pieces(X: NDArray[Float], y: NDArray[Float], alpha: Float,
         XtY : m length array representing transpose(X)*(y - p)
 
     """
+    #If we have no observations in this block (i.e, y.sum() == 0), then we should not try to fit a model and instead
+    #just return a parameterless model based on the population frequency of observations p0
     if y.sum() > 0:
         clf = sklearn.linear_model.LogisticRegression(C=1 / alpha,
                                                       solver='lbfgs',
@@ -172,7 +175,7 @@ def get_irls_pieces(X: NDArray[Float], y: NDArray[Float], alpha: Float,
         p = clf.predict_proba(X[:, 1:])[:, 1]
         beta = np.insert(clf.coef_.squeeze(), 0, clf.intercept_)
     else:
-        p = np.ones(y.size) * p0
+        p = np.full(y.size, p0)
         beta = np.zeros(X.shape[1])
         beta[0] = np.log(p0 / (1 - p0))
 
@@ -224,36 +227,26 @@ def evaluate_coefficients(pdf: pd.DataFrame, alpha_values: Iterable[Float],
 
 
 @typechecked
-def irls_one_step(pdf: pd.DataFrame, alpha_values: Iterable[Float],
-                  rows_per_alpha) -> NDArray[Float]:
+def irls_one_step(pdf: pd.DataFrame, alpha_value: Float) -> NDArray[Float]:
     """
-    Performs one step of the IRLS algorithm using the components found in pdf and a list of shrinkage parameters.
-    Returns the resulting coefficient values for each shrinkage value alpha.
+    Performs one step of the IRLS algorithm using the components found in pdf and a value of alpha.
+    Returns the resulting coefficient values.
 
     Args:
-         pdf : Pandas DataFrame for the group.  Contains one set of IRLS equation components (beta, xtgx, xty) for each value of
-             alpha
-         alpha_values : Array of alpha values (regularization strengths)
-         rows_per_alpha : number of rows from pdf corresponding to each value of alpha.
+         pdf : Pandas DataFrame for the group.  Contains one set of IRLS equation components (beta, xtgx, xty)
+         corresponding to the value of alpha provided
+         alpha_value : regularization parameter alpha
 
     Returns:
-        Matrix of coefficients of size [number of columns in X] x [number of labels * number of alpha values]
+        vector of coefficients of size [number of columns in X]
 
     """
-    xtgx_stack = np.stack(pdf['xtgx'])
-    diags = [np.insert(np.ones(rows_per_alpha - 1), 0, 0) * a for a in alpha_values]
-    xtgxs = [
-        xtgx_stack[i * rows_per_alpha:(i + 1) * rows_per_alpha, :] for i in range(len(alpha_values))
-    ]
-    xtys = [
-        pdf['xty'][i * rows_per_alpha:(i + 1) * rows_per_alpha] for i in range(len(alpha_values))
-    ]
-    dbeta_stack = np.column_stack(
-        [np.linalg.inv(xtgx + np.diag(diag)) @ xty for xtgx, diag, xty in zip(xtgxs, diags, xtys)])
-    beta0_stack = np.column_stack([
-        pdf['beta'][i * rows_per_alpha:(i + 1) * rows_per_alpha] for i in range(len(alpha_values))
-    ])
-    return beta0_stack - dbeta_stack
+    xtgx = np.stack(pdf['xtgx'])
+    xty = pdf['xty'].to_numpy()
+    beta0 = pdf['beta'].to_numpy()
+    diag = np.insert(np.ones(xtgx.shape[0] - 1), 0, 0) * alpha_value
+    dbeta = np.linalg.inv(xtgx + np.diag(diag)) @ xty
+    return beta0 - dbeta
 
 
 @typechecked
@@ -440,7 +433,7 @@ def __check_standardized(df: pd.DataFrame, name: str) -> None:
 
 
 @typechecked
-def validate_inputs(labeldf: pd.DataFrame, covdf: pd.DataFrame) -> None:
+def validate_inputs(labeldf: pd.DataFrame, covdf: pd.DataFrame, label_type='continuous') -> None:
     """
     Performs basic input validation on the label and covariates pandas DataFrames. The label DataFrame cannot have
     missing values, and should be standardized to zero mean and unit standard deviation. The covariates DataFrame
@@ -452,8 +445,19 @@ def validate_inputs(labeldf: pd.DataFrame, covdf: pd.DataFrame) -> None:
     """
     __assert_all_present(labeldf, 'label')
     __assert_all_present(covdf, 'covariate')
-    __check_standardized(labeldf, 'label')
-    __check_standardized(covdf, 'covariate')
+    if label_type == 'continuous':
+        __check_standardized(labeldf, 'label')
+        __check_standardized(covdf, 'covariate')
+    elif label_type == 'binary':
+        check_for_intercept = (covdf.columns[0] == 'intercept' and
+                               covdf.to_numpy()[:, 0].std() == 0 and
+                               covdf.to_numpy()[:, 0].mean() == 1)
+        if not check_for_intercept:
+            warnings.warn(
+                f"First column of covariate DataFrame should be a constant column = 1 called 'intercept'",
+                UserWarning)
+    else:
+        raise ValueError(f'label_type should be either "continuous" or "binary", found {label_type}')
 
 
 @typechecked
@@ -509,3 +513,26 @@ def infer_chromosomes(blockdf: DataFrame) -> List[str]:
     ]
     print(f'Inferred chromosomes: {chromosomes}')
     return chromosomes
+
+
+def cross_validation(blockdf, modeldf, score_udf, score_key_pattern, alphas, metric):
+    alpha_df = blockdf.sql_ctx \
+        .createDataFrame([Row(alpha=k, alpha_value=float(v)) for k, v in alphas.items()])
+    if metric == 'r2':
+        window_spec = Window.partitionBy('label').orderBy(f.desc('r2_mean'), f.desc('alpha_value'))
+    elif metric == 'log_loss':
+        window_spec = Window.partitionBy('label').orderBy('log_loss_mean', f.desc('alpha_value'))
+    else:
+        raise ValueError(f'Metric should be either "r2" or "log_loss", found {metric}')
+
+
+    return blockdf.drop('header_block', 'sort_key') \
+        .join(modeldf, ['header', 'sample_block'], 'right') \
+        .withColumn('label', f.coalesce(f.col('label'), f.col('labels').getItem(0))) \
+        .groupBy(score_key_pattern) \
+        .apply(score_udf) \
+        .join(alpha_df, ['alpha']) \
+        .groupBy('label', 'alpha', 'alpha_value').agg(f.mean('score').alias(f'{metric}_mean')) \
+        .withColumn('modelRank', f.row_number().over(window_spec)) \
+        .filter('modelRank = 1') \
+        .drop('modelRank')

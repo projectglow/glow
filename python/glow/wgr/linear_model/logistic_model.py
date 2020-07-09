@@ -15,10 +15,8 @@
 from .logistic_udfs import *
 from nptyping import Float, NDArray
 import pandas as pd
-from pyspark.sql import DataFrame, Row
 from pyspark.sql.functions import pandas_udf, PandasUDFType
 import pyspark.sql.functions as f
-from pyspark.sql.window import Window
 from typeguard import typechecked
 from typing import Any, Dict, List
 from glow.logging import record_hls_event
@@ -60,10 +58,13 @@ class LogisticRegression:
             Two Spark DataFrames, one containing the model resulting from the fitting routine and one containing the
             results of the cross validation procedure.
         """
+        validate_inputs(labeldf, covdf, 'binary')
         map_key_pattern = ['sample_block', 'label', 'alpha_name']
         reduce_key_pattern = ['header_block', 'header', 'label', 'alpha_name']
-        model_key_pattern = ['sample_block', 'label']
+        model_key_pattern = ['sample_block', 'label', 'alpha_name']
+        score_key_pattern = ['sample_block', 'label']
         p0_dict = {k: v for k, v in zip(labeldf.columns, labeldf.sum(axis=0) / labeldf.shape[0])}
+        metric = 'log_loss'
 
         if not self.alphas:
             self.alphas = generate_alphas(blockdf)
@@ -81,14 +82,9 @@ class LogisticRegression:
             model_struct, PandasUDFType.GROUPED_MAP)
 
         score_udf = pandas_udf(
-            lambda key, pdf: score_models(key,
-                                          model_key_pattern,
-                                          pdf,
-                                          labeldf,
-                                          sample_blocks,
-                                          self.alphas,
-                                          covdf,
-                                          metric='log_loss'), cv_struct, PandasUDFType.GROUPED_MAP)
+            lambda key, pdf: score_models(key, score_key_pattern, pdf, labeldf, sample_blocks, self.
+                                          alphas, covdf, metric), cv_struct,
+            PandasUDFType.GROUPED_MAP)
 
         modeldf = blockdf.drop('alpha') \
             .withColumn('alpha_name', f.explode(f.array([f.lit(n) for n in self.alphas.keys()]))) \
@@ -97,23 +93,14 @@ class LogisticRegression:
             .groupBy(reduce_key_pattern) \
             .apply(reduce_udf) \
             .groupBy(model_key_pattern) \
-            .apply(model_udf)
+            .apply(model_udf) \
+            .withColumn('alpha_label_coef', f.expr('struct(alphas[0] AS alpha, labels[0] AS label, coefficients[0] AS coefficient)')) \
+            .groupBy('header_block', 'sample_block', 'header', 'sort_key', f.col('alpha_label_coef.label')) \
+            .agg(f.sort_array(f.collect_list('alpha_label_coef')).alias('alphas_labels_coefs')) \
+            .selectExpr('*', 'alphas_labels_coefs.alpha AS alphas', 'alphas_labels_coefs.label AS labels', 'alphas_labels_coefs.coefficient AS coefficients') \
+            .drop('alphas_labels_coefs', 'label')
 
-        alpha_df = blockdf.sql_ctx \
-            .createDataFrame([Row(alpha=k, alpha_value=float(v)) for k, v in self.alphas.items()])
-
-        window_spec = Window.partitionBy('label').orderBy('log_loss_mean', f.desc('alpha_value'))
-
-        cvdf = blockdf.drop('header_block', 'sort_key') \
-            .join(modeldf, ['header', 'sample_block'], 'right') \
-            .withColumn('label', f.coalesce(f.col('label'), f.col('labels').getItem(0))) \
-            .groupBy(model_key_pattern) \
-            .apply(score_udf) \
-            .join(alpha_df, ['alpha']) \
-            .groupBy('label', 'alpha', 'alpha_value').agg(f.mean('score').alias('log_loss_mean')) \
-            .withColumn('modelRank', f.row_number().over(window_spec)) \
-            .filter('modelRank = 1') \
-            .drop('modelRank')
+        cvdf = cross_validation(blockdf, modeldf, score_udf, score_key_pattern, self.alphas, metric)
 
         return modeldf, cvdf
 
@@ -155,7 +142,7 @@ class LogisticRegression:
                 logistic_reduced_matrix_struct, PandasUDFType.GROUPED_MAP)
             join_type = 'right'
         else:
-            raise Exception(f'response must be either "linear" or "sigmoid", received "{response}"')
+            raise ValueError(f'response must be either "linear" or "sigmoid", received "{response}"')
 
         return blockdf.drop('header_block', 'sort_key') \
             .join(modeldf.drop('header_block'), ['sample_block', 'header'], join_type) \
@@ -183,7 +170,6 @@ class LogisticRegression:
             Pandas DataFrame containing  covariate values. The shape and order match labeldf such that the
             rows are indexed by sample ID and the columns by label. The column types are float64.
         """
-
         block_prediction_df = self.reduce_block_matrix(blockdf,
                                                        labeldf,
                                                        sample_blocks,
@@ -214,6 +200,7 @@ class LogisticRegression:
             Pandas DataFrame containing  covariate values. The shape and order match labeldf such that the
             rows are indexed by sample ID and the columns by label. The column types are float64.
         """
+        validate_inputs(labeldf, covdf, 'binary')
         block_prediction_df = self.reduce_block_matrix(blockdf,
                                                        labeldf,
                                                        sample_blocks,

@@ -115,7 +115,7 @@ def test_solve_irls_eqn(spark):
 
     map_key_pattern = ['sample_block', 'label', 'alpha_name']
     reduce_key_pattern = ['header_block', 'header', 'label', 'alpha_name']
-    model_key_pattern = ['sample_block', 'label']
+    model_key_pattern = ['sample_block', 'label', 'alpha_name']
     p0_dict = {k: v for k, v in zip(labeldf.columns, labeldf.sum(axis=0) / labeldf.shape[0])}
 
     map_udf = pandas_udf(
@@ -136,7 +136,12 @@ def test_solve_irls_eqn(spark):
         .groupBy(reduce_key_pattern) \
         .apply(reduce_udf) \
         .groupBy(model_key_pattern) \
-        .apply(model_udf)
+        .apply(model_udf) \
+        .withColumn('alpha_label_coef', f.expr('struct(alphas[0] AS alpha, labels[0] AS label, coefficients[0] AS coefficient)')) \
+        .groupBy('header_block', 'sample_block', 'header', 'sort_key', f.col('alpha_label_coef.label')) \
+        .agg(f.sort_array(f.collect_list('alpha_label_coef')).alias('alphas_labels_coefs')) \
+        .selectExpr('*', 'alphas_labels_coefs.alpha AS alphas', 'alphas_labels_coefs.label AS labels', 'alphas_labels_coefs.coefficient AS coefficients') \
+        .drop('alphas_labels_coefs', 'label')
 
     outdf = modeldf.filter(f'sample_block = "{test_sample_block}"') \
         .filter(f.col('labels').getItem(0) == test_label) \
@@ -159,7 +164,8 @@ def test_score_logistic_model(spark):
 
     map_key_pattern = ['sample_block', 'label', 'alpha_name']
     reduce_key_pattern = ['header_block', 'header', 'label', 'alpha_name']
-    model_key_pattern = ['sample_block', 'label']
+    model_key_pattern = ['sample_block', 'label', 'alpha_name']
+    score_key_pattern = ['sample_block', 'label']
     p0_dict = {k: v for k, v in zip(labeldf.columns, labeldf.sum(axis=0) / labeldf.shape[0])}
 
     map_udf = pandas_udf(
@@ -175,7 +181,7 @@ def test_score_logistic_model(spark):
 
     score_udf = pandas_udf(
         lambda key, pdf: score_models(
-            key, model_key_pattern, pdf, labeldf, sample_blocks, alphas, covdf, metric='log_loss'),
+            key, score_key_pattern, pdf, labeldf, sample_blocks, alphas, covdf, metric='log_loss'),
         cv_struct, PandasUDFType.GROUPED_MAP)
 
     modeldf = lvl1df \
@@ -185,12 +191,17 @@ def test_score_logistic_model(spark):
         .groupBy(reduce_key_pattern) \
         .apply(reduce_udf) \
         .groupBy(model_key_pattern) \
-        .apply(model_udf)
+        .apply(model_udf) \
+        .withColumn('alpha_label_coef', f.expr('struct(alphas[0] AS alpha, labels[0] AS label, coefficients[0] AS coefficient)')) \
+        .groupBy('header_block', 'sample_block', 'header', 'sort_key', f.col('alpha_label_coef.label')) \
+        .agg(f.sort_array(f.collect_list('alpha_label_coef')).alias('alphas_labels_coefs')) \
+        .selectExpr('*', 'alphas_labels_coefs.alpha AS alphas', 'alphas_labels_coefs.label AS labels', 'alphas_labels_coefs.coefficient AS coefficients') \
+        .drop('alphas_labels_coefs', 'label')
 
     cvdf = lvl1df.drop('header_block', 'sort_key') \
         .join(modeldf, ['header', 'sample_block'], 'right') \
         .withColumn('label', f.coalesce(f.col('label'), f.col('labels').getItem(0))) \
-        .groupBy(model_key_pattern) \
+        .groupBy(score_key_pattern) \
         .apply(score_udf)
 
     outdf = cvdf.filter(

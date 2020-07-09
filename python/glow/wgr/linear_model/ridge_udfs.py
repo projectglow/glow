@@ -422,6 +422,8 @@ def score_models(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf:
     elif metric == 'log_loss':
         Z = sigmoid(XB)
         scores = log_loss(Z, Y)
+    else:
+        raise ValueError(f'Metric should be either "r2" or "log_loss", found {metric}')
     alpha_names = sorted(alphas.keys())
 
     data = {'sample_block': sample_block, 'label': label, 'alpha': alpha_names, 'score': scores}

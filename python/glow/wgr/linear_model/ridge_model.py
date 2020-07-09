@@ -18,7 +18,6 @@ import pandas as pd
 from pyspark.sql import DataFrame, Row
 from pyspark.sql.functions import pandas_udf, PandasUDFType
 import pyspark.sql.functions as f
-from pyspark.sql.window import Window
 from typeguard import typechecked
 from typing import Any, Dict, List
 from glow.logging import record_hls_event
@@ -210,6 +209,7 @@ class RidgeRegression:
         validate_inputs(labeldf, covdf)
         map_key_pattern = ['sample_block', 'label']
         reduce_key_pattern = ['header_block', 'header', 'label']
+        metric = 'r2'
 
         if not self.alphas:
             self.alphas = generate_alphas(blockdf)
@@ -224,7 +224,7 @@ class RidgeRegression:
                                               ), model_struct, PandasUDFType.GROUPED_MAP)
         score_udf = pandas_udf(
             lambda key, pdf: score_models(key, map_key_pattern, pdf, labeldf, sample_blocks, self.
-                                          alphas, covdf, 'r2'), cv_struct,
+                                          alphas, covdf, metric), cv_struct,
             PandasUDFType.GROUPED_MAP)
 
         modeldf = blockdf \
@@ -235,21 +235,7 @@ class RidgeRegression:
             .groupBy(map_key_pattern) \
             .apply(model_udf)
 
-        # Break ties in favor of the larger alpha
-        alpha_df = blockdf.sql_ctx \
-            .createDataFrame([Row(alpha=k, alpha_value=float(v)) for k, v in self.alphas.items()])
-        window_spec = Window.partitionBy('label').orderBy(f.desc('r2_mean'), f.desc('alpha_value'))
-
-        cvdf = blockdf.drop('header_block', 'sort_key') \
-            .join(modeldf, ['header', 'sample_block'], 'right') \
-            .withColumn('label', f.coalesce(f.col('label'), f.col('labels').getItem(0))) \
-            .groupBy(map_key_pattern) \
-            .apply(score_udf) \
-            .join(alpha_df, ['alpha']) \
-            .groupBy('label', 'alpha', 'alpha_value').agg(f.mean('score').alias('r2_mean')) \
-            .withColumn('modelRank', f.row_number().over(window_spec)) \
-            .filter('modelRank = 1') \
-            .drop('modelRank')
+        cvdf = cross_validation(blockdf, modeldf, score_udf, map_key_pattern, self.alphas, metric)
 
         record_hls_event('wgrRidgeRegressionFit')
 

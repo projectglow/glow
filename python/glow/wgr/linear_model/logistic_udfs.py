@@ -186,10 +186,10 @@ def reduce_irls_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame) -> pd
 def solve_irls_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf: pd.DataFrame,
                    alphas: Dict[str, Float]) -> pd.DataFrame:
     """
-    This function assembles the matrices XtGX, XtY and initial parmaeter guess B0 for a particular sample_block
+    This function assembles the matrices XtGX, XtY and initial parameter guess B0 for a particular sample_block
     (where the contribution of that sample_block has been omitted) and solves the equation
-    B = B0 - [(XtGX + I*alpha)]-1 * XtY for a list of alpha values, and returns the coefficient matrix B, where B has 1
-    row per header in the block X and 1 column per combination of alpha value.
+    B = B0 - [(XtGX + I*alpha)]-1 * XtY for a single alpha value, and returns the coefficient vector B, where B has 1
+    element per header in the block X.
 
     Args:
         key : unique key identifying the group of rows emitted by a groupBy statement
@@ -210,7 +210,6 @@ def solve_irls_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeld
              |    |-- element: double
         labeldf : Pandas DataFrame containing label values (i. e., the Y in the normal equation above).
         alphas : dict of {alphaName : alphaValue} for the alpha values to be used
-        covdf: Pandas DataFrame containing covariates that should be included with every block X above (can be empty).
 
     Returns:
         transformed Pandas DataFrame containing the coefficient matrix B
@@ -226,21 +225,22 @@ def solve_irls_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeld
                  |-- coefficients: array
                  |    |-- element: double
     """
-    header_block, sample_block, label = parse_header_block_sample_block_label(key, key_pattern)
-    sort_in_place(pdf, ['alpha_name', 'sort_key', 'header'])
-    alpha_names, alpha_values = zip(*sorted(alphas.items()))
-    rows_per_alpha = int(len(pdf) / len(alpha_values))
-    beta_stack = irls_one_step(pdf, alpha_values, rows_per_alpha)
-    row_indexer = cross_alphas_and_labels(alpha_names, labeldf, label)
+    header_block, sample_block, label, alpha_name = parse_header_block_sample_block_label_alpha_name(
+        key, key_pattern)
+    sort_in_place(pdf, ['sort_key', 'header'])
+    alpha_value = alphas[alpha_name]
+    beta = irls_one_step(pdf, alpha_value)
+    row_indexer = cross_alphas_and_labels([alpha_name], labeldf, label)
     alpha_row, label_row = zip(*row_indexer)
+    output_length = len(pdf)
     data = {
         'header_block': header_block,
         'sample_block': sample_block,
-        'header': pdf['header'][:rows_per_alpha],
-        'sort_key': pdf['sort_key'][:rows_per_alpha],
-        'alphas': [list(alpha_row)] * rows_per_alpha,
-        'labels': [list(label_row)] * rows_per_alpha,
-        'coefficients': list(beta_stack)
+        'header': pdf['header'],
+        'sort_key': pdf['sort_key'],
+        'alphas': [list(alpha_row)] * output_length,
+        'labels': [list(label_row)] * output_length,
+        'coefficients': list(beta.reshape(-1, 1))
     }
     return pd.DataFrame(data)
 
