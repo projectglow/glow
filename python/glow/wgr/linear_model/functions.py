@@ -44,15 +44,14 @@ def sort_in_place(pdf: pd.DataFrame, columns: List[str]) -> None:
 
 
 @typechecked
-def parse_key(key: Tuple, key_pattern: List[str]):
+def parse_header_block_sample_block_label(key: Tuple,
+                                          key_pattern: List[str]) -> Tuple[str, str, str]:
     """
-    Interprets the key corresponding to a group from a groupBy clause.  The key may be of the form:
+    Extracts header_block, sample_block, and label from the key corresponding to a group from the groupBy(key_pattern)
+    clause.  Key pattern can be one of:
         (header_block, sample_block),
         (header_block, sample_block, label),
-        (header_block, header),
-        (header_block, header, label),
         (sample_block, label)
-        (sample_block, label, alpha_name)
     depending on the context.  In each case, a tuple with 3 members is returned, with the missing member filled in by
     'all' where necessary
 
@@ -61,21 +60,47 @@ def parse_key(key: Tuple, key_pattern: List[str]):
         key_pattern : one of the aforementioned key patterns
 
     Returns:
-        tuple of (header_block, sample_block, label) or (header_block, header, label), where header_block or label may be filled with 'all'
+        tuple of (header_block, sample_block, label), where header_block or label may be filled with 'all'
         depending on context.
     """
-    if key_pattern == ['header_block', 'sample_block']:
-        return key[0], key[1], 'all'
-    elif key_pattern == ['header_block', 'header']:
-        return key[0], key[1], 'all'
-    elif key_pattern == ['sample_block', 'label']:
-        return 'all', key[0], key[1]
-    elif key_pattern == ['sample_block', 'label', 'alpha_name']:
-        return 'all', key[0], key[1], key[2]
-    elif len(key) != 3:
-        raise ValueError(f'Key must have 3 values, pattern is {key_pattern}')
+    if 'label' in key_pattern:
+        label = key[-1]
     else:
+        label = 'all'
+    if 'header_block' in key_pattern:
+        header_block = key[0]
+        sample_block = key[1]
+    else:
+        header_block = 'all'
+        sample_block = key[0]
+
+    return header_block, sample_block, label
+
+
+@typechecked
+def parse_header_block_sample_block_label_alpha_name(
+        key: Tuple, key_pattern: List[str]) -> Tuple[str, str, str, str]:
+    """
+    Extracts header_block, sample_block, label, and alpha_name from the key corresponding to a group from the
+    groupBy(key_pattern) clause.  Key pattern can be one of:
+        (header_block, sample_block, label, alpha_name),
+        (sample_block, label, alpha_name)
+    depending on the context.  In each case, a tuple with 4 members is returned, with header_block filled with 'all' if
+    it is absent from they key
+
+    Args:
+        key : key for the group
+        key_pattern : one of the aforementioned key patterns
+
+    Returns:
+        tuple of (header_block, sample_block, label, alpha_name), where header_block or label may be filled with 'all'
+        depending on context.
+    """
+    if 'header_block' in key_pattern:
         return key
+    else:
+        header_block = 'all'
+        return header_block, key[0], key[1], key[2]
 
 
 @typechecked
@@ -461,7 +486,6 @@ def flatten_prediction_df(blockdf: DataFrame, sample_blocks: Dict[str, Iterable[
         .reindex(index=labeldf.index, columns=labeldf.columns)
 
     return pivoted_df
-
 
 
 @typechecked

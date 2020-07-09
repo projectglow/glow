@@ -111,7 +111,7 @@ def map_normal_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeld
              |-- xty: array
              |    |-- element: double
     """
-    header_block, sample_block, label = parse_key(key, key_pattern)
+    header_block, sample_block, label = parse_header_block_sample_block_label(key, key_pattern)
     sort_in_place(pdf, ['sort_key', 'header'])
     n_rows = pdf['size'][0]
     n_cols = len(pdf)
@@ -239,7 +239,7 @@ def solve_normal_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labe
                  |    |-- element: double
     """
 
-    header_block, sample_block, label = parse_key(key, key_pattern)
+    header_block, sample_block, label = parse_header_block_sample_block_label(key, key_pattern)
     sort_in_place(pdf, ['sort_key', 'header'])
     alpha_names, alpha_values = zip(*sorted(alphas.items()))
     if covdf.empty:
@@ -314,7 +314,7 @@ def apply_model(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf: 
                  |-- label: string
     """
 
-    header_block, sample_block, label = parse_key(key, key_pattern)
+    header_block, sample_block, label = parse_header_block_sample_block_label(key, key_pattern)
     sort_in_place(pdf, ['sort_key'])
 
     if covdf.empty:
@@ -397,7 +397,7 @@ def score_models(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf:
                  |-- alpha: string
                  |-- score: double
     """
-    header_block, sample_block, label = parse_key(key, key_pattern)
+    header_block, sample_block, label = parse_header_block_sample_block_label(key, key_pattern)
     sort_in_place(pdf, ['sort_key'])
     sample_list = sample_index[sample_block]
 
