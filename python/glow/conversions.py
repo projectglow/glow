@@ -35,10 +35,10 @@ def _convert_numpy_to_java_array(np_arr: np.ndarray) -> JavaArray:
     assert np_arr.dtype.type == np.double
 
     sc = SparkContext._active_spark_context
-    java_arr = sc._gateway.new_array(sc._jvm.double, np_arr.shape[0])
-    for idx, ele in enumerate(np_arr):
-        java_arr[idx] = ele.item()
-
+    size = np_arr.shape[0]
+    # Convert to big endian and serialize
+    byte_arr = np.ascontiguousarray(np_arr, '>d').tobytes()
+    java_arr = sc._jvm.io.projectglow.common.PythonUtils.doubleArrayFromBytes(size, byte_arr)
     assert check_return_type(java_arr)
     return java_arr
 
