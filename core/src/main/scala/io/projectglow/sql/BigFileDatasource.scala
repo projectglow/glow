@@ -50,7 +50,8 @@ abstract class BigFileDatasource extends CreatableRelationProvider {
 
     val path = BigFileDatasource.checkPath(options)
     val filesystemPath = new Path(path)
-    val fs = filesystemPath.getFileSystem(sqlContext.sparkContext.hadoopConfiguration)
+    val hadoopConf = sqlContext.sparkSession.sessionState.newHadoopConfWithOptions(options)
+    val fs = filesystemPath.getFileSystem(hadoopConf)
     val doSave = if (fs.exists(filesystemPath)) {
       mode match {
         case SaveMode.Append =>
@@ -69,7 +70,7 @@ abstract class BigFileDatasource extends CreatableRelationProvider {
     if (doSave) {
       WithUtils.withCachedDataset(data) { cachedDs =>
         val byteRdd = serializeDataFrame(options, cachedDs)
-        SingleFileWriter.write(byteRdd, path)
+        SingleFileWriter.write(byteRdd, path, hadoopConf)
       }
     }
     SingleFileRelation(sqlContext, data.schema)
@@ -105,19 +106,19 @@ object SingleFileWriter extends GlowLogging {
    * @param rdd The RDD to write.
    * @param path The path to write the RDD to.
    */
-  def write(rdd: RDD[Array[Byte]], path: String) {
+  def write(rdd: RDD[Array[Byte]], path: String, hadoopConf: Configuration) {
     val uri = new URI(path)
-    uploaders.find(_.canUpload(rdd.sparkContext.hadoopConfiguration, path)) match {
-      case Some(uploader) => uploader.upload(rdd, path)
+    uploaders.find(_.canUpload(path, hadoopConf)) match {
+      case Some(uploader) => uploader.upload(rdd, path, hadoopConf)
       case None =>
         logger.info(s"Could not find a parallel uploader for $path, uploading from the driver")
         writeFileFromDriver(new Path(uri), rdd)
     }
   }
 
-  private def writeFileFromDriver(path: Path, byteRdd: RDD[Array[Byte]]): Unit = {
+  private def writeFileFromDriver(path: Path, byteRdd: RDD[Array[Byte]], hadoopConf: Configuration): Unit = {
     val sc = byteRdd.sparkContext
-    val fs = path.getFileSystem(sc.hadoopConfiguration)
+    val fs = path.getFileSystem(hadoopConf)
     WithUtils.withCloseable(fs.create(path)) { stream =>
       WithUtils.withCachedRDD(byteRdd) { cachedRdd =>
         cachedRdd.count()
