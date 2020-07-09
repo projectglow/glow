@@ -86,7 +86,7 @@ object BigFileDatasource {
 case class SingleFileRelation(sqlContext: SQLContext, schema: StructType) extends BaseRelation
 
 trait BigFileUploader {
-  def canUpload(conf: Configuration, path: String): Boolean
+  def canUpload(path: String, conf: Configuration): Boolean
   def upload(bytes: RDD[Array[Byte]], path: String): Unit
 }
 
