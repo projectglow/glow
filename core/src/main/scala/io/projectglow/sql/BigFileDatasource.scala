@@ -43,10 +43,10 @@ abstract class BigFileDatasource extends CreatableRelationProvider {
   protected def serializeDataFrame(options: Map[String, String], df: DataFrame): RDD[Array[Byte]]
 
   override def createRelation(
-                               sqlContext: SQLContext,
-                               mode: SaveMode,
-                               options: Map[String, String],
-                               data: DataFrame): BaseRelation = {
+    sqlContext: SQLContext,
+    mode: SaveMode,
+    options: Map[String, String],
+    data: DataFrame): BaseRelation = {
 
     val path = BigFileDatasource.checkPath(options)
     val filesystemPath = new Path(path)
@@ -87,7 +87,6 @@ case class SingleFileRelation(sqlContext: SQLContext, schema: StructType) extend
 
 trait BigFileUploader {
   def canUpload(path: String, conf: Configuration): Boolean
-
   def upload(bytes: RDD[Array[Byte]], path: String, conf: Configuration): Unit
 }
 
@@ -118,7 +117,6 @@ object SingleFileWriter extends GlowLogging {
   }
 
   private def writeFileFromDriver(path: Path, byteRdd: RDD[Array[Byte]], hadoopConf: Configuration): Unit = {
-    val sc = byteRdd.sparkContext
     val fs = path.getFileSystem(hadoopConf)
     WithUtils.withCloseable(fs.create(path)) { stream =>
       WithUtils.withCachedRDD(byteRdd) { cachedRdd =>
