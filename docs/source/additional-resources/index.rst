@@ -3,13 +3,11 @@ Additional Resources
 
 .. _dbnotebooks:
 
-Running Databricks notebooks
-----------------------------
+Most of the code in the Databricks notebooks can be run on Spark and Glow alone, but some functions are only available on Databricks.
 
-Most of the code in the Databricks notebooks can be run on Spark and Glow alone, but some functions are only available
-on Databricks. `Try Databricks for free <https://databricks.com/try-databricks>`_ and import the Databricks notebooks
-following the
-`Databricks documentation <https://docs.databricks.com/notebooks/notebooks-manage.html#import-a-notebook>`_.
+.. note::
+
+    Try Glow on Databricks for free with :ref:`Community Edition <community-edition>`.
 
 External blog posts
 -------------------
