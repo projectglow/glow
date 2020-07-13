@@ -32,11 +32,12 @@ Example
 
 .. code-block:: python
 
+  from glow.wgr.functions import reshape_for_gwas
+  import numpy as np
   import pandas as pd
   from pyspark.ml.linalg import DenseMatrix
   from pyspark.sql import Row
   from pyspark.sql.functions import col, lit
-  import numpy as np
 
   # Read in VCF file
   variants = spark.read.format('vcf').load(genotypes_vcf)
@@ -52,20 +53,18 @@ Example
   covariates['intercept'] = 1.
 
   # Read phenotypes from a CSV file
-  pd_phenotypes = pd.read_csv(continuous_phenotypes_csv, index_col=0).T
-  pd_phenotypes['pt'] = pd_phenotypes.values.tolist()
-  pd_phenotypes['trait'] = pd_phenotypes.index
-  phenotypes = spark.createDataFrame(pd_phenotypes[['trait', 'pt']])
+  pd_phenotypes = pd.read_csv(continuous_phenotypes_csv, index_col=0)
+  phenotypes = reshape_for_gwas(spark, pd_phenotypes)
 
   # Run linear regression test
   lin_reg_df = genotypes.crossJoin(phenotypes).select(
     'contigName',
     'start',
     'names',
-    'trait',
+    'label',
     glow.expand_struct(glow.linear_regression_gwas(
       col('gt'),
-      col('pt'),
+      phenotypes.values,
       lit(covariates.to_numpy())
     ))
   )
@@ -76,7 +75,7 @@ Example
      contigName='22',
      start=16050114,
      names=['rs587755077'],
-     trait='Continuous_Trait_1',
+     label='Continuous_Trait_1',
      beta=0.13672636157787335,
      standardError=0.1783963733160434,
      pValue=0.44349953631952943
