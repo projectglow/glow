@@ -3,6 +3,9 @@ Additional Resources
 
 .. _dbnotebooks:
 
+Databricks notebooks
+--------------------
+
 Most of the code in the Databricks notebooks can be run on Spark and Glow alone, but some functions are only available on Databricks.
 
 .. note::
