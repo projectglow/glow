@@ -6,11 +6,15 @@ Additional Resources
 Databricks notebooks
 --------------------
 
-Most of the code in the Databricks notebooks can be run on Spark and Glow alone, but some functions are only available on Databricks.
+Most of the code in the Databricks notebooks can be run on Spark and Glow alone, but some functions are only available
+on Databricks.
 
-.. note::
+New to Databricks? Try Glow on Databricks for Free!
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    Try Glow on Databricks for free with :ref:`Community Edition <community-edition>`.
+The `Databricks Community Edition <https://databricks.com/product/faq/community-edition>`_ is free of charge. Follow
+:ref:`our instructions <community-edition>` to set up a Databricks Community Edition workspace and try the Glow
+documentation notebooks.
 
 External blog posts
 -------------------
