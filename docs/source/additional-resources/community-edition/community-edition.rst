@@ -86,7 +86,7 @@ Step 5: Attach cluster-scoped libraries
 `Install <https://docs.databricks.com/libraries.html#cluster>`_ libraries to a cluster in order to run third-party code.
 
 .. image:: attach-mlflow.gif
-   :alt: Attach MLFlow to the cluster
+   :alt: Attach MLflow to the cluster
    :align: right
    :scale: 45 %
 
