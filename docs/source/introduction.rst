@@ -15,6 +15,7 @@ with genomics file formats and bioinformatics tools developed in academia, enabl
 with collaborators.
 
 Glow is used to:
+
 - Ingest public genotype data into a data lake that acts as a single source of truth.
 - Run quality control, statistical analysis, and  association studies on population-scale datasets.
 - Build reproducible, production-grade genomics data pipelines that will scale to petabytes and beyond.
