@@ -76,6 +76,7 @@ jobs:
       - save_cache:
           paths:
             - /home/circleci/conda
+          key: conda-deps-v1-{{ checksum "python/environment.yml" }}
       - *install_pyspark2
       - run:
           name: Run Scala tests
