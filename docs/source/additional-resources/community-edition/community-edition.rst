@@ -30,7 +30,7 @@ Genomics in your Databricks Community Edition workspace. The Databricks Runtime 
    :align: right
    :scale: 45 %
 
-1. Log into your `Databricks Community Edition workspace <https://community.cloud.databricks.com/>`_.
+1. Log into your `Databricks Community Edition workspace <https://community.cloud.databricks.com/login.html>`_.
 2. Click the `user account icon <https://docs.databricks.com/administration-guide/admin-console.html>`_ in the top
    right corner of your workspace.
 3. Select "Admin Console".
@@ -51,7 +51,7 @@ notebooks to your Databricks Community Edition workspace.
    :align: right
    :scale: 45 %
 
-1. Log into your `Databricks Community Edition workspace <https://community.cloud.databricks.com/>`_.
+1. Log into your `Databricks Community Edition workspace <https://community.cloud.databricks.com/login.html>`_.
 2. Download the :download:`DBC archive <./glow-demo.dbc>`.
 3. Click the `Workspace button <https://docs.databricks.com/workspace/workspace-objects.html#workspace-root-folder>`_
    in the left sidebar of your workspace.
@@ -71,7 +71,7 @@ cluster will be automatically terminated after an idle period of 2 hours.
    :align: right
    :scale: 45 %
 
-1. Log into your `Databricks Community Edition workspace <https://community.cloud.databricks.com/>`_.
+1. Log into your `Databricks Community Edition workspace <https://community.cloud.databricks.com/login.html>`_.
 2. Click the `Clusters button <https://docs.databricks.com/clusters/create.html>`_ in the left sidebar of your
    workspace.
 3. Set the "Cluster Name" as desired.
@@ -87,21 +87,22 @@ cluster will be automatically terminated after an idle period of 2 hours.
 Step 5: Attach cluster-scoped libraries
 ---------------------------------------
 
-`Install <https://docs.databricks.com/libraries.html#cluster>`_ libraries to a cluster in order to run third-party code.
+`Install <https://docs.databricks.com/libraries/cluster-lib.html>`_ libraries to a cluster in order to run third-party
+code.
 
 .. image:: attach-mlflow.gif
    :alt: Attach MLflow to the cluster
    :align: right
    :scale: 45 %
 
-1. Log into your `Databricks Community Edition workspace <https://community.cloud.databricks.com/>`_.
+1. Log into your `Databricks Community Edition workspace <https://community.cloud.databricks.com/login.html>`_.
 2. Click the `Clusters button <https://docs.databricks.com/clusters/create.html>`_ in the left sidebar of your
    workspace.
 3. Click an existing cluster.
 4. Select the "Libraries" tab.
 5. Click "Install New."
 6. Set the "Library Source" to "PyPi" and set the "Package" field to ``mlflow``. Click "Install".
-7. Repeat Steps 4-5 with the library ``bioinfokit``.
+7. Repeat the previous steps with the library ``bioinfokit``.
 
 |div-clear|
 
