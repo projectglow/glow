@@ -210,7 +210,7 @@ Runtime (`Azure`_ | `AWS`_), and you can `start a preview today`_.
 .. _single-node regenie tool: https://rgcgithub.github.io/regenie/
 .. _here: https://www.biorxiv.org/content/10.1101/2020.06.19.162354v1
 .. _genotype file formats that Glow understands, including VCF, Plink, and BGEN formats: https://glow.readthedocs.io/en/latest/etl/variant-data.html
-.. _Delta Lake: http://delta.io
+.. _Delta Lake: https://delta.io/
 .. _Apache Parquet: http://parquet.apache.org
 .. _Apache Spark: http://spark.apache.org
 .. _pandas: https://pandas.pydata.org/
