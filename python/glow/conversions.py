@@ -82,14 +82,14 @@ class TwoDimensionalDoubleNumpyArrayConverter(object):
         >>> df = spark.createDataFrame(str_list, StringType())
         >>> ndarray = np.array([[1.0, 2.1, 3.2], [4.3, 5.4, 6.5]])
         >>> df.withColumn("matrix", lit(ndarray)).collect()
-        [Row(value='a', matrix=DenseMatrix(2, 3, [1.0, 2.1, 3.2, 4.3, 5.4, 6.5], False)), Row(value='b', matrix=DenseMatrix(2, 3, [1.0, 2.1, 3.2, 4.3, 5.4, 6.5], False))]
+        [Row(value='a', matrix=DenseMatrix(2, 3, [1.0, 4.3, 2.1, 5.4, 3.2, 6.5], False)), Row(value='b', matrix=DenseMatrix(2, 3, [1.0, 4.3, 2.1, 5.4, 3.2, 6.5], False))]
     """
     def can_convert(self, object):
         return _is_numpy_double_array(object, dimensions=2)
 
     def convert(self, object, gateway_client):
         sc = SparkContext._active_spark_context
-        flat_arr = object.ravel()
+        flat_arr = object.ravel(order='F')
         java_arr = _convert_numpy_to_java_array(flat_arr)
         dense_matrix = sc._jvm.org.apache.spark.ml.linalg.DenseMatrix(object.shape[0],
                                                                       object.shape[1], java_arr)

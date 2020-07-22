@@ -27,7 +27,7 @@ def test_convert_matrix(spark):
     df = spark.createDataFrame(str_list, StringType())
     ndarray = np.array([[1.0, 2.1, 3.2], [4.3, 5.4, 6.5]])
     output_rows = df.withColumn("matrix", lit(ndarray)).collect()
-    expected_matrix = DenseMatrix(2, 3, [1.0, 2.1, 3.2, 4.3, 5.4, 6.5])
+    expected_matrix = DenseMatrix(2, 3, [1.0, 4.3, 2.1, 5.4, 3.2, 6.5])
     assert (output_rows[0].matrix == expected_matrix)
     assert (output_rows[1].matrix == expected_matrix)
 
