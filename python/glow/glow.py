@@ -21,7 +21,9 @@ from typing import Any, Dict
 from typeguard import check_argument_types, check_return_type
 
 
-def transform(operation: str, df: DataFrame, arg_map: Dict[str, Any] = None,
+def transform(operation: str,
+              df: DataFrame,
+              arg_map: Dict[str, Any] = None,
               **kwargs: Any) -> DataFrame:
     """
     Apply a named transformation to a DataFrame of genomic data. All parameters apart from the input

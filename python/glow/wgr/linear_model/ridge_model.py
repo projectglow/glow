@@ -48,11 +48,12 @@ class RidgeReducer:
             raise Exception('Alpha values must all be non-negative.')
         self.alphas = create_alpha_dict(alphas)
 
-    def fit(self,
-            blockdf: DataFrame,
-            labeldf: pd.DataFrame,
-            sample_blocks: Dict[str, List[str]],
-            covdf: pd.DataFrame = pd.DataFrame({})) -> DataFrame:
+    def fit(
+        self,
+        blockdf: DataFrame,
+        labeldf: pd.DataFrame,
+        sample_blocks: Dict[str, List[str]],
+        covdf: pd.DataFrame = pd.DataFrame({})) -> DataFrame:
         """
         Fits a ridge reducer model, represented by a Spark DataFrame containing coefficients for each of the ridge
         alpha parameters, for each block in the starting matrix, for each label in the target labels.
@@ -142,11 +143,12 @@ class RidgeReducer:
             .groupBy(transform_key_pattern) \
             .apply(transform_udf)
 
-    def fit_transform(self,
-                      blockdf: DataFrame,
-                      labeldf: pd.DataFrame,
-                      sample_blocks: Dict[str, List[str]],
-                      covdf: pd.DataFrame = pd.DataFrame({})) -> DataFrame:
+    def fit_transform(
+        self,
+        blockdf: DataFrame,
+        labeldf: pd.DataFrame,
+        sample_blocks: Dict[str, List[str]],
+        covdf: pd.DataFrame = pd.DataFrame({})) -> DataFrame:
         """
         Fits a ridge reducer model with a block matrix, then transforms the matrix using the model.
 
@@ -186,11 +188,13 @@ class RidgeRegression:
             raise Exception('Alpha values must all be non-negative.')
         self.alphas = create_alpha_dict(alphas)
 
-    def fit(self,
-            blockdf: DataFrame,
-            labeldf: pd.DataFrame,
-            sample_blocks: Dict[str, List[str]],
-            covdf: pd.DataFrame = pd.DataFrame({})) -> (DataFrame, DataFrame):
+    def fit(
+        self,
+        blockdf: DataFrame,
+        labeldf: pd.DataFrame,
+        sample_blocks: Dict[str, List[str]],
+        covdf: pd.DataFrame = pd.DataFrame({})
+    ) -> (DataFrame, DataFrame):
         """
         Fits a ridge regression model, represented by a Spark DataFrame containing coefficients for each of the ridge
         alpha parameters, for each block in the starting matrix, for each label in the target labels, as well as a
@@ -355,11 +359,12 @@ class RidgeRegression:
             all_y_hat_df = all_y_hat_df.append(loco_y_hat_df)
         return all_y_hat_df.set_index('contigName', append=True)
 
-    def fit_transform(self,
-                      blockdf: DataFrame,
-                      labeldf: pd.DataFrame,
-                      sample_blocks: Dict[str, List[str]],
-                      covdf: pd.DataFrame = pd.DataFrame({})) -> pd.DataFrame:
+    def fit_transform(
+        self,
+        blockdf: DataFrame,
+        labeldf: pd.DataFrame,
+        sample_blocks: Dict[str, List[str]],
+        covdf: pd.DataFrame = pd.DataFrame({})) -> pd.DataFrame:
         """
         Fits a ridge regression model with a block matrix, then transforms the matrix using the model.
 
