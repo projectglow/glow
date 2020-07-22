@@ -19,7 +19,7 @@ install_conda_deps: &install_conda_deps
 
 install_pyspark2: &install_pyspark2
   run: # Evict PySpark 3.0.0 in favor of PySpark 2.4.5
-    name: Install PySpark 3
+    name: Install PySpark 2.4.5
     command: |
       export PATH=$HOME/conda/bin:$PATH
       source activate glow
