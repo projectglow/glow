@@ -11,7 +11,7 @@ dependencies:
   - pandas=0.25.3
   - pip
   - pyarrow=0.15.1
-  - pyspark=2.4.5
+  - pyspark=3.0.0
   - pytest
   - pyyaml
   - sphinx

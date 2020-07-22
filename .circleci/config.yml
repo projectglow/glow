@@ -17,19 +17,14 @@ install_conda_deps: &install_conda_deps
       fi
 
 
-install_pyspark3: &install_pyspark3
-  run: # Evict PySpark 2.4.3 in favor of PySpark 3.0
-    name: Install PySpark 3
+install_pyspark2: &install_pyspark2
+  run: # Evict PySpark 3.0.0 in favor of PySpark 2.4.5
+    name: Install PySpark 2.4.5
     command: |
       export PATH=$HOME/conda/bin:$PATH
       source activate glow
       conda remove -y pyspark
-      git clone --depth 1 --branch branch-3.0 https://github.com/apache/spark.git
-      cd spark/python
-      mv setup.py old-setup.py
-      mv ~/glow/pyspark-setup.py setup.py
-      python setup.py sdist
-      pip install dist/pyspark-3.0.*.tar.gz
+      pip install pyspark==2.4.5
 
 check_clean_repo: &check_clean_repo
   run:
@@ -82,11 +77,13 @@ jobs:
           paths:
             - /home/circleci/conda
           key: conda-deps-v1-{{ checksum "python/environment.yml" }}
+      - *install_pyspark2
       - run:
           name: Run Scala tests
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
+            export SPARK_VERSION="2.4.5"
             export SCALA_VERSION="2.11.12"
             sbt coverage core/test coverageReport exit
       - run:
@@ -95,6 +92,7 @@ jobs:
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
+            export SPARK_VERSION="2.4.5"
             export SCALA_VERSION="2.11.12"
             sbt python/test exit
       - run:
@@ -102,6 +100,7 @@ jobs:
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
+            export SPARK_VERSION="2.4.5"
             export SCALA_VERSION="2.11.12"
             sbt docs/test exit
       - *check_clean_repo
@@ -125,11 +124,13 @@ jobs:
           paths:
             - /home/circleci/conda
           key: conda-deps-v1-{{ checksum "python/environment.yml" }}
+      - *install_pyspark2
       - run:
           name: Run Scala tests
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
+            export SPARK_VERSION="2.4.5"
             export SCALA_VERSION="2.12.8"
             sbt core/test exit
       - run:
@@ -138,6 +139,7 @@ jobs:
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
+            export SPARK_VERSION="2.4.5"
             export SCALA_VERSION="2.12.8"
             sbt python/test exit
       - run:
@@ -145,14 +147,10 @@ jobs:
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
+            export SPARK_VERSION="2.4.5"
             export SCALA_VERSION="2.12.8"
             sbt docs/test exit
-      - *check_clean_repo
-      - store_artifacts:
-          path: ~/glow/unit-tests.log
-          destination: unit-tests.log
-      - store_test_results:
-          path: ~/glow/core/target/scala-2.12/test-reports
+
 
   spark-3-tests:
     <<: *setup_base
@@ -166,13 +164,12 @@ jobs:
           paths:
             - /home/circleci/conda
           key: conda-deps-v1-{{ checksum "python/environment.yml" }}
-      - *install_pyspark3
       - run:
           name: Run Scala tests
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="3.0.1-SNAPSHOT"
+            export SPARK_VERSION="3.0.0"
             export SCALA_VERSION="2.12.8"
             sbt core/test exit
       - run:
@@ -181,7 +178,7 @@ jobs:
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="3.0.1-SNAPSHOT"
+            export SPARK_VERSION="3.0.0"
             export SCALA_VERSION="2.12.8"
             sbt python/test exit
       - run:
@@ -189,9 +186,15 @@ jobs:
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="3.0.1-SNAPSHOT"
+            export SPARK_VERSION="3.0.0"
             export SCALA_VERSION="2.12.8"
             sbt docs/test exit
+      - *check_clean_repo
+      - store_artifacts:
+          path: ~/glow/unit-tests.log
+          destination: unit-tests.log
+      - store_test_results:
+          path: ~/glow/core/target/scala-2.12/test-reports
 
 workflows:
   version: 2
