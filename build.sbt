@@ -130,7 +130,7 @@ lazy val coreDependencies = (providedSparkDependencies ++ testCoreDependencies +
   "org.slf4j" % "slf4j-api" % "1.7.25",
   "org.slf4j" % "slf4j-log4j12" % "1.7.25",
   "org.jdbi" % "jdbi" % "2.63.1",
-  "com.github.broadinstitute" % "picard" % "2.21.9",
+  "com.github.broadinstitute" % "picard" % "2.23.3",
   // Fix versions of libraries that are depended on multiple times
   "org.apache.hadoop" % "hadoop-client" % "2.7.3",
   "io.netty" % "netty" % "3.9.9.Final",
