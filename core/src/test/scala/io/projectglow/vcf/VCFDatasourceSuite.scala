@@ -535,6 +535,12 @@ class VCFDatasourceSuite extends GlowBaseTest {
     assert(csvFormat.isSplitable(spark, Map.empty, bgzPath))
   }
 
+  test("uncompressed files are splitable") {
+    val path = new Path(s"$testDataHome/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf")
+    val vcfFormat = new VCFFileFormat()
+    assert(vcfFormat.isSplitable(spark, Map.empty, path))
+  }
+
   test("Tolerate lower-case nan's") {
     val sess = spark
     import sess.implicits._

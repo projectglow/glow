@@ -67,7 +67,8 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
 
     // Note: we check if a file is gzipped vs block gzipped during reading, so this will be true
     // for .gz files even if they aren't actually splittable
-    codecFactory.getCodec(path).isInstanceOf[SplittableCompressionCodec]
+    val codec = codecFactory.getCodec(path)
+    codec == null || codecFactory.getCodec(path).isInstanceOf[SplittableCompressionCodec]
   }
 
   override def inferSchema(
