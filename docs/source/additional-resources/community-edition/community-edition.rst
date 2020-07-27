@@ -87,8 +87,8 @@ cluster will be automatically terminated after an idle period of 2 hours.
 Step 5: Attach cluster-scoped libraries
 ---------------------------------------
 
-`Install <https://docs.databricks.com/libraries/cluster-lib.html>`_ libraries to a cluster in order to run third-party
-code.
+`Install <https://docs.databricks.com/libraries/cluster-libraries.html>`_ libraries to a cluster in order to run
+third-party code.
 
 .. image:: attach-mlflow.gif
    :alt: Attach MLflow to the cluster
