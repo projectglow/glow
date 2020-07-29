@@ -13,10 +13,14 @@ GloWGR: Whole Genome Regression
 
 Glow supports Whole Genome Regression (WGR) as GloWGR, a parallelized version of the
 `regenie <https://rgcgithub.github.io/regenie/>`_ method (see the
-`preprint <https://www.biorxiv.org/content/10.1101/2020.06.19.162354v2>`_).
+`preprint <https://www.biorxiv.org/content/10.1101/2020.06.19.162354v2>`_). GloWGR supports both quantitative and binary phenotypes. Many steps of the GloWGR workflow explained in this page are common between the two cases. Any step that is different between quantitative and binary cases has two separate explanations clearly labeled by "for quantitative phenotypes" vs. "for binary phenotypes".
+
+The following figure shows the performance of the parallelized GloWGR vs. single machine algorithms BOLT, fastGWA GRM, and regenie.
 
 .. image:: ../_static/images/wgr_runtime.png
    :scale: 50 %
+
+.. Do we have a picture for binary?
 
 GloWGR consists of the following stages.
 
@@ -24,34 +28,30 @@ GloWGR consists of the following stages.
 - Perform dimensionality reduction with ridge regression.
 - Estimate phenotypic values with ridge regression.
 
-.. note::
-
-   GloWGR currently supports only quantitative phenotypes.
-
 ----------------
 Data preparation
 ----------------
 
-GloWGR accepts three input datasources.
+GloWGR accepts three input data components.
 
-Genotype data
-=============
+.. _genotype-data:
 
-The genotype data may be read from any variant datasource supported by Glow, such as one read from
-:ref:`VCF, BGEN or PLINK <variant_data>`. For scalability, recommend ingesting flat genotype files into
+1. Genotype data
+================
+
+The genotype data may be read as a Spark DataFrame from any variant data source supported by Glow, such as
+:ref:`VCF, BGEN or PLINK <variant_data>`. For scalability and high-performance repeated use, we recommend storing flat genotype files into
 :ref:`Delta tables <vcf2delta>`.
-
-The DataFrame must also include a column ``values`` containing a numeric representation of each genotype. The genotypic
-values may not be missing, or equal for every sample in a variant (eg. all samples are homozygous reference).
+The DataFrame must include a column ``values`` containing a numeric representation of each genotype. The genotypic
+values may not be missing and should not be equal across all samples in a variant (e.g., all samples are homozygous reference).
 
 Example
 -------
 
-When loading in the variants, perform the following transformations:
+When loading the variants into the DataFrame, perform the following transformations:
 
 - Split multiallelic variants with the ``split_multiallelics`` transformer.
-- Calculate the number of alternate alleles for biallelic variants with ``glow.genotype_states``.
-- Replace any missing values with the mean of the non-missing values using ``glow.mean_substitute``.
+- Create a ``values`` column by calculating the numeric representation of each genotype. This representation is typically the number of alternate alleles for biallelic variants which can be calculated with ``glow.genotype_states``. Replace any missing values with the mean of the non-missing values using ``glow.mean_substitute``.
 
 .. code-block:: python
 
@@ -61,28 +61,33 @@ When loading in the variants, perform the following transformations:
     genotypes = glow.transform('split_multiallelics', variants) \
         .withColumn('values', glow.mean_substitute(glow.genotype_states(col('genotypes'))))
 
-Phenotype data
-==============
+2. Phenotype data
+=================
 
 The phenotype data is represented as a Pandas DataFrame indexed by the sample ID. Each column represents a single
-phenotype. It is assumed that there are no missing phenotype values, and that the phenotypes are standardized with
-zero mean and unit variance.
+phenotype. It is assumed that there are no missing phenotype values.
 
-Example
--------
+- **For quantitative phenotypes:** It is assumed the phenotypes are standardized with zero mean and unit variance.
 
-Standardization can be performed with Pandas or
-`scikit-learn's StandardScaler <https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html>`_.
+  **Example:** Standardization can be performed with Pandas or `scikit-learn's StandardScaler <https://scikit-learn.org/stable/modules/generated/sklearn.preprocessing.StandardScaler.html>`_.
 
-.. code-block:: python
+  .. code-block:: python
 
     import pandas as pd
-
     label_df = pd.read_csv(continuous_phenotypes_csv, index_col='sample_id')
     label_df = ((label_df - label_df.mean())/label_df.std(ddof=0))[['Continuous_Trait_1', 'Continuous_Trait_2']]
 
-Covariate data
-==============
+- **For binary phenotypes:** Phenotype values are either 0 or 1. No standardization is needed.
+
+  **Example:**
+
+  .. code-block:: python
+
+    import pandas as pd
+    label_df = pd.read_csv(binary_phenotypes_csv, index_col='sample_id')
+
+3. Covariate data
+=================
 
 The covariate data is represented as a Pandas DataFrame indexed by the sample ID. Each column represents a single
 covariate. It is assumed that there are no missing covariate values, and that the covariates are standardized with
@@ -106,11 +111,10 @@ mapping.
 Parameters
 ==========
 
-- ``genotypes``: Genotype DataFrame created by reading from any variant datasource supported by Glow, such as VCF. Must
-  also include a column ``values`` containing a numeric representation of each genotype.
-- ``sample_ids``: List of sample IDs. Can be created by applying ``glow.wgr.functions.get_sample_ids`` to a genotype
-  DataFrame.
-- ``variants_per_block``: Number of variants to include per block. We recommend 1000.
+- ``genotypes``: Genotype DataFrame including the ``values`` column generated as explained :ref:`above <genotype-data>`
+- ``sample_ids``: A python List of sample IDs. Can be created by applying ``glow.wgr.functions.get_sample_ids`` to a genotype
+  DataFrame
+- ``variants_per_block``: Number of variants to include in each block. We recommend 1000.
 - ``sample_block_count``: Number of sample blocks to create. We recommend 10.
 
 Return
@@ -118,41 +122,23 @@ Return
 
 The function returns a block genotype matrix and a sample block mapping.
 
-.. warning::
+    - **Block genotype matrix**: Imagine the conceptual genotype matrix as an :math:`N \times M` matrix :math:`X` where each row represents an individual sample, and each column represents a variant, and each cell :math:`(i, j)` contains the genotype value for sample :math:`i` at variant :math:`j`.  The block genotype matrix can then be imagined by laying a coarse grid on top of matrix :math:`X` such that matrix cells within the same coarse grid cell are all assigned to the same block. Each block :math:`x` is indexed by a sample block ID (corresponding to a list of rows belonging to the block) and a header block ID (corresponding to a list of columns belonging to the block). The sample block IDs are generally just integers 0 through the number of sample blocks. The header block IDs are strings of the form 'chr_C_block_B', which refers to the Bth block on chromosome C. The Spark DataFrame representing this block matrix can be thought of as the transpose of each block, i.e., :math:`x^T`, all stacked one atop another. Each row in the DataFrame represents the values from a particular column of :math:`X` for the samples corresponding to a particular sample block. The fields in the DataFrame and their content for a given row are as follows:
 
-    Variant rows in the input DataFrame whose genotype values are uniform across all samples are filtered from the
-    output block genotype matrix.
+        - ``header``: The column name in the conceptual genotype matrix :math:`X`
+        - ``header_block``: An ID assigned to the block :math:`x` containing this header
+        - ``sample_block``: An ID assigned to the block :math:`x` containing the group of samples represented on this row
+        - ``size``: The number of individuals in the sample block
+        - ``values``: Genotype values for the header in this sample block.  If the matrix is sparse, contains only non-zero values.
+        - ``position``: An integer assigned to this header that specifies the correct sort order for the headers in this block
+        - ``mu``: The mean of the genotype values for this header
+        - ``sig``: The standard deviation of the genotype values for this header
 
-Block genotype matrix
----------------------
+     .. warning::
 
-If we imagine the block genotype matrix conceptually, we think of an *NxM* matrix *X* where each row *n* represents an
-individual sample, each column *m* represents a variant, and each cell *(n, m)* contains a genotype value for sample *n*
-at variant *m*.  We then imagine laying a coarse grid on top of this matrix such that matrix cells within the same
-coarse grid cell are all assigned to the same block *x*.  Each block *x* is indexed by a sample block ID (corresponding
-to a list of rows belonging to the block) and a header block ID (corresponding to a list of columns belonging to the
-block).  The sample block IDs are generally just integers 0 through the number of sample blocks.  The header block IDs
-are strings of the form 'chr_C_block_B', which refers to the Bth block on chromosome C.  The Spark DataFrame
-representing this block matrix can be thought of as the transpose of each block *xT* all stacked one atop another.  Each
-row represents the values from a particular column from *X*, for the samples corresponding to a particular sample block.
-The fields in the DataFrame are:
+        Variant rows in the input DataFrame whose genotype values are uniform across all samples are filtered from the
+        output block genotype matrix.
 
-- ``header``: A column name in the conceptual matrix *X*.
-- ``size``: The number of individuals in the sample block for the row.
-- ``values``: Genotype values for this header in this sample block.  If the matrix is sparse, contains only non-zero values.
-- ``header_block``: An ID assigned to the block *x* containing this header.
-- ``sample_block``: An ID assigned to the block *x* containing the group of samples represented on this row.
-- ``position``:  An integer assigned to this header that specifies the correct sort order for the headers in this block.
-- ``mu``: The mean of the genotype calls for this header.
-- ``sig``: The standard deviation of the genotype calls for this header.
-
-Sample block mapping
---------------------
-
-The sample block mapping consists of key-value pairs, where each key is a sample block ID and each value is a list of
-sample IDs contained in that sample block.
-
-The order of these IDs match the order of the ``values`` arrays in the block genotype DataFrame.
+    - **Sample block mapping**: The sample block mapping is a python dictionary containing key-value pairs, where each key is a sample block ID and each value is a list of sample IDs contained in that sample block. The order of these IDs match the order of the ``values`` arrays in the block genotype DataFrame.
 
 Example
 =======
