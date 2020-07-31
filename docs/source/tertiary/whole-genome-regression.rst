@@ -11,22 +11,32 @@ GloWGR: Whole Genome Regression
     covariates_csv = 'test-data/gwas/covariates.csv.gz'
     continuous_phenotypes_csv = 'test-data/gwas/continuous-phenotypes.csv.gz'
 
-Glow supports Whole Genome Regression (WGR) as GloWGR, a parallelized version of the
-`regenie <https://rgcgithub.github.io/regenie/>`_ method (see the
-`preprint <https://www.biorxiv.org/content/10.1101/2020.06.19.162354v2>`_). GloWGR supports both quantitative and binary phenotypes. Many steps of the GloWGR workflow explained in this page are common between the two cases. Any step that is different between quantitative and binary cases has two separate explanations clearly labeled by "for quantitative phenotypes" vs. "for binary phenotypes".
+Glow supports Whole Genome Regression (WGR) as GloWGR, a parallelized version of the `regenie <https://rgcgithub.github.io/regenie/>`_ method (see the `preprint <https://www.biorxiv.org/content/10.1101/2020.06.19.162354v2>`_). GloWGR supports two types of phenotypes:
+
+- Quantitative 
+- Binary
+
+Many steps of the GloWGR workflow explained in this page are common between the two cases. Any step that is different between the two has  separate explanations clearly marked by "for quantitative phenotypes" vs. "for binary phenotypes".
 
 The following figure shows the performance of the parallelized GloWGR vs. single machine algorithms BOLT, fastGWA GRM, and regenie.
 
 .. image:: ../_static/images/wgr_runtime.png
    :scale: 50 %
 
-.. Do we have a picture for binary?
+.. TODO: Do we have a picture for binary?
+
 
 GloWGR consists of the following stages.
 
 - Block the genotype matrix across samples and variants.
 - Perform dimensionality reduction with ridge regression.
 - Estimate phenotypic values with ridge regression.
+
+The following diagram provides an overview of the operations and data within the main stages of GlowWGR and their interrelationship.
+
+.. image:: ../_static/images/wgr_digram.png
+   :scale: 50 %
+
 
 ----------------
 Data preparation
@@ -39,11 +49,8 @@ GloWGR accepts three input data components.
 1. Genotype data
 ================
 
-The genotype data may be read as a Spark DataFrame from any variant data source supported by Glow, such as
-:ref:`VCF, BGEN or PLINK <variant_data>`. For scalability and high-performance repeated use, we recommend storing flat genotype files into
-:ref:`Delta tables <vcf2delta>`.
-The DataFrame must include a column ``values`` containing a numeric representation of each genotype. The genotypic
-values may not be missing and should not be equal across all samples in a variant (e.g., all samples are homozygous reference).
+The genotype data may be read as a Spark DataFrame from any variant data source supported by Glow, such as :ref:`VCF, BGEN or PLINK <variant_data>`. For scalability and high-performance repeated use, we recommend storing flat genotype files into :ref:`Delta tables <vcf2delta>`.
+The DataFrame must include a column ``values`` containing a numeric representation of each genotype. The genotypic values may not be missing and should not be equal across all samples in a variant (e.g., all samples are homozygous reference).
 
 Example
 -------
@@ -64,8 +71,7 @@ When loading the variants into the DataFrame, perform the following transformati
 2. Phenotype data
 =================
 
-The phenotype data is represented as a Pandas DataFrame indexed by the sample ID. Each column represents a single
-phenotype. It is assumed that there are no missing phenotype values.
+The phenotype data is represented as a Pandas DataFrame indexed by the sample ID. Phenotypes are also referred to as labels. Each column represents a single phenotype. It is assumed that there are no missing phenotype values.
 
 - **For quantitative phenotypes:** It is assumed the phenotypes are standardized with zero mean and unit variance.
 
@@ -89,9 +95,7 @@ phenotype. It is assumed that there are no missing phenotype values.
 3. Covariate data
 =================
 
-The covariate data is represented as a Pandas DataFrame indexed by the sample ID. Each column represents a single
-covariate. It is assumed that there are no missing covariate values, and that the covariates are standardized with
-zero mean and unit variance.
+The covariate data is represented as a Pandas DataFrame indexed by the sample ID. Each column represents a single covariate. It is assumed that there are no missing covariate values, and that the covariates are standardized with zero mean and unit variance.
 
 Example
 -------
@@ -122,7 +126,7 @@ Return
 
 The function returns a block genotype matrix and a sample block mapping.
 
-    - **Block genotype matrix**: Imagine the conceptual genotype matrix as an :math:`N \times M` matrix :math:`X` where each row represents an individual sample, and each column represents a variant, and each cell :math:`(i, j)` contains the genotype value for sample :math:`i` at variant :math:`j`.  The block genotype matrix can then be imagined by laying a coarse grid on top of matrix :math:`X` such that matrix cells within the same coarse grid cell are all assigned to the same block. Each block :math:`x` is indexed by a sample block ID (corresponding to a list of rows belonging to the block) and a header block ID (corresponding to a list of columns belonging to the block). The sample block IDs are generally just integers 0 through the number of sample blocks. The header block IDs are strings of the form 'chr_C_block_B', which refers to the Bth block on chromosome C. The Spark DataFrame representing this block matrix can be thought of as the transpose of each block, i.e., :math:`x^T`, all stacked one atop another. Each row in the DataFrame represents the values from a particular column of :math:`X` for the samples corresponding to a particular sample block. The fields in the DataFrame and their content for a given row are as follows:
+    - **Block genotype matrix**: The block genotype matrix can be conceptually imagined as an :math:`N \times M` matrix :math:`X` where each row represents an individual sample, and each column represents a variant, and each cell :math:`(i, j)` contains the genotype value for sample :math:`i` at variant :math:`j`.  Then imagine a coarse grid is laid on top of matrix :math:`X` such that matrix cells within the same coarse grid cell are all assigned to the same block. Each block :math:`x` is indexed by a sample block ID (corresponding to a list of rows belonging to the block) and a header block ID (corresponding to a list of columns belonging to the block). The sample block IDs are generally just integers 0 through the number of sample blocks. The header block IDs are strings of the form 'chr_C_block_B', which refers to the Bth block on chromosome C. The Spark DataFrame representing this block matrix can be thought of as the transpose of each block, i.e., :math:`x^T`, all stacked one atop another. Each row in the DataFrame represents the values from a particular column of :math:`X` for the samples corresponding to a particular sample block. The fields in the DataFrame and their content for a given row are as follows:
 
         - ``header``: The column name in the conceptual genotype matrix :math:`X`
         - ``header_block``: An ID assigned to the block :math:`x` containing this header
@@ -159,77 +163,60 @@ Example
 Dimensionality reduction
 ------------------------
 
-The first step in the fitting procedure is to apply a dimensionality reduction to the block matrix *X* using the
-``RidgeReducer``.
+The first step is to apply a dimensionality reduction to the block matrix :math:`X` using the ``RidgeReducer``. After ``RidgeReducer`` is initialized, dimensionality reduction is accomplished within two steps:
 
-This is accomplished by fitting multiple ridge models within each block *x* and producing a new block matrix where each
-column represents the prediction of one ridge model applied within one block. This approach to model building is
-generally referred to as **stacking**. We will call the block genotype matrix we started with the **level 0** matrix in
-the stack *X0*, and the output of the ridge reduction step the **level 1** matrix *X1*. The ``RidgeReducer`` class is
-used for this step, which is initialized with a list of ridge regularization values (referred to here as alpha). Since
-ridge models are indexed by these alpha values, the ``RidgeReducer`` will generate one ridge model per value of alpha
-provided, which in turn will produce one column per block in *X0*, so the final dimensions of matrix *X1* will be
-*Nx(LxK)*, where *L* is the number of header blocks in *X0* and *K* is the number of alpha values provided to the
-``RidgeReducer``. In practice, we can estimate a span of alpha values in a reasonable order of magnitude based on
-guesses at the heritability of the phenotype we are fitting.
+1. Model fitting, performed by the ``RidgeReducer.fit`` function, which fits multiple ridge models within each block :math:`x`.
+2. Model transformation, performed by the  ``RidgeReducer.transform`` function, which produces a new block matrix where each column represents the prediction of one ridge model applied within one block.
 
-Initialization
-==============
+This approach to model building is generally referred to as **stacking**. We call the block genotype matrix with which we started the **level 0** matrix in the stack, denoted by :math:`X^0`, and the output of the ridge reduction step the **level 1** matrix, denoted by :math:`X^1`. The ``RidgeReducer`` class is used for this step, which is initialized with a list of ridge regularization values (referred to here as alpha). Since ridge models are indexed by these alpha values, the ``RidgeReducer`` will generate one ridge model per value of alpha provided, which in turn will produce one column per block in :math:`X^0`. Therefore, the final dimensions of :math:`X^1` for a single phenotype will be :math:`N \times (L \times K)`, where :math:`L` is the number of header blocks in :math:`X^0` and :math:`K` is the number of alpha values provided to the ``RidgeReducer``. In practice, we can estimate a span of alpha values in a reasonable order of magnitude based on guesses at the heritability of the phenotype we are fitting.
 
-When the ``RidgeReducer`` is initialized, it will assign names to the provided alphas and store them in a dictionary
-accessible as ``RidgeReducer.alphas``.
+1. Initialization
+=================
 
-Example
--------
-
-If alpha values are not provided, they will be generated during ``RidgeReducer.fit`` based on the unique number of
-headers *h* in the blocked genotype matrix *X0*, and a set of heritability values. These are only sensible if the
-phenotypes are on the scale of one.
+When the ``RidgeReducer`` is initialized, it will assign names to the provided alphas and store them in a dictionary accessible as ``RidgeReducer.alphas``. If alpha values are not provided, they will be generated during ``RidgeReducer.fit`` based on the number of unique headers in the blocked genotype matrix :math:`X^0`, denoted by :math:`h`, and a set of heritability values. More specifically,
 
 .. math::
 
-    \vec{\alpha} = h / [0.01, 0.25, 0.50, 0.75, 0.99]
+    \alpha = h\big[\frac{1}{0.99}, \frac{1}{0.75}, \frac{1}{0.50}, \frac{1}{0.25}, \frac{1}{0.01}\big]
 
+.. TODO: What does the following sentence mean?
+
+These are only sensible if the phenotypes are on the scale of one.
+
+Example
+-------
 .. code-block:: python
 
     reducer = RidgeReducer()
 
-Model fitting
-=============
+2. Model fitting
+================
 
-In explicit terms, the reduction of a block *x0* from *X0* to the corresponding block *x1* from *X1* is accomplished by
-the matrix multiplication *x0 * B = x1*, where *B* is a coefficient matrix of size *mxK*, where *m* is the number of
-columns in block *x0* and *K* is the number of alpha values used in the reduction. As an added wrinkle, if the ridge
-reduction is being performed against multiple phenotypes at once, each phenotype will have its own *B*, and for
-convenience we panel these next to each other in the output into a single matrix, so *B* in that case has dimensions
-*mx(K*P)* where *P* is the number of phenotypes. Each matrix *B* is specific to a particular block in *X0*, so the
-Spark DataFrame produced by the ``RidgeReducer`` can be thought of all of as the matrices *B* from all of the blocks
-stacked one atop another.
+The reduction of a block :math:`x^0` from :math:`X^0` to the corresponding block :math:`x^1` from :math:`X^1` is accomplished by the matrix multiplication :math:`x^0 B = x^1`, where :math:`B` is a coefficient matrix of size :math:`m \times K`, where :math:`m` is the number of columns in block :math:`x^0` and :math:`K` is the number of alpha values used in the reduction. As an added wrinkle, if the ridge reduction is being performed against multiple phenotypes at once, each phenotype will have its own :math:`B`, and for convenience we panel these next to each other in the output into a single matrix, so :math:`B` in that case has dimensions :math:`m \times (K \times P)` where :math:`P` is the number of phenotypes. Each matrix :math:`B` is specific to a particular block in :math:`X^0`, so the Spark DataFrame produced by the ``RidgeReducer`` can be thought of matrices :math:`B` from all the blocks, one stacked atop another.
 
 Parameters
 ----------
 
-- ``block_df``: Spark DataFrame representing the beginning block matrix.
-- ``label_df``: Pandas DataFrame containing the target labels used in fitting the ridge models.
-- ``sample_blocks``: Dictionary containing a mapping of sample block IDs to a list of corresponding sample IDs.
+- ``block_df``: Spark DataFrame representing the block matrix at the beginning
+- ``label_df``: Pandas DataFrame containing the target labels used in fitting the ridge models
+- ``sample_blocks``: Dictionary containing a mapping of sample block IDs to a list of corresponding sample IDs
 - ``covariates``: Pandas DataFrame containing covariates to be included in every model in the stacking
-  ensemble (optional).
+  ensemble (optional)
 
 Return
 ------
 
 The fields in the model DataFrame are:
 
-- ``header_block``: An ID assigned to the header block *x0* corresponding to the coefficients in this row.
-- ``sample_block``: An ID assigned to the sample block *x0* corresponding to the coefficients in this row.
-- ``header``: The name of a column from the conceptual matrix *X0* that correspond with a particular row from the
-  coefficient matrix *B*.
-- ``alphas``: List of alpha names corresponding to the columns of *B*.
-- ``labels``: List of label (i.e., phenotypes) corresponding to the columns of *B*.
-- ``coefficients``: List of the actual values from a row in *B*.
+- ``header_block``: An ID assigned to the block :math:`x^0` to the coefficients in this row
+- ``sample_block``: An ID assigned to the block :math:`x^0` containing the group of samples represented on this row
+- ``header``: The column name in the conceptual genotype matrix :math:`X^0` that corresponds to a particular row in the coefficient matrix :math:`B`
+- ``alphas``: List of alpha names corresponding to the columns of :math:`B`
+- ``labels``: List of labels (i.e., phenotypes) corresponding to the columns of :math:`B`
+- ``coefficients``: List of the actual values from a row in :math:`B`
 
-Model transformation
-====================
+3. Model transformation
+=======================
 
 After fitting, the ``RidgeReducer.transform`` method can be used to generate *X1* from *X0*.
 
