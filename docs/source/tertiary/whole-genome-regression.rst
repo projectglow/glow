@@ -355,44 +355,68 @@ Assuming ``regression`` is initialized to ``RidgeRegression`` (for quantitative 
 3. Model transformation
 =======================
 
-After fitting the model, the model DataFrame and cross validation DataFrame are used to apply the model to the block matrix DataFrame to produce predictions (:math:`\hat{y}`) for each label and sample using
+After fitting the model, the model DataFrame and cross validation DataFrame are used to apply the model to the block matrix DataFrame to produce predictions (:math:`\hat{y}`) for each label and sample. This is done using
 
 - **For quantitative phenotypes:** the ``RidgeRegression.transform`` or ``RidgeRegression.transform_loco`` method.
 - **For binary phenotypes:** the ``LogisticRegression.transform`` or ``LogisticRegression.transform_loco`` method.
 
-Here, we describe the leave-one-chromosome-out (LOCO) approach. The inputs and outputs of the ``transform_loco`` function in either ``RidgeRegression`` or ``LogisticRegression`` are as follows:
+Here, we describe the leave-one-chromosome-out (LOCO) approach. The input and output of the ``transform_loco`` function in either ``RidgeRegression`` or ``LogisticRegression`` are as follows:
 
 Parameters
 ----------
 
-- ``block_df``: Spark DataFrame representing the reduced block matrix.
-- ``label_df``: Pandas DataFrame containing the target labels used in fitting the ridge models.
-- ``sample_blocks``: Dictionary containing a mapping of sample block IDs to a list of corresponding sample IDs.
-- ``model_df``: Spark DataFrame produced by the ``RidgeRegression.fit`` method, representing the reducer model
-- ``cv_df``: Spark DataFrame produced by the ``RidgeRegression.fit`` method, containing the results of the cross
-  validation routine.
-- ``covariates``: Pandas DataFrame containing covariates to be included in every model in the stacking
-  ensemble (optional).
-- ``chromosomes``: List of chromosomes for which to generate a prediction (optional). If not provided, the
-  chromosomes will be inferred from the block matrix.
+- ``block_df``: Spark DataFrame representing the reduced block matrix
+- ``label_df``: Pandas DataFrame containing the target labels used in the fitting step
+- ``sample_blocks``: Dictionary containing a mapping of sample block IDs to a list of corresponding sample IDs
+- ``model_df``: Spark DataFrame produced by the ``RidgeRegression.fit`` function (for quantitative phenotypes) or ``LogisticRegression.fit`` function (for binary phenotypes), representing the reducer model
+- ``cv_df``: Spark DataFrame produced by the ``RidgeRegression.fit`` function (for quantitative phenotypes) or ``LogisticRegression.fit`` function (for binary phenotypes), containing the results of the cross validation routine
+- ``covariates``: Pandas DataFrame containing covariates to be included in every model in the stacking ensemble (optional)
+- ``chromosomes``: List of chromosomes for which to generate a prediction (optional). If not provided, the chromosomes will be inferred from the block matrix.
 
 Return
 ------
 
-The resulting *y_hat* Pandas DataFrame is shaped like ``label_df``, indexed by the sample ID and chromosome with each
-column representing a single phenotype.
+A Pandas DataFrame shaped like ``label_df``, representing the resulting :math:`\hat{y}`, indexed by the sample ID and chromosome with each column representing a single phenotype
 
 Example
-=======
+-------
+Assuming ``regression`` is initialized to ``RidgeRegression`` (for quantitative phenotypes) or ``LogisticRegression`` (for binary phenotypes) as described :ref:`above <stage_3_initialization>`, LOCO transformation will be done as follows:
 
+.. code-block:: python
 
     y_hat_df = regression.transform_loco(reduced_block_df, label_df, sample_blocks, model_df, cv_df, covariates)
+
+Probability estimates
+=====================
+**For binary phenotypes**, the ``LogisticRegression.predict_proba`` or ``LogisticRegression.predict_proba_loco`` function can be used to generate a Pandas DataFrame containing the probability estimates for the label predictions. Here, we describe the ``LogisticRegression.predict_proba_loco`` function.
+
+Parameters
+----------
+
+The same as those in ``LogisticRegression.transform_loco``.
+
+Return
+------
+
+A Pandas DataFrame shaped like ``label_df``, representing the probability estimates of the predictions, indexed by the sample ID and chromosome with each column representing a single phenotype
+
+Example
+-------
+Assuming ``regression`` is initialized to ``LogisticRegression`` as described :ref:`above <stage_3_initialization>`, LOCO probability estimation will be done as follows:
+
+.. code-block:: python
+
+    predic_proba_df = regression.predict_proba_loco(reduced_block_df, label_df, sample_blocks, model_df, cv_df, covariates)
+
 
 .. invisible-code-block: python
 
     import math
     assert math.isclose(y_hat_df.at[('HG00096', '22'),'Continuous_Trait_1'], -0.5578905823446506)
 
+.. TODO: Add test for binary
+
+----------------
 Example notebook
 ----------------
 
