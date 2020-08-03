@@ -130,7 +130,7 @@ class SampleQcExprsSuite extends GlowBaseTest {
       .as[ArraySummaryStats]
       .head()
 
-    val expected = ArraySummaryStats(Some(2), Some(Math.sqrt(2)), Some(1), Some(3))
+    val expected = ArraySummaryStats(Some(2), Some(1), Some(1), Some(3))
     assert(stats == expected)
   }
 

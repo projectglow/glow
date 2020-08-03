@@ -36,9 +36,9 @@ You can calculate quality control statistics on your variant data using Spark SQ
       * ``alleleFrequencies``: An array with the frequency for each allele
   * - ``dp_summary_stats``
     - The ``genotypes`` array
-    - A struct containing the min, max, mean, and sample standard deviation for genotype depth (DP in VCF v4.2 specificiation) across all samples
+    - A struct containing the min, max, mean, and population standard deviation for genotype depth (DP in VCF v4.2 specificiation) across all samples
   * - ``gq_summary_stats``
     - The ``genotypes`` array
-    - A struct containing the min, max, mean, and sample standard deviation for genotype quality (GQ in VCF v4.2 specification) across all samples
+    - A struct containing the min, max, mean, and population standard deviation for genotype quality (GQ in VCF v4.2 specification) across all samples
 
 .. notebook:: .. etl/variant-qc-demo.html

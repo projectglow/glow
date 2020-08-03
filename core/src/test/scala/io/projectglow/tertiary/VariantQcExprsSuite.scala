@@ -167,7 +167,7 @@ class VariantQcExprsSuite extends GlowBaseTest {
     assert(stats.min.get == 0)
     assert(stats.max.get == 2)
     assert(stats.mean.get == 1)
-    assert(stats.stdDev.get == 1)
+    assert(stats.stdDev.get == Math.sqrt(2.0/3))
   }
 
   test("array stats (empty)") {
@@ -189,7 +189,7 @@ class VariantQcExprsSuite extends GlowBaseTest {
       .as[ArraySummaryStats]
       .head
     assert(stats.mean.get == 1)
-    assert(stats.stdDev.get.isNaN)
+    assert(stats.stdDev.get == 0)
     assert(stats.min.get == 1)
     assert(stats.max.get == 1)
   }
@@ -201,7 +201,7 @@ class VariantQcExprsSuite extends GlowBaseTest {
       .selectExpr("expand_struct(array_summary_stats(numbers))")
       .as[ArraySummaryStats]
       .head
-    assert(stats == ArraySummaryStats(Some(2), Some(Math.sqrt(2)), Some(1), Some(3)))
+    assert(stats == ArraySummaryStats(Some(2), Some(1), Some(1), Some(3)))
   }
 
   test("array stats (negative values)") {
@@ -211,7 +211,7 @@ class VariantQcExprsSuite extends GlowBaseTest {
       .selectExpr("expand_struct(array_summary_stats(numbers))")
       .as[ArraySummaryStats]
       .head
-    assert(stats == ArraySummaryStats(Some(-2), Some(Math.sqrt(2)), Some(-3), Some(-1)))
+    assert(stats == ArraySummaryStats(Some(-2), Some(1), Some(-3), Some(-1)))
   }
 
   // Golden values are pulled from Hail

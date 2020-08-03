@@ -379,7 +379,7 @@ Example
 .. invisible-code-block: python
 
     import math
-    assert math.isclose(y_hat_df.at[('HG00096', '22'),'Continuous_Trait_1'], -0.5578905823446506)
+    assert math.isclose(y_hat_df.at[('HG00096', '22'),'Continuous_Trait_1'], -0.5578898969030993)
 
 Example notebook
 ----------------
