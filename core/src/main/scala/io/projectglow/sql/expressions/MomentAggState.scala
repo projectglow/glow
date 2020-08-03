@@ -65,7 +65,7 @@ case class MomentAggState(
    */
   def toInternalRow(row: InternalRow, offset: Int = 0): InternalRow = {
     row.update(offset, if (count > 0) mean else null)
-    row.update(offset + 1, if (count > 0) Math.sqrt(m2 / (count - 1)) else null)
+    row.update(offset + 1, if (count > 0) Math.sqrt(m2 / count) else null)
     row.update(offset + 2, if (count > 0) min else null)
     row.update(offset + 3, if (count > 0) max else null)
     row
