@@ -167,7 +167,7 @@ class VariantQcExprsSuite extends GlowBaseTest {
     assert(stats.min.get == 0)
     assert(stats.max.get == 2)
     assert(stats.mean.get == 1)
-    assert(stats.stdDev.get == Math.sqrt(2.0/3))
+    assert(stats.stdDev.get == Math.sqrt(2.0 / 3))
   }
 
   test("array stats (empty)") {
