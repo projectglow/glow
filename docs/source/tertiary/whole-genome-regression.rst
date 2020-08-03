@@ -31,6 +31,10 @@ The following figures demonstrates the performance gain obtained by using parall
 
 .. TODO: Add a picture for binary
 
+--------
+Overview
+--------
+
 GloWGR consists of the following stages.
 
 - Block the genotype matrix across samples and variants
@@ -42,8 +46,7 @@ GloWGR consists of the following stages.
 
 The following diagram provides an overview of the operations and data within the main stages of GlowWGR and their interrelationship.
 
-.. image:: ../_static/images/wgr_digram.png
-   :scale: 50 %
+.. image:: ../_static/images/wgr_diagram.png
 
 
 ----------------
@@ -415,6 +418,15 @@ Assuming ``regression`` is initialized to ``LogisticRegression`` as described :r
     assert math.isclose(y_hat_df.at[('HG00096', '22'),'Continuous_Trait_1'], -0.5578905823446506)
 
 .. TODO: Add test for binary
+
+---------------
+Proceed to GWAS
+---------------
+
+Having the phenotypic predictors, the next step would be to use :ref:`Glow GWAS functionality <gwas>` to perform genome-wide association study using the phenotypic predictors to correct for polygenic effects.
+
+- **For quantitative phenotypes**, this is typically done by subtracting the predictor from the phenotype vector.
+- **For binary phenotypes**, this is done by using the predictor as an explicit covariate vector.
 
 ----------------
 Example notebook
