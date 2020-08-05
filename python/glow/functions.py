@@ -57,7 +57,7 @@ def array_summary_stats(arr: Union[Column, str]) -> Column:
     Added in version 0.3.0.
 
     Examples:
-        >>> df = spark.createDataFrame([Row(arr=[1, 2, 3])])
+        >>> df = spark.createDataFrame([Row(arr=[1, 3])])
         >>> df.select(glow.expand_struct(glow.array_summary_stats('arr'))).collect()
         [Row(mean=2.0, stdDev=1.0, min=1.0, max=3.0)]
 
@@ -393,7 +393,7 @@ def dp_summary_stats(genotypes: Union[Column, str]) -> Column:
     Added in version 0.3.0.
 
     Examples:
-        >>> df = spark.createDataFrame([Row(genotypes=[Row(depth=1), Row(depth=2), Row(depth=3)])], 'genotypes: array<struct<depth: int>>')
+        >>> df = spark.createDataFrame([Row(genotypes=[Row(depth=1), Row(depth=3)])], 'genotypes: array<struct<depth: int>>')
         >>> df.select(glow.expand_struct(glow.dp_summary_stats('genotypes'))).collect()
         [Row(mean=2.0, stdDev=1.0, min=1.0, max=3.0)]
 
@@ -444,8 +444,7 @@ def gq_summary_stats(genotypes: Union[Column, str]) -> Column:
 
     Examples:
         >>> genotypes = [
-        ... Row(conditionalQuality=1), 
-        ... Row(conditionalQuality=2), 
+        ... Row(conditionalQuality=1),
         ... Row(conditionalQuality=3)] 
         >>> df = spark.createDataFrame([Row(genotypes=genotypes)], 'genotypes: array<struct<conditionalQuality: int>>')
         >>> df.select(glow.expand_struct(glow.gq_summary_stats('genotypes'))).collect()
@@ -501,7 +500,6 @@ def sample_dp_summary_stats(genotypes: Union[Column, str]) -> Column:
     Examples:
         >>> sites = [
         ... Row(genotypes=[Row(sampleId='NA12878', depth=1)]),
-        ... Row(genotypes=[Row(sampleId='NA12878', depth=2)]),
         ... Row(genotypes=[Row(sampleId='NA12878', depth=3)])]
         >>> df = spark.createDataFrame(sites, 'genotypes: array<struct<depth: int, sampleId: string>>')
         >>> df.select(glow.sample_dp_summary_stats('genotypes').alias('stats')).collect()
@@ -528,7 +526,6 @@ def sample_gq_summary_stats(genotypes: Union[Column, str]) -> Column:
     Examples:
         >>> sites = [
         ... Row(genotypes=[Row(sampleId='NA12878', conditionalQuality=1)]),
-        ... Row(genotypes=[Row(sampleId='NA12878', conditionalQuality=2)]),
         ... Row(genotypes=[Row(sampleId='NA12878', conditionalQuality=3)])]
         >>> df = spark.createDataFrame(sites, 'genotypes: array<struct<conditionalQuality: int, sampleId: string>>')
         >>> df.select(glow.sample_gq_summary_stats('genotypes').alias('stats')).collect()
