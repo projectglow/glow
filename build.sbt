@@ -16,6 +16,13 @@ lazy val spark3 = "3.0.0"
 lazy val sparkVersion = settingKey[String]("sparkVersion")
 ThisBuild / sparkVersion := sys.env.getOrElse("SPARK_VERSION", spark3)
 
+def majorVersion(version: String): String = {
+  StringUtils.ordinalIndexOf(version, ".", 1) match {
+    case StringUtils.INDEX_NOT_FOUND => version
+    case i => version.take(i)
+  }
+}
+
 def majorMinorVersion(version: String): String = {
   StringUtils.ordinalIndexOf(version, ".", 2) match {
     case StringUtils.INDEX_NOT_FOUND => version
@@ -108,17 +115,22 @@ lazy val functionGenerationSettings = Seq(
     generatorScript.value).map(_.toGlob)
 )
 
-lazy val sparkDependencies = Seq(
+lazy val sparkDependencies = settingKey[Seq[ModuleID]]("sparkDependencies")
+lazy val providedSparkDependencies = settingKey[Seq[ModuleID]]("providedSparkDependencies")
+lazy val testSparkDependencies = settingKey[Seq[ModuleID]]("testSparkDependencies")
+
+ThisBuild / sparkDependencies := Seq(
   "org.apache.spark" %% "spark-catalyst" % sparkVersion.value,
   "org.apache.spark" %% "spark-core" % sparkVersion.value,
   "org.apache.spark" %% "spark-mllib" % sparkVersion.value,
   "org.apache.spark" %% "spark-sql" % sparkVersion.value
 )
 
-lazy val providedSparkDependencies = sparkDependencies.map(_ % "provided")
-lazy val testSparkDependencies = sparkDependencies.map(_ % "test")
+ThisBuild / providedSparkDependencies := sparkDependencies.value.map(_ % "provided")
+ThisBuild / testSparkDependencies := sparkDependencies.value.map(_ % "test")
 
-lazy val testCoreDependencies = Seq(
+lazy val testCoreDependencies = settingKey[Seq[ModuleID]]("testCoreDependencies")
+ThisBuild / testCoreDependencies := Seq(
   "org.scalatest" %% "scalatest" % "3.0.3" % "test",
   "org.mockito" % "mockito-all" % "1.9.5" % "test",
   "org.apache.spark" %% "spark-catalyst" % sparkVersion.value % "test" classifier "tests",
@@ -128,7 +140,8 @@ lazy val testCoreDependencies = Seq(
   "org.xerial" % "sqlite-jdbc" % "3.20.1" % "test"
 )
 
-lazy val coreDependencies = (providedSparkDependencies ++ testCoreDependencies ++ Seq(
+lazy val coreDependencies = settingKey[Seq[ModuleID]]("coreDependencies")
+ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDependencies.value ++ Seq(
   "org.seqdoop" % "hadoop-bam" % "7.9.2",
   "log4j" % "log4j" % "1.2.17",
   "org.slf4j" % "slf4j-api" % "1.7.25",
@@ -160,14 +173,14 @@ lazy val core = (project in file("core"))
   .settings(
     commonSettings,
     functionGenerationSettings,
-    name := s"glow_spark_${sparkVersion.value}_scala",
+    name := s"glow_spark${majorVersion(sparkVersion.value)}_scala",
     publish / skip := false,
     // Adds the Git hash to the MANIFEST file. We set it here instead of relying on sbt-release to
     // do so.
     packageOptions in (Compile, packageBin) +=
     Package.ManifestAttributes("Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
     bintrayRepository := "glow",
-    libraryDependencies ++= coreDependencies :+ scalaLoggingDependency.value,
+    libraryDependencies ++= coreDependencies.value :+ scalaLoggingDependency.value,
     Compile / unmanagedSourceDirectories +=
     baseDirectory.value / "src" / "main" / "shim" / majorMinorVersion(sparkVersion.value),
     Test / unmanagedSourceDirectories +=
@@ -194,7 +207,7 @@ lazy val sparkHome = taskKey[String]("sparkHome")
 lazy val pythonPath = taskKey[String]("pythonPath")
 
 lazy val pythonSettings = Seq(
-  libraryDependencies ++= testSparkDependencies,
+  libraryDependencies ++= testSparkDependencies.value,
   sparkClasspath := (fullClasspath in Test).value.files.map(_.getCanonicalPath).mkString(":"),
   sparkHome := (ThisBuild / baseDirectory).value.absolutePath,
   pythonPath := ((ThisBuild / baseDirectory).value / "python").absolutePath,
@@ -309,7 +322,7 @@ lazy val stagedRelease = (project in file("core/src/test"))
     scalaSource in Test := baseDirectory.value / "scala",
     unmanagedSourceDirectories in Test += baseDirectory.value / "shim" / majorMinorVersion(
       sparkVersion.value),
-    libraryDependencies ++= testSparkDependencies ++ testCoreDependencies :+
+    libraryDependencies ++= testSparkDependencies.value ++ testCoreDependencies.value :+
     "io.projectglow" %% "glow" % stableVersion.value % "test",
     resolvers := Seq("bintray-staging" at "https://dl.bintray.com/projectglow/glow"),
     org
