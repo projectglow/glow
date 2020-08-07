@@ -6,6 +6,7 @@ Glow 0.4 Enables Integration of Genomic Variant and Annotation Data
 | June 9, 2020
 
 .. _`GFF3`: https://github.com/The-Sequence-Ontology/Specifications/blob/master/gff3.md
+
 Glow 0.4 was released on May 20, 2020. This blog focuses on the highlight of this release, the newly introduced capability to ingest genomic annotation data from the `GFF3 (Generic Feature Format Version 3) <https://github.com/The-Sequence-Ontology/Specifications/blob/master/gff3.md>`_ flat file format. This release also includes other feature and usability improvements, which will be briefly reviewed at the end of this blog.
 
 `GFF3`_ is a sequence annotation flat file format proposed by the `Sequence Ontology Project <http://www.sequenceontology.org/>`_ in 2013, which since has become the de facto format for genome annotation and is widely used by genome browsers and databases such as NCBI `RefSeq <https://www.ncbi.nlm.nih.gov/refseq/>`_ and `GenBank <https://www.ncbi.nlm.nih.gov/genbank/>`_. `GFF3`_, a 9-column tab-separated text format, typically carries the majority of the annotation data in the ninth column, called ``attributes``, as a semi-colon-separated list of ``<tag>=<value>`` entries. As a result, although GFF3 files can be read as Spark DataFrames using Spark SQL's standard ``csv`` data source, the schema of the resulting DataFrame would be quite unwieldy for query and data manipulation of annotation data, because the whole list of attribute tag-value pairs for each sequence will appear as a single semi-colon-separated string in the ``attributes`` column of the DataFrame.
@@ -15,7 +16,7 @@ Glow 0.4 adds the new and flexible ``gff`` Spark SQL data source to address this
 .. _gff3_ingest:
 
 Ingesting GFF3 Annotation Data
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Like any other Spark data source, reading GFF3 files using Glow's ``gff`` data source can be done in a single line of code. As an example, we can ingest the annotations of the Homo Sapiens genome assembly GRCh38.p13 from a GFF3 file (obtained from `RefSeq ftp site <https://ftp.ncbi.nlm.nih.gov/genomes/refseq/vertebrate_mammalian/Homo_sapiens/reference/GCF_000001405.39_GRCh38.p13/>`_) as shown below. Here, we have also filtered the annotations to chromosome 22 in order to use the resulting ``annotations_df`` DataFrame (:numref:`fig_annotations_df`) in continuation of our example. The ``annotations_df`` alias is for the same purpose as well.
 
 .. _annotations_df:
@@ -204,11 +205,11 @@ Example Continued: Integration with Variant Data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Glow has :ref:`data sources to ingest variant data <variant_data>` from common flat file formats such as VCF, BGEN, and PLINK. Combining the power of Glow's variant data sources with the new ``gff`` data source, the users can now seamlessly annotate their variant DataFrames by joining them with annotation DataFrames in any desired fashion.
 
-As an example, let us load the chromosome 22 variants of the 1000 Genome Project from a VCF file (obtained from the project's `ftp site <ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/>`_). :numref:`fig_variants_df` shows the resulting ``variants_df``.
+As an example, let us load the chromosome 22 variants of the 1000 Genome Project (on genome assembly GRCh38) from a VCF file (obtained from the project's `ftp site <http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000_genomes_project/release/20190312_biallelic_SNV_and_INDEL/>`_). :numref:`fig_variants_df` shows the resulting ``variants_df``.
 
 .. code-block::
 
-    vcf_path = "/databricks-datasets/genomics/1kg-vcfs/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz"
+    vcf_path = "/databricks-datasets/genomics/1kg-vcfs/ALL.chr22.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz"
 
     variants_df = spark.read \
       .format("vcf") \
