@@ -318,20 +318,20 @@ class LineCtx(text: Text) {
     if (utfStr == null) {
       return null
     }
-    val s = utfStr.toLowerCase.toString
+    val s = utfStr.toLowerCase
 
-    if (s == "nan") {
+    if (s == LineCtx.NAN) {
       Double.NaN
-    } else if (s == "-nan") {
+    } else if (s == LineCtx.NEG_NAN) {
       Double.NaN
-    } else if (s == "+nan") {
+    } else if (s == LineCtx.POS_NAN) {
       Double.NaN
-    } else if (s == "inf") {
+    } else if (s == LineCtx.INF) {
       Double.PositiveInfinity
-    } else if (s == "-inf") {
+    } else if (s == LineCtx.NEG_INF) {
       Double.NegativeInfinity
     } else {
-      s.toDouble
+      s.toString.toDouble
     }
   }
 
@@ -427,4 +427,14 @@ class LineCtx(text: Text) {
       row.update(callsIdx, new GenericArrayData(intList.toArray().asInstanceOf[Array[Any]]))
     }
   }
+}
+
+object LineCtx {
+  val INF = UTF8String.fromString("inf")
+  val POS_INF = UTF8String.fromString("+inf")
+  val NEG_INF = UTF8String.fromString("-inf")
+  val NAN = UTF8String.fromString("nan")
+  val POS_NAN = UTF8String.fromString("+nan")
+  val NEG_NAN = UTF8String.fromString("-nan")
+  val END = UTF8String.fromString("END")
 }

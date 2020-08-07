@@ -152,7 +152,19 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
     val filteredSimpleInterval =
       TabixIndexHelper.makeFilteredInterval(filters, useFilterParser, useIndex)
 
-    val fastReaderEnabled = SQLConf.get.getConf(GlowConf.FAST_VCF_READER_ENABLED)
+    val hasAttributesField =
+      requiredSchema.exists(
+        SQLUtils.structFieldsEqualExceptNullability(_, VariantSchemas.attributesField))
+    val hasOtherFields =
+      InternalRowToVariantContextConverter.getGenotypeSchema(requiredSchema) match {
+        case None => false
+        case Some(schema) =>
+          schema.exists(
+            SQLUtils.structFieldsEqualExceptNullability(_, VariantSchemas.otherFieldsField))
+      }
+    val fastReaderEnabled = SQLConf
+        .get
+        .getConf(GlowConf.FAST_VCF_READER_ENABLED) && !hasAttributesField && !hasOtherFields
     partitionedFile => {
       val path = new Path(partitionedFile.filePath)
       val hadoopFs = path.getFileSystem(serializableConf.value)
