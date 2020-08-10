@@ -291,7 +291,7 @@ def __assert_all_present(df: pd.DataFrame, name: str) -> None:
 @typechecked
 def __check_standardized(df: pd.DataFrame, name: str) -> None:
     """
-    Warns if any column of a pandas DataFrame is not standardized to zero mean and unit (biased) standard deviation.
+    Warns if any column of a pandas DataFrame is not standardized to zero mean and unit (unbiased) standard deviation.
 
     Args:
         df : Pandas DataFrame
@@ -300,7 +300,7 @@ def __check_standardized(df: pd.DataFrame, name: str) -> None:
         if not math.isclose(mean, 0, abs_tol=1e-9):
             warnings.warn(f"Mean for the {name} dataframe's column {label} should be 0, is {mean}",
                           UserWarning)
-    for label, std in df.std(ddof=0).items():
+    for label, std in df.std().items():
         if not math.isclose(std, 1, abs_tol=0.01):
             warnings.warn(
                 f"Standard deviation for the {name} dataframe's column {label} should be approximately 1, is {std}",
