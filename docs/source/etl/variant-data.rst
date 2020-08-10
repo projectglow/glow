@@ -64,6 +64,9 @@ You can control the behavior of the VCF reader with a few parameters. All parame
 | ``flattenInfoFields``    | boolean | ``true``    | If true, each info field in the input VCF will be converted into a column in the output DataFrame with each column typed as specified in the VCF header.|
 |                          |         |             | If false, all info fields will be contained in a single column with a string -> string map of info keys to values.                                      |
 +--------------------------+---------+-------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
+| ``validationStringency`` | string  | ``silent``  | Controls the behavior when parsing a malformed row. If ``silent``, the row will be dropped silently. If ``lenient``, the row will be dropped and a      |
+|                          |         |             | warning will be logged. If ``strict``, an exception will be thrown and reading will fail.                                                               |
++--------------------------+---------+-------------+---------------------------------------------------------------------------------------------------------------------------------------------------------+
 
 .. note::
 
@@ -114,15 +117,19 @@ To control the behavior of the sharded VCF writer, you can provide the following
 |                 |        |         | (for example ``GzipCodec``) or a short alias (for example ``gzip``). To use the block gzip codec, specify ``bgzf``.|
 +-----------------+--------+---------+--------------------------------------------------------------------------------------------------------------------+
 
-For both the single and sharded VCF writer, you can use the following option to determine the header:
+For both the single and sharded VCF writer, you can use the following options:
 
-+-----------------+--------+-------------+--------------------------------------------------------------------------------------------------------------------+
-| Parameter       | Type   | Default     | Description                                                                                                        |
-+=================+========+=============+====================================================================================================================+
-| ``vcfHeader``   | string | ``infer``   | If ``infer``, infers the header from the DataFrame schema. This value can be a complete header                     |
-|                 |        |             | starting with ``##`` or a Hadoop filesystem path to a VCF file. The header from                                    |
-|                 |        |             | this file is used as the VCF header for each partition.                                                            |
-+-----------------+--------+-------------+--------------------------------------------------------------------------------------------------------------------+
++--------------------------+--------+-------------+--------------------------------------------------------------------------------------------------------------------+
+| Parameter                | Type   | Default     | Description                                                                                                        |
++==========================+========+=============+====================================================================================================================+
+| ``vcfHeader``            | string | ``infer``   | If ``infer``, infers the header from the DataFrame schema. This value can be a complete header                     |
+|                          |        |             | starting with ``##`` or a Hadoop filesystem path to a VCF file. The header from                                    |
+|                          |        |             | this file is used as the VCF header for each partition.                                                            |
++--------------------------+--------+-------------+--------------------------------------------------------------------------------------------------------------------+
+| ``validationStringency`` | string | ``silent``  | Controls the behavior when parsing a malformed row. If ``silent``, the row will be dropped silently. If            |
+|                          |        |             | ``lenient``, the row will be dropped and a warning will be logged. If ``strict``, an exception will be thrown and  |
+|                          |        |             | writing will fail.                                                                                                 |
++--------------------------+--------+-------------+--------------------------------------------------------------------------------------------------------------------+
 
 .. _infer-vcf-samples:
 
