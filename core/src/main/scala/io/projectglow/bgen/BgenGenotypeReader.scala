@@ -22,6 +22,7 @@ import java.util.zip.Inflater
 import com.github.luben.zstd.{Zstd => ZstdCodec}
 
 trait BgenGenotypeReader {
+
   /**
    * Read genotypes from a BGEN [[DataInput]] into a byte array. Returns the uncompressed genotype bytes.
    * Note that the genotypes returned are still encoded using the standard BGEN encoding scheme.
