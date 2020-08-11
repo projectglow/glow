@@ -25,7 +25,6 @@ labeldf = pd.read_csv(f'{data_root}/binary_phenotypes.csv').set_index('sample_id
 labeldf.index = labeldf.index.astype(str, copy=False)
 covdf = pd.read_csv(f'{data_root}/cov.csv').set_index('sample_id')
 covdf.index = covdf.index.astype(str, copy=False)
-covdf.insert(0, 'intercept', 1)
 alpha_values = np.array([10, 30, 100])
 alphas = {f'alpha_{i}': a for i, a in enumerate(alpha_values)}
 test_sample_block = '1'
@@ -34,6 +33,9 @@ test_alpha = 'alpha_0'
 
 
 def test_map_irls_eqn(spark):
+    covdf = pd.read_csv(f'{data_root}/cov.csv').set_index('sample_id')
+    covdf.index = covdf.index.astype(str, copy=False)
+    covdf.insert(0, 'intercept', 1)
     lvl1df = spark.read.parquet(f'{data_root}/bt_reduceded_1part.snappy.parquet')
     sample_blocks_df = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet') \
         .withColumn('sample_block', f.col('sample_block').cast('string')) \
@@ -65,6 +67,9 @@ def test_map_irls_eqn(spark):
 
 
 def test_reduce_irls_eqn(spark):
+    covdf = pd.read_csv(f'{data_root}/cov.csv').set_index('sample_id')
+    covdf.index = covdf.index.astype(str, copy=False)
+    covdf.insert(0, 'intercept', 1)
     lvl1df = spark.read.parquet(f'{data_root}/bt_reduceded_1part.snappy.parquet')
     sample_blocks_df = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet') \
         .withColumn('sample_block', f.col('sample_block').cast('string')) \
@@ -105,6 +110,9 @@ def test_reduce_irls_eqn(spark):
 
 
 def test_solve_irls_eqn(spark):
+    covdf = pd.read_csv(f'{data_root}/cov.csv').set_index('sample_id')
+    covdf.index = covdf.index.astype(str, copy=False)
+    covdf.insert(0, 'intercept', 1)
     lvl1df = spark.read.parquet(f'{data_root}/bt_reduceded_1part.snappy.parquet')
     sample_blocks_df = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet') \
         .withColumn('sample_block', f.col('sample_block').cast('string')) \
@@ -154,6 +162,9 @@ def test_solve_irls_eqn(spark):
 
 
 def test_score_logistic_model(spark):
+    covdf = pd.read_csv(f'{data_root}/cov.csv').set_index('sample_id')
+    covdf.index = covdf.index.astype(str, copy=False)
+    covdf.insert(0, 'intercept', 1)
     lvl1df = spark.read.parquet(f'{data_root}/bt_reduceded_1part.snappy.parquet')
     sample_blocks_df = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet') \
         .withColumn('sample_block', f.col('sample_block').cast('string')) \
@@ -212,6 +223,8 @@ def test_score_logistic_model(spark):
 
 
 def test_logistic_regression_fit(spark):
+    covdf = pd.read_csv(f'{data_root}/cov.csv').set_index('sample_id')
+    covdf.index = covdf.index.astype(str, copy=False)
     lvl1df = spark.read.parquet(f'{data_root}/bt_reduceded_1part.snappy.parquet')
     sample_blocks_df = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet') \
         .withColumn('sample_block', f.col('sample_block').cast('string')) \
@@ -233,6 +246,8 @@ def test_logistic_regression_fit(spark):
 
 
 def test_logistic_regression_transform(spark):
+    covdf = pd.read_csv(f'{data_root}/cov.csv').set_index('sample_id')
+    covdf.index = covdf.index.astype(str, copy=False)
     lvl1df = spark.read.parquet(f'{data_root}/bt_reduceded_1part.snappy.parquet')
     sample_blocks_df = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet') \
         .withColumn('sample_block', f.col('sample_block').cast('string')) \
@@ -250,6 +265,8 @@ def test_logistic_regression_transform(spark):
 
 
 def test_logistic_regression_predict_proba(spark):
+    covdf = pd.read_csv(f'{data_root}/cov.csv').set_index('sample_id')
+    covdf.index = covdf.index.astype(str, copy=False)
     lvl1df = spark.read.parquet(f'{data_root}/bt_reduceded_1part.snappy.parquet')
     sample_blocks_df = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet') \
         .withColumn('sample_block', f.col('sample_block').cast('string')) \
@@ -260,13 +277,15 @@ def test_logistic_regression_predict_proba(spark):
 
     logreg = LogisticRegression(alpha_values)
     modeldf, cvdf = logreg.fit(lvl1df, labeldf, sample_blocks, covdf)
-    prob_df = logreg.predict_proba(lvl1df, labeldf, sample_blocks, modeldf, cvdf, covdf)
+    prob_df = logreg.transform(lvl1df, labeldf, sample_blocks, modeldf, cvdf, covdf, response='sigmoid')
     prob_glow = prob_df[test_label].to_numpy()
 
     assert (np.allclose(np.array(test_values['prob']), prob_glow))
 
 
 def test_logistic_regression_fit_transform(spark):
+    covdf = pd.read_csv(f'{data_root}/cov.csv').set_index('sample_id')
+    covdf.index = covdf.index.astype(str, copy=False)
     lvl1df = spark.read.parquet(f'{data_root}/bt_reduceded_1part.snappy.parquet')
     sample_blocks_df = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet') \
         .withColumn('sample_block', f.col('sample_block').cast('string')) \

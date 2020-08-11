@@ -433,6 +433,21 @@ def __check_standardized(df: pd.DataFrame, name: str) -> None:
 
 
 @typechecked
+def __check_binary(df: pd.DataFrame) -> None:
+    """
+    Warns if any column of a pandas DataFrame is not a binary value equal to 0 or 1.
+
+    Args:
+        df : Pandas DataFrame
+    """
+    for label in df:
+        unique_vals = np.sort(df[label].unique()).tolist()
+        if unique_vals != [0.0, 1.0]:
+            warnings.warn(f"Column {label} is not binary (unique vals found: {unique_vals})",
+                          UserWarning)
+
+
+@typechecked
 def validate_inputs(labeldf: pd.DataFrame, covdf: pd.DataFrame, label_type='continuous') -> None:
     """
     Performs basic input validation on the label and covariates pandas DataFrames. The label DataFrame cannot have
@@ -446,17 +461,11 @@ def validate_inputs(labeldf: pd.DataFrame, covdf: pd.DataFrame, label_type='cont
     """
     __assert_all_present(labeldf, 'label')
     __assert_all_present(covdf, 'covariate')
+    __check_standardized(covdf, 'covariate')
     if label_type == 'continuous':
         __check_standardized(labeldf, 'label')
-        __check_standardized(covdf, 'covariate')
     elif label_type == 'binary':
-        check_for_intercept = (covdf.columns[0] == 'intercept' and
-                               covdf.to_numpy()[:, 0].std() == 0 and
-                               covdf.to_numpy()[:, 0].mean() == 1)
-        if not check_for_intercept:
-            warnings.warn(
-                f"First column of covariate DataFrame should be a constant column = 1 called 'intercept'",
-                UserWarning)
+        __check_binary(labeldf)
     else:
         raise ValueError(f'label_type should be either "continuous" or "binary", found {label_type}')
 

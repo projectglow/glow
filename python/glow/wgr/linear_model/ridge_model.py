@@ -164,7 +164,7 @@ class RidgeReducer:
 @typechecked
 class RidgeRegression:
     """
-    The RidgeRegression class is used to fit ridge models against one or labels optimized over a provided list of
+    The RidgeRegression class is used to fit ridge models against one or more labels optimized over a provided list of
     ridge alpha parameters.  It is similar in function to RidgeReducer except that whereas RidgeReducer attempts to
     reduce a starting matrix X to a block matrix of smaller dimension, RidgeRegression is intended to find an optimal
     model of the form Y_hat ~ XB, where Y_hat is a matrix of one or more predicted labels and B is a matrix of

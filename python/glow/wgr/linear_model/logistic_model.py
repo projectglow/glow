@@ -25,7 +25,7 @@ from glow.logging import record_hls_event
 @typechecked
 class LogisticRegression:
     """
-    The LogisticRegression class is used to fit logistic regression models against one or labels optimized over a
+    The LogisticRegression class is used to fit logistic regression models against one or more labels optimized over a
     provided list of ridge alpha parameters. The optimal ridge alpha value is chosen for each label by minimizing the
     average out of fold log_loss scores.
     """
@@ -52,13 +52,16 @@ class LogisticRegression:
             labeldf : Pandas DataFrame containing the target labels used in fitting the ridge models
             sample_blocks : Dict containing a mapping of sample_block ID to a list of corresponding sample IDs
             covdf : Pandas DataFrame containing covariates to be included in every model in the stacking
-                ensemble (optional).
+                ensemble (optional).  The covariates should not include an explicit intercept term, as one will be
+                added automatically.
 
         Returns:
             Two Spark DataFrames, one containing the model resulting from the fitting routine and one containing the
             results of the cross validation procedure.
         """
+        covdf = covdf.copy()
         validate_inputs(labeldf, covdf, 'binary')
+        covdf.insert(0, 'intercept', 1)
         map_key_pattern = ['sample_block', 'label', 'alpha_name']
         reduce_key_pattern = ['header_block', 'header', 'label', 'alpha_name']
         model_key_pattern = ['sample_block', 'label', 'alpha_name']
@@ -122,7 +125,8 @@ class LogisticRegression:
             cvdf : Spark DataFrame produced by the LogisticRegression fit method, containing the results of the cross
             validation routine.
             covdf : Pandas DataFrame containing covariates to be included in every model in the stacking
-                ensemble.
+                ensemble.  The covariates should not include an explicit intercept term, as one will be
+                added automatically.
             response : String specifying what transformation to apply ("linear" or "sigmoid")
 
         Returns:
@@ -153,9 +157,9 @@ class LogisticRegression:
             .apply(transform_udf) \
             .join(cvdf, ['label', 'alpha'], 'inner')
 
-    def transform(self, blockdf: DataFrame, labeldf: pd.DataFrame, sample_blocks: Dict[str,
-                                                                                       List[str]],
-                  modeldf: DataFrame, cvdf: DataFrame) -> pd.DataFrame:
+    def transform(self, blockdf: DataFrame, labeldf: pd.DataFrame,
+                  sample_blocks: Dict[str, List[str]], modeldf: DataFrame, cvdf: DataFrame,
+                  covdf: pd.DataFrame = pd.DataFrame({}), response: str = 'linear') -> pd.DataFrame:
         """
         Generates GWAS covariates for the target labels in the provided label DataFrame by applying the model resulting
         from the LogisticRegression fit method to the starting block matrix.
@@ -167,59 +171,84 @@ class LogisticRegression:
             modeldf : Spark DataFrame produced by the LogisticRegression fit method, representing the reducer model
             cvdf : Spark DataFrame produced by the LogisticRegression fit method, containing the results of the cross
             validation routine.
+            covdf : Pandas DataFrame containing covariates to be included in every model in the stacking
+                ensemble (optional). The covariates should not include an explicit intercept term, as one will be
+                added automatically.
+            response : String specifying the desired output.  Can be 'linear' to specify the direct output of the linear
+                WGR model (default) or 'sigmoid' to specify predicted label probabilities.
 
         Returns:
             Pandas DataFrame containing  covariate values. The shape and order match labeldf such that the
             rows are indexed by sample ID and the columns by label. The column types are float64.
         """
-        block_prediction_df = self.reduce_block_matrix(blockdf,
-                                                       labeldf,
-                                                       sample_blocks,
-                                                       modeldf,
-                                                       cvdf,
-                                                       covdf=pd.DataFrame({}),
-                                                       response='linear')
-        pivoted_df = flatten_prediction_df(block_prediction_df, sample_blocks, labeldf)
+        if not covdf.empty:
+            covdf = covdf.copy()
+            validate_inputs(labeldf, covdf, 'binary')
+            covdf.insert(0, 'intercept', 1)
+        else:
+            validate_inputs(labeldf, covdf, 'binary')
 
-        record_hls_event('wgrLogisticRegressionTransform')
-
-        return pivoted_df
-
-    def predict_proba(self, blockdf: DataFrame, labeldf: pd.DataFrame,
-                      sample_blocks: Dict[str, List[str]], modeldf: DataFrame, cvdf: DataFrame,
-                      covdf: pd.DataFrame) -> pd.DataFrame:
-        """
-        Generates predicted probabilities for the target labels in the provided label DataFrame by applying the model resulting
-        from the LogisticRegression fit method to the starting block matrix.
-
-        Args:
-            blockdf : Spark DataFrame representing the beginning block matrix X
-            labeldf : Pandas DataFrame containing the target labels used in fitting the ridge models
-            sample_blocks : Dict containing a mapping of sample_block ID to a list of corresponding sample IDs
-            modeldf : Spark DataFrame produced by the LogisticRegression fit method, representing the reducer model
-            cvdf : Spark DataFrame produced by the LogisticRegression fit method, containing the results of the cross
-            validation routine.
-
-        Returns:
-            Pandas DataFrame containing  covariate values. The shape and order match labeldf such that the
-            rows are indexed by sample ID and the columns by label. The column types are float64.
-        """
-        validate_inputs(labeldf, covdf, 'binary')
         block_prediction_df = self.reduce_block_matrix(blockdf,
                                                        labeldf,
                                                        sample_blocks,
                                                        modeldf,
                                                        cvdf,
                                                        covdf,
-                                                       response='sigmoid')
+                                                       response)
         pivoted_df = flatten_prediction_df(block_prediction_df, sample_blocks, labeldf)
 
-        record_hls_event('wgrLogisticRegressionPredictProba')
+        record_hls_event('wgrLogisticRegressionTransform')
 
         return pivoted_df
 
+    def transform_loco(self,
+                       blockdf: DataFrame,
+                       labeldf: pd.DataFrame,
+                       sample_blocks: Dict[str, List[str]],
+                       modeldf: DataFrame,
+                       cvdf: DataFrame,
+                       covdf: pd.DataFrame = pd.DataFrame({}),
+                       response: str = 'linear',
+                       chromosomes: List[str] = []) -> pd.DataFrame:
+        """
+        Generates predictions for the target labels in the provided label DataFrame by applying the model resulting from
+        the RidgeRegression fit method to the starting block matrix using a leave-one-chromosome-out (LOCO) approach.
+
+        Args:
+            blockdf : Spark DataFrame representing the beginning block matrix X
+            labeldf : Pandas DataFrame containing the target labels used in fitting the ridge models
+            sample_blocks : Dict containing a mapping of sample_block ID to a list of corresponding sample IDs
+            modeldf : Spark DataFrame produced by the RidgeRegression fit method, representing the reducer model
+            cvdf : Spark DataFrame produced by the RidgeRegression fit method, containing the results of the cross
+            validation routine.
+            covdf : covdf : Pandas DataFrame containing covariates to be included in every model in the stacking
+                ensemble (optional). The covariates should not include an explicit intercept term, as one will be
+                added automatically.
+            response : String specifying the desired output.  Can be 'linear' to specify the direct output of the linear
+                WGR model (default) or 'sigmoid' to specify predicted label probabilities.
+            chromosomes : List of chromosomes for which to generate a prediction (optional). If not provided, the
+            chromosomes will be inferred from the block matrix.
+
+        Returns:
+            Pandas DataFrame containing prediction y_hat values per chromosome. The rows are indexed by sample ID and
+            chromosome; the columns are indexed by label. The column types are float64. The DataFrame is sorted using
+            chromosome as the primary sort key, and sample ID as the secondary sort key.
+        """
+        loco_chromosomes = chromosomes if chromosomes else infer_chromosomes(blockdf)
+        loco_chromosomes.sort()
+
+        all_y_hat_df = pd.DataFrame({})
+        for chromosome in loco_chromosomes:
+            loco_model_df = modeldf.filter(
+                ~f.col('header').rlike(f'^chr_{chromosome}_(alpha|block)'))
+            loco_y_hat_df = self.transform(blockdf, labeldf, sample_blocks, loco_model_df, cvdf, covdf, response)
+            loco_y_hat_df['contigName'] = chromosome
+            all_y_hat_df = all_y_hat_df.append(loco_y_hat_df)
+        return all_y_hat_df.set_index('contigName', append=True)
+
     def fit_transform(self, blockdf: DataFrame, labeldf: pd.DataFrame,
-                      sample_blocks: Dict[str, List[str]], covdf: pd.DataFrame) -> pd.DataFrame:
+                      sample_blocks: Dict[str, List[str]], covdf: pd.DataFrame = pd.DataFrame({}),
+                      response: str = 'linear') -> pd.DataFrame:
         """
         Fits a logistic regression model with a block matrix, then transforms the matrix using the model.
 
@@ -228,11 +257,18 @@ class LogisticRegression:
             labeldf : Pandas DataFrame containing the target labels used in fitting the ridge models
             sample_blocks : Dict containing a mapping of sample_block ID to a list of corresponding sample IDs
             covdf : Pandas DataFrame containing covariates to be included in every model in the stacking
-                ensemble (optional).
+                ensemble (optional). The covariates should not include an explicit intercept term, as one will be
+                added automatically.
+            response : String specifying the desired output.  Can be 'linear' to specify the direct output of the linear
+                WGR model (default) or 'sigmoid' to specify predicted label probabilities.
 
         Returns:
             Pandas DataFrame containing prediction y_hat values. The shape and order match labeldf such that the
             rows are indexed by sample ID and the columns by label. The column types are float64.
         """
         modeldf, cvdf = self.fit(blockdf, labeldf, sample_blocks, covdf)
-        return self.transform(blockdf, labeldf, sample_blocks, modeldf, cvdf)
+        if response == 'linear':
+            return self.transform(blockdf, labeldf, sample_blocks, modeldf, cvdf, pd.DataFrame({}), response)
+        else:
+            return self.transform(blockdf, labeldf, sample_blocks, modeldf, cvdf, covdf, response)
+
