@@ -84,7 +84,7 @@ private[projectglow] class BgenFileIterator(
     val nAlleles = stream.readUnsignedShort()
     val alleles = (1 to nAlleles).map(_ => readUTF8String(stream, lengthAsInt = true))
 
-    val genotypeBytes = genotypeReader.readGenotypes(stream)
+    val genotypeBytes = genotypeReader.readGenotypeBlock(stream)
     val rawGenotypeStream = new DataInputStream(new ByteArrayInputStream(genotypeBytes))
     val genotypeStream = new LittleEndianDataInputStream(rawGenotypeStream)
     val genotypes = readGenotypes(nAlleles, genotypeStream, metadata.sampleIds)
@@ -341,6 +341,7 @@ private[projectglow] class BgenHeaderReader(stream: LittleEndianDataInputStream)
       case n => throw new IllegalArgumentException(s"Unsupported compression setting: $n")
     }
     val layoutType = flags >> 2 & 15
+    require(layoutType == 2, "Only BGEN files with layout type 2 are supported")
     val hasSampleIds = flags >> 31 & 1
 
     val base =
