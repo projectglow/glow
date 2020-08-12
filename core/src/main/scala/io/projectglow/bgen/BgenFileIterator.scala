@@ -60,6 +60,8 @@ private[projectglow] class BgenFileIterator(
 
   import BgenFileIterator._
 
+  private val genotypeReader = BgenGenotypeReader.fromCompressionType(metadata.compressionType)
+
   def init(): Unit = {
     while (underlyingStream.getPos < minPos) {
       skipVariantBlock()
@@ -82,18 +84,8 @@ private[projectglow] class BgenFileIterator(
     val nAlleles = stream.readUnsignedShort()
     val alleles = (1 to nAlleles).map(_ => readUTF8String(stream, lengthAsInt = true))
 
-    val genotypesLen = stream.readInt() - 4
-    val uncompressedGenotypesLen = stream.readInt()
-    val compressedBytes = new Array[Byte](genotypesLen)
-    val uncompressedBytes = new Array[Byte](uncompressedGenotypesLen)
-
-    // Uncompress probability info
-    stream.readFully(compressedBytes)
-    val inflater = new Inflater()
-    inflater.setInput(compressedBytes)
-    inflater.inflate(uncompressedBytes)
-
-    val rawGenotypeStream = new DataInputStream(new ByteArrayInputStream(uncompressedBytes))
+    val genotypeBytes = genotypeReader.readGenotypeBlock(stream)
+    val rawGenotypeStream = new DataInputStream(new ByteArrayInputStream(genotypeBytes))
     val genotypeStream = new LittleEndianDataInputStream(rawGenotypeStream)
     val genotypes = readGenotypes(nAlleles, genotypeStream, metadata.sampleIds)
 
@@ -342,12 +334,18 @@ private[projectglow] class BgenHeaderReader(stream: LittleEndianDataInputStream)
     stream.readFully(freeData)
 
     val flags = stream.readInt()
-    val compressionType = flags & 3
-    require(compressionType == 1, "Only zlib compression is supported")
+    val compressionType = flags & 3 match {
+      case 0 => SnpBlockCompression.None
+      case 1 => SnpBlockCompression.Zlib
+      case 2 => SnpBlockCompression.Zstd
+      case n => throw new IllegalArgumentException(s"Unsupported compression setting: $n")
+    }
     val layoutType = flags >> 2 & 15
+    require(layoutType == 2, "Only BGEN files with layout type 2 are supported")
     val hasSampleIds = flags >> 31 & 1
 
-    val base = BgenMetadata(variantOffset, nSamples, nVariantBlocks, layoutType, Zlib, None)
+    val base =
+      BgenMetadata(variantOffset, nSamples, nVariantBlocks, layoutType, compressionType, None)
 
     if (hasSampleIds == 1) {
       addSampleIdsFromHeader(headerLength, base)
@@ -394,6 +392,7 @@ private[projectglow] class BgenHeaderReader(stream: LittleEndianDataInputStream)
 
     base.copy(sampleIds = Some(sampleIds.toArray))
   }
+
 }
 
 private[projectglow] case class BgenMetadata(
@@ -401,9 +400,12 @@ private[projectglow] case class BgenMetadata(
     nSamples: Long,
     nVariantBlocks: Long,
     layoutType: Int,
-    compressionType: SNPBlockCompression,
+    compressionType: SnpBlockCompression,
     sampleIds: Option[Array[String]])
 
-sealed trait SNPBlockCompression
-case object Zlib extends SNPBlockCompression
-case object Zstd extends SNPBlockCompression
+sealed trait SnpBlockCompression
+object SnpBlockCompression {
+  case object None extends SnpBlockCompression
+  case object Zlib extends SnpBlockCompression
+  case object Zstd extends SnpBlockCompression
+}

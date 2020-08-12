@@ -401,4 +401,12 @@ class BgenReaderSuite extends GlowBaseTest {
       .load(s"$testRoot/example.16bits*.bgen")
     assert(!hasSampleIdField(df.schema))
   }
+
+  test("read zstd compressed file") {
+    compareBgenToVcf(s"$testRoot/example.8bits.zstd.bgen", s"$testRoot/example.8bits.vcf")
+  }
+
+  test("read uncompressed file") {
+    compareBgenToVcf(s"$testRoot/example.8bits.uncompressed.bgen", s"$testRoot/example.8bits.vcf")
+  }
 }
