@@ -128,6 +128,7 @@ and in Scala as well, assuming ``original_variant_df`` is defined in Scala:
       "/mnt/dbnucleus/dbgenomics/grch38/data/GRCh38_full_analysis_set_plus_decoy_hla.fa"
     )
   )
+
 The result of any of the above commands will be the same as :numref:`fignormnorepdf`.
 
 
