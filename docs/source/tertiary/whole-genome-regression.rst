@@ -76,6 +76,7 @@ Example
     import pandas as pd
 
     label_df = pd.read_csv(continuous_phenotypes_csv, index_col='sample_id')
+    label_df = label_df.fillna(label_df.mean())
     label_df = ((label_df - label_df.mean())/label_df.std())[['Continuous_Trait_1', 'Continuous_Trait_2']]
 
 Covariate data
@@ -91,6 +92,7 @@ Example
 .. code-block:: python
 
     covariates = pd.read_csv(covariates_csv, index_col='sample_id')
+    covariates = covariates.fillna(covariates.mean())
     covariates = (covariates - covariates.mean())/covariates.std()
 
 ------------------------
