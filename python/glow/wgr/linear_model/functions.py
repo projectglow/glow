@@ -259,7 +259,7 @@ def create_alpha_dict(alphas: NDArray[(Any, ), Float]) -> Dict[str, Float]:
 @typechecked
 def generate_alphas(blockdf: DataFrame) -> Dict[str, Float]:
     """
-    Generates alpha values using a range of heritability values and the number of headers.
+    Generates alpha values using a range of heritability values and the number of distinct headers (without labels).
 
     Args:
         blockdf : Spark DataFrame representing a block matrix
@@ -268,9 +268,9 @@ def generate_alphas(blockdf: DataFrame) -> Dict[str, Float]:
     Returns:
         Dict of [alpha names, alpha values]
     """
-    num_headers = blockdf.select('header').distinct().count()
+    num_label_free_headers = blockdf.select(f.regexp_extract('header', r"^(.+?)(_label)?", 1)).distinct().count()
     heritability_vals = [0.99, 0.75, 0.50, 0.25, 0.01]
-    alphas = np.array([num_headers / h for h in heritability_vals])
+    alphas = np.array([num_label_free_headers / h for h in heritability_vals])
     print(f"Generated alphas: {alphas}")
     return create_alpha_dict(alphas)
 
