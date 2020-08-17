@@ -59,15 +59,17 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
       sparkSession: SparkSession,
       options: Map[String, String],
       path: Path): Boolean = {
-    if (codecFactory == null) {
-      codecFactory = new CompressionCodecFactory(
-        VCFFileFormat.hadoopConfWithBGZ(sparkSession.sessionState.newHadoopConf())
-      )
-    }
+    super.isSplitable(sparkSession, options, path) || {
+      if (codecFactory == null) {
+        codecFactory = new CompressionCodecFactory(
+          VCFFileFormat.hadoopConfWithBGZ(sparkSession.sessionState.newHadoopConf())
+        )
+      }
 
-    // Note: we check if a file is gzipped vs block gzipped during reading, so this will be true
-    // for .gz files even if they aren't actually splittable
-    codecFactory.getCodec(path).isInstanceOf[SplittableCompressionCodec]
+      // Note: we check if a file is gzipped vs block gzipped during reading, so this will be true
+      // for .gz files even if they aren't actually splittable
+      codecFactory.getCodec(path).isInstanceOf[SplittableCompressionCodec]
+    }
   }
 
   override def inferSchema(
