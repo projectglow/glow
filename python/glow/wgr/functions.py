@@ -109,13 +109,13 @@ def block_variants_and_samples(variant_df: DataFrame, sample_ids: List[str],
         tuple of (blocked GT matrix, index mapping)
     """
     assert check_argument_types()
-    distinct_num_values = variant_df.selectExpr("size(values) as numValues").distinct()
-    distinct_num_values_count = distinct_num_values.count()
+    num_values_df = variant_df.selectExpr("size(values) as numValues")
+    distinct_num_values_count = num_values_df.distinct().count()
     if distinct_num_values_count == 0:
         raise Exception("DataFrame has no values.")
     if distinct_num_values_count > 1:
         raise Exception("Each row must have the same number of values.")
-    num_values = distinct_num_values.head().numValues
+    num_values = num_values_df.take(1)[0].numValues
     if num_values != len(sample_ids):
         raise Exception("Number of values does not match between DataFrame and sample ID list.")
     __validate_sample_ids(sample_ids)

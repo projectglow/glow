@@ -309,6 +309,8 @@ class RidgeRegression:
             .join(sample_block_df, ['sample_block', 'idx'], 'inner') \
             .select('sample_id', 'label', 'value')
 
+        flattened_prediction_df.explain()
+
         pivoted_df = flattened_prediction_df.toPandas() \
             .pivot(index='sample_id', columns='label', values='value') \
             .reindex(index=labeldf.index, columns=labeldf.columns)
@@ -347,6 +349,8 @@ class RidgeRegression:
             chromosome as the primary sort key, and sample ID as the secondary sort key.
         """
         loco_chromosomes = chromosomes if chromosomes else infer_chromosomes(blockdf)
+        if not len(loco_chromosomes) > 1:
+            raise Exception('Must have more than one chromosome to use transform_loco.')
         loco_chromosomes.sort()
 
         all_y_hat_df = pd.DataFrame({})
