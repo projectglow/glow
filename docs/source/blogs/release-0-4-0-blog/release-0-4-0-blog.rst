@@ -205,11 +205,11 @@ Example Continued: Integration with Variant Data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Glow has :ref:`data sources to ingest variant data <variant_data>` from common flat file formats such as VCF, BGEN, and PLINK. Combining the power of Glow's variant data sources with the new ``gff`` data source, the users can now seamlessly annotate their variant DataFrames by joining them with annotation DataFrames in any desired fashion.
 
-As an example, let us load the chromosome 22 variants of the 1000 Genome Project from a VCF file (obtained from the project's `ftp site <ftp://ftp.1000genomes.ebi.ac.uk/vol1/ftp/release/20130502/>`_). :numref:`fig_variants_df` shows the resulting ``variants_df``.
+As an example, let us load the chromosome 22 variants of the 1000 Genome Project (on genome assembly GRCh38) from a VCF file (obtained from the project's `ftp site <http://ftp.1000genomes.ebi.ac.uk/vol1/ftp/data_collections/1000_genomes_project/release/20190312_biallelic_SNV_and_INDEL/>`_). :numref:`fig_variants_df` shows the resulting ``variants_df``.
 
 .. code-block::
 
-    vcf_path = "/databricks-datasets/genomics/1kg-vcfs/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz"
+    vcf_path = "/databricks-datasets/genomics/1kg-vcfs/ALL.chr22.shapeit2_integrated_snvindels_v2a_27022019.GRCh38.phased.vcf.gz"
 
     variants_df = spark.read \
       .format("vcf") \
