@@ -29,7 +29,8 @@ private[projectglow] object VariantSampleBlockMaker extends GlowLogging {
 
   def validateNumValues(df: DataFrame): DataFrame = {
     import df.sparkSession.implicits._
-    val expectedNumValues = df.selectExpr("size(values) as numValues").take(1)(0).getAs[Int]("numValues")
+    val expectedNumValues =
+      df.selectExpr("size(values) as numValues").take(1)(0).getAs[Int]("numValues")
     df.filter(expr(s"isnull(assert_true(size(values) = $expectedNumValues))"))
   }
 
