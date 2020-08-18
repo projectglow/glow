@@ -66,13 +66,14 @@ def test_no_values(spark):
 
 
 def test_inconsistent_num_values(spark):
-    variant_df = spark.createDataFrame([__construct_row([0, 1]), __construct_row([1, 1, 2])])
+    variant_df = spark.createDataFrame([__construct_row([0, 1, 1]), __construct_row([1, 2])])
     sample_ids = ["a", "b", "c"]
+    block_df, index_map = functions.block_variants_and_samples(variant_df,
+                                                               sample_ids,
+                                                               variants_per_block=10,
+                                                               sample_block_count=2)
     with pytest.raises(Exception):
-        functions.block_variants_and_samples(variant_df,
-                                             sample_ids,
-                                             variants_per_block=10,
-                                             sample_block_count=2)
+        block_df.collect() # Number of values is checked lazily within the transformer
 
 
 def test_mismatch_num_values_sample_ids(spark):

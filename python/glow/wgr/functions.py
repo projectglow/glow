@@ -109,15 +109,14 @@ def block_variants_and_samples(variant_df: DataFrame, sample_ids: List[str],
         tuple of (blocked GT matrix, index mapping)
     """
     assert check_argument_types()
-    num_values_df = variant_df.selectExpr("size(values) as numValues")
-    distinct_num_values_count = num_values_df.distinct().count()
-    if distinct_num_values_count == 0:
+    first_row = variant_df.selectExpr("size(values) as numValues").take(1)
+    if not first_row:
         raise Exception("DataFrame has no values.")
-    if distinct_num_values_count > 1:
-        raise Exception("Each row must have the same number of values.")
-    num_values = num_values_df.take(1)[0].numValues
+    num_values = first_row[0].numValues
     if num_values != len(sample_ids):
-        raise Exception("Number of values does not match between DataFrame and sample ID list.")
+        raise Exception(
+            f"Number of values does not match between DataFrame ({num_values}) and sample ID list ({len(sample_ids)})."
+        )
     __validate_sample_ids(sample_ids)
 
     blocked_gt = glow.transform("block_variants_and_samples",
