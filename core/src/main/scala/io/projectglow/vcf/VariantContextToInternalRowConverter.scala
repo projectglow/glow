@@ -170,7 +170,7 @@ class VariantContextToInternalRowConverter(
       case NonFatal(ex) =>
         provideWarning(
           s"Could not parse $fieldType field $fieldName. " +
-          s"Exception: ${ex.getMessage}"
+          s"Exception: ${ex.getMessage}", ex
         )
     }
   }
@@ -594,17 +594,25 @@ class VariantContextToInternalRowConverter(
     case other: Any => converter(parseObjectAsString(other))
   }
 
-  private def obj2array[T <: AnyRef: ClassTag, R <: AnyVal](
-      converter: String => T)(obj: Object, primitiveConverter: Option[R => T] = None): Array[Any] =
+  private def obj2array[T <: AnyRef, R <: AnyVal](
+      converter: String => T)(obj: Object, primitiveConverter: Option[R => T] = None)(implicit ct: ClassTag[T]): Array[Any] =
     obj match {
       case null => null
       case VCFConstants.MISSING_VALUE_v4 => null
-      case arr: Array[T] => arr.asInstanceOf[Array[Any]]
+      case arr: Array[T] =>
+        var i = 0
+        while (i < arr.length) {
+          require(arr(i).getClass == ct.getClass, s"Expected type ${ct.toString()}")
+          i += 1
+        }
+
+        arr.asInstanceOf[Array[Any]]
       case arr: Array[R] if primitiveConverter.isDefined => arr.map(primitiveConverter.get)
       case l: JList[T] =>
         val arr = new Array[Any](l.size)
         var i = 0
         while (i < arr.length) {
+          require(arr(i).getClass == ct.getClass, s"Expected type ${ct.toString()}")
           arr(i) = l.get(i)
           i += 1
         }
