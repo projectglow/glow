@@ -293,8 +293,9 @@ class RidgeRegression:
                                          self.alphas, covdf), reduced_matrix_struct,
             PandasUDFType.GROUPED_MAP)
 
+        # We hint a merge join instead of a broadcast join, as we will likely OOM
         blocked_prediction_df = blockdf.drop('header_block', 'sort_key') \
-            .join(modeldf.drop('header_block'), ['sample_block', 'header'], 'right') \
+            .join(modeldf.drop('header_block').hint('merge'), ['sample_block', 'header'], 'right') \
             .withColumn('label', f.coalesce(f.col('label'), f.col('labels').getItem(0))) \
             .groupBy(transform_key_pattern) \
             .apply(transform_udf) \

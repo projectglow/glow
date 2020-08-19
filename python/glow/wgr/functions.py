@@ -124,6 +124,7 @@ def block_variants_and_samples(variant_df: DataFrame, sample_ids: List[str],
                                 variants_per_block=variants_per_block,
                                 sample_block_count=sample_block_count)
     index_map = __get_index_map(sample_ids, sample_block_count, variant_df.sql_ctx)
+    blocked_gt.explain()
 
     output = blocked_gt, index_map
     assert check_return_type(output)
