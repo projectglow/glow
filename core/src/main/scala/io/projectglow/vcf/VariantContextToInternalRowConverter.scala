@@ -602,7 +602,7 @@ class VariantContextToInternalRowConverter(
       case arr: Array[T] =>
         var i = 0
         while (i < arr.length) {
-          require(arr(i).getClass == ct.getClass, s"Expected type ${ct.toString()}")
+          require(arr(i) == null || arr(i).getClass == ct.getClass, s"Expected type ${ct.toString()}")
           i += 1
         }
 
@@ -612,7 +612,7 @@ class VariantContextToInternalRowConverter(
         val arr = new Array[Any](l.size)
         var i = 0
         while (i < arr.length) {
-          require(arr(i).getClass == ct.getClass, s"Expected type ${ct.toString()}")
+          require(arr(i) == null || arr(i).getClass == ct.getClass, s"Expected type ${ct.toString()}")
           arr(i) = l.get(i)
           i += 1
         }
