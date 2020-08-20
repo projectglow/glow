@@ -356,6 +356,7 @@ class RidgeRegression:
 
         all_y_hat_df = pd.DataFrame({})
         for chromosome in loco_chromosomes:
+            print(f"Generating predictions for chromosome {chromosome}.")
             loco_model_df = modeldf.filter(
                 ~f.col('header').rlike(f'^chr_{chromosome}_(alpha|block)'))
             loco_y_hat_df = self.transform(blockdf, labeldf, sample_blocks, loco_model_df, cvdf,
