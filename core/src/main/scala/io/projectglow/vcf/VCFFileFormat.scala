@@ -496,7 +496,7 @@ private[projectglow] class VCFOutputWriterFactory(options: Map[String, String])
 
 private[projectglow] object VCFOptionParser {
   def getValidationStringency(options: Map[String, String]): ValidationStringency = {
-    val stringency = options.getOrElse(VCFOptions.VALIDATION_STRINGENCY, "SILENT").toUpperCase
+    val stringency = options.getOrElse(VCFOptions.VALIDATION_STRINGENCY, "STRICT").toUpperCase
     ValidationStringency.valueOf(stringency)
   }
 }

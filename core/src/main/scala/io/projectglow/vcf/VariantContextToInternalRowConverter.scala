@@ -602,7 +602,7 @@ class VariantContextToInternalRowConverter(
       case arr: Array[T] =>
         var i = 0
         while (i < arr.length) {
-          require(arr(i) == null || arr(i).getClass == ct.getClass, s"Expected type ${ct.toString()}, got ${arr(i).getClass.getName}")
+          require(arr(i) == null || ct.runtimeClass == arr(i).getClass, s"Expected type ${ct.toString()}, got ${arr(i).getClass.getName}")
           i += 1
         }
 
@@ -613,7 +613,7 @@ class VariantContextToInternalRowConverter(
         var i = 0
         while (i < arr.length) {
           arr(i) = l.get(i)
-          require(arr(i) == null || arr(i).getClass == ct.getClass, s"Expected type ${ct.toString()}, got ${arr(i).getClass.getName}")
+          require(arr(i) == null || ct.runtimeClass == arr(i).getClass, s"Expected type ${ct.toString()}, got ${arr(i).getClass.getName}")
           i += 1
         }
         arr
