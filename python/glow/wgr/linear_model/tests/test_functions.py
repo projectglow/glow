@@ -63,10 +63,12 @@ def test_assemble_block_zero_sig():
 
 
 def test_generate_alphas(spark):
-    df = spark.createDataFrame(
-        [Row(header='header_one'),
-         Row(header='header_one'),
-         Row(header='header_two')])
+    df = spark.createDataFrame([
+        Row(header='chr_3_block_8_alpha_0_label_sim1'),
+        Row(header='chr_3_block_8_alpha_0_label_sim2'),
+        Row(header='chr_3_block_8_alpha_1'),
+        Row(header='chr_3_block_8_alpha_1_label_sim1')
+    ])
     expected_alphas = {
         'alpha_0': np.float(2 / 0.99),
         'alpha_1': np.float(2 / 0.75),
