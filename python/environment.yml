@@ -22,6 +22,6 @@ dependencies:
     - twine==2.0.0 # Pypi publishing
     - Sphinx-Substitution-Extensions==2019.6.15.0 # Substitutions in code blocks
     - sphinx-tabs==1.1.13 # Code tabs (Python/Scala)
-    - sybil==1.2.0 # Automatic doctest
+    - sybil==1.4.0 # Automatic doctest
     - yapf==0.30.0
     - nptyping==1.1.0
