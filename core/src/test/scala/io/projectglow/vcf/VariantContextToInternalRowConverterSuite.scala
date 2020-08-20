@@ -180,20 +180,17 @@ class VariantContextToInternalRowConverterSuite extends VCFConverterBaseTest {
     vcb.chr("").start(1).stop(1)
     val refAllele = Allele.create("A", true)
     vcb.alleles(Seq(refAllele).asJava)
-    //val gp = new JArrayList[Integer]()
-    //gp.add(1)
-    val gp: Array[java.lang.Integer] = Array(1: java.lang.Integer)
-    vcb.genotypes(new GenotypeBuilder().attribute("GP", gp).make())
-    val vcWithDefaultGt = vcb.make
 
-    val vcfRow = convertToVCFRow(strictConverter.convertRow(vcWithDefaultGt, false))
+    def expectFailure(gp: Any): Unit = {
+      val vc = vcb.genotypes(new GenotypeBuilder().attribute("GP", gp).make()).make()
+      intercept[IllegalArgumentException] {
+        strictConverter.convertRow(vc, isSplit = false)
+      }
+    }
 
-    val convertedVcWithDefaultGt = defaultVcfRow.copy(
-      end = 1,
-      referenceAllele = "A",
-      genotypes = Seq(defaultGenotypeFields.copy(phased = Some(false)))
-    )
-    assert(vcfRow == convertedVcWithDefaultGt)
+    expectFailure(new JArrayList[Integer](Seq(1: Integer).asJavaCollection))
+    expectFailure(Array[Integer](1: Integer))
+    expectFailure(Array[Int](1))
   }
 
   test("Set VariantContext and Genotypes") {
