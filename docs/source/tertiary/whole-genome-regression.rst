@@ -47,9 +47,12 @@ values may not be missing, or equal for every sample in a variant (eg. all sampl
 Example
 -------
 
-When loading in the variants, perform the following transformations:
+.. warning::
+    We do not recommend using the ``split_multiallelics`` transformer and the ``block_variants_and_samples`` function
+    in the same query due to JVM JIT code size limits during whole-stage code generation.
 
-- Split multiallelic variants with the ``split_multiallelics`` transformer.
+When loading biallelic variants, perform the following transformations:
+
 - Calculate the number of alternate alleles for biallelic variants with ``glow.genotype_states``.
 - Replace any missing values with the mean of the non-missing values using ``glow.mean_substitute``.
 
@@ -58,8 +61,7 @@ When loading in the variants, perform the following transformations:
     from pyspark.sql.functions import col, lit
 
     variants = spark.read.format('vcf').load(genotypes_vcf)
-    genotypes = glow.transform('split_multiallelics', variants) \
-        .withColumn('values', glow.mean_substitute(glow.genotype_states(col('genotypes'))))
+    genotypes = variants.withColumn('values', glow.mean_substitute(glow.genotype_states(col('genotypes'))))
 
 Phenotype data
 ==============
