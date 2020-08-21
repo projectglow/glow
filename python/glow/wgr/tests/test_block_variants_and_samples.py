@@ -73,7 +73,7 @@ def test_inconsistent_num_values(spark):
                                                                variants_per_block=10,
                                                                sample_block_count=2)
     with pytest.raises(Exception):
-        block_df.collect() # Number of values is checked lazily within the transformer
+        block_df.collect()  # Number of values is checked lazily within the transformer
 
 
 def test_mismatch_num_values_sample_ids(spark):
