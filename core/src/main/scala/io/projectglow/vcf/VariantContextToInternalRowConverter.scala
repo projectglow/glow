@@ -601,7 +601,7 @@ class VariantContextToInternalRowConverter(
     obj match {
       case null => null
       case VCFConstants.MISSING_VALUE_v4 => null
-      case arr: Array[T] =>
+      case arr: Array[AnyRef] =>
         var i = 0
         while (i < arr.length) {
           require(
@@ -611,8 +611,9 @@ class VariantContextToInternalRowConverter(
         }
 
         arr.asInstanceOf[Array[Any]]
-      case arr: Array[R] if primitiveConverter.isDefined => arr.map(primitiveConverter.get)
-      case l: JList[T] =>
+      case arr: Array[_] if primitiveConverter.isDefined =>
+        arr.map(el => primitiveConverter.get(el.asInstanceOf[R]))
+      case l: JList[_] =>
         val arr = new Array[Any](l.size)
         var i = 0
         while (i < arr.length) {
@@ -631,7 +632,7 @@ object VariantContextToInternalRowConverter {
   def parseObjectAsString(obj: Object): String = {
     obj match {
       case d: JDouble => d.toString
-      case dArray: Array[Double] =>
+      case dArray: Array[_] =>
         val sArray = new Array[String](dArray.length)
         var i = 0
         while (i < dArray.length) {
@@ -639,7 +640,7 @@ object VariantContextToInternalRowConverter {
           i += 1
         }
         VCFEncoderUtils.formatVCFField(sArray)
-      case dList: JList[Double] =>
+      case dList: JList[_] =>
         val sArray = new Array[String](dList.size)
         var i = 0
         while (i < dList.size) {

@@ -193,6 +193,15 @@ class VariantContextToInternalRowConverterSuite extends VCFConverterBaseTest {
     expectFailure(Array[Int](1))
   }
 
+  test("convert primitive array") {
+    val vcb = new VariantContextBuilder()
+    vcb.chr("").start(1).stop(1)
+    val refAllele = Allele.create("A", true)
+    vcb.alleles(Seq(refAllele).asJava)
+    val vc = vcb.genotypes(new GenotypeBuilder().attribute("GP", Array(1.0d)).make()).make()
+    strictConverter.convertRow(vc, isSplit = false)
+  }
+
   test("Set VariantContext and Genotypes") {
     val refAllele = Allele.create("A", true)
     val altAllele1 = Allele.create("T")
