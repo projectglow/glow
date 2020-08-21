@@ -350,8 +350,6 @@ class RidgeRegression:
             chromosome as the primary sort key, and sample ID as the secondary sort key.
         """
         loco_chromosomes = chromosomes if chromosomes else infer_chromosomes(blockdf)
-        if not len(loco_chromosomes) > 1:
-            raise Exception('Must have more than one chromosome to use transform_loco.')
         loco_chromosomes.sort()
 
         all_y_hat_df = pd.DataFrame({})
