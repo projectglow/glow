@@ -175,7 +175,7 @@ class VariantContextToInternalRowConverterSuite extends VCFConverterBaseTest {
     assert(vcfRow == convertedVcWithDefaultGt)
   }
 
-  test("badtype") {
+  test("Checks runtime datatype for format array fields") {
     val vcb = new VariantContextBuilder()
     vcb.chr("").start(1).stop(1)
     val refAllele = Allele.create("A", true)

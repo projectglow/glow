@@ -170,7 +170,8 @@ class VariantContextToInternalRowConverter(
       case NonFatal(ex) =>
         provideWarning(
           s"Could not parse $fieldType field $fieldName. " +
-          s"Exception: ${ex.getMessage}", ex
+          s"Exception: ${ex.getMessage}",
+          ex
         )
     }
   }
@@ -594,15 +595,18 @@ class VariantContextToInternalRowConverter(
     case other: Any => converter(parseObjectAsString(other))
   }
 
-  private def obj2array[T <: AnyRef, R <: AnyVal](
-      converter: String => T)(obj: Object, primitiveConverter: Option[R => T] = None)(implicit ct: ClassTag[T]): Array[Any] =
+  private def obj2array[T <: AnyRef, R <: AnyVal](converter: String => T)(
+      obj: Object,
+      primitiveConverter: Option[R => T] = None)(implicit ct: ClassTag[T]): Array[Any] =
     obj match {
       case null => null
       case VCFConstants.MISSING_VALUE_v4 => null
       case arr: Array[T] =>
         var i = 0
         while (i < arr.length) {
-          require(arr(i) == null || ct.runtimeClass == arr(i).getClass, s"Expected type ${ct.toString()}, got ${arr(i).getClass.getName}")
+          require(
+            arr(i) == null || ct.runtimeClass == arr(i).getClass,
+            s"Expected type ${ct.toString()}, got ${arr(i).getClass.getName}")
           i += 1
         }
 
@@ -613,7 +617,9 @@ class VariantContextToInternalRowConverter(
         var i = 0
         while (i < arr.length) {
           arr(i) = l.get(i)
-          require(arr(i) == null || ct.runtimeClass == arr(i).getClass, s"Expected type ${ct.toString()}, got ${arr(i).getClass.getName}")
+          require(
+            arr(i) == null || ct.runtimeClass == arr(i).getClass,
+            s"Expected type ${ct.toString()}, got ${arr(i).getClass.getName}")
           i += 1
         }
         arr

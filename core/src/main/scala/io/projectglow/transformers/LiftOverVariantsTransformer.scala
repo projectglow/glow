@@ -83,11 +83,11 @@ class LiftOverVariantsTransformer extends DataFrameTransformer {
       val internalRowToVcConverter = new InternalRowToVariantContextConverter(
         inputSchema,
         inputHeaderLines,
-        ValidationStringency.STRICT)
+        ValidationStringency.LENIENT)
       val vcToInternalRowConverter = new VariantContextToInternalRowConverter(
         new VCFHeader(outputHeaderLines.asJava),
         outputSchema,
-        ValidationStringency.STRICT)
+        ValidationStringency.LENIENT)
       val liftOver = getLiftOver(options)
       val refSeqMap = getRefSeqMap(options)
 
