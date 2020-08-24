@@ -41,7 +41,7 @@ class LogisticRegression:
         self.alphas = create_alpha_dict(alphas)
 
     def fit(self, blockdf: DataFrame, labeldf: pd.DataFrame, sample_blocks: Dict[str, List[str]],
-            covdf: pd.DataFrame) -> (DataFrame, DataFrame):
+            covdf: pd.DataFrame = pd.DataFrame({})) -> (DataFrame, DataFrame):
         """
         Fits a logistic regression model, represented by a Spark DataFrame containing coefficients for each of the ridge
         alpha parameters, for each block in the starting matrix, for each label in the target labels, as well as a
@@ -59,34 +59,46 @@ class LogisticRegression:
             Two Spark DataFrames, one containing the model resulting from the fitting routine and one containing the
             results of the cross validation procedure.
         """
-        covdf = covdf.copy()
-        validate_inputs(labeldf, covdf, 'binary')
-        covdf.insert(0, 'intercept', 1)
         map_key_pattern = ['sample_block', 'label', 'alpha_name']
         reduce_key_pattern = ['header_block', 'header', 'label', 'alpha_name']
         model_key_pattern = ['sample_block', 'label', 'alpha_name']
         score_key_pattern = ['sample_block', 'label']
-        p0_dict = {k: v for k, v in zip(labeldf.columns, labeldf.sum(axis=0) / labeldf.shape[0])}
-        metric = 'log_loss'
 
         if not self.alphas:
             self.alphas = generate_alphas(blockdf)
 
+        if covdf.empty:
+            covdf = pd.DataFrame(data = np.ones(labeldf.shape[0]), columns = ['intercept'], index = labeldf.index)
+            validate_inputs(labeldf, pd.DataFrame({}), 'binary')
+        else:
+            covdf = covdf.copy()
+            validate_inputs(labeldf, covdf, 'binary')
+            covdf.insert(0, 'intercept', 1)
+
+        maskdf = pd.DataFrame(data = np.where(np.isnan(labeldf), False, True), columns = labeldf.columns, index = labeldf.index)
+
+        beta_cov_dict = {}
+        for label in labeldf:
+            row_mask = slice_label_rows(maskdf, label, list(labeldf.index), np.array([])).ravel()
+            cov_mat = slice_label_rows(covdf, 'all', list(labeldf.index), row_mask)
+            y = slice_label_rows(labeldf, label, list(labeldf.index), row_mask).ravel()
+            fit_result = constrained_logistic_fit(cov_mat, y, np.zeros(cov_mat.shape[1]), guess = np.array([]), n_cov = 0)
+            beat_cov_dict[label] = fit_result.x
+
         map_udf = pandas_udf(
-            lambda key, pdf: map_irls_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks, covdf,
-                                          p0_dict, self.alphas), irls_eqn_struct,
+            lambda key, pdf: map_irls_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks, covdf, beta_cov_dict, maskdf, self.alphas), irls_eqn_struct,
             PandasUDFType.GROUPED_MAP)
 
         reduce_udf = pandas_udf(lambda key, pdf: reduce_irls_eqn(key, reduce_key_pattern, pdf),
                                 irls_eqn_struct, PandasUDFType.GROUPED_MAP)
 
         model_udf = pandas_udf(
-            lambda key, pdf: solve_irls_eqn(key, model_key_pattern, pdf, labeldf, self.alphas),
+            lambda key, pdf: solve_irls_eqn(key, model_key_pattern, pdf, labeldf, self.alphas, covdf),
             model_struct, PandasUDFType.GROUPED_MAP)
 
         score_udf = pandas_udf(
-            lambda key, pdf: score_models(key, score_key_pattern, pdf, labeldf, sample_blocks, self.
-                                          alphas, covdf, metric), cv_struct,
+            lambda key, pdf: score_models(key, score_key_pattern, pdf, labeldf, sample_blocks, self.alphas, covdf, maskdf,
+                                          metric = 'log_loss'), cv_struct,
             PandasUDFType.GROUPED_MAP)
 
         modeldf = blockdf.drop('alpha') \
@@ -181,12 +193,13 @@ class LogisticRegression:
             Pandas DataFrame containing  covariate values. The shape and order match labeldf such that the
             rows are indexed by sample ID and the columns by label. The column types are float64.
         """
-        if not covdf.empty:
+        if covdf.empty:
+            covdf = pd.DataFrame(data = np.ones(labeldf.shape[0]), columns = ['intercept'], index = labeldf.index)
+            validate_inputs(labeldf, pd.DataFrame({}), 'binary')
+        else:
             covdf = covdf.copy()
             validate_inputs(labeldf, covdf, 'binary')
             covdf.insert(0, 'intercept', 1)
-        else:
-            validate_inputs(labeldf, covdf, 'binary')
 
         block_prediction_df = self.reduce_block_matrix(blockdf,
                                                        labeldf,

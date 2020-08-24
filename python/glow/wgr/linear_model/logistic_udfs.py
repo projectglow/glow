@@ -41,7 +41,7 @@ logistic_reduced_matrix_struct = StructType([
 @typechecked
 def map_irls_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf: pd.DataFrame,
                  sample_blocks: Dict[str, List[str]], covdf: pd.DataFrame,
-                 p0_dict: Dict[str, Float], alphas: Dict[str, Float]) -> pd.DataFrame:
+                 beta_cov_dict: Dict[str, NDArray], maskdf: pd.DataFrame, alphas: Dict[str, Float]) -> pd.DataFrame:
     """
     This function constructs matrices X and Y, and computes transpose(X)*diag(p(1-p)*X, beta, and transpose(X)*Y, by
     fitting a logistic model logit(p(Y|X)) ~ X*beta.
@@ -96,18 +96,24 @@ def map_irls_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf:
     n_rows = pdf['size'][0]
     n_cols = len(pdf)
     sample_list = sample_blocks[sample_block]
-    p0 = p0_dict[label]
+    beta_cov = beta_cov_dict[label]
+
+    if maskdf.empty:
+        row_mask = np.array([])
+    else:
+        row_mask = slice_label_rows(maskdf, label, sample_list, np.array([])).ravel()
+
     alpha_value = alphas[alpha_name]
-    cov_matrix = slice_label_rows(covdf, 'all', sample_list)
+    cov_matrix = slice_label_rows(covdf, 'all', sample_list, np.array([]))
     n_cov = len(covdf.columns)
     header_col = np.concatenate([covdf.columns, pdf['header']])
     #Add new sort_keys for covariates, starting from -n_cov up to 0 to ensure they come ahead of the headers.
     sort_key_col = np.concatenate((np.arange(-n_cov, 0), pdf['sort_key']))
-    X = assemble_block(n_rows, n_cols, pdf, cov_matrix)
+    X = assemble_block(n_rows, n_cols, pdf, cov_matrix, row_mask)
 
-    Y = slice_label_rows(labeldf, label, sample_list)
+    Y = slice_label_rows(labeldf, label, sample_list, row_mask)
 
-    beta, XtGX, XtY = get_irls_pieces(X, Y.ravel(), alpha_value, p0)
+    beta, XtGX, XtY = get_irls_pieces(X, Y.ravel(), alpha_value, beta_cov)
 
     data = {
         "header_block": header_block,
@@ -229,7 +235,8 @@ def solve_irls_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeld
         key, key_pattern)
     sort_in_place(pdf, ['sort_key', 'header'])
     alpha_value = alphas[alpha_name]
-    beta = irls_one_step(pdf, alpha_value)
+    n_cov = len(covdf.columns)
+    beta = irls_one_step(pdf, alpha_value, n_cov)
     row_indexer = cross_alphas_and_labels([alpha_name], labeldf, label)
     alpha_row, label_row = zip(*row_indexer)
     output_length = len(pdf)

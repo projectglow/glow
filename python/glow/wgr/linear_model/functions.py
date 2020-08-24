@@ -14,7 +14,7 @@
 
 import itertools
 import math
-from nptyping import Float, Int, NDArray
+from nptyping import Float, Int, NDArray, Bool
 import numpy as np
 import pandas as pd
 import sklearn.linear_model
@@ -24,6 +24,7 @@ from pyspark.sql.window import Window
 import re
 from typeguard import typechecked
 from typing import Any, Dict, Iterable, List, Tuple
+import scipy.optimize
 import warnings
 
 
@@ -106,7 +107,7 @@ def parse_header_block_sample_block_label_alpha_name(
 
 @typechecked
 def assemble_block(n_rows: Int, n_cols: Int, pdf: pd.DataFrame,
-                   cov_matrix: NDArray[(Any, Any), Float]) -> NDArray[Float]:
+                   cov_matrix: NDArray[(Any, Any), Float], row_mask: NDArray[Bool]) -> NDArray[Float]:
     """
     Creates a dense n_rows by n_cols matrix from the array of either sparse or dense vectors in the Pandas DataFrame
     corresponding to a group.  This matrix represents a block.
@@ -127,6 +128,9 @@ def assemble_block(n_rows: Int, n_cols: Int, pdf: pd.DataFrame,
     if 0 in sig:
         raise ValueError(f'Standard deviation cannot be 0.')
 
+    if row_mask.size == 0:
+        row_mask = np.full(len(n_rows), True)
+
     if 'indices' not in pdf.columns:
         X_raw = np.column_stack(pdf['values'].array)
     else:
@@ -137,14 +141,36 @@ def assemble_block(n_rows: Int, n_cols: Int, pdf: pd.DataFrame,
     X = ((X_raw - mu) / sig)
 
     if cov_matrix.any():
-        return np.column_stack((cov_matrix, X))
+        return np.column_stack((cov_matrix, X))[row_mask, :]
     else:
-        return X
+        return X[row_mask, :]
+
+@typechecked
+def constrained_logistic_fit(X: NDArray[Float], y: NDArray[Float], alpha_arr: NDArray[Float], guess: NDArray[Float],
+                             n_cov: NDArray[Float]) -> scipy.optimize.OptimizeResult:
+    if guess.size == 0:
+        guess = np.zeros(X.shape[1])
+
+    def objective(beta):
+        z = X@beta
+        p = 1/(1+np.exp(-z))
+        eps = 1E-15
+        ll = (y*np.log(p + eps) + (1-y)*np.log(1-p + eps)).sum()
+        return -(ll - np.dot(alpha_arr*beta, beta)/2)/y.size
+
+    def gradient(beta):
+        z = X@beta
+        p = 1/(1+np.exp(-z))
+        grad = -(np.dot((y - p), X) - beta * alpha_arr)/y.size
+        grad[:n_cov] = 0
+        return grad
+
+    return scipy.optimize.minimize(objective, guess, jac = gradient, method = 'L-BFGS-B')
 
 
 @typechecked
-def get_irls_pieces(X: NDArray[Float], y: NDArray[Float], alpha: Float,
-                    p0: Float) -> (NDArray[Float], NDArray[Float], NDArray[Float]):
+def get_irls_pieces(X: NDArray[Float], y: NDArray[Float], alpha_value: Float,
+                    beta_cov: NDArray[Float]) -> (NDArray[Float], NDArray[Float], NDArray[Float]):
     """
     Fits a logistic regression model logit(p(y|X)) ~ X*beta with L2 shrinkage C = 1/alpha, using scikit-learn.  Returns
     the vector beta, the matrix transpose(X)*diag(p(1-p))*X, and the vector transpose(X)*(y - p), which are the pieces
@@ -164,28 +190,29 @@ def get_irls_pieces(X: NDArray[Float], y: NDArray[Float], alpha: Float,
         XtY : m length array representing transpose(X)*(y - p)
 
     """
+    n_cov = beta_cov.size
     #If we have no observations in this block (i.e, y.sum() == 0), then we should not try to fit a model and instead
     #just return a parameterless model based on the population frequency of observations p0
     if y.sum() > 0:
-        clf = sklearn.linear_model.LogisticRegression(C=1 / alpha,
-                                                      solver='lbfgs',
-                                                      fit_intercept=True,
-                                                      max_iter=1000)
-        clf.fit(X[:, 1:], y)
-        p = clf.predict_proba(X[:, 1:])[:, 1]
-        beta = np.insert(clf.coef_.squeeze(), 0, clf.intercept_)
+        alpha_arr = np.zeros(X.shape[1])
+        alpha_arr[n_cov:] = alpha_value
+        guess = np.zeros(X.shape[1])
+        guess[:n_cov] = beta_cov
+        ridge_fit = constrained_logistic_fit(X, y, alpha_arr, guess, n_cov)
+        beta = ridge_fit.x
     else:
-        p = np.full(y.size, p0)
         beta = np.zeros(X.shape[1])
-        beta[0] = np.log(p0 / (1 - p0))
+        beta[:n_cov] = beta_cov
 
-    XtGX = (X.T * (p * (1 - p))) @ X
-    XtY = X.T @ (p - y)
+    z = X@beta
+    p = sigmoid(z)
+    XtGX = (X.T*(p*(1-p)))@X
+    XtY = X.T@(p - y)
     return beta, XtGX, XtY
 
 
 @typechecked
-def slice_label_rows(labeldf: pd.DataFrame, label: str, sample_list: List[str]) -> NDArray[Float]:
+def slice_label_rows(labeldf: pd.DataFrame, label: str, sample_list: List[str], row_mask: NDArray[Bool]) -> NDArray[Float]:
     """
     Selects rows from the Pandas DataFrame of labels corresponding to the samples in a particular sample_block.
 
@@ -197,10 +224,12 @@ def slice_label_rows(labeldf: pd.DataFrame, label: str, sample_list: List[str]) 
     Returns:
         Matrix of [number of samples in sample_block] x [number of labels to slice]
     """
+    if row_mask.size == 0:
+        row_mask = np.full(len(sample_list), True)
     if label == 'all':
-        return labeldf.loc[sample_list, :].to_numpy()
+        return labeldf.loc[sample_list, :].to_numpy()[row_mask, :]
     else:
-        return labeldf[label].loc[sample_list].to_numpy().reshape(-1, 1)
+        return labeldf[label].loc[sample_list].to_numpy().reshape(-1, 1)[row_mask, :]
 
 
 @typechecked
@@ -227,7 +256,7 @@ def evaluate_coefficients(pdf: pd.DataFrame, alpha_values: Iterable[Float],
 
 
 @typechecked
-def irls_one_step(pdf: pd.DataFrame, alpha_value: Float) -> NDArray[Float]:
+def irls_one_step(pdf: pd.DataFrame, alpha_value: Float, n_cov: Int) -> NDArray[Float]:
     """
     Performs one step of the IRLS algorithm using the components found in pdf and a value of alpha.
     Returns the resulting coefficient values.
@@ -241,11 +270,12 @@ def irls_one_step(pdf: pd.DataFrame, alpha_value: Float) -> NDArray[Float]:
         vector of coefficients of size [number of columns in X]
 
     """
-    xtgx = np.stack(pdf['xtgx'])
-    xty = pdf['xty'].to_numpy()
+    xtgx = np.stack(pdf['xtgx'])[n_cov:, n_cov:]
+    xty = pdf['xty'].to_numpy()[n_cov:]
     beta0 = pdf['beta'].to_numpy()
-    diag = np.insert(np.ones(xtgx.shape[0] - 1), 0, 0) * alpha_value
-    dbeta = np.linalg.inv(xtgx + np.diag(diag)) @ xty
+    alpha_arr = np.ones(xtgx.shape[1])*alpha_value
+    dbeta = np.zeros(beta0.size)
+    dbeta[n_cov:] = np.linalg.inv(xtgx + np.diag(alpha_arr))@(xty + beta0[n_cov:]*alpha_arr)
     return beta0 - dbeta
 
 
@@ -441,14 +471,14 @@ def __check_binary(df: pd.DataFrame) -> None:
         df : Pandas DataFrame
     """
     for label in df:
-        unique_vals = np.sort(df[label].unique()).tolist()
+        unique_vals = [v for v in np.sort(df[label].unique()).tolist() if not np.isnan(v)]
         if unique_vals != [0.0, 1.0]:
             warnings.warn(f"Column {label} is not binary (unique vals found: {unique_vals})",
                           UserWarning)
 
 
 @typechecked
-def validate_inputs(labeldf: pd.DataFrame, covdf: pd.DataFrame, label_type='continuous') -> None:
+def validate_inputs(labeldf: pd.DataFrame, covdf: pd.DataFrame , label_type='continuous') -> None:
     """
     Performs basic input validation on the label and covariates pandas DataFrames. The label DataFrame cannot have
     missing values, and should be standardized to zero mean and unit standard deviation. The covariates DataFrame
@@ -459,10 +489,12 @@ def validate_inputs(labeldf: pd.DataFrame, covdf: pd.DataFrame, label_type='cont
         covdf : Pandas DataFrame containing covariates
         label_type : Specifies if the labels are continuous data for linear regression or binary data for logistic
     """
-    __assert_all_present(labeldf, 'label')
-    __assert_all_present(covdf, 'covariate')
-    __check_standardized(covdf, 'covariate')
+
+    if not covdf.empty:
+        __assert_all_present(covdf, 'covariate')
+        __check_standardized(covdf, 'covariate')
     if label_type == 'continuous':
+        __assert_all_present(labeldf, 'label')
         __check_standardized(labeldf, 'label')
     elif label_type == 'binary':
         __check_binary(labeldf)
