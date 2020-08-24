@@ -61,7 +61,7 @@ GloWGR accepts three input data components.
 ================
 
 The genotype data may be read as a Spark DataFrame from any variant data source supported by Glow, such as :ref:`VCF, BGEN or PLINK <variant_data>`. For scalability and high-performance repeated use, we recommend storing flat genotype files into :ref:`Delta tables <vcf2delta>`.
-The DataFrame must include a column ``values`` containing a numeric representation of each genotype. The genotypic values may not be missing and should not be equal across all samples in a variant (e.g., all samples are homozygous reference).
+The DataFrame must include a column ``values`` containing a numeric representation of each genotype. The genotypic values may not be missing.
 
 Example
 -------
@@ -261,7 +261,23 @@ Parameters
 Return
 ------
 
-The output of the transformation is analogous to the block matrix DataFrame we started with.  The main difference is that, rather than representing a single block matrix, it represents multiple block matrices, with one such matrix per label (phenotype).  Comparing the schema of this block matrix DataFrame (``reduced_block_df``) with the DataFrame we started with (``block_df``), the new columns are:
+The output of the transformation is analogous to the block matrix DataFrame we started with.  The main difference is that, rather than representing a single block matrix, it represents multiple block matrices, with one such matrix per label (phenotype).  The schema of this block matrix DataFrame (``reduced_block_df``) will be as follows:
+
+.. code-block::
+
+     |-- header: string (nullable = true)
+     |-- size: integer (nullable = true)
+     |-- values: array (nullable = true)
+     |    |-- element: double (containsNull = true)
+     |-- header_block: string (nullable = true)
+     |-- sample_block: string (nullable = true)
+     |-- sort_key: integer (nullable = true)
+     |-- mu: double (nullable = true)
+     |-- sig: double (nullable = true)
+     |-- alpha: string (nullable = true)
+     |-- label: string (nullable = true)
+
+This schema is the same as the schema of the DataFrame we started with (``block_df``) with two additional columns:
 
 - ``alpha``: Name of the alpha value used in fitting the model that produced the values in this row
 - ``label``: The label corresponding to the values in this row.  Since the genotype block matrix :math:`X_0` is phenotype-agnostic, the rows in ``block_df`` were not restricted to any label (phenotype), but the level 1 block matrix :math:`X_1` represents ridge model predictions for the labels the reducer was fit with, so each row is associated with a specific label.
@@ -430,7 +446,7 @@ Assuming ``regression`` is initialized to ``LogisticRegression`` as described :r
 Proceed to GWAS
 ---------------
 
-Having the phenotypic predictors, the next step would be to use :ref:`Glow GWAS functionality <gwas>` to perform genome-wide association study using the phenotypic predictors to correct for polygenic effects.
+:ref:`Glow GWAS functionality <gwas>` can be used to perform genome-wide association study using the phenotypic predictors to correct for polygenic effects.
 
 - **For quantitative phenotypes**, this is typically done by subtracting the predictor from the phenotype vector.
 - **For binary phenotypes**, this is done by using the predictor as an explicit covariate vector.
