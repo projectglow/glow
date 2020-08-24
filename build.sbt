@@ -75,7 +75,7 @@ lazy val commonSettings = Seq(
       // Be permissive for other files
       MergeStrategy.first
   },
-  scalacOptions ++= Seq("-target:jvm-1.8"),//, "-Xfatal-warnings"),
+  scalacOptions += "-target:jvm-1.8",
   resolvers += "Apache Snapshots" at "https://repository.apache.org/snapshots/"
 )
 
