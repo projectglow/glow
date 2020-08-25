@@ -25,6 +25,23 @@ labeldf = pd.read_csv(f'{data_root}/binary_phenotypes.csv').set_index('sample_id
 labeldf.index = labeldf.index.astype(str, copy=False)
 covdf = pd.read_csv(f'{data_root}/cov.csv').set_index('sample_id')
 covdf.index = covdf.index.astype(str, copy=False)
+covdf.insert(0, 'intercept', 1)
+maskdf = pd.DataFrame(data=np.where(np.isnan(labeldf), False, True),
+                      columns=labeldf.columns,
+                      index=labeldf.index)
+
+beta_cov_dict = {}
+for label in labeldf:
+    row_mask = slice_label_rows(maskdf, label, list(covdf.index), np.array([], dtype='int')).ravel()
+    cov_mat = slice_label_rows(covdf, 'all', list(covdf.index), row_mask)
+    y = slice_label_rows(labeldf, label, list(labeldf.index), row_mask).ravel()
+    fit_result = constrained_logistic_fit(cov_mat,
+                                          y,
+                                          np.zeros(cov_mat.shape[1]),
+                                          guess=np.array([]),
+                                          n_cov=0)
+    beta_cov_dict[label] = fit_result.x
+
 alpha_values = np.array([10, 30, 100])
 alphas = {f'alpha_{i}': a for i, a in enumerate(alpha_values)}
 test_sample_block = '1'
@@ -33,9 +50,6 @@ test_alpha = 'alpha_0'
 
 
 def test_map_irls_eqn(spark):
-    covdf = pd.read_csv(f'{data_root}/cov.csv').set_index('sample_id')
-    covdf.index = covdf.index.astype(str, copy=False)
-    covdf.insert(0, 'intercept', 1)
     lvl1df = spark.read.parquet(f'{data_root}/bt_reduceded_1part.snappy.parquet')
     sample_blocks_df = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet') \
         .withColumn('sample_block', f.col('sample_block').cast('string')) \
@@ -44,10 +58,10 @@ def test_map_irls_eqn(spark):
     with open(f'{data_root}/test_map_irls_eqn.json') as json_file:
         test_values = json.load(json_file)
     map_key_pattern = ['sample_block', 'label', 'alpha_name']
-    p0_dict = {k: v for k, v in zip(labeldf.columns, labeldf.sum(axis=0) / labeldf.shape[0])}
     map_udf = pandas_udf(
         lambda key, pdf: map_irls_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks, covdf,
-                                      p0_dict, alphas), irls_eqn_struct, PandasUDFType.GROUPED_MAP)
+                                      beta_cov_dict, maskdf, alphas), irls_eqn_struct,
+        PandasUDFType.GROUPED_MAP)
 
     mapdf = lvl1df \
         .withColumn('alpha_name', f.explode(f.array([f.lit(n) for n in alphas.keys()]))) \
@@ -67,9 +81,6 @@ def test_map_irls_eqn(spark):
 
 
 def test_reduce_irls_eqn(spark):
-    covdf = pd.read_csv(f'{data_root}/cov.csv').set_index('sample_id')
-    covdf.index = covdf.index.astype(str, copy=False)
-    covdf.insert(0, 'intercept', 1)
     lvl1df = spark.read.parquet(f'{data_root}/bt_reduceded_1part.snappy.parquet')
     sample_blocks_df = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet') \
         .withColumn('sample_block', f.col('sample_block').cast('string')) \
@@ -80,11 +91,11 @@ def test_reduce_irls_eqn(spark):
 
     map_key_pattern = ['sample_block', 'label', 'alpha_name']
     reduce_key_pattern = ['header_block', 'header', 'label', 'alpha_name']
-    p0_dict = {k: v for k, v in zip(labeldf.columns, labeldf.sum(axis=0) / labeldf.shape[0])}
 
     map_udf = pandas_udf(
         lambda key, pdf: map_irls_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks, covdf,
-                                      p0_dict, alphas), irls_eqn_struct, PandasUDFType.GROUPED_MAP)
+                                      beta_cov_dict, maskdf, alphas), irls_eqn_struct,
+        PandasUDFType.GROUPED_MAP)
 
     reduce_udf = pandas_udf(lambda key, pdf: reduce_irls_eqn(key, reduce_key_pattern, pdf),
                             irls_eqn_struct, PandasUDFType.GROUPED_MAP)
@@ -110,9 +121,6 @@ def test_reduce_irls_eqn(spark):
 
 
 def test_solve_irls_eqn(spark):
-    covdf = pd.read_csv(f'{data_root}/cov.csv').set_index('sample_id')
-    covdf.index = covdf.index.astype(str, copy=False)
-    covdf.insert(0, 'intercept', 1)
     lvl1df = spark.read.parquet(f'{data_root}/bt_reduceded_1part.snappy.parquet')
     sample_blocks_df = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet') \
         .withColumn('sample_block', f.col('sample_block').cast('string')) \
@@ -124,18 +132,18 @@ def test_solve_irls_eqn(spark):
     map_key_pattern = ['sample_block', 'label', 'alpha_name']
     reduce_key_pattern = ['header_block', 'header', 'label', 'alpha_name']
     model_key_pattern = ['sample_block', 'label', 'alpha_name']
-    p0_dict = {k: v for k, v in zip(labeldf.columns, labeldf.sum(axis=0) / labeldf.shape[0])}
 
     map_udf = pandas_udf(
         lambda key, pdf: map_irls_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks, covdf,
-                                      p0_dict, alphas), irls_eqn_struct, PandasUDFType.GROUPED_MAP)
+                                      beta_cov_dict, maskdf, alphas), irls_eqn_struct,
+        PandasUDFType.GROUPED_MAP)
 
     reduce_udf = pandas_udf(lambda key, pdf: reduce_irls_eqn(key, reduce_key_pattern, pdf),
                             irls_eqn_struct, PandasUDFType.GROUPED_MAP)
 
     model_udf = pandas_udf(
-        lambda key, pdf: solve_irls_eqn(key, model_key_pattern, pdf, labeldf, alphas), model_struct,
-        PandasUDFType.GROUPED_MAP)
+        lambda key, pdf: solve_irls_eqn(key, model_key_pattern, pdf, labeldf, alphas, covdf),
+        model_struct, PandasUDFType.GROUPED_MAP)
 
     modeldf = lvl1df \
         .withColumn('alpha_name', f.explode(f.array([f.lit(n) for n in alphas.keys()]))) \
@@ -162,9 +170,6 @@ def test_solve_irls_eqn(spark):
 
 
 def test_score_logistic_model(spark):
-    covdf = pd.read_csv(f'{data_root}/cov.csv').set_index('sample_id')
-    covdf.index = covdf.index.astype(str, copy=False)
-    covdf.insert(0, 'intercept', 1)
     lvl1df = spark.read.parquet(f'{data_root}/bt_reduceded_1part.snappy.parquet')
     sample_blocks_df = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet') \
         .withColumn('sample_block', f.col('sample_block').cast('string')) \
@@ -177,23 +182,29 @@ def test_score_logistic_model(spark):
     reduce_key_pattern = ['header_block', 'header', 'label', 'alpha_name']
     model_key_pattern = ['sample_block', 'label', 'alpha_name']
     score_key_pattern = ['sample_block', 'label']
-    p0_dict = {k: v for k, v in zip(labeldf.columns, labeldf.sum(axis=0) / labeldf.shape[0])}
 
     map_udf = pandas_udf(
         lambda key, pdf: map_irls_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks, covdf,
-                                      p0_dict, alphas), irls_eqn_struct, PandasUDFType.GROUPED_MAP)
+                                      beta_cov_dict, maskdf, alphas), irls_eqn_struct,
+        PandasUDFType.GROUPED_MAP)
 
     reduce_udf = pandas_udf(lambda key, pdf: reduce_irls_eqn(key, reduce_key_pattern, pdf),
                             irls_eqn_struct, PandasUDFType.GROUPED_MAP)
 
     model_udf = pandas_udf(
-        lambda key, pdf: solve_irls_eqn(key, model_key_pattern, pdf, labeldf, alphas), model_struct,
-        PandasUDFType.GROUPED_MAP)
+        lambda key, pdf: solve_irls_eqn(key, model_key_pattern, pdf, labeldf, alphas, covdf),
+        model_struct, PandasUDFType.GROUPED_MAP)
 
     score_udf = pandas_udf(
-        lambda key, pdf: score_models(
-            key, score_key_pattern, pdf, labeldf, sample_blocks, alphas, covdf, metric='log_loss'),
-        cv_struct, PandasUDFType.GROUPED_MAP)
+        lambda key, pdf: score_models(key,
+                                      score_key_pattern,
+                                      pdf,
+                                      labeldf,
+                                      sample_blocks,
+                                      alphas,
+                                      covdf,
+                                      maskdf,
+                                      metric='log_loss'), cv_struct, PandasUDFType.GROUPED_MAP)
 
     modeldf = lvl1df \
         .withColumn('alpha_name', f.explode(f.array([f.lit(n) for n in alphas.keys()]))) \
@@ -277,7 +288,13 @@ def test_logistic_regression_predict_proba(spark):
 
     logreg = LogisticRegression(alpha_values)
     modeldf, cvdf = logreg.fit(lvl1df, labeldf, sample_blocks, covdf)
-    prob_df = logreg.transform(lvl1df, labeldf, sample_blocks, modeldf, cvdf, covdf, response='sigmoid')
+    prob_df = logreg.transform(lvl1df,
+                               labeldf,
+                               sample_blocks,
+                               modeldf,
+                               cvdf,
+                               covdf,
+                               response='sigmoid')
     prob_glow = prob_df[test_label].to_numpy()
 
     assert (np.allclose(np.array(test_values['prob']), prob_glow))
@@ -315,7 +332,12 @@ def test_logistic_regression_transform_loco(spark):
     modeldf, cvdf = logreg.fit(lvl1df, labeldf, sample_blocks, covdf)
     modeldf_loco1 = modeldf.filter('header NOT LIKE "%chr_1%"')
     wgr_cov_loco1_df0 = logreg.transform(lvl1df, labeldf, sample_blocks, modeldf_loco1, cvdf)
-    wgr_cov_loco1_df1 = logreg.transform_loco(lvl1df, labeldf, sample_blocks, modeldf, cvdf, chromosomes=['1'])
+    wgr_cov_loco1_df1 = logreg.transform_loco(lvl1df,
+                                              labeldf,
+                                              sample_blocks,
+                                              modeldf,
+                                              cvdf,
+                                              chromosomes=['1'])
     wgr_cov_loco1_0 = wgr_cov_loco1_df0[test_label].to_numpy()
     wgr_cov_loco1_1 = wgr_cov_loco1_df1[test_label].to_numpy()
 

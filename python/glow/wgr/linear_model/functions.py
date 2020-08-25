@@ -14,7 +14,7 @@
 
 import itertools
 import math
-from nptyping import Float, Int, NDArray, Bool
+from nptyping import Float, Int, NDArray
 import numpy as np
 import pandas as pd
 import sklearn.linear_model
@@ -105,9 +105,10 @@ def parse_header_block_sample_block_label_alpha_name(
         return header_block, key[0], key[1], key[2]
 
 
-@typechecked
-def assemble_block(n_rows: Int, n_cols: Int, pdf: pd.DataFrame,
-                   cov_matrix: NDArray[(Any, Any), Float], row_mask: NDArray[Bool]) -> NDArray[Float]:
+#@typechecked
+def assemble_block(n_rows: Int, n_cols: Int, pdf: pd.DataFrame, cov_matrix: NDArray[(Any, Any),
+                                                                                    Float],
+                   row_mask: NDArray[Any]) -> NDArray[Float]:
     """
     Creates a dense n_rows by n_cols matrix from the array of either sparse or dense vectors in the Pandas DataFrame
     corresponding to a group.  This matrix represents a block.
@@ -118,9 +119,11 @@ def assemble_block(n_rows: Int, n_cols: Int, pdf: pd.DataFrame,
          pdf : Pandas DataFrame corresponding to a group
          cov_matrix: 2D numpy array representing covariate columns that should be prepended to matrix X from the block.  Can be
             empty if covariates are not being applied.
+        row_mask:  1D numpy array of size n_rows containing booleans used to mask rows from the block X before
+            return.
 
     Returns:
-        Dense n_rows by n_columns matrix where the columns have been 0-centered and standard scaled.
+        Dense n_rows - n_masked by n_columns matrix where the columns have been 0-centered and standard scaled.
     """
     mu = pdf['mu'].to_numpy()
     sig = pdf['sig'].to_numpy()
@@ -129,7 +132,7 @@ def assemble_block(n_rows: Int, n_cols: Int, pdf: pd.DataFrame,
         raise ValueError(f'Standard deviation cannot be 0.')
 
     if row_mask.size == 0:
-        row_mask = np.full(len(n_rows), True)
+        row_mask = np.full(n_rows, True)
 
     if 'indices' not in pdf.columns:
         X_raw = np.column_stack(pdf['values'].array)
@@ -145,27 +148,45 @@ def assemble_block(n_rows: Int, n_cols: Int, pdf: pd.DataFrame,
     else:
         return X[row_mask, :]
 
+
 @typechecked
-def constrained_logistic_fit(X: NDArray[Float], y: NDArray[Float], alpha_arr: NDArray[Float], guess: NDArray[Float],
-                             n_cov: NDArray[Float]) -> scipy.optimize.OptimizeResult:
+def constrained_logistic_fit(X: NDArray[Float], y: NDArray[Float], alpha_arr: NDArray[Float],
+                             guess: NDArray[Float], n_cov: Int) -> scipy.optimize.OptimizeResult:
+    """
+    Fits a logistic regression model using design matrix X and binary label y, with ridge penalization specified
+    by the penalty parameters in alpha_arr (with one entry per column in X).  The optimization procedure starts from
+    the initial state specified in the guess array.  The first n_cov columns in X are assumed to be fixed effects and
+    the corresponding parameters are frozen with their initial values in guess.
+
+    Args:
+         X: [n_row, n_col] design matrix
+         y: [n_row] binary label vector
+         alpha_arr : array of n_col ridge penalty values
+         guess : array of n_coll initial parameter guesses
+         n_cov : number of columns in X (starting from the left) to consider fixed, and freeze at the initial guess
+            during optimization.
+
+    Returns:
+        scipy optimize result containing optimized paramters from the fit.
+    """
     if guess.size == 0:
         guess = np.zeros(X.shape[1])
 
     def objective(beta):
-        z = X@beta
-        p = 1/(1+np.exp(-z))
+        z = X @ beta
+        p = 1 / (1 + np.exp(-z))
         eps = 1E-15
-        ll = (y*np.log(p + eps) + (1-y)*np.log(1-p + eps)).sum()
-        return -(ll - np.dot(alpha_arr*beta, beta)/2)/y.size
+        ll = (y * np.log(p + eps) + (1 - y) * np.log(1 - p + eps)).sum()
+        return -(ll - np.dot(alpha_arr * beta, beta) / 2) / y.size
 
     def gradient(beta):
-        z = X@beta
-        p = 1/(1+np.exp(-z))
-        grad = -(np.dot((y - p), X) - beta * alpha_arr)/y.size
+        z = X @ beta
+        p = 1 / (1 + np.exp(-z))
+        grad = -(np.dot((y - p), X) - beta * alpha_arr) / y.size
         grad[:n_cov] = 0
         return grad
 
-    return scipy.optimize.minimize(objective, guess, jac = gradient, method = 'L-BFGS-B')
+    return scipy.optimize.minimize(objective, guess, jac=gradient, method='L-BFGS-B')
 
 
 @typechecked
@@ -180,8 +201,8 @@ def get_irls_pieces(X: NDArray[Float], y: NDArray[Float], alpha_value: Float,
          X : Matrix of n samples m features.  Matrix X is expected to include a constant intercept = 1 term as the first
           column.
          y : Binary response vector of  length n
-         alpha : Shrinkage parameter to be used in the fit
-         p0 : observed population prevalence of label y.
+         alpha_value : Shrinkage parameter to be used in the fit
+         beta_cov : array of fixed covariate parameter estimates to use in the fitting.
 
     Returns:
         beta : m length array representing coefficients found from the fit, including the intercept term as the first
@@ -204,15 +225,16 @@ def get_irls_pieces(X: NDArray[Float], y: NDArray[Float], alpha_value: Float,
         beta = np.zeros(X.shape[1])
         beta[:n_cov] = beta_cov
 
-    z = X@beta
+    z = X @ beta
     p = sigmoid(z)
-    XtGX = (X.T*(p*(1-p)))@X
-    XtY = X.T@(p - y)
+    XtGX = (X.T * (p * (1 - p))) @ X
+    XtY = X.T @ (p - y)
     return beta, XtGX, XtY
 
 
-@typechecked
-def slice_label_rows(labeldf: pd.DataFrame, label: str, sample_list: List[str], row_mask: NDArray[Bool]) -> NDArray[Float]:
+#@typechecked
+def slice_label_rows(labeldf: pd.DataFrame, label: str, sample_list: List[str],
+                     row_mask: NDArray[Any]) -> NDArray[Any]:
     """
     Selects rows from the Pandas DataFrame of labels corresponding to the samples in a particular sample_block.
 
@@ -220,9 +242,11 @@ def slice_label_rows(labeldf: pd.DataFrame, label: str, sample_list: List[str], 
         labeldf : Pandas DataFrame containing the labels
         label : Header for the particular label to slice.  Can be 'all' if all labels are desired.
         sample_list : List of sample ids corresponding to the sample_block to be sliced out.
+        row_mask : 1D numpy array of size n_rows containing booleans used to mask samples from the rows sliced from
+            labeldf.
 
     Returns:
-        Matrix of [number of samples in sample_block] x [number of labels to slice]
+        Matrix of [number of samples in sample_block - number of samples masked] x [number of labels to slice]
     """
     if row_mask.size == 0:
         row_mask = np.full(len(sample_list), True)
@@ -259,12 +283,15 @@ def evaluate_coefficients(pdf: pd.DataFrame, alpha_values: Iterable[Float],
 def irls_one_step(pdf: pd.DataFrame, alpha_value: Float, n_cov: Int) -> NDArray[Float]:
     """
     Performs one step of the IRLS algorithm using the components found in pdf and a value of alpha.
-    Returns the resulting coefficient values.
+    Returns the resulting coefficient values.  If n_cov > 0, then the first n_cov columns from the design matrix X
+    are assumed to be fixed effects and the corresponding parameter estimates are not updated during the step.
 
     Args:
          pdf : Pandas DataFrame for the group.  Contains one set of IRLS equation components (beta, xtgx, xty)
          corresponding to the value of alpha provided
          alpha_value : regularization parameter alpha
+         n_cov : number of columns in X (starting from the left) to consider fixed, and freeze at the initial guess
+            prior to taking the step.
 
     Returns:
         vector of coefficients of size [number of columns in X]
@@ -273,9 +300,9 @@ def irls_one_step(pdf: pd.DataFrame, alpha_value: Float, n_cov: Int) -> NDArray[
     xtgx = np.stack(pdf['xtgx'])[n_cov:, n_cov:]
     xty = pdf['xty'].to_numpy()[n_cov:]
     beta0 = pdf['beta'].to_numpy()
-    alpha_arr = np.ones(xtgx.shape[1])*alpha_value
+    alpha_arr = np.ones(xtgx.shape[1]) * alpha_value
     dbeta = np.zeros(beta0.size)
-    dbeta[n_cov:] = np.linalg.inv(xtgx + np.diag(alpha_arr))@(xty + beta0[n_cov:]*alpha_arr)
+    dbeta[n_cov:] = np.linalg.inv(xtgx + np.diag(alpha_arr)) @ (xty + beta0[n_cov:] * alpha_arr)
     return beta0 - dbeta
 
 
@@ -478,7 +505,7 @@ def __check_binary(df: pd.DataFrame) -> None:
 
 
 @typechecked
-def validate_inputs(labeldf: pd.DataFrame, covdf: pd.DataFrame , label_type='continuous') -> None:
+def validate_inputs(labeldf: pd.DataFrame, covdf: pd.DataFrame, label_type='continuous') -> None:
     """
     Performs basic input validation on the label and covariates pandas DataFrames. The label DataFrame cannot have
     missing values, and should be standardized to zero mean and unit standard deviation. The covariates DataFrame

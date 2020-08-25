@@ -224,7 +224,7 @@ class RidgeRegression:
                                               ), model_struct, PandasUDFType.GROUPED_MAP)
         score_udf = pandas_udf(
             lambda key, pdf: score_models(key, map_key_pattern, pdf, labeldf, sample_blocks, self.
-                                          alphas, covdf, metric), cv_struct,
+                                          alphas, covdf, pd.DataFrame({}), metric), cv_struct,
             PandasUDFType.GROUPED_MAP)
 
         modeldf = blockdf \

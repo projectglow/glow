@@ -40,8 +40,10 @@ logistic_reduced_matrix_struct = StructType([
 
 @typechecked
 def map_irls_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf: pd.DataFrame,
-                 sample_blocks: Dict[str, List[str]], covdf: pd.DataFrame,
-                 beta_cov_dict: Dict[str, NDArray], maskdf: pd.DataFrame, alphas: Dict[str, Float]) -> pd.DataFrame:
+                 sample_blocks: Dict[str,
+                                     List[str]], covdf: pd.DataFrame, beta_cov_dict: Dict[str,
+                                                                                          NDArray],
+                 maskdf: pd.DataFrame, alphas: Dict[str, Float]) -> pd.DataFrame:
     """
     This function constructs matrices X and Y, and computes transpose(X)*diag(p(1-p)*X, beta, and transpose(X)*Y, by
     fitting a logistic model logit(p(Y|X)) ~ X*beta.
@@ -72,8 +74,11 @@ def map_irls_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf:
         labeldf : Pandas DataFrame containing label values (i. e., the Y in the normal equation above).
         sample_index : sample_index: dict containing a mapping of sample_block ID to a list of corresponding sample IDs
         covdf : Pandas DataFrame containing covariates that should be included with every block X above (can be empty).
-        p0_dict : dict of [label: str, p0: float] that maps each label to the observed population prevalence of that label.
-        alphas : dict of [alpah_name: str, alpha_value: float]
+        beta_cov_dict : dict of [label: str, beta: NDArray[Float]] that maps each label to the covariate parameter
+            values estimated from the entire population.
+        maskdf : Pandas DataFrame mirroring labeldf containing Boolean values flagging samples with missing labels as
+            True and others as False.
+        alphas : dict of [alpha_name: str, alpha_value: float]
 
     Returns:
         transformed Pandas DataFrame containing beta, XtgX, and XtY corresponding to a particular block X.
@@ -190,7 +195,7 @@ def reduce_irls_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame) -> pd
 
 @typechecked
 def solve_irls_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf: pd.DataFrame,
-                   alphas: Dict[str, Float]) -> pd.DataFrame:
+                   alphas: Dict[str, Float], covdf: pd.DataFrame) -> pd.DataFrame:
     """
     This function assembles the matrices XtGX, XtY and initial parameter guess B0 for a particular sample_block
     (where the contribution of that sample_block has been omitted) and solves the equation
@@ -216,6 +221,7 @@ def solve_irls_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeld
              |    |-- element: double
         labeldf : Pandas DataFrame containing label values (i. e., the Y in the normal equation above).
         alphas : dict of {alphaName : alphaValue} for the alpha values to be used
+        covdf : Pandas DataFrame containing covariates that should be included with every block X above (can be empty).
 
     Returns:
         transformed Pandas DataFrame containing the coefficient matrix B
@@ -306,8 +312,8 @@ def apply_logistic_model(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame,
     sample_list = sample_blocks[sample_block]
     n_rows = int(pdf[~pdf['values'].isnull()]['size'].array[0])
     n_cols = len(pdf[~pdf['values'].isnull()])
-    cov_matrix = slice_label_rows(covdf, 'all', sample_list)
-    X = assemble_block(n_rows, n_cols, pdf[~pdf['values'].isnull()], cov_matrix)
+    cov_matrix = slice_label_rows(covdf, 'all', sample_list, np.array([]))
+    X = assemble_block(n_rows, n_cols, pdf[~pdf['values'].isnull()], cov_matrix, np.array([]))
     B = np.row_stack(pdf['coefficients'].array)
     XB = X @ B
     P = sigmoid(XB)
