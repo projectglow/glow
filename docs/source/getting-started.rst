@@ -4,7 +4,7 @@ Getting Started
 Running Locally
 ---------------
 
-Glow requires Apache Spark 2.4.3 (or a later version of Spark 2.4.x that is built on Scala 2.11).
+Glow requires Apache Spark 2.4.3 or later.
 
 .. tabs::
 
@@ -14,7 +14,7 @@ Glow requires Apache Spark 2.4.3 (or a later version of Spark 2.4.x that is buil
 
         .. code-block:: sh
 
-          pip install pyspark==2.4.3
+          pip install pyspark==3.0.0
 
         or `download a specific distribution <https://spark.apache.org/downloads.html>`_.
 
@@ -29,13 +29,13 @@ Glow requires Apache Spark 2.4.3 (or a later version of Spark 2.4.x that is buil
 
         .. substitution-code-block:: sh
 
-          ./bin/pyspark --packages io.projectglow:glow_2.11:|mvn-version| --conf spark.hadoop.io.compression.codecs=io.projectglow.sql.util.BGZFCodec
+          ./bin/pyspark --packages io.projectglow:glow_2.12:|mvn-version| --conf spark.hadoop.io.compression.codecs=io.projectglow.sql.util.BGZFCodec
 
         To start a Jupyter notebook instead of a shell:
 
         .. substitution-code-block:: sh
 
-          PYSPARK_DRIVER_PYTHON=jupyter PYSPARK_DRIVER_PYTHON_OPTS=notebook ./bin/pyspark --packages io.projectglow:glow_2.11:|mvn-version| --conf spark.hadoop.io.compression.codecs=io.projectglow.sql.util.BGZFCodec
+          PYSPARK_DRIVER_PYTHON=jupyter PYSPARK_DRIVER_PYTHON_OPTS=notebook ./bin/pyspark --packages io.projectglow:glow_2.12:|mvn-version| --conf spark.hadoop.io.compression.codecs=io.projectglow.sql.util.BGZFCodec
 
         And now your notebook is glowing! To access the Glow functions, you need to register them with the
         Spark session.
@@ -60,7 +60,7 @@ Glow requires Apache Spark 2.4.3 (or a later version of Spark 2.4.x that is buil
 
         .. substitution-code-block:: sh
 
-          ./bin/spark-shell --packages io.projectglow:glow_2.11:|mvn-version| --conf spark.hadoop.io.compression.codecs=io.projectglow.sql.util.BGZFCodec
+          ./bin/spark-shell --packages io.projectglow:glow_2.12:|mvn-version| --conf spark.hadoop.io.compression.codecs=io.projectglow.sql.util.BGZFCodec
 
         To access the Glow functions, you need to register them with the Spark session.
 
@@ -77,7 +77,7 @@ Running in the cloud
 The easiest way to use Glow in the cloud is with the `Databricks Runtime for Genomics
 <https://docs.databricks.com/runtime/genomicsruntime.html>`_. However, it works with any cloud
 provider or Spark distribution. You need to install the maven package
-``io.project:glow_2.11:${version}`` and optionally the Python frontend ``glow.py``. Also set the Spark configuration
+``io.project:glow_2.12:${version}`` and optionally the Python frontend ``glow.py``. Also set the Spark configuration
 ``spark.hadoop.io.compression.codecs`` to ``io.projectglow.sql.util.BGZFCodec`` in order to read and write
 BGZF-compressed files.
 
