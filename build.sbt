@@ -325,21 +325,21 @@ def crossReleaseStep(step: ReleaseStep): Seq[ReleaseStep] = {
 }
 
 releaseProcess := Seq[ReleaseStep](
-    checkSnapshotDependencies,
-    inquireVersions,
-    runClean
-  ) ++
-  crossReleaseStep(runTest) ++
-  Seq(
-    setReleaseVersion,
-    updateStableVersion,
-    commitReleaseVersion,
-    commitStableVersion,
-    tagRelease
-  ) ++
-  crossReleaseStep(publishArtifacts) ++
-  crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test")) ++
-  Seq(
-    setNextVersion,
-    commitNextVersion
-  )
+  checkSnapshotDependencies,
+  inquireVersions,
+  runClean
+) ++
+crossReleaseStep(runTest) ++
+Seq(
+  setReleaseVersion,
+  updateStableVersion,
+  commitReleaseVersion,
+  commitStableVersion,
+  tagRelease
+) ++
+crossReleaseStep(publishArtifacts) ++
+crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test")) ++
+Seq(
+  setNextVersion,
+  commitNextVersion
+)
