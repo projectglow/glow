@@ -21,13 +21,11 @@ import java.lang.{Boolean => JBoolean, Double => JDouble, Integer => JInteger}
 import java.util.{ArrayList => JArrayList, HashSet => JHashSet}
 
 import scala.collection.JavaConverters._
-
 import htsjdk.samtools.ValidationStringency
 import htsjdk.variant.variantcontext.{Allele, GenotypeBuilder, VariantContextBuilder}
 import htsjdk.variant.vcf.{VCFFileReader, VCFHeader, VCFHeaderLine, VCFHeaderLineType, VCFInfoHeaderLine}
 import org.apache.spark.sql.types.StringType
 import org.apache.spark.unsafe.types.UTF8String
-
 import io.projectglow.common.{GenotypeFields, VCFRow}
 
 class VariantContextToInternalRowConverterSuite extends VCFConverterBaseTest {
@@ -199,7 +197,8 @@ class VariantContextToInternalRowConverterSuite extends VCFConverterBaseTest {
     val refAllele = Allele.create("A", true)
     vcb.alleles(Seq(refAllele).asJava)
     val vc = vcb.genotypes(new GenotypeBuilder().attribute("GP", Array(1.0d)).make()).make()
-    strictConverter.convertRow(vc, isSplit = false)
+    val row = convertToVCFRow(strictConverter.convertRow(vc, isSplit = false))
+    assert(row.genotypes.head.posteriorProbabilities.contains(Seq(1.0d)))
   }
 
   test("Set VariantContext and Genotypes") {
