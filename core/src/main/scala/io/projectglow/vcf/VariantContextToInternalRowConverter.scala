@@ -170,7 +170,8 @@ class VariantContextToInternalRowConverter(
       case NonFatal(ex) =>
         provideWarning(
           s"Could not parse $fieldType field $fieldName. " +
-          s"Exception: ${ex.getMessage}"
+          s"Exception: ${ex.getMessage}",
+          ex
         )
     }
   }
@@ -594,18 +595,32 @@ class VariantContextToInternalRowConverter(
     case other: Any => converter(parseObjectAsString(other))
   }
 
-  private def obj2array[T <: AnyRef: ClassTag, R <: AnyVal](
-      converter: String => T)(obj: Object, primitiveConverter: Option[R => T] = None): Array[Any] =
+  private def obj2array[T <: AnyRef, R <: AnyVal](converter: String => T)(
+      obj: Object,
+      primitiveConverter: Option[R => T] = None)(implicit ct: ClassTag[T]): Array[Any] =
     obj match {
       case null => null
       case VCFConstants.MISSING_VALUE_v4 => null
-      case arr: Array[T] => arr.asInstanceOf[Array[Any]]
-      case arr: Array[R] if primitiveConverter.isDefined => arr.map(primitiveConverter.get)
-      case l: JList[T] =>
+      case arr: Array[AnyRef] =>
+        var i = 0
+        while (i < arr.length) {
+          require(
+            arr(i) == null || ct.runtimeClass == arr(i).getClass,
+            s"Expected type ${ct.toString()}, got ${arr(i).getClass.getName}")
+          i += 1
+        }
+
+        arr.asInstanceOf[Array[Any]]
+      case arr: Array[_] if primitiveConverter.isDefined =>
+        arr.map(el => primitiveConverter.get(el.asInstanceOf[R]))
+      case l: JList[_] =>
         val arr = new Array[Any](l.size)
         var i = 0
         while (i < arr.length) {
           arr(i) = l.get(i)
+          require(
+            arr(i) == null || ct.runtimeClass == arr(i).getClass,
+            s"Expected type ${ct.toString()}, got ${arr(i).getClass.getName}")
           i += 1
         }
         arr
@@ -617,7 +632,7 @@ object VariantContextToInternalRowConverter {
   def parseObjectAsString(obj: Object): String = {
     obj match {
       case d: JDouble => d.toString
-      case dArray: Array[Double] =>
+      case dArray: Array[_] =>
         val sArray = new Array[String](dArray.length)
         var i = 0
         while (i < dArray.length) {
@@ -625,7 +640,7 @@ object VariantContextToInternalRowConverter {
           i += 1
         }
         VCFEncoderUtils.formatVCFField(sArray)
-      case dList: JList[Double] =>
+      case dList: JList[_] =>
         val sArray = new Array[String](dList.size)
         var i = 0
         while (i < dList.size) {
