@@ -259,7 +259,7 @@ def create_alpha_dict(alphas: NDArray[(Any, ), Float]) -> Dict[str, Float]:
 @typechecked
 def generate_alphas(blockdf: DataFrame) -> Dict[str, Float]:
     """
-    Generates alpha values using a range of heritability values and the number of headers.
+    Generates alpha values using a range of heritability values and the number of distinct headers (without labels).
 
     Args:
         blockdf : Spark DataFrame representing a block matrix
@@ -268,9 +268,10 @@ def generate_alphas(blockdf: DataFrame) -> Dict[str, Float]:
     Returns:
         Dict of [alpha names, alpha values]
     """
-    num_headers = blockdf.select('header').distinct().count()
+    num_label_free_headers = blockdf.select(f.regexp_extract('header', r"^(.+?)($|_label_.*)",
+                                                             1)).distinct().count()
     heritability_vals = [0.99, 0.75, 0.50, 0.25, 0.01]
-    alphas = np.array([num_headers / h for h in heritability_vals])
+    alphas = np.array([num_label_free_headers / h for h in heritability_vals])
     print(f"Generated alphas: {alphas}")
     return create_alpha_dict(alphas)
 
@@ -291,7 +292,7 @@ def __assert_all_present(df: pd.DataFrame, name: str) -> None:
 @typechecked
 def __check_standardized(df: pd.DataFrame, name: str) -> None:
     """
-    Warns if any column of a pandas DataFrame is not standardized to zero mean and unit (biased) standard deviation.
+    Warns if any column of a pandas DataFrame is not standardized to zero mean and unit (unbiased) standard deviation.
 
     Args:
         df : Pandas DataFrame
@@ -300,7 +301,7 @@ def __check_standardized(df: pd.DataFrame, name: str) -> None:
         if not math.isclose(mean, 0, abs_tol=1e-9):
             warnings.warn(f"Mean for the {name} dataframe's column {label} should be 0, is {mean}",
                           UserWarning)
-    for label, std in df.std(ddof=0).items():
+    for label, std in df.std().items():
         if not math.isclose(std, 1, abs_tol=0.01):
             warnings.warn(
                 f"Standard deviation for the {name} dataframe's column {label} should be approximately 1, is {std}",
