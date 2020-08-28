@@ -245,7 +245,7 @@ class RidgeRegression:
         window_spec = Window.partitionBy('label').orderBy(f.desc('r2_mean'), f.desc('alpha_value'))
 
         cvdf = blockdf.drop('header_block', 'sort_key') \
-            .join(modeldf, ['header', 'sample_block'], 'right') \
+            .join(modeldf.hint('merge'), ['header', 'sample_block'], 'right') \
             .withColumn('label', f.coalesce(f.col('label'), f.col('labels').getItem(0))) \
             .groupBy(map_key_pattern) \
             .apply(score_udf) \
