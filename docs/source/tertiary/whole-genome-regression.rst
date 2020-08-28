@@ -382,6 +382,19 @@ Example
     import math
     assert math.isclose(y_hat_df.at[('HG00096', '22'),'Continuous_Trait_1'], -0.5577744539844645)
 
+---------------
+Troubleshooting
+---------------
+
+If you encounter limits related to memory allocation in PyArrow, you may need to tune the number of alphas, number of
+variants per block, and/or the number of sample blocks. The default values for these hyperparameters are tuned for
+500,000 variants and 500,000 samples.
+
+
+The known limit is:
+``(# alphas) * (# variants/ # variants per block) * (# samples / # sample blocks) <= 132,152,839``
+
+
 Example notebook
 ----------------
 
