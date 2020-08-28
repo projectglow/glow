@@ -302,8 +302,8 @@ Example
 -------
 
 If alpha values are not provided, they will be generated during ``RidgeRegression.fit`` based on the unique number of
-headers *h* in the blocked genotype matrix *X1*, and a set of heritability values. These are only sensible if the
-phenotypes are on the scale of one.
+label-free headers *h* in the reduced blocked genotype matrix *X1*, and a set of heritability values. These are only
+sensible if the phenotypes are on the scale of one.
 
 .. math::
 

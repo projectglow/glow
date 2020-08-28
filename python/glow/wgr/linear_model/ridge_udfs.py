@@ -59,7 +59,7 @@ cv_struct = StructType([
     StructField('sample_block', StringType()),
     StructField('label', StringType()),
     StructField('alpha', StringType()),
-    StructField('r2', DoubleType())
+    StructField('score', DoubleType())
 ])
 
 
@@ -111,7 +111,7 @@ def map_normal_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeld
              |-- xty: array
              |    |-- element: double
     """
-    header_block, sample_block, label = parse_key(key, key_pattern)
+    header_block, sample_block, label = parse_header_block_sample_block_label(key, key_pattern)
     sort_in_place(pdf, ['sort_key', 'header'])
     n_rows = pdf['size'][0]
     n_cols = len(pdf)
@@ -120,16 +120,16 @@ def map_normal_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeld
     if covdf.empty:
         header_col = pdf['header']
         sort_key_col = pdf['sort_key']
-        X = assemble_block(n_rows, n_cols, pdf, np.array([]))
+        X = assemble_block(n_rows, n_cols, pdf, np.array([]), np.array([]))
     else:
-        cov_matrix = slice_label_rows(covdf, 'all', sample_list)
+        cov_matrix = slice_label_rows(covdf, 'all', sample_list, np.array([]))
         n_cov = len(covdf.columns)
         header_col = np.concatenate([covdf.columns, pdf['header']])
         #Add new sort_keys for covariates, starting from -n_cov up to 0 to ensure they come ahead of the headers.
         sort_key_col = np.concatenate((np.arange(-n_cov, 0), pdf['sort_key']))
-        X = assemble_block(n_rows, n_cols, pdf, cov_matrix)
+        X = assemble_block(n_rows, n_cols, pdf, cov_matrix, np.array([]))
 
-    Y = slice_label_rows(labeldf, label, sample_list)
+    Y = slice_label_rows(labeldf, label, sample_list, np.array([]))
     XtX = X.T @ X
     XtY = X.T @ Y
 
@@ -147,7 +147,7 @@ def map_normal_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeld
 
 
 @typechecked
-def reduce_normal_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame):
+def reduce_normal_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame) -> pd.DataFrame:
     """
     This function constructs lists of rows from the XtX and XtY matrices corresponding to a particular header in X but
     evaluated in different sample_blocks, and then reduces those lists by element-wise summation.  This reduction is
@@ -226,7 +226,7 @@ def solve_normal_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labe
 
     Returns:
         transformed Pandas DataFrame containing the coefficient matrix B
-            schema (specified by the normal_eqn_struct):
+            schema (specified by the model_struct):
                  |-- header_block: string
                  |-- sample_block: string
                  |-- header: string
@@ -239,7 +239,7 @@ def solve_normal_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labe
                  |    |-- element: double
     """
 
-    header_block, sample_block, label = parse_key(key, key_pattern)
+    header_block, sample_block, label = parse_header_block_sample_block_label(key, key_pattern)
     sort_in_place(pdf, ['sort_key', 'header'])
     alpha_names, alpha_values = zip(*sorted(alphas.items()))
     if covdf.empty:
@@ -314,19 +314,19 @@ def apply_model(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf: 
                  |-- label: string
     """
 
-    header_block, sample_block, label = parse_key(key, key_pattern)
+    header_block, sample_block, label = parse_header_block_sample_block_label(key, key_pattern)
     sort_in_place(pdf, ['sort_key'])
 
     if covdf.empty:
         n_rows = pdf['size'][0]
         n_cols = len(pdf)
-        X = assemble_block(n_rows, n_cols, pdf, np.array([]))
+        X = assemble_block(n_rows, n_cols, pdf, np.array([]), np.array([]))
     else:
         sample_list = sample_index[sample_block]
         n_rows = int(pdf[~pdf['values'].isnull()]['size'].array[0])
         n_cols = len(pdf[~pdf['values'].isnull()])
-        cov_matrix = slice_label_rows(covdf, 'all', sample_list)
-        X = assemble_block(n_rows, n_cols, pdf[~pdf['values'].isnull()], cov_matrix)
+        cov_matrix = slice_label_rows(covdf, 'all', sample_list, np.array([]))
+        X = assemble_block(n_rows, n_cols, pdf[~pdf['values'].isnull()], cov_matrix, np.array([]))
 
     B = np.row_stack(pdf['coefficients'].array)
     XB = X @ B
@@ -354,12 +354,11 @@ def apply_model(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf: 
 
 @typechecked
 def score_models(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf: pd.DataFrame,
-                 sample_index: Dict[str, List[str]], alphas: Dict[str, Float],
-                 covdf: pd.DataFrame) -> pd.DataFrame:
+                 sample_index: Dict[str, List[str]], alphas: Dict[str, Float], covdf: pd.DataFrame,
+                 maskdf: pd.DataFrame, metric: str) -> pd.DataFrame:
     """
     Similar to apply_model, this function performs the multiplication X*B for a block X and corresponding coefficient
-    matrix B, however it also evaluates the coefficient of determination (r2) for each of columns in B against the
-    corresponding label.
+    matrix B, however it also produces a score for the model, specified by the :metric: parameter.
 
     Args:
         key : unique key identifying the group of rows emitted by a groupBy statement
@@ -388,6 +387,9 @@ def score_models(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf:
         sample_index : sample_index: dict containing a mapping of sample_block ID to a list of corresponding sample IDs
         alphas : dict of {alphaName : alphaValue} for the alpha values that were used when fitting coefficient matrix B
         covdf: Pandas DataFrame containing covariates that should be included with every block X above (can be empty).
+        maskdf : Pandas DataFrame mirroring labeldf containing Boolean values flagging samples with missing labels as
+            True and others as False.
+        metric: String specifying what metric to apply, can be 'r2' or 'log_loss'
 
     Returns:
         Pandas DataFrame containing the r2 scores for each combination of alpha and label
@@ -395,31 +397,41 @@ def score_models(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf:
                  |-- sample_block: string
                  |-- label: string
                  |-- alpha: string
-                 |-- r2: double
+                 |-- score: double
     """
-    header_block, sample_block, label = parse_key(key, key_pattern)
+    header_block, sample_block, label = parse_header_block_sample_block_label(key, key_pattern)
     sort_in_place(pdf, ['sort_key'])
     sample_list = sample_index[sample_block]
+
+    if maskdf.empty:
+        row_mask = np.array([])
+    else:
+        row_mask = slice_label_rows(maskdf, label, sample_list, np.array([])).ravel()
 
     if covdf.empty:
         n_rows = pdf['size'][0]
         n_cols = len(pdf)
-        X = assemble_block(n_rows, n_cols, pdf, np.array([]))
+        X = assemble_block(n_rows, n_cols, pdf, np.array([]), row_mask)
     else:
         # If there is a covdf, we will have null 'values' entries in pdf arising from the right join of blockdf
         # to modeldf, so we will filter those rows out before assembling the block.
-        sample_list = sample_index[sample_block]
         n_rows = int(pdf[~pdf['values'].isnull()]['size'].array[0])
         n_cols = len(pdf[~pdf['values'].isnull()])
-        cov_matrix = slice_label_rows(covdf, 'all', sample_list)
-        X = assemble_block(n_rows, n_cols, pdf[~pdf['values'].isnull()], cov_matrix)
+        cov_matrix = slice_label_rows(covdf, 'all', sample_list, np.array([]))
+        X = assemble_block(n_rows, n_cols, pdf[~pdf['values'].isnull()], cov_matrix, row_mask)
 
     B = np.row_stack(pdf['coefficients'].array)
     XB = X @ B
-    Y = slice_label_rows(labeldf, label, sample_list)
-    scores = r_squared(XB, Y)
+    Y = slice_label_rows(labeldf, label, sample_list, row_mask)
+    if metric == 'r2':
+        scores = r_squared(XB, Y)
+    elif metric == 'log_loss':
+        Z = sigmoid(XB)
+        scores = log_loss(Z, Y)
+    else:
+        raise ValueError(f'Metric should be either "r2" or "log_loss", found {metric}')
     alpha_names = sorted(alphas.keys())
 
-    data = {'sample_block': sample_block, 'label': label, 'alpha': alpha_names, 'r2': scores}
+    data = {'sample_block': sample_block, 'label': label, 'alpha': alpha_names, 'score': scores}
 
     return pd.DataFrame(data)

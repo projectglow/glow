@@ -13,3 +13,4 @@
 # limitations under the License.
 
 from .ridge_model import *
+from .logistic_model import *
