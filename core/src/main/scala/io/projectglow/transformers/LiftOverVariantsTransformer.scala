@@ -17,15 +17,14 @@
 package io.projectglow.transformers
 
 import java.io.File
-import java.util.{ArrayList => JArrayList, Collections, HashMap => JHashMap, List => JList}
+import java.util.{Collections, ArrayList => JArrayList, HashMap => JHashMap, List => JList}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable
-
 import htsjdk.samtools.ValidationStringency
 import htsjdk.samtools.liftover.LiftOver
 import htsjdk.samtools.reference.{ReferenceSequence, ReferenceSequenceFileFactory}
-import htsjdk.samtools.util.Interval
+import htsjdk.samtools.util.{Interval, StringUtil}
 import htsjdk.variant.variantcontext.{Allele, Genotype, GenotypeBuilder, GenotypesContext, VariantContext, VariantContextBuilder}
 import htsjdk.variant.vcf._
 import org.apache.commons.lang.ArrayUtils
@@ -37,7 +36,6 @@ import org.apache.spark.sql.{DataFrame, SQLUtils}
 import org.apache.spark.unsafe.types.UTF8String
 import picard.util.LiftoverUtils
 import picard.vcf.LiftoverVcf
-
 import io.projectglow.DataFrameTransformer
 import io.projectglow.common.{GenotypeFields, GlowLogging, VariantSchemas}
 import io.projectglow.sql.expressions.LiftOverCoordinatesExpr
@@ -250,7 +248,11 @@ object LiftOverVariantsTransformer extends GlowLogging {
     }
 
     val outputVc = outputVcOpt.get
-    val refStr = refSeq.getBaseString.substring(outputVc.getStart - 1, outputVc.getEnd)
+    val refStrBases = refSeq.getBases
+    val refStr = StringUtil.bytesToString(
+      refStrBases,
+      outputVc.getStart - 1,
+      outputVc.getEnd - outputVc.getStart + 1)
 
     if (!refStr.equalsIgnoreCase(outputVc.getReference.getBaseString)) {
       if (outputVc.isBiallelic && outputVc.isSNP && refStr.equalsIgnoreCase(
