@@ -611,7 +611,7 @@ def cross_validation(blockdf, modeldf, score_udf, score_key_pattern, alphas, met
     else:
         raise ValueError(f'Metric should be either "r2" or "log_loss", found {metric}')
 
-
+    # Hint a sort-merge join to avoid an automatic broadcast join that may cause an OOM
     return blockdf.drop('header_block', 'sort_key') \
         .join(modeldf.hint('merge'), ['header', 'sample_block'], 'right') \
         .withColumn('label', f.coalesce(f.col('label'), f.col('labels').getItem(0))) \

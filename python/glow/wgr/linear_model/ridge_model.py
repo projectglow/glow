@@ -280,6 +280,7 @@ class RidgeRegression:
                                          self.alphas, covdf), reduced_matrix_struct,
             PandasUDFType.GROUPED_MAP)
 
+        # Hint a sort-merge join to avoid an automatic broadcast join that may cause an OOM
         blocked_prediction_df = blockdf.drop('header_block', 'sort_key') \
             .join(modeldf.drop('header_block').hint('merge'), ['sample_block', 'header'], 'right') \
             .withColumn('label', f.coalesce(f.col('label'), f.col('labels').getItem(0))) \
