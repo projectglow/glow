@@ -391,8 +391,10 @@ variants per block, and/or the number of sample blocks. The default values for t
 500,000 variants and 500,000 samples.
 
 
-The known limit is:
-``(# alphas) * (# variants/ # variants per block) * (# samples / # sample blocks) <= 132,152,839``
+The following values must all be lower than 132,152,839:
+
+- ``(# alphas) * (# variants / # variants per block) * (# samples / # sample blocks)``
+- ``(# alphas * # variants / # variants per block)^2``
 
 
 Example notebook
