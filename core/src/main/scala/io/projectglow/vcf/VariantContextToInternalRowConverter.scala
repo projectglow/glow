@@ -277,7 +277,6 @@ class VariantContextToInternalRowConverter(
     makeArray(strList, parseFn)
   }
 
-
   private def updateInfoField(
       vc: VariantContext,
       field: StructField,
@@ -581,8 +580,8 @@ object VariantContextToInternalRowConverter {
   }
 
   def getAnnotationArray(
-                                annotations: JList[String],
-                                  schema: StructType): Array[GenericInternalRow] = {
+      annotations: JList[String],
+      schema: StructType): Array[GenericInternalRow] = {
     val annotationsArr = new Array[GenericInternalRow](annotations.size)
     var i = 0
     while (i < annotations.size) {
@@ -634,9 +633,9 @@ object VariantContextToInternalRowConverter {
   }
   // Pads an array with nulls to outputLength (if provided)
   private def makeArray(
-                         strings: Array[String],
-                         parseFn: String => Any,
-                         outputLength: Option[Int] = None): Array[Any] = {
+      strings: Array[String],
+      parseFn: String => Any,
+      outputLength: Option[Int] = None): Array[Any] = {
     if (outputLength.isDefined) {
       require(outputLength.get >= strings.length)
     }

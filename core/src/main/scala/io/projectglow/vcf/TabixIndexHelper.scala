@@ -525,10 +525,11 @@ object TabixIndexHelper extends GlowLogging {
 
   def toOverlapDetector(simpleInterval: SimpleInterval): Option[OverlapDetector[SimpleInterval]] = {
     if (!simpleInterval
-      .getContig
-      .isEmpty) {
-      Some(OverlapDetector.create(
-        scala.collection.immutable.List[SimpleInterval](simpleInterval).asJava))
+        .getContig
+        .isEmpty) {
+      Some(
+        OverlapDetector.create(
+          scala.collection.immutable.List[SimpleInterval](simpleInterval).asJava))
     } else {
       None
     }

@@ -36,11 +36,12 @@ import io.projectglow.common.{GenotypeFields, HasStringency, SimpleInterval, Var
 import scala.util.control.NonFatal
 
 class VCFLineToInternalRowConverter(
-                                     header: VCFHeader,
-                                     schema: StructType,
-                                     val stringency: ValidationStringency,
-                                     overlapDetectorOpt: Option[OverlapDetector[SimpleInterval]],
-                                     writeSampleIds: Boolean = true) extends HasStringency {
+    header: VCFHeader,
+    schema: StructType,
+    val stringency: ValidationStringency,
+    overlapDetectorOpt: Option[OverlapDetector[SimpleInterval]],
+    writeSampleIds: Boolean = true)
+    extends HasStringency {
 
   private val genotypeHolder = new Array[Any](header.getNGenotypeSamples)
 
@@ -246,7 +247,7 @@ class VCFLineToInternalRowConverter(
       case NonFatal(ex) =>
         provideWarning(
           s"Could not parse $fieldType field ${fieldName.toString}. " +
-            s"Exception: ${ex.getMessage}",
+          s"Exception: ${ex.getMessage}",
           ex
         )
     }
@@ -435,7 +436,10 @@ class LineCtx(text: Text) {
       parseIntArray()
     } else if (SQLUtils.dataTypesEqualExceptNullability(typ, ArrayType(DoubleType))) {
       parseDoubleArray()
-    } else if (typ.isInstanceOf[ArrayType] && typ.asInstanceOf[ArrayType].elementType.isInstanceOf[StructType]) {
+    } else if (typ.isInstanceOf[ArrayType] && typ
+        .asInstanceOf[ArrayType]
+        .elementType
+        .isInstanceOf[StructType]) {
       val strings = parseStringArray().toObjectArray(StringType)
       val list = new util.ArrayList[String](strings.length)
       var i = 0
@@ -443,7 +447,10 @@ class LineCtx(text: Text) {
         list.add(strings(i).asInstanceOf[UTF8String].toString)
         i += 1
       }
-      new GenericArrayData(VariantContextToInternalRowConverter.getAnnotationArray(list, typ.asInstanceOf[ArrayType].elementType.asInstanceOf[StructType]))
+      new GenericArrayData(
+        VariantContextToInternalRowConverter.getAnnotationArray(
+          list,
+          typ.asInstanceOf[ArrayType].elementType.asInstanceOf[StructType]))
     } else {
       null
     }

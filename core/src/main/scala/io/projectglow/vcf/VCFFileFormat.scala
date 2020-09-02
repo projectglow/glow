@@ -352,7 +352,8 @@ private[vcf] class VCFIterator(
   private var nextVC: VariantContext = _ // nextVC always holds the nextVC to be passed by the
   // iterator.
   // Initialize overlapDetector if needed
-  private val overlapDetector: OverlapDetector[SimpleInterval] = TabixIndexHelper.toOverlapDetector(filteredSimpleInterval).orNull
+  private val overlapDetector: OverlapDetector[SimpleInterval] =
+    TabixIndexHelper.toOverlapDetector(filteredSimpleInterval).orNull
 
   // Initialize
   nextVC = findNextVC()
