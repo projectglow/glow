@@ -382,7 +382,9 @@ case class GqSummaryStats(child: Expression) extends Rewrite {
 }
 
 // Mostly a copy of Spark's AssertTrue, but with an additional parameter to customize the error message
-case class AssertTrueOrThrow(child: Expression, errMsg: Expression) extends BinaryExpression with ImplicitCastInputTypes {
+case class AssertTrueOrThrow(child: Expression, errMsg: Expression)
+    extends BinaryExpression
+    with ImplicitCastInputTypes {
   override def left: Expression = child
   override def right: Expression = errMsg
   override def nullable: Boolean = true
@@ -415,10 +417,13 @@ case class AssertTrueOrThrow(child: Expression, errMsg: Expression) extends Bina
     // Use unnamed reference that doesn't create a local field here to reduce the number of fields
     // because errMsgField is used only when the value is null or false.
     val errMsgField = ctx.addReferenceObj("errMsg", errMsg0)
-    ExprCode(code = code"""${eval.code}
+    ExprCode(
+      code = code"""${eval.code}
                           |if (${eval.isNull} || !${eval.value}) {
                           |  throw new RuntimeException($errMsgField);
-                          |}""".stripMargin, isNull = TrueLiteral,
-      value = JavaCode.defaultLiteral(dataType))
+                          |}""".stripMargin,
+      isNull = TrueLiteral,
+      value = JavaCode.defaultLiteral(dataType)
+    )
   }
 }

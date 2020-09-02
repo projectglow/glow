@@ -412,7 +412,7 @@ quality_control:
       examples:
         python: |
           >>> df = spark.createDataFrame([Row(v=1), Row(v=1)])
-          >>> df.select(glow.assert_true_or_throw('v = 1', 'the value is not one!').alias('is_one')).collect()
+          >>> df.select(glow.assert_true_or_throw(df.v == 1, 'the value is not one!').alias('is_one')).collect()
           [Row(is_one=None), Row(is_one=None)]
       args:
         - name: condition
