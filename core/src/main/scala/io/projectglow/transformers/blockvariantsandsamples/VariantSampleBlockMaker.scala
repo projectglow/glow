@@ -20,7 +20,11 @@ import io.projectglow.common.GlowLogging
 import io.projectglow.common.VariantSchemas._
 import io.projectglow.functions._
 
-import org.apache.spark.sql.DataFrame
+import org.apache.commons.lang3.reflect.FieldUtils
+import org.apache.spark.sql.{Column, DataFrame}
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.{AssertTrue, BinaryExpression, Expression}
+import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCode}
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{ArrayType, IntegerType, StringType}
@@ -31,7 +35,8 @@ private[projectglow] object VariantSampleBlockMaker extends GlowLogging {
     import df.sparkSession.implicits._
     val expectedNumValues =
       df.selectExpr("size(values) as numValues").take(1)(0).getAs[Int]("numValues")
-    df.filter(expr(s"isnull(assert_true(size(values) = $expectedNumValues))"))
+    df.withColumn("consistent_num_values", size(col("values")) === expectedNumValues)
+      .filter(isnull(assert_true_or_throw(col("consistent_num_values"), "Number of values is inconsistent!")))
   }
 
   def filterOneDistinctValue(df: DataFrame): DataFrame = {

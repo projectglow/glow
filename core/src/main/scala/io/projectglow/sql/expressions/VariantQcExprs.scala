@@ -16,12 +16,14 @@
 
 package io.projectglow.sql.expressions
 
-import org.apache.spark.sql.catalyst.analysis.UnresolvedExtractValue
-import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCode}
-import org.apache.spark.sql.catalyst.expressions.{ArrayTransform, Cast, CreateNamedStruct, ExpectsInputTypes, Expression, GenericInternalRow, ImplicitCastInputTypes, LambdaFunction, Literal, NamedLambdaVariable, UnaryExpression, Unevaluable, UnresolvedNamedLambdaVariable}
+import org.apache.spark.sql.catalyst.analysis.{TypeCheckResult, UnresolvedExtractValue}
+import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCode, JavaCode, TrueLiteral}
+import org.apache.spark.sql.catalyst.expressions.{ArrayTransform, BinaryExpression, Cast, CreateNamedStruct, ExpectsInputTypes, Expression, GenericInternalRow, ImplicitCastInputTypes, LambdaFunction, Literal, NamedLambdaVariable, UnaryExpression, Unevaluable, UnresolvedNamedLambdaVariable}
 import org.apache.spark.sql.catalyst.util.{ArrayData, GenericArrayData}
 import org.apache.spark.sql.catalyst.{InternalRow, ScalaReflection}
+import org.apache.spark.sql.catalyst.expressions.codegen.Block._
 import org.apache.spark.sql.types._
+import org.apache.spark.unsafe.types.UTF8String
 
 import io.projectglow.common.{GlowLogging, VariantSchemas}
 import io.projectglow.sql.util.{ExpectsGenotypeFields, GenotypeInfo, LeveneHaldane, Rewrite}
@@ -376,5 +378,47 @@ case class GqSummaryStats(child: Expression) extends Rewrite {
   override def rewrite: Expression = {
     ArrayStatsSummary(
       UnresolvedExtractValue(child, Literal(VariantSchemas.conditionalQualityField.name)))
+  }
+}
+
+// Mostly a copy of Spark's AssertTrue, but with an additional parameter to customize the error message
+case class AssertTrueOrThrow(child: Expression, errMsg: Expression) extends BinaryExpression with ImplicitCastInputTypes {
+  override def left: Expression = child
+  override def right: Expression = errMsg
+  override def nullable: Boolean = true
+  override def inputTypes: Seq[DataType] = Seq(BooleanType, StringType)
+  override def dataType: DataType = NullType
+
+  override def checkInputDataTypes(): TypeCheckResult = {
+    super.checkInputDataTypes()
+    if (!errMsg.foldable) {
+      TypeCheckResult.TypeCheckFailure("Error message must be a constant value")
+    } else {
+      TypeCheckResult.TypeCheckSuccess
+    }
+  }
+
+  private lazy val errMsg0 = errMsg.eval().asInstanceOf[UTF8String].toString()
+
+  override def eval(input: InternalRow): Any = {
+    val v = child.eval(input)
+    if (v == null || java.lang.Boolean.FALSE.equals(v)) {
+      throw new RuntimeException(errMsg0)
+    } else {
+      null
+    }
+  }
+
+  override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
+    val eval = child.genCode(ctx)
+
+    // Use unnamed reference that doesn't create a local field here to reduce the number of fields
+    // because errMsgField is used only when the value is null or false.
+    val errMsgField = ctx.addReferenceObj("errMsg", errMsg0)
+    ExprCode(code = code"""${eval.code}
+                          |if (${eval.isNull} || !${eval.value}) {
+                          |  throw new RuntimeException($errMsgField);
+                          |}""".stripMargin, isNull = TrueLiteral,
+      value = JavaCode.defaultLiteral(dataType))
   }
 }
