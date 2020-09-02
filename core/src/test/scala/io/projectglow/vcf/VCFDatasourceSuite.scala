@@ -96,11 +96,11 @@ class VCFDatasourceSuite extends GlowBaseTest {
       "20",
       9999995,
       9999996,
-      Seq.empty,
+      null,
       "A",
       Seq("ACT"),
       Some(3775.73),
-      Seq.empty,
+      null,
       Map(
         "AC" -> "2",
         "AF" -> "1.00",

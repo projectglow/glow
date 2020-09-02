@@ -208,6 +208,10 @@ class VariantContextToInternalRowConverter(
   }
 
   private def updateAltAlleles(vc: VariantContext, row: InternalRow, idx: Int): Unit = {
+    if (vc.getAlternateAlleles.size == 0) {
+      return
+    }
+
     val altList = new Array[Any](vc.getAlternateAlleles.size)
     var i = 0
     while (i < altList.length) {
@@ -236,7 +240,7 @@ class VariantContextToInternalRowConverter(
       }
       arr
     } else {
-      Array.empty
+      return
     }
     row.update(idx, new GenericArrayData(filters))
   }

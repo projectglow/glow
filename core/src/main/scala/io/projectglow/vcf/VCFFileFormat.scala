@@ -211,8 +211,7 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
               header,
               requiredSchema,
               VCFOptionParser.getValidationStringency(options),
-              TabixIndexHelper.toOverlapDetector(filteredSimpleInterval.get),
-              false)
+              TabixIndexHelper.toOverlapDetector(filteredSimpleInterval.get))
             reader.map { line =>
               converter.convert(line)
             }.filter(_ != null)

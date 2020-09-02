@@ -39,8 +39,7 @@ class VCFLineToInternalRowConverter(
     header: VCFHeader,
     schema: StructType,
     val stringency: ValidationStringency,
-    overlapDetectorOpt: Option[OverlapDetector[SimpleInterval]],
-    writeSampleIds: Boolean = true)
+    overlapDetectorOpt: Option[OverlapDetector[SimpleInterval]])
     extends HasStringency {
 
   private val genotypeHolder = new Array[Any](header.getNGenotypeSamples)
@@ -122,8 +121,8 @@ class VCFLineToInternalRowConverter(
       return null
     }
 
-    val contig = ctx.parseString()
-    set(row, contigIdx, contig)
+    contigName = ctx.parseString()
+    set(row, contigIdx, contigName)
     ctx.expectTab()
 
     start = ctx.parseLong() - 1
