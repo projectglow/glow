@@ -20,12 +20,11 @@ import java.io.File
 import java.nio.file.Paths
 
 import scala.collection.JavaConverters._
-
 import com.google.common.annotations.VisibleForTesting
+import htsjdk.samtools.util.OverlapDetector
 import htsjdk.tribble.index.tabix._
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileSystem, Path}
-
 import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.sources.{Filter, _}
 import io.projectglow.common.{GlowLogging, SimpleInterval, WithUtils}
@@ -524,4 +523,14 @@ object TabixIndexHelper extends GlowLogging {
     localPath
   }
 
+  def toOverlapDetector(simpleInterval: SimpleInterval): Option[OverlapDetector[SimpleInterval]] = {
+    if (!simpleInterval
+      .getContig
+      .isEmpty) {
+      Some(OverlapDetector.create(
+        scala.collection.immutable.List[SimpleInterval](simpleInterval).asJava))
+    } else {
+      None
+    }
+  }
 }

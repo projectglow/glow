@@ -17,9 +17,11 @@
 package io.projectglow.vcf
 
 import java.util
+import java.util.Collections
 
 import com.google.common.base.Splitter
 import htsjdk.samtools.ValidationStringency
+import htsjdk.samtools.util.OverlapDetector
 import htsjdk.variant.vcf.VCFHeader
 import org.apache.hadoop.io.Text
 import org.apache.spark.sql.SQLUtils
@@ -29,14 +31,16 @@ import org.apache.spark.sql.catalyst.util.GenericArrayData
 import org.apache.spark.sql.types.{ArrayType, BooleanType, DataType, DoubleType, IntegerType, LongType, StringType, StructField, StructType}
 import org.apache.spark.unsafe.types.UTF8String
 import org.apache.spark.unsafe.types.UTF8String.{IntWrapper, LongWrapper}
+import io.projectglow.common.{GenotypeFields, HasStringency, SimpleInterval, VariantSchemas}
 
-import io.projectglow.common.{GenotypeFields, VariantSchemas}
+import scala.util.control.NonFatal
 
 class VCFLineToInternalRowConverter(
-    header: VCFHeader,
-    schema: StructType,
-    val stringency: ValidationStringency,
-    writeSampleIds: Boolean = true) {
+                                     header: VCFHeader,
+                                     schema: StructType,
+                                     val stringency: ValidationStringency,
+                                     overlapDetectorOpt: Option[OverlapDetector[SimpleInterval]],
+                                     writeSampleIds: Boolean = true) extends HasStringency {
 
   private val genotypeHolder = new Array[Any](header.getNGenotypeSamples)
 
@@ -54,7 +58,7 @@ class VCFLineToInternalRowConverter(
   private val genotypesIdx = schema.indexWhere(_.name == VariantSchemas.genotypesFieldName)
   private val splitFromMultiIdx = findFieldIdx(VariantSchemas.splitFromMultiAllelicField)
   private lazy val sampleIds = header
-    .getSampleNamesInOrder
+    .getGenotypeSamples
     .toArray()
     .map(el => UTF8String.fromString(el.asInstanceOf[String]))
 
@@ -107,6 +111,9 @@ class VCFLineToInternalRowConverter(
   }
 
   def convert(line: Text): InternalRow = {
+    var contigName: UTF8String = null
+    var start: Long = -1
+    var end: Long = -1
     val row = new GenericInternalRow(schema.size)
     set(row, splitFromMultiIdx, false)
     val ctx = new LineCtx(line)
@@ -118,7 +125,7 @@ class VCFLineToInternalRowConverter(
     set(row, contigIdx, contig)
     ctx.expectTab()
 
-    val start = ctx.parseLong() - 1
+    start = ctx.parseLong() - 1
     set(row, startIdx, start)
     ctx.expectTab()
 
@@ -128,7 +135,8 @@ class VCFLineToInternalRowConverter(
 
     val refAllele = ctx.parseString()
     set(row, refAlleleIdx, refAllele)
-    set(row, endIdx, start + refAllele.numChars())
+    end = start + refAllele.numChars()
+    set(row, endIdx, end)
     ctx.expectTab()
 
     val altAlleles = ctx.parseStringArray()
@@ -145,18 +153,28 @@ class VCFLineToInternalRowConverter(
 
     while (!ctx.isTab) {
       val key = ctx.parseString('=', ';')
-      ctx.eat('=')
-      if (key == UTF8String.fromString("END")) {
-        val value = ctx.parseInfoVal(LongType)
-        set(row, endIdx, value)
-      } else if (!infoFields.contains(key)) {
-        ctx.parseString(';')
-      } else {
-        val (typ, idx) = infoFields(key)
-        val value = ctx.parseInfoVal(typ)
-        set(row, idx, value)
+      tryWithWarning(key, FieldTypes.INFO) {
+        ctx.eat('=')
+        if (key == UTF8String.fromString("END")) {
+          end = ctx.parseInfoVal(LongType).asInstanceOf[Long]
+          set(row, endIdx, end)
+        } else if (!infoFields.contains(key)) {
+          ctx.parseString(';')
+        } else {
+          val (typ, idx) = infoFields(key)
+          val value = ctx.parseInfoVal(typ)
+          set(row, idx, value)
+        }
       }
       ctx.eat(';')
+    }
+
+    if (overlapDetectorOpt.isDefined) {
+      val contigStr = if (contigName == null) null else contigName.toString
+      val interval = SimpleInterval(contigStr, start.toInt + 1, end.toInt)
+      if (!overlapDetectorOpt.get.overlapsAny(interval)) {
+        return null
+      }
     }
 
     if (genotypeFieldsOpt.isEmpty) {
@@ -219,6 +237,19 @@ class VCFLineToInternalRowConverter(
       sampleIdx += 1
     }
     new GenericArrayData(genotypeHolder)
+  }
+
+  private def tryWithWarning(fieldName: UTF8String, fieldType: String)(f: => Unit): Unit = {
+    try {
+      f
+    } catch {
+      case NonFatal(ex) =>
+        provideWarning(
+          s"Could not parse $fieldType field ${fieldName.toString}. " +
+            s"Exception: ${ex.getMessage}",
+          ex
+        )
+    }
   }
 }
 
@@ -297,7 +328,7 @@ class LineCtx(text: Text) {
     if (s == null) {
       return null
     }
-    s.toLong(longWrapper)
+    require(s.toLong(longWrapper), s"Could not parse field as long")
     longWrapper.value
   }
 
@@ -309,7 +340,7 @@ class LineCtx(text: Text) {
     if (s == null) {
       return nullValue
     }
-    s.toInt(intWrapper)
+    require(s.toInt(intWrapper), s"Could not parse field as int")
     intWrapper.value
   }
 
@@ -365,11 +396,26 @@ class LineCtx(text: Text) {
   private def toGenericArrayData(arr: Array[_]): GenericArrayData = {
     if (arr.length == 0) {
       null
-    } else if (arr.length == 1 && arr(0) == null) {
-      new GenericArrayData(Array.empty[Any])
+    } else if (allNull(arr)) {
+      if (arr.length == 1) {
+        null
+      } else {
+        new GenericArrayData(Array.empty[Any])
+      }
     } else {
       new GenericArrayData(arr.asInstanceOf[Array[Any]])
     }
+  }
+
+  private def allNull(arr: Array[_]): Boolean = {
+    var i = 0
+    while (i < arr.length) {
+      if (arr(i) != null) {
+        return false
+      }
+      i += 1
+    }
+    true
   }
 
   def parseByType(typ: DataType): Any = {
@@ -389,6 +435,15 @@ class LineCtx(text: Text) {
       parseIntArray()
     } else if (SQLUtils.dataTypesEqualExceptNullability(typ, ArrayType(DoubleType))) {
       parseDoubleArray()
+    } else if (typ.isInstanceOf[ArrayType] && typ.asInstanceOf[ArrayType].elementType.isInstanceOf[StructType]) {
+      val strings = parseStringArray().toObjectArray(StringType)
+      val list = new util.ArrayList[String](strings.length)
+      var i = 0
+      while (i < strings.length) {
+        list.add(strings(i).asInstanceOf[UTF8String].toString)
+        i += 1
+      }
+      new GenericArrayData(VariantContextToInternalRowConverter.getAnnotationArray(list, typ.asInstanceOf[ArrayType].elementType.asInstanceOf[StructType]))
     } else {
       null
     }

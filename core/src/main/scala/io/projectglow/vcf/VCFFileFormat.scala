@@ -210,7 +210,8 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
             val converter = new VCFLineToInternalRowConverter(
               header,
               requiredSchema,
-              ValidationStringency.SILENT,
+              VCFOptionParser.getValidationStringency(options),
+              TabixIndexHelper.toOverlapDetector(filteredSimpleInterval.get),
               false)
             reader.map { line =>
               converter.convert(line)
@@ -351,15 +352,7 @@ private[vcf] class VCFIterator(
   private var nextVC: VariantContext = _ // nextVC always holds the nextVC to be passed by the
   // iterator.
   // Initialize overlapDetector if needed
-  private val overlapDetector: OverlapDetector[SimpleInterval] =
-    if (!filteredSimpleInterval
-        .getContig
-        .isEmpty) {
-      OverlapDetector.create(
-        scala.collection.immutable.List[SimpleInterval](filteredSimpleInterval).asJava)
-    } else {
-      null
-    }
+  private val overlapDetector: OverlapDetector[SimpleInterval] = TabixIndexHelper.toOverlapDetector(filteredSimpleInterval).orNull
 
   // Initialize
   nextVC = findNextVC()
