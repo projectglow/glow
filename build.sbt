@@ -339,7 +339,7 @@ import ReleaseTransformations._
 releaseCrossBuild := false
 lazy val downVersionPySpark = taskKey[Unit]("Replace PySpark")
 downVersionPySpark := {
-  "downversion-pyspark.sh" !
+  "./downversion-pyspark.sh" !
 }
 def crossReleaseStep(step: ReleaseStep): Seq[ReleaseStep] = {
   Seq(
