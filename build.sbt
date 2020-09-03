@@ -345,7 +345,7 @@ downVersionPySpark := {
 
 lazy val initializeReleaseCondaEnv = taskKey[Unit]("Initialize Release Conda Environment")
 initializeReleaseCondaEnv := {
-  "./init-release-env.sh" !
+  "conda env update -f python/environment.yml" !
 }
 
 def crossReleaseStep(step: ReleaseStep): Seq[ReleaseStep] = {
