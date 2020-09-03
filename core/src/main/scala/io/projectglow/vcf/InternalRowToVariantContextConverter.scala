@@ -195,23 +195,27 @@ class InternalRowToVariantContextConverter(
     }
 
     array => {
-      val ctx = GenotypesContext.create(array.numElements())
-      var i = 0
-      while (i < array.numElements()) {
-        var j = 0
-        val builder = new GenotypeBuilder("")
-        val row = array.getStruct(i, gtFields.length)
-        while (j < fns.length) {
-          if (!row.isNullAt(j)) {
-            fns(j)(builder, row, j)
-          }
+      if (array == null) {
+        GenotypesContext.NO_GENOTYPES
+      } else {
+        val ctx = GenotypesContext.create(array.numElements())
+        var i = 0
+        while (i < array.numElements()) {
+          var j = 0
+          val builder = new GenotypeBuilder("")
+          val row = array.getStruct(i, gtFields.length)
+          while (j < fns.length) {
+            if (!row.isNullAt(j)) {
+              fns(j)(builder, row, j)
+            }
 
-          j += 1
+            j += 1
+          }
+          ctx.add(builder.make())
+          i += 1
         }
-        ctx.add(builder.make())
-        i += 1
+        ctx
       }
-      ctx
     }
   }
 

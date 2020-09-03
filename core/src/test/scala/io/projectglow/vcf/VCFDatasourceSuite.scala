@@ -28,9 +28,8 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Dataset, Row}
 import org.apache.spark.{SparkConf, SparkException}
-
 import io.projectglow.common.{GenotypeFields, VCFRow}
-import io.projectglow.sql.GlowBaseTest
+import io.projectglow.sql.{GlowBaseTest, GlowConf}
 
 class VCFDatasourceSuite extends GlowBaseTest {
 
@@ -693,6 +692,11 @@ class VCFDatasourceSuite extends GlowBaseTest {
         s"$testDataHome/vcf/missing_contig_length.vcf",
         s"$testDataHome/vcf/missing_contig_length.vcf")
   }
+}
+
+class FastVCFDatasourceSuite extends VCFDatasourceSuite {
+  override def sparkConf: SparkConf =
+    super.sparkConf.set(GlowConf.FAST_VCF_READER_ENABLED.key, "true")
 }
 
 // For testing only: schema based on CEUTrio VCF header

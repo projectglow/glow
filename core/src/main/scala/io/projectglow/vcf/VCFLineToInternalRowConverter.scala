@@ -35,6 +35,15 @@ import io.projectglow.common.{GenotypeFields, HasStringency, SimpleInterval, Var
 
 import scala.util.control.NonFatal
 
+/**
+ * Converts the raw bytes in a VCF line into an [[InternalRow]]
+ *
+ * @param header The VCF header object this is currently only used to extract sample ideas
+ * @param schema The schema of the converted rows
+ * @param stringency How to handle errors
+ * @param overlapDetectorOpt If provided, the converter will check to see if a variant passes this detector before
+ *                           parsing genotypes
+ */
 class VCFLineToInternalRowConverter(
     header: VCFHeader,
     schema: StructType,
@@ -110,6 +119,11 @@ class VCFLineToInternalRowConverter(
     row.update(idx, value)
   }
 
+  /**
+   * Converts a VCF line into an [[InternalRow]]
+   * @param line A text object containing the VCF line
+   * @return The converted row or null to represent a parsing failure or filtered row
+   */
   def convert(line: Text): InternalRow = {
     var contigName: UTF8String = null
     var start: Long = -1
@@ -130,7 +144,7 @@ class VCFLineToInternalRowConverter(
     ctx.expectTab()
 
     val names = ctx.parseStringArray()
-    set(row, namesIdx, names)
+    set(row, namesIdx, ctx.toGenericArrayData(names))
     ctx.expectTab()
 
     val refAllele = ctx.parseString()
@@ -140,7 +154,7 @@ class VCFLineToInternalRowConverter(
     ctx.expectTab()
 
     val altAlleles = ctx.parseStringArray()
-    set(row, altAllelesIdx, altAlleles)
+    set(row, altAllelesIdx, ctx.toGenericArrayData(altAlleles))
     ctx.expectTab()
 
     val qual = ctx.parseDouble()
@@ -148,7 +162,7 @@ class VCFLineToInternalRowConverter(
     ctx.expectTab()
 
     val filters = ctx.parseStringArray()
-    set(row, filtersIdx, filters)
+    set(row, filtersIdx, ctx.toGenericArrayData(filters))
     ctx.expectTab()
 
     while (!ctx.isTab) {
@@ -182,7 +196,6 @@ class VCFLineToInternalRowConverter(
     }
 
     if (ctx.isLineEnd) {
-      row.update(genotypesIdx, new GenericArrayData(Array.empty[Any]))
       return row
     }
 
@@ -195,7 +208,7 @@ class VCFLineToInternalRowConverter(
   private def parseGenotypes(ctx: LineCtx): GenericArrayData = {
     val gSchema = gSchemaOpt.get
     val genotypeFields = genotypeFieldsOpt.get
-    val fieldNames = ctx.parseStringArray(':').toArray(StringType)
+    val fieldNames = ctx.parseStringArray(':')
     var gtIdx = -1
     val typeAndIdx: Array[(DataType, Int)] = new Array[(DataType, Int)](fieldNames.length)
 
@@ -366,40 +379,43 @@ class LineCtx(text: Text) {
     }
   }
 
-  def parseStringArray(sep: Byte = ','): GenericArrayData = {
+  def parseStringArray(sep: Byte = ','): Array[AnyRef] = {
     stringList.clear()
     while (!isLineEnd && !isTab && !isDelimiter) {
       stringList.add(parseString(sep))
       eat(sep)
     }
-    toGenericArrayData(stringList.toArray())
+    stringList.toArray()
   }
 
-  def parseIntArray(): GenericArrayData = {
+  def parseIntArray(): Array[AnyRef] = {
     intList.clear()
     while (!isLineEnd && !isTab && !isDelimiter) {
       intList.add(parseInt(','))
       eat(',')
     }
-    toGenericArrayData(intList.toArray())
+    intList.toArray()
   }
 
-  def parseDoubleArray(): GenericArrayData = {
+  def parseDoubleArray(): Array[AnyRef] = {
     doubleList.clear()
     while (!isLineEnd && !isTab && !isDelimiter) {
       doubleList.add(parseDouble(','))
       eat(',')
     }
-    toGenericArrayData(doubleList.toArray())
+    doubleList.toArray()
   }
 
-  private def toGenericArrayData(arr: Array[_]): GenericArrayData = {
+  def toGenericArrayData(arr: Array[_]): GenericArrayData = {
     if (arr.length == 0) {
       null
     } else if (allNull(arr)) {
       if (arr.length == 1) {
         null
       } else {
+        // This doesn't really make sense... We only represent a multiple element array with all nulls as an empty list
+        // for consistency with probabilities read by the BGEN reader.
+        // TODO(hhd): Fix the BGEN reader to properly insert nulls
         new GenericArrayData(Array.empty[Any])
       }
     } else {
@@ -430,20 +446,20 @@ class LineCtx(text: Text) {
     } else if (typ == DoubleType) {
       parseDouble()
     } else if (SQLUtils.dataTypesEqualExceptNullability(typ, ArrayType(StringType))) {
-      parseStringArray()
+      toGenericArrayData(parseStringArray())
     } else if (SQLUtils.dataTypesEqualExceptNullability(typ, ArrayType(IntegerType))) {
-      parseIntArray()
+      toGenericArrayData(parseIntArray())
     } else if (SQLUtils.dataTypesEqualExceptNullability(typ, ArrayType(DoubleType))) {
-      parseDoubleArray()
+      toGenericArrayData(parseDoubleArray())
     } else if (typ.isInstanceOf[ArrayType] && typ
         .asInstanceOf[ArrayType]
         .elementType
         .isInstanceOf[StructType]) {
-      val strings = parseStringArray().toObjectArray(StringType)
+      val strings = parseStringArray()
       val list = new util.ArrayList[String](strings.length)
       var i = 0
       while (i < strings.length) {
-        list.add(strings(i).asInstanceOf[UTF8String].toString)
+        list.add(strings(i).toString)
         i += 1
       }
       new GenericArrayData(
