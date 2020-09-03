@@ -343,14 +343,14 @@ downVersionPySpark := {
   "./downversion-pyspark.sh" !
 }
 
-lazy val initializeReleaseCondaEnv = taskKey[Unit]("Initialize Release Conda Environment")
-initializeReleaseCondaEnv := {
+lazy val updateCondaEnv = taskKey[Unit]("Initialize Release Conda Environment")
+updateCondaEnv := {
   "conda env update -f python/environment.yml" !
 }
 
 def crossReleaseStep(step: ReleaseStep): Seq[ReleaseStep] = {
   Seq(
-    releaseStepCommandAndRemaining(s"""initializeReleaseCondaEnv"""),
+    releaseStepCommandAndRemaining(s"""updateCondaEnv"""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark3""""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
     step,
@@ -359,7 +359,8 @@ def crossReleaseStep(step: ReleaseStep): Seq[ReleaseStep] = {
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala211""""),
     step,
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
-    step
+    step,
+    releaseStepCommandAndRemaining(s"""updateCondaEnv"""),
   )
 }
 
