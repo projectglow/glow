@@ -337,11 +337,13 @@ import ReleaseTransformations._
 
 // Don't use sbt-release's cross facility	
 releaseCrossBuild := false
-
+lazy val downVersionPySpark = taskKey[Unit]("Replace PySpark")
+downVersionPySpark := {
+  "downversion-pyspark.sh" !
+}
 def crossReleaseStep(step: ReleaseStep): Seq[ReleaseStep] = {
   Seq(
-    releaseStepCommandAndRemaining(s""""conda remove -n glow pyspark" !"""),
-    releaseStepCommandAndRemaining(s""""conda install -n glow pyspark=2.4.5" !"""),
+    releaseStepCommandAndRemaining(s"""ThisBuild / downVersionPySpark"""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark2""""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala211""""),
     step
