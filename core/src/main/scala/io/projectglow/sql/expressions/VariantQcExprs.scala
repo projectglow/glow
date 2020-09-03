@@ -382,7 +382,7 @@ case class GqSummaryStats(child: Expression) extends Rewrite {
 }
 
 // Mostly a copy of Spark's AssertTrue, but with an additional parameter to customize the error message
-case class AssertTrueOrThrow(child: Expression, errMsg: Expression)
+case class AssertTrueOrError(child: Expression, errMsg: Expression)
     extends BinaryExpression
     with ImplicitCastInputTypes {
   override def left: Expression = child

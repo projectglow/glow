@@ -37,7 +37,7 @@ private[projectglow] object VariantSampleBlockMaker extends GlowLogging {
       df.selectExpr("size(values) as numValues").take(1)(0).getAs[Int]("numValues")
     df.filter(
       isnull(
-        assert_true_or_throw(
+        assert_true_or_error(
           size(col("values")) === expectedNumValues,
           "Number of values is inconsistent!")))
   }

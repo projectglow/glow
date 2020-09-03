@@ -405,14 +405,14 @@ quality_control:
         - name: genotypes
           doc: An array of genotype structs with ``conditionalQuality`` field
       returns: An array of structs where each struct contains ``mean``, ``stDev``, ``min``, and ``max`` of the genotype qualities for a sample. If ``sampleId`` is present in a genotype, it will be propagated to the resulting struct as an extra field.
-    - name: assert_true_or_throw
+    - name: assert_true_or_error
       doc: Asserts a boolean condition is true.
       since: 0.5.0
-      expr_class: io.projectglow.sql.expressions.AssertTrueOrThrow
+      expr_class: io.projectglow.sql.expressions.AssertTrueOrError
       examples:
         python: |
           >>> df = spark.createDataFrame([Row(v=1), Row(v=1)])
-          >>> df.select(glow.assert_true_or_throw(df.v == 1, 'the value is not one!').alias('is_one')).collect()
+          >>> df.select(glow.assert_true_or_error(df.v == 1, 'the value is not one!').alias('is_one')).collect()
           [Row(is_one=None), Row(is_one=None)]
       args:
         - name: condition

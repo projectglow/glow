@@ -350,8 +350,8 @@ object functions {
    * @param errMsg Error message if condition fails
    * @return Null if true, or throws an exception if not true
    */
-  def assert_true_or_throw(condition: Column, errMsg: String): Column = withExpr {
-    new io.projectglow.sql.expressions.AssertTrueOrThrow(condition.expr, Literal(errMsg))
+  def assert_true_or_error(condition: Column, errMsg: String): Column = withExpr {
+    new io.projectglow.sql.expressions.AssertTrueOrError(condition.expr, Literal(errMsg))
   }
 
   /**

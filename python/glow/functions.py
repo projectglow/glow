@@ -546,7 +546,7 @@ def sample_gq_summary_stats(genotypes: Union[Column, str]) -> Column:
     return output
 
 
-def assert_true_or_throw(condition: Union[Column, str], errMsg: str) -> Column:
+def assert_true_or_error(condition: Union[Column, str], errMsg: str) -> Column:
     """
     Asserts a boolean condition is true.
 
@@ -554,7 +554,7 @@ def assert_true_or_throw(condition: Union[Column, str], errMsg: str) -> Column:
 
     Examples:
         >>> df = spark.createDataFrame([Row(v=1), Row(v=1)])
-        >>> df.select(glow.assert_true_or_throw(df.v == 1, 'the value is not one!').alias('is_one')).collect()
+        >>> df.select(glow.assert_true_or_error(df.v == 1, 'the value is not one!').alias('is_one')).collect()
         [Row(is_one=None), Row(is_one=None)]
 
     Args:
@@ -565,7 +565,7 @@ def assert_true_or_throw(condition: Union[Column, str], errMsg: str) -> Column:
         Null if true, or throws an exception if not true
     """
     assert check_argument_types()
-    output = Column(sc()._jvm.io.projectglow.functions.assert_true_or_throw(_to_java_column(condition), errMsg))
+    output = Column(sc()._jvm.io.projectglow.functions.assert_true_or_error(_to_java_column(condition), errMsg))
     assert check_return_type(output)
     return output
 
