@@ -431,13 +431,13 @@ class VariantQcExprsSuite extends GlowBaseTest {
   test("assert_true_or_error returns null if condition passes") {
     val rows = spark
       .range(3)
-      .selectExpr("assert_true_or_error(id < 3, 'id is too big!')")
+      .selectExpr("assert_true_or_error(id < 3, 'something has gone wrong!')")
       .collect()
     assert(rows.toSeq == Seq(Row(null), Row(null), Row(null)))
   }
 
   test("assert_true_or_error throws if condition fails") {
-    val errMsg = "id is too big!"
+    val errMsg = "something has gone wrong!"
     val e = intercept[SparkException] {
       spark
         .range(4)
@@ -446,6 +446,17 @@ class VariantQcExprsSuite extends GlowBaseTest {
     }
     assert(e.getCause.isInstanceOf[RuntimeException])
     assert(e.getCause.getMessage == errMsg)
+  }
+
+  test("assert_true_or_error throws if value is null") {
+    val errMsg = "something has gone wrong!"
+    val e = intercept[RuntimeException] {
+      spark
+        .range(4)
+        .selectExpr(s"assert_true_or_error(null, '$errMsg')")
+        .collect()
+    }
+    assert(e.getMessage == errMsg)
   }
 }
 
