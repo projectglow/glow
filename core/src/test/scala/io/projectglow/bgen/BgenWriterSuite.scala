@@ -126,9 +126,6 @@ class BgenWriterSuite extends BgenConverterBaseTest {
       .option("includeSampleIds", true)
       .load(testVcf)
 
-    bgenDs.selectExpr("explode(genotypes)").selectExpr("expand_struct(col)").show()
-    origVcfDs.selectExpr("explode(genotypes)").selectExpr("expand_struct(col)").show()
-
     val writer = origVcfDs
       .write
       .option("bitsPerProbability", bitsPerProb)
