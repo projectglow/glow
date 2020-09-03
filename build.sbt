@@ -343,7 +343,7 @@ downVersionPySpark := {
 }
 def crossReleaseStep(step: ReleaseStep): Seq[ReleaseStep] = {
   Seq(
-    releaseStepCommandAndRemaining(s"""ThisBuild / downVersionPySpark"""),
+    releaseStepCommandAndRemaining(s"""downVersionPySpark"""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark2""""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala211""""),
     step
