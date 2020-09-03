@@ -14,7 +14,7 @@ lazy val spark2 = "2.4.5"
 lazy val spark3 = "3.0.0"
 
 lazy val sparkVersion = settingKey[String]("sparkVersion")
-ThisBuild / sparkVersion := sys.env.getOrElse("SPARK_VERSION", spark3)
+ThisBuild / sparkVersion := sys.env.getOrElse("SPARK_VERSION", spark2)
 
 def majorVersion(version: String): String = {
   StringUtils.ordinalIndexOf(version, ".", 1) match {
@@ -340,14 +340,16 @@ releaseCrossBuild := false
 
 def crossReleaseStep(step: ReleaseStep): Seq[ReleaseStep] = {
   Seq(
+    releaseStepCommandAndRemaining(s""""conda remove -n glow pyspark" !"""),
+    releaseStepCommandAndRemaining(s""""conda install -n glow pyspark=2.4.5" !"""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark2""""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala211""""),
-    step,
-    releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
-    step,
-    releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark3""""),
-    releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
     step
+//    releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
+//    step,
+//    releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark3""""),
+//    releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
+//    step
   )
 }
 
