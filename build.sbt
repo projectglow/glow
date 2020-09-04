@@ -340,7 +340,7 @@ releaseCrossBuild := false
 
 lazy val changePySparkVersion = taskKey[Unit]("changePySparkVersion ")
 changePySparkVersion := {
-  s"conda remove -n glow pyspark ; conda install -n glow pyspark=$sparkOld" !
+  "conda remove -n glow pyspark" !; s"conda install -n glow pyspark=$sparkOld" !
 }
 
 lazy val updateCondaEnv = taskKey[Unit]("Update Glow Env To Latest Version")
