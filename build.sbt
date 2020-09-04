@@ -354,7 +354,7 @@ def crossReleaseStep(step: ReleaseStep, requiresPySpark: Boolean): Seq[ReleaseSt
     if (requiresPySpark) "changePySparkVersion" else "")
 
   Seq(
-//    updateCondaEnvStep,
+    updateCondaEnvStep,
 //    releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark3""""),
 //    releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
 //    step,
