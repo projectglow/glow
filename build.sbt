@@ -350,7 +350,8 @@ updateCondaEnv := {
 
 def crossReleaseStep(step: ReleaseStep, test: Boolean): Seq[ReleaseStep] = {
   val updateCondaEnvStep = releaseStepCommandAndRemaining(if (test) "updateCondaEnv" else "")
-  val downVersionPySparkStep = releaseStepCommandAndRemaining(if (test) "downVersionPySpark" else "")
+  val downVersionPySparkStep = releaseStepCommandAndRemaining(
+    if (test) "downVersionPySpark" else "")
 
   Seq(
     updateCondaEnvStep,
@@ -372,17 +373,17 @@ releaseProcess := Seq[ReleaseStep](
   inquireVersions,
   runClean
 ) ++
-//  crossReleaseStep(runTest, true) ++
-  Seq(
-    setReleaseVersion,
-    updateStableVersion,
-    commitReleaseVersion,
-    commitStableVersion,
-    tagRelease
-  ) ++
-  crossReleaseStep(publishArtifacts, false) ++
-  crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test"), false) ++
-  Seq(
-    setNextVersion,
-    commitNextVersion
-  )
+crossReleaseStep(runTest, true) ++
+Seq(
+  setReleaseVersion,
+  updateStableVersion,
+  commitReleaseVersion,
+  commitStableVersion,
+  tagRelease
+) ++
+crossReleaseStep(publishArtifacts, false) ++
+crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test"), false) ++
+Seq(
+  setNextVersion,
+  commitNextVersion
+)
