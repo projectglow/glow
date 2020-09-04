@@ -74,7 +74,12 @@ class BgenRowConverterSuite extends BgenConverterBaseTest {
   }
 
   test("phased") {
-    compareVcfToBgen(spark, s"$testRoot/phased.16bits.bgen", s"$testRoot/phased.16bits.vcf", 16, true)
+    compareVcfToBgen(
+      spark,
+      s"$testRoot/phased.16bits.bgen",
+      s"$testRoot/phased.16bits.vcf",
+      16,
+      true)
   }
 
   test("works with adaptive query execution enabled") {
