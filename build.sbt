@@ -378,8 +378,8 @@ crossReleaseStep(runTest, true) ++
 Seq(
   setReleaseVersion,
   updateStableVersion,
-//    commitReleaseVersion,
-//    commitStableVersion,
+  commitReleaseVersion,
+  commitStableVersion,
   tagRelease
 ) ++
 crossReleaseStep(publishArtifacts, false) ++
