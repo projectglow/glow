@@ -10,7 +10,18 @@ import sbt.nio.Keys._
 lazy val scala212 = "2.12.8"
 lazy val scala211 = "2.11.12"
 
-lazy val sparkVersion = sys.env.getOrElse("SPARK_VERSION", "3.0.0")
+lazy val spark2 = "2.4.5"
+lazy val spark3 = "3.0.0"
+
+lazy val sparkVersion = settingKey[String]("sparkVersion")
+ThisBuild / sparkVersion := sys.env.getOrElse("SPARK_VERSION", spark3)
+
+def majorVersion(version: String): String = {
+  StringUtils.ordinalIndexOf(version, ".", 1) match {
+    case StringUtils.INDEX_NOT_FOUND => version
+    case i => version.take(i)
+  }
+}
 
 def majorMinorVersion(version: String): String = {
   StringUtils.ordinalIndexOf(version, ".", 2) match {
@@ -104,27 +115,33 @@ lazy val functionGenerationSettings = Seq(
     generatorScript.value).map(_.toGlob)
 )
 
-lazy val sparkDependencies = Seq(
-  "org.apache.spark" %% "spark-catalyst" % sparkVersion,
-  "org.apache.spark" %% "spark-core" % sparkVersion,
-  "org.apache.spark" %% "spark-mllib" % sparkVersion,
-  "org.apache.spark" %% "spark-sql" % sparkVersion
+lazy val sparkDependencies = settingKey[Seq[ModuleID]]("sparkDependencies")
+lazy val providedSparkDependencies = settingKey[Seq[ModuleID]]("providedSparkDependencies")
+lazy val testSparkDependencies = settingKey[Seq[ModuleID]]("testSparkDependencies")
+
+ThisBuild / sparkDependencies := Seq(
+  "org.apache.spark" %% "spark-catalyst" % sparkVersion.value,
+  "org.apache.spark" %% "spark-core" % sparkVersion.value,
+  "org.apache.spark" %% "spark-mllib" % sparkVersion.value,
+  "org.apache.spark" %% "spark-sql" % sparkVersion.value
 )
 
-lazy val providedSparkDependencies = sparkDependencies.map(_ % "provided")
-lazy val testSparkDependencies = sparkDependencies.map(_ % "test")
+ThisBuild / providedSparkDependencies := sparkDependencies.value.map(_ % "provided")
+ThisBuild / testSparkDependencies := sparkDependencies.value.map(_ % "test")
 
-lazy val testCoreDependencies = Seq(
+lazy val testCoreDependencies = settingKey[Seq[ModuleID]]("testCoreDependencies")
+ThisBuild / testCoreDependencies := Seq(
   "org.scalatest" %% "scalatest" % "3.0.3" % "test",
   "org.mockito" % "mockito-all" % "1.9.5" % "test",
-  "org.apache.spark" %% "spark-catalyst" % sparkVersion % "test" classifier "tests",
-  "org.apache.spark" %% "spark-core" % sparkVersion % "test" classifier "tests",
-  "org.apache.spark" %% "spark-mllib" % sparkVersion % "test" classifier "tests",
-  "org.apache.spark" %% "spark-sql" % sparkVersion % "test" classifier "tests",
+  "org.apache.spark" %% "spark-catalyst" % sparkVersion.value % "test" classifier "tests",
+  "org.apache.spark" %% "spark-core" % sparkVersion.value % "test" classifier "tests",
+  "org.apache.spark" %% "spark-mllib" % sparkVersion.value % "test" classifier "tests",
+  "org.apache.spark" %% "spark-sql" % sparkVersion.value % "test" classifier "tests",
   "org.xerial" % "sqlite-jdbc" % "3.20.1" % "test"
 )
 
-lazy val coreDependencies = (providedSparkDependencies ++ testCoreDependencies ++ Seq(
+lazy val coreDependencies = settingKey[Seq[ModuleID]]("coreDependencies")
+ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDependencies.value ++ Seq(
   "org.seqdoop" % "hadoop-bam" % "7.9.2",
   "log4j" % "log4j" % "1.2.17",
   "org.slf4j" % "slf4j-api" % "1.7.25",
@@ -156,18 +173,18 @@ lazy val core = (project in file("core"))
   .settings(
     commonSettings,
     functionGenerationSettings,
-    name := "glow",
+    name := s"glow_spark${majorVersion(sparkVersion.value)}_scala",
     publish / skip := false,
     // Adds the Git hash to the MANIFEST file. We set it here instead of relying on sbt-release to
     // do so.
     packageOptions in (Compile, packageBin) +=
-    Package.ManifestAttributes("Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
+      Package.ManifestAttributes("Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
     bintrayRepository := "glow",
-    libraryDependencies ++= coreDependencies :+ scalaLoggingDependency.value,
+    libraryDependencies ++= coreDependencies.value :+ scalaLoggingDependency.value,
     Compile / unmanagedSourceDirectories +=
-    baseDirectory.value / "src" / "main" / "shim" / majorMinorVersion(sparkVersion),
+      baseDirectory.value / "src" / "main" / "shim" / majorMinorVersion(sparkVersion.value),
     Test / unmanagedSourceDirectories +=
-    baseDirectory.value / "src" / "test" / "shim" / majorMinorVersion(sparkVersion),
+      baseDirectory.value / "src" / "test" / "shim" / majorMinorVersion(sparkVersion.value),
     functionsTemplate := baseDirectory.value / "functions.scala.TEMPLATE",
     generatedFunctionsOutput := (Compile / scalaSource).value / "io" / "projectglow" / "functions.scala",
     sourceGenerators in Compile += generateFunctions
@@ -190,7 +207,7 @@ lazy val sparkHome = taskKey[String]("sparkHome")
 lazy val pythonPath = taskKey[String]("pythonPath")
 
 lazy val pythonSettings = Seq(
-  libraryDependencies ++= testSparkDependencies,
+  libraryDependencies ++= testSparkDependencies.value,
   sparkClasspath := (fullClasspath in Test).value.files.map(_.getCanonicalPath).mkString(":"),
   sparkHome := (ThisBuild / baseDirectory).value.absolutePath,
   pythonPath := ((ThisBuild / baseDirectory).value / "python").absolutePath,
@@ -202,7 +219,7 @@ lazy val pythonSettings = Seq(
       "SPARK_HOME" -> sparkHome.value,
       "PYTHONPATH" -> pythonPath.value
     )
-    val env = if (majorMinorVersion(sparkVersion) >= "3.0") {
+    val env = if (majorMinorVersion(sparkVersion.value) >= "3.0") {
       baseEnv :+ "PYSPARK_ROW_FIELD_SORTING_ENABLED" -> "true"
     } else {
       baseEnv :+ "ARROW_PRE_0_15_IPC_FORMAT" -> "1"
@@ -277,8 +294,14 @@ ThisBuild / developers := List(
     "karenfeng",
     "Karen Feng",
     "karen.feng@databricks.com",
-    url("https://github.com/karenfeng"))
+    url("https://github.com/karenfeng")),
+  Developer(
+    "kianfar77",
+    "Kiavash Kianfar",
+    "kiavash.kianfar@databricks.com",
+    url("https://github.com/kianfar77"))
 )
+
 ThisBuild / pomIncludeRepository := { _ =>
   false
 }
@@ -298,9 +321,9 @@ lazy val stagedRelease = (project in file("core/src/test"))
     resourceDirectory in Test := baseDirectory.value / "resources",
     scalaSource in Test := baseDirectory.value / "scala",
     unmanagedSourceDirectories in Test += baseDirectory.value / "shim" / majorMinorVersion(
-      sparkVersion),
-    libraryDependencies ++= testSparkDependencies ++ testCoreDependencies :+
-    "io.projectglow" %% "glow" % stableVersion.value % "test",
+      sparkVersion.value),
+    libraryDependencies ++= testSparkDependencies.value ++ testCoreDependencies.value :+
+      "io.projectglow" %% s"glow_spark${majorVersion(sparkVersion.value)}_scala" % stableVersion.value % "test",
     resolvers := Seq("bintray-staging" at "https://dl.bintray.com/projectglow/glow"),
     org
       .jetbrains
@@ -312,15 +335,36 @@ lazy val stagedRelease = (project in file("core/src/test"))
 
 import ReleaseTransformations._
 
-// Don't use sbt-release's cross facility	
+// Don't use sbt-release's cross facility
 releaseCrossBuild := false
 
-def crossReleaseStep(step: ReleaseStep): Seq[ReleaseStep] = {
+lazy val downVersionPySpark = taskKey[Unit]("Replace PySpark")
+downVersionPySpark := {
+  "./downversion-pyspark.sh" !
+}
+
+lazy val updateCondaEnv = taskKey[Unit]("Update Glow Env To Latest Version")
+updateCondaEnv := {
+  "conda env update -f python/environment.yml" !
+}
+
+def crossReleaseStep(step: ReleaseStep, test: Boolean): Seq[ReleaseStep] = {
+  val updateCondaEnvStep = releaseStepCommandAndRemaining(if (test) "updateCondaEnv" else "")
+  val downVersionPySparkStep = releaseStepCommandAndRemaining(
+    if (test) "downVersionPySpark" else "")
+
   Seq(
+    updateCondaEnvStep,
+    releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark3""""),
+    releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
+    step,
+    downVersionPySparkStep,
+    releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark2""""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala211""""),
     step,
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
-    step
+    step,
+    updateCondaEnvStep
   )
 }
 
@@ -329,17 +373,18 @@ releaseProcess := Seq[ReleaseStep](
   inquireVersions,
   runClean
 ) ++
-crossReleaseStep(runTest) ++
-Seq(
-  setReleaseVersion,
-  updateStableVersion,
-  commitReleaseVersion,
-  commitStableVersion,
-  tagRelease
-) ++
-crossReleaseStep(publishArtifacts) ++
-crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test")) ++
-Seq(
-  setNextVersion,
-  commitNextVersion
-)
+  crossReleaseStep(runTest, true) ++
+  Seq(
+    setReleaseVersion,
+    updateStableVersion,
+    commitReleaseVersion,
+    commitStableVersion,
+    tagRelease
+  ) ++
+  crossReleaseStep(publishArtifacts, false) ++
+  crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test"), false) ++
+  Seq(
+    setNextVersion,
+    commitNextVersion
+  )
+
