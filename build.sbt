@@ -14,7 +14,7 @@ lazy val spark2 = "2.4.5"
 lazy val spark3 = "3.0.0"
 
 lazy val sparkVersion = settingKey[String]("sparkVersion")
-ThisBuild / sparkVersion := sys.env.getOrElse("SPARK_VERSION", spark2)
+ThisBuild / sparkVersion := sys.env.getOrElse("SPARK_VERSION", spark3)
 
 def majorVersion(version: String): String = {
   StringUtils.ordinalIndexOf(version, ".", 1) match {
@@ -349,23 +349,22 @@ updateCondaEnv := {
 }
 
 def crossReleaseStep(step: ReleaseStep, test: Boolean): Seq[ReleaseStep] = {
-  {
-    if (test) Seq(releaseStepCommandAndRemaining(s"""updateCondaEnv""")) else Seq()
-  } ++ Seq(
+  val updateCondaEnvStep = releaseStepCommandAndRemaining(if (test) "updateCondaEnv" else "")
+  val downVersionPySparkStep = releaseStepCommandAndRemaining(if (test) "downVersionPySpark" else "")
+
+  Seq(
+    updateCondaEnvStep,
     releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark3""""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
-    step
-  ) ++ {
-    if (test) Seq(releaseStepCommandAndRemaining(s"""downVersionPySpark""")) else Seq()
-  } ++ Seq(
+    step,
+    downVersionPySparkStep,
     releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark2""""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala211""""),
     step,
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
-    step
-  ) ++ {
-    if (test) Seq(releaseStepCommandAndRemaining(s"""updateCondaEnv""")) else Seq()
-  }
+    step,
+    updateCondaEnvStep
+  )
 }
 
 releaseProcess := Seq[ReleaseStep](
