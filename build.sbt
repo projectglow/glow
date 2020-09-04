@@ -178,13 +178,13 @@ lazy val core = (project in file("core"))
     // Adds the Git hash to the MANIFEST file. We set it here instead of relying on sbt-release to
     // do so.
     packageOptions in (Compile, packageBin) +=
-      Package.ManifestAttributes("Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
+    Package.ManifestAttributes("Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
     bintrayRepository := "glow",
     libraryDependencies ++= coreDependencies.value :+ scalaLoggingDependency.value,
     Compile / unmanagedSourceDirectories +=
-      baseDirectory.value / "src" / "main" / "shim" / majorMinorVersion(sparkVersion.value),
+    baseDirectory.value / "src" / "main" / "shim" / majorMinorVersion(sparkVersion.value),
     Test / unmanagedSourceDirectories +=
-      baseDirectory.value / "src" / "test" / "shim" / majorMinorVersion(sparkVersion.value),
+    baseDirectory.value / "src" / "test" / "shim" / majorMinorVersion(sparkVersion.value),
     functionsTemplate := baseDirectory.value / "functions.scala.TEMPLATE",
     generatedFunctionsOutput := (Compile / scalaSource).value / "io" / "projectglow" / "functions.scala",
     sourceGenerators in Compile += generateFunctions
@@ -323,7 +323,7 @@ lazy val stagedRelease = (project in file("core/src/test"))
     unmanagedSourceDirectories in Test += baseDirectory.value / "shim" / majorMinorVersion(
       sparkVersion.value),
     libraryDependencies ++= testSparkDependencies.value ++ testCoreDependencies.value :+
-      "io.projectglow" %% s"glow_spark${majorVersion(sparkVersion.value)}_scala" % stableVersion.value % "test",
+    "io.projectglow" %% s"glow_spark${majorVersion(sparkVersion.value)}_scala" % stableVersion.value % "test",
     resolvers := Seq("bintray-staging" at "https://dl.bintray.com/projectglow/glow"),
     org
       .jetbrains
@@ -349,15 +349,16 @@ updateCondaEnv := {
 }
 
 def crossReleaseStep(step: ReleaseStep, requiresPySpark: Boolean): Seq[ReleaseStep] = {
-  val updateCondaEnvStep = releaseStepCommandAndRemaining(if (requiresPySpark) "updateCondaEnv" else "")
+  val updateCondaEnvStep = releaseStepCommandAndRemaining(
+    if (requiresPySpark) "updateCondaEnv" else "")
   val changePySparkVersionStep = releaseStepCommandAndRemaining(
     if (requiresPySpark) "changePySparkVersion" else "")
 
   Seq(
     updateCondaEnvStep,
-//    releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark3""""),
-//    releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
-//    step,
+    releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$sparkNew""""),
+    releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scalaNew""""),
+    step,
     changePySparkVersionStep,
     releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$sparkOld""""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scalaOld""""),
@@ -373,18 +374,17 @@ releaseProcess := Seq[ReleaseStep](
   inquireVersions,
   runClean
 ) ++
-  crossReleaseStep(runTest, true) ++
-  Seq(
-    setReleaseVersion,
-    updateStableVersion,
+crossReleaseStep(runTest, true) ++
+Seq(
+  setReleaseVersion,
+  updateStableVersion,
 //    commitReleaseVersion,
 //    commitStableVersion,
-    tagRelease
-  ) ++
-  crossReleaseStep(publishArtifacts, false) ++
-  crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test"), false) ++
-  Seq(
-    setNextVersion,
-    commitNextVersion
-  )
-
+  tagRelease
+) ++
+crossReleaseStep(publishArtifacts, false) ++
+crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test"), false) ++
+Seq(
+  setNextVersion,
+  commitNextVersion
+)
