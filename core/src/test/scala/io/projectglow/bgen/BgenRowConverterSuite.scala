@@ -46,13 +46,15 @@ class BgenRowConverterSuite extends BgenConverterBaseTest {
       .format("vcf")
       .load(testVcf)
       .sort("contigName", "start", "names")
-    val converter = new InternalRowToBgenRowConverter(vcfDf.schema, 10, 2, defaultPhasing)
+    val vcfSchema = vcfDf.schema
     val vcfRows = vcfDf
       .queryExecution
       .toRdd
-      .map(_.copy())
+      .mapPartitions { it =>
+        val converter = new InternalRowToBgenRowConverter(vcfSchema, 10, 2, defaultPhasing)
+        it.map(converter.convert)
+      }
       .collect
-      .map(converter.convert)
 
     assert(bgenRows.size == vcfRows.size)
     bgenRows.zip(vcfRows).foreach {
