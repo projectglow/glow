@@ -173,7 +173,7 @@ lazy val core = (project in file("core"))
   .settings(
     commonSettings,
     functionGenerationSettings,
-    name := s"glow_spark${ma jorVersion(sparkVersion.value)}_scala",
+    name := s"glow_spark${majorVersion(sparkVersion.value)}_scala",
     publish / skip := false,
     // Adds the Git hash to the MANIFEST file. We set it here instead of relying on sbt-release to
     // do so.
