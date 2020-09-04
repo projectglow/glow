@@ -338,9 +338,12 @@ import ReleaseTransformations._
 // Don't use sbt-release's cross facility
 releaseCrossBuild := false
 
-lazy val downVersionPySpark = taskKey[Unit]("Replace PySpark")
-downVersionPySpark := {
-  "./downversion-pyspark.sh" !
+def changePySparkVersion(targetVersion: String): TaskKey[Unit] = {
+  val task = taskKey[Unit]("changePySparkVersion ")
+  task := {
+    s";conda remove -n glow pyspark; conda install -n glow pyspark=$targetVersion" !
+  }
+  task
 }
 
 lazy val updateCondaEnv = taskKey[Unit]("Update Glow Env To Latest Version")
@@ -348,17 +351,17 @@ updateCondaEnv := {
   "conda env update -f python/environment.yml" !
 }
 
-def crossReleaseStep(step: ReleaseStep, test: Boolean): Seq[ReleaseStep] = {
-  val updateCondaEnvStep = releaseStepCommandAndRemaining(if (test) "updateCondaEnv" else "")
-  val downVersionPySparkStep = releaseStepCommandAndRemaining(
-    if (test) "downVersionPySpark" else "")
+def crossReleaseStep(step: ReleaseStep, requiresPySpark: Boolean): Seq[ReleaseStep] = {
+  val updateCondaEnvStep = releaseStepCommandAndRemaining(if (requiresPySpark) "updateCondaEnv" else "")
+  val changePySparkVersionStep = releaseStepCommandAndRemaining(
+    if (requiresPySpark) s"changePySparkVersion($spark2)" else "")
 
   Seq(
     updateCondaEnvStep,
     releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark3""""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
     step,
-    downVersionPySparkStep,
+    changePySparkVersionStep,
     releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark2""""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala211""""),
     step,
