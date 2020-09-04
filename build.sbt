@@ -357,10 +357,10 @@ def crossReleaseStep(step: ReleaseStep, requiresPySpark: Boolean): Seq[ReleaseSt
     if (requiresPySpark) s"changePySparkVersion($spark2)" else "")
 
   Seq(
-    updateCondaEnvStep,
-    releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark3""""),
-    releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
-    step,
+//    updateCondaEnvStep,
+//    releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark3""""),
+//    releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
+//    step,
     changePySparkVersionStep,
     releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark2""""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala211""""),
@@ -380,8 +380,8 @@ releaseProcess := Seq[ReleaseStep](
   Seq(
     setReleaseVersion,
     updateStableVersion,
-    commitReleaseVersion,
-    commitStableVersion,
+//    commitReleaseVersion,
+//    commitStableVersion,
     tagRelease
   ) ++
   crossReleaseStep(publishArtifacts, false) ++
