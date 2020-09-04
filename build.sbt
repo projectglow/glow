@@ -343,25 +343,29 @@ downVersionPySpark := {
   "./downversion-pyspark.sh" !
 }
 
-lazy val updateCondaEnv = taskKey[Unit]("Initialize Release Conda Environment")
+lazy val updateCondaEnv = taskKey[Unit]("Update Glow Env To Latest Version")
 updateCondaEnv := {
   "conda env update -f python/environment.yml" !
 }
 
-def crossReleaseStep(step: ReleaseStep): Seq[ReleaseStep] = {
-  Seq(
-//    releaseStepCommandAndRemaining(s"""updateCondaEnv"""),
+def crossReleaseStep(step: ReleaseStep, test: Boolean): Seq[ReleaseStep] = {
+  {
+    if (test) Seq(releaseStepCommandAndRemaining(s"""updateCondaEnv""")) else Seq()
+  } ++ Seq(
     releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark3""""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
-    step,
-//    releaseStepCommandAndRemaining(s"""downVersionPySpark"""),
+    step
+  ) ++ {
+    if (test) Seq(releaseStepCommandAndRemaining(s"""downVersionPySpark""")) else Seq()
+  } ++ Seq(
     releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark2""""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala211""""),
     step,
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
-    step,
-//    releaseStepCommandAndRemaining(s"""updateCondaEnv"""),
-  )
+    step
+  ) ++ {
+    if (test) Seq(releaseStepCommandAndRemaining(s"""updateCondaEnv""")) else Seq()
+  }
 }
 
 releaseProcess := Seq[ReleaseStep](
@@ -369,17 +373,17 @@ releaseProcess := Seq[ReleaseStep](
   inquireVersions,
   runClean
 ) ++
-// crossReleaseStep(runTest) ++
-Seq(
-  setReleaseVersion,
-  updateStableVersion,
-  commitReleaseVersion,
-  commitStableVersion,
-  tagRelease
-) ++
-// crossReleaseStep(publishArtifacts) ++
-crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test")) ++
-Seq(
-  setNextVersion,
-  commitNextVersion
-)
+  crossReleaseStep(runTest, true) ++
+  Seq(
+    setReleaseVersion,
+    updateStableVersion,
+    commitReleaseVersion,
+    commitStableVersion,
+    tagRelease
+  ) ++
+  crossReleaseStep(publishArtifacts, false) ++
+  crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test"), false) ++
+  Seq(
+    setNextVersion,
+    commitNextVersion
+  )
