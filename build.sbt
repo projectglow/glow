@@ -377,9 +377,9 @@ Seq(
   commitStableVersion,
   tagRelease
 ) ++
-crossReleaseStep(publishArtifacts) // ++
-//crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test")) ++
-//Seq(
-//  setNextVersion,
-//  commitNextVersion
-//)
+// crossReleaseStep(publishArtifacts) ++
+crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test")) ++
+Seq(
+  setNextVersion,
+  commitNextVersion
+)
