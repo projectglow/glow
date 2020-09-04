@@ -354,7 +354,7 @@ updateCondaEnv := {
 def crossReleaseStep(step: ReleaseStep, requiresPySpark: Boolean): Seq[ReleaseStep] = {
   val updateCondaEnvStep = releaseStepCommandAndRemaining(if (requiresPySpark) "updateCondaEnv" else "")
   val changePySparkVersionStep = releaseStepCommandAndRemaining(
-    if (requiresPySpark) s"changePySparkVersion($spark2)" else "")
+    if (requiresPySpark) s"""changePySparkVersion("$spark2")""" else "")
 
   Seq(
 //    updateCondaEnvStep,
