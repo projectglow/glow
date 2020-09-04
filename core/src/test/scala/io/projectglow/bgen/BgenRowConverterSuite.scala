@@ -17,6 +17,7 @@
 package io.projectglow.bgen
 
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
+import org.apache.spark.sql.SparkSession
 
 import io.projectglow.common.{BgenGenotype, BgenRow}
 
@@ -25,14 +26,14 @@ class BgenRowConverterSuite extends BgenConverterBaseTest {
   val sourceName = "bgen"
 
   def compareVcfToBgen(
+      sess: SparkSession,
       testBgen: String,
       testVcf: String,
       bitsPerProb: Int,
       defaultPhasing: Boolean = false) {
-    val sess = spark
     import sess.implicits._
 
-    val bgenRows = spark
+    val bgenRows = sess
       .read
       .format(sourceName)
       .schema(BgenRow.schema)
@@ -40,7 +41,7 @@ class BgenRowConverterSuite extends BgenConverterBaseTest {
       .sort("contigName", "start", "names")
       .as[BgenRow]
       .collect
-    val vcfDf = spark
+    val vcfDf = sess
       .read
       .format("vcf")
       .load(testVcf)
@@ -49,6 +50,7 @@ class BgenRowConverterSuite extends BgenConverterBaseTest {
     val vcfRows = vcfDf
       .queryExecution
       .toRdd
+      .map(_.copy())
       .collect
       .map(converter.convert)
 
@@ -60,19 +62,25 @@ class BgenRowConverterSuite extends BgenConverterBaseTest {
   }
 
   test("unphased 8 bit") {
-    compareVcfToBgen(s"$testRoot/example.8bits.bgen", s"$testRoot/example.8bits.vcf", 8)
+    compareVcfToBgen(spark, s"$testRoot/example.8bits.bgen", s"$testRoot/example.8bits.vcf", 8)
   }
 
   test("unphased 16 bit (with missing samples)") {
-    compareVcfToBgen(s"$testRoot/example.16bits.bgen", s"$testRoot/example.16bits.vcf", 16)
+    compareVcfToBgen(spark, s"$testRoot/example.16bits.bgen", s"$testRoot/example.16bits.vcf", 16)
   }
 
   test("unphased 32 bit") {
-    compareVcfToBgen(s"$testRoot/example.32bits.bgen", s"$testRoot/example.32bits.vcf", 32)
+    compareVcfToBgen(spark, s"$testRoot/example.32bits.bgen", s"$testRoot/example.32bits.vcf", 32)
   }
 
   test("phased") {
-    compareVcfToBgen(s"$testRoot/phased.16bits.bgen", s"$testRoot/phased.16bits.vcf", 16, true)
+    compareVcfToBgen(spark, s"$testRoot/phased.16bits.bgen", s"$testRoot/phased.16bits.vcf", 16, true)
+  }
+
+  test("works with adaptive query execution enabled") {
+    val sess = spark.newSession()
+    sess.conf.set("spark.sql.adaptive.enabled", true)
+    compareVcfToBgen(sess, s"$testRoot/example.8bits.bgen", s"$testRoot/example.8bits.vcf", 8)
   }
 
   def inferPhasingOrPloidy(
