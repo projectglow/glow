@@ -697,6 +697,16 @@ class VCFDatasourceSuite extends GlowBaseTest {
 class FastVCFDatasourceSuite extends VCFDatasourceSuite {
   override def sparkConf: SparkConf =
     super.sparkConf.set(GlowConf.FAST_VCF_READER_ENABLED.key, "true")
+
+  test("read AD with nulls") {
+    val sess = spark
+    import sess.implicits._
+    val df = parseDF(
+      "chr0\t0\t.\tA\t.\t.\t.\t.\tAD\t.,1",
+      extraHeaderLines = "##FORMAT=<ID=AD,Number=R,Type=Integer,Description=\"\"\n")
+    assert(
+      df.selectExpr("genotypes[0].alleleDepths").as[Seq[Option[Int]]].head == Seq(None, Some(1)))
+  }
 }
 
 // For testing only: schema based on CEUTrio VCF header

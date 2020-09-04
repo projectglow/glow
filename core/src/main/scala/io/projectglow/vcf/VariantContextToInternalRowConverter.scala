@@ -198,8 +198,6 @@ class VariantContextToInternalRowConverter(
         i += 1
       }
       row.update(idx, new GenericArrayData(arr))
-    } else {
-      ()
     }
   }
 
