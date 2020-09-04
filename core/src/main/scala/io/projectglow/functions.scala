@@ -342,19 +342,6 @@ object functions {
   }
 
   /**
-   * Asserts a boolean condition is true.
-   * @group quality_control
-   * @since 0.5.0
-   *
-   * @param condition Boolean condition to check
-   * @param errMsg Error message if condition fails
-   * @return Null if true, or throws an exception if not true
-   */
-  def assert_true_or_error(condition: Column, errMsg: String): Column = withExpr {
-    new io.projectglow.sql.expressions.AssertTrueOrError(condition.expr, Literal(errMsg))
-  }
-
-  /**
    * Performs a linear regression association test optimized for performance in a GWAS setting. See :ref:`linear-regression` for details.
    * @group gwas_functions
    * @since 0.3.0

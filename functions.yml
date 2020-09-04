@@ -7,8 +7,8 @@
 # Potentially confusing function options are:
 # - expr_class: The class name of the expression in Glow that implements the function. This value is
 #               *not* user-visible. It's used only for client generation.
-# - exclude_python: If true, the function cannot be represented in Python. This is currently only
-#                   the case for functions that take lambda functions as arguments.
+# - exclude_python: If true, the function is not exposed via the Python API
+# - exclude_scala: If true, the function is not exposed via the Scala API.
 # 
 # Potentially confusing argument options are:
 # - type: The argument's type. This can currently be one of [str, double, lambda1, lambda2]. These
@@ -409,6 +409,8 @@ quality_control:
       doc: Asserts a boolean condition is true.
       since: 0.5.0
       expr_class: io.projectglow.sql.expressions.AssertTrueOrError
+      exclude_python: true
+      exclude_scala: true
       examples:
         python: |
           >>> df = spark.createDataFrame([Row(v=1), Row(v=1)])

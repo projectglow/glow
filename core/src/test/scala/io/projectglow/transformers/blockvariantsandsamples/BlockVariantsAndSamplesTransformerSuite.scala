@@ -165,6 +165,6 @@ class BlockVariantsAndSamplesTransformerSuite extends GlowBaseTest with GlowLogg
       Glow.transform(TRANSFORMER_NAME, vcfDf, options).show()
     }
     assert(ex.getCause.isInstanceOf[RuntimeException])
-    assert(ex.getCause.getMessage.contains("Number of values is inconsistent!"))
+    assert(ex.getCause.getMessage.contains("At least one row has an inconsistent number of values"))
   }
 }

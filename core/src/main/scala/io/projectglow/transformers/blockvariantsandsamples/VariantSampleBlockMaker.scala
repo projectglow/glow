@@ -35,11 +35,9 @@ private[projectglow] object VariantSampleBlockMaker extends GlowLogging {
     import df.sparkSession.implicits._
     val expectedNumValues =
       df.selectExpr("size(values) as numValues").take(1)(0).getAs[Int]("numValues")
-    df.filter(
-      isnull(
-        assert_true_or_error(
-          size(col("values")) === expectedNumValues,
-          "Number of values is inconsistent!")))
+    val errMsg = s"At least one row has an inconsistent number of values (expected $expectedNumValues). " +
+      "Please verify that each row contains the same number of values."
+    df.filter(expr(s"isnull(assert_true_or_error(size(values) = $expectedNumValues, '$errMsg'))"))
   }
 
   def filterOneDistinctValue(df: DataFrame): DataFrame = {
