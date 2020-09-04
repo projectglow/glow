@@ -10,8 +10,8 @@ import sbt.nio.Keys._
 lazy val scalaNew = "2.12.8"
 lazy val scalaOld = "2.11.12"
 
-lazy val sparkOld = "2.4.5"
 lazy val sparkNew = "3.0.0"
+lazy val sparkOld = "2.4.5"
 
 lazy val sparkVersion = settingKey[String]("sparkVersion")
 ThisBuild / sparkVersion := sys.env.getOrElse("SPARK_VERSION", sparkNew)
