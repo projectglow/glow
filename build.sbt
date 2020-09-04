@@ -7,14 +7,14 @@ import sbt.Keys._
 import sbt.librarymanagement.ModuleID
 import sbt.nio.Keys._
 
-lazy val scala212 = "2.12.8"
-lazy val scala211 = "2.11.12"
+lazy val scalaNew = "2.12.8"
+lazy val scalaOld = "2.11.12"
 
-lazy val spark2 = "2.4.5"
-lazy val spark3 = "3.0.0"
+lazy val sparkOld = "2.4.5"
+lazy val sparkNew = "3.0.0"
 
 lazy val sparkVersion = settingKey[String]("sparkVersion")
-ThisBuild / sparkVersion := sys.env.getOrElse("SPARK_VERSION", spark3)
+ThisBuild / sparkVersion := sys.env.getOrElse("SPARK_VERSION", sparkNew)
 
 def majorVersion(version: String): String = {
   StringUtils.ordinalIndexOf(version, ".", 1) match {
@@ -30,7 +30,7 @@ def majorMinorVersion(version: String): String = {
   }
 }
 
-ThisBuild / scalaVersion := sys.env.getOrElse("SCALA_VERSION", scala212)
+ThisBuild / scalaVersion := sys.env.getOrElse("SCALA_VERSION", scalaNew)
 ThisBuild / organization := "io.projectglow"
 ThisBuild / scalastyleConfig := baseDirectory.value / "scalastyle-config.xml"
 ThisBuild / publish / skip := true
@@ -161,11 +161,11 @@ lazy val root = (project in file(".")).aggregate(core, python, docs)
 lazy val scalaLoggingDependency = settingKey[ModuleID]("scalaLoggingDependency")
 ThisBuild / scalaLoggingDependency := {
   (ThisBuild / scalaVersion).value match {
-    case `scala211` => "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2"
-    case `scala212` => "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2"
+    case `scalaOld` => "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2"
+    case `scalaNew` => "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2"
     case _ =>
       throw new IllegalArgumentException(
-        "Only supported Scala versions are: " + Seq(scala211, scala212))
+        "Only supported Scala versions are: " + Seq(scalaOld, scalaNew))
   }
 }
 
@@ -338,12 +338,9 @@ import ReleaseTransformations._
 // Don't use sbt-release's cross facility
 releaseCrossBuild := false
 
-def changePySparkVersion(targetVersion: String): TaskKey[Unit] = {
-  val task = taskKey[Unit]("changePySparkVersion ")
-  task := {
-    s";conda remove -n glow pyspark; conda install -n glow pyspark=$targetVersion" !
-  }
-  task
+lazy val changePySparkVersion = taskKey[Unit]("changePySparkVersion ")
+changePySparkVersion := {
+  s";conda remove -n glow pyspark; conda install -n glow pyspark=$sparkOld" !
 }
 
 lazy val updateCondaEnv = taskKey[Unit]("Update Glow Env To Latest Version")
@@ -354,7 +351,7 @@ updateCondaEnv := {
 def crossReleaseStep(step: ReleaseStep, requiresPySpark: Boolean): Seq[ReleaseStep] = {
   val updateCondaEnvStep = releaseStepCommandAndRemaining(if (requiresPySpark) "updateCondaEnv" else "")
   val changePySparkVersionStep = releaseStepCommandAndRemaining(
-    if (requiresPySpark) s"""changePySparkVersion("$spark2")""" else "")
+    if (requiresPySpark) "changePySparkVersion" else "")
 
   Seq(
 //    updateCondaEnvStep,
@@ -362,10 +359,10 @@ def crossReleaseStep(step: ReleaseStep, requiresPySpark: Boolean): Seq[ReleaseSt
 //    releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
 //    step,
     changePySparkVersionStep,
-    releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark2""""),
-    releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala211""""),
+    releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$sparkOld""""),
+    releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scalaOld""""),
     step,
-    releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
+    releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scalaNew""""),
     step,
     updateCondaEnvStep
   )
