@@ -173,7 +173,7 @@ lazy val core = (project in file("core"))
   .settings(
     commonSettings,
     functionGenerationSettings,
-    name := s"glow_spark${majorVersion(sparkVersion.value)}_scala",
+    name := s"glow_spark${ma jorVersion(sparkVersion.value)}_scala",
     publish / skip := false,
     // Adds the Git hash to the MANIFEST file. We set it here instead of relying on sbt-release to
     // do so.
@@ -323,7 +323,7 @@ lazy val stagedRelease = (project in file("core/src/test"))
     unmanagedSourceDirectories in Test += baseDirectory.value / "shim" / majorMinorVersion(
       sparkVersion.value),
     libraryDependencies ++= testSparkDependencies.value ++ testCoreDependencies.value :+
-    "io.projectglow" %% "glow" % stableVersion.value % "test",
+    "io.projectglow" %% s"glow_spark${majorVersion(sparkVersion.value)}_scala" % stableVersion.value % "test",
     resolvers := Seq("bintray-staging" at "https://dl.bintray.com/projectglow/glow"),
     org
       .jetbrains
@@ -350,17 +350,17 @@ updateCondaEnv := {
 
 def crossReleaseStep(step: ReleaseStep): Seq[ReleaseStep] = {
   Seq(
-    releaseStepCommandAndRemaining(s"""updateCondaEnv"""),
+//    releaseStepCommandAndRemaining(s"""updateCondaEnv"""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark3""""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
     step,
-    releaseStepCommandAndRemaining(s"""downVersionPySpark"""),
+//    releaseStepCommandAndRemaining(s"""downVersionPySpark"""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark2""""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala211""""),
     step,
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
     step,
-    releaseStepCommandAndRemaining(s"""updateCondaEnv"""),
+//    releaseStepCommandAndRemaining(s"""updateCondaEnv"""),
   )
 }
 
@@ -369,7 +369,7 @@ releaseProcess := Seq[ReleaseStep](
   inquireVersions,
   runClean
 ) ++
-crossReleaseStep(runTest) ++
+// crossReleaseStep(runTest) ++
 Seq(
   setReleaseVersion,
   updateStableVersion,
@@ -377,9 +377,9 @@ Seq(
   commitStableVersion,
   tagRelease
 ) ++
-crossReleaseStep(publishArtifacts) ++
-crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test")) ++
-Seq(
-  setNextVersion,
-  commitNextVersion
-)
+crossReleaseStep(publishArtifacts) // ++
+//crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test")) ++
+//Seq(
+//  setNextVersion,
+//  commitNextVersion
+//)
