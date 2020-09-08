@@ -173,7 +173,7 @@ lazy val core = (project in file("core"))
   .settings(
     commonSettings,
     functionGenerationSettings,
-    name := s"glow-spark${majorVersion(sparkVersion.value)}-scala",
+    name := s"glow-spark${majorVersion(sparkVersion.value)}",
     publish / skip := false,
     // Adds the Git hash to the MANIFEST file. We set it here instead of relying on sbt-release to
     // do so.
@@ -323,7 +323,7 @@ lazy val stagedRelease = (project in file("core/src/test"))
     unmanagedSourceDirectories in Test += baseDirectory.value / "shim" / majorMinorVersion(
       sparkVersion.value),
     libraryDependencies ++= testSparkDependencies.value ++ testCoreDependencies.value :+
-    "io.projectglow" %% s"glow-spark${majorVersion(sparkVersion.value)}-scala" % stableVersion.value % "test",
+    "io.projectglow" %% s"glow-spark${majorVersion(sparkVersion.value)}" % stableVersion.value % "test",
     resolvers := Seq("bintray-staging" at "https://dl.bintray.com/projectglow/glow"),
     org
       .jetbrains
