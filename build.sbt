@@ -323,7 +323,7 @@ lazy val stagedRelease = (project in file("core/src/test"))
     unmanagedSourceDirectories in Test += baseDirectory.value / "shim" / majorMinorVersion(
       sparkVersion.value),
     libraryDependencies ++= testSparkDependencies.value ++ testCoreDependencies.value :+
-    "io.projectglow" %% s"glow_spark${majorVersion(sparkVersion.value)}_scala" % stableVersion.value % "test",
+    "io.projectglow" %% s"glow-spark${majorVersion(sparkVersion.value)}-scala" % stableVersion.value % "test",
     resolvers := Seq("bintray-staging" at "https://dl.bintray.com/projectglow/glow"),
     org
       .jetbrains
