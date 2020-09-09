@@ -374,7 +374,7 @@ releaseProcess := Seq[ReleaseStep](
   inquireVersions,
   runClean
 ) ++
-crossReleaseStep(runTest, true) ++
+// crossReleaseStep(runTest, true) ++
 Seq(
   setReleaseVersion,
   updateStableVersion,
