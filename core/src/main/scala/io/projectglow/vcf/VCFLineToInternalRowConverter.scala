@@ -38,7 +38,7 @@ import scala.util.control.NonFatal
 /**
  * Converts the raw bytes in a VCF line into an [[InternalRow]]
  *
- * @param header The VCF header object this is currently only used to extract sample ideas
+ * @param header The VCF header object this is currently only used to extract sample ids
  * @param schema The schema of the converted rows
  * @param stringency How to handle errors
  * @param overlapDetectorOpt If provided, the converter will check to see if a variant passes this detector before
@@ -205,6 +205,15 @@ class VCFLineToInternalRowConverter(
     row
   }
 
+  /**
+   * Parses the genotypes from the format section of a VCF line.
+   *
+   * Basic flow:
+   * - Look at the format description block and map each field to an index in the genotype SQL schema and a data type
+   * - Iterate through the fields for each sample and update the genotype struct based on the stored indices and types
+   * @param ctx
+   * @return
+   */
   private def parseGenotypes(ctx: LineCtx): GenericArrayData = {
     val gSchema = gSchemaOpt.get
     val genotypeFields = genotypeFieldsOpt.get
@@ -215,6 +224,7 @@ class VCFLineToInternalRowConverter(
     var i = 0
     while (i < typeAndIdx.length) {
       val name = fieldNames(i).asInstanceOf[UTF8String]
+      // GT maps to two fields, so special case it
       if (name.toString == "GT") {
         gtIdx = i
       }
@@ -235,7 +245,7 @@ class VCFLineToInternalRowConverter(
         if (i == gtIdx) {
           ctx.parseCallsAndPhasing(gRow, phasedIdx, callsIdx)
         } else if (typeAndIdx(i) == null) {
-          // Eat this value as a string
+          // Eat this value as a string since we don't need the parsed value
           ctx.parseString(':')
         } else {
           val (typ, idx) = typeAndIdx(i)

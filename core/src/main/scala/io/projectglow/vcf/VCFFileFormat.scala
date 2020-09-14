@@ -162,9 +162,13 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
           schema.exists(
             SQLUtils.structFieldsEqualExceptNullability(_, VariantSchemas.otherFieldsField))
       }
+
+    // The fast VCF reader does not support parsing an `attributes` or `otherFields` map. If either of these
+    // fields appear in the required schema, fall back to the htsjdk based reader
     val fastReaderEnabled = SQLConf
         .get
         .getConf(GlowConf.FAST_VCF_READER_ENABLED) && !hasAttributesField && !hasOtherFields
+
     partitionedFile => {
       val path = new Path(partitionedFile.filePath)
       val hadoopFs = path.getFileSystem(serializableConf.value)

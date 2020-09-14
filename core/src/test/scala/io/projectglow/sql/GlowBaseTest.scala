@@ -40,7 +40,7 @@ abstract class GlowBaseTest
     super
       .sparkConf
       .set("spark.hadoop.io.compression.codecs", classOf[BGZFCodec].getCanonicalName)
-      .set(GlowConf.FAST_VCF_READER_ENABLED.key, "false") // TODO(hhd): Enable the fast reader once we're confident
+      .set(GlowConf.FAST_VCF_READER_ENABLED.key, "true") // TODO(hhd): Enable the fast reader once we're confident
   }
 
   override def initializeSession(): Unit = ()
