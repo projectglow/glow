@@ -82,14 +82,16 @@ class VariantContextToInternalRowConverter(
           val gSchema = field.dataType.asInstanceOf[ArrayType].elementType.asInstanceOf[StructType]
           val gConverter = makeGenotypeConverter(gSchema)
           (vc: VariantContext, row: InternalRow, i: Int) => {
-            val alleleMap = buildAlleleMap(vc)
-            val output = new Array[Any](vc.getGenotypes.size())
-            var j = 0
-            while (j < output.length) {
-              output(j) = gConverter((alleleMap, vc.getGenotype(j)))
-              j += 1
+            if (!vc.getGenotypes.isEmpty) {
+              val alleleMap = buildAlleleMap(vc)
+              val output = new Array[Any](vc.getGenotypes.size())
+              var j = 0
+              while (j < output.length) {
+                output(j) = gConverter((alleleMap, vc.getGenotype(j)))
+                j += 1
+              }
+              row.update(i, new GenericArrayData(output))
             }
-            row.update(i, new GenericArrayData(output))
           }
         case f =>
           logger.info(
