@@ -18,7 +18,6 @@ package io.projectglow.sql.expressions
 
 import scala.collection.mutable
 import scala.util.hashing.MurmurHash3
-
 import breeze.linalg.{DenseVector, DenseMatrix => BreezeDenseMatrix}
 import org.apache.spark.TaskContext
 import org.apache.spark.ml.linalg.DenseMatrix
@@ -26,11 +25,10 @@ import org.apache.spark.sql.SQLUtils
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, CodegenFallback, ExprCode}
-import org.apache.spark.sql.catalyst.expressions.{Expression, ImplicitCastInputTypes}
+import org.apache.spark.sql.catalyst.expressions.{Expression, ImplicitCastInputTypes, Literal, QuinaryExpression, TernaryExpression}
 import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.sql.types.{ArrayType, DataType, DoubleType, StringType}
 import org.apache.spark.unsafe.types.UTF8String
-
 import io.projectglow.SparkShim.QuaternaryExpression
 
 class LogisticRegressionState(testStr: String) {
@@ -64,6 +62,7 @@ class LogisticRegressionState(testStr: String) {
 
 object LogisticRegressionExpr {
   private lazy val state = new ThreadLocal[LogisticRegressionState]()
+
   def getState(test: String): LogisticRegressionState = {
     if (state.get() == null) {
       state.set(new LogisticRegressionState(test))
@@ -76,7 +75,8 @@ object LogisticRegressionExpr {
       test: String,
       genotypes: Any,
       phenotypes: Any,
-      covariates: Any): InternalRow = {
+      covariates: Any,
+      offset: Option[Any]): InternalRow = {
 
     val state = getState(test)
     val covariatesStruct = covariates.asInstanceOf[InternalRow]
@@ -108,9 +108,27 @@ case class LogisticRegressionExpr(
     genotypes: Expression,
     phenotypes: Expression,
     covariates: Expression,
-    test: Expression)
-    extends QuaternaryExpression
+    test: Expression,
+    offset: Option[Expression])
+    extends QuinaryExpression
     with ImplicitCastInputTypes {
+
+  def this(
+      genotypes: Expression,
+      phenotypes: Expression,
+      covariates: Expression,
+      test: Expression) = {
+    this(genotypes, phenotypes, covariates, test, None)
+  }
+
+  def this(
+      genotypes: Expression,
+      phenotypes: Expression,
+      covariates: Expression,
+      test: Expression,
+      offset: Expression) = {
+    this(genotypes, phenotypes, covariates, test, Some(offset))
+  }
 
   override def prettyName: String = "logistic_regression_gwas"
 
@@ -128,9 +146,11 @@ case class LogisticRegressionExpr(
   override def dataType: DataType = logitTest.resultSchema
 
   override def inputTypes: Seq[DataType] =
-    Seq(ArrayType(DoubleType), ArrayType(DoubleType), matrixUDT, StringType)
+    Seq(ArrayType(DoubleType), ArrayType(DoubleType), matrixUDT, StringType) ++ offset.map(_ =>
+      ArrayType(DoubleType))
 
-  override def children: Seq[Expression] = Seq(genotypes, phenotypes, covariates, test)
+  override def children: Seq[Expression] =
+    Seq(genotypes, phenotypes, covariates, test) ++ offset
 
   override def checkInputDataTypes(): TypeCheckResult = {
     super.checkInputDataTypes()
@@ -145,18 +165,19 @@ case class LogisticRegressionExpr(
       genotypes: Any,
       phenotypes: Any,
       covariates: Any,
-      test: Any): Any = {
-    LogisticRegressionExpr.doLogisticRegression(testStr, genotypes, phenotypes, covariates)
+      test: Any,
+      offset: Option[Any]): Any = {
+    LogisticRegressionExpr.doLogisticRegression(testStr, genotypes, phenotypes, covariates, offset)
   }
 
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
     nullSafeCodeGen(
       ctx,
       ev,
-      (genotypes, phenotypes, covariates, _) => {
+      (genotypes, phenotypes, covariates, _, offset) => {
         s"""
-         |
-         |${ev.value} = io.projectglow.sql.expressions.LogisticRegressionExpr.doLogisticRegression("$testStr", $genotypes, $phenotypes, $covariates);
+             |
+             |${ev.value} = io.projectglow.sql.expressions.LogisticRegressionExpr.doLogisticRegression("$testStr", $genotypes, $phenotypes, $covariates, $offset);
        """.stripMargin
       }
     )
