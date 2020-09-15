@@ -267,7 +267,7 @@ class VCFLineToInternalRowConverter(
       f
     } catch {
       case NonFatal(ex) =>
-        provideWarning(
+        raiseValidationError(
           s"Could not parse $fieldType field ${fieldName.toString}. " +
           s"Exception: ${ex.getMessage}",
           ex
@@ -496,12 +496,9 @@ class LineCtx(text: Text) {
     intList.clear()
     val first = parseInt('|', '/', -1)
     intList.add(first)
-    if (phasedIdx != -1) {
-      if (line(pos) == '|') {
-        row.update(phasedIdx, true)
-      } else if (line(pos) == '/') {
-        row.update(phasedIdx, false)
-      }
+    var phased = false
+    if (line(pos) == '|') {
+      phased = true
     }
     eat('/')
     eat('|')
@@ -510,6 +507,11 @@ class LineCtx(text: Text) {
       eat('|')
       eat('/')
     }
+
+    if (phasedIdx != -1) {
+      row.update(phasedIdx, phased)
+    }
+
     if (callsIdx != -1) {
       row.update(callsIdx, new GenericArrayData(intList.toArray().asInstanceOf[Array[Any]]))
     }

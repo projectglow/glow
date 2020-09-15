@@ -20,7 +20,7 @@ import htsjdk.samtools.ValidationStringency
 
 trait HasStringency extends GlowLogging {
   def stringency: ValidationStringency
-  protected def provideWarning(warning: String, cause: Throwable = null): Unit = {
+  protected def raiseValidationError(warning: String, cause: Throwable = null): Unit = {
     if (stringency == ValidationStringency.STRICT) {
       throw new IllegalArgumentException(warning, cause)
     } else if (stringency == ValidationStringency.LENIENT) {

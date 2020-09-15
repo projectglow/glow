@@ -170,7 +170,7 @@ class VariantContextToInternalRowConverter(
       f
     } catch {
       case NonFatal(ex) =>
-        provideWarning(
+        raiseValidationError(
           s"Could not parse $fieldType field $fieldName. " +
           s"Exception: ${ex.getMessage}",
           ex
@@ -256,7 +256,7 @@ class VariantContextToInternalRowConverter(
         val attVal = htsjdkAttributes.get(attKey)
         val hlOpt = Option(header.getInfoHeaderLine(attKey))
         if (hlOpt.isEmpty && !infoKeysParsedWithoutHeader.contains(attKey)) {
-          provideWarning(
+          raiseValidationError(
             s"Key $attKey found in field INFO but isn't " +
             s"defined in the VCFHeader."
           )
@@ -474,7 +474,7 @@ class VariantContextToInternalRowConverter(
         tryWithWarning(key, FieldTypes.FORMAT) {
           val hlOpt = Option(header.getFormatHeaderLine(key))
           if (hlOpt.isEmpty && !formatKeysParsedWithoutHeader.contains(key)) {
-            provideWarning(
+            raiseValidationError(
               s"Key $key found in field FORMAT but isn't " +
               s"defined in the VCFHeader."
             )
@@ -483,7 +483,7 @@ class VariantContextToInternalRowConverter(
           val value = genotype.getExtendedAttribute(key)
           value match {
             case _: JBoolean =>
-              provideWarning(
+              raiseValidationError(
                 s"Key $key has a boolean value, but FLAG is not supported in FORMAT fields."
               )
             case _ =>
