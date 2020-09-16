@@ -215,7 +215,7 @@ class VCFDatasourceSuite extends GlowBaseTest {
     assert(calls == Seq(-1))
   }
 
-  test("split uncalled genotype") {
+  test("uncalled diploid genotype") {
     import sess.implicits._
     val calls = parseVcfContents(makeVcfLine(Seq("AC=2", "GT", "./.")))
       .selectExpr("genotypes[0].calls")
@@ -384,7 +384,7 @@ class VCFDatasourceSuite extends GlowBaseTest {
     }
   }
 
-  test("flatten INFO fields") {
+  test("check parsed row with flattened INFO fields") {
     val sess = spark
     import sess.implicits._
 
@@ -395,25 +395,47 @@ class VCFDatasourceSuite extends GlowBaseTest {
       .load(testVcf)
     val vc = ds
       .orderBy("contigName", "start")
-      .select(ds.colRegex("`INFO.*`"))
-      .as[INFOFields]
+      .as[CEUTrioVCFRow]
       .head
 
-    assert(vc.INFO_AC == Seq(Some(2)))
-    assert(vc.INFO_AF == Seq(Some(1.00)))
-    assert(vc.INFO_AN.contains(2))
-    assert(vc.INFO_BaseQRankSum.isEmpty)
-    assert(vc.INFO_DP.contains(84))
-    assert(vc.INFO_DS.isEmpty)
-    assert(vc.INFO_ExcessHet.get ~== 3.0103 relTol 0.2)
-    assert(vc.INFO_FS.get ~== 0.000 relTol 0.2)
-    assert(vc.INFO_MLEAC == Seq(Some(2)))
-    assert(vc.INFO_MLEAF.head.get ~== 1.00 relTol 0.2)
-    assert(vc.INFO_MQ.get ~== 60.44 relTol 0.2)
-    assert(vc.INFO_MQRankSum.isEmpty)
-    assert(vc.INFO_QD.get ~== 25.36 relTol 0.2)
-    assert(vc.INFO_ReadPosRankSum.isEmpty)
-    assert(vc.INFO_SOR.get ~== 1.075 relTol 0.2)
+    val expected = CEUTrioVCFRow(
+      "20",
+      9999995,
+      9999996,
+      null,
+      "A",
+      List("ACT"),
+      Some(3775.73),
+      null,
+      List(Some(2)),
+      List(Some(1.0)),
+      Some(2),
+      None,
+      Some(84),
+      None,
+      Some(3.0103),
+      Some(0.0),
+      None,
+      List(Some(2)),
+      List(Some(1.0)),
+      Some(60.44),
+      None,
+      Some(25.36),
+      None,
+      Some(1.075),
+      List(
+        CEUTrioGenotype(
+          Some("NA12878"),
+          Some(false),
+          Some(List(1, 1)),
+          Some(84),
+          Some(List(3813, 256, 0)),
+          Some(99),
+          Some(List(0, 84))))
+    )
+
+    assert(vc.copy(qual = None) == expected.copy(qual = None))
+    assert(vc.qual.get ~== expected.qual.get relTol 0.2)
   }
 
   test("flattened INFO fields schema does not include END key") {
@@ -579,30 +601,6 @@ class VCFDatasourceSuite extends GlowBaseTest {
     }
   }
 
-  test("Tolerate inf") {
-    val sess = spark
-    import sess.implicits._
-
-    val quals = spark
-      .read
-      .format(sourceName)
-      .load(s"$testDataHome/vcf/test_withInfQual.vcf")
-      .select("qual")
-      .as[Double]
-      .collect()
-      .sorted
-      .toSeq
-
-    assert(
-      quals == Seq(
-        Double.NegativeInfinity,
-        Double.NegativeInfinity,
-        Double.PositiveInfinity,
-        Double.PositiveInfinity,
-        Double.PositiveInfinity,
-        Double.PositiveInfinity))
-  }
-
   private def compareRows(r1: VCFRow, r2: VCFRow): Unit = {
     assert(r1.copy(qual = None) == r2.copy(qual = None))
     assert(r1.qual.isDefined == r2.qual.isDefined)
@@ -747,7 +745,7 @@ class VCFDatasourceSuite extends GlowBaseTest {
         |##FORMAT=<ID=AD,Number=R,Type=Integer,Description="">
         |""".stripMargin.trim() + "\n"
     val df = parseVcfContents(
-      "chr0\t0\t.\tA\t.\t.\t.\t.\tAD:MIN_DP\t2,5:1",
+      makeVcfLine(Seq(".", "AD:MIN_DP", "2,5:1")),
       extraHeaderLines = extraHeaderLines)
     assert(df.selectExpr("genotypes.MIN_DP[0]").as[Int].head == 1)
   }
@@ -760,15 +758,47 @@ class FastVCFDatasourceSuite extends VCFDatasourceSuite {
   test("read AD with nulls") {
     import sess.implicits._
     val df = parseVcfContents(
-      "chr0\t0\t.\tA\t.\t.\t.\t.\tAD\t.,1",
+      makeVcfLine(Seq(".", "AD", ".,1")),
       extraHeaderLines = "##FORMAT=<ID=AD,Number=R,Type=Integer,Description=\"\"\n")
     assert(
       df.selectExpr("genotypes[0].alleleDepths").as[Seq[Option[Int]]].head == Seq(None, Some(1)))
   }
+
+  test("Tolerate inf") {
+    val sess = spark
+    import sess.implicits._
+
+    val quals = spark
+      .read
+      .format(sourceName)
+      .load(s"$testDataHome/vcf/test_withInfQual.vcf")
+      .select("qual")
+      .as[Double]
+      .collect()
+      .sorted
+      .toSeq
+
+    assert(
+      quals == Seq(
+        Double.NegativeInfinity,
+        Double.NegativeInfinity,
+        Double.PositiveInfinity,
+        Double.PositiveInfinity,
+        Double.PositiveInfinity,
+        Double.PositiveInfinity))
+  }
 }
 
 // For testing only: schema based on CEUTrio VCF header
-private case class INFOFields(
+private case class CEUTrioVCFRow(
+    contigName: String,
+    start: Long,
+    end: Long,
+    names: Seq[String],
+    referenceAllele: String,
+    alternateAlleles: Seq[String],
+    qual: Option[Double],
+    filters: Seq[String],
     INFO_AC: Seq[Option[Int]],
     INFO_AF: Seq[Option[Double]],
     INFO_AN: Option[Int],
@@ -784,4 +814,14 @@ private case class INFOFields(
     INFO_MQRankSum: Option[Double],
     INFO_QD: Option[Double],
     INFO_ReadPosRankSum: Option[Double],
-    INFO_SOR: Option[Double])
+    INFO_SOR: Option[Double],
+    genotypes: Seq[CEUTrioGenotype])
+
+case class CEUTrioGenotype(
+    sampleId: Option[String],
+    phased: Option[Boolean],
+    calls: Option[Seq[Int]],
+    depth: Option[Int],
+    phredLikelihoods: Option[Seq[Int]],
+    conditionalQuality: Option[Int],
+    alleleDepths: Option[Seq[Int]])
