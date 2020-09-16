@@ -569,7 +569,6 @@ class VCFDatasourceSuite extends GlowBaseTest {
     val quals = spark
       .read
       .format(sourceName)
-      .schema(VCFRow.schema)
       .load(s"$testDataHome/vcf/test_withNanQual.vcf")
       .select("qual")
       .as[Double]
@@ -578,6 +577,30 @@ class VCFDatasourceSuite extends GlowBaseTest {
     quals.foreach { qual =>
       assert(qual.isNaN)
     }
+  }
+
+  test("Tolerate inf") {
+    val sess = spark
+    import sess.implicits._
+
+    val quals = spark
+      .read
+      .format(sourceName)
+      .load(s"$testDataHome/vcf/test_withInfQual.vcf")
+      .select("qual")
+      .as[Double]
+      .collect()
+      .sorted
+      .toSeq
+
+    assert(
+      quals == Seq(
+        Double.NegativeInfinity,
+        Double.NegativeInfinity,
+        Double.PositiveInfinity,
+        Double.PositiveInfinity,
+        Double.PositiveInfinity,
+        Double.PositiveInfinity))
   }
 
   private def compareRows(r1: VCFRow, r2: VCFRow): Unit = {
@@ -715,6 +738,19 @@ class VCFDatasourceSuite extends GlowBaseTest {
         s"$testDataHome/vcf/missing_contig_length.vcf",
         s"$testDataHome/vcf/missing_contig_length.vcf")
   }
+
+  test("prune genotype fields") {
+    import sess.implicits._
+    val extraHeaderLines =
+      """
+        |##FORMAT=<ID=MIN_DP,Number=1,Type=Integer,Description="">
+        |##FORMAT=<ID=AD,Number=R,Type=Integer,Description="">
+        |""".stripMargin.trim() + "\n"
+    val df = parseVcfContents(
+      "chr0\t0\t.\tA\t.\t.\t.\t.\tAD:MIN_DP\t2,5:1",
+      extraHeaderLines = extraHeaderLines)
+    assert(df.selectExpr("genotypes.MIN_DP[0]").as[Int].head == 1)
+  }
 }
 
 class FastVCFDatasourceSuite extends VCFDatasourceSuite {
@@ -722,7 +758,6 @@ class FastVCFDatasourceSuite extends VCFDatasourceSuite {
     super.sparkConf.set(GlowConf.FAST_VCF_READER_ENABLED.key, "true")
 
   test("read AD with nulls") {
-    val sess = spark
     import sess.implicits._
     val df = parseVcfContents(
       "chr0\t0\t.\tA\t.\t.\t.\t.\tAD\t.,1",

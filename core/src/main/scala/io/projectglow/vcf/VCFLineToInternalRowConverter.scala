@@ -51,6 +51,8 @@ class VCFLineToInternalRowConverter(
     overlapDetectorOpt: Option[OverlapDetector[SimpleInterval]])
     extends HasStringency {
 
+  println(s"Converting for schema $schema")
+
   private val genotypeHolder = new Array[Any](header.getNGenotypeSamples)
 
   private def findFieldIdx(field: StructField): Int = {
@@ -246,6 +248,7 @@ class VCFLineToInternalRowConverter(
           ctx.parseCallsAndPhasing(gRow, phasedIdx, callsIdx)
         } else if (typeAndIdx(i) == null) {
           // Eat this value as a string since we don't need the parsed value
+          require(false, s"Parsing unneeded field as string")
           ctx.parseString(':')
         } else {
           val (typ, idx) = typeAndIdx(i)
@@ -335,7 +338,7 @@ class LineCtx(text: Text) {
 
   def expectTab(): Unit = {
     if (line(pos) != '\t') {
-      throw new RuntimeException()
+      throw new IllegalStateException(s"Expected a tab at position $pos")
     }
     pos += 1
   }
@@ -381,6 +384,8 @@ class LineCtx(text: Text) {
     } else if (s == LineCtx.POS_NAN) {
       Double.NaN
     } else if (s == LineCtx.INF) {
+      Double.PositiveInfinity
+    } else if (s == LineCtx.POS_INF) {
       Double.PositiveInfinity
     } else if (s == LineCtx.NEG_INF) {
       Double.NegativeInfinity
