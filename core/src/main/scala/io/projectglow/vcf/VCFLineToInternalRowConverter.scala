@@ -51,8 +51,6 @@ class VCFLineToInternalRowConverter(
     overlapDetectorOpt: Option[OverlapDetector[SimpleInterval]])
     extends HasStringency {
 
-  println(s"Converting for schema $schema")
-
   private val genotypeHolder = new Array[Any](header.getNGenotypeSamples)
 
   private def findFieldIdx(field: StructField): Int = {
