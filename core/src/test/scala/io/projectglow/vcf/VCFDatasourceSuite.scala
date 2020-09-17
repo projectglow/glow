@@ -434,6 +434,7 @@ class VCFDatasourceSuite extends GlowBaseTest {
           Some(List(0, 84))))
     )
 
+    // The htsjdk based parser is subject to floating point error when parsing qual, so add a tolerance
     assert(vc.copy(qual = None) == expected.copy(qual = None))
     assert(vc.qual.get ~== expected.qual.get relTol 0.2)
   }
