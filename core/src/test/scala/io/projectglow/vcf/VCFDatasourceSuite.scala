@@ -28,9 +28,8 @@ import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.sql.{DataFrame, Dataset, Row}
 import org.apache.spark.{SparkConf, SparkException}
-
 import io.projectglow.common.{GenotypeFields, VCFRow}
-import io.projectglow.sql.GlowBaseTest
+import io.projectglow.sql.{GlowBaseTest, GlowConf}
 
 class VCFDatasourceSuite extends GlowBaseTest {
 
@@ -40,6 +39,7 @@ class VCFDatasourceSuite extends GlowBaseTest {
   lazy val multiAllelicVcf = s"$testDataHome/combined.chr20_18210071_18210093.g.vcf"
   lazy val tgpVcf = s"$testDataHome/1000genomes-phase3-1row.vcf"
   lazy val stringInfoFieldsVcf = s"$testDataHome/test.chr17.vcf"
+  lazy val sess = spark
 
   override def sparkConf: SparkConf = {
     super
@@ -47,7 +47,7 @@ class VCFDatasourceSuite extends GlowBaseTest {
       .set("spark.hadoop.io.compression.codecs", "org.seqdoop.hadoop_bam.util.BGZFCodec")
   }
 
-  def makeVcfRow(strSeq: Seq[String]): String = {
+  def makeVcfLine(strSeq: Seq[String]): String = {
     (Seq("1", "1", "id", "C", "T,GT", "1", ".") ++ strSeq).mkString("\t")
   }
 
@@ -85,7 +85,6 @@ class VCFDatasourceSuite extends GlowBaseTest {
   }
 
   test("check parsed row") {
-    val sess = spark
     import sess.implicits._
     val datasource = spark
       .read
@@ -96,11 +95,11 @@ class VCFDatasourceSuite extends GlowBaseTest {
       "20",
       9999995,
       9999996,
-      Seq.empty,
+      null,
       "A",
       Seq("ACT"),
       Some(3775.73),
-      Seq.empty,
+      null,
       Map(
         "AC" -> "2",
         "AF" -> "1.00",
@@ -139,7 +138,6 @@ class VCFDatasourceSuite extends GlowBaseTest {
   }
 
   test("multiple genotype fields") {
-    val sess = spark
     import sess.implicits._
     val input = s"$testDataHome/1000genomes-phase3-1row.vcf"
     val df = spark.read.format(sourceName).load(input)
@@ -178,121 +176,161 @@ class VCFDatasourceSuite extends GlowBaseTest {
     }
   }
 
-  protected def parseVcfContents(row: String, nSamples: Int = 1): Dataset[VCFRow] = {
-    val sess = spark
-    import sess.implicits._
+  protected def parseVcfContents(
+      line: String,
+      extraHeaderLines: String = "",
+      nSamples: Int = 1,
+      schema: Option[StructType] = None): DataFrame = {
     val file = Files.createTempFile("test-vcf", ".vcf")
     val samples = (1 to nSamples).map(n => s"sample_$n").mkString("\t")
+    val baseHeader =
+      """
+        |##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+        |""".stripMargin.trim()
     val headers =
-      s"##fileformat=VCFv4.2\n" +
+      s"##fileformat=VCFv4.2\n" + baseHeader + "\n" + extraHeaderLines +
       s"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t$samples\n"
-    FileUtils.writeStringToFile(file.toFile, headers + row)
-    spark
+    FileUtils.writeStringToFile(file.toFile, headers + line)
+    val baseReader = spark
       .read
       .format(sourceName)
-      .schema(VCFRow.schema)
-      .load(file.toString)
-      .as[VCFRow]
+    val reader = schema match {
+      case None => baseReader // infer schema
+      case Some(s) => baseReader.schema(s)
+    }
+    reader.load(file.toString)
+  }
+
+  protected def parseVcfRows(line: String, nSamples: Int = 1): Dataset[VCFRow] = {
+    import sess.implicits._
+    parseVcfContents(line, "", nSamples, Some(VCFRow.schema)).as[VCFRow]
   }
 
   test("uncalled genotype") {
-    val row = parseVcfContents(makeVcfRow(Seq("AC=2", "GT", "."))).head
-    assert(row.genotypes.head.calls.get == Seq(-1))
+    import sess.implicits._
+    val calls = parseVcfContents(makeVcfLine(Seq("AC=2", "GT", ".")))
+      .selectExpr("genotypes[0].calls")
+      .as[Seq[Int]]
+      .head
+    assert(calls == Seq(-1))
   }
 
-  test("split uncalled genotype") {
-    val row = parseVcfContents(makeVcfRow(Seq("AC=2", "GT", "./."))).head
-    assert(row.genotypes.head.calls.get == Seq(-1, -1))
+  test("uncalled diploid genotype") {
+    import sess.implicits._
+    val calls = parseVcfContents(makeVcfLine(Seq("AC=2", "GT", "./.")))
+      .selectExpr("genotypes[0].calls")
+      .as[Seq[Int]]
+      .head
+    assert(calls == Seq(-1, -1))
   }
 
   test("phased genotype") {
-    val row = parseVcfContents(makeVcfRow(Seq("AC=2", "GT", "0|0"))).head
-    val genotype = row.genotypes.head
-    assert(genotype.calls.get == Seq(0, 0))
-    assert(genotype.phased.get)
+    import sess.implicits._
+    val (calls, phased) = parseVcfContents(makeVcfLine(Seq("AC=2", "GT", "0|0")))
+      .selectExpr("genotypes[0].calls", "genotypes[0].phased")
+      .as[(Seq[Int], Boolean)]
+      .head
+    assert(calls == Seq(0, 0))
+    assert(phased)
   }
 
   test("unphased genotype") {
-    val row = parseVcfContents(makeVcfRow(Seq("AC=2", "GT", "0/0"))).head
-    val genotype = row.genotypes.head
-    assert(genotype.calls.get == Seq(0, 0))
-    assert(!genotype.phased.get)
+    import sess.implicits._
+    val (calls, phased) = parseVcfContents(makeVcfLine(Seq("AC=2", "GT", "0/0")))
+      .selectExpr("genotypes[0].calls", "genotypes[0].phased")
+      .as[(Seq[Int], Boolean)]
+      .head
+    assert(calls == Seq(0, 0))
+    assert(!phased)
   }
 
-  test("format field flags") {
-    val row = parseVcfContents(makeVcfRow(Seq("DB", "GT", "1|2"))).head
-    val attributes = row.attributes
-    assert(attributes.size == 1)
-    assert(attributes.get("DB").contains(""))
+  test("info field flags") {
+    import sess.implicits._
+    val db = parseVcfContents(
+      makeVcfLine(Seq("DB", "GT", "1|2")),
+      extraHeaderLines = "##INFO=<ID=DB,Number=0,Type=Flag,Description=\"\">\n")
+      .selectExpr("INFO_DB")
+      .as[Boolean]
+      .head
+    assert(db)
   }
 
   test("missing info values") {
-    val row = parseVcfContents(makeVcfRow(Seq("AC=2", "GT:MIN_DP:SB", "1|2:.:3,4,5,6"))).head
+    val row = parseVcfRows(makeVcfLine(Seq("AC=2", "GT:MIN_DP:SB", "1|2:.:3,4,5,6"))).head
     val otherFields = row.genotypes.head.otherFields
     assert(otherFields.size == 1)
     assert(!otherFields.contains("MIN_DP"))
   }
 
   test("missing format values") {
-    val row = parseVcfContents(
-      makeVcfRow(Seq("AC=2", "GT:DP:FT:GL:PL:GP:GQ:HQ:EC:MQ:AD", ".:.:.:.:.:.:.:.:.:.:."))
-    ).head
-    val gt = row.genotypes.head
-    assert(gt.depth.isEmpty)
-    assert(gt.filters.isEmpty)
-    assert(gt.genotypeLikelihoods.isEmpty)
-    assert(gt.phredLikelihoods.isEmpty)
-    assert(gt.posteriorProbabilities.isEmpty)
-    assert(gt.conditionalQuality.isEmpty)
-    assert(gt.haplotypeQualities.isEmpty)
-    assert(gt.expectedAlleleCounts.isEmpty)
-    assert(gt.mappingQuality.isEmpty)
-    assert(gt.alleleDepths.isEmpty)
+    val extraHeaderLines =
+      """
+        |##FORMAT=<ID=MIN_DP,Number=1,Type=Integer,Description="">
+        |##FORMAT=<ID=DP,Number=1,Type=Integer,Description="">
+        |""".stripMargin.trim() + "\n"
+    val df = parseVcfContents(
+      makeVcfLine(Seq("AC=2", "GT:DP:MIN_DP", ".:.:.")),
+      extraHeaderLines = extraHeaderLines
+    ).selectExpr("expand_struct(genotypes[0])")
+    val row = df.head
+    assert(row.size == 5)
+    assert(row.getAs[String]("sampleId") == "sample_1")
+    assert(row.getAs[Seq[Int]]("calls") == Seq(-1))
+    assert(row.getAs[Boolean]("phased") == false)
+    assert(row.getAs[Any]("depth") == null)
+    assert(row.getAs[Any]("MIN_DP") == null)
   }
 
   test("dropped trailing format values") {
+    val extraHeaderLines =
+      """
+        |##FORMAT=<ID=MIN_DP,Number=1,Type=Integer,Description="">
+        |##FORMAT=<ID=DP,Number=1,Type=Integer,Description="">
+        |""".stripMargin.trim() + "\n"
     val row = parseVcfContents(
-      makeVcfRow(Seq("AC=2", "GT:MIN_DP:DP:FT:GL:PL:GP:GQ:HQ:EC:MQ:AD:SB", ".:5"))
-    ).head
-    val gt = row.genotypes.head
-    assert(gt.depth.isEmpty)
-    assert(gt.filters.isEmpty)
-    assert(gt.genotypeLikelihoods.isEmpty)
-    assert(gt.phredLikelihoods.isEmpty)
-    assert(gt.posteriorProbabilities.isEmpty)
-    assert(gt.conditionalQuality.isEmpty)
-    assert(gt.haplotypeQualities.isEmpty)
-    assert(gt.expectedAlleleCounts.isEmpty)
-    assert(gt.mappingQuality.isEmpty)
-    assert(gt.alleleDepths.isEmpty)
-    assert(gt.otherFields.size == 1)
-    assert(!gt.otherFields.contains("SB"))
+      makeVcfLine(Seq("AC=2", "GT:MIN_DP:DP", ".:5")),
+      extraHeaderLines = extraHeaderLines
+    ).selectExpr("expand_struct(genotypes[0])").head
+    assert(row.size == 5)
+    assert(row.getAs[String]("sampleId") == "sample_1")
+    assert(row.getAs[Seq[Int]]("calls") == Seq(-1))
+    assert(row.getAs[Boolean]("phased") == false)
+    assert(row.getAs[Any]("depth") == null)
+    assert(row.getAs[Int]("MIN_DP") == 5)
   }
 
   test("missing GT format field") {
-    val row = parseVcfContents(makeVcfRow(Seq(".", "GL", "."))).head
+    val row = parseVcfRows(makeVcfLine(Seq(".", "GL", "."))).head
     val gt = row.genotypes.head
     assert(gt.phased.contains(false)) // By default, HTSJDK parses VCs as unphased
     assert(gt.calls.isEmpty)
   }
 
   test("missing calls are -1 (zero present") {
-    val row = parseVcfContents(makeVcfRow(Seq(".", "GT", "./."))).head
-    val gt = row.genotypes.head
-    assert(gt.calls.get == Seq(-1, -1))
-    assert(gt.phased.contains(false))
+    import sess.implicits._
+    val (calls, phased) = parseVcfContents(makeVcfLine(Seq(".", "GT", "./.")))
+      .selectExpr("genotypes[0].calls", "genotypes[0].phased")
+      .as[(Seq[Int], Boolean)]
+      .head
+    assert(calls == Seq(-1, -1))
+    assert(!phased)
   }
 
   test("missing calls are -1 (only one present)") {
-    val row = parseVcfContents(makeVcfRow(Seq(".", "GT", "1|."))).head
-    val gt = row.genotypes.head
-    assert(gt.calls.get == Seq(1, -1))
-    assert(gt.phased.contains(true))
+    import sess.implicits._
+    val row = parseVcfContents(makeVcfLine(Seq(".", "GT", "1|."))).head
+    val (calls, phased) = parseVcfContents(makeVcfLine(Seq(".", "GT", "1|.")))
+      .selectExpr("genotypes[0].calls", "genotypes[0].phased")
+      .as[(Seq[Int], Boolean)]
+      .head
+    assert(calls == Seq(1, -1))
+    assert(phased)
   }
 
   test("set END field") {
-    val row = parseVcfContents(makeVcfRow(Seq("END=200", "GT", "."))).head
-    assert(row.end == 200)
+    import sess.implicits._
+    val end = parseVcfContents(makeVcfLine(Seq("END=200", "GT", "."))).select("end").as[Long].head
+    assert(end == 200)
   }
 
   test("read VCFv4.3") {
@@ -317,7 +355,7 @@ class VCFDatasourceSuite extends GlowBaseTest {
   }
 
   test("strict validation stringency") {
-    val row = makeVcfRow(Seq("AC=monkey"))
+    val row = makeVcfLine(Seq("AC=monkey"))
 
     val file = Files.createTempFile("test-vcf", ".vcf")
     val headers =
@@ -346,24 +384,7 @@ class VCFDatasourceSuite extends GlowBaseTest {
     }
   }
 
-  protected def parseDF(
-      row: String,
-      nSamples: Int = 1,
-      extraHeaderLines: String = ""): DataFrame = {
-    val file = Files.createTempFile("test-vcf", ".vcf")
-    val samples = (1 to nSamples).map(n => s"sample_$n").mkString("\t")
-    val headers =
-      s"##fileformat=VCFv4.2\n" + extraHeaderLines +
-      s"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t$samples\n"
-    val rowStr = headers + row
-    FileUtils.writeStringToFile(file.toFile, rowStr)
-    spark
-      .read
-      .format(sourceName)
-      .load(file.toString)
-  }
-
-  test("flatten INFO fields") {
+  test("check parsed row with flattened INFO fields") {
     val sess = spark
     import sess.implicits._
 
@@ -374,25 +395,48 @@ class VCFDatasourceSuite extends GlowBaseTest {
       .load(testVcf)
     val vc = ds
       .orderBy("contigName", "start")
-      .select(ds.colRegex("`INFO.*`"))
-      .as[INFOFields]
+      .as[CEUTrioVCFRow]
       .head
 
-    assert(vc.INFO_AC == Seq(Some(2)))
-    assert(vc.INFO_AF == Seq(Some(1.00)))
-    assert(vc.INFO_AN.contains(2))
-    assert(vc.INFO_BaseQRankSum.isEmpty)
-    assert(vc.INFO_DP.contains(84))
-    assert(vc.INFO_DS.isEmpty)
-    assert(vc.INFO_ExcessHet.get ~== 3.0103 relTol 0.2)
-    assert(vc.INFO_FS.get ~== 0.000 relTol 0.2)
-    assert(vc.INFO_MLEAC == Seq(Some(2)))
-    assert(vc.INFO_MLEAF.head.get ~== 1.00 relTol 0.2)
-    assert(vc.INFO_MQ.get ~== 60.44 relTol 0.2)
-    assert(vc.INFO_MQRankSum.isEmpty)
-    assert(vc.INFO_QD.get ~== 25.36 relTol 0.2)
-    assert(vc.INFO_ReadPosRankSum.isEmpty)
-    assert(vc.INFO_SOR.get ~== 1.075 relTol 0.2)
+    val expected = CEUTrioVCFRow(
+      "20",
+      9999995,
+      9999996,
+      null,
+      "A",
+      List("ACT"),
+      Some(3775.73),
+      null,
+      List(Some(2)),
+      List(Some(1.0)),
+      Some(2),
+      None,
+      Some(84),
+      None,
+      Some(3.0103),
+      Some(0.0),
+      None,
+      List(Some(2)),
+      List(Some(1.0)),
+      Some(60.44),
+      None,
+      Some(25.36),
+      None,
+      Some(1.075),
+      List(
+        CEUTrioGenotype(
+          Some("NA12878"),
+          Some(false),
+          Some(List(1, 1)),
+          Some(84),
+          Some(List(3813, 256, 0)),
+          Some(99),
+          Some(List(0, 84))))
+    )
+
+    // The htsjdk based parser is subject to floating point error when parsing qual, so add a tolerance
+    assert(vc.copy(qual = None) == expected.copy(qual = None))
+    assert(vc.qual.get ~== expected.qual.get relTol 0.2)
   }
 
   test("flattened INFO fields schema does not include END key") {
@@ -498,14 +542,14 @@ class VCFDatasourceSuite extends GlowBaseTest {
     val headerLines = s"""##FORMAT=<ID=MONKEY,Number=1,Type=String,Description="">
                          |##FORMAT=<ID=NUMBERS,Number=5,Type=Float,Description="">
                          |""".stripMargin
-    val rowStr = makeVcfRow(Seq(".", "MONKEY:NUMBERS", "banana:1,2,3"))
-    val value = parseDF(rowStr, extraHeaderLines = headerLines)
+    val rowStr = makeVcfLine(Seq(".", "MONKEY:NUMBERS", "banana:1,2,3"))
+    val value = parseVcfContents(rowStr, extraHeaderLines = headerLines)
       .selectExpr("genotypes[0].MONKEY")
       .as[String]
       .head
     assert(value == "banana")
 
-    val value2 = parseDF(rowStr, extraHeaderLines = headerLines)
+    val value2 = parseVcfContents(rowStr, extraHeaderLines = headerLines)
       .selectExpr("genotypes[0].NUMBERS")
       .as[Seq[Double]]
       .head
@@ -545,16 +589,16 @@ class VCFDatasourceSuite extends GlowBaseTest {
     val sess = spark
     import sess.implicits._
 
-    val vcfRows = spark
+    val quals = spark
       .read
       .format(sourceName)
-      .schema(VCFRow.schema)
       .load(s"$testDataHome/vcf/test_withNanQual.vcf")
-      .as[VCFRow]
+      .select("qual")
+      .as[Double]
       .collect()
 
-    vcfRows.foreach { vc =>
-      assert(vc.qual.get.isNaN)
+    quals.foreach { qual =>
+      assert(qual.isNaN)
     }
   }
 
@@ -693,10 +737,69 @@ class VCFDatasourceSuite extends GlowBaseTest {
         s"$testDataHome/vcf/missing_contig_length.vcf",
         s"$testDataHome/vcf/missing_contig_length.vcf")
   }
+
+  test("prune genotype fields") {
+    import sess.implicits._
+    val extraHeaderLines =
+      """
+        |##FORMAT=<ID=MIN_DP,Number=1,Type=Integer,Description="">
+        |##FORMAT=<ID=AD,Number=R,Type=Integer,Description="">
+        |""".stripMargin.trim() + "\n"
+    val df = parseVcfContents(
+      makeVcfLine(Seq(".", "AD:MIN_DP", "2,5:1")),
+      extraHeaderLines = extraHeaderLines)
+    assert(df.selectExpr("genotypes.MIN_DP[0]").as[Int].head == 1)
+  }
+}
+
+class FastVCFDatasourceSuite extends VCFDatasourceSuite {
+  override def sparkConf: SparkConf =
+    super.sparkConf.set(GlowConf.FAST_VCF_READER_ENABLED.key, "true")
+
+  test("read AD with nulls") {
+    import sess.implicits._
+    val df = parseVcfContents(
+      makeVcfLine(Seq(".", "AD", ".,1")),
+      extraHeaderLines = "##FORMAT=<ID=AD,Number=R,Type=Integer,Description=\"\"\n")
+    assert(
+      df.selectExpr("genotypes[0].alleleDepths").as[Seq[Option[Int]]].head == Seq(None, Some(1)))
+  }
+
+  test("Tolerate inf") {
+    val sess = spark
+    import sess.implicits._
+
+    val quals = spark
+      .read
+      .format(sourceName)
+      .load(s"$testDataHome/vcf/test_withInfQual.vcf")
+      .select("qual")
+      .as[Double]
+      .collect()
+      .sorted
+      .toSeq
+
+    assert(
+      quals == Seq(
+        Double.NegativeInfinity,
+        Double.NegativeInfinity,
+        Double.PositiveInfinity,
+        Double.PositiveInfinity,
+        Double.PositiveInfinity,
+        Double.PositiveInfinity))
+  }
 }
 
 // For testing only: schema based on CEUTrio VCF header
-private case class INFOFields(
+private case class CEUTrioVCFRow(
+    contigName: String,
+    start: Long,
+    end: Long,
+    names: Seq[String],
+    referenceAllele: String,
+    alternateAlleles: Seq[String],
+    qual: Option[Double],
+    filters: Seq[String],
     INFO_AC: Seq[Option[Int]],
     INFO_AF: Seq[Option[Double]],
     INFO_AN: Option[Int],
@@ -712,4 +815,14 @@ private case class INFOFields(
     INFO_MQRankSum: Option[Double],
     INFO_QD: Option[Double],
     INFO_ReadPosRankSum: Option[Double],
-    INFO_SOR: Option[Double])
+    INFO_SOR: Option[Double],
+    genotypes: Seq[CEUTrioGenotype])
+
+case class CEUTrioGenotype(
+    sampleId: Option[String],
+    phased: Option[Boolean],
+    calls: Option[Seq[Int]],
+    depth: Option[Int],
+    phredLikelihoods: Option[Seq[Int]],
+    conditionalQuality: Option[Int],
+    alleleDepths: Option[Seq[Int]])

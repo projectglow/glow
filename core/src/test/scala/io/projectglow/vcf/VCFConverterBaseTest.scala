@@ -30,9 +30,9 @@ trait VCFConverterBaseTest extends GlowBaseTest {
   final lazy val defaultContigName = ""
   final lazy val defaultStart = 0L
   final lazy val defaultEnd = 0L
-  final lazy val defaultNames = Seq.empty
+  final lazy val defaultNames = null
   final lazy val defaultReferenceAllele = ""
-  final lazy val defaultAlternateAlleles = Seq.empty
+  final lazy val defaultAlternateAlleles = null
   final lazy val defaultQual = None
 
   final val defaultVcfRow = VCFRow(
@@ -43,7 +43,7 @@ trait VCFConverterBaseTest extends GlowBaseTest {
     referenceAllele = defaultReferenceAllele,
     alternateAlleles = defaultAlternateAlleles,
     qual = defaultQual,
-    filters = Seq.empty,
+    filters = null,
     attributes = Map.empty,
     genotypes = Seq(defaultGenotypeFields)
   )
