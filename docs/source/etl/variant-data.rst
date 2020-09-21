@@ -73,7 +73,11 @@ You can control the behavior of the VCF reader with a few parameters. All parame
    Starting from Glow 0.4.0, the ``splitToBiallelic`` option for the VCF reader no longer exists. To split multiallelic variants to biallelics use the :ref:`split_multiallelics<split_multiallelics>` transformer after loading the VCF.
 
 
-.. important:: The VCF reader uses the 0-start, half-open (zero-based) coordinate system.
+.. important:: The VCF reader uses the 0-start, half-open (zero-based) coordinate system. This means
+   that the ``start`` values in the DataFrame will be 1 lower than the values that appear in the VCF
+   file. For instance, if a variant has a POS value of 10 in a VCF file, the ``start`` column in the
+   DataFrame will contain the value 9. When writing to a VCF file, Glow converts positions back to a
+   1-based coordinate system as required by the VCF specification.
 
 You can save a DataFrame as a VCF file, which you can then read with other tools. To write a DataFrame as a single VCF file specify the format ``"bigvcf"``:
 

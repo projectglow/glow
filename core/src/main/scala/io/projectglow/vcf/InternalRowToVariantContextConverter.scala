@@ -72,11 +72,11 @@ class InternalRowToVariantContextConverter(
       val headerLine =
         vcfHeader.getInfoHeaderLine(f.name.stripPrefix(infoFieldPrefix))
       if (headerLine == null) {
-        provideWarning(s"Column ${f.name} does not have a matching VCF header line")
+        raiseValidationError(s"Column ${f.name} does not have a matching VCF header line")
       } else if (!VCFSchemaInferrer
           .typesForHeader(headerLine)
           .exists(t => SQLUtils.dataTypesEqualExceptNullability(t, f.dataType))) {
-        provideWarning(
+        raiseValidationError(
           s"Column ${f.name} has a VCF header line with the same ID, but " +
           s"the types are not compatible. " +
           s"Header type: ${headerLine.getType},${headerLine.getCountType} SQL type: ${f.dataType}"
@@ -89,14 +89,14 @@ class InternalRowToVariantContextConverter(
         val realName = GenotypeFields.reverseAliases.getOrElse(f.name, f.name)
         val headerLine = vcfHeader.getFormatHeaderLine(realName)
         if (headerLine == null) {
-          provideWarning(
+          raiseValidationError(
             s"Genotype field ${f.name} does not have a matching VCF header " +
             s"line"
           )
         } else if (!VCFSchemaInferrer
             .typesForHeader(headerLine)
             .exists(t => SQLUtils.dataTypesEqualExceptNullability(t, f.dataType))) {
-          provideWarning(
+          raiseValidationError(
             s"Genotype field ${f.name} has a VCF header line with the " +
             s"same ID, but the types are not compatible. " +
             s"Header type: ${headerLine.getType},${headerLine.getCountType} " +
@@ -167,7 +167,7 @@ class InternalRowToVariantContextConverter(
         Option(builder.make())
       } catch {
         case NonFatal(ex) =>
-          provideWarning(s"Could not build variant context: ${ex.getMessage}")
+          raiseValidationError(s"Could not build variant context: ${ex.getMessage}")
           None
       }
     }
@@ -195,23 +195,27 @@ class InternalRowToVariantContextConverter(
     }
 
     array => {
-      val ctx = GenotypesContext.create(array.numElements())
-      var i = 0
-      while (i < array.numElements()) {
-        var j = 0
-        val builder = new GenotypeBuilder("")
-        val row = array.getStruct(i, gtFields.length)
-        while (j < fns.length) {
-          if (!row.isNullAt(j)) {
-            fns(j)(builder, row, j)
-          }
+      if (array == null) {
+        GenotypesContext.NO_GENOTYPES
+      } else {
+        val ctx = GenotypesContext.create(array.numElements())
+        var i = 0
+        while (i < array.numElements()) {
+          var j = 0
+          val builder = new GenotypeBuilder("")
+          val row = array.getStruct(i, gtFields.length)
+          while (j < fns.length) {
+            if (!row.isNullAt(j)) {
+              fns(j)(builder, row, j)
+            }
 
-          j += 1
+            j += 1
+          }
+          ctx.add(builder.make())
+          i += 1
         }
-        ctx.add(builder.make())
-        i += 1
+        ctx
       }
-      ctx
     }
   }
 
@@ -307,7 +311,7 @@ class InternalRowToVariantContextConverter(
     while (i < keys.size) {
       val headerLine = vcfHeader.getFormatHeaderLine(keys(i))
       if (headerLine == null && !infoKeysParsedWithoutHeader.contains(keys(i))) {
-        provideWarning(s"INFO field ${keys(i)} does not have a matching VCF header line.")
+        raiseValidationError(s"INFO field ${keys(i)} does not have a matching VCF header line.")
         infoKeysParsedWithoutHeader.add(keys(i))
       }
       vc.attribute(keys(i), if (values(i).nonEmpty) values(i) else VCFConstants.MISSING_VALUE_v4)
@@ -480,7 +484,7 @@ class InternalRowToVariantContextConverter(
     while (i < keys.size) {
       val headerLine = vcfHeader.getInfoHeaderLine(keys(i))
       if (headerLine == null && !formatKeysParsedWithoutHeader.contains(keys(i))) {
-        provideWarning(
+        raiseValidationError(
           s"Genotype field ${keys(i)} does not have a matching " +
           s"VCF header line"
         )
@@ -500,7 +504,7 @@ class InternalRowToVariantContextConverter(
     val realName = GenotypeFields.reverseAliases.getOrElse(field.name, field.name)
     val headerLine = vcfHeader.getFormatHeaderLine(realName)
     if (headerLine == null && !formatKeysParsedWithoutHeader.contains(field.name)) {
-      provideWarning(
+      raiseValidationError(
         s"Genotype field ${field.name} does not have a matching " +
         s"VCF header line"
       )

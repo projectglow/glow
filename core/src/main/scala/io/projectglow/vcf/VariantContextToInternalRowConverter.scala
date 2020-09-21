@@ -82,14 +82,16 @@ class VariantContextToInternalRowConverter(
           val gSchema = field.dataType.asInstanceOf[ArrayType].elementType.asInstanceOf[StructType]
           val gConverter = makeGenotypeConverter(gSchema)
           (vc: VariantContext, row: InternalRow, i: Int) => {
-            val alleleMap = buildAlleleMap(vc)
-            val output = new Array[Any](vc.getGenotypes.size())
-            var j = 0
-            while (j < output.length) {
-              output(j) = gConverter((alleleMap, vc.getGenotype(j)))
-              j += 1
+            if (!vc.getGenotypes.isEmpty) {
+              val alleleMap = buildAlleleMap(vc)
+              val output = new Array[Any](vc.getGenotypes.size())
+              var j = 0
+              while (j < output.length) {
+                output(j) = gConverter((alleleMap, vc.getGenotype(j)))
+                j += 1
+              }
+              row.update(i, new GenericArrayData(output))
             }
-            row.update(i, new GenericArrayData(output))
           }
         case f =>
           logger.info(
@@ -168,7 +170,7 @@ class VariantContextToInternalRowConverter(
       f
     } catch {
       case NonFatal(ex) =>
-        provideWarning(
+        raiseValidationError(
           s"Could not parse $fieldType field $fieldName. " +
           s"Exception: ${ex.getMessage}",
           ex
@@ -189,7 +191,7 @@ class VariantContextToInternalRowConverter(
   }
 
   private def updateNames(vc: VariantContext, row: InternalRow, idx: Int): Unit = {
-    val ids: Array[Any] = if (vc.hasID) {
+    if (vc.hasID) {
       val splits = vc.getID.split(VCFConstants.ID_FIELD_SEPARATOR)
       val arr = new Array[Any](splits.length)
       var i = 0
@@ -197,11 +199,8 @@ class VariantContextToInternalRowConverter(
         arr(i) = UTF8String.fromString(splits(i))
         i += 1
       }
-      arr
-    } else {
-      Array.empty[Any]
+      row.update(idx, new GenericArrayData(arr))
     }
-    row.update(idx, new GenericArrayData(ids))
   }
 
   private def updateReferenceAllele(vc: VariantContext, row: InternalRow, idx: Int): Unit = {
@@ -209,6 +208,10 @@ class VariantContextToInternalRowConverter(
   }
 
   private def updateAltAlleles(vc: VariantContext, row: InternalRow, idx: Int): Unit = {
+    if (vc.getAlternateAlleles.size == 0) {
+      return
+    }
+
     val altList = new Array[Any](vc.getAlternateAlleles.size)
     var i = 0
     while (i < altList.length) {
@@ -237,7 +240,7 @@ class VariantContextToInternalRowConverter(
       }
       arr
     } else {
-      Array.empty
+      return
     }
     row.update(idx, new GenericArrayData(filters))
   }
@@ -253,7 +256,7 @@ class VariantContextToInternalRowConverter(
         val attVal = htsjdkAttributes.get(attKey)
         val hlOpt = Option(header.getInfoHeaderLine(attKey))
         if (hlOpt.isEmpty && !infoKeysParsedWithoutHeader.contains(attKey)) {
-          provideWarning(
+          raiseValidationError(
             s"Key $attKey found in field INFO but isn't " +
             s"defined in the VCFHeader."
           )
@@ -267,33 +270,6 @@ class VariantContextToInternalRowConverter(
     row.update(idx, new ArrayBasedMapData(new GenericArrayData(keys), new GenericArrayData(values)))
   }
 
-  private def makeArray(strings: JList[String], parseFn: String => Any): Array[Any] = {
-    val arr = new Array[Any](strings.size)
-    var i = 0
-    while (i < arr.length) {
-      arr(i) = parseFn(strings.get(i))
-      i += 1
-    }
-    arr
-  }
-
-  // Pads an array with nulls to outputLength (if provided)
-  private def makeArray(
-      strings: Array[String],
-      parseFn: String => Any,
-      outputLength: Option[Int] = None): Array[Any] = {
-    if (outputLength.isDefined) {
-      require(outputLength.get >= strings.length)
-    }
-    val arr = new Array[Any](outputLength.getOrElse(strings.length))
-    var i = 0
-    while (i < strings.length) {
-      arr(i) = parseFn(strings(i))
-      i += 1
-    }
-    arr
-  }
-
   // Fall back on parsing a comma-separated list
   private def getAttributeArray(
       vc: VariantContext,
@@ -303,51 +279,6 @@ class VariantContextToInternalRowConverter(
       vc.getAttributeAsString(key, ""),
       VCFConstants.INFO_FIELD_ARRAY_SEPARATOR_CHAR)
     makeArray(strList, parseFn)
-  }
-
-  private def getAnnotationArray(
-      vc: VariantContext,
-      key: String,
-      schema: StructType): Array[GenericInternalRow] = {
-    val annotations = vc.getAttributeAsStringList(key, "")
-    val annotationsArr = new Array[GenericInternalRow](annotations.size)
-    var i = 0
-    while (i < annotations.size) {
-      val effect = annotations.get(i)
-      // Providing a limit to the splitter preserves empty annotations
-      val subfields =
-        effect.split(AnnotationUtils.annotationDelimiterRegex, schema.size)
-      val subfieldsArr = new Array[Any](subfields.size)
-      var j = 0
-      while (j < subfields.size) {
-        val subfield = subfields(j)
-        subfieldsArr(j) = if (subfield == "") {
-          null // If the annotation is missing, set the value to null
-        } else {
-          schema.fields(j).dataType match {
-            case ArrayType(StringType, _) => // &-separated list
-              val strings = subfield.split(AnnotationUtils.arrayDelimiter)
-              new GenericArrayData(makeArray(strings, UTF8String.fromString(_)))
-            case st if st.isInstanceOf[StructType] => // /-separated pair
-              val stSchema = st.asInstanceOf[StructType]
-              val strings = subfield.split(AnnotationUtils.structDelimiterRegex, stSchema.size)
-              val pair = stSchema.fields.head.dataType match {
-                case IntegerType =>
-                  makeArray(strings, _.toInt, Some(stSchema.size))
-                case StringType =>
-                  makeArray(strings, UTF8String.fromString, Some(stSchema.size))
-              }
-              new GenericInternalRow(pair)
-            case IntegerType => subfield.toInt
-            case StringType => UTF8String.fromString(subfield)
-          }
-        }
-        j += 1
-      }
-      annotationsArr(i) = new GenericInternalRow(subfieldsArr)
-      i += 1
-    }
-    annotationsArr
   }
 
   private def updateInfoField(
@@ -398,7 +329,7 @@ class VariantContextToInternalRowConverter(
         case a: ArrayType if a.elementType.isInstanceOf[StructType] =>
           // Annotation (eg. CSQ, ANN)
           val structType = a.elementType.asInstanceOf[StructType]
-          val effects = getAnnotationArray(vc, realName, structType)
+          val effects = getAnnotationArray(vc.getAttributeAsStringList(realName, ""), structType)
           new GenericArrayData(effects)
       }
       if (value != null) {
@@ -543,7 +474,7 @@ class VariantContextToInternalRowConverter(
         tryWithWarning(key, FieldTypes.FORMAT) {
           val hlOpt = Option(header.getFormatHeaderLine(key))
           if (hlOpt.isEmpty && !formatKeysParsedWithoutHeader.contains(key)) {
-            provideWarning(
+            raiseValidationError(
               s"Key $key found in field FORMAT but isn't " +
               s"defined in the VCFHeader."
             )
@@ -552,7 +483,7 @@ class VariantContextToInternalRowConverter(
           val value = genotype.getExtendedAttribute(key)
           value match {
             case _: JBoolean =>
-              provideWarning(
+              raiseValidationError(
                 s"Key $key has a boolean value, but FLAG is not supported in FORMAT fields."
               )
             case _ =>
@@ -650,6 +581,75 @@ object VariantContextToInternalRowConverter {
         VCFEncoderUtils.formatVCFField(sArray)
       case _ => VCFEncoderUtils.formatVCFField(obj)
     }
+  }
+
+  def getAnnotationArray(
+      annotations: JList[String],
+      schema: StructType): Array[GenericInternalRow] = {
+    val annotationsArr = new Array[GenericInternalRow](annotations.size)
+    var i = 0
+    while (i < annotations.size) {
+      val effect = annotations.get(i)
+      // Providing a limit to the splitter preserves empty annotations
+      val subfields =
+        effect.split(AnnotationUtils.annotationDelimiterRegex, schema.size)
+      val subfieldsArr = new Array[Any](subfields.size)
+      var j = 0
+      while (j < subfields.size) {
+        val subfield = subfields(j)
+        subfieldsArr(j) = if (subfield == "") {
+          null // If the annotation is missing, set the value to null
+        } else {
+          schema.fields(j).dataType match {
+            case ArrayType(StringType, _) => // &-separated list
+              val strings = subfield.split(AnnotationUtils.arrayDelimiter)
+              new GenericArrayData(makeArray(strings, UTF8String.fromString(_)))
+            case st if st.isInstanceOf[StructType] => // /-separated pair
+              val stSchema = st.asInstanceOf[StructType]
+              val strings = subfield.split(AnnotationUtils.structDelimiterRegex, stSchema.size)
+              val pair = stSchema.fields.head.dataType match {
+                case IntegerType =>
+                  makeArray(strings, _.toInt, Some(stSchema.size))
+                case StringType =>
+                  makeArray(strings, UTF8String.fromString, Some(stSchema.size))
+              }
+              new GenericInternalRow(pair)
+            case IntegerType => subfield.toInt
+            case StringType => UTF8String.fromString(subfield)
+          }
+        }
+        j += 1
+      }
+      annotationsArr(i) = new GenericInternalRow(subfieldsArr)
+      i += 1
+    }
+    annotationsArr
+  }
+
+  private def makeArray(strings: JList[String], parseFn: String => Any): Array[Any] = {
+    val arr = new Array[Any](strings.size)
+    var i = 0
+    while (i < arr.length) {
+      arr(i) = parseFn(strings.get(i))
+      i += 1
+    }
+    arr
+  }
+  // Pads an array with nulls to outputLength (if provided)
+  private def makeArray(
+      strings: Array[String],
+      parseFn: String => Any,
+      outputLength: Option[Int] = None): Array[Any] = {
+    if (outputLength.isDefined) {
+      require(outputLength.get >= strings.length)
+    }
+    val arr = new Array[Any](outputLength.getOrElse(strings.length))
+    var i = 0
+    while (i < strings.length) {
+      arr(i) = parseFn(strings(i))
+      i += 1
+    }
+    arr
   }
 }
 
