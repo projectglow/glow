@@ -762,7 +762,8 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
           assert(ft.start == nn.start && fn.start == nn.start)
       }
     } else {
-      fail()
+      fail(
+        s"Number of rows did not match. ${dfNN.count()}, ${dfFT.count()}, ${dfNN.count()}, ${dfFN.count()}")
     }
   }
 

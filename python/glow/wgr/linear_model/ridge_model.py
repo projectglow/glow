@@ -18,7 +18,6 @@ import pandas as pd
 from pyspark.sql import DataFrame, Row
 from pyspark.sql.functions import pandas_udf, PandasUDFType
 import pyspark.sql.functions as f
-from pyspark.sql.window import Window
 from typeguard import typechecked
 from typing import Any, Dict, List
 from glow.logging import record_hls_event
@@ -170,7 +169,7 @@ class RidgeReducer:
 @typechecked
 class RidgeRegression:
     """
-    The RidgeRegression class is used to fit ridge models against one or labels optimized over a provided list of
+    The RidgeRegression class is used to fit ridge models against one or more labels optimized over a provided list of
     ridge alpha parameters.  It is similar in function to RidgeReducer except that whereas RidgeReducer attempts to
     reduce a starting matrix X to a block matrix of smaller dimension, RidgeRegression is intended to find an optimal
     model of the form Y_hat ~ XB, where Y_hat is a matrix of one or more predicted labels and B is a matrix of
@@ -215,6 +214,7 @@ class RidgeRegression:
         validate_inputs(labeldf, covdf)
         map_key_pattern = ['sample_block', 'label']
         reduce_key_pattern = ['header_block', 'header', 'label']
+        metric = 'r2'
 
         if not self.alphas:
             self.alphas = generate_alphas(blockdf)
@@ -229,7 +229,8 @@ class RidgeRegression:
                                               ), model_struct, PandasUDFType.GROUPED_MAP)
         score_udf = pandas_udf(
             lambda key, pdf: score_models(key, map_key_pattern, pdf, labeldf, sample_blocks, self.
-                                          alphas, covdf), cv_struct, PandasUDFType.GROUPED_MAP)
+                                          alphas, covdf, pd.DataFrame({}), metric), cv_struct,
+            PandasUDFType.GROUPED_MAP)
 
         modeldf = blockdf \
             .groupBy(map_key_pattern) \
@@ -239,21 +240,7 @@ class RidgeRegression:
             .groupBy(map_key_pattern) \
             .apply(model_udf)
 
-        # Break ties in favor of the larger alpha
-        alpha_df = blockdf.sql_ctx \
-            .createDataFrame([Row(alpha=k, alpha_value=float(v)) for k, v in self.alphas.items()])
-        window_spec = Window.partitionBy('label').orderBy(f.desc('r2_mean'), f.desc('alpha_value'))
-
-        cvdf = blockdf.drop('header_block', 'sort_key') \
-            .join(modeldf, ['header', 'sample_block'], 'right') \
-            .withColumn('label', f.coalesce(f.col('label'), f.col('labels').getItem(0))) \
-            .groupBy(map_key_pattern) \
-            .apply(score_udf) \
-            .join(alpha_df, ['alpha']) \
-            .groupBy('label', 'alpha', 'alpha_value').agg(f.mean('r2').alias('r2_mean')) \
-            .withColumn('modelRank', f.row_number().over(window_spec)) \
-            .filter('modelRank = 1') \
-            .drop('modelRank')
+        cvdf = cross_validation(blockdf, modeldf, score_udf, map_key_pattern, self.alphas, metric)
 
         record_hls_event('wgrRidgeRegressionFit')
 
@@ -300,18 +287,7 @@ class RidgeRegression:
             .apply(transform_udf) \
             .join(cvdf, ['label', 'alpha'], 'inner')
 
-        sample_block_df = blockdf.sql_ctx \
-            .createDataFrame(sample_blocks.items(), ['sample_block', 'sample_ids']) \
-            .selectExpr('sample_block', 'posexplode(sample_ids) as (idx, sample_id)')
-
-        flattened_prediction_df = blocked_prediction_df \
-            .selectExpr('sample_block', 'label', 'posexplode(values) as (idx, value)') \
-            .join(sample_block_df, ['sample_block', 'idx'], 'inner') \
-            .select('sample_id', 'label', 'value')
-
-        pivoted_df = flattened_prediction_df.toPandas() \
-            .pivot(index='sample_id', columns='label', values='value') \
-            .reindex(index=labeldf.index, columns=labeldf.columns)
+        pivoted_df = flatten_prediction_df(blocked_prediction_df, sample_blocks, labeldf)
 
         record_hls_event('wgrRidgeRegressionTransform')
 

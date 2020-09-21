@@ -18,6 +18,8 @@ import numpy as np
 import pandas as pd
 from pyspark.sql import Row
 import pytest
+from sklearn.linear_model import LogisticRegression
+from sklearn.datasets import load_breast_cancer
 
 
 def test_sort_by_numeric():
@@ -52,14 +54,18 @@ def test_sort_by_multiple_columns():
 
 def test_assemble_block():
     df = pd.DataFrame({'mu': [0.2], 'sig': [0.1], 'values': [[0.1, 0.3]]})
-    block = assemble_block(n_rows=1, n_cols=2, pdf=df, cov_matrix=np.array([[]]))
+    block = assemble_block(n_rows=2,
+                           n_cols=1,
+                           pdf=df,
+                           cov_matrix=np.array([]),
+                           row_mask=np.array([]))
     assert np.allclose(block, np.array([[-1.], [1.]]))
 
 
 def test_assemble_block_zero_sig():
     df = pd.DataFrame({'mu': [0.2, 0], 'sig': [0.1, 0], 'values': [[0.1, 0.3], [0, 0]]})
     with pytest.raises(ValueError):
-        assemble_block(n_rows=2, n_cols=2, pdf=df, cov_matrix=np.array([[]]))
+        assemble_block(n_rows=2, n_cols=2, pdf=df, cov_matrix=np.array([]), row_mask=np.array([]))
 
 
 def test_generate_alphas(spark):
@@ -168,3 +174,73 @@ def test_infer_chromosomes(spark):
         Row(header='chr_decoy_2_alpha_0_label_sim100')
     ])
     assert sorted(infer_chromosomes(df)) == ['3', 'X', 'decoy_1', 'decoy_2']
+
+
+def test_constrained_logistic_fit():
+
+    X_raw, y = load_breast_cancer(return_X_y=True)
+    mu, sig = X_raw.mean(axis=0), X_raw.std(axis=0)
+    X = (X_raw - mu) / sig
+    alphas = [10, 30, 100, 300, 1000, 3000]
+
+    for a in alphas:
+        model_skl = LogisticRegression(C=1 / a, fit_intercept=True)
+        model_skl.fit(X, y)
+        X_with_int = np.column_stack([np.ones(X.shape[0]), X])
+        alpha_arr = np.zeros(X_with_int.shape[1])
+        alpha_arr[1:] = a
+        ridge_fit = constrained_logistic_fit(X_with_int, y, alpha_arr, guess=np.array([]), n_cov=0)
+        beta_skl = np.concatenate([model_skl.intercept_, model_skl.coef_.ravel()])
+        beta_glow = ridge_fit.x
+        assert (np.allclose(beta_skl, beta_glow, 0.01))
+
+
+def test_irls_one_step():
+    def irls_fit(X, y, alpha, n_cov, beta_cov):
+        if n_cov > 0:
+            beta = np.zeros(X.shape[1])
+            beta[:n_cov] = beta_cov
+        else:
+            beta = np.zeros(X.shape[1])
+
+        z = X @ beta
+        p = sigmoid(z)
+        xtgx = (X.T * (p * (1 - p))) @ X
+        xty = X.T @ (p - y)
+        loss_old = log_loss(p.reshape(-1, 1), y.reshape(-1, 1))[0]
+
+        data = {'xtgx': list(xtgx), 'xty': list(xty), 'beta': list(beta)}
+
+        pdf = pd.DataFrame(data)
+
+        dloss = loss_old * 10
+        tol = 1E-5
+        n_steps = 0
+        while dloss > tol and n_steps <= 10000:
+            beta = irls_one_step(pdf, alpha, n_cov)
+            z = X @ beta
+            p = sigmoid(z)
+            xtgx = (X.T * (p * (1 - p))) @ X
+            xty = X.T @ (p - y)
+            loss = log_loss(p.reshape(-1, 1), y.reshape(-1, 1))[0]
+            dloss = loss_old - loss
+            loss_old = loss
+
+            data = {'xtgx': list(xtgx), 'xty': list(xty), 'beta': list(beta)}
+
+            pdf = pd.DataFrame(data)
+            n_steps += 1
+
+        return beta
+
+    X_raw, y = load_breast_cancer(return_X_y=True)
+    mu, sig = X_raw.mean(axis=0), X_raw.std(axis=0)
+    X = (X_raw - mu) / sig
+    alphas = [10, 30, 100, 300, 1000, 3000]
+    for a in alphas:
+        model_skl = LogisticRegression(C=1 / a, fit_intercept=True)
+        model_skl.fit(X, y)
+        X_with_int = np.column_stack([np.ones(X.shape[0]), X])
+        beta_irls = irls_fit(X_with_int, y, a, 1, model_skl.intercept_)
+        beta_skl = np.concatenate([model_skl.intercept_, model_skl.coef_.ravel()])
+        assert (np.allclose(beta_irls, beta_skl, 0.01))

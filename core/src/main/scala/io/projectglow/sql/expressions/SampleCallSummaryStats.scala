@@ -110,7 +110,7 @@ case class CallSummaryStats(
     val ref = refAllele.eval(input).asInstanceOf[UTF8String]
     val alts = altAlleles.eval(input).asInstanceOf[ArrayData]
 
-    val alleleTypes = new Array[VariantType](alts.numElements())
+    val alleleTypes = new Array[VariantType](if (alts == null) 0 else alts.numElements())
     var i = 0
     while (i < alleleTypes.length) {
       val alt = alts.getUTF8String(i)
