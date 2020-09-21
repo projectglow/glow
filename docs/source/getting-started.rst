@@ -77,7 +77,7 @@ Running in the cloud
 The easiest way to use Glow in the cloud is with the `Databricks Runtime for Genomics
 <https://docs.databricks.com/runtime/genomicsruntime.html>`_. However, it works with any cloud
 provider or Spark distribution. You need to install the maven package
-``io.project:glow-spark3_2.12:${version}`` and optionally the Python frontend ``glow.py``. Also set the Spark configuration
+``io.project:glow-spark${spark_version}_${scala_version}:${glow_version}`` and optionally the Python frontend ``glow.py``. Also set the Spark configuration
 ``spark.hadoop.io.compression.codecs`` to ``io.projectglow.sql.util.BGZFCodec`` in order to read and write
 BGZF-compressed files.
 
