@@ -25,11 +25,12 @@ import org.apache.spark.sql.{AnalysisException, Encoders, SQLUtils}
 import org.apache.spark.sql.catalyst.ScalaReflection
 import org.apache.spark.sql.functions.{expr, monotonically_increasing_id}
 import org.apache.spark.sql.types.StructType
-
 import io.projectglow.SparkShim
 import io.projectglow.sql.GlowBaseTest
-import io.projectglow.sql.expressions.{LikelihoodRatioTest, LogisticRegressionGwas, LogitTestResults, NewtonResult}
+import io.projectglow.sql.expressions.{LRTFitState, LikelihoodRatioTest, LogisticRegressionGwas, LogitTestResults, NewtonIterationsState, NewtonResult}
 import io.projectglow.tertiary.RegressionTestUtils._
+
+import scala.util.Random
 
 class LogisticRegressionSuite extends GlowBaseTest {
 
@@ -166,7 +167,64 @@ class LogisticRegressionSuite extends GlowBaseTest {
       Array(1d, r(1), r(2))
     }
     val genotypes = parsed.map(_(3))
-    TestData(Seq(genotypes), phenotypes, covariates)
+    TestData(Seq(genotypes), phenotypes, covariates, None)
+  }
+
+  private val admitStudentsWithOffset: TestData = {
+    val zeroOffset = Seq.fill[Double](50)(0)
+    val offset = Seq(
+      0.6,
+      0.1,
+      0.4,
+      0.4,
+      0.7,
+      0.5,
+      0.2,
+      1.0,
+      0.6,
+      0.7,
+      0.7,
+      0.6,
+      0.2,
+      0.3,
+      0.9,
+      0.4,
+      0.4,
+      0.0,
+      0.4,
+      0.9,
+      0.1,
+      0.3,
+      0.4,
+      0.4,
+      0.1,
+      1.0,
+      0.6,
+      1.0,
+      0.4,
+      0.0,
+      0.0,
+      0.1,
+      0.3,
+      0.5,
+      0.3,
+      0.3,
+      0.8,
+      0.4,
+      0.4,
+      0.3,
+      0.1,
+      0.8,
+      0.5,
+      0.2,
+      0.8,
+      0.2,
+      0.7,
+      0.7,
+      0.8,
+      0.4
+    )
+    admitStudents.copy(offsetOption = Some((0 to admitStudents.phenotypes.length).map(_ => Random.nextDouble)))
   }
 
   private val admitStudentsStats =
@@ -463,4 +521,5 @@ class LogisticRegressionSuite extends GlowBaseTest {
       LogisticRegressionGwas.logitTests.get("FIRTH"))
     assert(LogisticRegressionGwas.logitTests.get("monkey").isEmpty)
   }
+
 }

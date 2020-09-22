@@ -27,12 +27,13 @@ object LikelihoodRatioTest extends LogitTest {
   override def fitStatePerPhenotype: Boolean = true
   override val resultSchema: StructType = Encoders.product[LogitTestResults].schema
 
-  override def init(phenotypes: Array[Double], covariates: SparkDenseMatrix): LRTFitState = {
+  override def init(phenotypes: Array[Double], covariates: SparkDenseMatrix, offsetOption: Option[Array[Double]]): LRTFitState = {
     val nullX = new DenseMatrix(covariates.numRows, covariates.numCols, covariates.values)
     val y = new DenseVector(phenotypes)
+    val offsetVectorOption = offsetOption.map(new DenseVector(_))
     val nullFitState = new NewtonIterationsState(covariates.numRows, covariates.numCols)
-    nullFitState.initFromMatrix(nullX, y)
-    val nullFit = LogisticRegressionGwas.newtonIterations(nullX, y, nullX.copy, nullFitState)
+    nullFitState.initFromMatrix(nullX, y, offsetVectorOption)
+    val nullFit = LogisticRegressionGwas.newtonIterations(nullX, y, offsetVectorOption, nullX.copy, nullFitState)
     val fullFitState = new NewtonIterationsState(covariates.numRows, covariates.numCols + 1)
     val x = DenseMatrix.horzcat(nullX, DenseMatrix.zeros[Double](covariates.numRows, 1))
     LRTFitState(x, x.copy, nullFit, fullFitState)
@@ -41,9 +42,10 @@ object LikelihoodRatioTest extends LogitTest {
   override def runTest(
       genotypes: DenseVector[Double],
       phenotypes: DenseVector[Double],
+      offsetOption: Option[DenseVector[Double]],
       fitState: LRTFitState): InternalRow = {
     fitState.x(::, -1) := genotypes
-    fitState.newtonState.initFromMatrixAndNullFit(fitState.x, phenotypes, fitState.nullFit.args)
+    fitState.newtonState.initFromMatrixAndNullFit(fitState.x, phenotypes, offsetOption, fitState.nullFit.args)
 
     if (!fitState.nullFit.converged) {
       return LogitTestResults.nanRow
@@ -53,6 +55,7 @@ object LikelihoodRatioTest extends LogitTest {
       LogisticRegressionGwas.newtonIterations(
         fitState.x,
         phenotypes,
+        offsetOption,
         fitState.hessian,
         fitState.newtonState)
 

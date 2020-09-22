@@ -27,7 +27,8 @@ case class RegressionRow(
 case class TestData(
     genotypes: Seq[Seq[Double]],
     phenotypes: Seq[Double],
-    covariates: Seq[Array[Double]])
+    covariates: Seq[Array[Double]],
+    offsetOption: Option[Seq[Double]])
 
 object RegressionTestUtils {
   def twoDArrayToSparkMatrix(input: Array[Array[Double]]): SparkDenseMatrix = {

@@ -62,6 +62,7 @@ object LogisticRegressionGwas extends GlowLogging {
   private[projectglow] def newtonIterations(
       X: DenseMatrix[Double],
       y: DenseVector[Double],
+      offsetOption: Option[DenseVector[Double]],
       hessianPlaceHolder: DenseMatrix[Double],
       args: NewtonIterationsState,
       maxIter: Int = 25,
@@ -84,8 +85,8 @@ object LogisticRegressionGwas extends GlowLogging {
         } else {
           iter += 1
           args.b += deltaB // Parameter update
-          args.mu := X * args.b // Fitted probability
-          sigmoid.inPlace(args.mu)
+          val eta = offsetOption.fold(X * args.b)(_ + X * args.b)
+          args.mu := sigmoid(eta) // Fitted probability
           args.score := X.t * (y - args.mu) // Gradient
           hessianPlaceHolder := X
           hessianPlaceHolder(::, *) :*= (args.mu *:* (1d - args.mu))
@@ -136,12 +137,11 @@ class NewtonIterationsState(numRows: Int, numCols: Int) {
   val score: DenseVector[Double] = DenseVector.zeros[Double](numCols)
   val fisher: DenseMatrix[Double] = DenseMatrix.zeros[Double](numCols, numCols)
 
-  def initFromMatrix(X: DenseMatrix[Double], y: DenseVector[Double]): Unit = {
-
+  def initFromMatrix(X: DenseMatrix[Double], y: DenseVector[Double], offsetOption: Option[DenseVector[Double]]): Unit = {
     val avg = sum(y) / X.rows
     b(0) = math.log(avg / (1 - avg))
-    mu := X * b
-    sigmoid.inPlace(mu)
+    val eta = offsetOption.fold(X * b)(_ + X * b)
+    mu := sigmoid(eta)
     score := X.t * (y - mu)
     fisher := X.t * (X(::, *) *:* (mu *:* (1d - mu)))
   }
@@ -149,6 +149,7 @@ class NewtonIterationsState(numRows: Int, numCols: Int) {
   def initFromMatrixAndNullFit(
       X: DenseMatrix[Double],
       y: DenseVector[Double],
+      offsetOption: Option[DenseVector[Double]],
       nullFitArgs: NewtonIterationsState): Unit = {
 
     val m0 = nullFitArgs.b.length
@@ -160,8 +161,8 @@ class NewtonIterationsState(numRows: Int, numCols: Int) {
     val X1 = X(::, r1)
 
     b(r0) := nullFitArgs.b
-    mu := X * b
-    sigmoid.inPlace(mu)
+    val eta = offsetOption.fold(X * b)(_ + X * b)
+    mu := sigmoid(eta)
     score(r0) := nullFitArgs.score
     score(r1) := X1.t * (y - mu)
     fisher(r0, r0) := nullFitArgs.fisher
@@ -202,10 +203,11 @@ trait LogitTest extends Serializable {
    * As much memory allocation as possible should be performed in this step to avoid allocations
    * in the per-row fit.
    */
-  def init(phenotypes: Array[Double], covariates: SparkDenseMatrix): FitState
+  def init(phenotypes: Array[Double], covariates: SparkDenseMatrix, offsetOption: Option[Array[Double]]): FitState
 
   def runTest(
       genotypes: DenseVector[Double],
       phenotypes: DenseVector[Double],
+      offsetOption: Option[DenseVector[Double]],
       fitState: FitState): InternalRow
 }

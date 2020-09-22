@@ -35,28 +35,29 @@ class LogisticRegressionState(testStr: String) {
   val logitTest = LogisticRegressionGwas
     .logitTests(testStr) // we check before evaluation that this is a valid test
 
-  // If the null fit can be reused for each phenotype, we put the mapping in this map
-  val nullFitMap: mutable.Map[Int, logitTest.FitState] = mutable.Map.empty
+  // If the null fit can be reused for each (phenotype, offset), we put the mapping in this map
+  val nullFitMap: mutable.Map[(Int, Int), logitTest.FitState] = mutable.Map.empty
   // If the fit state is just allocations because the null fit can't be reused, we put the
   // singleton here
   var fitState: logitTest.FitState = _
   val matrixUDT = SQLUtils.newMatrixUDT()
 
-  def getFitState(phenotypes: Array[Double], covariates: Any): logitTest.FitState = {
+  def getFitState(phenotypes: Array[Double], covariates: Any, offsetOption: Option[Array[Double]]): logitTest.FitState = {
     if (!logitTest.fitStatePerPhenotype) {
       if (fitState == null) {
-        fitState = logitTest.init(phenotypes, matrixUDT.deserialize(covariates).toDense)
+        fitState = logitTest.init(phenotypes, matrixUDT.deserialize(covariates).toDense, offsetOption)
       }
       return fitState
     }
 
     val phenoHash = MurmurHash3.arrayHash(phenotypes)
-    if (!nullFitMap.contains(phenoHash)) {
+    val offsetHash = MurmurHash3.arrayHash(offsetOption.getOrElse(Array[Double]()))
+    if (!nullFitMap.contains((phenoHash, offsetHash))) {
       nullFitMap.put(
-        phenoHash,
-        logitTest.init(phenotypes, matrixUDT.deserialize(covariates).toDense))
+        (phenoHash, offsetHash),
+        logitTest.init(phenotypes, matrixUDT.deserialize(covariates).toDense, offsetOption))
     }
-    nullFitMap(phenoHash)
+    nullFitMap((phenoHash, offsetHash))
   }
 }
 
@@ -72,11 +73,11 @@ object LogisticRegressionExpr {
   }
 
   def doLogisticRegression(
-      test: String,
-      genotypes: Any,
-      phenotypes: Any,
-      covariates: Any,
-      offset: Option[Any]): InternalRow = {
+                            test: String,
+                            genotypes: Any,
+                            phenotypes: Any,
+                            covariates: Any,
+                            offsetOption: Option[Any]): InternalRow = {
 
     val state = getState(test)
     val covariatesStruct = covariates.asInstanceOf[InternalRow]
@@ -84,6 +85,7 @@ object LogisticRegressionExpr {
     val covariateCols = covariatesStruct.getInt(2)
     val genotypeArray = genotypes.asInstanceOf[ArrayData].toDoubleArray
     val phenotypeArray = phenotypes.asInstanceOf[ArrayData].toDoubleArray
+    val offsetArrayOption = offsetOption.map(_.asInstanceOf[ArrayData].toDoubleArray)
     require(
       genotypeArray.length == phenotypeArray.length,
       "Number of samples differs between genotype and phenotype arrays")
@@ -92,13 +94,20 @@ object LogisticRegressionExpr {
       covariateRows == phenotypeArray.length,
       "Number of samples do not match between phenotype vector and covariate matrix"
     )
+    if (offsetArrayOption.isDefined) {
+      require(
+        offsetArrayOption.get.length == phenotypeArray.length,
+        "Number of samples do not match between phenotype vector and offset vector"
+      )
+    }
 
-    val nullFitState = state.getFitState(phenotypeArray, covariates)
+    val nullFitState = state.getFitState(phenotypeArray, covariates, offsetArrayOption)
     state
       .logitTest
       .runTest(
         new DenseVector[Double](genotypeArray),
         new DenseVector[Double](phenotypeArray),
+        offsetArrayOption.map(new DenseVector[Double](_)),
         nullFitState
       )
   }

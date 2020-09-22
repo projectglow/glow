@@ -30,7 +30,7 @@ object FirthTest extends LogitTest {
   override type FitState = FirthFitState
   override val resultSchema: StructType = Encoders.product[LogitTestResults].schema
 
-  override def init(phenotypes: Array[Double], covariates: SparkDenseMatrix): FirthFitState = {
+  override def init(phenotypes: Array[Double], covariates: SparkDenseMatrix, offsetOption: Option[Array[Double]]): FirthFitState = {
 
     val covariateX =
       new DenseMatrix[Double](covariates.numRows, covariates.numCols, covariates.values)
@@ -44,11 +44,12 @@ object FirthTest extends LogitTest {
   override def runTest(
       genotypes: DenseVector[Double],
       phenotypes: DenseVector[Double],
+      offsetOption: Option[DenseVector[Double]],
       fitState: FirthFitState): InternalRow = {
 
     fitState.x(::, -1) := genotypes
     fitState.nullFitArgs.clear()
-    val nullFit = fitFirth(fitState.x, phenotypes, fitState.nullFitArgs)
+    val nullFit = fitFirth(fitState.x, phenotypes, offsetOption, fitState.nullFitArgs)
 
     if (!nullFit.converged) {
       return LogitTestResults.nanRow
@@ -56,7 +57,7 @@ object FirthTest extends LogitTest {
 
     fitState.fullFitArgs.clear()
     fitState.fullFitArgs.initFromNullFit(nullFit.fitState)
-    val fullFit = fitFirth(fitState.x, phenotypes, fitState.fullFitArgs)
+    val fullFit = fitFirth(fitState.x, phenotypes, offsetOption, fitState.fullFitArgs)
 
     if (!fullFit.converged) {
       return LogitTestResults.nanRow
@@ -73,6 +74,7 @@ object FirthTest extends LogitTest {
   def fitFirth(
       x: DenseMatrix[Double],
       y: DenseVector[Double],
+      offsetOption: Option[DenseVector[Double]],
       args: FirthNewtonArgs,
       maxIter: Int = 100,
       tol: Double = 1e-6): FirthFit = {
@@ -85,8 +87,8 @@ object FirthTest extends LogitTest {
 
     while (!converged && !exploded && iter <= maxIter) {
       try {
-        args.mu := x(::, 0 until m0) * args.b
-        sigmoid.inPlace(args.mu)
+        val eta = offsetOption.fold(x(::, 0 until m0) * args.b)(_ + x(::, 0 until m0) * args.b)
+        args.mu := sigmoid(eta)
         args.sqrtW := sqrt(args.mu *:* (1d - args.mu))
         val QR = qr.reduced(x(::, *) *:* args.sqrtW)
         val h = QR.q(*, ::).map(r => r dot r)
