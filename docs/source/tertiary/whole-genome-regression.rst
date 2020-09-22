@@ -47,9 +47,12 @@ values may not be missing, or equal for every sample in a variant (eg. all sampl
 Example
 -------
 
-When loading in the variants, perform the following transformations:
+.. warning::
+    We do not recommend using the ``split_multiallelics`` transformer and the ``block_variants_and_samples`` function
+    in the same query due to JVM JIT code size limits during whole-stage code generation.
 
-- Split multiallelic variants with the ``split_multiallelics`` transformer.
+When loading biallelic variants, perform the following transformations:
+
 - Calculate the number of alternate alleles for biallelic variants with ``glow.genotype_states``.
 - Replace any missing values with the mean of the non-missing values using ``glow.mean_substitute``.
 
@@ -58,8 +61,7 @@ When loading in the variants, perform the following transformations:
     from pyspark.sql.functions import col, lit
 
     variants = spark.read.format('vcf').load(genotypes_vcf)
-    genotypes = glow.transform('split_multiallelics', variants) \
-        .withColumn('values', glow.mean_substitute(glow.genotype_states(col('genotypes'))))
+    genotypes = variants.withColumn('values', glow.mean_substitute(glow.genotype_states(col('genotypes'))))
 
 Phenotype data
 ==============
@@ -379,6 +381,21 @@ Example
 
     import math
     assert math.isclose(y_hat_df.at[('HG00096', '22'),'Continuous_Trait_1'], -0.5577744539844645)
+
+---------------
+Troubleshooting
+---------------
+
+If you encounter limits related to memory allocation in PyArrow, you may need to tune the number of alphas, number of
+variants per block, and/or the number of sample blocks. The default values for these hyperparameters are tuned for
+500,000 variants and 500,000 samples.
+
+
+The following values must all be lower than 132,152,839:
+
+- ``(# alphas) * (# variants / # variants per block) * (# samples / # sample blocks)``
+- ``(# alphas * # variants / # variants per block)^2``
+
 
 Example notebook
 ----------------

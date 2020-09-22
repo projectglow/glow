@@ -20,12 +20,25 @@ import io.projectglow.common.GlowLogging
 import io.projectglow.common.VariantSchemas._
 import io.projectglow.functions._
 
-import org.apache.spark.sql.DataFrame
+import org.apache.commons.lang3.reflect.FieldUtils
+import org.apache.spark.sql.{Column, DataFrame}
+import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.{AssertTrue, BinaryExpression, Expression}
+import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCode}
 import org.apache.spark.sql.expressions.Window
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{ArrayType, IntegerType, StringType}
 
 private[projectglow] object VariantSampleBlockMaker extends GlowLogging {
+
+  def validateNumValues(df: DataFrame): DataFrame = {
+    import df.sparkSession.implicits._
+    val expectedNumValues =
+      df.selectExpr("size(values) as numValues").take(1)(0).getAs[Int]("numValues")
+    val errMsg = s"At least one row has an inconsistent number of values (expected $expectedNumValues). " +
+      "Please verify that each row contains the same number of values."
+    df.filter(expr(s"isnull(assert_true_or_error(size(values) = $expectedNumValues, '$errMsg'))"))
+  }
 
   def filterOneDistinctValue(df: DataFrame): DataFrame = {
     logger.info("Filtering variants whose values are all the same.")
@@ -66,7 +79,7 @@ private[projectglow] object VariantSampleBlockMaker extends GlowLogging {
       .partitionBy(contigNameField.name, sampleBlockIdField.name)
       .orderBy(startField.name, refAlleleField.name, alternateAllelesField.name)
 
-    val baseDf = filterOneDistinctValue(variantDf)
+    val baseDf = filterOneDistinctValue(validateNumValues(variantDf))
       .withColumn(
         sortKeyField.name,
         col(startField.name).cast(IntegerType)

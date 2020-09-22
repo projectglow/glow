@@ -16,6 +16,9 @@
 
 package io.projectglow.transformers.blockvariantsandsamples
 
+import java.lang.RuntimeException
+
+import org.apache.spark.SparkException
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.SQLUtils
 import org.apache.spark.sql.types._
@@ -149,5 +152,19 @@ class BlockVariantsAndSamplesTransformerSuite extends GlowBaseTest with GlowLogg
       case (t, e) =>
         assert(SQLUtils.structFieldsEqualExceptNullability(t, e), s"Expected\n$e\nBlocked\n$t")
     }
+  }
+
+  test("inconsistent number of values") {
+    val vcfDf = spark
+      .read
+      .format("vcf")
+      .load(testVcf)
+      .withColumn("values", expr("array_repeat(0.0, INFO_DP)"))
+    val options = Map(VARIANTS_PER_BLOCK -> "10", SAMPLE_BLOCK_COUNT -> "20")
+    val ex = intercept[SparkException] {
+      Glow.transform(TRANSFORMER_NAME, vcfDf, options).show()
+    }
+    assert(ex.getCause.isInstanceOf[RuntimeException])
+    assert(ex.getCause.getMessage.contains("At least one row has an inconsistent number of values"))
   }
 }

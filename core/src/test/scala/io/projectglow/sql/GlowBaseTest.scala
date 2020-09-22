@@ -61,8 +61,8 @@ abstract class GlowBaseTest
   }
 
   override def afterEach(): Unit = {
-    DebugFilesystem.assertNoOpenStreams()
     eventually {
+      DebugFilesystem.assertNoOpenStreams()
       assert(spark.sparkContext.getPersistentRDDs.isEmpty)
       assert(spark.sharedState.cacheManager.isEmpty, "Cache not empty.")
     }

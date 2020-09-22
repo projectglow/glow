@@ -48,7 +48,7 @@ object functions {
     LambdaFunction(function, Seq(x, y))
   }
   {% for group_name, group in groups.items() %}
-  {% for function in group.functions %}
+  {% for function in group.functions if not function.exclude_scala %}
 
   /**
    * {{ function.doc|replace("\n", "\n* ")|indent(3) }}
