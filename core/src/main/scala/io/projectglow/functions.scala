@@ -364,11 +364,17 @@ object functions {
    * @param phenotypes A double array of phenotype values
    * @param covariates A ``spark.ml`` ``Matrix`` of covariates
    * @param test Which logistic regression test to use. Can be ``LRT`` or ``Firth``
+   * @param offset An optional double array of offset values
    * @return A struct containing ``beta``, ``oddsRatio``, ``waldConfidenceInterval``, and ``pValue`` fields. See :ref:`logistic-regression`.
    */
+  def logistic_regression_gwas(genotypes: Column, phenotypes: Column, covariates: Column, test: String, offset: Column): Column = withExpr {
+    new io.projectglow.sql.expressions.LogisticRegressionExpr(genotypes.expr, phenotypes.expr, covariates.expr, Literal(test), offset.expr)
+  }
+
   def logistic_regression_gwas(genotypes: Column, phenotypes: Column, covariates: Column, test: String): Column = withExpr {
     new io.projectglow.sql.expressions.LogisticRegressionExpr(genotypes.expr, phenotypes.expr, covariates.expr, Literal(test))
   }
+
 
   /**
    * Gets the number of alternate alleles for an array of genotype structs. Returns ``-1`` if there are any ``-1`` s (no-calls) in the calls array.

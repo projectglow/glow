@@ -25,7 +25,7 @@ import org.apache.spark.sql.SQLUtils
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, CodegenFallback, ExprCode}
-import org.apache.spark.sql.catalyst.expressions.{Expression, ImplicitCastInputTypes, Literal, QuinaryExpression, TernaryExpression}
+import org.apache.spark.sql.catalyst.expressions.{Expression, ImplicitCastInputTypes, Literal, NullIntolerant, QuinaryExpression, TernaryExpression}
 import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.sql.types.{ArrayType, DataType, DoubleType, StringType}
 import org.apache.spark.unsafe.types.UTF8String
@@ -114,21 +114,13 @@ object LogisticRegressionExpr {
 }
 
 case class LogisticRegressionExpr(
-    genotypes: Expression,
-    phenotypes: Expression,
-    covariates: Expression,
-    test: Expression,
-    offset: Option[Expression])
+                                   genotypes: Expression,
+                                   phenotypes: Expression,
+                                   covariates: Expression,
+                                   test: Expression,
+                                   offsetOption: Option[Expression] = None)
     extends QuinaryExpression
     with ImplicitCastInputTypes {
-
-  def this(
-      genotypes: Expression,
-      phenotypes: Expression,
-      covariates: Expression,
-      test: Expression) = {
-    this(genotypes, phenotypes, covariates, test, None)
-  }
 
   def this(
       genotypes: Expression,
@@ -154,12 +146,13 @@ case class LogisticRegressionExpr(
 
   override def dataType: DataType = logitTest.resultSchema
 
-  override def inputTypes: Seq[DataType] =
-    Seq(ArrayType(DoubleType), ArrayType(DoubleType), matrixUDT, StringType) ++ offset.map(_ =>
+  override def inputTypes: Seq[DataType] = {
+    Seq(ArrayType(DoubleType), ArrayType(DoubleType), matrixUDT, StringType) ++ offsetOption.map(_ =>
       ArrayType(DoubleType))
+  }
 
   override def children: Seq[Expression] =
-    Seq(genotypes, phenotypes, covariates, test) ++ offset
+    Seq(genotypes, phenotypes, covariates, test) ++ offsetOption
 
   override def checkInputDataTypes(): TypeCheckResult = {
     super.checkInputDataTypes()

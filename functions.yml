@@ -457,6 +457,9 @@ gwas_functions:
         - name: test
           doc: Which logistic regression test to use. Can be ``LRT`` or ``Firth``
           type: str
+        - name: offset
+          doc: An optional double array of offset values
+          is_optional: true
       returns: A struct containing ``beta``, ``oddsRatio``, ``waldConfidenceInterval``, and ``pValue`` fields. See :ref:`logistic-regression`.
     - name: genotype_states
       doc: Gets the number of alternate alleles for an array of genotype structs. Returns ``-1`` if there are any ``-1`` s (no-calls) in the calls array.

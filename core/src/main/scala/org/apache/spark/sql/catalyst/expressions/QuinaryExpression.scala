@@ -91,7 +91,7 @@ abstract class QuinaryExpression extends Expression {
   }
 
   /**
-   * Short hand for generating septenary evaluation code.
+   * Short hand for generating quinary evaluation code.
    * If either of the sub-expressions is null, the result of this computation
    * is assumed to be null.
    *

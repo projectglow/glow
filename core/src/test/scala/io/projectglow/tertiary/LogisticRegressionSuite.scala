@@ -23,13 +23,13 @@ import org.apache.commons.io.FileUtils
 import org.apache.spark.SparkException
 import org.apache.spark.sql.{AnalysisException, Encoders, SQLUtils}
 import org.apache.spark.sql.catalyst.ScalaReflection
-import org.apache.spark.sql.functions.{expr, monotonically_increasing_id}
+import org.apache.spark.sql.functions.{col, lit, expr, monotonically_increasing_id}
 import org.apache.spark.sql.types.StructType
 import io.projectglow.SparkShim
 import io.projectglow.sql.GlowBaseTest
 import io.projectglow.sql.expressions.{LRTFitState, LikelihoodRatioTest, LogisticRegressionGwas, LogitTestResults, NewtonIterationsState, NewtonResult}
 import io.projectglow.tertiary.RegressionTestUtils._
-
+import io.projectglow.functions.{logistic_regression_gwas, expand_struct}
 import scala.util.Random
 
 class LogisticRegressionSuite extends GlowBaseTest {
@@ -45,34 +45,40 @@ class LogisticRegressionSuite extends GlowBaseTest {
       testData: TestData,
       onSpark: Boolean): Seq[LogitTestResults] = {
     import sess.implicits._
+    val hasOffset = testData.offsetOption.isDefined
     if (onSpark) {
-      val rows = testData.genotypes.map { g =>
-        RegressionRow(
-          g.toArray,
-          testData.phenotypes.toArray,
-          twoDArrayToSparkMatrix(testData.covariates.toArray))
+      val rows = if (hasOffset) {
+        testDataToRows(testData)
+      } else {
+        testDataToRowsWithOffset(testData)
       }
 
-      spark
+        spark
         .createDataFrame(rows)
         .withColumn("id", monotonically_increasing_id())
         .repartition(10)
         .withColumn(
           "logit",
-          expr(s"logistic_regression_gwas(genotypes, phenotypes, covariates, '$logitTest')"))
+          if (hasOffset) {
+            logistic_regression_gwas(col("genotypes"), col("phenotypes"), col("covariates"), logitTest, col("offset"))
+          } else {
+            logistic_regression_gwas(col("genotypes"), col("phenotypes"), col("covariates"), logitTest)
+          }
+        )
         .orderBy("id")
-        .selectExpr("expand_struct(logit)")
+        .select(expand_struct(col("logit")))
         .as[LogitTestResults]
         .collect()
         .toSeq
-    } else {
-      val covariatesMatrix = twoDArrayToSparkMatrix(testData.covariates.toArray)
+      } else {
+      val covariatesMatrix = twoDArrayToSparkMatrix(testData.covariates)
       val t = LogisticRegressionGwas.logitTests(logitTest)
-      val nullFit = t.init(testData.phenotypes.toArray, covariatesMatrix)
+      val nullFit = t.init(testData.phenotypes, covariatesMatrix, testData.offsetOption)
 
       val internalRows = testData.genotypes.map { g =>
-        val y = new DenseVector[Double](testData.phenotypes.toArray)
-        t.runTest(new DenseVector[Double](g.toArray), y, nullFit)
+        val y = new DenseVector[Double](testData.phenotypes)
+        val offset = testData.offsetOption.map(new DenseVector[Double](_))
+        t.runTest(new DenseVector[Double](g), y, offset, nullFit)
       }
 
       val schema = ScalaReflection
@@ -167,9 +173,9 @@ class LogisticRegressionSuite extends GlowBaseTest {
       Array(1d, r(1), r(2))
     }
     val genotypes = parsed.map(_(3))
-    TestData(Seq(genotypes), phenotypes, covariates, None)
+    TestData(Array(genotypes), phenotypes, covariates, None)
   }
-
+/*
   private val admitStudentsWithOffset: TestData = {
     val zeroOffset = Seq.fill[Double](50)(0)
     val offset = Seq(
@@ -224,16 +230,17 @@ class LogisticRegressionSuite extends GlowBaseTest {
       0.8,
       0.4
     )
-    admitStudents.copy(offsetOption = Some((0 to admitStudents.phenotypes.length).map(_ => Random.nextDouble)))
   }
-
+*/
   private val admitStudentsStats =
     LogitTestResults(-0.611263, 0.54266503, Seq(2.901759e-01, 1.014851), 0.04693173)
 
   private val interceptOnlyV1 = TestData(
-    Seq(Seq(0, 1, 2, 0, 0, 1)),
-    Seq(0, 0, 1, 1, 1, 1),
-    Seq(Array(1), Array(1), Array(1), Array(1), Array(1), Array(1)))
+    Array(Array(0, 1, 2, 0, 0, 1)),
+    Array(0, 0, 1, 1, 1, 1),
+    Array(Array(1), Array(1), Array(1), Array(1), Array(1), Array(1)),
+    Some(Array(0, 0, 0, 0, 0, 0))
+  )
   private val interceptOnlyV1Stats =
     LogitTestResults(0.4768, 1.610951, Seq(0.1403952, 18.48469), 0.6935)
   private val interceptOnlyV1FirthStats =
@@ -243,7 +250,7 @@ class LogisticRegressionSuite extends GlowBaseTest {
       Seq(-2.020431, 2.507360).map(Math.exp),
       0.796830)
 
-  private val interceptOnlyV2 = interceptOnlyV1.copy(phenotypes = Seq(0, 0, 1, 0, 1, 1))
+  private val interceptOnlyV2 = interceptOnlyV1.copy(phenotypes = Array(0, 0, 1, 0, 1, 1))
   private val interceptOnlyV2Stats =
     LogitTestResults(1.4094, 4.0936366, Seq(0.26608762, 62.978730), 0.2549)
   private val interceptOnlyV2FirthStats =
@@ -252,7 +259,7 @@ class LogisticRegressionSuite extends GlowBaseTest {
       Math.exp(0.8731197),
       Seq(-1.495994, 3.242234).map(Math.exp),
       0.3609153)
-
+ /*
   private val gtsAndCovariates = TestData(
     Seq(Seq(0, 1, 2, 0, 0, 1)),
     Seq(0, 0, 1, 1, 1, 1),
@@ -285,7 +292,7 @@ class LogisticRegressionSuite extends GlowBaseTest {
     TestDataAndGoldenStats(interceptOnlyV2, interceptOnlyV2Stats),
     TestDataAndGoldenStats(gtsAndCovariates, gtsAndCovariatesStats)
   )
-
+*/
   private def compareLogitTestResults(s1: LogitTestResults, s2: LogitTestResults): Unit = {
 
     assert(s1.beta ~== s2.beta relTol 0.02)
@@ -298,7 +305,7 @@ class LogisticRegressionSuite extends GlowBaseTest {
     }
     assert(s1.pValue ~== s2.pValue relTol 0.02)
   }
-
+/*
   private def runNewtonIterations(testData: TestData): NewtonResult = {
     val fitState = LikelihoodRatioTest.init(
       testData.phenotypes.toArray,
@@ -434,11 +441,11 @@ class LogisticRegressionSuite extends GlowBaseTest {
     assert(ex.getCause.isInstanceOf[IllegalArgumentException])
     assert(ex.getMessage.toLowerCase.contains("must have at least one column"))
   }
-
+*/
   test("Run multiple regressions") {
     import sess.implicits._
 
-    val rows = testDataToRows(interceptOnlyV1) ++ testDataToRows(interceptOnlyV2)
+    val rows = testDataToRowsWithOffset(interceptOnlyV1) ++ testDataToRowsWithOffset(interceptOnlyV2)
 
     val ourStats = spark
       .createDataFrame(rows)
@@ -446,8 +453,9 @@ class LogisticRegressionSuite extends GlowBaseTest {
       .repartition(10)
       .withColumn(
         "logit",
-        expr("logistic_regression_gwas(genotypes, phenotypes, covariates, 'LRT')"))
-      .orderBy("id")
+//        expr("logistic_regression_gwas(genotypes, phenotypes, covariates, 'LRT')"))
+      logistic_regression_gwas(col("genotypes"), col("phenotypes"), col("covariates"), "LRT", col("offset"))
+      ).orderBy("id")
       .selectExpr("expand_struct(logit)")
       .as[LogitTestResults]
       .collect()
@@ -458,7 +466,7 @@ class LogisticRegressionSuite extends GlowBaseTest {
         compareLogitTestResults(golden, our)
     }
   }
-
+/*
   gridTest("firth regression vs R onSpark=")(Seq(true, false)) { onSpark =>
     val s = FileUtils.readFileToString(new File(s"$testDataHome/r/sex2.txt"))
     val parsed = s
@@ -521,5 +529,5 @@ class LogisticRegressionSuite extends GlowBaseTest {
       LogisticRegressionGwas.logitTests.get("FIRTH"))
     assert(LogisticRegressionGwas.logitTests.get("monkey").isEmpty)
   }
-
+*/
 }
