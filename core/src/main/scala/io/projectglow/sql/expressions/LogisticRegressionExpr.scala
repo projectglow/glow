@@ -42,10 +42,14 @@ class LogisticRegressionState(testStr: String) {
   var fitState: logitTest.FitState = _
   val matrixUDT = SQLUtils.newMatrixUDT()
 
-  def getFitState(phenotypes: Array[Double], covariates: Any, offsetOption: Option[Array[Double]]): logitTest.FitState = {
+  def getFitState(
+      phenotypes: Array[Double],
+      covariates: Any,
+      offsetOption: Option[Array[Double]]): logitTest.FitState = {
     if (!logitTest.fitStatePerPhenotype) {
       if (fitState == null) {
-        fitState = logitTest.init(phenotypes, matrixUDT.deserialize(covariates).toDense, offsetOption)
+        fitState =
+          logitTest.init(phenotypes, matrixUDT.deserialize(covariates).toDense, offsetOption)
       }
       return fitState
     }
@@ -73,11 +77,28 @@ object LogisticRegressionExpr {
   }
 
   def doLogisticRegression(
-                            test: String,
-                            genotypes: Any,
-                            phenotypes: Any,
-                            covariates: Any,
-                            offsetOption: Option[Any]): InternalRow = {
+      test: String,
+      genotypes: Any,
+      phenotypes: Any,
+      covariates: Any): InternalRow = {
+    doLogisticRegression(test, genotypes, phenotypes, covariates, None)
+  }
+
+  def doLogisticRegression(
+      test: String,
+      genotypes: Any,
+      phenotypes: Any,
+      covariates: Any,
+      offset: Any): InternalRow = {
+    doLogisticRegression(test, genotypes, phenotypes, covariates, Some(offset))
+  }
+
+  def doLogisticRegression(
+      test: String,
+      genotypes: Any,
+      phenotypes: Any,
+      covariates: Any,
+      offsetOption: Option[Any]): InternalRow = {
 
     val state = getState(test)
     val covariatesStruct = covariates.asInstanceOf[InternalRow]
@@ -114,13 +135,21 @@ object LogisticRegressionExpr {
 }
 
 case class LogisticRegressionExpr(
-                                   genotypes: Expression,
-                                   phenotypes: Expression,
-                                   covariates: Expression,
-                                   test: Expression,
-                                   offsetOption: Option[Expression] = None)
+    genotypes: Expression,
+    phenotypes: Expression,
+    covariates: Expression,
+    test: Expression,
+    offsetOption: Option[Expression])
     extends QuinaryExpression
     with ImplicitCastInputTypes {
+
+  def this(
+      genotypes: Expression,
+      phenotypes: Expression,
+      covariates: Expression,
+      test: Expression) = {
+    this(genotypes, phenotypes, covariates, test, None)
+  }
 
   def this(
       genotypes: Expression,
@@ -147,8 +176,8 @@ case class LogisticRegressionExpr(
   override def dataType: DataType = logitTest.resultSchema
 
   override def inputTypes: Seq[DataType] = {
-    Seq(ArrayType(DoubleType), ArrayType(DoubleType), matrixUDT, StringType) ++ offsetOption.map(_ =>
-      ArrayType(DoubleType))
+    Seq(ArrayType(DoubleType), ArrayType(DoubleType), matrixUDT, StringType) ++ offsetOption.map(
+      _ => ArrayType(DoubleType))
   }
 
   override def children: Seq[Expression] =
@@ -177,9 +206,10 @@ case class LogisticRegressionExpr(
       ctx,
       ev,
       (genotypes, phenotypes, covariates, _, offset) => {
+        val offsetString = offset.map(s => s", $s").getOrElse("")
         s"""
              |
-             |${ev.value} = io.projectglow.sql.expressions.LogisticRegressionExpr.doLogisticRegression("$testStr", $genotypes, $phenotypes, $covariates, $offset);
+             |${ev.value} = io.projectglow.sql.expressions.LogisticRegressionExpr.doLogisticRegression("$testStr", $genotypes, $phenotypes, $covariates$offsetString);
        """.stripMargin
       }
     )

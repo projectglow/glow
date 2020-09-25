@@ -20,15 +20,15 @@ import breeze.linalg.{DenseMatrix => BreezeDenseMatrix}
 import org.apache.spark.ml.linalg.{DenseMatrix => SparkDenseMatrix}
 
 case class RegressionRow(
-                                   genotypes: Array[Double],
-                                   phenotypes: Array[Double],
-                                   covariates: SparkDenseMatrix)
+    genotypes: Array[Double],
+    phenotypes: Array[Double],
+    covariates: SparkDenseMatrix)
 
 case class RegressionRowWithOffset(
-           genotypes: Array[Double],
-           phenotypes: Array[Double],
-           covariates: SparkDenseMatrix,
-           offset: Array[Double])
+    genotypes: Array[Double],
+    phenotypes: Array[Double],
+    covariates: SparkDenseMatrix,
+    offset: Array[Double])
 
 case class TestData(
     genotypes: Array[Array[Double]],

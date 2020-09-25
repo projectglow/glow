@@ -172,10 +172,13 @@ class LinearRegressionSuite extends GlowBaseTest {
         val gwasContext =
           CovariateQRContext.computeQR(twoDArrayToSparkMatrix(testData.covariates))
         val phenotypes = new DenseVector[Double](testData.phenotypes)
-        testData.genotypes.map { g =>
-          val genotypes = new DenseVector[Double](g)
-          LinearRegressionGwas.runRegression(genotypes, phenotypes, gwasContext)
-        }.toSeq
+        testData
+          .genotypes
+          .map { g =>
+            val genotypes = new DenseVector[Double](g)
+            LinearRegressionGwas.runRegression(genotypes, phenotypes, gwasContext)
+          }
+          .toSeq
       }
     }
 

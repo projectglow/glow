@@ -30,7 +30,10 @@ object FirthTest extends LogitTest {
   override type FitState = FirthFitState
   override val resultSchema: StructType = Encoders.product[LogitTestResults].schema
 
-  override def init(phenotypes: Array[Double], covariates: SparkDenseMatrix, offsetOption: Option[Array[Double]]): FirthFitState = {
+  override def init(
+      phenotypes: Array[Double],
+      covariates: SparkDenseMatrix,
+      offsetOption: Option[Array[Double]]): FirthFitState = {
 
     val covariateX =
       new DenseMatrix[Double](covariates.numRows, covariates.numCols, covariates.values)

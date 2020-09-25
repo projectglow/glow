@@ -137,7 +137,10 @@ class NewtonIterationsState(numRows: Int, numCols: Int) {
   val score: DenseVector[Double] = DenseVector.zeros[Double](numCols)
   val fisher: DenseMatrix[Double] = DenseMatrix.zeros[Double](numCols, numCols)
 
-  def initFromMatrix(X: DenseMatrix[Double], y: DenseVector[Double], offsetOption: Option[DenseVector[Double]]): Unit = {
+  def initFromMatrix(
+      X: DenseMatrix[Double],
+      y: DenseVector[Double],
+      offsetOption: Option[DenseVector[Double]]): Unit = {
     val avg = sum(y) / X.rows
     b(0) = math.log(avg / (1 - avg))
     val eta = offsetOption.fold(X * b)(_ + X * b)
@@ -203,7 +206,10 @@ trait LogitTest extends Serializable {
    * As much memory allocation as possible should be performed in this step to avoid allocations
    * in the per-row fit.
    */
-  def init(phenotypes: Array[Double], covariates: SparkDenseMatrix, offsetOption: Option[Array[Double]]): FitState
+  def init(
+      phenotypes: Array[Double],
+      covariates: SparkDenseMatrix,
+      offsetOption: Option[Array[Double]]): FitState
 
   def runTest(
       genotypes: DenseVector[Double],
