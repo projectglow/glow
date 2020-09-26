@@ -22,7 +22,8 @@ import org.apache.spark.ml.linalg.{DenseMatrix => SparkDenseMatrix}
 case class RegressionRow(
     genotypes: Array[Double],
     phenotypes: Array[Double],
-    covariates: SparkDenseMatrix)
+    covariates: SparkDenseMatrix,
+    offset: Option[Array[Double]])
 
 case class RegressionRowWithOffset(
     genotypes: Array[Double],
@@ -56,23 +57,11 @@ object RegressionTestUtils {
       RegressionRow(
         g,
         testData.phenotypes,
-        twoDArrayToSparkMatrix(testData.covariates)
+        twoDArrayToSparkMatrix(testData.covariates),
+        testData.offsetOption
       )
     }
+
   }
 
-  def testDataToRowsWithOffset(testData: TestData): Seq[RegressionRowWithOffset] = {
-    testData.offsetOption match {
-      case Some(offset) =>
-        testData.genotypes.map { g =>
-          RegressionRowWithOffset(
-            g,
-            testData.phenotypes,
-            twoDArrayToSparkMatrix(testData.covariates),
-            offset
-          )
-        }
-      case None => throw new NoSuchElementException("testData does not contain offset.")
-    }
-  }
 }

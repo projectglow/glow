@@ -16,21 +16,18 @@
 
 package io.projectglow.tertiary
 
-import scala.concurrent.duration._
-import scala.util.Random
-
 import breeze.linalg.DenseVector
+import io.projectglow.sql.GlowBaseTest
+import io.projectglow.sql.expressions.{CovariateQRContext, LinearRegressionGwas, RegressionStats}
+import io.projectglow.tertiary.RegressionTestUtils._
 import org.apache.commons.math3.distribution.TDistribution
 import org.apache.commons.math3.linear.SingularMatrixException
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
 import org.apache.spark.SparkException
 import org.apache.spark.sql.functions._
 
-import RegressionTestUtils._
-import io.projectglow.functions
-import io.projectglow.sql.GlowBaseTest
-import io.projectglow.sql.expressions.{CovariateQRContext, LinearRegressionGwas, RegressionStats}
-import io.projectglow.tertiary.RegressionTestUtils._
+import scala.concurrent.duration._
+import scala.util.Random
 
 class LinearRegressionSuite extends GlowBaseTest {
 
@@ -148,7 +145,6 @@ class LinearRegressionSuite extends GlowBaseTest {
   }
 
   private def compareToApacheOLS(testData: TestData, useSpark: Boolean): Unit = {
-    import io.projectglow.functions._
     import sess.implicits._
     val apacheResults = timeIt("Apache linreg") {
       testDataToOlsBaseline(testData)
@@ -351,10 +347,7 @@ class LinearRegressionSuite extends GlowBaseTest {
   test("throws exception if number of genotypes and phenotypes do not match") {
     val testData = generateTestData(10, 1, 0, true, 1)
     val rows = testData.genotypes.map { g =>
-      RegressionRow(
-        g.tail.toArray,
-        testData.phenotypes.toArray,
-        twoDArrayToSparkMatrix(testData.covariates.toArray))
+      RegressionRow(g.tail, testData.phenotypes, twoDArrayToSparkMatrix(testData.covariates), None)
     }
     checkIllegalArgumentException(
       rows,
@@ -365,9 +358,10 @@ class LinearRegressionSuite extends GlowBaseTest {
     val testData = generateTestData(10, 1, 0, true, 1)
     val rows = testData.genotypes.map { g =>
       RegressionRow(
-        g.tail.toArray,
-        testData.phenotypes.tail.toArray,
-        twoDArrayToSparkMatrix(testData.covariates.toArray))
+        g.tail,
+        testData.phenotypes.tail,
+        twoDArrayToSparkMatrix(testData.covariates),
+        None)
     }
     checkIllegalArgumentException(
       rows,
