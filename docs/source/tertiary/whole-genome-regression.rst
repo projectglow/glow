@@ -66,18 +66,28 @@ The DataFrame must include a column ``values`` containing a numeric representati
 Example
 -------
 
+<<<<<<< HEAD
 When loading the variants into the DataFrame, perform the following transformations:
 
 - Split multiallelic variants with the ``split_multiallelics`` transformer.
 - Create a ``values`` column by calculating the numeric representation of each genotype. This representation is typically the number of alternate alleles for biallelic variants which can be calculated with ``glow.genotype_states``. Replace any missing values with the mean of the non-missing values using ``glow.mean_substitute``.
+=======
+.. warning::
+    We do not recommend using the ``split_multiallelics`` transformer and the ``block_variants_and_samples`` function
+    in the same query due to JVM JIT code size limits during whole-stage code generation.
+
+When loading biallelic variants, perform the following transformations:
+
+- Calculate the number of alternate alleles for biallelic variants with ``glow.genotype_states``.
+- Replace any missing values with the mean of the non-missing values using ``glow.mean_substitute``.
+>>>>>>> master
 
 .. code-block:: python
 
     from pyspark.sql.functions import col, lit
 
     variants = spark.read.format('vcf').load(genotypes_vcf)
-    genotypes = glow.transform('split_multiallelics', variants) \
-        .withColumn('values', glow.mean_substitute(glow.genotype_states(col('genotypes'))))
+    genotypes = variants.withColumn('values', glow.mean_substitute(glow.genotype_states(col('genotypes'))))
 
 2. Phenotype data
 =================
@@ -451,7 +461,20 @@ Proceed to GWAS
 - **For quantitative phenotypes**, this is typically done by subtracting the predictor from the phenotype vector.
 - **For binary phenotypes**, this is done by using the predictor as an explicit covariate vector.
 
-----------------
+---------------
+Troubleshooting
+---------------
+
+If you encounter limits related to memory allocation in PyArrow, you may need to tune the number of alphas, number of
+variants per block, and/or the number of sample blocks. The default values for these hyperparameters are tuned for
+500,000 variants and 500,000 samples.
+
+
+The following values must all be lower than 132,152,839:
+
+- ``(# alphas) * (# variants / # variants per block) * (# samples / # sample blocks)``
+- ``(# alphas * # variants / # variants per block)^2``
+
 Example notebook
 ----------------
 

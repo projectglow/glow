@@ -151,7 +151,7 @@ class VariantContextToInternalRowConverterSuite extends VCFConverterBaseTest {
 
     val vcfRow = convertToVCFRow(lenientConverter.convertRow(defaultVc, false))
 
-    val convertedDefaultVc = defaultVcfRow.copy(end = 1, referenceAllele = "A", genotypes = Nil)
+    val convertedDefaultVc = defaultVcfRow.copy(end = 1, referenceAllele = "A", genotypes = null)
     assert(vcfRow == convertedDefaultVc)
   }
 

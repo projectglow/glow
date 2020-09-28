@@ -7,8 +7,8 @@
 # Potentially confusing function options are:
 # - expr_class: The class name of the expression in Glow that implements the function. This value is
 #               *not* user-visible. It's used only for client generation.
-# - exclude_python: If true, the function cannot be represented in Python. This is currently only
-#                   the case for functions that take lambda functions as arguments.
+# - exclude_python: If true, the function is not exposed via the Python API
+# - exclude_scala: If true, the function is not exposed via the Scala API.
 # 
 # Potentially confusing argument options are:
 # - type: The argument's type. This can currently be one of [str, double, lambda1, lambda2]. These
@@ -266,7 +266,6 @@ etl:
           is_optional: true
       returns: A numeric array with substituted missing values
 
-
 quality_control:
   functions:
     - name: aggregate_by_index
@@ -406,6 +405,25 @@ quality_control:
         - name: genotypes
           doc: An array of genotype structs with ``conditionalQuality`` field
       returns: An array of structs where each struct contains ``mean``, ``stDev``, ``min``, and ``max`` of the genotype qualities for a sample. If ``sampleId`` is present in a genotype, it will be propagated to the resulting struct as an extra field.
+    - name: assert_true_or_error
+      doc: Asserts a boolean condition is true.
+      since: 0.5.0
+      expr_class: io.projectglow.sql.expressions.AssertTrueOrError
+      exclude_python: true
+      exclude_scala: true
+      examples:
+        python: |
+          >>> df = spark.createDataFrame([Row(v=1), Row(v=1)])
+          >>> df.select(glow.assert_true_or_error(df.v == 1, 'the value is not one!').alias('is_one')).collect()
+          [Row(is_one=None), Row(is_one=None)]
+      args:
+        - name: condition
+          doc: Boolean condition to check
+        - name: errMsg
+          doc: Error message if condition fails
+          type: str
+      returns: Null if true, or throws an exception if not true
+
 
 gwas_functions:
   functions:

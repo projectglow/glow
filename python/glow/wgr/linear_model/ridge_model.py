@@ -280,8 +280,9 @@ class RidgeRegression:
                                          self.alphas, covdf), reduced_matrix_struct,
             PandasUDFType.GROUPED_MAP)
 
+        # Hint a sort-merge join to avoid an automatic broadcast join that may cause an OOM
         blocked_prediction_df = blockdf.drop('header_block', 'sort_key') \
-            .join(modeldf.drop('header_block'), ['sample_block', 'header'], 'right') \
+            .join(modeldf.drop('header_block').hint('merge'), ['sample_block', 'header'], 'right') \
             .withColumn('label', f.coalesce(f.col('label'), f.col('labels').getItem(0))) \
             .groupBy(transform_key_pattern) \
             .apply(transform_udf) \
@@ -327,6 +328,7 @@ class RidgeRegression:
 
         all_y_hat_df = pd.DataFrame({})
         for chromosome in loco_chromosomes:
+            print(f"Generating predictions for chromosome {chromosome}.")
             loco_model_df = modeldf.filter(
                 ~f.col('header').rlike(f'^chr_{chromosome}_(alpha|block)'))
             loco_y_hat_df = self.transform(blockdf, labeldf, sample_blocks, loco_model_df, cvdf,

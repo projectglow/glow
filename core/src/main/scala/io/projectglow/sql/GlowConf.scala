@@ -14,17 +14,15 @@
  * limitations under the License.
  */
 
-package io.projectglow.common
+package io.projectglow.sql
 
-import htsjdk.samtools.ValidationStringency
+import org.apache.spark.sql.internal.SQLConf
 
-trait HasStringency extends GlowLogging {
-  def stringency: ValidationStringency
-  protected def raiseValidationError(warning: String, cause: Throwable = null): Unit = {
-    if (stringency == ValidationStringency.STRICT) {
-      throw new IllegalArgumentException(warning, cause)
-    } else if (stringency == ValidationStringency.LENIENT) {
-      logger.warn(warning)
-    }
-  }
+object GlowConf {
+  val FAST_VCF_READER_ENABLED =
+    SQLConf
+      .buildConf("io.projectglow.vcf.fastReaderEnabled")
+      .doc("Use fast VCF reader")
+      .booleanConf
+      .createWithDefault(false)
 }

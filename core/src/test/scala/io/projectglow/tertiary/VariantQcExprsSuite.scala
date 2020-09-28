@@ -18,7 +18,8 @@ package io.projectglow.tertiary
 
 import scala.util.Random
 
-import org.apache.spark.sql.AnalysisException
+import org.apache.spark.SparkException
+import org.apache.spark.sql.{AnalysisException, Row}
 import org.apache.spark.sql.functions._
 
 import io.projectglow.common.{GenotypeFields, VCFRow}
@@ -415,6 +416,47 @@ class VariantQcExprsSuite extends GlowBaseTest {
     }
     assert(
       e.getMessage.contains("Missing value must be of numeric type; provided type is StringType"))
+  }
+
+  test("assert_true_or_error error message must be constant") {
+    val e = intercept[AnalysisException] {
+      spark
+        .range(1)
+        .selectExpr("assert_true_or_error(true, rand())")
+        .head
+    }
+    assert(e.getMessage.contains("Error message must be a constant value"))
+  }
+
+  test("assert_true_or_error returns null if condition passes") {
+    val rows = spark
+      .range(3)
+      .selectExpr("assert_true_or_error(id < 3, 'something has gone wrong!')")
+      .collect()
+    assert(rows.toSeq == Seq(Row(null), Row(null), Row(null)))
+  }
+
+  test("assert_true_or_error throws if condition fails") {
+    val errMsg = "something has gone wrong!"
+    val e = intercept[SparkException] {
+      spark
+        .range(4)
+        .selectExpr(s"assert_true_or_error(id < 3, '$errMsg')")
+        .collect()
+    }
+    assert(e.getCause.isInstanceOf[RuntimeException])
+    assert(e.getCause.getMessage == errMsg)
+  }
+
+  test("assert_true_or_error throws if value is null") {
+    val errMsg = "something has gone wrong!"
+    val e = intercept[RuntimeException] {
+      spark
+        .range(4)
+        .selectExpr(s"assert_true_or_error(null, '$errMsg')")
+        .collect()
+    }
+    assert(e.getMessage == errMsg)
   }
 }
 

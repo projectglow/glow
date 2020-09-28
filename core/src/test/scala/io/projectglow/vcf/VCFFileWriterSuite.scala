@@ -128,7 +128,7 @@ abstract class VCFFileWriterSuite(val sourceName: String) extends VCFConverterBa
       writeAndRereadWithDBParser(s"$testDataHome/vcf/VCFv4.3.vcf", schemaOption = schema)
     ds.collect.zip(rewrittenDs.collect).foreach {
       case (vc1, vc2) =>
-        assert(vc1.equals(vc2), s"VC1 $vc1 VC2 $vc2")
+        assert(vc1.equals(vc2), s"VC1\n$vc1\nVC2\n$vc2")
     }
   }
 
