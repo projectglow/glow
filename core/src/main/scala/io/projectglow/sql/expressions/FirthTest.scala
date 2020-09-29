@@ -90,7 +90,10 @@ object FirthTest extends LogitTest {
 
     while (!converged && !exploded && iter <= maxIter) {
       try {
-        val eta = offsetOption.fold(x(::, 0 until m0) * args.b)(_ + x(::, 0 until m0) * args.b)
+        val eta = offsetOption match {
+          case Some(offset) => offset + x(::, 0 until m0) * args.b
+          case None => x(::, 0 until m0) * args.b
+        }
         args.mu := sigmoid(eta)
         args.sqrtW := sqrt(args.mu *:* (1d - args.mu))
         val QR = qr.reduced(x(::, *) *:* args.sqrtW)

@@ -85,7 +85,10 @@ object LogisticRegressionGwas extends GlowLogging {
         } else {
           iter += 1
           args.b += deltaB // Parameter update
-          val eta = offsetOption.fold(X * args.b)(_ + X * args.b)
+          val eta = offsetOption match {
+            case Some(offset) => offset + X * args.b
+            case None => X * args.b
+          }
           args.mu := sigmoid(eta) // Fitted probability
           args.score := X.t * (y - args.mu) // Gradient
           hessianPlaceHolder := X
@@ -143,7 +146,10 @@ class NewtonIterationsState(numRows: Int, numCols: Int) {
       offsetOption: Option[DenseVector[Double]]): Unit = {
     val avg = sum(y) / X.rows
     b(0) = math.log(avg / (1 - avg))
-    val eta = offsetOption.fold(X * b)(_ + X * b)
+    val eta = offsetOption match {
+      case Some(offset) => offset + X * b
+      case None => X * b
+    }
     mu := sigmoid(eta)
     score := X.t * (y - mu)
     fisher := X.t * (X(::, *) *:* (mu *:* (1d - mu)))
@@ -164,7 +170,10 @@ class NewtonIterationsState(numRows: Int, numCols: Int) {
     val X1 = X(::, r1)
 
     b(r0) := nullFitArgs.b
-    val eta = offsetOption.fold(X * b)(_ + X * b)
+    val eta = offsetOption match {
+      case Some(offset) => offset + X * b
+      case None => X * b
+    }
     mu := sigmoid(eta)
     score(r0) := nullFitArgs.score
     score(r1) := X1.t * (y - mu)

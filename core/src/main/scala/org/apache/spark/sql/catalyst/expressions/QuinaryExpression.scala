@@ -21,7 +21,7 @@ import org.apache.spark.sql.catalyst.expressions.codegen.Block._
 import org.apache.spark.sql.catalyst.expressions.codegen._
 
 /**
- * An expression with four inputs + 5th optional input and one output.
+ * An expression with four inputs + 5th optional input.
  * The output is by default evaluated to null if any input is evaluated to null.
  */
 abstract class QuinaryExpression extends Expression {
@@ -95,7 +95,7 @@ abstract class QuinaryExpression extends Expression {
    * If either of the sub-expressions is null, the result of this computation
    * is assumed to be null.
    *
-   * @param f function that accepts the 7 non-null evaluation result names of children
+   * @param f function that accepts the 5 non-null evaluation result names of children
    *          and returns Java code to compute the output.
    */
   protected def nullSafeCodeGen(

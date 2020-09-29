@@ -178,7 +178,7 @@ class LogisticRegressionSuite extends GlowBaseTest {
   private val admitStudentsStats =
     LogitTestResults(-0.611263, 0.54266503, Seq(2.901759e-01, 1.014851), 0.04693173)
 
-  // Data amd golden stats are from R's logistf package
+  // Data and golden stats are from R's logistf package
   // We made up an offset column.
   // data(sex2)
   // fit<-logistf(case ~ age+oc+vic+vicl+vis+dia, data=sex2, pl=TRUE)
@@ -518,5 +518,4 @@ class LogisticRegressionSuite extends GlowBaseTest {
       LogisticRegressionGwas.logitTests.get("FIRTH"))
     assert(LogisticRegressionGwas.logitTests.get("monkey").isEmpty)
   }
-
 }

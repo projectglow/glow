@@ -25,12 +25,6 @@ case class RegressionRow(
     covariates: SparkDenseMatrix,
     offset: Option[Array[Double]])
 
-case class RegressionRowWithOffset(
-    genotypes: Array[Double],
-    phenotypes: Array[Double],
-    covariates: SparkDenseMatrix,
-    offset: Array[Double])
-
 case class TestData(
     genotypes: Array[Array[Double]],
     phenotypes: Array[Double],

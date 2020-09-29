@@ -463,7 +463,7 @@ gwas_functions:
           doc: Which logistic regression test to use. Can be ``LRT`` or ``Firth``
           type: str
         - name: offset
-          doc: An optional double array of offset values
+          doc: An optional double array of offset values. The offset vector is added with coefficient 1 to the linear predictor term X*b.
           is_optional: true
       returns: A struct containing ``beta``, ``oddsRatio``, ``waldConfidenceInterval``, and ``pValue`` fields. See :ref:`logistic-regression`.
     - name: genotype_states
