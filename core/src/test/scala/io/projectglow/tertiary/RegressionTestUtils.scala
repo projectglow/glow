@@ -55,7 +55,5 @@ object RegressionTestUtils {
         testData.offsetOption
       )
     }
-
   }
-
 }
