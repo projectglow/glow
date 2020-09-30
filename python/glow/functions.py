@@ -603,7 +603,7 @@ def logistic_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Co
         phenotypes : A double array of phenotype values
         covariates : A ``spark.ml`` ``Matrix`` of covariates
         test : Which logistic regression test to use. Can be ``LRT`` or ``Firth``
-        offset : An optional double array of offset values
+        offset : An optional double array of offset values. The offset vector is added with coefficient 1 to the linear predictor term X*b.
 
     Returns:
         A struct containing ``beta``, ``oddsRatio``, ``waldConfidenceInterval``, and ``pValue`` fields. See :ref:`logistic-regression`.
