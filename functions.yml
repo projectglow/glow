@@ -460,11 +460,16 @@ gwas_functions:
           >>> phenotypes = [1, 0, 0, 1, 1]
           >>> genotypes = [0, 0, 1, 2, 2]
           >>> covariates = DenseMatrix(numRows=5, numCols=1, values=[1, 1, 1, 1, 1])
-          >>> df = spark.createDataFrame([Row(genotypes=genotypes, phenotypes=phenotypes, covariates=covariates)])
+          >>> offset = [1, 0, 1, 0, 1]
+          >>> df = spark.createDataFrame([Row(genotypes=genotypes, phenotypes=phenotypes, covariates=covariates, offset=offset)])
           >>> df.select(glow.expand_struct(glow.logistic_regression_gwas('genotypes', 'phenotypes', 'covariates', 'Firth'))).collect()
           [Row(beta=0.7418937644793101, oddsRatio=2.09990848346903, waldConfidenceInterval=[0.2509874689201784, 17.569066925598555], pValue=0.3952193664793294)]
           >>> df.select(glow.expand_struct(glow.logistic_regression_gwas('genotypes', 'phenotypes', 'covariates', 'LRT'))).collect()
           [Row(beta=1.1658962684583645, oddsRatio=3.208797540870915, waldConfidenceInterval=[0.2970960052553798, 34.65674891673014], pValue=0.2943946848756771)]
+          >>> df.select(glow.expand_struct(glow.logistic_regression_gwas('genotypes', 'phenotypes', 'covariates', 'Firth', 'offset'))).collect()
+          [Row(beta=0.8024832156793392, oddsRatio=2.231074294047771, waldConfidenceInterval=[0.2540891981649045, 19.590334974925725], pValue=0.3754070658316332)]
+          >>> df.select(glow.expand_struct(glow.logistic_regression_gwas('genotypes', 'phenotypes', 'covariates', 'LRT', 'offset'))).collect()
+          [Row(beta=1.1996041727573317, oddsRatio=3.3188029903029874, waldConfidenceInterval=[0.30711890785889034, 35.86380716587069], pValue=0.28571379886741566)]
       args:
         - name: genotypes
           doc: An numeric array of genotypes
@@ -475,6 +480,9 @@ gwas_functions:
         - name: test
           doc: Which logistic regression test to use. Can be ``LRT`` or ``Firth``
           type: str
+        - name: offset
+          doc: An optional double array of offset values. The offset vector is added with coefficient 1 to the linear predictor term X*b.
+          is_optional: true
       returns: A struct containing ``beta``, ``oddsRatio``, ``waldConfidenceInterval``, and ``pValue`` fields. See :ref:`logistic-regression`.
     - name: genotype_states
       doc: Gets the number of alternate alleles for an array of genotype structs. Returns ``-1`` if there are any ``-1`` s (no-calls) in the calls array.

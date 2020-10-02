@@ -166,7 +166,6 @@ object functions {
     new io.projectglow.sql.expressions.HardCalls(probabilities.expr, numAlts.expr, phased.expr)
   }
 
-
   /**
    * Performs liftover for the coordinates of a variant. To perform liftover of alleles and add additional metadata, see :ref:`liftover`.
    * @group etl
@@ -186,7 +185,6 @@ object functions {
   def lift_over_coordinates(contigName: Column, start: Column, end: Column, chainFile: String): Column = withExpr {
     new io.projectglow.sql.expressions.LiftOverCoordinatesExpr(contigName.expr, start.expr, end.expr, Literal(chainFile))
   }
-
 
   /**
    * Normalizes the variant with a behavior similar to vt normalize or bcftools norm.
@@ -233,7 +231,6 @@ object functions {
     new io.projectglow.sql.expressions.MeanSubstitute(array.expr)
   }
 
-
   /**
    * Computes custom per-sample aggregates.
    * @group quality_control
@@ -253,7 +250,6 @@ object functions {
   def aggregate_by_index(arr: Column, initialValue: Column, update: (Column, Column) => Column, merge: (Column, Column) => Column): Column = withExpr {
     new io.projectglow.sql.expressions.UnwrappedAggregateByIndex(arr.expr, initialValue.expr, createLambda(update), createLambda(merge))
   }
-
 
   /**
    * Computes call summary statistics for an array of genotype structs. See :ref:`variant-qc` for more details.
@@ -364,8 +360,13 @@ object functions {
    * @param phenotypes A double array of phenotype values
    * @param covariates A ``spark.ml`` ``Matrix`` of covariates
    * @param test Which logistic regression test to use. Can be ``LRT`` or ``Firth``
+   * @param offset An optional double array of offset values. The offset vector is added with coefficient 1 to the linear predictor term X*b.
    * @return A struct containing ``beta``, ``oddsRatio``, ``waldConfidenceInterval``, and ``pValue`` fields. See :ref:`logistic-regression`.
    */
+  def logistic_regression_gwas(genotypes: Column, phenotypes: Column, covariates: Column, test: String, offset: Column): Column = withExpr {
+    new io.projectglow.sql.expressions.LogisticRegressionExpr(genotypes.expr, phenotypes.expr, covariates.expr, Literal(test), offset.expr)
+  }
+
   def logistic_regression_gwas(genotypes: Column, phenotypes: Column, covariates: Column, test: String): Column = withExpr {
     new io.projectglow.sql.expressions.LogisticRegressionExpr(genotypes.expr, phenotypes.expr, covariates.expr, Literal(test))
   }

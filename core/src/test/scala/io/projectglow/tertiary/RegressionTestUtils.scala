@@ -22,12 +22,14 @@ import org.apache.spark.ml.linalg.{DenseMatrix => SparkDenseMatrix}
 case class RegressionRow(
     genotypes: Array[Double],
     phenotypes: Array[Double],
-    covariates: SparkDenseMatrix)
+    covariates: SparkDenseMatrix,
+    offset: Option[Array[Double]])
 
 case class TestData(
-    genotypes: Seq[Seq[Double]],
-    phenotypes: Seq[Double],
-    covariates: Seq[Array[Double]])
+    genotypes: Array[Array[Double]],
+    phenotypes: Array[Double],
+    covariates: Array[Array[Double]],
+    offsetOption: Option[Array[Double]])
 
 object RegressionTestUtils {
   def twoDArrayToSparkMatrix(input: Array[Array[Double]]): SparkDenseMatrix = {
@@ -47,9 +49,11 @@ object RegressionTestUtils {
   def testDataToRows(testData: TestData): Seq[RegressionRow] = {
     testData.genotypes.map { g =>
       RegressionRow(
-        g.toArray,
-        testData.phenotypes.toArray,
-        twoDArrayToSparkMatrix(testData.covariates.toArray))
+        g,
+        testData.phenotypes,
+        twoDArrayToSparkMatrix(testData.covariates),
+        testData.offsetOption
+      )
     }
   }
 }
