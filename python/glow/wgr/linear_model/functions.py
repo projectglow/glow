@@ -527,14 +527,21 @@ def __check_binary_or_standardized(df: pd.DataFrame) -> None:
         mean = df[label].mean()
         std_dev = df[label].std()
         num_non_binary_values = __num_non_binary_values(df[label])
-        has_missing = any(df[label].isnull())
+        continuous_ok = math.isclose(mean, 0, abs_tol=0.01) and math.isclose(
+            std_dev, 1, abs_tol=0.01)
 
-        if not ((math.isclose(mean, 0, abs_tol=0.01) and math.isclose(std_dev, 1, abs_tol=0.01) and
-                 not has_missing) or num_non_binary_values == 0):
+        print('CHECKING COL ' + label)
+        if num_non_binary_values == 0:
+            # Valid binary trait
+            continue
+        elif df[label].isnull().any():
+            # Throw an error if there are missing values in a continuous phenotype
+            raise ValueError(f"Missing values are present in the label DataFrame's {label} column")
+        elif not continuous_ok:
+            print('CONTINUOUS OK ' + str(continuous_ok))
             warnings.warn(
-                f"Column {label} is neither standardized nor binary (mean={mean}, "
-                f"std_dev={std_dev}, has_missing={has_missing}, num_non_binary_values={num_non_binary_values})",
-                UserWarning)
+                f"Label {label} is neither standardized nor binary (mean={mean}, "
+                f"std_dev={std_dev}, num_non_binary_values={num_non_binary_values})", UserWarning)
 
 
 @typechecked
