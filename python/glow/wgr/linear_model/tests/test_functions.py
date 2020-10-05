@@ -84,12 +84,14 @@ def test_generate_alphas(spark):
     }
     assert generate_alphas(df) == expected_alphas
 
+
 def test_labels_and_covars_ok(spark):
     labeldf = pd.DataFrame({'Trait_1': [0, -1, 1], 'Trait_2': [0, 1, -1]})
     covdf = pd.DataFrame({'Covariate_1': [0, 1, -1], 'Covariate_2': [0, -1, 1]})
     with pytest.warns(None) as record:
         validate_inputs(labeldf, covdf, 'continuous')
     assert len(record) == 0
+
 
 def test_assert_labels_all_present(spark):
     labeldf = pd.DataFrame({'Trait_1': [0, -1, 1], 'Trait_2': [0, 1, math.nan]})
