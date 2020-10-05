@@ -90,6 +90,16 @@ def test_labels_and_covars_ok(spark):
     covdf = pd.DataFrame({'Covariate_1': [0, 1, -1], 'Covariate_2': [0, -1, 1]})
     with pytest.warns(None) as record:
         validate_inputs(labeldf, covdf, 'continuous')
+
+        # Add a binary trait
+        labeldf['Trait_3'] = [0, 1, math.nan]
+        validate_inputs(labeldf, covdf, 'either')
+
+        # Delete continuous traits and check binary validation
+        del labeldf['Trait_1']
+        del labeldf['Trait_2']
+        validate_inputs(labeldf, covdf, 'binary')
+
     assert len(record) == 0
 
 
