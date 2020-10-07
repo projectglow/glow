@@ -161,6 +161,7 @@ class FirthNewtonArgs(numRows: Int, numCols: Int) {
 
   def initFromNullFit(nullFit: FirthNewtonArgs): Unit = {
     b(0 until nullFit.b.length) := nullFit.b
+    b(nullFit.b.length to -1)
   }
 }
 
