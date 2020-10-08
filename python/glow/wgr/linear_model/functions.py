@@ -466,7 +466,6 @@ def __assert_all_present(df: pd.DataFrame, col_name: str, df_name: str) -> None:
     Args:
         df : Pandas DataFrame
     """
-    print(f'Checking {col_name} in {df_name}')
     if df[col_name].isnull().any():
         raise ValueError(
             f"Missing values are present in the {df_name} dataframe's {col_name} column")
@@ -575,7 +574,6 @@ def validate_inputs(labeldf: pd.DataFrame, covdf: pd.DataFrame, label_type='eith
         __check_standardized(covdf, 'covariate')
     if label_type == 'continuous':
         for col in labeldf:
-            print(col)
             __assert_all_present(labeldf, col, 'label')
         __check_standardized(labeldf, 'label')
     elif label_type == 'binary':
