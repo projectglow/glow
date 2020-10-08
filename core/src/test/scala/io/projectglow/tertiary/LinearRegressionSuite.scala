@@ -16,21 +16,18 @@
 
 package io.projectglow.tertiary
 
-import scala.concurrent.duration._
-import scala.util.Random
-
 import breeze.linalg.DenseVector
+import io.projectglow.sql.GlowBaseTest
+import io.projectglow.sql.expressions.{CovariateQRContext, LinearRegressionGwas, RegressionStats}
+import io.projectglow.tertiary.RegressionTestUtils._
 import org.apache.commons.math3.distribution.TDistribution
 import org.apache.commons.math3.linear.SingularMatrixException
 import org.apache.commons.math3.stat.regression.OLSMultipleLinearRegression
 import org.apache.spark.SparkException
 import org.apache.spark.sql.functions._
 
-import RegressionTestUtils._
-import io.projectglow.functions
-import io.projectglow.sql.GlowBaseTest
-import io.projectglow.sql.expressions.{CovariateQRContext, LinearRegressionGwas, RegressionStats}
-import io.projectglow.tertiary.RegressionTestUtils._
+import scala.concurrent.duration._
+import scala.util.Random
 
 class LinearRegressionSuite extends GlowBaseTest {
 
@@ -114,12 +111,12 @@ class LinearRegressionSuite extends GlowBaseTest {
       includeIntercept: Boolean = true,
       multiplier: Int = 1): TestData = {
     val genotypes = Range(0, nVariants).map { _ =>
-      Range(0, nSamples).map(_ => multiplier * random.nextDouble())
-    }
+      Range(0, nSamples).map(_ => multiplier * random.nextDouble()).toArray
+    }.toArray
 
-    val phenotypes = Range(0, nSamples).map(_ => multiplier * random.nextDouble())
+    val phenotypes = Range(0, nSamples).map(_ => multiplier * random.nextDouble()).toArray
     val nCovariates = if (includeIntercept) nRandomCovariates + 1 else nRandomCovariates
-    val covariates = Range(0, nSamples).map(_ => new Array[Double](nCovariates))
+    val covariates = Range(0, nSamples).map(_ => new Array[Double](nCovariates)).toArray
     val startIdx = if (includeIntercept) {
       covariates.foreach(_(0) = 1)
       1
@@ -130,7 +127,7 @@ class LinearRegressionSuite extends GlowBaseTest {
     Range(startIdx, nCovariates).foreach { i =>
       covariates.foreach(_(i) = multiplier * random.nextDouble())
     }
-    TestData(genotypes, phenotypes, covariates)
+    TestData(genotypes, phenotypes, covariates, None)
   }
 
   private def timeIt[T](opName: String)(f: => T): T = {
@@ -148,7 +145,6 @@ class LinearRegressionSuite extends GlowBaseTest {
   }
 
   private def compareToApacheOLS(testData: TestData, useSpark: Boolean): Unit = {
-    import io.projectglow.functions._
     import sess.implicits._
     val apacheResults = timeIt("Apache linreg") {
       testDataToOlsBaseline(testData)
@@ -156,12 +152,7 @@ class LinearRegressionSuite extends GlowBaseTest {
 
     val ourResults = timeIt("DB linreg") {
       if (useSpark) {
-        val rows = testData.genotypes.map { g =>
-          RegressionRow(
-            g.toArray,
-            testData.phenotypes.toArray,
-            twoDArrayToSparkMatrix(testData.covariates.toArray))
-        }
+        val rows = testDataToRows(testData)
         // Add id to preserve sorting
         spark
           .createDataFrame(rows)
@@ -175,12 +166,15 @@ class LinearRegressionSuite extends GlowBaseTest {
           .toSeq
       } else {
         val gwasContext =
-          CovariateQRContext.computeQR(twoDArrayToSparkMatrix(testData.covariates.toArray))
-        val phenotypes = new DenseVector[Double](testData.phenotypes.toArray)
-        testData.genotypes.map { g =>
-          val genotypes = new DenseVector[Double](g.toArray)
-          LinearRegressionGwas.runRegression(genotypes, phenotypes, gwasContext)
-        }
+          CovariateQRContext.computeQR(twoDArrayToSparkMatrix(testData.covariates))
+        val phenotypes = new DenseVector[Double](testData.phenotypes)
+        testData
+          .genotypes
+          .map { g =>
+            val genotypes = new DenseVector[Double](g)
+            LinearRegressionGwas.runRegression(genotypes, phenotypes, gwasContext)
+          }
+          .toSeq
       }
     }
 
@@ -253,7 +247,7 @@ class LinearRegressionSuite extends GlowBaseTest {
     val genotypes = parsed.map(_(0))
     val phenotypes = parsed.map(_(1))
     val covariates = genotypes.map(_ => Array(1d))
-    TestData(Seq(genotypes), phenotypes, covariates)
+    TestData(Array(genotypes), phenotypes, covariates, None)
   }
 
   test("against R glm") {
@@ -346,22 +340,14 @@ class LinearRegressionSuite extends GlowBaseTest {
 
   test("throws exception if more covariates than samples") {
     val testData = generateTestData(26, 100, 30, true, 1)
-    val rows = testData.genotypes.map { g =>
-      RegressionRow(
-        g.toArray,
-        testData.phenotypes.toArray,
-        twoDArrayToSparkMatrix(testData.covariates.toArray))
-    }
+    val rows = testDataToRows(testData)
     checkIllegalArgumentException(rows, "Number of covariates must be less than number of samples")
   }
 
   test("throws exception if number of genotypes and phenotypes do not match") {
     val testData = generateTestData(10, 1, 0, true, 1)
     val rows = testData.genotypes.map { g =>
-      RegressionRow(
-        g.tail.toArray,
-        testData.phenotypes.toArray,
-        twoDArrayToSparkMatrix(testData.covariates.toArray))
+      RegressionRow(g.tail, testData.phenotypes, twoDArrayToSparkMatrix(testData.covariates), None)
     }
     checkIllegalArgumentException(
       rows,
@@ -372,9 +358,10 @@ class LinearRegressionSuite extends GlowBaseTest {
     val testData = generateTestData(10, 1, 0, true, 1)
     val rows = testData.genotypes.map { g =>
       RegressionRow(
-        g.tail.toArray,
-        testData.phenotypes.tail.toArray,
-        twoDArrayToSparkMatrix(testData.covariates.toArray))
+        g.tail,
+        testData.phenotypes.tail,
+        twoDArrayToSparkMatrix(testData.covariates),
+        None)
     }
     checkIllegalArgumentException(
       rows,

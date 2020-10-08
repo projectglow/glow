@@ -576,7 +576,7 @@ def linear_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Colu
     return output
 
 
-def logistic_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Column, str], covariates: Union[Column, str], test: str) -> Column:
+def logistic_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Column, str], covariates: Union[Column, str], test: str, offset: Union[Column, str] = None) -> Column:
     """
     Performs a logistic regression association test optimized for performance in a GWAS setting. See :ref:`logistic-regression` for more details.
 
@@ -587,23 +587,32 @@ def logistic_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Co
         >>> phenotypes = [1, 0, 0, 1, 1]
         >>> genotypes = [0, 0, 1, 2, 2]
         >>> covariates = DenseMatrix(numRows=5, numCols=1, values=[1, 1, 1, 1, 1])
-        >>> df = spark.createDataFrame([Row(genotypes=genotypes, phenotypes=phenotypes, covariates=covariates)])
+        >>> offset = [1, 0, 1, 0, 1]
+        >>> df = spark.createDataFrame([Row(genotypes=genotypes, phenotypes=phenotypes, covariates=covariates, offset=offset)])
         >>> df.select(glow.expand_struct(glow.logistic_regression_gwas('genotypes', 'phenotypes', 'covariates', 'Firth'))).collect()
         [Row(beta=0.7418937644793101, oddsRatio=2.09990848346903, waldConfidenceInterval=[0.2509874689201784, 17.569066925598555], pValue=0.3952193664793294)]
         >>> df.select(glow.expand_struct(glow.logistic_regression_gwas('genotypes', 'phenotypes', 'covariates', 'LRT'))).collect()
         [Row(beta=1.1658962684583645, oddsRatio=3.208797540870915, waldConfidenceInterval=[0.2970960052553798, 34.65674891673014], pValue=0.2943946848756771)]
+        >>> df.select(glow.expand_struct(glow.logistic_regression_gwas('genotypes', 'phenotypes', 'covariates', 'Firth', 'offset'))).collect()
+        [Row(beta=0.8024832156793392, oddsRatio=2.231074294047771, waldConfidenceInterval=[0.2540891981649045, 19.590334974925725], pValue=0.3754070658316332)]
+        >>> df.select(glow.expand_struct(glow.logistic_regression_gwas('genotypes', 'phenotypes', 'covariates', 'LRT', 'offset'))).collect()
+        [Row(beta=1.1996041727573317, oddsRatio=3.3188029903029874, waldConfidenceInterval=[0.30711890785889034, 35.86380716587069], pValue=0.28571379886741566)]
 
     Args:
         genotypes : An numeric array of genotypes
         phenotypes : A double array of phenotype values
         covariates : A ``spark.ml`` ``Matrix`` of covariates
         test : Which logistic regression test to use. Can be ``LRT`` or ``Firth``
+        offset : An optional double array of offset values. The offset vector is added with coefficient 1 to the linear predictor term X*b.
 
     Returns:
         A struct containing ``beta``, ``oddsRatio``, ``waldConfidenceInterval``, and ``pValue`` fields. See :ref:`logistic-regression`.
     """
     assert check_argument_types()
-    output = Column(sc()._jvm.io.projectglow.functions.logistic_regression_gwas(_to_java_column(genotypes), _to_java_column(phenotypes), _to_java_column(covariates), test))
+    if offset is None:
+        output = Column(sc()._jvm.io.projectglow.functions.logistic_regression_gwas(_to_java_column(genotypes), _to_java_column(phenotypes), _to_java_column(covariates), test))
+    else:
+        output = Column(sc()._jvm.io.projectglow.functions.logistic_regression_gwas(_to_java_column(genotypes), _to_java_column(phenotypes), _to_java_column(covariates), test, _to_java_column(offset)))
     assert check_return_type(output)
     return output
 
