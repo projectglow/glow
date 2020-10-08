@@ -103,46 +103,52 @@ def test_labels_and_covars_ok(spark):
     assert len(record) == 0
 
 
+def expect_validation_warning(labeldf, covdf, label_types):
+    for label_type in label_types:
+        with pytest.warns(UserWarning):
+            validate_inputs(labeldf, covdf, label_type)
+
+
+def expect_validation_error(labeldf, covdf, label_types):
+    for label_type in label_types:
+        with pytest.raises(ValueError):
+            validate_inputs(labeldf, covdf, label_type)
+
+
 def test_assert_labels_all_present(spark):
     labeldf = pd.DataFrame({'Trait_1': [0, -1, 1], 'Trait_2': [0, 1, math.nan]})
     covdf = pd.DataFrame({'Covariate_1': [0, 1, -1], 'Covariate_2': [0, -1, 1]})
-    with pytest.raises(ValueError):
-        validate_inputs(labeldf, covdf, 'continuous')
+    expect_validation_error(labeldf, covdf, ['continuous'])
 
 
 def test_assert_covars_all_present(spark):
     labeldf = pd.DataFrame({'Trait_1': [0, -1, 1], 'Trait_2': [0, 1, -1]})
     covdf = pd.DataFrame({'Covariate_1': [0, 1, -1], 'Covariate_2': [0, -1, math.nan]})
-    with pytest.raises(ValueError):
-        validate_inputs(labeldf, covdf)
+    expect_validation_error(labeldf, covdf, ['either', 'continuous', 'binary'])
 
 
 def test_check_labels_zero_mean(spark):
     labeldf = pd.DataFrame({'Trait_1': [0, -1, 1], 'Trait_2': [0, 1, 3]})
     covdf = pd.DataFrame({'Covariate_1': [0, 1, -1], 'Covariate_2': [0, -1, 1]})
-    with pytest.warns(UserWarning):
-        validate_inputs(labeldf, covdf)
+    expect_validation_warning(labeldf, covdf, ['either', 'continuous'])
 
 
 def test_check_labels_unit_stddev(spark):
     labeldf = pd.DataFrame({'Trait_1': [0, -1, 1], 'Trait_2': [0, 2, -2]})
     covdf = pd.DataFrame({'Covariate_1': [0, 1, -1], 'Covariate_2': [0, -1, 1]})
-    with pytest.warns(UserWarning):
-        validate_inputs(labeldf, covdf)
+    expect_validation_warning(labeldf, covdf, ['either', 'continuous'])
 
 
 def test_check_covars_zero_mean(spark):
     labeldf = pd.DataFrame({'Trait_1': [0, -1, 1], 'Trait_2': [0, 1, -1]})
     covdf = pd.DataFrame({'Covariate_1': [0, 1, -1], 'Covariate_2': [0, 3, 1]})
-    with pytest.warns(UserWarning):
-        validate_inputs(labeldf, covdf)
+    expect_validation_warning(labeldf, covdf, ['either', 'continuous'])
 
 
 def test_check_covars_unit_stddev(spark):
     labeldf = pd.DataFrame({'Trait_1': [0, -1, 1], 'Trait_2': [0, 1, -1]})
     covdf = pd.DataFrame({'Covariate_1': [0, 1, -1], 'Covariate_2': [0, -2, 2]})
-    with pytest.warns(UserWarning):
-        validate_inputs(labeldf, covdf)
+    expect_validation_warning(labeldf, covdf, ['either', 'continuous'])
 
 
 def test_check_labels_binary_or_continuous(spark):
