@@ -549,7 +549,7 @@ def validate_inputs(labeldf: pd.DataFrame, covdf: pd.DataFrame, label_type='eith
     DataFrame must and no missing values and should be standardized to zero mean and unit standard
     deviation. The label DataFrame is validated according to the label typle. If 'continuous', the
     label DataFrame must contain no missing values and should be standardized to zero mean and unit
-    standard deviation. If 'binary', all values in the label DataFrame should be either 0, 1, or
+    standard deviation. If 'binary', all values in the label DataFrame should be 0, 1, or
     missing. If 'either', each column in the label DataFrame should conform to the validation rules
     for either 'continuous' or 'binary'.
 
@@ -570,7 +570,7 @@ def validate_inputs(labeldf: pd.DataFrame, covdf: pd.DataFrame, label_type='eith
     elif label_type == 'either':
         __check_binary_or_standardized(labeldf)
     else:
-        raise ValueError(f'label_type should be either "continuous", "binary", or "either". Found '
+        raise ValueError(f'label_type should be "continuous", "binary", or "either". Found '
                          f'{label_type}.')
 
 
