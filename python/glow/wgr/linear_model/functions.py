@@ -556,8 +556,8 @@ def __check_binary_or_standardized(df: pd.DataFrame) -> None:
 def validate_inputs(labeldf: pd.DataFrame, covdf: pd.DataFrame, label_type='either') -> None:
     """
     Performs basic input validation on the label and covariates pandas DataFrames. The covariates
-    DataFrame must and no missing values and should be standardized to zero mean and unit standard
-    deviation. The label DataFrame is validated according to the label typle. If 'continuous', the
+    DataFrame must have no missing values and should be standardized to zero mean and unit standard
+    deviation. The label DataFrame is validated according to the label type. If label_type is 'continuous', the
     label DataFrame must contain no missing values and should be standardized to zero mean and unit
     standard deviation. If 'binary', all values in the label DataFrame should be 0, 1, or
     missing. If 'either', each column in the label DataFrame should conform to the validation rules
@@ -695,6 +695,7 @@ def apply_model_df(blockdf, modeldf, cvdf, transform_udf, transform_key_pattern,
         join_type : Join type for join between blockdf and modeldf. 
     """
 
+    # Hint a sort-merge join to avoid an automatic broadcast join that may cause an OOM
     return blockdf.drop('header_block', 'sort_key') \
         .join(modeldf.drop('header_block').hint('merge'), ['sample_block', 'header'], join_type) \
         .withColumn('label', f.coalesce(f.col('label'), f.col('labels').getItem(0))) \
