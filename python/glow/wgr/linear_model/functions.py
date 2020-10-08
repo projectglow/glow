@@ -459,16 +459,27 @@ def generate_alphas(blockdf: DataFrame) -> Dict[str, Float]:
 
 
 @typechecked
-def __assert_all_present(df: pd.DataFrame, name: str) -> None:
+def __assert_all_present(df: pd.DataFrame, col_name: str, df_name: str) -> None:
     """
-    Raises an error if a pandas DataFrame has missing values.
+    Raises an error if a pandas series has missing values.
 
     Args:
         df : Pandas DataFrame
     """
-    for label, isnull in df.isnull().any().items():
-        if isnull:
-            raise ValueError(f"Missing values are present in the {name} dataframe's {label} column")
+    print(f'Checking {col_name} in {df_name}')
+    if df[col_name].isnull().any():
+        raise ValueError(
+            f"Missing values are present in the {df_name} dataframe's {col_name} column")
+
+
+@typechecked
+def __is_zero(f: float) -> bool:
+    return math.isclose(f, 0, abs_tol=0.01)
+
+
+@typechecked
+def __is_one(f: float) -> bool:
+    return math.isclose(f, 1, abs_tol=0.01)
 
 
 @typechecked
@@ -480,11 +491,11 @@ def __check_standardized(df: pd.DataFrame, name: str) -> None:
         df : Pandas DataFrame
     """
     for label, mean in df.mean().items():
-        if not math.isclose(mean, 0, abs_tol=0.01):
+        if not __is_zero(mean):
             warnings.warn(f"Mean for the {name} dataframe's column {label} should be 0, is {mean}",
                           UserWarning)
     for label, std in df.std().items():
-        if not math.isclose(std, 1, abs_tol=0.01):
+        if not __is_one(std):
             warnings.warn(
                 f"Standard deviation for the {name} dataframe's column {label} should be approximately 1, is {std}",
                 UserWarning)
@@ -527,16 +538,15 @@ def __check_binary_or_standardized(df: pd.DataFrame) -> None:
         mean = df[label].mean()
         std_dev = df[label].std()
         num_non_binary_values = __num_non_binary_values(df[label])
-        continuous_ok = math.isclose(mean, 0, abs_tol=0.01) and math.isclose(
-            std_dev, 1, abs_tol=0.01)
+        continuous_ok = __is_zero(mean) and __is_one(std_dev)
 
         if num_non_binary_values == 0:
             # Valid binary trait
             continue
-        elif df[label].isnull().any():
-            # Throw an error if there are missing values in a continuous phenotype
-            raise ValueError(f"Missing values are present in the label DataFrame's {label} column")
-        elif not continuous_ok:
+
+        # Check as continuous trait
+        __assert_all_present(df, label, 'label')
+        if not continuous_ok:
             warnings.warn(
                 f"Label {label} is neither standardized nor binary (mean={mean}, "
                 f"std_dev={std_dev}, num_non_binary_values={num_non_binary_values})", UserWarning)
@@ -560,10 +570,13 @@ def validate_inputs(labeldf: pd.DataFrame, covdf: pd.DataFrame, label_type='eith
     """
 
     if not covdf.empty:
-        __assert_all_present(covdf, 'covariate')
+        for col in covdf:
+            __assert_all_present(covdf, col, 'covariate')
         __check_standardized(covdf, 'covariate')
     if label_type == 'continuous':
-        __assert_all_present(labeldf, 'label')
+        for col in labeldf:
+            print(col)
+            __assert_all_present(labeldf, col, 'label')
         __check_standardized(labeldf, 'label')
     elif label_type == 'binary':
         __check_binary(labeldf)
