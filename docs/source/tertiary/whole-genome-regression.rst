@@ -10,6 +10,8 @@ GloWGR: Whole Genome Regression
     genotypes_vcf = 'test-data/gwas/genotypes.vcf.gz'
     covariates_csv = 'test-data/gwas/covariates.csv.gz'
     continuous_phenotypes_csv = 'test-data/gwas/continuous-phenotypes.csv.gz'
+    binary_phenotypes_csv = 'test-data/gwas/binary-phenotypes.csv.gz'
+
 
 Glow supports Whole Genome Regression (WGR) as GloWGR, a distributed version of the `regenie <https://rgcgithub.github.io/regenie/>`_ method (see the `preprint <https://www.biorxiv.org/content/10.1101/2020.06.19.162354v2>`_). GloWGR supports two types of phenotypes:
 
@@ -22,9 +24,7 @@ Many steps of the GloWGR workflow explained in this page are common between the 
 Performance
 -----------
 
-The following figures demonstrates the performance gain obtained by using parallelized GloWGR in comparision with single machine BOLT, fastGWA GRM, and regenie for quantitative and binary phenotypes.
-
-.. TODO: We need to add more information on the experiments behind this graphs.
+The following figure demonstrates the performance gain obtained by using parallelized GloWGR in comparision with single machine BOLT, fastGWA GRM, and regenie for fitting WGR models against 50 quantitative phenotypes from the UK Biobank project.
 
 .. image:: ../_static/images/wgr_runtime.png
    :scale: 50 %
@@ -35,7 +35,7 @@ The following figures demonstrates the performance gain obtained by using parall
 Overview
 --------
 
-GloWGR consists of the following stages.
+GloWGR consists of the following stages:
 
 - Block the genotype matrix across samples and variants
 - Perform dimensionality reduction with linear ridge regression
@@ -44,10 +44,9 @@ GloWGR consists of the following stages.
   - **For quantitative phenotypes**: linear ridge regression
   - **For binary phenotypes**: logistic ridge regression
 
-The following diagram provides an overview of the operations and data within the main stages of GlowWGR and their interrelationship.
+The following diagram provides an overview of the operations and data within the stages of GlowWGR and their interrelationship.
 
 .. image:: ../_static/images/wgr_diagram.png
-
 
 ----------------
 Data preparation
@@ -63,24 +62,18 @@ GloWGR accepts three input data components.
 The genotype data may be read as a Spark DataFrame from any variant data source supported by Glow, such as :ref:`VCF, BGEN or PLINK <variant_data>`. For scalability and high-performance repeated use, we recommend storing flat genotype files into :ref:`Delta tables <vcf2delta>`.
 The DataFrame must include a column ``values`` containing a numeric representation of each genotype. The genotypic values may not be missing.
 
-Example
--------
-
-<<<<<<< HEAD
 When loading the variants into the DataFrame, perform the following transformations:
 
 - Split multiallelic variants with the ``split_multiallelics`` transformer.
+
+    .. warning::
+        We do not recommend using the ``split_multiallelics`` transformer and the ``block_variants_and_samples`` function
+        in the same query due to JVM JIT code size limits during whole-stage code generation.
+
 - Create a ``values`` column by calculating the numeric representation of each genotype. This representation is typically the number of alternate alleles for biallelic variants which can be calculated with ``glow.genotype_states``. Replace any missing values with the mean of the non-missing values using ``glow.mean_substitute``.
-=======
-.. warning::
-    We do not recommend using the ``split_multiallelics`` transformer and the ``block_variants_and_samples`` function
-    in the same query due to JVM JIT code size limits during whole-stage code generation.
 
-When loading biallelic variants, perform the following transformations:
-
-- Calculate the number of alternate alleles for biallelic variants with ``glow.genotype_states``.
-- Replace any missing values with the mean of the non-missing values using ``glow.mean_substitute``.
->>>>>>> master
+Example
+-------
 
 .. code-block:: python
 
@@ -109,10 +102,11 @@ The phenotype data is represented as a Pandas DataFrame indexed by the sample ID
 
   **Example**
 
-  .. code-block:: python
+  ::
 
     import pandas as pd
     label_df = pd.read_csv(binary_phenotypes_csv, index_col='sample_id')
+
 
 3. Covariate data
 =================
@@ -175,7 +169,7 @@ Example
 
 .. code-block:: python
 
-    from glow.wgr.linear_model import RidgeReducer, RidgeRegression
+    from glow.wgr.linear_model import RidgeReducer, RidgeRegression, LogisticRegression
     from glow.wgr.functions import block_variants_and_samples, get_sample_ids
     from pyspark.sql.functions import col, lit
 
@@ -204,8 +198,6 @@ When the ``RidgeReducer`` is initialized, it assigns names to the provided alpha
 .. math::
 
     \alpha = h_0\big[\frac{1}{0.99}, \frac{1}{0.75}, \frac{1}{0.50}, \frac{1}{0.25}, \frac{1}{0.01}\big]
-
-.. TODO: Clarify the following sentence:
 
 These values are only sensible if the phenotypes are on the scale of one.
 
@@ -333,8 +325,6 @@ At this stage, the block matrix :math:`X_1` is used to fit a final predictive mo
 
      \alpha = h_1\big[\frac{1}{0.99}, \frac{1}{0.75}, \frac{1}{0.50}, \frac{1}{0.25}, \frac{1}{0.01}\big]
 
- .. TODO: Clarify this sentence
-
  These values are only sensible if the phenotypes are on the scale of one.
 
  **Example**
@@ -347,7 +337,7 @@ At this stage, the block matrix :math:`X_1` is used to fit a final predictive mo
 
  **Example**
 
- .. code-block:: python
+ ::
 
      regression = LogisticRegression()
 
@@ -396,7 +386,7 @@ After fitting the model, the model DataFrame and cross validation DataFrame are 
 - **For quantitative phenotypes:** the ``RidgeRegression.transform`` or ``RidgeRegression.transform_loco`` method.
 - **For binary phenotypes:** the ``LogisticRegression.transform`` or ``LogisticRegression.transform_loco`` method.
 
-Here, we describe the leave-one-chromosome-out (LOCO) approach. The input and output of the ``transform_loco`` function in either ``RidgeRegression`` or ``LogisticRegression`` are as follows:
+Here, we describe the leave-one-chromosome-out (LOCO) approach. The input and output of the ``transform_loco`` function in ``RidgeRegression`` and ``LogisticRegression`` are as follows:
 
 Parameters
 ----------
@@ -406,43 +396,46 @@ Parameters
 - ``sample_blocks``: Dictionary containing a mapping of sample block IDs to a list of corresponding sample IDs
 - ``model_df``: Spark DataFrame produced by the ``RidgeRegression.fit`` function (for quantitative phenotypes) or ``LogisticRegression.fit`` function (for binary phenotypes), representing the reducer model
 - ``cv_df``: Spark DataFrame produced by the ``RidgeRegression.fit`` function (for quantitative phenotypes) or ``LogisticRegression.fit`` function (for binary phenotypes), containing the results of the cross validation routine
-- ``covariates``: Pandas DataFrame containing covariates to be included in every model in the stacking ensemble (optional)
+- ``covariates``:
+
+    - **For quantitative phenotypes**: Pandas DataFrame containing covariates to be included in every model in the stacking ensemble (optional).
+    - **For binary phenotypes**:
+
+        - If ``response='linear'``, ``covariates`` should not be provided.
+
+            .. tip::
+
+                This is because in any follow-up GWAS analysis involving penalization, such as Firth logistic regression, only the linear terms containing genotypes will be used as an offset and covariate coefficients will be refit.
+
+        - If ``response='sigmoid'``, a Pandas DataFrame containing covariates to be included in every model in the stacking ensemble.
+
+- ``response`` (**for binary phenotypes only**): String specifying the desired output. It can be ``'linear'`` (default) to specify the direct output of the linear WGR model (default) or ``'sigmoid'`` to specify predicted label probabilities.
 - ``chromosomes``: List of chromosomes for which to generate a prediction (optional). If not provided, the chromosomes will be inferred from the block matrix.
 
 Return
 ------
+-  **For quantitative phenotypes**: Pandas DataFrame shaped like ``label_df``, representing the resulting phenotypic predictors :math:`\hat{y}`, indexed by the sample ID and chromosome with each column representing a single phenotype.
+-  **For binary phenotypes**:
 
-A Pandas DataFrame shaped like ``label_df``, representing the resulting :math:`\hat{y}`, indexed by the sample ID and chromosome with each column representing a single phenotype
+    - If ``response='linear'``: Similar to above but the phenotypic predictor captures only the terms containing genotypes (and not covariates)
+    - If ``response='sigmoid'``: Pandas DataFrame with the same structure as above containing the predicted probabilities.
 
 Example
 -------
-Assuming ``regression`` is initialized to ``RidgeRegression`` (for quantitative phenotypes) or ``LogisticRegression`` (for binary phenotypes) as described :ref:`above <stage_3_initialization>`, LOCO transformation will be done as follows:
+Assuming ``regression`` is initialized to ``RidgeRegression`` (for quantitative phenotypes) or ``LogisticRegression`` (for binary phenotypes) as described :ref:`above <stage_3_initialization>`, fitting will be done as follows:
+
+**For quantitative phenotypes**:
 
 .. code-block:: python
 
     y_hat_df = regression.transform_loco(reduced_block_df, label_df, sample_blocks, model_df, cv_df, covariates)
 
-Probability estimates
-=====================
-**For binary phenotypes**, the ``LogisticRegression.predict_proba`` or ``LogisticRegression.predict_proba_loco`` function can be used to generate a Pandas DataFrame containing the probability estimates for the label predictions. Here, we describe the ``LogisticRegression.predict_proba_loco`` function.
+**For binary phenotypes**:
 
-Parameters
-----------
+::
 
-The same as those in ``LogisticRegression.transform_loco``.
+    y_hat_df = regression.transform_loco(reduced_block_df, label_df, sample_blocks, model_df, cv_df)
 
-Return
-------
-
-A Pandas DataFrame shaped like ``label_df``, representing the probability estimates of the predictions, indexed by the sample ID and chromosome with each column representing a single phenotype
-
-Example
--------
-Assuming ``regression`` is initialized to ``LogisticRegression`` as described :ref:`above <stage_3_initialization>`, LOCO probability estimation will be done as follows:
-
-.. code-block:: python
-
-    predic_proba_df = regression.predict_proba_loco(reduced_block_df, label_df, sample_blocks, model_df, cv_df, covariates)
 
 
 .. invisible-code-block: python
@@ -450,7 +443,14 @@ Assuming ``regression`` is initialized to ``LogisticRegression`` as described :r
     import math
     assert math.isclose(y_hat_df.at[('HG00096', '22'),'Continuous_Trait_1'], -0.5577744539844645)
 
-.. TODO: Add test for binary
+    # binary phenotype test
+    label_df = pd.read_csv(binary_phenotypes_csv, index_col='sample_id')
+    reduced_block_df = reducer.fit_transform(block_df, label_df, sample_blocks, covariates)
+    regression = LogisticRegression()
+    model_df, cv_df = regression.fit(reduced_block_df, label_df, sample_blocks, covariates)
+    y_hat_df = regression.transform_loco(reduced_block_df, label_df, sample_blocks, model_df, cv_df)
+    assert math.isclose(y_hat_df.at[('HG00096', '22'),'Binary_Trait_1'], -0.00017000209584173355)
+
 
 ---------------
 Proceed to GWAS
@@ -459,7 +459,7 @@ Proceed to GWAS
 :ref:`Glow GWAS functionality <gwas>` can be used to perform genome-wide association study using the phenotypic predictors to correct for polygenic effects.
 
 - **For quantitative phenotypes**, this is typically done by subtracting the predictor from the phenotype vector.
-- **For binary phenotypes**, this is done by using the predictor as an explicit covariate vector.
+- **For binary phenotypes**, this is done by using the predictor as the offset in logistic regression (see :ref:`logistic_regression_gwas <logistic-regression>` function).
 
 ---------------
 Troubleshooting
@@ -477,6 +477,12 @@ The following values must all be lower than 132,152,839:
 
 Example notebook
 ----------------
+Two example notebooks are provided below, the first for quantitative phenotypes and the second for binary phenotypes.
+
 
 .. notebook:: .. tertiary/glowgr.html
-  :title: GloWGR notebook
+  :title: GloWGR notebook for quantitative phenotypes
+
+
+.. notebook:: .. tertiary/binaryglowgr.html
+  :title: GloWGR notebook for binary phenotypes
