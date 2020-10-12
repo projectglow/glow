@@ -236,6 +236,17 @@ parameter ``test`` to specify the hypothesis test method.
     - ``string``
     - The hypothesis test method to use. Currently likelihood ratio (``LRT``) and Firth 
       (``Firth``) tests are supported.
+  * - ``offset`` (optional)
+    - ``array<double>`` (or numeric type that can be cast to ``double``)
+    - An offset vector to be added to the linear predictor terms. The offset term is added with the fixed
+      coefficient 1 (its coefficient will not be estimated). This parameter may vary for each
+      row in the dataset. The indexing of this array must match the ``phenotypes``.
+
+.. tip::
+
+ The ``offset`` parameter is especially useful in using the results of :ref:`GloWGR <glowgr>` with
+ binary phenotypes in GWAS. Please refer to :ref:`glowgr` for details and
+ example notebook.
 
 Return
 ------
