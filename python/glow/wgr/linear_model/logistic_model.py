@@ -184,12 +184,8 @@ class LogisticRegression:
         else:
             raise ValueError(f'response must be either "linear" or "sigmoid", received "{response}"')
 
-        return blockdf.drop('header_block', 'sort_key') \
-            .join(modeldf.drop('header_block'), ['sample_block', 'header'], join_type) \
-            .withColumn('label', f.coalesce(f.col('label'), f.col('labels').getItem(0))) \
-            .groupBy(transform_key_pattern) \
-            .apply(transform_udf) \
-            .join(cvdf, ['label', 'alpha'], 'inner')
+        return apply_model_df(blockdf, modeldf, cvdf, transform_udf, transform_key_pattern,
+                              join_type)
 
     def transform(self,
                   blockdf: DataFrame,

@@ -459,16 +459,26 @@ def generate_alphas(blockdf: DataFrame) -> Dict[str, Float]:
 
 
 @typechecked
-def __assert_all_present(df: pd.DataFrame, name: str) -> None:
+def __assert_all_present(df: pd.DataFrame, col_name: str, df_name: str) -> None:
     """
-    Raises an error if a pandas DataFrame has missing values.
+    Raises an error if a pandas series has missing values.
 
     Args:
         df : Pandas DataFrame
     """
-    for label, isnull in df.isnull().any().items():
-        if isnull:
-            raise ValueError(f"Missing values are present in the {name} dataframe's {label} column")
+    if df[col_name].isnull().any():
+        raise ValueError(
+            f"Missing values are present in the {df_name} dataframe's {col_name} column")
+
+
+@typechecked
+def __is_zero(f: float) -> bool:
+    return math.isclose(f, 0, abs_tol=0.01)
+
+
+@typechecked
+def __is_one(f: float) -> bool:
+    return math.isclose(f, 1, abs_tol=0.01)
 
 
 @typechecked
@@ -480,14 +490,24 @@ def __check_standardized(df: pd.DataFrame, name: str) -> None:
         df : Pandas DataFrame
     """
     for label, mean in df.mean().items():
-        if not math.isclose(mean, 0, abs_tol=1e-9):
+        if not __is_zero(mean):
             warnings.warn(f"Mean for the {name} dataframe's column {label} should be 0, is {mean}",
                           UserWarning)
     for label, std in df.std().items():
-        if not math.isclose(std, 1, abs_tol=0.01):
+        if not __is_one(std):
             warnings.warn(
                 f"Standard deviation for the {name} dataframe's column {label} should be approximately 1, is {std}",
                 UserWarning)
+
+
+@typechecked
+def __num_non_binary_values(s: pd.Series) -> int:
+    """
+    Returns the number of values in a series that are neither 0, 1, nor missing.
+    """
+
+    non_binary_vals = (~s.dropna().isin([0, 1])).sum()
+    return int(non_binary_vals)
 
 
 @typechecked
@@ -499,18 +519,48 @@ def __check_binary(df: pd.DataFrame) -> None:
         df : Pandas DataFrame
     """
     for label in df:
-        unique_vals = [v for v in np.sort(df[label].unique()).tolist() if not np.isnan(v)]
-        if unique_vals != [0.0, 1.0]:
-            warnings.warn(f"Column {label} is not binary (unique vals found: {unique_vals})",
+        num_non_binary_vals = __num_non_binary_values(df[label])
+        if num_non_binary_vals != 0:
+            warnings.warn(f"Column {label} is not binary ({num_non_binary_vals} non binary values)",
                           UserWarning)
 
 
 @typechecked
-def validate_inputs(labeldf: pd.DataFrame, covdf: pd.DataFrame, label_type='continuous') -> None:
+def __check_binary_or_standardized(df: pd.DataFrame) -> None:
     """
-    Performs basic input validation on the label and covariates pandas DataFrames. The label DataFrame cannot have
-    missing values, and should be standardized to zero mean and unit standard deviation. The covariates DataFrame
-    cannot have missing values.
+    Warns if columns of a pandas DataFrame are neither binary nor standardized.
+
+    Args:
+        df : Pandas DataFrame
+    """
+    for label in df:
+        mean = df[label].mean()
+        std_dev = df[label].std()
+        num_non_binary_values = __num_non_binary_values(df[label])
+        continuous_ok = __is_zero(mean) and __is_one(std_dev)
+
+        if num_non_binary_values == 0:
+            # Valid binary trait
+            continue
+
+        # Check as continuous trait
+        __assert_all_present(df, label, 'label')
+        if not continuous_ok:
+            warnings.warn(
+                f"Label {label} is neither standardized nor binary (mean={mean}, "
+                f"std_dev={std_dev}, num_non_binary_values={num_non_binary_values})", UserWarning)
+
+
+@typechecked
+def validate_inputs(labeldf: pd.DataFrame, covdf: pd.DataFrame, label_type='either') -> None:
+    """
+    Performs basic input validation on the label and covariates pandas DataFrames. The covariates
+    DataFrame must have no missing values and should be standardized to zero mean and unit standard
+    deviation. The label DataFrame is validated according to the label type. If label_type is 'continuous', the
+    label DataFrame must contain no missing values and should be standardized to zero mean and unit
+    standard deviation. If 'binary', all values in the label DataFrame should be 0, 1, or
+    missing. If 'either', each column in the label DataFrame should conform to the validation rules
+    for either 'continuous' or 'binary'.
 
     Args:
         labeldf : Pandas DataFrame containing target labels
@@ -519,15 +569,20 @@ def validate_inputs(labeldf: pd.DataFrame, covdf: pd.DataFrame, label_type='cont
     """
 
     if not covdf.empty:
-        __assert_all_present(covdf, 'covariate')
+        for col in covdf:
+            __assert_all_present(covdf, col, 'covariate')
         __check_standardized(covdf, 'covariate')
     if label_type == 'continuous':
-        __assert_all_present(labeldf, 'label')
+        for col in labeldf:
+            __assert_all_present(labeldf, col, 'label')
         __check_standardized(labeldf, 'label')
     elif label_type == 'binary':
         __check_binary(labeldf)
+    elif label_type == 'either':
+        __check_binary_or_standardized(labeldf)
     else:
-        raise ValueError(f'label_type should be either "continuous" or "binary", found {label_type}')
+        raise ValueError(f'label_type should be "continuous", "binary", or "either". Found '
+                         f'{label_type}.')
 
 
 @typechecked
@@ -622,3 +677,26 @@ def cross_validation(blockdf, modeldf, score_udf, score_key_pattern, alphas, met
         .withColumn('modelRank', f.row_number().over(window_spec)) \
         .filter('modelRank = 1') \
         .drop('modelRank')
+
+
+def apply_model_df(blockdf, modeldf, cvdf, transform_udf, transform_key_pattern, join_type):
+    """
+    Applies a model to a reduced block matrix and returns the predictions.
+
+    Args:
+        blockdf : Spark DataFrame representing a once- or twice-reduced block matrix.
+        modeldf : Spark DataFrame produced by the LogisticRegression or RidgeRegression fit method, representing the
+        reducer models fit using the shrinkage parameters alpha.
+        cvdf : Spark DataFrame returning the cross validation results
+        transform_udf : Pandas UDF used to apply the model
+        transform_key_pattern : Pattern of column names used in the groupBy clause
+        join_type : Join type for join between blockdf and modeldf. 
+    """
+
+    # Hint a sort-merge join to avoid an automatic broadcast join that may cause an OOM
+    return blockdf.drop('header_block', 'sort_key') \
+        .join(modeldf.drop('header_block').hint('merge'), ['sample_block', 'header'], join_type) \
+        .withColumn('label', f.coalesce(f.col('label'), f.col('labels').getItem(0))) \
+        .groupBy(transform_key_pattern) \
+        .apply(transform_udf) \
+        .join(cvdf, ['label', 'alpha'], 'inner')
