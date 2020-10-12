@@ -113,9 +113,9 @@ Example
 
 .. code-block:: python
 
-    covariates_df = pd.read_csv(covariates_csv, index_col='sample_id')
-    covariates_df = covariates_df.fillna(covariates_df.mean())
-    covariates_df = (covariates_df - covariates_df.mean())/covariates_df.std()
+    covariate_df = pd.read_csv(covariates_csv, index_col='sample_id')
+    covariate_df = covariate_df.fillna(covariate_df.mean())
+    covariate_df = (covariate_df - covariate_df.mean())/covariate_df.std()
 
 ---------------------------------
 Stage 1. Genotype matrix blocking
@@ -222,7 +222,7 @@ Parameters
 - ``block_df``: Spark DataFrame representing the beginning block matrix
 - ``label_df``: Pandas DataFrame containing the target labels used in fitting the ridge models
 - ``sample_blocks``: Dictionary containing a mapping of sample block IDs to a list of corresponding sample IDs
-- ``covariates_df``: Pandas DataFrame containing covariates to be included in every model in the stacking
+- ``covariate_df``: Pandas DataFrame containing covariates to be included in every model in the stacking
   ensemble (optional)
 
 .. _model_df:
@@ -244,7 +244,7 @@ Example
 
 .. code-block:: python
 
-    model_df = reducer.fit(block_df, label_df, sample_blocks, covariates_df)
+    model_df = reducer.fit(block_df, label_df, sample_blocks, covariate_df)
 
 3. Model transformation
 =======================
@@ -258,7 +258,7 @@ Parameters
 - ``label_df``: Pandas DataFrame containing the target labels used in fitting the ridge models
 - ``sample_blocks``: Dictionary containing a mapping of sample block IDs to a list of corresponding sample IDs
 - ``model_df``: Spark DataFrame produced by the ``RidgeReducer.fit`` function, representing the reducer model
-- ``covariates_df``: Pandas DataFrame containing covariates to be included in every model in the stacking
+- ``covariate_df``: Pandas DataFrame containing covariates to be included in every model in the stacking
   ensemble (optional).
 
 Return
@@ -292,7 +292,7 @@ Example
 
 .. code-block:: python
 
-    reduced_block_df = reducer.transform(block_df, label_df, sample_blocks, model_df, covariates_df)
+    reduced_block_df = reducer.transform(block_df, label_df, sample_blocks, model_df, covariate_df)
 
 Performing fit and transform in a single step
 =============================================
@@ -304,7 +304,7 @@ Example
 
 .. code-block:: python
 
-    reduced_block_df = reducer.fit_transform(block_df, label_df, sample_blocks, covariates_df)
+    reduced_block_df = reducer.fit_transform(block_df, label_df, sample_blocks, covariate_df)
 
 ---------------------------------------
 Stage 3. Estimate phenotypic predictors
@@ -357,7 +357,7 @@ Parameters
 - ``block_df``: Spark DataFrame representing the reduced block matrix
 - ``label_df``: Pandas DataFrame containing the target labels used in fitting the ridge models
 - ``sample_blocks``: Dictionary containing a mapping of sample block IDs to a list of corresponding sample IDs
-- ``covariates_df``: Pandas DataFrame containing covariates to be included in every model in the stacking
+- ``covariate_df``: Pandas DataFrame containing covariates to be included in every model in the stacking
   ensemble (optional)
 
 Return
@@ -377,7 +377,7 @@ Assuming ``regression`` is initialized to ``RidgeRegression`` (for quantitative 
 
 .. code-block:: python
 
-    model_df, cv_df = regression.fit(reduced_block_df, label_df, sample_blocks, covariates_df)
+    model_df, cv_df = regression.fit(reduced_block_df, label_df, sample_blocks, covariate_df)
 
 3. Model transformation
 =======================
@@ -397,12 +397,12 @@ Parameters
 - ``sample_blocks``: Dictionary containing a mapping of sample block IDs to a list of corresponding sample IDs
 - ``model_df``: Spark DataFrame produced by the ``RidgeRegression.fit`` function (for quantitative phenotypes) or ``LogisticRegression.fit`` function (for binary phenotypes), representing the reducer model
 - ``cv_df``: Spark DataFrame produced by the ``RidgeRegression.fit`` function (for quantitative phenotypes) or ``LogisticRegression.fit`` function (for binary phenotypes), containing the results of the cross validation routine
-- ``covariates_df``:
+- ``covariate_df``:
 
     - **For quantitative phenotypes**: Pandas DataFrame containing covariates to be included in every model in the stacking ensemble (optional).
     - **For binary phenotypes**:
 
-        - If ``response='linear'``, ``covariates_df`` should not be provided.
+        - If ``response='linear'``, ``covariate_df`` should not be provided.
 
             .. tip::
 
@@ -429,7 +429,7 @@ Assuming ``regression`` is initialized to ``RidgeRegression`` (for quantitative 
 
 .. code-block:: python
 
-    y_hat_df = regression.transform_loco(reduced_block_df, label_df, sample_blocks, model_df, cv_df, covariates_df)
+    y_hat_df = regression.transform_loco(reduced_block_df, label_df, sample_blocks, model_df, cv_df, covariate_df)
 
 **For binary phenotypes**:
 
@@ -446,9 +446,9 @@ Assuming ``regression`` is initialized to ``RidgeRegression`` (for quantitative 
 
     # binary phenotype test
     label_df = pd.read_csv(binary_phenotypes_csv, index_col='sample_id')
-    reduced_block_df = reducer.fit_transform(block_df, label_df, sample_blocks, covariates_df)
+    reduced_block_df = reducer.fit_transform(block_df, label_df, sample_blocks, covariate_df)
     regression = LogisticRegression()
-    model_df, cv_df = regression.fit(reduced_block_df, label_df, sample_blocks, covariates_df)
+    model_df, cv_df = regression.fit(reduced_block_df, label_df, sample_blocks, covariate_df)
     y_hat_df = regression.transform_loco(reduced_block_df, label_df, sample_blocks, model_df, cv_df)
     assert math.isclose(y_hat_df.at[('HG00096', '22'),'Binary_Trait_1'], -0.00017000209584173355)
 
