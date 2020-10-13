@@ -170,6 +170,7 @@ class NewtonIterationsState(numRows: Int, numCols: Int) {
     val X1 = X(::, r1)
 
     b(r0) := nullFitArgs.b
+    b(r1) := 0d
     val eta = offsetOption match {
       case Some(offset) => offset + X * b
       case None => X * b
