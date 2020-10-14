@@ -125,7 +125,7 @@ The first stage of GloWGR is to generate the block genotype matrix. The ``glow.w
 .. warning::
     We do not recommend using the ``split_multiallelics`` transformer and the ``block_variants_and_samples`` function
     in the same query due to JVM JIT code size limits during whole-stage code generation. It is best to persist the
-    variants after splitting multiallelics to a Delta table (see :ref:`vcf2delta`), and then read the data from
+    variants after splitting multiallelics to a Delta table (see :ref:`vcf2delta`) and then read the data from
     this Delta table to apply ``block_variants_and_samples``.
 
 Parameters
