@@ -1,3 +1,5 @@
+.. _gwas:
+
 ==============================================
 Genome-wide Association Study Regression Tests
 ==============================================
@@ -11,6 +13,7 @@ Genome-wide Association Study Regression Tests
     covariates_csv = 'test-data/gwas/covariates.csv.gz'
     continuous_phenotypes_csv = 'test-data/gwas/continuous-phenotypes.csv.gz'
     binary_phenotypes_csv = 'test-data/gwas/binary-phenotypes.csv.gz'
+    offset_csv = 'test-data/gwas/offset.csv.gz'
 
 Glow contains functions for performing simple regression analyses used in
 genome-wide association studies (GWAS).
@@ -179,6 +182,40 @@ Example
     ))
   )
 
+  # Logistic regression with offset
+
+  # Read offset from a csv file
+  offset = np.hstack(pd.read_csv(offset_csv, index_col=0)[[trait]].to_numpy()).astype('double')
+
+  # LRT test with offset
+  lrt_log_reg_with_offset_df = genotypes.select(
+    'contigName',
+    'start',
+    'names',
+    glow.expand_struct(glow.logistic_regression_gwas(
+      col('gt'),
+      lit(phenotype),
+      lit(covariates.to_numpy()),
+      'LRT',
+      lit(offset)
+    ))
+  )
+
+  # Firth test with offset
+  firth_log_reg_with_offset_df = genotypes.select(
+    'contigName',
+    'start',
+    'names',
+    glow.expand_struct(glow.logistic_regression_gwas(
+      col('gt'),
+      lit(phenotype),
+      lit(covariates.to_numpy()),
+      'Firth',
+      lit(offset)
+    ))
+  )
+
+
 .. invisible-code-block: python
 
    expected_lrt_log_reg_row = Row(
@@ -202,6 +239,28 @@ Example
      pValue=0.09324599164678671
    )
    assert_rows_equal(firth_log_reg_df.filter('contigName = 22 and start = 16050114').head(), expected_firth_log_reg_row)
+
+   expected_lrt_log_reg_with_offset_row = Row(
+     contigName='22',
+     start=16050114,
+     names=['rs587755077'],
+     beta=0.6532532933961581,
+     oddsRatio=1.9217827931701041,
+     waldConfidenceInterval=[0.8951374441408548, 4.1259017017989175],
+     pValue=0.09351514539362338
+   )
+   assert_rows_equal(lrt_log_reg_with_offset_df.filter('contigName = 22 and start = 16050114').head(), expected_lrt_log_reg_with_offset_row)
+
+   expected_firth_log_reg_with_offset_row = Row(
+     contigName='22',
+     start=16050114,
+     names=['rs587755077'],
+     beta=0.645985598762526,
+     oddsRatio=1.9078664937761651,
+     waldConfidenceInterval=[0.8890313085248763, 4.094292881668416],
+     pValue=0.0919716153186052
+   )
+   assert_rows_equal(firth_log_reg_with_offset_df.filter('contigName = 22 and start = 16050114').head(), expected_firth_log_reg_with_offset_row)
 
 Parameters
 ----------
@@ -236,6 +295,17 @@ parameter ``test`` to specify the hypothesis test method.
     - ``string``
     - The hypothesis test method to use. Currently likelihood ratio (``LRT``) and Firth 
       (``Firth``) tests are supported.
+  * - ``offset`` (optional)
+    - ``array<double>`` (or numeric type that can be cast to ``double``)
+    - An offset vector to be added to the linear predictor terms. The offset term is added with the fixed
+      coefficient 1 (its coefficient will not be estimated). This parameter may vary for each
+      row in the dataset. The indexing of this array must match the ``phenotypes``.
+
+.. tip::
+
+ The ``offset`` parameter is especially useful in incorporating the results of :ref:`GloWGR <glowgr>` with
+ binary phenotypes in GWAS. Please refer to :ref:`glowgr` for details and
+ example notebook.
 
 Return
 ------

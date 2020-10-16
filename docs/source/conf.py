@@ -234,5 +234,7 @@ linkcheck_ignore = [
     r'https://academic.oup.com*',
     # Certificate verification failure
     r'https://www.ensembl.org*',
-    r'http://www.sequenceontology.org*'
+    r'http://www.sequenceontology.org*',
+    # Captcha required
+    r'https://gatk.broadinstitute.org*',
 ]
