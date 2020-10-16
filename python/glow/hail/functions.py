@@ -15,26 +15,121 @@
 from glow import glow
 import hail as hl
 from hail import MatrixTable
+from hail.expr.expressions.typed_expressions import StructExpression
 from hail.expr.types import tarray, tbool, tcall, tlocus, tstr, tstruct
 from hail.methods import misc
-from pyspark.sql import DataFrame
+from pyspark.sql import Column, DataFrame
+from typing import List
 from typeguard import check_argument_types, check_return_type
 
-aliases = {
-    'DP': 'depth',
-    'FT': 'filters',
-    'GL': 'genotypeLikelihoods',
-    'PL': 'phredLikelihoods',
-    'GP': 'posteriorProbabilities',
-    'GQ': 'conditionalQuality',
-    'HQ': 'haplotypeQualities',
-    'EC': 'expectedAlleleCounts',
-    'MQ': 'mappingQuality',
-    'AD': 'alleleDepths'
-}
+
+def __get_genotypes_col(entry: StructExpression, sample_ids: List[str]) -> Column:
+    assert check_argument_types()
+
+    entry_aliases = {
+        'DP': 'depth',
+        'FT': 'filters',
+        'GL': 'genotypeLikelihoods',
+        'PL': 'phredLikelihoods',
+        'GP': 'posteriorProbabilities',
+        'GQ': 'conditionalQuality',
+        'HQ': 'haplotypeQualities',
+        'EC': 'expectedAlleleCounts',
+        'MQ': 'mappingQuality',
+        'AD': 'alleleDepths'
+    }
+
+    named_struct_args = []
+    for entry_field in entry:
+        if entry == 'GT' and entry.GT.dtype == tcall:
+            # Flatten GT into non-null calls and phased
+            named_struct_args.append(
+                "'calls', nvl(e.GT.alleles, array(-1, -1)), 'phased', nvl(e.GT.phased, false)")
+        elif entry_field in entry_aliases:
+            # Rename aliased genotype fields
+            named_struct_args.append(f"'{entry_aliases[entry_field]}', e.{entry_field}")
+        else:
+            # Rename genotype fields
+            named_struct_args.append(f"'{entry_field}', e.{entry_field}")
+    named_struct_expr_args = ' ,'.join(named_struct_args)
+
+    struct_args = [
+        get_named_struct_args(f, t) for f, t in zip(entry.dtype.fields, entry.dtype.types)
+    ]
+    if sample_ids is not None:
+        sample_id_expr = f"array({' ,'.join(sample_ids)})"
+        struct_expr = ' ,'.join(["'sampleId', s"] + struct_args)
+        genotypes_col = fx.expr(
+            f"zip_with({sample_id_expr}, entries, (s, e) -> named_struct({struct_expr}))")
+    else:
+        struct_expr = ' ,'.join(struct_args)
+        genotypes_col = fx.expr(f"transform(entries, e -> named_struct({struct_expr}))")
+    genotypes_col = genotypes_col.alias("genotypes")
+
+    assert check_return_type(genotypes_col)
+    return genotypes_col
 
 
-def from_matrix_table(mt: MatrixTable, include_sample_ids=True) -> DataFrame:
+def __get_base_cols(row: StructExpression) -> List[Column]:
+    assert check_argument_types()
+
+    contig_name_col = fx.col("`locus.contig`").alias("contigName")
+
+    start_col = (fx.col("`locus.position`") - 1).cast("long").alias("start")
+
+    end_col = start_col + fx.length(fx.element_at("alleles", 1))
+    has_info = 'info' in row and isinstance(row.info.dtype, tstruct)
+    if has_info and 'END' in row.info and row.info.END.dtype == tint:
+        end_col = fx.coalesce(fx.col("`info.END`"), end_col)
+    end_col = end_col.cast("long").alias("end")
+
+    names_elems = []
+    if 'varid' in row:
+        names_elems.append("varid")
+    if 'rsid' in row:
+        names_elems.append("rsid")
+    names_col = fx.expr(f"filter(array({','.join(names_elems)}), n -> isnotnull(n))").alias("names")
+
+    reference_allele_col = fx.element_at("alleles", 1).alias("referenceAllele")
+
+    alternate_alleles_col = fx.expr("filter(alleles, (a, i) -> i > 0)").alias("alternateAlleles")
+
+    base_cols = [
+        contig_name_col, start_col, end_col, names_col, reference_allele_col, alternate_alleles_col
+    ]
+    assert check_return_type(base_cols)
+    return base_cols
+
+
+def __get_other_cols(row: StructExpression) -> List[Column]:
+    assert check_argument_types()
+
+    other_cols = []
+    if 'cm_position' in row:
+        other_cols.append(fx.col("cm_position").alias("position"))
+    if 'qual' in row:
+        # -10 qual means missing
+        other_cols.append(fx.expr("if(qual = -10, null, qual)").alias("qual"))
+    # null filters means missing, [] filters means PASS
+    if 'filters' in row:
+        other_cols.append(
+            fx.expr("if(size(filters) = 0, array('PASS'), if(isnull(filters), array(), filters))").
+            alias("filters"))
+    # Rename info.* columns to INFO_*
+    if 'info' in row and isinstance(row.info.dtype, tstruct):
+        for f in row.info:
+            if row.info[f].dtype == tbool:
+                # FLAG INFO fields should be null if not present; Hail encodes them as false
+                other_cols.append(
+                    fx.expr(f"if(`info.{f}` = false, null, `info.{f}`)").alias(f"INFO_{f}"))
+            else:
+                other_cols.append(fx.col(f"`info.{f}`").alias(f"INFO_{f}"))
+
+    assert check_return_type(other_cols)
+    return other_cols
+
+
+def from_matrix_table(mt: MatrixTable, include_sample_ids: bool = True) -> DataFrame:
     """
     Converts a Hail MatrixTable to a Glow DataFrame.
 
@@ -49,75 +144,16 @@ def from_matrix_table(mt: MatrixTable, include_sample_ids=True) -> DataFrame:
 
     misc.require_row_key_variant_w_struct_locus(mt, 'glow.hail.from_matrix_table')
 
-    # Genotypes column
-    has_sample_ids = isinstance(mt.col_key.dtype,
-                                tstruct) and 's' in mt.col_key and mt.col_key.s.dtype == tstr
-    named_struct_args = []
-    for entry in mt.entry:
-        if entry == 'GT' and mt.entry.GT.dtype == tcall:
-            # Flatten GT into non-null calls and phased
-            named_struct_args.append(
-                "'calls', nvl(e.GT.alleles, array(-1, -1)), 'phased', nvl(e.GT.phased, false)")
-        elif entry in aliases:
-            # Rename aliased genotype fields
-            named_struct_args.append(f"'{aliases[entry_field]}', e.{entry_field}")
-        else:
-            # Rename genotype fields
-            named_struct_args.append(f"'{entry_field}', e.{entry_field}")
-    named_struct_expr_args = ' ,'.join(named_struct_args)
+    has_sample_ids = isinstance(col_key.dtype,
+                                tstruct) and 's' in col_key and col_key.s.dtype == tstr
     if include_sample_ids and has_sample_ids:
-        sample_id_expr_args = ' ,'.join([f"'{s}'" for s in mt.col_key.s.collect()])
-        sample_id_expr = f"array({sample_id_expr_args})"
-        genotypes_col = fx.expr(
-            f"zip_with({sample_id_expr}, entries, (s, e) -> named_struct('sampleId', s, {named_struct_expr_args}))"
-        )
+        sample_ids = [f"'{s}'" for s in col_key.s.collect()]
     else:
-        genotypes_col = fx.expr(f"transform(entries, e -> named_struct({named_struct_expr_args}))")
-
-    # Base columns
-    has_info_struct = 'info' in mt.rows().row and isinstance(mt.rows().row.info.dtype, tstruct)
-
-    start_col = fx.col("`locus.position`") - 1
-
-    end_col = start_col + fx.length(fx.element_at("alleles", 1))
-    if has_info_struct and 'END' in mt.rows().row.info:
-        end_col = fx.coalesce(fx.col("`info.END`"), end_col)
-
-    names_cols = []
-    if 'varid' in mt.rows().row:
-        names_cols.append("varid")
-    if 'rsid' in mt.rows().row:
-        names_cols.append("rsid")
-    names_col = fx.expr(f"filter(array({','.join(names_cols)}), n -> isnotnull(n))")
-
-    other_cols = []
-    if 'cm_position' in mt.rows().row:
-        other_cols.append(fx.col("cm_position").alias("position"))
-    if 'qual' in mt.rows().row:
-        # -10 qual means missing
-        other_cols.append(fx.expr("if(qual = -10, null, qual)").alias("qual"))
-    # null filters means missing, [] filters means PASS
-    if 'filters' in mt.rows().row:
-        other_cols.append(
-            fx.expr("if(size(filters) = 0, array('PASS'), if(isnull(filters), array(), filters))").
-            alias("filters"))
-    # Rename info.* columns to INFO_*
-    if 'info' in mt.rows().row:
-        for f in mt.rows().row.info:
-            if mt.rows().row.info[f].dtype == tbool:
-                # FLAG INFO fields should be null if not present; Hail encodes them as false
-                other_cols.append(
-                    fx.expr(f"if(`info.{f}` = false, null, `info.{f}`)").alias(f"INFO_{f}"))
-            else:
-                other_cols.append(fx.col(f"`info.{f}`").alias(f"INFO_{f}"))
+        sample_ids = None
 
     glow_compatible_df = mt.localize_entries('entries').to_spark().select(
-        fx.col("`locus.contig`").alias("contigName"),
-        start_col.cast("long").alias("start"),
-        end_col.cast("long").alias("end"), names_col.alias("names"),
-        fx.element_at("alleles", 1).alias("referenceAllele"),
-        fx.expr("filter(alleles, (a, i) -> i > 0)").alias("alternateAlleles"), *other_cols,
-        genotypes_col.alias("genotypes"))
+        *__get_base_cols(mt.rows().row), *__get_other_cols(mt.rows().row),
+        __get_genotypes_col(mt, sample_ids))
 
     assert check_return_type(glow_compatible_df)
     return glow_compatible_df
