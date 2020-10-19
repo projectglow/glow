@@ -16,7 +16,7 @@ from glow import glow
 import hail as hl
 from hail import MatrixTable
 from hail.expr.expressions.typed_expressions import StructExpression
-from hail.expr.types import tarray, tbool, tcall, tlocus, tstr, tstruct
+from hail.expr.types import tarray, tbool, tcall, tfloat64, tlocus, tset, tstr, tstruct
 from hail.methods import misc
 from pyspark.sql import Column, DataFrame
 from typing import List
@@ -84,9 +84,9 @@ def __get_base_cols(row: StructExpression) -> List[Column]:
     end_col = end_col.cast("long").alias("end")
 
     names_elems = []
-    if 'varid' in row:
+    if 'varid' in row and row.varid.dtype == tstr:
         names_elems.append("varid")
-    if 'rsid' in row:
+    if 'rsid' in row and row.rsid.dtype == tstr:
         names_elems.append("rsid")
     names_col = fx.expr(f"filter(array({','.join(names_elems)}), n -> isnotnull(n))").alias("names")
 
@@ -105,13 +105,13 @@ def __get_other_cols(row: StructExpression) -> List[Column]:
     assert check_argument_types()
 
     other_cols = []
-    if 'cm_position' in row:
+    if 'cm_position' in row and row.cm_position.dtype == tfloat64:
         other_cols.append(fx.col("cm_position").alias("position"))
-    if 'qual' in row:
+    if 'qual' in row and row.qual.dtype == tfloat64:
         # -10 qual means missing
         other_cols.append(fx.expr("if(qual = -10, null, qual)").alias("qual"))
     # null filters means missing, [] filters means PASS
-    if 'filters' in row:
+    if 'filters' in row and row.filters.dtype == tset(tstr):
         other_cols.append(
             fx.expr("if(size(filters) = 0, array('PASS'), if(isnull(filters), array(), filters))").
             alias("filters"))
@@ -142,6 +142,7 @@ def from_matrix_table(mt: MatrixTable, include_sample_ids: bool = True) -> DataF
 
     assert check_argument_types()
 
+    # Ensure that dataset is keyed by locus and alleles
     misc.require_row_key_variant_w_struct_locus(mt, 'glow.hail.from_matrix_table')
 
     has_sample_ids = isinstance(col_key.dtype,
