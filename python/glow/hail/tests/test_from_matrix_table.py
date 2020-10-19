@@ -12,7 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from glow.glow import *
-from glow.functions import *
-from glow.hail import *
-from glow.wgr import *
+from glow.hail import functions
+import hail as hl
+from pyspark.sql import functions as fx
+
+
+def test_annotated_vcf(spark):
+    hl.init(spark.sparkContext, idempotent=True, quiet=True)
+    input_vcf = 'test-data/vcf/vep.vcf'
+    hail_df = functions.from_matrix_table(hl.import_vcf(src))
+    glow_df = spark.read.format('vcf').load(input_vcf)
+    assert(hail_df.subtract(glow_df).count() == 0)

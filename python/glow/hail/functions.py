@@ -13,7 +13,6 @@
 # limitations under the License.
 
 from glow import glow
-import hail as hl
 from hail import MatrixTable
 from hail.expr.expressions.typed_expressions import StructExpression
 from hail.expr.types import tarray, tbool, tcall, tfloat64, tlocus, tset, tstr, tstruct
