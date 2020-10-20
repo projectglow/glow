@@ -18,6 +18,7 @@ from hail.expr.expressions.typed_expressions import StructExpression
 from hail.expr.types import tarray, tbool, tcall, tfloat64, tlocus, tset, tstr, tstruct
 from hail.methods import misc
 from pyspark.sql import Column, DataFrame
+import pyspark.sql.functions as fx
 from typing import List
 from typeguard import check_argument_types, check_return_type
 
@@ -144,6 +145,7 @@ def from_matrix_table(mt: MatrixTable, include_sample_ids: bool = True) -> DataF
     # Ensure that dataset is keyed by locus and alleles
     misc.require_row_key_variant_w_struct_locus(mt, 'glow.hail.from_matrix_table')
 
+    col_key = mt.col_key
     has_sample_ids = isinstance(col_key.dtype,
                                 tstruct) and 's' in col_key and col_key.s.dtype == tstr
     if include_sample_ids and has_sample_ids:
@@ -153,7 +155,7 @@ def from_matrix_table(mt: MatrixTable, include_sample_ids: bool = True) -> DataF
 
     glow_compatible_df = mt.localize_entries('entries').to_spark().select(
         *__get_base_cols(mt.rows().row), *__get_other_cols(mt.rows().row),
-        __get_genotypes_col(mt, sample_ids))
+        __get_genotypes_col(mt.entry, sample_ids))
 
     assert check_return_type(glow_compatible_df)
     return glow_compatible_df

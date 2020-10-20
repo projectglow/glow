@@ -202,6 +202,12 @@ def currentGitHash(dir: File): String = {
   ).!!.trim
 }
 
+lazy val setupHail = taskKey[Unit]("Set up Hail")
+ThisBuild / setupHail := {
+  "git clone -b 0.2.58 https://github.com/hail-is/hail.git" #&&
+  s"make -C hail/hail install-on-cluster HAIL_COMPILE_NATIVES=1 SCALA_VERSION=${scalaVersion.value} SPARK_VERSION=${sparkVersion.value}" !
+}
+
 lazy val sparkClasspath = taskKey[String]("sparkClasspath")
 lazy val sparkHome = taskKey[String]("sparkHome")
 lazy val pythonPath = taskKey[String]("pythonPath")

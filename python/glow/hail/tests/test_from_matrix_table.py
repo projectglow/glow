@@ -20,6 +20,8 @@ from pyspark.sql import functions as fx
 def test_annotated_vcf(spark):
     hl.init(spark.sparkContext, idempotent=True, quiet=True)
     input_vcf = 'test-data/vcf/vep.vcf'
-    hail_df = functions.from_matrix_table(hl.import_vcf(src))
+    hail_df = functions.from_matrix_table(hl.import_vcf(input_vcf))
     glow_df = spark.read.format('vcf').load(input_vcf)
-    assert(hail_df.subtract(glow_df).count() == 0)
+    hail_df.show()
+    glow_df.show()
+    assert(hail_df.subtract(glow_df.drop("splitFromMultiAllelic")).count() == 0)
