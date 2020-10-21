@@ -15,19 +15,22 @@
 from glow.hail import functions
 import hail as hl
 from pyspark.sql import functions as fx
+from pyspark.sql import Row
 from pyspark.sql.types import ArrayType, StructType
 import pytest
 
 
 # Check that structs have the same fields and datatypes (not necessarily metadata), in any order
-def __compare_struct_types(s1, s2):
-    assert set([f.name for f in s1.fields]) == set([f.name for f in s2.fields])
-    for f1 in s1.fields:
-        matching_fields = [f2 for f2 in s2.fields if f1.name == f2.name]
+def __compare_struct_types(s1, s2, ignore_fields=[]):
+    s1_fields = [f for f in s1.fields if f.name not in ignore_fields]
+    s2_fields = [f for f in s2.fields if f.name not in ignore_fields]
+    assert set([f.name for f in s1_fields]) == set([f.name for f in s2_fields])
+    for f1 in s1_fields:
+        matching_fields = [f2 for f2 in s2_fields if f1.name == f2.name]
         assert (len(matching_fields) == 1)
         m = matching_fields[0]
         if isinstance(m.dataType, ArrayType) and isinstance(m.dataType.elementType, StructType):
-            __compare_struct_types(f1.dataType.elementType, m.dataType.elementType)
+            __compare_struct_types(f1.dataType.elementType, m.dataType.elementType, ignore_fields)
         else:
             assert f1.dataType == m.dataType
 
@@ -41,7 +44,7 @@ def __compare_round_trip(spark,
                          writer_options={},
                          reader_options={}):
     # Convert Hail MatrixTable to Glow DataFrame, write it to a flat file, and read it back in
-    output_file = (tmp_path / 'tmp').as_uri()
+    output_file = (tmp_path / 'tmp').as_uri() + '.' + in_fmt
     writer = hail_df.write.format(out_fmt)
     for key, value in writer_options.items():
         writer = writer.option(key, value)
@@ -53,18 +56,12 @@ def __compare_round_trip(spark,
         reader = reader.option(key, value)
     round_trip_df = reader.load(output_file)
     glow_df = reader.load(input_file)
-    glow_df.printSchema()
-    glow_df.show()
-    round_trip_df.printSchema()
-    round_trip_df.show()
     __compare_struct_types(glow_df.schema, round_trip_df.schema)
 
-    # Assert that no data is lost
-    matching_df = spark.read.format(in_fmt).mode('validation').schema(
-        glow_df.schema).load(output_file)
-    matching_df.show()
-    glow_df.show()
+    # Assert that no data is lost in the round trip
+    matching_df = spark.read.format(in_fmt).schema(glow_df.schema).load(output_file)
     assert matching_df.subtract(glow_df).count() == 0
+    assert glow_df.subtract(matching_df).count() == 0
 
 
 def test_vcf(spark, tmp_path):
@@ -108,12 +105,11 @@ def test_exclude_sample_ids(spark, tmp_path):
                          reader_options={'includeSampleIds': 'false'})
 
 
-def test_bgen(spark, tmp_path):
+def test_unphased_bgen(spark, tmp_path):
+    spark.conf.set('spark.sql.autoBroadcastJoinThreshold', '-1')
     input_bgen = 'test-data/bgen/example.8bits.bgen'
     hl.index_bgen(input_bgen, reference_genome=None)
-    hail_df = functions.from_matrix_table(hl.import_bgen(input_bgen, entry_fields=['GT', 'GP']))
-    hail_df.printSchema()
-    hail_df.show()
+    hail_df = functions.from_matrix_table(hl.import_bgen(input_bgen, entry_fields=['GP']))
     __compare_round_trip(spark,
                          tmp_path,
                          hail_df,
@@ -121,3 +117,28 @@ def test_bgen(spark, tmp_path):
                          'bgen',
                          'bigbgen',
                          writer_options={'bitsPerProbability': '8'})
+
+
+def test_plink(spark, tmp_path):
+    input_base = 'test-data/plink/five-samples-five-variants/bed-bim-fam/test'
+    # Do not recode contigs (eg. 23 -> X)
+    hail_df = functions.from_matrix_table(
+        hl.import_plink(bed=input_base + '.bed',
+                        bim=input_base + '.bim',
+                        fam=input_base + '.fam',
+                        reference_genome=None,
+                        contig_recoding={}))
+
+    # Hail does not set the genotype if it is missing; the Glow PLINK reader sets the calls to (-1, -1)
+    # Hail sets the genotype phased=False when reading from PLINK if the genotype is present;
+    # the Glow PLINK reader does not as it is always false
+    glow_df = spark.read.format('plink').option('mergeFidIid', 'false').load(input_base + '.bed')
+    __compare_struct_types(hail_df.schema, glow_df.schema, ignore_fields=['phased'])
+    matching_glow_df = glow_df.withColumn(
+        'genotypes',
+        fx.expr(
+            "transform(genotypes, gt -> named_struct('sampleId', gt.sampleId, 'calls', nullif(gt.calls, array(-1, -1)), 'phased', if(gt.calls = array(-1, -1), null, false)))"
+        ))
+    matching_hail_df = hail_df.select(*glow_df.schema.names)
+    assert matching_hail_df.subtract(matching_glow_df).count() == 0
+    assert matching_glow_df.subtract(matching_hail_df).count() == 0

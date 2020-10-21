@@ -56,9 +56,8 @@ def __get_genotypes_col(entry: StructExpression, sample_ids: Optional[List[str]]
     base_struct_args = []
     for entry_field in entry:
         if entry_field == 'GT' and entry.GT.dtype == tcall:
-            # Flatten GT into non-null calls and phased
-            base_struct_args.append(
-                "'calls', nvl(e.GT.alleles, array(-1, -1)), 'phased', nvl(e.GT.phased, false)")
+            # Flatten GT into calls and phased
+            base_struct_args.append("'calls', e.GT.alleles, 'phased', e.GT.phased")
         elif entry[entry_field].dtype == tcall:
             # Turn other call fields (eg. PGT) into a string
             base_struct_args.append(
@@ -103,7 +102,8 @@ def __get_base_cols(row: StructExpression) -> List[Column]:
         names_elems.append("varid")
     if 'rsid' in row and row.rsid.dtype == tstr:
         names_elems.append("rsid")
-    names_col = fx.expr(f"filter(array({','.join(names_elems)}), n -> isnotnull(n))").alias("names")
+    names_col = fx.expr(
+        f"filter(nullif(array({','.join(names_elems)}), array()), n -> isnotnull(n))").alias("names")
 
     reference_allele_col = fx.element_at("alleles", 1).alias("referenceAllele")
 

@@ -18,7 +18,7 @@ from pyspark.sql import functions, Row
 import pytest
 
 
-@pytest.fixture(autouse=True, scope="module")
+@pytest.fixture(autouse=True, scope="function")
 def add_spark(doctest_namespace, spark):
     glow.register(spark)
     hl.init(spark.sparkContext, idempotent=True, quiet=True)
