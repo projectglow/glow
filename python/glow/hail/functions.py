@@ -15,15 +15,29 @@
 from glow import glow
 from hail import MatrixTable
 from hail.expr.expressions.typed_expressions import StructExpression
-from hail.expr.types import tarray, tbool, tcall, tfloat64, tlocus, tset, tstr, tstruct
+from hail.expr.types import tarray, tbool, tcall, tfloat64, tint, tlocus, tset, tstr, tstruct
 from hail.methods import misc
 from pyspark.sql import Column, DataFrame
 import pyspark.sql.functions as fx
-from typing import List
+from typing import List, Optional
 from typeguard import check_argument_types, check_return_type
 
 
-def __get_genotypes_col(entry: StructExpression, sample_ids: List[str]) -> Column:
+def __get_sample_ids(col_key: StructExpression, include_sample_ids: bool) -> Optional[List[str]]:
+    assert check_argument_types()
+
+    has_sample_ids = isinstance(col_key.dtype,
+                                tstruct) and 's' in col_key and col_key.s.dtype == tstr
+    if include_sample_ids and has_sample_ids:
+        sample_ids = [f"'{s}'" for s in col_key.s.collect()]
+    else:
+        sample_ids = None
+
+    assert check_return_type(sample_ids)
+    return sample_ids
+
+
+def __get_genotypes_col(entry: StructExpression, sample_ids: Optional[List[str]]) -> Column:
     assert check_argument_types()
 
     entry_aliases = {
@@ -39,30 +53,31 @@ def __get_genotypes_col(entry: StructExpression, sample_ids: List[str]) -> Colum
         'AD': 'alleleDepths'
     }
 
-    named_struct_args = []
+    base_struct_args = []
     for entry_field in entry:
-        if entry == 'GT' and entry.GT.dtype == tcall:
+        if entry_field == 'GT' and entry.GT.dtype == tcall:
             # Flatten GT into non-null calls and phased
-            named_struct_args.append(
+            base_struct_args.append(
                 "'calls', nvl(e.GT.alleles, array(-1, -1)), 'phased', nvl(e.GT.phased, false)")
+        elif entry[entry_field].dtype == tcall:
+            # Turn other call fields (eg. PGT) into a string
+            base_struct_args.append(
+                f"'{entry_field}', array_join(e.{entry_field}.alleles, if(e.{entry_field}.phased, '|', '/'))"
+            )
         elif entry_field in entry_aliases:
             # Rename aliased genotype fields
-            named_struct_args.append(f"'{entry_aliases[entry_field]}', e.{entry_field}")
+            base_struct_args.append(f"'{entry_aliases[entry_field]}', e.{entry_field}")
         else:
             # Rename genotype fields
-            named_struct_args.append(f"'{entry_field}', e.{entry_field}")
-    named_struct_expr_args = ' ,'.join(named_struct_args)
+            base_struct_args.append(f"'{entry_field}', e.{entry_field}")
 
-    struct_args = [
-        get_named_struct_args(f, t) for f, t in zip(entry.dtype.fields, entry.dtype.types)
-    ]
     if sample_ids is not None:
         sample_id_expr = f"array({' ,'.join(sample_ids)})"
-        struct_expr = ' ,'.join(["'sampleId', s"] + struct_args)
+        struct_expr = ' ,'.join(["'sampleId', s"] + base_struct_args)
         genotypes_col = fx.expr(
             f"zip_with({sample_id_expr}, entries, (s, e) -> named_struct({struct_expr}))")
     else:
-        struct_expr = ' ,'.join(struct_args)
+        struct_expr = ' ,'.join(base_struct_args)
         genotypes_col = fx.expr(f"transform(entries, e -> named_struct({struct_expr}))")
     genotypes_col = genotypes_col.alias("genotypes")
 
@@ -145,17 +160,9 @@ def from_matrix_table(mt: MatrixTable, include_sample_ids: bool = True) -> DataF
     # Ensure that dataset is keyed by locus and alleles
     misc.require_row_key_variant_w_struct_locus(mt, 'glow.hail.from_matrix_table')
 
-    col_key = mt.col_key
-    has_sample_ids = isinstance(col_key.dtype,
-                                tstruct) and 's' in col_key and col_key.s.dtype == tstr
-    if include_sample_ids and has_sample_ids:
-        sample_ids = [f"'{s}'" for s in col_key.s.collect()]
-    else:
-        sample_ids = None
-
     glow_compatible_df = mt.localize_entries('entries').to_spark().select(
         *__get_base_cols(mt.rows().row), *__get_other_cols(mt.rows().row),
-        __get_genotypes_col(mt.entry, sample_ids))
+        __get_genotypes_col(mt.entry, __get_sample_ids(mt.col_key, include_sample_ids)))
 
     assert check_return_type(glow_compatible_df)
     return glow_compatible_df
