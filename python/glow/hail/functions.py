@@ -13,13 +13,13 @@
 # limitations under the License.
 
 from glow import glow
+import hail as hl
 from hail import MatrixTable
 from hail.expr.expressions.typed_expressions import StructExpression
 from hail.expr.types import tarray, tbool, tcall, tfloat64, tint, tlocus, tset, tstr, tstruct
-from hail.methods import misc
 from pyspark.sql import Column, DataFrame
 import pyspark.sql.functions as fx
-from typing import List, Optional
+from typing import List, NoReturn, Optional
 from typeguard import check_argument_types, check_return_type
 
 
@@ -144,6 +144,21 @@ def __get_other_cols(row: StructExpression) -> List[Column]:
     return other_cols
 
 
+def __require_row_variant_w_struct_locus(mt: MatrixTable) -> NoReturn:
+    """
+    Similar to hail.methods.misc.require_row_key_variant_w_struct_locus, but not necessarily as keys
+    """
+    assert check_argument_types()
+
+    if (not set(['locus', 'alleles']).issubset(set(mt.rows().row)) or
+            not mt['alleles'].dtype == tarray(tstr) or
+        (not isinstance(mt['locus'].dtype, tlocus) and
+         mt['locus'].dtype != hl.dtype('struct{contig: str, position: int32}'))):
+        raise ValueError("'hail.from_matrix_table' requires row to contain two fields 'locus'"
+                         " (type 'locus<any>' or 'struct{{contig: str, position: int32}}') and "
+                         "'alleles' (type 'array<str>')")
+
+
 def from_matrix_table(mt: MatrixTable, include_sample_ids: bool = True) -> DataFrame:
     """
     Converts a Hail MatrixTable to a Glow DataFrame.
@@ -157,8 +172,8 @@ def from_matrix_table(mt: MatrixTable, include_sample_ids: bool = True) -> DataF
 
     assert check_argument_types()
 
-    # Ensure that dataset is keyed by locus and alleles
-    misc.require_row_key_variant_w_struct_locus(mt, 'glow.hail.from_matrix_table')
+    # Ensure that dataset rows contain locus and alleles
+    __require_row_variant_w_struct_locus(mt)
 
     glow_compatible_df = mt.localize_entries('entries').to_spark().select(
         *__get_base_cols(mt.rows().row), *__get_other_cols(mt.rows().row),

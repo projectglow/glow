@@ -76,6 +76,19 @@ def test_gvcf(spark, tmp_path):
     __compare_round_trip(spark, tmp_path, hail_df, input_vcf, 'vcf', 'vcf')
 
 
+def test_gvcfs(spark, tmp_path):
+    # GVCF MatrixTables are not keyed by locus and alleles, just by locus
+    input_vcf = 'test-data/tabix-test-vcf/combined.chr20_18210071_18210093.g.vcf.gz'
+    partitions = [
+        hl.Interval(hl.Locus("chr20", 1, reference_genome='GRCh38'),
+                    hl.Locus("chr20", 20000000, reference_genome='GRCh38'),
+                    includes_end=True)
+    ]
+    hail_df = functions.from_matrix_table(
+        hl.import_gvcfs([input_vcf], partitions, force_bgz=True, reference_genome='GRCh38')[0])
+    __compare_round_trip(spark, tmp_path, hail_df, input_vcf, 'vcf', 'bigvcf')
+
+
 def test_annotated_sites_only_vcf(spark, tmp_path):
     # The Hail DataFrame will not have the split CSQ/ANN fields, as it does not have
     # the VCF header metadata; we include the header when writing the round-trip VCF.
