@@ -208,7 +208,7 @@ def currentGitHash(dir: File): String = {
 lazy val setupHail = taskKey[Unit]("Set up Hail")
 ThisBuild / setupHail := {
   s"git clone -b ${hailVersion.value} https://github.com/hail-is/hail.git" ###
-  s"make -C hail/hail SCALA_VERSION=${scalaVersion.value} SPARK_VERSION=${sparkVersion.value} install-dev-deps shadowJar wheel" ###
+  s"make -C hail/hail SCALA_VERSION=${scalaVersion.value} SPARK_VERSION=${sparkVersion.value} install-deps shadowJar wheel" ###
   s"pip install --no-deps hail/hail/build/deploy/dist/hail-${hailVersion.value}-py3-none-any.whl" !
 }
 
