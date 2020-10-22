@@ -107,7 +107,7 @@ def __get_base_cols(row: StructExpression) -> List[Column]:
 
     reference_allele_col = fx.element_at("alleles", 1).alias("referenceAllele")
 
-    alternate_alleles_col = fx.expr("filter(alleles, (a, i) -> i > 0)").alias("alternateAlleles")
+    alternate_alleles_col = fx.expr("slice(alleles, 2, size(alleles) - 1)").alias("alternateAlleles")
 
     base_cols = [
         contig_name_col, start_col, end_col, names_col, reference_allele_col, alternate_alleles_col
