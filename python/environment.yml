@@ -18,7 +18,6 @@ dependencies:
   - sphinx
   - sphinx_rtd_theme
   - pip:
-    - decorator==4.4.0 # Hail requirement
     - setuptools==41.2.0 # Python packaging
     - typeguard==2.5.0
     - twine==2.0.0 # Pypi publishing
