@@ -16,6 +16,9 @@ lazy val spark2 = "2.4.5"
 lazy val sparkVersion = settingKey[String]("sparkVersion")
 ThisBuild / sparkVersion := sys.env.getOrElse("SPARK_VERSION", spark3)
 
+lazy val hailVersion = settingKey[String]("hailVersion")
+ThisBuild / hailVersion := sys.env.getOrElse("HAIL_VERSION", "0.2.58")
+
 def majorVersion(version: String): String = {
   StringUtils.ordinalIndexOf(version, ".", 1) match {
     case StringUtils.INDEX_NOT_FOUND => version
@@ -204,8 +207,9 @@ def currentGitHash(dir: File): String = {
 
 lazy val setupHail = taskKey[Unit]("Set up Hail")
 ThisBuild / setupHail := {
-  "git clone -b 0.2.58 https://github.com/hail-is/hail.git" #&&
-  s"make -C hail/hail SCALA_VERSION=${scalaVersion.value} SPARK_VERSION=${sparkVersion.value} shadowJar wheel" !
+  s"git clone -b ${hailVersion.value} https://github.com/hail-is/hail.git" ###
+  s"make -C hail/hail SCALA_VERSION=${scalaVersion.value} SPARK_VERSION=${sparkVersion.value} shadowJar wheel" ###
+  s"pip install --no-deps hail/hail/build/deploy/dist/hail-${hailVersion.value}-py3-none-any.whl" !
 }
 
 lazy val sparkClasspath = taskKey[String]("sparkClasspath")
