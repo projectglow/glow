@@ -1,9 +1,12 @@
 name: glow
 channels:
   - bioconda
+  - conda-forge
 dependencies:
   - python=3.7
   - bedtools
+  - databricks-cli=0.9.1
+  - click
   - jinja2
   - numpy=1.17.4
   - scipy=1.4.1

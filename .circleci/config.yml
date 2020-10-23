@@ -45,7 +45,7 @@ orbs:
   codecov: codecov/codecov@1.0.5
 jobs:
 
-  check-links:
+  check-docs:
     <<: *setup_base
     steps:
       - checkout
@@ -64,6 +64,19 @@ jobs:
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             cd docs
             make linkcheck
+      - run:
+          name: Check that notebook source files are up-to-date
+          command: |
+            printf "[docs-ci]\nhost = https://westus.azuredatabricks.net\ntoken = ${DB_API_TOKEN}\n" > ~/.databrickscfg
+            for f in $(find docs/source/_static/notebooks -type f -name '*.html'); do
+                python docs/dev/gen-nb-src.py --html "${f}"
+            done
+            if [[ -n $(git diff --name-only docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE) ]]; then
+              echo "Notebook sources do not match HTML files!"
+              false
+            else
+              true
+            fi
 
   scala-2_11-tests:
     <<: *setup_base
@@ -200,7 +213,7 @@ workflows:
   version: 2
   test:
     jobs:
-      - check-links
+      - check-docs
       - scala-2_11-tests
       - scala-2_12-tests
       - spark-3-tests
@@ -213,5 +226,5 @@ workflows:
               only:
                 - master
     jobs:
-      - check-links
+      - check-docs
       - spark-3-tests
