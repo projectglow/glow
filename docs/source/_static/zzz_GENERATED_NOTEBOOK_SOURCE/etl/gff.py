@@ -16,6 +16,8 @@ original_gff_df = spark.read \
   .format("gff") \
   .load(gff_path) \
 
+original_gff_df.printSchema()
+
 # COMMAND ----------
 
 # DBTITLE 0,Read in the GFF3 with the inferred schema

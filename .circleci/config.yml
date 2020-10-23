@@ -48,6 +48,7 @@ jobs:
 
   check-docs:
     <<: *setup_base
+    executor: python
     steps:
       - checkout
       - attach_workspace:
@@ -79,13 +80,7 @@ jobs:
             for f in $(find docs/source/_static/notebooks -type f -name '*.html'); do
                 python docs/dev/gen-nb-src.py --html "${f}"
             done
-            if [[ -n $(git status --short) ]]; then
-              echo "Generated notebook files not up-to-date!"
-              git status
-              false
-            else
-              true
-            fi
+      - *check_clean_repo
 
   scala-2_11-tests:
     <<: *setup_base
