@@ -79,11 +79,13 @@ jobs:
             for f in $(find docs/source/_static/notebooks -type f -name '*.html'); do
                 python docs/dev/gen-nb-src.py --html "${f}"
             done
-      - run:
-          name: Check that notebook source files are up-to-date
-          command: |
-            git status --short
-            false
+            if [[ -n $(git status --short) ]]; then
+              echo "Generated notebook files not up-to-date!"
+              git status
+              false
+            else
+              true
+            fi
 
   scala-2_11-tests:
     <<: *setup_base
