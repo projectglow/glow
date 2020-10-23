@@ -48,7 +48,6 @@ jobs:
 
   check-docs:
     <<: *setup_base
-    executor: python
     steps:
       - checkout
       - attach_workspace:
