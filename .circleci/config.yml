@@ -82,14 +82,8 @@ jobs:
       - run:
           name: Check that notebook source files are up-to-date
           command: |
-            if [[ -n $(git status --short) ]]; then
-              echo "Notebook sources do not match HTML files!"
-              git status
-              false
-            else
-              echo "Notebook sources are up-to-date."
-              true
-            fi
+            git status --short
+            false
 
   scala-2_11-tests:
     <<: *setup_base
