@@ -86,6 +86,7 @@ jobs:
               echo "Notebook sources do not match HTML files!"
               false
             else
+              echo "Notebook sources are up-to-date."
               true
             fi
 
