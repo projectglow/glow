@@ -5,8 +5,8 @@ This script is used by the CircleCI job 'check-docs'. Before running this, confi
 your Databricks CLI profile.
 
 Example usage:
-  python3 dev/gen-nb-src.py \
-    --html source/_static/notebooks/etl/variant-data.html
+  python3 docs/dev/gen-nb-src.py \
+    --html docs/source/_static/notebooks/etl/variant-data.html
 '''
 import click
 import subprocess
@@ -40,7 +40,7 @@ def main(html, cli_profile, workspace_tmp_dir):
 
     def run_cli_workspace_cmd(args):
         cmd = ['databricks', '--profile', cli_profile, 'workspace'] + args
-        subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True)
 
     work_dir = os.path.join(workspace_tmp_dir, str(uuid.uuid4()))
     workspace_path = os.path.join(work_dir, rel_path)
