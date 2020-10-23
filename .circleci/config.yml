@@ -50,6 +50,8 @@ jobs:
     <<: *setup_base
     steps:
       - checkout
+      - attach_workspace:
+          at: '.'
       - restore_cache:
           keys:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}
