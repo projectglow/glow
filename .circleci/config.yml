@@ -26,6 +26,7 @@ install_pyspark2: &install_pyspark2
       conda remove -y pyspark
       pip install pyspark==2.4.5
 
+
 check_clean_repo: &check_clean_repo
   run:
     name: Verify that repo is clean
@@ -65,12 +66,20 @@ jobs:
             cd docs
             make linkcheck
       - run:
-          name: Check that notebook source files are up-to-date
+          name: Configure Databricks CLI
           command: |
             printf "[docs-ci]\nhost = https://westus.azuredatabricks.net\ntoken = ${DB_API_TOKEN}\n" > ~/.databrickscfg
+      - run:
+          name: Generate notebook source files
+          command: |
+            export PATH=$HOME/conda/bin:$PATH
+            source activate glow
             for f in $(find docs/source/_static/notebooks -type f -name '*.html'); do
                 python docs/dev/gen-nb-src.py --html "${f}"
             done
+      - run:
+          name: Check that notebook source files are up-to-date
+          command: |
             if [[ -n $(git diff --name-only docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE) ]]; then
               echo "Notebook sources do not match HTML files!"
               false
