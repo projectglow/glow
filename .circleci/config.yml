@@ -3,11 +3,6 @@ setup_base: &setup_base
   docker:
     - image: circleci/openjdk:8
 
-setup_docs_base: &setup_docs_base
-  working_directory: ~/glow
-  docker:
-    - image: circleci/python:3.6.8
-
 install_conda_deps: &install_conda_deps
   run:
     name: Install dependencies
@@ -52,7 +47,7 @@ orbs:
 jobs:
 
   check-docs:
-    <<: *setup_docs_base
+    <<: *setup_base
     steps:
       - checkout
       - attach_workspace:
@@ -81,6 +76,7 @@ jobs:
           command: |
             export PATH=$HOME/conda/bin:$PATH
             source activate glow
+            databricks --profile docs-ci workspace mkdirs /Shared/glow-docs-ci/hello
             for f in $(find docs/source/_static/notebooks -type f -name '*.html'); do
                 python docs/dev/gen-nb-src.py --html "${f}"
             done
