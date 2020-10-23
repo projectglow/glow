@@ -71,6 +71,7 @@ jobs:
           name: Configure Databricks CLI
           command: |
             printf "[docs-ci]\nhost = https://westus.azuredatabricks.net\ntoken = ${DB_API_TOKEN}\n" > ~/.databrickscfg
+            cat ~/.databrickscfg
       - run:
           name: Generate notebook source files
           command: |
