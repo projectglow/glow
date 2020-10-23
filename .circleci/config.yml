@@ -82,8 +82,9 @@ jobs:
       - run:
           name: Check that notebook source files are up-to-date
           command: |
-            if [[ -n $(git diff --name-only docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE) ]]; then
+            if [[ -n $(git status --short) ]]; then
               echo "Notebook sources do not match HTML files!"
+              git status
               false
             else
               echo "Notebook sources are up-to-date."
