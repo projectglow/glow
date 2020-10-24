@@ -41,7 +41,7 @@ def main(html, cli_profile, workspace_tmp_dir):
     def run_cli_workspace_cmd(args):
         cmd = ['databricks', '--profile', cli_profile, 'workspace'] + args
         subprocess.run(cmd, capture_output=True)
-        subprocess.check_output(cmd, stderr=subprocess.STDOUT)
+        # subprocess.check_output(cmd, stderr=subprocess.STDOUT)
 
     work_dir = os.path.join(workspace_tmp_dir, str(uuid.uuid4()))
     workspace_path = os.path.join(work_dir, rel_path)
