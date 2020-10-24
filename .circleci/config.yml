@@ -50,8 +50,6 @@ jobs:
     <<: *setup_base
     steps:
       - checkout
-      - attach_workspace:
-          at: '.'
       - restore_cache:
           keys:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}
@@ -70,8 +68,8 @@ jobs:
       - run:
           name: Configure Databricks CLI
           command: |
-            printf "[docs-ci]\nhost = https://westus.azuredatabricks.net\ntoken = ${DB_API_TOKEN}\n" > ~/.databrickscfg
-            echo ${DB_API_TOKEN}
+            echo ${DATABRICKS_API_TOKEN}
+            printf "[docs-ci]\nhost = https://westus.azuredatabricks.net\ntoken = ${DATABRICKS_API_TOKEN}\n" > ~/.databrickscfg
             cat ~/.databrickscfg
       - run:
           name: Generate notebook source files
