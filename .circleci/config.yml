@@ -68,15 +68,12 @@ jobs:
       - run:
           name: Configure Databricks CLI
           command: |
-            echo ${DATABRICKS_API_TOKEN}
             printf "[docs-ci]\nhost = https://westus.azuredatabricks.net\ntoken = ${DATABRICKS_API_TOKEN}\n" > ~/.databrickscfg
-            cat ~/.databrickscfg
       - run:
           name: Generate notebook source files
           command: |
             export PATH=$HOME/conda/bin:$PATH
             source activate glow
-            databricks --profile docs-ci workspace mkdirs /Shared/glow-docs-ci/hello
             for f in $(find docs/source/_static/notebooks -type f -name '*.html'); do
                 python docs/dev/gen-nb-src.py --html "${f}"
             done
