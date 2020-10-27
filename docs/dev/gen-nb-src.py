@@ -21,22 +21,22 @@ SOURCE_EXTS = ['scala', 'py', 'r', 'sql']
 @click.command()
 @click.option('--html', required=True, help='Path of the HTML notebook.')
 @click.option('--cli-profile', default='docs-ci', help='Databricks CLI profile name.')
-@click.option('--workspace-tmp-dir', default='/tmp/glow-docs-ci', help='Temp workspace dir for import/export.')
+@click.option('--workspace-tmp-dir', default='/tmp/glow-docs-ci', help='Base workspace dir; a temporary directory will be generated under this for import/export.')
 def main(html, cli_profile, workspace_tmp_dir):
     assert os.path.commonpath([NOTEBOOK_DIR, html]) == NOTEBOOK_DIR, \
-        "HTML notebook must be under {} but got {}.".format(NOTEBOOK_DIR, html)
+        f"HTML notebook must be under {NOTEBOOK_DIR} but got {html}."
     rel_path = os.path.splitext(os.path.relpath(html, NOTEBOOK_DIR))[0]
 
     if not os.path.exists(html):  # html notebook was deleted
-        print("{} does not exist. Deleting the companion source file...".format(html))
+        print(f"{html} does not exist. Deleting the companion source file...")
         for ext in SOURCE_EXTS:
             source_path = os.path.join(SOURCE_DIR, rel_path + "." + ext)
             if os.path.exists(source_path):
                 os.remove(source_path)
-                print("\tDeleted {}.".format(source_path))
+                print(f"\tDeleted {source_path}.")
         return
 
-    print("Generating source file for {} under {} ...".format(html, SOURCE_DIR))
+    print(f"Generating source file for {html} under {SOURCE_DIR} ...")
 
     def run_cli_workspace_cmd(args):
         cmd = ['databricks', '--profile', cli_profile, 'workspace'] + args
