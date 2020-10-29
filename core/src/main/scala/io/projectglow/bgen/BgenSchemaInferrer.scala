@@ -37,9 +37,9 @@ object BgenSchemaInferrer {
       spark: SparkSession,
       files: Seq[FileStatus],
       options: Map[String, String]): StructType = {
-    val includeSampleIds = includeSampleIds(spark, files, options)
-    val includeHardCalls = options.contains(BgenOptions.HARD_CALL_THRESHOLD)
-    VariantSchemas.bgenDefaultSchema(includeSampleIds, includeHardCalls)
+    val hasSampleIds = includeSampleIds(spark, files, options)
+    val hasHardCalls = options.contains(BgenOptions.HARD_CALL_THRESHOLD)
+    VariantSchemas.bgenDefaultSchema(hasSampleIds, hasHardCalls)
   }
 
   def includeSampleIds(spark: SparkSession,

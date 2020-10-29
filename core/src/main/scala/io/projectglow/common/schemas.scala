@@ -73,23 +73,23 @@ object VariantSchemas {
   val ploidyField = StructField("ploidy", IntegerType)
 
   // Genotype fields that are typically present in BGEN records
-  def bgenGenotypesField(includeSampleIds: Boolean, includeHardCalls: Boolean): StructField = StructField(
+  def bgenGenotypesField(hasSampleIds: Boolean, hasHardCalls: Boolean): StructField = StructField(
     genotypesFieldName,
     ArrayType(
       StructType(
         Seq(
-          (if (includeSampleIds) Some(sampleIdField) else None),
-          phasedField,
-          (if (includeHardCalls) Some(callsField) else None),
-          ploidyField,
-          posteriorProbabilitiesField
+          (if (hasSampleIds) Some(sampleIdField) else None),
+          Some(phasedField),
+          (if (hasHardCalls) Some(callsField) else None),
+          Some(ploidyField),
+          Some(posteriorProbabilitiesField)
         ).flatten
       )
     )
   )
 
   // All fields that are typically present in BGEN records
-  def bgenDefaultSchema(includeSampleIds: Boolean, includeHardCalls: Boolean): StructType = StructType(
+  def bgenDefaultSchema(hasSampleIds: Boolean, hasHardCalls: Boolean): StructType = StructType(
     Seq(
       contigNameField,
       startField,
@@ -97,7 +97,7 @@ object VariantSchemas {
       namesField,
       refAlleleField,
       alternateAllelesField,
-      bgenGenotypesField(hasSampleIds, includeHardCalls)
+      bgenGenotypesField(hasSampleIds, hasHardCalls)
     )
   )
 
@@ -272,7 +272,6 @@ object VCFRow {
 private[projectglow] case class BgenGenotype(
     sampleId: Option[String],
     phased: Option[Boolean],
-    calls: Option[Seq[Int]].
     ploidy: Option[Int],
     posteriorProbabilities: Seq[Double])
 

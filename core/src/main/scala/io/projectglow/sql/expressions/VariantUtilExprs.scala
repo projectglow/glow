@@ -242,9 +242,11 @@ case class HardCalls(
   }
 
   override def children: Seq[Expression] = Seq(probabilities, numAlts, phased, threshold)
+
   override def inputTypes = { // scalastyle:ignore
     Seq(ArrayType(DoubleType), IntegerType, BooleanType, DecimalType)
   }
+
   override def checkInputDataTypes(): TypeCheckResult = {
     super.checkInputDataTypes()
     if (!threshold.foldable) {
@@ -255,7 +257,9 @@ case class HardCalls(
   }
 
   override def dataType: DataType = ArrayType(IntegerType)
+
   override def nullable: Boolean = probabilities.nullable || numAlts.nullable || phased.nullable
+
   private lazy val threshold0 = threshold.eval().asInstanceOf[Decimal].toDouble
 
   override def eval(input: InternalRow): Any = {
@@ -270,7 +274,8 @@ case class HardCalls(
     val numAlleles = _numAlts.asInstanceOf[Int] + 1
     val phased0 = _phased0.asInstanceOf[Boolean]
 
-    getHardCalls(threshold0, numAlleles, phased0, probArr.numElements(), probArr.getDouble)
+    HardCalls.getHardCalls(threshold0, numAlleles, phased0, probArr.numElements(), probArr.getDouble)
+  }
 }
 
 object HardCalls {

@@ -23,6 +23,7 @@ import org.apache.spark.sql.types.{ArrayType, StructType}
 import org.apache.spark.unsafe.types.UTF8String
 
 import io.projectglow.common.{BgenGenotype, BgenRow, GlowLogging, VariantSchemas}
+import io.projectglow.sql.expressions.HardCalls
 import io.projectglow.sql.util.RowConverter
 
 /**
@@ -49,12 +50,12 @@ class BgenRowToInternalRowConverter(schema: StructType, hardCallsThreshold: Opti
           (bgen, r, i) => r.update(i, convertStringList(bgen.alternateAlleles))
         case f if f.name == VariantSchemas.genotypesFieldName =>
           val gSchema = f.dataType.asInstanceOf[ArrayType].elementType.asInstanceOf[StructType]
-          val converter = makeGenotypeConverter(gSchema)
+          val converter = makeGenotypeConverter(gSchema, hardCallsThreshold)
           (bgen, r, i) => {
             val genotypes = new Array[Any](bgen.genotypes.size)
             var j = 0
             while (j < genotypes.length) {
-              genotypes(j) = converter(bgen.genotypes(j), hardCallsThreshold, bgen.alternateAlleles.length)
+              genotypes(j) = converter((bgen.alternateAlleles.length, bgen.genotypes(j)))
               j += 1
             }
             r.update(i, new GenericArrayData(genotypes))
@@ -71,32 +72,32 @@ class BgenRowToInternalRowConverter(schema: StructType, hardCallsThreshold: Opti
     new RowConverter[BgenRow](schema, fns.toArray)
   }
 
-  private def makeGenotypeConverter(gSchema: StructType, hardCallsThreshold: Option[Double], numAltAlleles: Int): RowConverter[BgenGenotype] = {
+  private def makeGenotypeConverter(gSchema: StructType, hardCallsThreshold: Option[Double]): RowConverter[(Int, BgenGenotype)] = {
     val functions = gSchema.map { field =>
-      val fn: RowConverter.Updater[BgenGenotype] = field match {
+      val fn: RowConverter.Updater[(Int, BgenGenotype)] = field match {
         case f if structFieldsEqualExceptNullability(f, sampleIdField) =>
           (g, r, i) => {
-            if (g.sampleId.isDefined) {
-              r.update(i, UTF8String.fromString(g.sampleId.get))
+            if (g._2.sampleId.isDefined) {
+              r.update(i, UTF8String.fromString(g._2.sampleId.get))
             }
           }
         case f if structFieldsEqualExceptNullability(f, phasedField) =>
-          (g, r, i) => g.phased.foreach(r.setBoolean(i, _))
+          (g, r, i) => g._2.phased.foreach(r.setBoolean(i, _))
         case f if structFieldsEqualExceptNullability(f, callsField) =>
-          (g, r, i) => if (hardCallsThreshold.isDefined && g.ploidy.isDefined && g.ploidy.get == 2) {
+          (g, r, i) => if (hardCallsThreshold.isDefined && g._2.phased.isDefined && g._2.ploidy.isDefined && g._2.ploidy.get == 2) {
             val hardCalls = HardCalls.getHardCalls(
               hardCallsThreshold.get,
-              numAltAlleles,
-              g.phased,
-              g.posteriorProbabilities.length,
-              g.posteriorProbabilities.apply
+              g._1,
+              g._2.phased.get,
+              g._2.posteriorProbabilities.length,
+              g._2.posteriorProbabilities.apply
             )
             r.update(i, hardCalls)
           }
         case f if structFieldsEqualExceptNullability(f, ploidyField) =>
-          (g, r, i) => g.ploidy.foreach(r.setInt(i, _))
+          (g, r, i) => g._2.ploidy.foreach(r.setInt(i, _))
         case f if structFieldsEqualExceptNullability(f, posteriorProbabilitiesField) =>
-          (g, r, i) => r.update(i, new GenericArrayData(g.posteriorProbabilities))
+          (g, r, i) => r.update(i, new GenericArrayData(g._2.posteriorProbabilities))
         case f =>
           logger.info(
             s"Genotype field $f cannot be derived from BGEN genotypes. It will be null " +
@@ -106,7 +107,7 @@ class BgenRowToInternalRowConverter(schema: StructType, hardCallsThreshold: Opti
       }
       fn
     }
-    new RowConverter[BgenGenotype](gSchema, functions.toArray)
+    new RowConverter[(Int, BgenGenotype)](gSchema, functions.toArray)
   }
 
   def convertRow(bgenRow: BgenRow): InternalRow = converter(bgenRow)
