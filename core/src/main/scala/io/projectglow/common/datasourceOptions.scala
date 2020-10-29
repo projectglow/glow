@@ -42,6 +42,7 @@ object BgenOptions {
   val SAMPLE_FILE_PATH_OPTION_KEY = "sampleFilePath"
   val SAMPLE_ID_COLUMN_OPTION_KEY = "sampleIdColumn"
   val SAMPLE_ID_COLUMN_OPTION_DEFAULT_VALUE = "ID_2"
+  val HARD_CALL_THRESHOLD = "hardCallThreshold"
 
   // bigbgen write options
   val BITS_PER_PROB_KEY = "bitsPerProbability"
