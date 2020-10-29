@@ -1,6 +1,7 @@
 name: glow
 channels:
   - bioconda
+  - conda-forge
 dependencies:
   - bedtools
   - click=7.1.1 # Docs notebook source generation
