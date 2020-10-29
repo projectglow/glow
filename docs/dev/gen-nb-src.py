@@ -18,9 +18,16 @@ SOURCE_DIR = 'docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE'
 SOURCE_EXTS = ['scala', 'py', 'r', 'sql']
 
 
+def run_cli_workspace_cmd(cli_profile, args):
+    cmd = ['databricks', '--profile', cli_profile, 'workspace'] + args
+    res = subprocess.run(cmd, capture_output=True)
+    if res.returncode is not 0:
+        raise ValueError(res)
+
+
 @click.command()
 @click.option('--html', required=True, help='Path of the HTML notebook.')
-@click.option('--cli-profile', default='docs-ci', help='Databricks CLI profile name.')
+@click.option('--cli-profile', default='DEFAULT', help='Databricks CLI profile name.')
 @click.option('--workspace-tmp-dir', default='/tmp/glow-docs-ci', help='Base workspace dir; a temporary directory will be generated under this for import/export.')
 def main(html, cli_profile, workspace_tmp_dir):
     assert os.path.commonpath([NOTEBOOK_DIR, html]) == NOTEBOOK_DIR, \
@@ -38,21 +45,17 @@ def main(html, cli_profile, workspace_tmp_dir):
 
     print(f"Generating source file for {html} under {SOURCE_DIR} ...")
 
-    def run_cli_workspace_cmd(args):
-        cmd = ['databricks', '--profile', cli_profile, 'workspace'] + args
-        subprocess.check_output(cmd, stderr=subprocess.STDOUT)
-
     work_dir = os.path.join(workspace_tmp_dir, str(uuid.uuid4()))
     workspace_path = os.path.join(work_dir, rel_path)
 
-    run_cli_workspace_cmd(['mkdirs', os.path.join(work_dir, os.path.dirname(rel_path))])
+    run_cli_workspace_cmd(cli_profile, ['mkdirs', os.path.join(work_dir, os.path.dirname(rel_path))])
     try:
         # `-l PYTHON` is required by CLI but ignored with `-f HTML`
         # This command works for all languages in SOURCE_EXTS
-        run_cli_workspace_cmd(['import', '-o', '-l', 'PYTHON', '-f', 'HTML', html, workspace_path])
-        run_cli_workspace_cmd(['export_dir', '-o', work_dir, SOURCE_DIR])
+        run_cli_workspace_cmd(cli_profile, ['import', '-o', '-l', 'PYTHON', '-f', 'HTML', html, workspace_path])
+        run_cli_workspace_cmd(cli_profile, ['export_dir', '-o', work_dir, SOURCE_DIR])
     finally:
-        run_cli_workspace_cmd(['rm', '-r', work_dir])
+        run_cli_workspace_cmd(cli_profile, ['rm', '-r', work_dir])
 
 
 if __name__ == '__main__':

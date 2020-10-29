@@ -75,7 +75,7 @@ jobs:
             export PATH=$HOME/conda/bin:$PATH
             source activate glow
             for f in $(find docs/source/_static/notebooks -type f -name '*.html'); do
-                python docs/dev/gen-nb-src.py --html "${f}"
+                python docs/dev/gen-nb-src.py --html "${f}" --cli-profile docs-ci
             done
       - *check_clean_repo
 

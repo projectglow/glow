@@ -2,24 +2,24 @@ name: glow
 channels:
   - bioconda
 dependencies:
-  - python=3.7
   - bedtools
+  - click=7.1.1 # Docs notebook source generation
+  - databricks-cli=0.9.1 # Docs notebook source generation
   - jinja2
-  - numpy=1.17.4
-  - scipy=1.4.1
-  - scikit-learn=0.22.1
   - nomkl # Skip MKL for local development
+  - numpy=1.17.4
   - pandas=0.25.3
   - pip
   - pyarrow=0.15.1
   - pyspark=3.0.0
+  - python=3.7
   - pytest
   - pyyaml
+  - scipy=1.4.1
+  - scikit-learn=0.22.1
   - sphinx
   - sphinx_rtd_theme
   - pip:
-    - click==7.1.1 # Docs notebook source generation
-    - databricks-cli==0.9.1 # Docs notebook source generation
     - setuptools==41.2.0 # Python packaging
     - typeguard==2.5.0
     - twine==2.0.0 # Pypi publishing
