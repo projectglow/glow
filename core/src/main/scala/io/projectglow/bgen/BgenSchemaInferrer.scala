@@ -42,9 +42,10 @@ object BgenSchemaInferrer {
     VariantSchemas.bgenDefaultSchema(hasSampleIds, hasHardCalls)
   }
 
-  def includeSampleIds(spark: SparkSession,
-                         files: Seq[FileStatus],
-                         options: Map[String, String]): Boolean = {
+  def includeSampleIds(
+      spark: SparkSession,
+      files: Seq[FileStatus],
+      options: Map[String, String]): Boolean = {
     val shouldIncludeSampleIds = options.get(CommonOptions.INCLUDE_SAMPLE_IDS).forall(_.toBoolean)
     if (!shouldIncludeSampleIds) {
       return false

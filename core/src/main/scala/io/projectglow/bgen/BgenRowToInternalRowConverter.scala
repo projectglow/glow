@@ -31,7 +31,8 @@ import io.projectglow.sql.util.RowConverter
  * this class will throw an [[IllegalArgumentException]] if any of the fields in the required
  * schema cannot be derived from a BGEN record.
  */
-class BgenRowToInternalRowConverter(schema: StructType, hardCallsThreshold: Option[Double]) extends GlowLogging {
+class BgenRowToInternalRowConverter(schema: StructType, hardCallsThreshold: Option[Double])
+    extends GlowLogging {
   import io.projectglow.common.VariantSchemas._
   private val converter = {
     val fns = schema.map { field =>
@@ -73,7 +74,9 @@ class BgenRowToInternalRowConverter(schema: StructType, hardCallsThreshold: Opti
     new RowConverter[BgenRow](schema, fns.toArray)
   }
 
-  private def makeGenotypeConverter(gSchema: StructType, hardCallsThreshold: Option[Double]): RowConverter[(Int, BgenGenotype)] = {
+  private def makeGenotypeConverter(
+      gSchema: StructType,
+      hardCallsThreshold: Option[Double]): RowConverter[(Int, BgenGenotype)] = {
     val functions = gSchema.map { field =>
       val fn: RowConverter.Updater[(Int, BgenGenotype)] = field match {
         case f if structFieldsEqualExceptNullability(f, sampleIdField) =>
@@ -85,16 +88,17 @@ class BgenRowToInternalRowConverter(schema: StructType, hardCallsThreshold: Opti
         case f if structFieldsEqualExceptNullability(f, phasedField) =>
           (g, r, i) => g._2.phased.foreach(r.setBoolean(i, _))
         case f if structFieldsEqualExceptNullability(f, callsField) =>
-          (g, r, i) => if (hardCallsThreshold.isDefined && g._2.phased.isDefined && g._2.ploidy.isDefined && g._2.ploidy.get == 2) {
-            val hardCalls = HardCalls.getHardCalls(
-              hardCallsThreshold.get,
-              g._1, // Number of alleles
-              g._2.phased.get,
-              g._2.posteriorProbabilities.length,
-              g._2.posteriorProbabilities.apply
-            )
-            r.update(i, hardCalls)
-          }
+          (g, r, i) =>
+            if (hardCallsThreshold.isDefined && g._2.phased.isDefined && g._2.ploidy == Some(2)) {
+              val hardCalls = HardCalls.getHardCalls(
+                hardCallsThreshold.get,
+                g._1, // Number of alleles
+                g._2.phased.get,
+                g._2.posteriorProbabilities.length,
+                g._2.posteriorProbabilities.apply
+              )
+              r.update(i, hardCalls)
+            }
         case f if structFieldsEqualExceptNullability(f, ploidyField) =>
           (g, r, i) => g._2.ploidy.foreach(r.setInt(i, _))
         case f if structFieldsEqualExceptNullability(f, posteriorProbabilitiesField) =>

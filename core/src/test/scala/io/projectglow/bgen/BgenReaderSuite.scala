@@ -111,8 +111,14 @@ class BgenReaderSuite extends GlowBaseTest {
     sampleIds
   }
 
-  private def compareHardCalls(bgen: String, vcf: String, threshold: Double, filterPloidy: Boolean = false): Unit = {
-    val bgenDf = spark.read.format(sourceName)
+  private def compareHardCalls(
+      bgen: String,
+      vcf: String,
+      threshold: Double,
+      filterPloidy: Boolean = false): Unit = {
+    val bgenDf = spark
+      .read
+      .format(sourceName)
       .option("hardCallThreshold", threshold.toString)
       .load(bgen)
       .selectExpr("start", "genotypes.calls")
@@ -425,18 +431,31 @@ class BgenReaderSuite extends GlowBaseTest {
   }
 
   test("hard call threshold 0.9") {
-    compareHardCalls(s"$testRoot/example.16bits.bgen", s"$testRoot/example.16bits.threshold-0.9.vcf", 0.9)
+    compareHardCalls(
+      s"$testRoot/example.16bits.bgen",
+      s"$testRoot/example.16bits.threshold-0.9.vcf",
+      0.9)
   }
 
   test("hard call threshold 0.95") {
-    compareHardCalls(s"$testRoot/example.16bits.bgen", s"$testRoot/example.16bits.threshold-0.95.vcf", 0.95)
+    compareHardCalls(
+      s"$testRoot/example.16bits.bgen",
+      s"$testRoot/example.16bits.threshold-0.95.vcf",
+      0.95)
   }
 
   test("hard call with phased") {
-    compareHardCalls(s"$testRoot/phased.16bits.bgen", s"$testRoot/phased.16bits.threshold-0.9.vcf", 0.9)
+    compareHardCalls(
+      s"$testRoot/phased.16bits.bgen",
+      s"$testRoot/phased.16bits.threshold-0.9.vcf",
+      0.9)
   }
 
   test("mixed phased and ploidy") {
-    compareHardCalls(s"$testRoot/complex.16bits.bgen", s"$testRoot/complex.16bits.threshold-0.9.vcf", 0.9, true)
+    compareHardCalls(
+      s"$testRoot/complex.16bits.bgen",
+      s"$testRoot/complex.16bits.threshold-0.9.vcf",
+      0.9,
+      true)
   }
 }

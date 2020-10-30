@@ -274,12 +274,22 @@ case class HardCalls(
     val numAlleles = _numAlts.asInstanceOf[Int] + 1
     val phased0 = _phased0.asInstanceOf[Boolean]
 
-    HardCalls.getHardCalls(threshold0, numAlleles, phased0, probArr.numElements(), probArr.getDouble)
+    HardCalls.getHardCalls(
+      threshold0,
+      numAlleles,
+      phased0,
+      probArr.numElements(),
+      probArr.getDouble)
   }
 }
 
 object HardCalls {
-  def getHardCalls(threshold: Double, numAlleles: Int, phased: Boolean, numProbs: Int, getProb: (Int) => Double): GenericArrayData = {
+  def getHardCalls(
+      threshold: Double,
+      numAlleles: Int,
+      phased: Boolean,
+      numProbs: Int,
+      getProb: (Int) => Double): GenericArrayData = {
     // calls is an `Array[Any]` instead of `Array[Int]` because it's cheaper to convert
     // the former to Spark's array data format
     // phased case
