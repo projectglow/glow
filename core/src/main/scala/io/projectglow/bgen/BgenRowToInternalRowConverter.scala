@@ -55,7 +55,8 @@ class BgenRowToInternalRowConverter(schema: StructType, hardCallsThreshold: Opti
             val genotypes = new Array[Any](bgen.genotypes.size)
             var j = 0
             while (j < genotypes.length) {
-              genotypes(j) = converter((bgen.alternateAlleles.length, bgen.genotypes(j)))
+              val numAlleles = 1 + bgen.alternateAlleles.length
+              genotypes(j) = converter((numAlleles, bgen.genotypes(j)))
               j += 1
             }
             r.update(i, new GenericArrayData(genotypes))
@@ -87,7 +88,7 @@ class BgenRowToInternalRowConverter(schema: StructType, hardCallsThreshold: Opti
           (g, r, i) => if (hardCallsThreshold.isDefined && g._2.phased.isDefined && g._2.ploidy.isDefined && g._2.ploidy.get == 2) {
             val hardCalls = HardCalls.getHardCalls(
               hardCallsThreshold.get,
-              g._1,
+              g._1, // Number of alleles
               g._2.phased.get,
               g._2.posteriorProbabilities.length,
               g._2.posteriorProbabilities.apply

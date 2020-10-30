@@ -291,7 +291,8 @@ object HardCalls {
         var max = 0d
         var call = -1
         while (j < numAlleles) {
-          val probability = getProb(i * numAlleles + j)
+          val k = i * numAlleles + j
+          val probability = if (k < numProbs) getProb(k) else -1
           if (probability >= threshold && probability > max) {
             max = probability
             call = j
@@ -355,8 +356,8 @@ object HardCalls {
       sum += i
     }
 
-    calls(0) = i
-    calls(1) = maxIdx - sum
+    calls(0) = maxIdx - sum
+    calls(1) = i
     calls
   }
 }
