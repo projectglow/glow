@@ -125,7 +125,9 @@ class BgenReaderSuite extends GlowBaseTest {
     val baseVcfDf = spark.read.format("vcf").load(vcf)
     val vcfDf = if (filterPloidy) {
       // For non-diploids, replace calls with missing
-      baseVcfDf.selectExpr("start", "transform(genotypes.calls, c -> if(size(c) = 2, c, array_repeat(-1, size(c))))")
+      baseVcfDf.selectExpr(
+        "start",
+        "transform(genotypes.calls, c -> if(size(c) = 2, c, array_repeat(-1, size(c))))")
     } else {
       baseVcfDf.selectExpr("start", "genotypes.calls")
     }
