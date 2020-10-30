@@ -177,7 +177,7 @@ The schema of the resulting DataFrame matches that of the VCF reader.
 +-----------------------+---------+--------------+------------------------------------------------------------------------------------------------------------+
 | ``sampleIdColumn``    | string  | ``ID_2``     | Name of the column in the ``.sample`` file corresponding to the sample IDs.                                |
 +-----------------------+---------+--------------+------------------------------------------------------------------------------------------------------------+
-| ``hardCallThreshold`` | double  | n/a          | If set, adds genotype calls for diploids based on the provided threshold.                                  |
+| ``hardCallThreshold`` | double  | n/a          | If set, adds genotype calls for diploids based on the posterior probabilities with the provided threshold. |
 +-----------------------+---------+--------------+------------------------------------------------------------------------------------------------------------+
 
 You can use the ``DataFrameWriter`` API to save a single BGEN file, which you can then read with other tools.

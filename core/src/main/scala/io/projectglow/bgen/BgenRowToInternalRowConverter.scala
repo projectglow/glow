@@ -98,6 +98,11 @@ class BgenRowToInternalRowConverter(schema: StructType, hardCallsThreshold: Opti
                 g._2.posteriorProbabilities.apply
               )
               r.update(i, hardCalls)
+            } else {
+              // Set hard calls to missing for non-diploids
+              g._2.ploidy.foreach { p =>
+                r.update(i, new GenericArrayData(Array.fill(p)(-1)))
+              }
             }
         case f if structFieldsEqualExceptNullability(f, ploidyField) =>
           (g, r, i) => g._2.ploidy.foreach(r.setInt(i, _))
