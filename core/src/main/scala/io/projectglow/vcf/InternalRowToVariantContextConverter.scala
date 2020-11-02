@@ -28,7 +28,7 @@ import org.apache.spark.sql.SQLUtils
 import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.util.ArrayData
-import org.apache.spark.sql.types.{ArrayType, IntegerType, StringType, StructField, StructType}
+import org.apache.spark.sql.types.{ArrayType, BooleanType, IntegerType, StringType, StructField, StructType}
 
 import io.projectglow.common.{GenotypeFields, GlowLogging, HasStringency, VariantSchemas}
 
@@ -371,6 +371,11 @@ class InternalRowToVariantContextConverter(
       vc: VariantContextBuilder,
       row: InternalRow,
       offset: Int): VariantContextBuilder = {
+    // Special case for FLAG type - do not set attribute if flag is not true
+    if (field.dataType == BooleanType && !row.getBoolean(offset)) {
+      return vc
+    }
+
     val realName = field.name.stripPrefix(infoFieldPrefix)
 
     // We generate the info fields in the vc with the same type they have in InternalRow for

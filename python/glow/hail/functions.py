@@ -26,8 +26,7 @@ from typeguard import check_argument_types, check_return_type
 def __get_sample_ids(col_key: StructExpression, include_sample_ids: bool) -> Optional[List[str]]:
     assert check_argument_types()
 
-    has_sample_ids = isinstance(col_key.dtype,
-                                tstruct) and 's' in col_key and col_key.s.dtype == tstr
+    has_sample_ids = 's' in col_key and col_key.s.dtype == tstr
     if include_sample_ids and has_sample_ids:
         sample_ids = [f"'{s}'" for s in col_key.s.collect()]
     else:
@@ -133,12 +132,7 @@ def __get_other_cols(row: StructExpression) -> List[Column]:
     # Rename info.* columns to INFO_*
     if 'info' in row and isinstance(row.info.dtype, tstruct):
         for f in row.info:
-            if row.info[f].dtype == tbool:
-                # FLAG INFO fields should be null if not present; Hail encodes them as false
-                other_cols.append(
-                    fx.expr(f"if(`info.{f}` = false, null, `info.{f}`)").alias(f"INFO_{f}"))
-            else:
-                other_cols.append(fx.col(f"`info.{f}`").alias(f"INFO_{f}"))
+            other_cols.append(fx.col(f"`info.{f}`").alias(f"INFO_{f}"))
 
     assert check_return_type(other_cols)
     return other_cols
