@@ -69,8 +69,6 @@ jobs:
     <<: *setup_base
     steps:
       - checkout
-      - run: sudo apt-get update
-      - run: sudo apt-get -y install rsync
       - restore_cache:
           keys:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}
@@ -96,6 +94,8 @@ jobs:
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             export SPARK_VERSION="2.4.5"
             export SCALA_VERSION="2.11.12"
+            sudo apt-get update
+            sudo apt-get -y install rsync
             sbt setupHail python/test teardownHail exit
       - run:
           name: Run docs tests
@@ -118,8 +118,6 @@ jobs:
     <<: *setup_base
     steps:
       - checkout
-      - run: sudo apt-get update
-      - run: sudo apt-get -y install rsync
       - restore_cache:
           keys:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}
@@ -145,6 +143,8 @@ jobs:
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             export SPARK_VERSION="2.4.5"
             export SCALA_VERSION="2.12.8"
+            sudo apt-get update
+            sudo apt-get -y install rsync
             sbt setupHail python/test teardownHail exit
       - run:
           name: Run docs tests
@@ -160,8 +160,6 @@ jobs:
     <<: *setup_base
     steps:
       - checkout
-      - run: sudo apt-get update
-      - run: sudo apt-get -y install rsync
       - restore_cache:
           keys:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}
@@ -186,6 +184,8 @@ jobs:
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             export SPARK_VERSION="3.0.0"
             export SCALA_VERSION="2.12.8"
+            sudo apt-get update
+            sudo apt-get -y install rsync
             sbt setupHail python/test teardownHail exit
       - run:
           name: Run docs tests
