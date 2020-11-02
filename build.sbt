@@ -207,9 +207,21 @@ def currentGitHash(dir: File): String = {
 
 lazy val setupHail = taskKey[Unit]("Set up Hail")
 ThisBuild / setupHail := {
-  s"git clone -b ${hailVersion.value} https://github.com/hail-is/hail.git" ###
-  s"make -C hail/hail SCALA_VERSION=${scalaVersion.value} SPARK_VERSION=${sparkVersion.value} install-deps shadowJar wheel" ###
-  s"pip install --no-deps hail/hail/build/deploy/dist/hail-${hailVersion.value}-py3-none-any.whl" !
+  Seq(
+    "/bin/bash",
+    "-c",
+    s"git clone -b ${hailVersion.value} https://github.com/hail-is/hail.git;" +
+    "source /miniconda3/etc/profile.d/conda.sh &&" +
+    "conda create -y --name hail &&" +
+    "conda activate hail &&" +
+    s"make -C hail/hail SCALA_VERSION=${scalaVersion.value} SPARK_VERSION=${sparkVersion.value} install-deps shadowJar wheel &&" +
+    s"pip install --no-deps hail/hail/build/deploy/dist/hail-${hailVersion.value}-py3-none-any.whl"
+  ) !
+}
+
+lazy val teardownHail = taskKey[Unit]("Tear down Hail")
+ThisBuild / teardownHail := {
+  "conda env remove --name hail" ### "rm -rf hail" !
 }
 
 lazy val sparkClasspath = taskKey[String]("sparkClasspath")
@@ -234,9 +246,13 @@ lazy val pythonSettings = Seq(
     } else {
       baseEnv :+ "ARROW_PRE_0_15_IPC_FORMAT" -> "1"
     }
-    setupHail.value
     val ret = Process(
-      Seq("pytest") ++ args,
+      Seq(
+        "/bin/bash",
+        "-c",
+        "source /miniconda3/etc/profile.d/conda.sh &&" +
+        "conda activate hail --stack &&" +
+        "pytest " + args.mkString(" ")),
       None,
       env: _*
     ).!

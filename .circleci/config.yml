@@ -96,7 +96,7 @@ jobs:
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             export SPARK_VERSION="2.4.5"
             export SCALA_VERSION="2.11.12"
-            sbt python/test exit
+            sbt setupHail python/test teardownHail exit
       - run:
           name: Run docs tests
           environment:
@@ -145,7 +145,7 @@ jobs:
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             export SPARK_VERSION="2.4.5"
             export SCALA_VERSION="2.12.8"
-            sbt python/test exit
+            sbt setupHail python/test teardownHail exit
       - run:
           name: Run docs tests
           environment:
@@ -186,7 +186,7 @@ jobs:
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             export SPARK_VERSION="3.0.0"
             export SCALA_VERSION="2.12.8"
-            sbt python/test exit
+            sbt setupHail python/test teardownHail exit
       - run:
           name: Run docs tests
           environment:
