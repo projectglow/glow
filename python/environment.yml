@@ -3,6 +3,7 @@ channels:
   - bioconda
   - conda-forge
 dependencies:
+  - python=3.7
   - bedtools
   - click=7.1.1 # Docs notebook source generation
   - databricks-cli=0.9.1 # Docs notebook source generation
@@ -13,7 +14,6 @@ dependencies:
   - pip
   - pyarrow=0.15.1
   - pyspark=3.0.0
-  - python=3.7
   - pytest
   - pyyaml
   - scipy=1.4.1
