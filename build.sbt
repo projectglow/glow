@@ -211,7 +211,7 @@ ThisBuild / setupHail := {
     "/bin/bash",
     "-c",
     s"git clone -b ${hailVersion.value} https://github.com/hail-is/hail.git;" +
-    "source /miniconda3/etc/profile.d/conda.sh &&" +
+    "source $(conda info --base)/etc/profile.d/conda.sh &&" +
     "conda create -y --name hail &&" +
     "conda activate hail &&" +
     s"make -C hail/hail SCALA_VERSION=${scalaVersion.value} SPARK_VERSION=${sparkVersion.value} install-deps shadowJar wheel &&" +
@@ -250,7 +250,7 @@ lazy val pythonSettings = Seq(
       Seq(
         "/bin/bash",
         "-c",
-        "source /miniconda3/etc/profile.d/conda.sh &&" +
+        "source $(conda info --base)/etc/profile.d/conda.sh &&" +
         "conda activate hail --stack &&" +
         "pytest " + args.mkString(" ")),
       None,
