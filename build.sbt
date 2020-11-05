@@ -213,7 +213,7 @@ ThisBuild / setupHail := {
     s"git clone -b ${hailVersion.value} https://github.com/hail-is/hail.git;" +
     "source $(conda info --base)/etc/profile.d/conda.sh &&" +
     "conda create -y --name hail &&" +
-    "conda activate hail &&" +
+    "conda activate hail --stack &&" +
     s"make -C hail/hail SCALA_VERSION=${scalaVersion.value} SPARK_VERSION=${sparkVersion.value} install-deps shadowJar wheel &&" +
     s"pip install --no-deps hail/hail/build/deploy/dist/hail-${hailVersion.value}-py3-none-any.whl"
   ) !
