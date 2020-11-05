@@ -35,13 +35,13 @@ def _compare_struct_types(s1, s2, ignore_fields=[]):
 
 
 def _assert_lossless_adapter(spark,
-                         tmp_path,
-                         hail_df,
-                         input_file,
-                         in_fmt,
-                         out_fmt,
-                         writer_options={},
-                         reader_options={}):
+                             tmp_path,
+                             hail_df,
+                             input_file,
+                             in_fmt,
+                             out_fmt,
+                             writer_options={},
+                             reader_options={}):
     # Convert Hail MatrixTable to Glow DataFrame and write it to a flat file
     output_file = (tmp_path / 'tmp').as_uri() + '.' + in_fmt
     writer = hail_df.write.format(out_fmt)
@@ -94,12 +94,12 @@ def test_annotated_sites_only_vcf(spark, tmp_path):
     input_vcf = 'test-data/vcf/vep.vcf'
     hail_df = functions.from_matrix_table(hl.import_vcf(input_vcf))
     _assert_lossless_adapter(spark,
-                         tmp_path,
-                         hail_df,
-                         input_vcf,
-                         'vcf',
-                         'vcf',
-                         writer_options={'vcfHeader': input_vcf})
+                             tmp_path,
+                             hail_df,
+                             input_vcf,
+                             'vcf',
+                             'vcf',
+                             writer_options={'vcfHeader': input_vcf})
 
 
 def test_exclude_sample_ids(spark, tmp_path):
@@ -109,12 +109,12 @@ def test_exclude_sample_ids(spark, tmp_path):
     with pytest.raises(AssertionError):
         _compare_struct_types(hail_df.schema, hail_with_sample_id_df.schema)
     _assert_lossless_adapter(spark,
-                         tmp_path,
-                         hail_df,
-                         input_vcf,
-                         'vcf',
-                         'vcf',
-                         reader_options={'includeSampleIds': 'false'})
+                             tmp_path,
+                             hail_df,
+                             input_vcf,
+                             'vcf',
+                             'vcf',
+                             reader_options={'includeSampleIds': 'false'})
 
 
 def test_unphased_bgen(spark, tmp_path):
@@ -123,12 +123,12 @@ def test_unphased_bgen(spark, tmp_path):
     hl.index_bgen(input_bgen, reference_genome=None)
     hail_df = functions.from_matrix_table(hl.import_bgen(input_bgen, entry_fields=['GP']))
     _assert_lossless_adapter(spark,
-                         tmp_path,
-                         hail_df,
-                         input_bgen,
-                         'bgen',
-                         'bigbgen',
-                         writer_options={'bitsPerProbability': '8'})
+                             tmp_path,
+                             hail_df,
+                             input_bgen,
+                             'bgen',
+                             'bigbgen',
+                             writer_options={'bitsPerProbability': '8'})
 
 
 def test_plink(spark, tmp_path):
