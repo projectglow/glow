@@ -52,12 +52,12 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - conda-deps-{{ checksum "python/conda_version.txt" }}-{{ checksum "python/environment.yml" }}
+            - conda-deps-v1-{{ checksum "python/conda_version.txt" }}-{{ checksum "python/environment.yml" }}
       - *install_conda_deps
       - save_cache:
           paths:
             - /home/circleci/conda
-          key: conda-deps-{{ checksum "python/conda_version.txt" }}-{{ checksum "python/environment.yml" }}
+          key: conda-deps-v1-{{ checksum "python/conda_version.txt" }}-{{ checksum "python/environment.yml" }}
       - run:
           name: Check docs links
           environment:
@@ -72,12 +72,12 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - conda-deps-{{ checksum "python/conda_version.txt" }}-{{ checksum "python/environment.yml" }}
+            - conda-deps-v1-{{ checksum "python/conda_version.txt" }}-{{ checksum "python/environment.yml" }}
       - *install_conda_deps
       - save_cache:
           paths:
             - /home/circleci/conda
-          key: conda-deps-{{ checksum "python/conda_version.txt" }}-{{ checksum "python/environment.yml" }}
+          key: conda-deps-v1-{{ checksum "python/conda_version.txt" }}-{{ checksum "python/environment.yml" }}
       - *install_pyspark2
       - run:
           name: Run Scala tests
@@ -121,12 +121,12 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - conda-deps-{{ checksum "python/conda_version.txt" }}-{{ checksum "python/environment.yml" }}
+            - conda-deps-v1-{{ checksum "python/conda_version.txt" }}-{{ checksum "python/environment.yml" }}
       - *install_conda_deps
       - save_cache:
           paths:
             - /home/circleci/conda
-          key: conda-deps-{{ checksum "python/conda_version.txt" }}-{{ checksum "python/environment.yml" }}
+          key: conda-deps-v1-{{ checksum "python/conda_version.txt" }}-{{ checksum "python/environment.yml" }}
       - *install_pyspark2
       - run:
           name: Run Scala tests
@@ -163,12 +163,12 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - conda-deps-{{ checksum "python/conda_version.txt" }}-{{ checksum "python/environment.yml" }}
+            - conda-deps-v1-{{ checksum "python/conda_version.txt" }}-{{ checksum "python/environment.yml" }}
       - *install_conda_deps
       - save_cache:
           paths:
             - /home/circleci/conda
-          key: conda-deps-{{ checksum "python/conda_version.txt" }}-{{ checksum "python/environment.yml" }}
+          key: conda-deps-v1-{{ checksum "python/conda_version.txt" }}-{{ checksum "python/environment.yml" }}
       - run:
           name: Run Scala tests
           environment:
