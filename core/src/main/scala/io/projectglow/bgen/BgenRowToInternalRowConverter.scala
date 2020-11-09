@@ -110,7 +110,8 @@ class BgenRowToInternalRowConverter(schema: StructType, hardCallsThreshold: Doub
           case ((numAlleles, g), r, i) => g.ploidy.foreach(r.setInt(i, _))
         }
         case f if structFieldsEqualExceptNullability(f, posteriorProbabilitiesField) => {
-          case ((numAlleles, g), r, i) => r.update(i, new GenericArrayData(g.posteriorProbabilities))
+          case ((numAlleles, g), r, i) =>
+            r.update(i, new GenericArrayData(g.posteriorProbabilities))
         }
         case f =>
           logger.info(

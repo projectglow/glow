@@ -118,7 +118,10 @@ class BgenReaderSuite extends GlowBaseTest {
       filterPloidy: Boolean = false): Unit = {
     val bgenReader = spark.read.format(sourceName)
     val bgenDf = if (threshold.isDefined) {
-      bgenReader.option("hardCallThreshold", threshold.get.toString).load(bgen).select("start", "genotypes.calls")
+      bgenReader
+        .option("hardCallThreshold", threshold.get.toString)
+        .load(bgen)
+        .select("start", "genotypes.calls")
     } else {
       bgenReader.load(bgen).select("start", "genotypes.calls")
     }
