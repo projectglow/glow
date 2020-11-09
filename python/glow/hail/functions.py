@@ -12,7 +12,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from glow import glow
 import hail as hl
 from hail import MatrixTable
 from hail.expr.expressions.typed_expressions import StructExpression
@@ -23,7 +22,7 @@ from typing import List, NoReturn, Optional
 from typeguard import check_argument_types, check_return_type
 
 
-def __get_sample_ids(col_key: StructExpression, include_sample_ids: bool) -> Optional[List[str]]:
+def _get_sample_ids(col_key: StructExpression, include_sample_ids: bool) -> Optional[List[str]]:
     assert check_argument_types()
 
     has_sample_ids = 's' in col_key and col_key.s.dtype == tstr
@@ -36,7 +35,7 @@ def __get_sample_ids(col_key: StructExpression, include_sample_ids: bool) -> Opt
     return sample_ids
 
 
-def __get_genotypes_col(entry: StructExpression, sample_ids: Optional[List[str]]) -> Column:
+def _get_genotypes_col(entry: StructExpression, sample_ids: Optional[List[str]]) -> Column:
     assert check_argument_types()
 
     entry_aliases = {
@@ -83,7 +82,7 @@ def __get_genotypes_col(entry: StructExpression, sample_ids: Optional[List[str]]
     return genotypes_col
 
 
-def __get_base_cols(row: StructExpression) -> List[Column]:
+def _get_base_cols(row: StructExpression) -> List[Column]:
     assert check_argument_types()
 
     contig_name_col = fx.col("`locus.contig`").alias("contigName")
@@ -115,7 +114,7 @@ def __get_base_cols(row: StructExpression) -> List[Column]:
     return base_cols
 
 
-def __get_other_cols(row: StructExpression) -> List[Column]:
+def _get_other_cols(row: StructExpression) -> List[Column]:
     assert check_argument_types()
 
     other_cols = []
@@ -138,7 +137,7 @@ def __get_other_cols(row: StructExpression) -> List[Column]:
     return other_cols
 
 
-def __require_row_variant_w_struct_locus(mt: MatrixTable) -> NoReturn:
+def _require_row_variant_w_struct_locus(mt: MatrixTable) -> NoReturn:
     """
     Similar to hail.methods.misc.require_row_key_variant_w_struct_locus, but not necessarily as keys
     """
@@ -159,6 +158,7 @@ def from_matrix_table(mt: MatrixTable, include_sample_ids: bool = True) -> DataF
 
     Args:
         mt : The Hail MatrixTable to convert
+        include_sample_ids : If true, include sample IDs in the Glow DataFrame
 
     Returns:
         Glow DataFrame converted from the MatrixTable.
@@ -167,11 +167,11 @@ def from_matrix_table(mt: MatrixTable, include_sample_ids: bool = True) -> DataF
     assert check_argument_types()
 
     # Ensure that dataset rows contain locus and alleles
-    __require_row_variant_w_struct_locus(mt)
+    _require_row_variant_w_struct_locus(mt)
 
     glow_compatible_df = mt.localize_entries('entries').to_spark().select(
-        *__get_base_cols(mt.rows().row), *__get_other_cols(mt.rows().row),
-        __get_genotypes_col(mt.entry, __get_sample_ids(mt.col_key, include_sample_ids)))
+        *_get_base_cols(mt.rows().row), *_get_other_cols(mt.rows().row),
+        _get_genotypes_col(mt.entry, _get_sample_ids(mt.col_key, include_sample_ids)))
 
     assert check_return_type(glow_compatible_df)
     return glow_compatible_df

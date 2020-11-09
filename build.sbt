@@ -101,7 +101,9 @@ ThisBuild / generatorScript := (ThisBuild / baseDirectory).value / "python" / "r
 lazy val generatedFunctionsOutput = settingKey[File]("generatedFunctionsOutput")
 lazy val functionsTemplate = settingKey[File]("functionsTemplate")
 lazy val generateFunctions = taskKey[Seq[File]]("generateFunctions")
+lazy val env = taskKey[Seq[(String, String)]]("env")
 lazy val pytest = inputKey[Unit]("pytest")
+lazy val hailtest = inputKey[Unit]("hailtest")
 
 def runCmd(args: File*): Unit = {
   args.map(_.getPath).!!
@@ -205,8 +207,8 @@ def currentGitHash(dir: File): String = {
   ).!!.trim
 }
 
-lazy val setupHail = taskKey[Unit]("Set up Hail")
-ThisBuild / setupHail := {
+lazy val installHail = taskKey[Unit]("Install Hail")
+ThisBuild / installHail := {
   Seq(
     "/bin/bash",
     "-c",
@@ -219,8 +221,8 @@ ThisBuild / setupHail := {
   ) !
 }
 
-lazy val teardownHail = taskKey[Unit]("Tear down Hail")
-ThisBuild / teardownHail := {
+lazy val uninstallHail = taskKey[Unit]("Uninstall Hail")
+ThisBuild / uninstallHail := {
   "conda env remove --name hail" ### "rm -rf hail" !
 }
 
@@ -234,27 +236,33 @@ lazy val pythonSettings = Seq(
   sparkHome := (ThisBuild / baseDirectory).value.absolutePath,
   pythonPath := ((ThisBuild / baseDirectory).value / "python").absolutePath,
   publish / skip := true,
-  pytest := {
-    val args = spaceDelimited("<arg>").parsed
+  env := {
     val baseEnv = Seq(
       "SPARK_CLASSPATH" -> sparkClasspath.value,
       "SPARK_HOME" -> sparkHome.value,
       "PYTHONPATH" -> pythonPath.value
     )
-    val env = if (majorMinorVersion(sparkVersion.value) >= "3.0") {
+    if (majorMinorVersion(sparkVersion.value) >= "3.0") {
       baseEnv :+ "PYSPARK_ROW_FIELD_SORTING_ENABLED" -> "true"
     } else {
       baseEnv :+ "ARROW_PRE_0_15_IPC_FORMAT" -> "1"
     }
+  },
+  pytest := {
+    val args = spaceDelimited("<arg>").parsed
+    val ret = Process("pytest " + args.mkString(" "), None, (env.value): _*).!
+    require(ret == 0, "Python tests failed")
+  },
+  hailtest := {
+    val args = spaceDelimited("<arg>").parsed
     val ret = Process(
       Seq(
         "/bin/bash",
         "-c",
         "source $(conda info --base)/etc/profile.d/conda.sh &&" +
-        "conda activate hail --stack &&" +
-        "pytest " + args.mkString(" ")),
+          "conda activate hail --stack &&" + "pytest " + args.mkString(" ")),
       None,
-      env: _*
+      (env.value): _*
     ).!
     require(ret == 0, "Python tests failed")
   }
@@ -285,7 +293,8 @@ lazy val python =
       functionGenerationSettings,
       test in Test := {
         yapf.toTask(" --diff").value
-        pytest.toTask(" --doctest-modules python").value
+        pytest.toTask(" --doctest-modules --ignore=python/glow/hail python").value
+        hailtest.toTask(" --doctest-modules python/glow/hail/").value
       },
       generatedFunctionsOutput := baseDirectory.value / "glow" / "functions.py",
       functionsTemplate := baseDirectory.value / "glow" / "functions.py.TEMPLATE",

@@ -131,7 +131,7 @@ def test_unphased_bgen(spark, tmp_path):
                              writer_options={'bitsPerProbability': '8'})
 
 
-def test_plink(spark, tmp_path):
+def test_plink(spark):
     input_base = 'test-data/plink/five-samples-five-variants/bed-bim-fam/test'
     # Do not recode contigs (eg. 23 -> X)
     hail_df = functions.from_matrix_table(
@@ -156,14 +156,14 @@ def test_plink(spark, tmp_path):
     assert matching_glow_df.subtract(matching_hail_df).count() == 0
 
 
-def test_missing_locus(spark):
+def test_missing_locus():
     input_vcf = 'test-data/1kg_sample.vcf'
     mt = hl.import_vcf(input_vcf).key_rows_by('alleles').drop('locus')
     with pytest.raises(ValueError):
         functions.from_matrix_table(mt)
 
 
-def test_missing_alleles(spark):
+def test_missing_alleles():
     input_vcf = 'test-data/1kg_sample.vcf'
     mt = hl.import_vcf(input_vcf).key_rows_by('locus').drop('alleles')
     with pytest.raises(ValueError):

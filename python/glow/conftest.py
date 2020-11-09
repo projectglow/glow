@@ -13,15 +13,13 @@
 # limitations under the License.
 
 import glow
-import hail as hl
 from pyspark.sql import functions, Row
 import pytest
 
 
-@pytest.fixture(autouse=True, scope="function")
-def add_spark(doctest_namespace, spark):
+@pytest.fixture(autouse=True, scope="module")
+def add_glow(doctest_namespace, spark):
     glow.register(spark)
-    hl.init(spark.sparkContext, idempotent=True, quiet=True)
     doctest_namespace['Row'] = Row
     doctest_namespace['spark'] = spark
     doctest_namespace['lit'] = functions.lit
