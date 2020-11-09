@@ -114,14 +114,14 @@ class BgenReaderSuite extends GlowBaseTest {
   private def compareHardCalls(
       bgen: String,
       vcf: String,
-      threshold: Double,
+      threshold: Option[Double],
       filterPloidy: Boolean = false): Unit = {
-    val bgenDf = spark
-      .read
-      .format(sourceName)
-      .option("hardCallThreshold", threshold.toString)
-      .load(bgen)
-      .selectExpr("start", "genotypes.calls")
+    val bgenReader = spark.read.format(sourceName)
+    val bgenDf = if (threshold.isDefined) {
+      bgenReader.option("hardCallThreshold", threshold.get.toString).load(bgen).select("start", "genotypes.calls")
+    } else {
+      bgenReader.load(bgen).select("start", "genotypes.calls")
+    }
     val baseVcfDf = spark.read.format("vcf").load(vcf)
     val vcfDf = if (filterPloidy) {
       // For non-diploids, replace calls with missing
@@ -378,7 +378,7 @@ class BgenReaderSuite extends GlowBaseTest {
     }
   }
 
-  private def hasSampleIdField(schema: StructType): Boolean = {
+  private def hasGenotypeField(schema: StructType, field: String): Boolean = {
     schema
       .find(_.name == VariantSchemas.genotypesFieldName)
       .get
@@ -386,7 +386,7 @@ class BgenReaderSuite extends GlowBaseTest {
       .asInstanceOf[ArrayType]
       .elementType
       .asInstanceOf[StructType]
-      .exists(_.name == VariantSchemas.sampleIdField.name)
+      .exists(_.name == field)
   }
 
   test("schema does not include sample id field if there are no ids") {
@@ -395,7 +395,7 @@ class BgenReaderSuite extends GlowBaseTest {
       .format(sourceName)
       .load(s"$testRoot/example.16bits.nosampleids.bgen")
 
-    assert(!hasSampleIdField(df.schema))
+    assert(!hasGenotypeField(df.schema, VariantSchemas.sampleIdField.name))
   }
 
   test("schema includes sample id if at least one file has ids") {
@@ -403,7 +403,7 @@ class BgenReaderSuite extends GlowBaseTest {
       .read
       .format(sourceName)
       .load(s"$testRoot/example.16bits*.bgen")
-    assert(hasSampleIdField(df.schema))
+    assert(hasGenotypeField(df.schema, VariantSchemas.sampleIdField.name))
   }
 
   test("schema includes sample id if sample id file is provided") {
@@ -413,7 +413,7 @@ class BgenReaderSuite extends GlowBaseTest {
       .option("sampleIdColumn", "ID_2")
       .format(sourceName)
       .load(s"$testRoot/example.16bits.nosampleids.bgen")
-    assert(hasSampleIdField(df.schema))
+    assert(hasGenotypeField(df.schema, VariantSchemas.sampleIdField.name))
   }
 
   test("schema does not include sample ids if `includeSampleIds` is false") {
@@ -422,7 +422,16 @@ class BgenReaderSuite extends GlowBaseTest {
       .format(sourceName)
       .option(CommonOptions.INCLUDE_SAMPLE_IDS, false)
       .load(s"$testRoot/example.16bits*.bgen")
-    assert(!hasSampleIdField(df.schema))
+    assert(!hasGenotypeField(df.schema, VariantSchemas.sampleIdField.name))
+  }
+
+  test("schema does not include calls if `emitHardCalls` is false") {
+    val df = spark
+      .read
+      .format(sourceName)
+      .option(BgenOptions.EMIT_HARD_CALLS, false)
+      .load(s"$testRoot/example.16bits*.bgen")
+    assert(!hasGenotypeField(df.schema, VariantSchemas.callsField.name))
   }
 
   test("read zstd compressed file") {
@@ -433,32 +442,39 @@ class BgenReaderSuite extends GlowBaseTest {
     compareBgenToVcf(s"$testRoot/example.8bits.uncompressed.bgen", s"$testRoot/example.8bits.vcf")
   }
 
+  test("hard call threshold default (0.9)") {
+    compareHardCalls(
+      s"$testRoot/example.16bits.bgen",
+      s"$testRoot/example.16bits.threshold-0.9.vcf",
+      None)
+  }
+
   test("hard call threshold 0.9") {
     compareHardCalls(
       s"$testRoot/example.16bits.bgen",
       s"$testRoot/example.16bits.threshold-0.9.vcf",
-      0.9)
+      Some(0.9))
   }
 
   test("hard call threshold 0.95") {
     compareHardCalls(
       s"$testRoot/example.16bits.bgen",
       s"$testRoot/example.16bits.threshold-0.95.vcf",
-      0.95)
+      Some(0.95))
   }
 
   test("hard call with phased") {
     compareHardCalls(
       s"$testRoot/phased.16bits.bgen",
       s"$testRoot/phased.16bits.threshold-0.9.vcf",
-      0.9)
+      Some(0.9))
   }
 
   test("mixed phased and ploidy") {
     compareHardCalls(
       s"$testRoot/complex.16bits.bgen",
       s"$testRoot/complex.16bits.threshold-0.9.vcf",
-      0.9,
+      Some(0.9),
       true)
   }
 }

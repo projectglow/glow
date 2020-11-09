@@ -31,7 +31,7 @@ import io.projectglow.sql.util.RowConverter
  * this class will throw an [[IllegalArgumentException]] if any of the fields in the required
  * schema cannot be derived from a BGEN record.
  */
-class BgenRowToInternalRowConverter(schema: StructType, hardCallsThreshold: Option[Double])
+class BgenRowToInternalRowConverter(schema: StructType, hardCallsThreshold: Double)
     extends GlowLogging {
   import io.projectglow.common.VariantSchemas._
   private val converter = {
@@ -76,7 +76,7 @@ class BgenRowToInternalRowConverter(schema: StructType, hardCallsThreshold: Opti
 
   private def makeGenotypeConverter(
       gSchema: StructType,
-      hardCallsThreshold: Option[Double]): RowConverter[(Int, BgenGenotype)] = {
+      hardCallsThreshold: Double): RowConverter[(Int, BgenGenotype)] = {
     val functions = gSchema.map { field =>
       val fn: RowConverter.Updater[(Int, BgenGenotype)] = field match {
         case f if structFieldsEqualExceptNullability(f, sampleIdField) =>
@@ -89,9 +89,9 @@ class BgenRowToInternalRowConverter(schema: StructType, hardCallsThreshold: Opti
           (g, r, i) => g._2.phased.foreach(r.setBoolean(i, _))
         case f if structFieldsEqualExceptNullability(f, callsField) =>
           (g, r, i) =>
-            if (hardCallsThreshold.isDefined && g._2.phased.isDefined && g._2.ploidy == Some(2)) {
+            if (g._2.phased.isDefined && g._2.ploidy == Some(2)) {
               val hardCalls = HardCalls.getHardCalls(
-                hardCallsThreshold.get,
+                hardCallsThreshold,
                 g._1, // Number of alleles
                 g._2.phased.get,
                 g._2.posteriorProbabilities.length,

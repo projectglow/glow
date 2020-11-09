@@ -30,7 +30,7 @@ import io.projectglow.sql.util.SerializableConfiguration
  *
  * - If sample IDs are defined in either a .sample file or in any of the headers,
  *   `sampleId` is added to the genotype field.
- * - If a hard call threshold is specified, `calls` is added to the genotype field.
+ * - If hard calls should be emitted (true by default), `calls` is added to the genotype field.
  */
 object BgenSchemaInferrer {
   def inferSchema(
@@ -38,7 +38,7 @@ object BgenSchemaInferrer {
       files: Seq[FileStatus],
       options: Map[String, String]): StructType = {
     val hasSampleIds = includeSampleIds(spark, files, options)
-    val hasHardCalls = options.contains(BgenOptions.HARD_CALL_THRESHOLD)
+    val hasHardCalls = options.get(BgenOptions.EMIT_HARD_CALLS).forall(_.toBoolean)
     VariantSchemas.bgenDefaultSchema(hasSampleIds, hasHardCalls)
   }
 
