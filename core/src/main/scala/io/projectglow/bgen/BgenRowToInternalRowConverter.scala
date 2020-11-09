@@ -79,35 +79,39 @@ class BgenRowToInternalRowConverter(schema: StructType, hardCallsThreshold: Doub
       hardCallsThreshold: Double): RowConverter[(Int, BgenGenotype)] = {
     val functions = gSchema.map { field =>
       val fn: RowConverter.Updater[(Int, BgenGenotype)] = field match {
-        case f if structFieldsEqualExceptNullability(f, sampleIdField) =>
-          (g, r, i) => {
-            if (g._2.sampleId.isDefined) {
-              r.update(i, UTF8String.fromString(g._2.sampleId.get))
+        case f if structFieldsEqualExceptNullability(f, sampleIdField) => {
+          case ((numAlleles, g), r, i) =>
+            if (g.sampleId.isDefined) {
+              r.update(i, UTF8String.fromString(g.sampleId.get))
             }
-          }
-        case f if structFieldsEqualExceptNullability(f, phasedField) =>
-          (g, r, i) => g._2.phased.foreach(r.setBoolean(i, _))
-        case f if structFieldsEqualExceptNullability(f, callsField) =>
-          (g, r, i) =>
-            if (g._2.phased.isDefined && g._2.ploidy == Some(2)) {
+        }
+        case f if structFieldsEqualExceptNullability(f, phasedField) => {
+          case ((numAlleles, g), r, i) => g.phased.foreach(r.setBoolean(i, _))
+        }
+        case f if structFieldsEqualExceptNullability(f, callsField) => {
+          case ((numAlleles, g), r, i) =>
+            if (g.phased.isDefined && g.ploidy == Some(2)) {
               val hardCalls = HardCalls.getHardCalls(
                 hardCallsThreshold,
-                g._1, // Number of alleles
-                g._2.phased.get,
-                g._2.posteriorProbabilities.length,
-                g._2.posteriorProbabilities.apply
+                numAlleles,
+                g.phased.get,
+                g.posteriorProbabilities.length,
+                g.posteriorProbabilities.apply
               )
               r.update(i, hardCalls)
             } else {
               // Set hard calls to missing for non-diploids
-              g._2.ploidy.foreach { p =>
+              g.ploidy.foreach { p =>
                 r.update(i, new GenericArrayData(Array.fill(p)(-1)))
               }
             }
-        case f if structFieldsEqualExceptNullability(f, ploidyField) =>
-          (g, r, i) => g._2.ploidy.foreach(r.setInt(i, _))
-        case f if structFieldsEqualExceptNullability(f, posteriorProbabilitiesField) =>
-          (g, r, i) => r.update(i, new GenericArrayData(g._2.posteriorProbabilities))
+        }
+        case f if structFieldsEqualExceptNullability(f, ploidyField) => {
+          case ((numAlleles, g), r, i) => g.ploidy.foreach(r.setInt(i, _))
+        }
+        case f if structFieldsEqualExceptNullability(f, posteriorProbabilitiesField) => {
+          case ((numAlleles, g), r, i) => r.update(i, new GenericArrayData(g.posteriorProbabilities))
+        }
         case f =>
           logger.info(
             s"Genotype field $f cannot be derived from BGEN genotypes. It will be null " +
