@@ -116,7 +116,7 @@ jobs:
           name: Run docs tests
           environment:
           command: |
-            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            export PATH=$HOME/conda/envs/glow/bin:$HOME/conda/bin:$PATH
             export SPARK_VERSION="2.4.5"
             export SCALA_VERSION="2.11.12"
             sbt docs/test exit
@@ -165,7 +165,7 @@ jobs:
           name: Run docs tests
           environment:
           command: |
-            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            export PATH=$HOME/conda/envs/glow/bin:$HOME/conda/bin:$PATH
             export SPARK_VERSION="2.4.5"
             export SCALA_VERSION="2.12.8"
             sbt docs/test exit
@@ -206,7 +206,7 @@ jobs:
           name: Run docs tests
           environment:
           command: |
-            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            export PATH=$HOME/conda/envs/glow/bin:$HOME/conda/bin:$PATH
             export SPARK_VERSION="3.0.0"
             export SCALA_VERSION="2.12.8"
             sbt docs/test exit
