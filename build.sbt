@@ -260,11 +260,11 @@ lazy val pythonSettings = Seq(
         "/bin/bash",
         "-c",
         "source $(conda info --base)/etc/profile.d/conda.sh &&" +
-          "conda activate hail --stack &&" + "pytest " + args.mkString(" ")),
+        "conda activate hail --stack &&" + "pytest " + args.mkString(" ")),
       None,
       (env.value): _*
     ).!
-    require(ret == 0, "Python tests failed")
+    require(ret == 0, "Python tests in Hail environment failed")
   }
 )
 
@@ -294,13 +294,21 @@ lazy val python =
       test in Test := {
         yapf.toTask(" --diff").value
         pytest.toTask(" --doctest-modules --ignore=python/glow/hail python").value
-        hailtest.toTask(" --doctest-modules python/glow/hail/").value
       },
       generatedFunctionsOutput := baseDirectory.value / "glow" / "functions.py",
       functionsTemplate := baseDirectory.value / "glow" / "functions.py.TEMPLATE",
       sourceGenerators in Compile += generateFunctions
     )
     .dependsOn(core % "test->test")
+
+lazy val hail = (project in file("python/glow/hail"))
+  .settings(
+    pythonSettings,
+    test in Test := {
+      hailtest.toTask(" --doctest-modules python/glow/hail/").value
+    }
+  )
+  .dependsOn(core % "test->test", python)
 
 lazy val docs = (project in file("docs"))
   .settings(
