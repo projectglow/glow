@@ -77,6 +77,8 @@ class BgenRowToInternalRowConverter(schema: StructType, hardCallsThreshold: Doub
   private def makeGenotypeConverter(
       gSchema: StructType,
       hardCallsThreshold: Double): RowConverter[(Int, BgenGenotype)] = {
+    // scalastyle:off
+    // We use braces inside case classes to extract the nested (numAlleles, g) tuple
     val functions = gSchema.map { field =>
       val fn: RowConverter.Updater[(Int, BgenGenotype)] = field match {
         case f if structFieldsEqualExceptNullability(f, sampleIdField) => {
@@ -122,6 +124,7 @@ class BgenRowToInternalRowConverter(schema: StructType, hardCallsThreshold: Doub
       }
       fn
     }
+    // scalastyle:on
     new RowConverter[(Int, BgenGenotype)](gSchema, functions.toArray)
   }
 
