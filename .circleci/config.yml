@@ -159,7 +159,7 @@ jobs:
             export SCALA_VERSION="2.12.8"
             sudo apt-get update
             sudo apt-get -y install rsync
-            sbt setupHail python/test teardownHail exit
+            sbt installHail python/test uninstallHail exit
       - run:
           name: Run docs tests
           environment:
@@ -200,7 +200,7 @@ jobs:
             export SCALA_VERSION="2.12.8"
             sudo apt-get update
             sudo apt-get -y install rsync
-            sbt setupHail python/test teardownHail exit
+            sbt installHail python/test uninstallHail exit
       - run:
           name: Run docs tests
           environment:
