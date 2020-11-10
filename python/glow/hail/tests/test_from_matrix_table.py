@@ -144,7 +144,9 @@ def test_plink(spark):
     # Hail does not set the genotype if it is missing; the Glow PLINK reader sets the calls to (-1, -1)
     # Hail sets the genotype phased=False when reading from PLINK if the genotype is present;
     # the Glow PLINK reader does not as it is always false
-    glow_df = spark.read.format('plink').option('mergeFidIid', 'false').load(input_base + '.bed')
+    glow_df = spark.read.format('plink') \
+        .option('mergeFidIid', 'false') \
+        .load(input_base + '.bed')
     _compare_struct_types(hail_df.schema, glow_df.schema, ignore_fields=['phased'])
     matching_glow_df = glow_df.withColumn(
         'genotypes',

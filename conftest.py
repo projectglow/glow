@@ -16,18 +16,18 @@
 from pyspark.sql import SparkSession
 import pytest
 
-# Set up a new Spark session for each test suite
+
 @pytest.fixture(scope="module")
-def spark():
-    print("set up new spark session")
-    sess = SparkSession.builder \
+def spark_builder():
+    return SparkSession.builder \
         .master("local[2]") \
         .config("spark.hadoop.io.compression.codecs", "io.projectglow.sql.util.BGZFCodec") \
-        .config("spark.ui.enabled", "false") \
-        .config("spark.jars", "hail/hail/build/libs/hail-all-spark.jar") \
-        .config("spark.driver.extraClassPath", "hail/hail/build/libs/hail-all-spark.jar") \
-        .config("spark.executor.extraClassPath", "./hail-all-spark.jar") \
-        .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer") \
-        .config("spark.kryo.registrator", "is.hail.kryo.HailKryoRegistrator") \
-        .getOrCreate()
+        .config("spark.ui.enabled", "false")
+
+
+# Set up a new Spark session for each test suite
+@pytest.fixture(scope="module")
+def spark(spark_builder):
+    print("set up new spark session")
+    sess = spark_builder.getOrCreate()
     return sess.newSession()

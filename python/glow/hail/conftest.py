@@ -16,6 +16,17 @@ import hail as hl
 import pytest
 
 
+# Override Spark session for Hail tests
 @pytest.fixture(autouse=True, scope="module")
-def add_hail(spark):
-    hl.init(spark.sparkContext, idempotent=True, quiet=True)
+def spark(spark_builder):
+    print("set up new spark session with Hail configs")
+    sess = spark_builder \
+        .config("spark.jars", "hail/hail/build/libs/hail-all-spark.jar") \
+        .config("spark.driver.extraClassPath", "hail/hail/build/libs/hail-all-spark.jar") \
+        .config("spark.executor.extraClassPath", "./hail-all-spark.jar") \
+        .config("spark.serializer", "org.apache.spark.serializer.KryoSerializer") \
+        .config("spark.kryo.registrator", "is.hail.kryo.HailKryoRegistrator") \
+        .getOrCreate() \
+        .newSession()
+    hl.init(sess.sparkContext, idempotent=True, quiet=True)
+    return sess

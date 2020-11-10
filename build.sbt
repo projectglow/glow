@@ -161,7 +161,7 @@ ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDepe
   "org.yaml" % "snakeyaml" % "1.16"
 )).map(_.exclude("com.google.code.findbugs", "jsr305"))
 
-lazy val root = (project in file(".")).aggregate(core, python, docs)
+lazy val root = (project in file(".")).aggregate(core, python, hail, docs)
 
 lazy val scalaLoggingDependency = settingKey[ModuleID]("scalaLoggingDependency")
 ThisBuild / scalaLoggingDependency := {
