@@ -16,6 +16,9 @@ lazy val spark2 = "2.4.5"
 lazy val sparkVersion = settingKey[String]("sparkVersion")
 ThisBuild / sparkVersion := sys.env.getOrElse("SPARK_VERSION", spark3)
 
+lazy val hailVersion = settingKey[String]("hailVersion")
+ThisBuild / hailVersion := sys.env.getOrElse("HAIL_VERSION", "0.2.58")
+
 def majorVersion(version: String): String = {
   StringUtils.ordinalIndexOf(version, ".", 1) match {
     case StringUtils.INDEX_NOT_FOUND => version
@@ -98,7 +101,9 @@ ThisBuild / generatorScript := (ThisBuild / baseDirectory).value / "python" / "r
 lazy val generatedFunctionsOutput = settingKey[File]("generatedFunctionsOutput")
 lazy val functionsTemplate = settingKey[File]("functionsTemplate")
 lazy val generateFunctions = taskKey[Seq[File]]("generateFunctions")
+lazy val env = taskKey[Seq[(String, String)]]("env")
 lazy val pytest = inputKey[Unit]("pytest")
+lazy val hailtest = inputKey[Unit]("hailtest")
 
 def runCmd(args: File*): Unit = {
   args.map(_.getPath).!!
@@ -156,7 +161,7 @@ ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDepe
   "org.yaml" % "snakeyaml" % "1.16"
 )).map(_.exclude("com.google.code.findbugs", "jsr305"))
 
-lazy val root = (project in file(".")).aggregate(core, python, docs)
+lazy val root = (project in file(".")).aggregate(core, python, hail, docs)
 
 lazy val scalaLoggingDependency = settingKey[ModuleID]("scalaLoggingDependency")
 ThisBuild / scalaLoggingDependency := {
@@ -202,6 +207,25 @@ def currentGitHash(dir: File): String = {
   ).!!.trim
 }
 
+lazy val installHail = taskKey[Unit]("Install Hail")
+ThisBuild / installHail := {
+  Seq(
+    "/bin/bash",
+    "-c",
+    s"git clone -b ${hailVersion.value} https://github.com/hail-is/hail.git;" +
+    "source $(conda info --base)/etc/profile.d/conda.sh &&" +
+    "conda create -y --name hail &&" +
+    "conda activate hail --stack &&" +
+    s"make -C hail/hail SCALA_VERSION=${scalaVersion.value} SPARK_VERSION=${sparkVersion.value} install-deps shadowJar wheel &&" +
+    s"pip install --no-deps hail/hail/build/deploy/dist/hail-${hailVersion.value}-py3-none-any.whl"
+  ) !
+}
+
+lazy val uninstallHail = taskKey[Unit]("Uninstall Hail")
+ThisBuild / uninstallHail := {
+  "conda env remove --name hail" ### "rm -rf hail" !
+}
+
 lazy val sparkClasspath = taskKey[String]("sparkClasspath")
 lazy val sparkHome = taskKey[String]("sparkHome")
 lazy val pythonPath = taskKey[String]("pythonPath")
@@ -212,24 +236,35 @@ lazy val pythonSettings = Seq(
   sparkHome := (ThisBuild / baseDirectory).value.absolutePath,
   pythonPath := ((ThisBuild / baseDirectory).value / "python").absolutePath,
   publish / skip := true,
-  pytest := {
-    val args = spaceDelimited("<arg>").parsed
+  env := {
     val baseEnv = Seq(
       "SPARK_CLASSPATH" -> sparkClasspath.value,
       "SPARK_HOME" -> sparkHome.value,
       "PYTHONPATH" -> pythonPath.value
     )
-    val env = if (majorMinorVersion(sparkVersion.value) >= "3.0") {
+    if (majorMinorVersion(sparkVersion.value) >= "3.0") {
       baseEnv :+ "PYSPARK_ROW_FIELD_SORTING_ENABLED" -> "true"
     } else {
       baseEnv :+ "ARROW_PRE_0_15_IPC_FORMAT" -> "1"
     }
-    val ret = Process(
-      Seq("pytest") ++ args,
-      None,
-      env: _*
-    ).!
+  },
+  pytest := {
+    val args = spaceDelimited("<arg>").parsed
+    val ret = Process("pytest " + args.mkString(" "), None, (env.value): _*).!
     require(ret == 0, "Python tests failed")
+  },
+  hailtest := {
+    val args = spaceDelimited("<arg>").parsed
+    val ret = Process(
+      Seq(
+        "/bin/bash",
+        "-c",
+        "source $(conda info --base)/etc/profile.d/conda.sh &&" +
+        "conda activate hail --stack &&" + "pytest " + args.mkString(" ")),
+      None,
+      (env.value): _*
+    ).!
+    require(ret == 0, "Python tests in Hail environment failed")
   }
 )
 
@@ -258,13 +293,22 @@ lazy val python =
       functionGenerationSettings,
       test in Test := {
         yapf.toTask(" --diff").value
-        pytest.toTask(" --doctest-modules python").value
+        pytest.toTask(" --doctest-modules --ignore=python/glow/hail python").value
       },
       generatedFunctionsOutput := baseDirectory.value / "glow" / "functions.py",
       functionsTemplate := baseDirectory.value / "glow" / "functions.py.TEMPLATE",
       sourceGenerators in Compile += generateFunctions
     )
     .dependsOn(core % "test->test")
+
+lazy val hail = (project in file("python/glow/hail"))
+  .settings(
+    pythonSettings,
+    test in Test := {
+      hailtest.toTask(" --doctest-modules python/glow/hail/").value
+    }
+  )
+  .dependsOn(core % "test->test", python)
 
 lazy val docs = (project in file("docs"))
   .settings(

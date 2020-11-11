@@ -12,13 +12,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import pytest
-from pyspark.sql import functions, Row
 import glow
+from pyspark.sql import functions, Row
+import pytest
 
 
 @pytest.fixture(autouse=True, scope="module")
-def add_spark(doctest_namespace, spark):
+def add_glow(doctest_namespace, spark):
     glow.register(spark)
     doctest_namespace['Row'] = Row
     doctest_namespace['spark'] = spark

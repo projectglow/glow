@@ -122,7 +122,7 @@ If liftOver fails, the output row contains the original input row, the additiona
 .. invisible-code-block: python
 
    lifted_variant = output_df.select('contigName', 'start', 'end', 'INFO_SwappedAlleles', 'INFO_ReverseComplementedAlleles', 'liftOverStatus').head()
-   expected_variant = Row(contigName='chr20', start=18190714, end=18190715, INFO_SwappedAlleles=None, INFO_ReverseComplementedAlleles=None, liftOverStatus=Row(errorMessage=None, success=True))
+   expected_variant = Row(contigName='chr20', start=18190714, end=18190715, INFO_SwappedAlleles=False, INFO_ReverseComplementedAlleles=False, liftOverStatus=Row(errorMessage=None, success=True))
    assert_rows_equal(lifted_variant, expected_variant)
 
 .. notebook:: .. etl/lift-over.html

@@ -412,7 +412,7 @@ class VCFDatasourceSuite extends GlowBaseTest {
       Some(2),
       None,
       Some(84),
-      None,
+      Some(false),
       Some(3.0103),
       Some(0.0),
       None,

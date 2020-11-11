@@ -289,7 +289,11 @@ class VariantContextToInternalRowConverter(
 
     val realName = field.name.stripPrefix(VariantSchemas.infoFieldPrefix)
     if (!vc.hasAttribute(realName)) {
-      row.setNullAt(idx)
+      if (field.dataType == BooleanType) {
+        row.setBoolean(idx, false)
+      } else {
+        row.setNullAt(idx)
+      }
       return
     }
 

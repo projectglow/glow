@@ -81,6 +81,10 @@ class VCFLineToInternalRowConverter(
     }
     .toMap
 
+  private val flagFields = infoFields.filter { f =>
+    f._2._1 == BooleanType
+  }
+
   private val gSchemaOpt = schema
     .find(_.name == VariantSchemas.genotypesFieldName)
     .map(_.dataType.asInstanceOf[ArrayType].elementType.asInstanceOf[StructType])
@@ -129,7 +133,14 @@ class VCFLineToInternalRowConverter(
     var start: Long = -1
     var end: Long = -1
     val row = new GenericInternalRow(schema.size)
+
     set(row, splitFromMultiIdx, false)
+    // By default, FLAG fields should be false
+    flagFields.foreach {
+      case (key, (typ, idx)) =>
+        set(row, idx, false)
+    }
+
     val ctx = new LineCtx(line)
     if (ctx.isHeader) {
       return null
