@@ -9,8 +9,8 @@ install_conda_deps: &install_conda_deps
     command: |
       export PATH=$HOME/conda/bin:$PATH
       if [ ! -d "/home/circleci/conda" ]; then
-        wget https://repo.continuum.io/miniconda/Miniconda3-4.3.31-Linux-x86_64.sh
-        /bin/bash Miniconda3-4.3.31-Linux-x86_64.sh -b -p $HOME/conda
+        wget https://repo.continuum.io/miniconda/Miniconda3-py37_4.8.3-Linux-x86_64.sh
+        /bin/bash Miniconda3-py37_4.8.3-Linux-x86_64.sh -b -p $HOME/conda
         conda env create -f python/environment.yml
       else
         echo "Conda already installed"
@@ -25,6 +25,7 @@ install_pyspark2: &install_pyspark2
       source activate glow
       conda remove -y pyspark
       pip install pyspark==2.4.5
+
 
 check_clean_repo: &check_clean_repo
   run:
@@ -45,7 +46,7 @@ orbs:
   codecov: codecov/codecov@1.0.5
 jobs:
 
-  check-links:
+  check-docs:
     <<: *setup_base
     steps:
       - checkout
@@ -64,6 +65,19 @@ jobs:
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             cd docs
             make linkcheck
+      - run:
+          name: Configure Databricks CLI
+          command: |
+            printf "[docs-ci]\nhost = https://westus2.azuredatabricks.net\ntoken = ${DATABRICKS_API_TOKEN}\n" > ~/.databrickscfg
+      - run:
+          name: Generate notebook source files
+          command: |
+            export PATH=$HOME/conda/bin:$PATH
+            source activate glow
+            for f in $(find docs/source/_static/notebooks -type f -name '*.html'); do
+                python docs/dev/gen-nb-src.py --html "${f}" --cli-profile docs-ci
+            done
+      - *check_clean_repo
 
   scala-2_11-tests:
     <<: *setup_base
@@ -200,7 +214,7 @@ workflows:
   version: 2
   test:
     jobs:
-      - check-links
+      - check-docs
       - scala-2_11-tests
       - scala-2_12-tests
       - spark-3-tests
@@ -213,5 +227,5 @@ workflows:
               only:
                 - master
     jobs:
-      - check-links
+      - check-docs
       - spark-3-tests
