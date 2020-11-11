@@ -167,11 +167,11 @@ class VariantUtilExprsSuite extends GlowBaseTest {
       Some(0.8),
       "unphased, lower threshold"
     ),
-    HCTestCase(Seq(0, 0, 0, 0, 1, 0), Some(2), Seq(2, 1), Some(false), None, "unphased, 2 alts"),
+    HCTestCase(Seq(0, 0, 0, 0, 1, 0), Some(2), Seq(1, 2), Some(false), None, "unphased, 2 alts"),
     HCTestCase(
       Seq(0, 0, 0, 1, 0, 0),
       Some(2),
-      Seq(2, 0),
+      Seq(0, 2),
       Some(false),
       None,
       "unphased, 2 alts (2)"
@@ -179,7 +179,7 @@ class VariantUtilExprsSuite extends GlowBaseTest {
     HCTestCase(
       Seq(0, 0, 0, 0, 0, 0, 0, 1, 0, 0),
       Some(3),
-      Seq(3, 1),
+      Seq(1, 3),
       Some(false),
       None,
       "unphased, 3 alts"

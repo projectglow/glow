@@ -168,15 +168,19 @@ index files are located in the same directory as the data files, the reader uses
 more efficiently traverse the data files. Data files can be processed even if indexes do not exist.
 The schema of the resulting DataFrame matches that of the VCF reader.
 
-+--------------------+---------+--------------+------------------------------------------------------------------------------------------------------------+
-| Parameter          | Type    | Default      | Description                                                                                                |
-+====================+=========+==============+============================================================================================================+
-| ``useBgenIndex``   | boolean | ``true``     | If true, use ``.bgi`` index files.                                                                         |
-+--------------------+---------+--------------+------------------------------------------------------------------------------------------------------------+
-| ``sampleFilePath`` | string  | n/a          | Path to a ``.sample`` Oxford sample information file containing sample IDs if not stored in the BGEN file. |
-+--------------------+---------+--------------+------------------------------------------------------------------------------------------------------------+
-| ``sampleIdColumn`` | string  | ``ID_2``     | Name of the column in the ``.sample`` file corresponding to the sample IDs.                                |
-+--------------------+---------+--------------+------------------------------------------------------------------------------------------------------------+
++-----------------------+---------+--------------+------------------------------------------------------------------------------------------------------------+
+| Parameter             | Type    | Default      | Description                                                                                                |
++=======================+=========+==============+============================================================================================================+
+| ``useBgenIndex``      | boolean | ``true``     | If true, use ``.bgi`` index files.                                                                         |
++-----------------------+---------+--------------+------------------------------------------------------------------------------------------------------------+
+| ``sampleFilePath``    | string  | n/a          | Path to a ``.sample`` Oxford sample information file containing sample IDs if not stored in the BGEN file. |
++-----------------------+---------+--------------+------------------------------------------------------------------------------------------------------------+
+| ``sampleIdColumn``    | string  | ``ID_2``     | Name of the column in the ``.sample`` file corresponding to the sample IDs.                                |
++-----------------------+---------+--------------+------------------------------------------------------------------------------------------------------------+
+| ``emitHardCalls``     | boolean | ``true``     | If true, adds genotype calls for diploids based on the posterior probabilities.                            |
++-----------------------+---------+--------------+------------------------------------------------------------------------------------------------------------+
+| ``hardCallThreshold`` | double  | 0.9          | Sets the threshold for hard calls.                                                                         |
++-----------------------+---------+--------------+------------------------------------------------------------------------------------------------------------+
 
 You can use the ``DataFrameWriter`` API to save a single BGEN file, which you can then read with other tools.
 

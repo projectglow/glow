@@ -230,7 +230,7 @@ def hard_calls(probabilities: Union[Column, str], numAlts: Union[Column, str], p
         [Row(calls=[0, 0])]
         >>> df = spark.createDataFrame([Row(probs=[0.05, 0.95, 0.0])])
         >>> df.select(glow.hard_calls('probs', numAlts=lit(1), phased=lit(False)).alias('calls')).collect()
-        [Row(calls=[1, 0])]
+        [Row(calls=[0, 1])]
         >>> # Use the threshold parameter to change the minimum probability required for a call
         >>> df = spark.createDataFrame([Row(probs=[0.05, 0.95, 0.0])])
         >>> df.select(glow.hard_calls('probs', numAlts=lit(1), phased=lit(False), threshold=0.99).alias('calls')).collect()
