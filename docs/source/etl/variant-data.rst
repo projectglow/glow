@@ -182,6 +182,11 @@ The schema of the resulting DataFrame matches that of the VCF reader.
 | ``hardCallThreshold`` | double  | 0.9          | Sets the threshold for hard calls.                                                                         |
 +-----------------------+---------+--------------+------------------------------------------------------------------------------------------------------------+
 
+.. important::
+
+    The BGEN reader and writer assume that the first allele is the reference allele, and that all following alleles are
+    alternate alleles.
+
 You can use the ``DataFrameWriter`` API to save a single BGEN file, which you can then read with other tools.
 
 .. invisible-code-block: python
@@ -250,5 +255,9 @@ files must be located at ``{prefix}.bim`` and ``{prefix}.fam``.
 | ``mergeFidIid``      | boolean | ``true``        | If true, sets the sample ID to the family ID and individual ID merged with an underscore delimiter. |
 |                      |         |                 | If false, sets the sample ID to the individual ID.                                                  |
 +----------------------+---------+-----------------+-----------------------------------------------------------------------------------------------------+
+
+.. important::
+
+    The PLINK reader sets the first allele as the alternate allele, and the second allele as an alternate allele.
 
 .. notebook:: .. etl/variant-data.html
