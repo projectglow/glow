@@ -788,6 +788,14 @@ class FastVCFDatasourceSuite extends VCFDatasourceSuite {
         Double.PositiveInfinity,
         Double.PositiveInfinity))
   }
+
+  test("read string that starts with .") {
+    import sess.implicits._
+    val df = parseVcfContents(
+      makeVcfLine(Seq("STR=.monkey")),
+      extraHeaderLines = "##INFO=<ID=STR,Number=1,Type=String,Description=\"\"\n")
+    assert(df.selectExpr("INFO_STR").as[String].head == ".monkey")
+  }
 }
 
 // For testing only: schema based on CEUTrio VCF header
