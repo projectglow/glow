@@ -184,8 +184,8 @@ The schema of the resulting DataFrame matches that of the VCF reader.
 
 .. important::
 
-    The BGEN reader and writer assume that the first allele is the reference allele, and that all following alleles are
-    alternate alleles.
+    The BGEN reader and writer assume that the first allele in the ``.bgen`` file is the reference
+    allele, and that all following alleles are alternate alleles.
 
 You can use the ``DataFrameWriter`` API to save a single BGEN file, which you can then read with other tools.
 
@@ -258,6 +258,7 @@ files must be located at ``{prefix}.bim`` and ``{prefix}.fam``.
 
 .. important::
 
-    The PLINK reader sets the first allele as the alternate allele, and the second allele as an alternate allele.
+    The PLINK reader sets the first allele in the ``.bed`` file as the alternate allele, and the
+    second allele as an alternate allele.
 
 .. notebook:: .. etl/variant-data.html
