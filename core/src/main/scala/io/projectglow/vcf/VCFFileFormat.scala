@@ -167,7 +167,7 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
     // fields appear in the required schema, fall back to the htsjdk based reader
     val fastReaderEnabled = SQLConf
         .get
-        .getConf(GlowConf.FAST_VCF_READER_ENABLED) && !hasAttributesField && !hasOtherFields
+        .getConf(GlowConf.FAST_VCF_READER_ENABLED) && !hasAttributesField && !hasOtherFields && options.getOrElse("fastReaderEnabled", "true").toBoolean
 
     partitionedFile => {
       val path = new Path(partitionedFile.filePath)
