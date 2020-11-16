@@ -253,19 +253,20 @@ class VCFLineToInternalRowConverter(
       }
       var i = 0
       while (!ctx.isTab && i < typeAndIdx.length) {
-        if (i == gtIdx) {
-          ctx.parseCallsAndPhasing(gRow, phasedIdx, callsIdx)
-        } else if (typeAndIdx(i) == null) {
-          // Eat this value as a string since we don't need the parsed value
-          require(false, s"Parsing unneeded field as string")
-          ctx.parseString(':')
-        } else {
-          val (typ, idx) = typeAndIdx(i)
-          val value = ctx.parseFormatVal(typ)
-          gRow.update(idx, value)
+        tryWithWarning(fieldNames(i).asInstanceOf[UTF8String], FieldTypes.FORMAT) {
+          if (i == gtIdx) {
+            ctx.parseCallsAndPhasing(gRow, phasedIdx, callsIdx)
+          } else if (typeAndIdx(i) == null) {
+            // Eat this value as a string since we don't need the parsed value
+            ctx.parseString(':')
+          } else {
+            val (typ, idx) = typeAndIdx(i)
+            val value = ctx.parseFormatVal(typ)
+            gRow.update(idx, value)
+          }
+          ctx.eat(':')
+          i += 1
         }
-        ctx.eat(':')
-        i += 1
       }
       ctx.eat('\t')
       genotypeHolder(sampleIdx) = gRow
