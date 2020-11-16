@@ -37,9 +37,6 @@ the DataFrame API using Python, R, Scala, or SQL.
 .. code-block:: python
 
    df = spark.read.format("vcf").load(path)
-
-.. invisible-code-block: python
-
    assert_rows_equal(df.select("contigName", "start").head(), Row(contigName='17', start=504217))
 
 
@@ -71,6 +68,12 @@ You can control the behavior of the VCF reader with a few parameters. All parame
 .. note::
 
    Starting from Glow 0.4.0, the ``splitToBiallelic`` option for the VCF reader no longer exists. To split multiallelic variants to biallelics use the :ref:`split_multiallelics<split_multiallelics>` transformer after loading the VCF.
+
+.. note::
+
+   Glow includes a VCF reader that uses `htsjdk <https://github.com/samtools/htsjdk>`_ for initial parsing as well as a reader that parses VCF lines to Spark rows directly.
+
+   As of release 0.7.0, the direct reader is enabled by default. To use the htsjdk based reader, set the Spark config ``io.projectglow.vcf.fastReaderEnabled`` to ``false``.
 
 
 .. important:: The VCF reader uses the 0-start, half-open (zero-based) coordinate system. This means

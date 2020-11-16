@@ -253,19 +253,20 @@ class VCFLineToInternalRowConverter(
       }
       var i = 0
       while (!ctx.isTab && i < typeAndIdx.length) {
-        if (i == gtIdx) {
-          ctx.parseCallsAndPhasing(gRow, phasedIdx, callsIdx)
-        } else if (typeAndIdx(i) == null) {
-          // Eat this value as a string since we don't need the parsed value
-          require(false, s"Parsing unneeded field as string")
-          ctx.parseString(':')
-        } else {
-          val (typ, idx) = typeAndIdx(i)
-          val value = ctx.parseFormatVal(typ)
-          gRow.update(idx, value)
+        tryWithWarning(fieldNames(i).asInstanceOf[UTF8String], FieldTypes.FORMAT) {
+          if (i == gtIdx) {
+            ctx.parseCallsAndPhasing(gRow, phasedIdx, callsIdx)
+          } else if (typeAndIdx(i) == null) {
+            // Eat this value as a string since we don't need the parsed value
+            ctx.parseString(':')
+          } else {
+            val (typ, idx) = typeAndIdx(i)
+            val value = ctx.parseFormatVal(typ)
+            gRow.update(idx, value)
+          }
+          ctx.eat(':')
+          i += 1
         }
-        ctx.eat(':')
-        i += 1
       }
       ctx.eat('\t')
       genotypeHolder(sampleIdx) = gRow
@@ -318,17 +319,21 @@ class LineCtx(text: Text) {
   }
 
   def parseString(extraStopChar1: Byte = '\0', extraStopChar2: Byte = '\0'): UTF8String = {
-    if (pos >= text.getLength || line(pos) == '.') {
-      pos += 1
+    var stop = pos
+    while (stop < text.getLength && line(stop) != delimiter && line(stop) != '\t' && line(stop) != extraStopChar1 && line(
+        stop) != extraStopChar2) {
+      stop += 1
+    }
+
+    if (stop - pos == 0) {
+      return null
+    }
+
+    val out = UTF8String.fromBytes(line, pos, stop - pos)
+    pos = stop
+    if (out == LineCtx.MISSING) {
       null
     } else {
-      var stop = pos
-      while (stop < text.getLength && line(stop) != delimiter && line(stop) != '\t' && line(stop) != extraStopChar1 && line(
-          stop) != extraStopChar2) {
-        stop += 1
-      }
-      val out = UTF8String.fromBytes(line, pos, stop - pos)
-      pos = stop
       out
     }
   }
@@ -540,4 +545,5 @@ object LineCtx {
   val POS_NAN = UTF8String.fromString("+nan")
   val NEG_NAN = UTF8String.fromString("-nan")
   val END = UTF8String.fromString("END")
+  val MISSING = UTF8String.fromString(".")
 }
