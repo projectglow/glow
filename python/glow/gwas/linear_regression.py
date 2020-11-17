@@ -42,6 +42,9 @@ def linear_regression(genotype_df: DataFrame,
         - `pvalue`: P value estimed from a two sided t-test
         - `phenotype`: The phenotype name as determined by the column names of `phenotype_df`
     '''
+    if int(genotype_df.sql_ctx.sparkSession.version.split('.')[0]) < 3:
+        raise AttributeError(
+            'Pandas based linear regression is only supported on Spark 3.0 or greater')
 
     # Validate input
     for col in covariate_df:

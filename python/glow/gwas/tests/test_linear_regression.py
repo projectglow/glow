@@ -167,6 +167,7 @@ def test_missing():
     assert regression_results_equal(glow, baseline)
 
 
+@pytest.mark.min_spark('3')
 def test_missing_spark(spark):
     num_samples = 10
     genotype_df = pd.DataFrame(np.random.random((num_samples, 1)))
@@ -179,6 +180,7 @@ def test_missing_spark(spark):
     assert regression_results_equal(glow, baseline)
 
 
+@pytest.mark.min_spark('3')
 def test_multiple_spark(spark):
     num_samples = 100
     genotype_df = pd.DataFrame(np.random.random((num_samples, 10)))
@@ -189,6 +191,7 @@ def test_multiple_spark(spark):
     assert regression_results_equal(baseline, results)
 
 
+@pytest.mark.min_spark('3')
 def test_propagate_extra_cols(spark):
     num_samples = 10
     genotype_df = pd.DataFrame(np.random.random((num_samples, 3)))
@@ -204,6 +207,7 @@ def test_propagate_extra_cols(spark):
     ]
 
 
+@pytest.mark.min_spark('3')
 def test_different_values_column(spark):
     num_samples = 10
     genotype_df = pd.DataFrame(np.random.random((num_samples, 3)))
@@ -217,6 +221,7 @@ def test_different_values_column(spark):
     assert results.columns.tolist() == ['effect', 'stderror', 'tvalue', 'pvalue', 'phenotype']
 
 
+@pytest.mark.min_spark('3')
 def test_intercept_no_covariates(spark):
     num_samples = 10
     genotype_df = pd.DataFrame(np.random.random((num_samples, 10)))
@@ -225,6 +230,7 @@ def test_intercept_no_covariates(spark):
     run_linear_regression_spark(spark, genotype_df, phenotype_df, pd.DataFrame({}))
 
 
+@pytest.mark.min_spark('3')
 def test_validates_missing_covariates(spark):
     num_samples = 10
     genotype_df = pd.DataFrame(np.random.random((num_samples, 3)))
@@ -235,9 +241,19 @@ def test_validates_missing_covariates(spark):
         run_linear_regression_spark(spark, genotype_df, phenotype_df, covariate_df)
 
 
-def validate_same_number_of_rows(spark):
+@pytest.mark.min_spark('3')
+def test_validate_same_number_of_rows(spark):
     genotype_df = pd.DataFrame(np.random.random((4, 3)))
     phenotype_df = pd.DataFrame(np.random.random((4, 5)))
     covariate_df = pd.DataFrame(np.random.random((5, 2)))
     with pytest.raises(ValueError):
         run_linear_regression_spark(spark, genotype_df, phenotype_df, covariate_df)
+
+
+def test_error_for_old_spark(spark):
+    if spark.version.startswith('2'):
+        num_samples = 10
+        genotype_df = pd.DataFrame(np.random.random((num_samples, 10)))
+        phenotype_df = pd.DataFrame(np.random.random((num_samples, 25)))
+        with pytest.raises(AttributeError):
+            run_linear_regression_spark(spark, genotype_df, phenotype_df, pd.DataFrame({}))
