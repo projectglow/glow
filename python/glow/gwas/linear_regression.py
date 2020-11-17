@@ -37,7 +37,7 @@ def linear_regression(genotype_df: DataFrame,
         A Spark DataFrame that contains:
         - All columns from `genotype_df` except the `values_column`
         - `effect`: The effect size estimate for the genotype
-        - `stderror`: The estimated standard error
+        - `stderror`: The estimated standard error of the effect
         - `tvalue`: The T statistic
         - `pvalue`: P value estimed from a two sided t-test
         - `phenotype`: The phenotype name as determined by the column names of `phenotype_df`
@@ -66,8 +66,7 @@ def linear_regression(genotype_df: DataFrame,
 
     C = covariate_df.to_numpy(np.float64, copy=True)
     if fit_intercept:
-        intercept = np.ones((phenotype_df.shape[0], 1))
-        C = np.hstack((intercept, C)) if C.size else intercept
+        C = _add_intercept(C, phenotype_df.shape[0])
 
     # Prepare covariate basis and phenotype residuals
     Y = phenotype_df.to_numpy(np.float64, copy=True)
@@ -81,7 +80,8 @@ def linear_regression(genotype_df: DataFrame,
     def map_func(pdf_iterator):
         for pdf in pdf_iterator:
             yield _linear_regression_inner(pdf, Y, YdotY, Y_mask, Q, dof,
-                                           phenotype_df.columns.to_series().astype('str'))
+                                           phenotype_df.columns.to_series().astype('str'),
+                                           values_column)
 
     return genotype_df.mapInPandas(map_func, result_struct)
 
@@ -112,13 +112,14 @@ def _residualize_in_place(M: NDArray[(Any, Any), np.float64],
 
 
 @typechecked
-def _linear_regression_inner(genotype_df: pd.DataFrame, Y: NDArray[(Any, Any), np.float64],
+def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y: NDArray[(Any, Any), np.float64],
                              YdotY: NDArray[(Any), np.float64], Y_mask: NDArray[(Any, Any),
                                                                                 np.float64],
                              Q: NDArray[(Any, Any), np.float64], dof: int,
-                             phenotype_names: pd.Series) -> pd.DataFrame:
+                             phenotype_names: pd.Series, values_column: str) -> pd.DataFrame:
     '''
-    Applies a linear regression model to a block of genotypes.
+    Applies a linear regression model to a block of genotypes. We first project the covariates out of the
+    genotype block and then perform single variate linear regression for each site.
 
     To account for samples with missing traits, we additionally accept a mask indicating which samples are missing
     for each phenotype. This mask is used to ensure that missing samples are not included when summing across individuals.
@@ -130,7 +131,7 @@ def _linear_regression_inner(genotype_df: pd.DataFrame, Y: NDArray[(Any, Any), n
 
     So, if a matrix's indices are `sg` (like the X matrix), it has one row per sample and one column per genotype.
     '''
-    X = _residualize_in_place(np.column_stack(genotype_df['values'].array), Q)
+    X = _residualize_in_place(np.column_stack(genotype_pdf[values_column].array), Q)
     XdotY = Y.T @ X
     XdotX_reciprocal = 1 / _einsum('sp,sg,sg->pg', Y_mask, X, X)
     betas = XdotY * XdotX_reciprocal
@@ -138,12 +139,12 @@ def _linear_regression_inner(genotype_df: pd.DataFrame, Y: NDArray[(Any, Any), n
     T = betas / standard_error
     pvalues = 2 * stats.distributions.t.sf(np.abs(T), dof)
 
-    del genotype_df['values']
-    out_df = pd.concat([genotype_df] * Y.shape[1])
+    del genotype_pdf[values_column]
+    out_df = pd.concat([genotype_pdf] * Y.shape[1])
     out_df['effect'] = list(np.ravel(betas))
     out_df['stderror'] = list(np.ravel(standard_error))
     out_df['tvalue'] = list(np.ravel(T))
     out_df['pvalue'] = list(np.ravel(pvalues))
-    out_df['phenotype'] = phenotype_names.repeat(genotype_df.shape[0]).tolist()
+    out_df['phenotype'] = phenotype_names.repeat(genotype_pdf.shape[0]).tolist()
 
     return out_df

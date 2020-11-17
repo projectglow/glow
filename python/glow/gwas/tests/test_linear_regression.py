@@ -22,7 +22,7 @@ def run_linear_regression(genotype_df, phenotype_df, covariate_df, fit_intercept
     pdf = pd.DataFrame({'values': list(genotype_df.to_numpy('float64').T)})
 
     return lr._linear_regression_inner(pdf, Y, YdotY, Y_mask.astype('float64'), Q, dof,
-                                       phenotype_names)
+                                       phenotype_names, 'values')
 
 
 def run_linear_regression_spark(spark,
@@ -30,14 +30,15 @@ def run_linear_regression_spark(spark,
                                 phenotype_df,
                                 covariate_df,
                                 extra_cols=pd.DataFrame({}),
-                                fit_intercept=True):
-    pdf = pd.DataFrame({'values': genotype_df.to_numpy().T.tolist()})
+                                fit_intercept=True,
+                                values_column='values'):
+    pdf = pd.DataFrame({values_column: genotype_df.to_numpy().T.tolist()})
     if not extra_cols.empty:
         pdf = pd.concat([pdf, extra_cols], axis=1)
     pdf['idx'] = pdf.index
-    results = (lr.linear_regression(spark.createDataFrame(pdf), phenotype_df,
-                                    covariate_df).toPandas().sort_values(['idx']).drop('idx',
-                                                                                       axis=1))
+    results = (lr.linear_regression(spark.createDataFrame(pdf), phenotype_df, covariate_df,
+                                    fit_intercept, values_column).toPandas().sort_values(
+                                        ['idx']).drop('idx', axis=1))
     return results
 
 
@@ -201,6 +202,19 @@ def test_propagate_extra_cols(spark):
     assert results.columns.tolist() == [
         'genotype_idx', 'animal', 'effect', 'stderror', 'tvalue', 'pvalue', 'phenotype'
     ]
+
+
+def test_different_values_column(spark):
+    num_samples = 10
+    genotype_df = pd.DataFrame(np.random.random((num_samples, 3)))
+    phenotype_df = pd.DataFrame(np.random.random((num_samples, 5)))
+    covariate_df = pd.DataFrame(np.random.random((num_samples, 2)))
+    results = run_linear_regression_spark(spark,
+                                          genotype_df,
+                                          phenotype_df,
+                                          covariate_df,
+                                          values_column='genotypes')
+    assert results.columns.tolist() == ['effect', 'stderror', 'tvalue', 'pvalue', 'phenotype']
 
 
 def test_intercept_no_covariates(spark):
