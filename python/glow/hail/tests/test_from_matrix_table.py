@@ -68,6 +68,7 @@ def test_vcf(spark, tmp_path):
     hail_df = functions.from_matrix_table(hl.import_vcf(input_vcf))
     _assert_lossless_adapter(spark, tmp_path, hail_df, input_vcf, 'vcf', 'vcf')
 
+
 def test_gvcf(spark, tmp_path):
     input_vcf = 'test-data/NA12878_21_10002403.g.vcf'
     hail_df = functions.from_matrix_table(hl.import_vcf(input_vcf))
