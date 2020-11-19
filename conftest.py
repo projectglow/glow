@@ -16,25 +16,29 @@
 from pyspark.sql import SparkSession
 import pytest
 
-# Set up a new Spark session for each test suite
-def _spark_session():
+def _spark_builder():
     return SparkSession.builder \
         .master("local[2]") \
         .config("spark.hadoop.io.compression.codecs", "io.projectglow.sql.util.BGZFCodec") \
-        .config("spark.ui.enabled", "false") \
-        .getOrCreate()
+        .config("spark.ui.enabled", "false")
+
 
 @pytest.fixture(scope="module")
-def spark():
+def spark_builder():
+    return _spark_builder()
+
+# Set up a new Spark session for each test suite
+@pytest.fixture(scope="module")
+def spark(spark_builder):
     print("set up new spark session")
-    sess = _spark_session()
+    sess = spark_builder.getOrCreate()
     return sess.newSession()
 
 def pytest_runtest_setup(item):
     min_spark_version = next((mark.args[0] for mark in item.iter_markers(name='min_spark')), None)
     if min_spark_version:
-        min_version_components = min_spark_version.split('_')
-        version = _spark_session().version
+        min_version_components = min_spark_version.split('.')
+        version = _spark_builder().getOrCreate().version
         version_components = version.split('.')
         for actual, required in zip(version_components, min_version_components):
             if int(actual) < int(required):

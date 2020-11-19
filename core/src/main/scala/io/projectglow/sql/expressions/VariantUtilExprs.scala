@@ -242,9 +242,11 @@ case class HardCalls(
   }
 
   override def children: Seq[Expression] = Seq(probabilities, numAlts, phased, threshold)
+
   override def inputTypes = { // scalastyle:ignore
     Seq(ArrayType(DoubleType), IntegerType, BooleanType, DecimalType)
   }
+
   override def checkInputDataTypes(): TypeCheckResult = {
     super.checkInputDataTypes()
     if (!threshold.foldable) {
@@ -255,7 +257,9 @@ case class HardCalls(
   }
 
   override def dataType: DataType = ArrayType(IntegerType)
+
   override def nullable: Boolean = probabilities.nullable || numAlts.nullable || phased.nullable
+
   private lazy val threshold0 = threshold.eval().asInstanceOf[Decimal].toDouble
 
   override def eval(input: InternalRow): Any = {
@@ -270,10 +274,26 @@ case class HardCalls(
     val numAlleles = _numAlts.asInstanceOf[Int] + 1
     val phased0 = _phased0.asInstanceOf[Boolean]
 
+    HardCalls.getHardCalls(
+      threshold0,
+      numAlleles,
+      phased0,
+      probArr.numElements(),
+      probArr.getDouble)
+  }
+}
+
+object HardCalls {
+  def getHardCalls(
+      threshold: Double,
+      numAlleles: Int,
+      phased: Boolean,
+      numProbs: Int,
+      getProb: (Int) => Double): GenericArrayData = {
     // calls is an `Array[Any]` instead of `Array[Int]` because it's cheaper to convert
     // the former to Spark's array data format
     // phased case
-    val calls: Array[Any] = if (phased0) {
+    val calls = if (phased) {
       val out = new Array[Any](2) // 2 because we assume diploid
       var i = 0
       while (i < 2) {
@@ -281,8 +301,9 @@ case class HardCalls(
         var max = 0d
         var call = -1
         while (j < numAlleles) {
-          val probability = probArr.getDouble(i * numAlleles + j)
-          if (probability >= threshold0 && probability > max) {
+          val k = i * numAlleles + j
+          val probability = if (k < numProbs) getProb(k) else -1
+          if (probability >= threshold && probability > max) {
             max = probability
             call = j
           }
@@ -296,9 +317,9 @@ case class HardCalls(
       var i = 0
       var maxProb = 0d
       var maxIdx = -1
-      while (i < probArr.numElements()) {
-        val el = probArr.getDouble(i)
-        if (el >= threshold0 && el > maxProb) {
+      while (i < numProbs) {
+        val el = getProb(i)
+        if (el >= threshold && el > maxProb) {
           maxIdx = i
           maxProb = el
         }
@@ -306,7 +327,6 @@ case class HardCalls(
       }
       callsFromIdx(maxIdx)
     }
-
     new GenericArrayData(calls)
   }
 
@@ -346,8 +366,8 @@ case class HardCalls(
       sum += i
     }
 
-    calls(0) = i
-    calls(1) = maxIdx - sum
+    calls(0) = maxIdx - sum
+    calls(1) = i
     calls
   }
 }

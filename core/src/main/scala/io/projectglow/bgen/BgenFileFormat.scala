@@ -79,6 +79,9 @@ class BgenFileFormat extends FileFormat with DataSourceRegister with Serializabl
     val useIndex = options.get(BgenOptions.USE_INDEX_KEY).forall(_.toBoolean)
     val ignoreExtension = options.get(BgenOptions.IGNORE_EXTENSION_KEY).exists(_.toBoolean)
     val sampleIdsOpt = BgenFileFormat.getSampleIds(options, hadoopConf)
+    val hardCallsThreshold = options
+      .getOrElse(BgenOptions.HARD_CALL_THRESHOLD_KEY, BgenOptions.HARD_CALL_THRESHOLD_VALUE)
+      .toDouble
 
     // record bgenRead event in the log along with the option
     BgenFileFormat.logBgenRead(useIndex)
@@ -105,7 +108,7 @@ class BgenFileFormat extends FileFormat with DataSourceRegister with Serializabl
           val header = new BgenHeaderReader(littleEndianStream).readHeader(sampleIdsOpt)
           val startPos = Math.max(pos, header.firstVariantOffset)
           stream.seek(startPos)
-          val rowConverter = new BgenRowToInternalRowConverter(requiredSchema)
+          val rowConverter = new BgenRowToInternalRowConverter(requiredSchema, hardCallsThreshold)
 
           val iter = new BgenFileIterator(
             header,

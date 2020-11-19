@@ -37,9 +37,6 @@ the DataFrame API using Python, R, Scala, or SQL.
 .. code-block:: python
 
    df = spark.read.format("vcf").load(path)
-
-.. invisible-code-block: python
-
    assert_rows_equal(df.select("contigName", "start").head(), Row(contigName='17', start=504217))
 
 
@@ -71,6 +68,12 @@ You can control the behavior of the VCF reader with a few parameters. All parame
 .. note::
 
    Starting from Glow 0.4.0, the ``splitToBiallelic`` option for the VCF reader no longer exists. To split multiallelic variants to biallelics use the :ref:`split_multiallelics<split_multiallelics>` transformer after loading the VCF.
+
+.. note::
+
+   Glow includes a VCF reader that uses `htsjdk <https://github.com/samtools/htsjdk>`_ for initial parsing as well as a reader that parses VCF lines to Spark rows directly.
+
+   As of release 0.7.0, the direct reader is enabled by default. To use the htsjdk based reader, set the Spark config ``io.projectglow.vcf.fastReaderEnabled`` to ``false``.
 
 
 .. important:: The VCF reader uses the 0-start, half-open (zero-based) coordinate system. This means
@@ -168,15 +171,24 @@ index files are located in the same directory as the data files, the reader uses
 more efficiently traverse the data files. Data files can be processed even if indexes do not exist.
 The schema of the resulting DataFrame matches that of the VCF reader.
 
-+--------------------+---------+--------------+------------------------------------------------------------------------------------------------------------+
-| Parameter          | Type    | Default      | Description                                                                                                |
-+====================+=========+==============+============================================================================================================+
-| ``useBgenIndex``   | boolean | ``true``     | If true, use ``.bgi`` index files.                                                                         |
-+--------------------+---------+--------------+------------------------------------------------------------------------------------------------------------+
-| ``sampleFilePath`` | string  | n/a          | Path to a ``.sample`` Oxford sample information file containing sample IDs if not stored in the BGEN file. |
-+--------------------+---------+--------------+------------------------------------------------------------------------------------------------------------+
-| ``sampleIdColumn`` | string  | ``ID_2``     | Name of the column in the ``.sample`` file corresponding to the sample IDs.                                |
-+--------------------+---------+--------------+------------------------------------------------------------------------------------------------------------+
++-----------------------+---------+--------------+------------------------------------------------------------------------------------------------------------+
+| Parameter             | Type    | Default      | Description                                                                                                |
++=======================+=========+==============+============================================================================================================+
+| ``useBgenIndex``      | boolean | ``true``     | If true, use ``.bgi`` index files.                                                                         |
++-----------------------+---------+--------------+------------------------------------------------------------------------------------------------------------+
+| ``sampleFilePath``    | string  | n/a          | Path to a ``.sample`` Oxford sample information file containing sample IDs if not stored in the BGEN file. |
++-----------------------+---------+--------------+------------------------------------------------------------------------------------------------------------+
+| ``sampleIdColumn``    | string  | ``ID_2``     | Name of the column in the ``.sample`` file corresponding to the sample IDs.                                |
++-----------------------+---------+--------------+------------------------------------------------------------------------------------------------------------+
+| ``emitHardCalls``     | boolean | ``true``     | If true, adds genotype calls for diploids based on the posterior probabilities.                            |
++-----------------------+---------+--------------+------------------------------------------------------------------------------------------------------------+
+| ``hardCallThreshold`` | double  | 0.9          | Sets the threshold for hard calls.                                                                         |
++-----------------------+---------+--------------+------------------------------------------------------------------------------------------------------------+
+
+.. important::
+
+    The BGEN reader and writer assume that the first allele in the ``.bgen`` file is the reference
+    allele, and that all following alleles are alternate alleles.
 
 You can use the ``DataFrameWriter`` API to save a single BGEN file, which you can then read with other tools.
 
@@ -246,5 +258,10 @@ files must be located at ``{prefix}.bim`` and ``{prefix}.fam``.
 | ``mergeFidIid``      | boolean | ``true``        | If true, sets the sample ID to the family ID and individual ID merged with an underscore delimiter. |
 |                      |         |                 | If false, sets the sample ID to the individual ID.                                                  |
 +----------------------+---------+-----------------+-----------------------------------------------------------------------------------------------------+
+
+.. important::
+
+    The PLINK reader sets the first allele in the ``.bed`` file as the alternate allele, and the
+    second allele as an alternate allele.
 
 .. notebook:: .. etl/variant-data.html
