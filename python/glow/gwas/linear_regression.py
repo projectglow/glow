@@ -15,6 +15,7 @@ __all__ = ['linear_regression']
 def linear_regression(genotype_df: DataFrame,
                       phenotype_df: pd.DataFrame,
                       covariate_df: pd.DataFrame = pd.DataFrame({}),
+                      offset_df: pd.DataFrame = pd.DataFrame({}),
                       fit_intercept: bool = True,
                       values_column: str = 'values') -> DataFrame:
     '''
@@ -55,6 +56,15 @@ def linear_regression(genotype_df: DataFrame,
                 f'phenotype_df and covariate_df must have the same number of rows ({phenotype_df.shape[0]} != {covariate_df.shape[0]}'
             )
 
+    for col in offset_df:
+        __assert_all_present(offset_df, col, 'offset')
+    if not offset_df.empty:
+        if phenotype_df.shape[0] != offset_df.shape[0]:
+            raise ValueError(
+                f'phenotype_df and offset_df must have the same number of rows ({phenotype_df.shape[0]} != {covariate_df.shape[0]}'
+            )
+
+
     # Construct output schema
     result_fields = [
         StructField('effect', DoubleType()),
@@ -77,6 +87,10 @@ def linear_regression(genotype_df: DataFrame,
     np.nan_to_num(Y, copy=False)
     Q = np.linalg.qr(C)[0]
     Y = _residualize_in_place(Y, Q) * Y_mask
+
+    if not offset_df.empty:
+        if offset_df.index.nlevels == 1: # Indexed by sample id
+
     YdotY = np.sum(Y * Y, axis=0)
     dof = C.shape[0] - C.shape[1] - 1
 

@@ -257,3 +257,11 @@ def test_error_for_old_spark(spark):
         phenotype_df = pd.DataFrame(np.random.random((num_samples, 25)))
         with pytest.raises(AttributeError):
             run_linear_regression_spark(spark, genotype_df, phenotype_df, pd.DataFrame({}))
+
+@pytest.mark.min_spark('3')
+def test_simple_offset(spark):
+    num_samples = 10
+    genotype_df = pd.DataFrame(np.random.random((num_samples, 10)))
+    phenotype_df = pd.DataFrame(np.random.random((num_samples, 25)))
+    covariate_df = pd.DataFrame(np.random.random((num_samples, 10)))
+    offset_df = pd.DataFrame(np.random.random((num_sampels, 25)))
