@@ -8,3 +8,4 @@ Glow's Python API is designed to work seamlessly with PySpark and other tools in
    toplevel-functions
    pyspark-functions
    glowgr
+   hail-functions

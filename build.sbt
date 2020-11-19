@@ -301,11 +301,11 @@ lazy val python =
     )
     .dependsOn(core % "test->test")
 
-lazy val hail = (project in file("python/glow/hail"))
+lazy val hail = (project in file("hail"))
   .settings(
     pythonSettings,
     test in Test := {
-      hailtest.toTask(" --doctest-modules python/glow/hail/").value
+      hailtest.toTask(" --doctest-modules python/glow/hail/ docs/source/etl/hail.rst").value
     }
   )
   .dependsOn(core % "test->test", python)
@@ -314,7 +314,7 @@ lazy val docs = (project in file("docs"))
   .settings(
     pythonSettings,
     test in Test := {
-      pytest.toTask(" docs").value
+      pytest.toTask(" --ignore=docs/source/etl/hail.rst docs").value
     }
   )
   .dependsOn(core % "test->test", python)

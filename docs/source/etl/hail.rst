@@ -1,0 +1,43 @@
+===================
+Hail Interoperation
+===================
+
+.. invisible-code-block: python
+
+    import glow
+    import hail as hl
+    hl.init(spark.sparkContext, idempotent=True, quiet=True)
+    glow.register(spark)
+
+    vcf = 'test-data/NA12878_21_10002403.vcf'
+    mt = hl.import_vcf(vcf)
+
+Glow includes functionality to enable conversion between a
+`Hail MatrixTable <https://hail.is/docs/0.2/overview/matrix_table.html>`_ and a Spark DataFrame, similar to one created
+with the :ref:`native Glow datasources <variant_data>`.
+
+Create a Hail cluster
+=====================
+
+To use the Hail interoperation functions, you need Hail to be installed on the cluster.
+On a Databricks cluster,
+`install Hail with an environment variable <https://docs.databricks.com/applications/genomics/tertiary/hail.html#create-a-hail-cluster>`_.
+See the `Hail installation documentation <https://hail.is/docs/0.2/getting_started.html>`_ to install Hail in other setups.
+
+Convert to a Glow DataFrame
+===========================
+
+Convert from a Hail MatrixTable to a Glow-compatible DataFrame with the function ``from_matrix_table``.
+
+.. code-block:: python
+
+    from glow.hail import functions
+    df = functions.from_matrix_table(mt, include_sample_ids=True)
+
+.. invisible-code-block: python
+
+    from pyspark.sql import Row
+    native_glow_df = spark.read.format('vcf').load(vcf).drop('splitFromMultiAllelic')
+    assert_rows_equal(df.head(), native_glow_df.head())
+
+By default, the genotypes contain sample IDs. To remove the sample IDs, set the parameter ``include_sample_ids=False``.
