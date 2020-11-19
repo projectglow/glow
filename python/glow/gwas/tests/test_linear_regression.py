@@ -30,6 +30,7 @@ def run_linear_regression_spark(spark,
                                 phenotype_df,
                                 covariate_df,
                                 extra_cols=pd.DataFrame({}),
+                                offset_df=pd.DataFrame({}),
                                 fit_intercept=True,
                                 values_column='values'):
     pdf = pd.DataFrame({values_column: genotype_df.to_numpy().T.tolist()})
@@ -37,7 +38,7 @@ def run_linear_regression_spark(spark,
         pdf = pd.concat([pdf, extra_cols], axis=1)
     pdf['idx'] = pdf.index
     results = (lr.linear_regression(spark.createDataFrame(pdf), phenotype_df, covariate_df,
-                                    fit_intercept, values_column).toPandas().sort_values(
+                                    offset_df, fit_intercept, values_column).toPandas().sort_values(
                                         ['idx']).drop('idx', axis=1))
     return results
 
@@ -260,8 +261,22 @@ def test_error_for_old_spark(spark):
 
 @pytest.mark.min_spark('3')
 def test_simple_offset(spark):
-    num_samples = 10
+    num_samples = 25
     genotype_df = pd.DataFrame(np.random.random((num_samples, 10)))
     phenotype_df = pd.DataFrame(np.random.random((num_samples, 25)))
     covariate_df = pd.DataFrame(np.random.random((num_samples, 10)))
-    offset_df = pd.DataFrame(np.random.random((num_sampels, 25)))
+    offset_df = pd.DataFrame(np.random.random((num_samples, 25)))
+    results = run_linear_regression_spark(spark, genotype_df, phenotype_df, covariate_df, offset_df=offset_df)
+    print(results)
+
+@pytest.mark.min_spark('3')
+def test_multi_offset(spark):
+    num_samples = 25
+    genotype_df = pd.DataFrame(np.random.random((num_samples, 10)))
+    phenotype_df = pd.DataFrame(np.random.random((num_samples, 25)))
+    covariate_df = pd.DataFrame(np.random.random((num_samples, 10)))
+    offset_index = pd.MultiIndex.from_product([phenotype_df.index, ['chr1', 'chr2']])
+    offset_df = pd.DataFrame(np.random.random((num_samples * 2, 25)), index=offset_index)
+    extra_cols = pd.DataFrame({'contigName': ['chr1', 'chr2'] * 5})
+    results = run_linear_regression_spark(spark, genotype_df, phenotype_df, covariate_df, offset_df=offset_df, extra_cols=extra_cols)
+    print(results)

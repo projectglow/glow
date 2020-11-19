@@ -1,7 +1,8 @@
 import pandas as pd
 import numpy as np
 from nptyping import NDArray
-from typing import Any, List
+from dataclasses import dataclass
+from typing import Any, Dict, List, Union
 from pyspark.sql import DataFrame
 from pyspark.sql.types import DoubleType, StringType, StructField, StructType
 from scipy import stats
@@ -56,13 +57,6 @@ def linear_regression(genotype_df: DataFrame,
                 f'phenotype_df and covariate_df must have the same number of rows ({phenotype_df.shape[0]} != {covariate_df.shape[0]}'
             )
 
-    for col in offset_df:
-        __assert_all_present(offset_df, col, 'offset')
-    if not offset_df.empty:
-        if phenotype_df.shape[0] != offset_df.shape[0]:
-            raise ValueError(
-                f'phenotype_df and offset_df must have the same number of rows ({phenotype_df.shape[0]} != {covariate_df.shape[0]}'
-            )
 
 
     # Construct output schema
@@ -82,26 +76,52 @@ def linear_regression(genotype_df: DataFrame,
         C = _add_intercept(C, phenotype_df.shape[0])
 
     # Prepare covariate basis and phenotype residuals
+    Q = np.linalg.qr(C)[0]
     Y = phenotype_df.to_numpy(np.float64, copy=True)
     Y_mask = (~np.isnan(Y)).astype(np.float64)
     np.nan_to_num(Y, copy=False)
-    Q = np.linalg.qr(C)[0]
-    Y = _residualize_in_place(Y, Q) * Y_mask
-
+    _residualize_in_place(Y, Q)
+    
     if not offset_df.empty:
         if offset_df.index.nlevels == 1: # Indexed by sample id
+            Y_state = _create_YState_from_offset(Y, Y_mask, phenotype_df, offset_df)
+        elif offset_df.index.nlevels == 2: # Indexed by sample id and contig
+            all_contigs = offset_df.index.get_level_values(1).unique()
+            Y_state = {contig: _create_YState_from_offset(Y, Y_mask, phenotype_df, offset_df.xs(contig, level=1)) for contig in all_contigs}
+    else:
+        Y_state = _create_YState(Y, Y_mask)
 
-    YdotY = np.sum(Y * Y, axis=0)
     dof = C.shape[0] - C.shape[1] - 1
 
     def map_func(pdf_iterator):
         for pdf in pdf_iterator:
-            yield _linear_regression_inner(pdf, Y, YdotY, Y_mask, Q, dof,
+            yield _linear_regression_partition(pdf, Y_state, Y_mask, Q, dof,
                                            phenotype_df.columns.to_series().astype('str'),
                                            values_column)
 
     return genotype_df.mapInPandas(map_func, result_struct)
 
+def _create_YState_from_offset(
+    Y: NDArray[(Any, Any), np.float64], 
+    Y_mask: NDArray[(Any, Any), np.float64],
+    phenotype_df: pd.DataFrame, 
+    offset_df: pd.DataFrame) -> NDArray[(Any, Any), np.float64]:
+    Y = (pd.DataFrame(Y, phenotype_df.index, phenotype_df.columns) - offset_df).to_numpy(np.float64)
+    return _create_YState(Y, Y_mask)
+
+def _create_YState(Y: NDArray[(Any, Any), np.float64], Y_mask: NDArray[(Any, Any), np.float64]) -> NDArray[(Any, Any), np.float64]:
+    Y *= Y_mask
+    return YState(Y, np.sum(Y * Y, axis=0))
+    
+
+
+@dataclass
+class YState:
+    '''
+    Keeps track of state that varies per contig
+    '''
+    Y: NDArray[(Any, Any), np.float64]
+    YdotY: NDArray[(Any), np.float64]
 
 @typechecked
 def _add_intercept(C: NDArray[(Any, Any), np.float64], num_samples: int):
@@ -127,10 +147,15 @@ def _residualize_in_place(M: NDArray[(Any, Any), np.float64],
     M -= Q @ (Q.T @ M)
     return M
 
+def _linear_regression_partition(genotype_pdf: pd.DataFrame, Y_state: Union[YState, Dict[str, YState]], *args):
+    if isinstance(Y_state, dict):
+        return genotype_pdf.groupby('contigName', sort=False, as_index=False)\
+            .apply(lambda pdf: _linear_regression_inner(pdf, Y_state[pdf['contigName'].iloc[0]], *args))
+    else:
+        return _linear_regression_inner(genotype_pdf, Y_state, *args)
 
 @typechecked
-def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y: NDArray[(Any, Any), np.float64],
-                             YdotY: NDArray[(Any), np.float64], Y_mask: NDArray[(Any, Any),
+def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState, Y_mask: NDArray[(Any, Any),
                                                                                 np.float64],
                              Q: NDArray[(Any, Any), np.float64], dof: int,
                              phenotype_names: pd.Series, values_column: str) -> pd.DataFrame:
@@ -149,15 +174,15 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y: NDArray[(Any, Any), 
     So, if a matrix's indices are `sg` (like the X matrix), it has one row per sample and one column per genotype.
     '''
     X = _residualize_in_place(np.column_stack(genotype_pdf[values_column].array), Q)
-    XdotY = Y.T @ X
+    XdotY = Y_state.Y.T @ X
     XdotX_reciprocal = 1 / _einsum('sp,sg,sg->pg', Y_mask, X, X)
     betas = XdotY * XdotX_reciprocal
-    standard_error = np.sqrt((YdotY[:, None] * XdotX_reciprocal - betas * betas) / dof)
+    standard_error = np.sqrt((Y_state.YdotY[:, None] * XdotX_reciprocal - betas * betas) / dof)
     T = betas / standard_error
     pvalues = 2 * stats.distributions.t.sf(np.abs(T), dof)
 
     del genotype_pdf[values_column]
-    out_df = pd.concat([genotype_pdf] * Y.shape[1])
+    out_df = pd.concat([genotype_pdf] * Y_state.Y.shape[1])
     out_df['effect'] = list(np.ravel(betas))
     out_df['stderror'] = list(np.ravel(standard_error))
     out_df['tvalue'] = list(np.ravel(T))
