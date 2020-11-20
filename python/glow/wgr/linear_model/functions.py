@@ -459,7 +459,7 @@ def generate_alphas(blockdf: DataFrame) -> Dict[str, Float]:
 
 
 @typechecked
-def __assert_all_present(df: pd.DataFrame, col_name: str, df_name: str) -> None:
+def __assert_all_present(df: pd.DataFrame, col_name: Any, df_name: str) -> None:
     """
     Raises an error if a pandas series has missing values.
 
