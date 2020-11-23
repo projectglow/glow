@@ -19,6 +19,12 @@ ThisBuild / sparkVersion := sys.env.getOrElse("SPARK_VERSION", spark3)
 lazy val hailVersion = settingKey[String]("hailVersion")
 ThisBuild / hailVersion := sys.env.getOrElse("HAIL_VERSION", "0.2.58")
 
+// Paths containing Hail tests
+lazy val hailTestPaths = Seq("python/glow/hail/", "docs/source/etl/hail.rst")
+lazy val ignoreHailTestPathsOption = hailTestPaths.map { p =>
+  s"--ignore $p"
+}.mkString(" ")
+
 def majorVersion(version: String): String = {
   StringUtils.ordinalIndexOf(version, ".", 1) match {
     case StringUtils.INDEX_NOT_FOUND => version
@@ -297,7 +303,7 @@ lazy val python =
       functionGenerationSettings,
       test in Test := {
         yapf.toTask(" --diff").value
-        pytest.toTask(" --doctest-modules --ignore=python/glow/hail python").value
+        pytest.toTask(s" --doctest-modules $ignoreHailTestPathsOption python").value
       },
       generatedFunctionsOutput := baseDirectory.value / "glow" / "functions.py",
       functionsTemplate := baseDirectory.value / "glow" / "functions.py.TEMPLATE",
@@ -309,7 +315,7 @@ lazy val hail = (project in file("python/glow/hail"))
   .settings(
     pythonSettings,
     test in Test := {
-      hailtest.toTask(" --doctest-modules python/glow/hail/ docs/source/etl/hail.rst").value
+      hailtest.toTask(s" --doctest-modules ${hailTestPaths.mkString(" ")}").value
     }
   )
   .dependsOn(core % "test->test", python)
@@ -318,7 +324,7 @@ lazy val docs = (project in file("docs"))
   .settings(
     pythonSettings,
     test in Test := {
-      pytest.toTask(" --ignore=docs/source/etl/hail.rst docs").value
+      pytest.toTask(s" $ignoreHailTestPathsOption docs").value
     }
   )
   .dependsOn(core % "test->test", python)
