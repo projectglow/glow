@@ -41,3 +41,78 @@ Convert from a Hail MatrixTable to a Glow-compatible DataFrame with the function
     assert_rows_equal(df.head(), native_glow_df.head())
 
 By default, the genotypes contain sample IDs. To remove the sample IDs, set the parameter ``include_sample_ids=False``.
+
+Schema mapping
+==============
+
+The Glow DataFrame variant fields are derived from the Hail MatrixTable row fields.
+
+.. list-table::
+  :header-rows: 1
+
+  * - Required
+    - Glow DataFrame variant field
+    - Hail MatrixTable row field
+  * - Yes
+    - ``contigName``
+    - ``locus.contig``
+  * - Yes
+    - ``start``
+    - ``locus.position - 1``
+  * - Yes
+    - ``end``
+    - ``info.END`` or ``locus.position - 1 + len(alleles[0])``
+  * - Yes
+    - ``referenceAllele``
+    - ``alleles[0]``
+  * - No
+    - ``alternateAlleles``
+    - ``alleles[1:]``
+  * - No
+    - ``names``
+    - ``[rsid, varid]``
+  * - No
+    - ``qual``
+    - ``qual``
+  * - No
+    - ``filters``
+    - ``filters``
+  * - No
+    - ``INFO_<ANY_FIELD>``
+    - ``info.<ANY_FIELD>``
+
+The Glow DataFrame genotype sample IDs are derived from the Hail MatrixTable column fields.
+
+All of the other Glow DataFrame genotype fields are derived from the Hail MatrixTable entry fields.
+
+.. list-table::
+  :header-rows: 1
+
+  * - Glow DataFrame genotype field
+    - Hail MatrixTable entry field
+  * - ``phased``
+    - ``GT.phased``
+  * - ``calls``
+    - ``GT.alleles``
+  * - ``depth``
+    - ``DP``
+  * - ``filters``
+    - ``FT``
+  * - ``genotypeLikelihoods``
+    - ``GL``
+  * - ``phredLikelihoods``
+    - ``PL``
+  * - ``posteriorProbabilities``
+    - ``GP``
+  * - ``conditionalQuality``
+    - ``GQ``
+  * - ``haplotypeQualities``
+    - ``HQ``
+  * - ``expectedAlleleCounts``
+    - ``EC``
+  * - ``mappingQuality``
+    - ``MQ``
+  * - ``alleleDepths``
+    - ``AD``
+  * - ``<ANY_FIELD>``
+    - ``<ANY_FIELD>``
