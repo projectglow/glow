@@ -180,7 +180,8 @@ class VCFDatasourceSuite extends GlowBaseTest {
       line: String,
       extraHeaderLines: String = "",
       nSamples: Int = 1,
-      schema: Option[StructType] = None): DataFrame = {
+      schema: Option[StructType] = None,
+      options: Map[String, String] = Map.empty): DataFrame = {
     val file = Files.createTempFile("test-vcf", ".vcf")
     val samples = (1 to nSamples).map(n => s"sample_$n").mkString("\t")
     val baseHeader =
@@ -193,6 +194,7 @@ class VCFDatasourceSuite extends GlowBaseTest {
     FileUtils.writeStringToFile(file.toFile, headers + line)
     val baseReader = spark
       .read
+      .options(options)
       .format(sourceName)
     val reader = schema match {
       case None => baseReader // infer schema
@@ -374,6 +376,19 @@ class VCFDatasourceSuite extends GlowBaseTest {
     assertThrows[SparkException](ds.collect)
   }
 
+  test("validation stringency (format fields)") {
+    def doTest(stringency: String): Unit = {
+      parseVcfContents(
+        makeVcfLine(Seq(".", "FIELD", "monkey")), // FIELD is a string instead of an integer
+        extraHeaderLines = "##FORMAT=<ID=FIELD,Number=1,Type=Integer,Description=\"\"\n",
+        options = Map("validationStringency" -> stringency)
+      ).collect()
+    }
+    intercept[SparkException](doTest("strict"))
+    doTest("silent")
+    doTest("lenient")
+  }
+
   test("invalid validation stringency") {
     assertThrows[IllegalArgumentException] {
       spark
@@ -412,7 +427,7 @@ class VCFDatasourceSuite extends GlowBaseTest {
       Some(2),
       None,
       Some(84),
-      None,
+      Some(false),
       Some(3.0103),
       Some(0.0),
       None,
@@ -787,6 +802,14 @@ class FastVCFDatasourceSuite extends VCFDatasourceSuite {
         Double.PositiveInfinity,
         Double.PositiveInfinity,
         Double.PositiveInfinity))
+  }
+
+  test("read string that starts with .") {
+    import sess.implicits._
+    val df = parseVcfContents(
+      makeVcfLine(Seq("STR=.monkey")),
+      extraHeaderLines = "##INFO=<ID=STR,Number=1,Type=String,Description=\"\"\n")
+    assert(df.selectExpr("INFO_STR").as[String].head == ".monkey")
   }
 }
 

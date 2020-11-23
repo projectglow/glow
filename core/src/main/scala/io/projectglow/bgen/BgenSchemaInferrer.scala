@@ -28,24 +28,33 @@ import io.projectglow.sql.util.SerializableConfiguration
  * Infers the schema of a set of BGEN files from the user-provided options and the header of each
  * file.
  *
- * Currently the implementation is very simple. It checks if sample IDs are defined in either a
- * .sample file or in any of the headers. If so, it returns a fixed schema that includes a
- * `sampleId` genotype field. If not, it returns the same schema without a `sampleId` field.
+ * - If sample IDs are defined in either a .sample file or in any of the headers,
+ *   `sampleId` is added to the genotype field.
+ * - If hard calls should be emitted (true by default), `calls` is added to the genotype field.
  */
 object BgenSchemaInferrer {
   def inferSchema(
       spark: SparkSession,
       files: Seq[FileStatus],
       options: Map[String, String]): StructType = {
+    val hasSampleIds = includeSampleIds(spark, files, options)
+    val hasHardCalls = options.get(BgenOptions.EMIT_HARD_CALLS).forall(_.toBoolean)
+    VariantSchemas.bgenDefaultSchema(hasSampleIds, hasHardCalls)
+  }
+
+  def includeSampleIds(
+      spark: SparkSession,
+      files: Seq[FileStatus],
+      options: Map[String, String]): Boolean = {
     val shouldIncludeSampleIds = options.get(CommonOptions.INCLUDE_SAMPLE_IDS).forall(_.toBoolean)
     if (!shouldIncludeSampleIds) {
-      return VariantSchemas.bgenDefaultSchema(hasSampleIds = false)
+      return false
     }
 
     val sampleIdsFromSampleFile =
       BgenFileFormat.getSampleIds(options, spark.sparkContext.hadoopConfiguration)
     if (sampleIdsFromSampleFile.isDefined) {
-      return VariantSchemas.bgenDefaultSchema(hasSampleIds = true)
+      return true
     }
 
     val serializableConf = new SerializableConfiguration(spark.sparkContext.hadoopConfiguration)
@@ -57,7 +66,7 @@ object BgenSchemaInferrer {
           .toString
           .endsWith(BgenFileFormat.BGEN_SUFFIX) || ignoreExtension)
       }.map(_.getPath.toString)
-    val hasSampleIds = spark
+    spark
       .sparkContext
       .parallelize(bgenPaths)
       .map { path =>
@@ -73,7 +82,5 @@ object BgenSchemaInferrer {
       }
       .collect()
       .exists(identity)
-
-    VariantSchemas.bgenDefaultSchema(hasSampleIds)
   }
 }

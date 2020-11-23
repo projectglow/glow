@@ -32,6 +32,12 @@ def linear_regression(genotype_df: DataFrame,
         genotype_df : Spark DataFrame containing genomic data
         phenotype_df : Pandas DataFrame containing phenotypic data
         covariate_df : An optional Pandas DataFrame containing covariates
+        offset_df : An optional Pandas DataFrame containing the phenotype offset. The actual phenotype used
+                    for linear regression is `phenotype_df` minus the appropriate offset. The `offset_df` may
+                    have one or two levels of indexing. If one level, the index should be the same as the `phenotype_df`.
+                    If two levels, the level 0 index should be the same as the `phenotype_df`, and the level 1 index
+                    should be the contig name. The two level index scheme allows for per-contig offsets like
+                    LOCO predictions from GloWGR.
         fit_intercept : Whether or not to add an intercept column to the covariate DataFrame
         values_column : The name of the column in `genotype_df` that contains the values to be tested with linear regression
 
@@ -57,8 +63,6 @@ def linear_regression(genotype_df: DataFrame,
                 f'phenotype_df and covariate_df must have the same number of rows ({phenotype_df.shape[0]} != {covariate_df.shape[0]}'
             )
 
-
-
     # Construct output schema
     result_fields = [
         StructField('effect', DoubleType()),
@@ -81,13 +85,25 @@ def linear_regression(genotype_df: DataFrame,
     Y_mask = (~np.isnan(Y)).astype(np.float64)
     np.nan_to_num(Y, copy=False)
     _residualize_in_place(Y, Q)
-    
+
     if not offset_df.empty:
-        if offset_df.index.nlevels == 1: # Indexed by sample id
+        if not _indexes_have_same_elements(phenotype_df.columns, offset_df.columns):
+            raise ValueError(f'phenotype_df and offset_df should have the same column names.')
+        if offset_df.index.nlevels == 1:  # Indexed by sample id
+            if not _indexes_have_same_elements(phenotype_df.index, offset_df.index):
+                raise ValueError(f'phenotype_df and offset_df should have the same index.')
             Y_state = _create_YState_from_offset(Y, Y_mask, phenotype_df, offset_df)
-        elif offset_df.index.nlevels == 2: # Indexed by sample id and contig
+        elif offset_df.index.nlevels == 2:  # Indexed by sample id and contig
             all_contigs = offset_df.index.get_level_values(1).unique()
-            Y_state = {contig: _create_YState_from_offset(Y, Y_mask, phenotype_df, offset_df.xs(contig, level=1)) for contig in all_contigs}
+            Y_state = {}
+            for contig in all_contigs:
+                offset_for_contig = offset_df.xs(contig, level=1)
+                if not _indexes_have_same_elements(phenotype_df.index, offset_for_contig.index):
+                    raise ValueError(
+                        'When using a multi-indexed offset_df, the offsets for each contig '
+                        'should have the same index as phenotype_df')
+                Y_state[contig] = _create_YState_from_offset(Y, Y_mask, phenotype_df,
+                                                             offset_for_contig)
     else:
         Y_state = _create_YState(Y, Y_mask)
 
@@ -95,24 +111,28 @@ def linear_regression(genotype_df: DataFrame,
 
     def map_func(pdf_iterator):
         for pdf in pdf_iterator:
-            yield _linear_regression_partition(pdf, Y_state, Y_mask, Q, dof,
-                                           phenotype_df.columns.to_series().astype('str'),
-                                           values_column)
+            yield _linear_regression_dispatch(pdf, Y_state, Y_mask, Q, dof,
+                                              phenotype_df.columns.to_series().astype('str'),
+                                              values_column)
 
     return genotype_df.mapInPandas(map_func, result_struct)
 
-def _create_YState_from_offset(
-    Y: NDArray[(Any, Any), np.float64], 
-    Y_mask: NDArray[(Any, Any), np.float64],
-    phenotype_df: pd.DataFrame, 
-    offset_df: pd.DataFrame) -> NDArray[(Any, Any), np.float64]:
+
+def _indexes_have_same_elements(idx1: pd.Index, idx2: pd.Index) -> bool:
+    return idx1.sort_values().equals(idx2.sort_values())
+
+
+def _create_YState_from_offset(Y: NDArray[(Any, Any), np.float64],
+                               Y_mask: NDArray[(Any, Any), np.float64], phenotype_df: pd.DataFrame,
+                               offset_df: pd.DataFrame) -> NDArray[(Any, Any), np.float64]:
     Y = (pd.DataFrame(Y, phenotype_df.index, phenotype_df.columns) - offset_df).to_numpy(np.float64)
     return _create_YState(Y, Y_mask)
 
-def _create_YState(Y: NDArray[(Any, Any), np.float64], Y_mask: NDArray[(Any, Any), np.float64]) -> NDArray[(Any, Any), np.float64]:
+
+def _create_YState(Y: NDArray[(Any, Any), np.float64],
+                   Y_mask: NDArray[(Any, Any), np.float64]) -> NDArray[(Any, Any), np.float64]:
     Y *= Y_mask
     return YState(Y, np.sum(Y * Y, axis=0))
-    
 
 
 @dataclass
@@ -123,14 +143,16 @@ class YState:
     Y: NDArray[(Any, Any), np.float64]
     YdotY: NDArray[(Any), np.float64]
 
+
 @typechecked
-def _add_intercept(C: NDArray[(Any, Any), np.float64], num_samples: int):
+def _add_intercept(C: NDArray[(Any, Any), np.float64],
+                   num_samples: int) -> NDArray[(Any, Any), np.float64]:
     intercept = np.ones((num_samples, 1))
     return np.hstack((intercept, C)) if C.size else intercept
 
 
 @typechecked
-def _einsum(subscripts: str, *operands: NDArray):
+def _einsum(subscripts: str, *operands: NDArray) -> NDArray:
     '''
     A wrapper around np.einsum to ensure uniform options.
     '''
@@ -147,17 +169,25 @@ def _residualize_in_place(M: NDArray[(Any, Any), np.float64],
     M -= Q @ (Q.T @ M)
     return M
 
-def _linear_regression_partition(genotype_pdf: pd.DataFrame, Y_state: Union[YState, Dict[str, YState]], *args):
+
+def _linear_regression_dispatch(genotype_pdf: pd.DataFrame,
+                                Y_state: Union[YState, Dict[str, YState]], *args) -> pd.DataFrame:
+    '''
+    Given a pandas DataFrame, dispatch into one or more calls of the linear regression kernel
+    depending whether we have one Y matrix or one Y matrix per contig.
+    '''
     if isinstance(Y_state, dict):
         return genotype_pdf.groupby('contigName', sort=False, as_index=False)\
             .apply(lambda pdf: _linear_regression_inner(pdf, Y_state[pdf['contigName'].iloc[0]], *args))
     else:
         return _linear_regression_inner(genotype_pdf, Y_state, *args)
 
+
 @typechecked
-def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState, Y_mask: NDArray[(Any, Any),
-                                                                                np.float64],
-                             Q: NDArray[(Any, Any), np.float64], dof: int,
+def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
+                             Y_mask: NDArray[(Any, Any),
+                                             np.float64], Q: NDArray[(Any, Any),
+                                                                     np.float64], dof: int,
                              phenotype_names: pd.Series, values_column: str) -> pd.DataFrame:
     '''
     Applies a linear regression model to a block of genotypes. We first project the covariates out of the

@@ -24,5 +24,5 @@ object GlowConf {
       .buildConf("io.projectglow.vcf.fastReaderEnabled")
       .doc("Use fast VCF reader")
       .booleanConf
-      .createWithDefault(false)
+      .createWithDefault(true)
 }

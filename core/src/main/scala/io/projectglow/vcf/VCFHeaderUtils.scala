@@ -18,19 +18,18 @@ package io.projectglow.vcf
 
 import java.io.StringReader
 
-import scala.collection.JavaConverters._
-import scala.util.control.NonFatal
-
 import com.google.common.annotations.VisibleForTesting
-import htsjdk.variant.vcf.{VCFCodec, VCFCompoundHeaderLine, VCFContigHeaderLine, VCFFilterHeaderLine, VCFHeader, VCFHeaderLine}
+import htsjdk.variant.vcf._
+import io.projectglow.common.GlowLogging
+import io.projectglow.sql.util.SerializableConfiguration
 import org.apache.commons.io.IOUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.StructType
 
-import io.projectglow.common.GlowLogging
-import io.projectglow.sql.util.SerializableConfiguration
+import scala.collection.JavaConverters._
+import scala.util.control.NonFatal
 
 object VCFHeaderUtils extends GlowLogging {
 

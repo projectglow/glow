@@ -57,10 +57,10 @@ object VariantSchemas {
   // Possible genotype fields common to VCF and BGEN
   val sampleIdField = StructField("sampleId", StringType)
   val phasedField = StructField("phased", BooleanType)
+  val callsField = StructField("calls", ArrayType(IntegerType))
   val posteriorProbabilitiesField = StructField("posteriorProbabilities", ArrayType(DoubleType))
 
   // Possible genotype fields for VCF
-  val callsField = StructField("calls", ArrayType(IntegerType))
   val depthField = StructField("depth", IntegerType)
   val genotypeFiltersField = StructField("filters", ArrayType(StringType))
   val phredLikelihoodsField = StructField("phredLikelihoods", ArrayType(IntegerType))
@@ -73,22 +73,23 @@ object VariantSchemas {
   val ploidyField = StructField("ploidy", IntegerType)
 
   // Genotype fields that are typically present in BGEN records
-  def bgenGenotypesField(hasSampleIds: Boolean): StructField = StructField(
+  def bgenGenotypesField(hasSampleIds: Boolean, hasHardCalls: Boolean): StructField = StructField(
     genotypesFieldName,
     ArrayType(
       StructType(
-        (if (hasSampleIds) Seq(sampleIdField) else Seq.empty) ++
         Seq(
-          phasedField,
-          ploidyField,
-          posteriorProbabilitiesField
-        )
+          (if (hasSampleIds) Some(sampleIdField) else None),
+          Some(phasedField),
+          (if (hasHardCalls) Some(callsField) else None),
+          Some(ploidyField),
+          Some(posteriorProbabilitiesField)
+        ).flatten
       )
     )
   )
 
   // All fields that are typically present in BGEN records
-  def bgenDefaultSchema(hasSampleIds: Boolean): StructType = StructType(
+  def bgenDefaultSchema(hasSampleIds: Boolean, hasHardCalls: Boolean): StructType = StructType(
     Seq(
       contigNameField,
       startField,
@@ -96,7 +97,7 @@ object VariantSchemas {
       namesField,
       refAlleleField,
       alternateAllelesField,
-      bgenGenotypesField(hasSampleIds)
+      bgenGenotypesField(hasSampleIds, hasHardCalls)
     )
   )
 

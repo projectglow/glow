@@ -151,7 +151,7 @@ Glow supports numeric transformations on variant data for downstream calculation
 
 .. invisible-code-block: python
 
-   assert hard_calls_df.head().calls == [2, 0]
+   assert hard_calls_df.head().calls == [0, 2]
 
 - ``mean_substitute``: substitutes the missing values of a numeric array using the mean of the non-missing values. Any
   values that are NaN, null or equal to the missing value parameter are considered missing. If all values are missing,
