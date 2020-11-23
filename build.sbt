@@ -305,7 +305,7 @@ lazy val python =
     )
     .dependsOn(core % "test->test")
 
-lazy val hail = (project in file("hail"))
+lazy val hail = (project in file("python/glow/hail"))
   .settings(
     pythonSettings,
     test in Test := {
