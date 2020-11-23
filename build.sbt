@@ -223,7 +223,11 @@ ThisBuild / installHail := {
 
 lazy val uninstallHail = taskKey[Unit]("Uninstall Hail")
 ThisBuild / uninstallHail := {
-  "conda env remove --name hail" ### "rm -rf hail" !
+  Seq(
+    "/bin/bash",
+    "-c",
+    "conda env remove --name hail;" + "rm -rf hail"
+  ) !
 }
 
 lazy val sparkClasspath = taskKey[String]("sparkClasspath")
