@@ -87,10 +87,10 @@ def linear_regression(genotype_df: DataFrame,
     _residualize_in_place(Y, Q)
 
     if not offset_df.empty:
-        if not _indexes_have_same_elements(phenotype_df.columns, offset_df.columns):
+        if not _have_same_elements(phenotype_df.columns, offset_df.columns):
             raise ValueError(f'phenotype_df and offset_df should have the same column names.')
         if offset_df.index.nlevels == 1:  # Indexed by sample id
-            if not _indexes_have_same_elements(phenotype_df.index, offset_df.index):
+            if not _have_same_elements(phenotype_df.index, offset_df.index):
                 raise ValueError(f'phenotype_df and offset_df should have the same index.')
             Y_state = _create_YState_from_offset(Y, Y_mask, phenotype_df, offset_df)
         elif offset_df.index.nlevels == 2:  # Indexed by sample id and contig
@@ -98,7 +98,7 @@ def linear_regression(genotype_df: DataFrame,
             Y_state = {}
             for contig in all_contigs:
                 offset_for_contig = offset_df.xs(contig, level=1)
-                if not _indexes_have_same_elements(phenotype_df.index, offset_for_contig.index):
+                if not _have_same_elements(phenotype_df.index, offset_for_contig.index):
                     raise ValueError(
                         'When using a multi-indexed offset_df, the offsets for each contig '
                         'should have the same index as phenotype_df')
@@ -118,7 +118,7 @@ def linear_regression(genotype_df: DataFrame,
     return genotype_df.mapInPandas(map_func, result_struct)
 
 
-def _indexes_have_same_elements(idx1: pd.Index, idx2: pd.Index) -> bool:
+def _have_same_elements(idx1: pd.Index, idx2: pd.Index) -> bool:
     return idx1.sort_values().equals(idx2.sort_values())
 
 
