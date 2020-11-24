@@ -1,10 +1,10 @@
 import pandas as pd
 import numpy as np
-from nptyping import NDArray
+from nptyping import Float, NDArray
 from dataclasses import dataclass
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, Union
 from pyspark.sql import DataFrame
-from pyspark.sql.types import DoubleType, StringType, StructField, StructType
+from pyspark.sql.types import ArrayType, FloatType, DoubleType, StringType, StructField, StructType
 from scipy import stats
 from typeguard import typechecked
 from ..wgr.linear_model.functions import __assert_all_present
@@ -18,7 +18,8 @@ def linear_regression(genotype_df: DataFrame,
                       covariate_df: pd.DataFrame = pd.DataFrame({}),
                       offset_df: pd.DataFrame = pd.DataFrame({}),
                       fit_intercept: bool = True,
-                      values_column: str = 'values') -> DataFrame:
+                      values_column: str = 'values',
+                      dt: type = np.float32) -> DataFrame:
     '''
     Uses linear regression to test for association between genotypes and one or more phenotypes.
     The implementation is based on regenie: https://www.biorxiv.org/content/10.1101/2020.06.19.162354v2
@@ -63,26 +64,34 @@ def linear_regression(genotype_df: DataFrame,
                 f'phenotype_df and covariate_df must have the same number of rows ({phenotype_df.shape[0]} != {covariate_df.shape[0]}'
             )
 
+    if dt == np.float32:
+        sql_type = FloatType()
+    elif dt == np.float64:
+        sql_type = DoubleType()
+    else:
+        raise ValueError('dt must be np.float32 or np.float64')
+
+
     # Construct output schema
     result_fields = [
-        StructField('effect', DoubleType()),
-        StructField('stderror', DoubleType()),
-        StructField('tvalue', DoubleType()),
-        StructField('pvalue', DoubleType()),
+        StructField('effect', sql_type),
+        StructField('stderror', sql_type),
+        StructField('tvalue', sql_type),
+        StructField('pvalue', sql_type),
         StructField('phenotype', StringType())
     ]
     fields = [field
               for field in genotype_df.schema.fields if field.name != values_column] + result_fields
     result_struct = StructType(fields)
 
-    C = covariate_df.to_numpy(np.float64, copy=True)
+    C = covariate_df.to_numpy(dt, copy=True)
     if fit_intercept:
         C = _add_intercept(C, phenotype_df.shape[0])
 
     # Prepare covariate basis and phenotype residuals
     Q = np.linalg.qr(C)[0]
-    Y = phenotype_df.to_numpy(np.float64, copy=True)
-    Y_mask = (~np.isnan(Y)).astype(np.float64)
+    Y = phenotype_df.to_numpy(dt, copy=True)
+    Y_mask = (~np.isnan(Y)).astype(dt)
     np.nan_to_num(Y, copy=False)
     _residualize_in_place(Y, Q)
 
@@ -92,7 +101,7 @@ def linear_regression(genotype_df: DataFrame,
         if offset_df.index.nlevels == 1:  # Indexed by sample id
             if not _have_same_elements(phenotype_df.index, offset_df.index):
                 raise ValueError(f'phenotype_df and offset_df should have the same index.')
-            Y_state = _create_YState_from_offset(Y, Y_mask, phenotype_df, offset_df)
+            Y_state = _create_YState_from_offset(Y, Y_mask, phenotype_df, offset_df, dt)
         elif offset_df.index.nlevels == 2:  # Indexed by sample id and contig
             all_contigs = offset_df.index.get_level_values(1).unique()
             Y_state = {}
@@ -103,7 +112,7 @@ def linear_regression(genotype_df: DataFrame,
                         'When using a multi-indexed offset_df, the offsets for each contig '
                         'should have the same index as phenotype_df')
                 Y_state[contig] = _create_YState_from_offset(Y, Y_mask, phenotype_df,
-                                                             offset_for_contig)
+                                                             offset_for_contig, dt)
     else:
         Y_state = _create_YState(Y, Y_mask)
 
@@ -113,24 +122,24 @@ def linear_regression(genotype_df: DataFrame,
         for pdf in pdf_iterator:
             yield _linear_regression_dispatch(pdf, Y_state, Y_mask, Q, dof,
                                               phenotype_df.columns.to_series().astype('str'),
-                                              values_column)
+                                              values_column, dt)
 
-    return genotype_df.mapInPandas(map_func, result_struct)
+    return genotype_df.withColumn(values_column, genotype_df[values_column].cast(ArrayType(sql_type))).mapInPandas(map_func, result_struct)
 
 
 def _have_same_elements(idx1: pd.Index, idx2: pd.Index) -> bool:
     return idx1.sort_values().equals(idx2.sort_values())
 
 
-def _create_YState_from_offset(Y: NDArray[(Any, Any), np.float64],
-                               Y_mask: NDArray[(Any, Any), np.float64], phenotype_df: pd.DataFrame,
-                               offset_df: pd.DataFrame) -> NDArray[(Any, Any), np.float64]:
-    Y = (pd.DataFrame(Y, phenotype_df.index, phenotype_df.columns) - offset_df).to_numpy(np.float64)
+def _create_YState_from_offset(Y: NDArray[(Any, Any), Float],
+                               Y_mask: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame,
+                               offset_df: pd.DataFrame, dt) -> NDArray[(Any, Any), Float]:
+    Y = (pd.DataFrame(Y, phenotype_df.index, phenotype_df.columns) - offset_df).to_numpy(dt)
     return _create_YState(Y, Y_mask)
 
 
-def _create_YState(Y: NDArray[(Any, Any), np.float64],
-                   Y_mask: NDArray[(Any, Any), np.float64]) -> NDArray[(Any, Any), np.float64]:
+def _create_YState(Y: NDArray[(Any, Any), Float],
+                   Y_mask: NDArray[(Any, Any), Float]) -> NDArray[(Any, Any), Float]:
     Y *= Y_mask
     return YState(Y, np.sum(Y * Y, axis=0))
 
@@ -140,13 +149,13 @@ class YState:
     '''
     Keeps track of state that varies per contig
     '''
-    Y: NDArray[(Any, Any), np.float64]
-    YdotY: NDArray[(Any), np.float64]
+    Y: NDArray[(Any, Any), Float]
+    YdotY: NDArray[(Any), Float]
 
 
 @typechecked
-def _add_intercept(C: NDArray[(Any, Any), np.float64],
-                   num_samples: int) -> NDArray[(Any, Any), np.float64]:
+def _add_intercept(C: NDArray[(Any, Any), Float],
+                   num_samples: int) -> NDArray[(Any, Any), Float]:
     intercept = np.ones((num_samples, 1))
     return np.hstack((intercept, C)) if C.size else intercept
 
@@ -160,8 +169,8 @@ def _einsum(subscripts: str, *operands: NDArray) -> NDArray:
 
 
 @typechecked
-def _residualize_in_place(M: NDArray[(Any, Any), np.float64],
-                          Q: NDArray[(Any, Any), np.float64]) -> NDArray[(Any, Any), np.float64]:
+def _residualize_in_place(M: NDArray[(Any, Any), Float],
+                          Q: NDArray[(Any, Any), Float]) -> NDArray[(Any, Any), Float]:
     '''
     Residualize a matrix in place using an orthonormal basis. The residualized matrix
     is returned for easy chaining.
@@ -186,9 +195,9 @@ def _linear_regression_dispatch(genotype_pdf: pd.DataFrame,
 @typechecked
 def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
                              Y_mask: NDArray[(Any, Any),
-                                             np.float64], Q: NDArray[(Any, Any),
-                                                                     np.float64], dof: int,
-                             phenotype_names: pd.Series, values_column: str) -> pd.DataFrame:
+                                             Float], Q: NDArray[(Any, Any),
+                                                                     Float], dof: int,
+                             phenotype_names: pd.Series, values_column: str, dt: type) -> pd.DataFrame:
     '''
     Applies a linear regression model to a block of genotypes. We first project the covariates out of the
     genotype block and then perform single variate linear regression for each site.
