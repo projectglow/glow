@@ -163,6 +163,9 @@ class LogisticRegression:
         transform_key_pattern = ['sample_block', 'label']
 
         if response == 'linear':
+            if not covdf.empty:
+                print('Ignoring covariates for linear response')
+                covdf = pd.DataFrame({})
             transform_udf = pandas_udf(
                 lambda key, pdf: apply_model(key, transform_key_pattern, pdf, labeldf,
                                              sample_blocks, self.alphas, covdf),
@@ -295,8 +298,4 @@ class LogisticRegression:
             rows are indexed by sample ID and the columns by label. The column types are float64.
         """
         modeldf, cvdf = self.fit(blockdf, labeldf, sample_blocks, covdf)
-        if response == 'linear':
-            return self.transform(blockdf, labeldf, sample_blocks, modeldf, cvdf, pd.DataFrame({}),
-                                  response)
-        else:
-            return self.transform(blockdf, labeldf, sample_blocks, modeldf, cvdf, covdf, response)
+        return self.transform(blockdf, labeldf, sample_blocks, modeldf, cvdf, covdf, response)
