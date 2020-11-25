@@ -20,4 +20,5 @@ enabling seamless manipulation, filtering, quality control and transformation be
    variant-normalization
    variant-splitter
    merge
+   hail
    utility-functions

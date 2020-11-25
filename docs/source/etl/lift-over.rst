@@ -43,7 +43,7 @@ you can use to download the required file for liftOver from the b37 to the hg38 
 Coordinate liftOver
 ====================
 
-To perform liftOver for genomic coordinates, use the function ``lift_over_coordinates``. ``lift_over_coordinates``, which has
+To perform liftOver for genomic coordinates, use the function ``lift_over_coordinates``. ``lift_over_coordinates`` has
 the following parameters.
 
 - chromosome: ``string``

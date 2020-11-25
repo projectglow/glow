@@ -101,7 +101,7 @@ def _get_base_cols(row: StructExpression) -> List[Column]:
     if 'rsid' in row and row.rsid.dtype == tstr:
         names_elems.append("rsid")
     names_col = fx.expr(
-        f"filter(nullif(array({','.join(names_elems)}), array()), n -> isnotnull(n))").alias("names")
+        f"nullif(filter(array({','.join(names_elems)}), n -> isnotnull(n)), array())").alias("names")
 
     reference_allele_col = fx.element_at("alleles", 1).alias("referenceAllele")
 
@@ -123,11 +123,9 @@ def _get_other_cols(row: StructExpression) -> List[Column]:
     if 'qual' in row and row.qual.dtype == tfloat64:
         # -10 qual means missing
         other_cols.append(fx.expr("if(qual = -10, null, qual)").alias("qual"))
-    # null filters means missing, [] filters means PASS
+    # [] filters means PASS, null filters means missing
     if 'filters' in row and row.filters.dtype == tset(tstr):
-        other_cols.append(
-            fx.expr("if(size(filters) = 0, array('PASS'), if(isnull(filters), array(), filters))").
-            alias("filters"))
+        other_cols.append(fx.expr("if(size(filters) = 0, array('PASS'), filters)").alias("filters"))
     # Rename info.* columns to INFO_*
     if 'info' in row and isinstance(row.info.dtype, tstruct):
         for f in row.info:
@@ -154,11 +152,16 @@ def _require_row_variant_w_struct_locus(mt: MatrixTable) -> NoReturn:
 
 def from_matrix_table(mt: MatrixTable, include_sample_ids: bool = True) -> DataFrame:
     """
-    Converts a Hail MatrixTable to a Glow DataFrame.
+    Converts a Hail MatrixTable to a Glow DataFrame. The variant fields are derived from the Hail MatrixTable
+    row fields. The sample IDs are derived from the Hail MatrixTable column fields. All other genotype fields are
+    derived from the Hail MatrixTable entry fields.
+
+    Requires that the MatrixTable rows contain locus and alleles fields.
 
     Args:
         mt : The Hail MatrixTable to convert
-        include_sample_ids : If true, include sample IDs in the Glow DataFrame
+        include_sample_ids : If true (default), include sample IDs in the Glow DataFrame.
+                             Sample names increase the size of each row, both in memory and on storage.
 
     Returns:
         Glow DataFrame converted from the MatrixTable.
