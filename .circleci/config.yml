@@ -74,13 +74,9 @@ jobs:
           name: Check docs links
           environment:
           command: |
-            export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="3.0.0"
-            export SCALA_VERSION="2.12.8"
+            export PATH=$HOME/conda/envs/glow-docs/bin:$PATH
             cd docs
-            sbt installHail exit
             make linkcheck
-            sbt uninstallHail exit
       - run:
           name: Configure Databricks CLI
           command: |
