@@ -63,14 +63,14 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - docs-deps-v1-{{ checksum "docs/source/environment.yml" }}
+            - conda-deps-v1-{{ checksum "python/environment.yml" }}-{{ checksum "docs/source/environment.yml" }}
       - *install_conda
       - *create_python_env
       - *create_docs_env
       - save_cache:
           paths:
             - /home/circleci/conda
-          key: docs-deps-v1-{{ checksum "docs/source/environment.yml" }}
+          key: conda-deps-v1-{{ checksum "python/environment.yml" }}-{{ checksum "docs/source/environment.yml" }}
       - run:
           name: Check docs links
           environment:
@@ -97,13 +97,13 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - python-deps-v1-{{ checksum "python/environment.yml" }}
+            - conda-deps-v1-{{ checksum "python/environment.yml" }}
       - *install_conda
       - *create_python_env
       - save_cache:
           paths:
             - /home/circleci/conda
-          key: python-deps-v1-{{ checksum "python/environment.yml" }}
+          key: conda-deps-v1-{{ checksum "python/environment.yml" }}
       - *install_pyspark2
       - run:
           name: Run Scala tests
@@ -156,13 +156,13 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - python-deps-v1-{{ checksum "python/environment.yml" }}
+            - conda-deps-v1-{{ checksum "python/environment.yml" }}
       - *install_conda
       - *create_python_env
       - save_cache:
           paths:
             - /home/circleci/conda
-          key: python-deps-v1-{{ checksum "python/environment.yml" }}
+          key: conda-deps-v1-{{ checksum "python/environment.yml" }}
       - *install_pyspark2
       - run:
           name: Run Scala tests
@@ -207,13 +207,13 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - python-deps-v1-{{ checksum "python/environment.yml" }}
+            - conda-deps-v1-{{ checksum "python/environment.yml" }}
       - *install_conda
       - *create_python_env
       - save_cache:
           paths:
             - /home/circleci/conda
-          key: python-deps-v1-{{ checksum "python/environment.yml" }}
+          key: conda-deps-v1-{{ checksum "python/environment.yml" }}
       - run:
           name: Run Scala tests
           environment:
