@@ -14,16 +14,16 @@ install_conda: &install_conda
         echo "Conda already installed"
       fi
 
-install_python_deps: &install_python_deps
+create_python_env: &create_python_env
   run:
-    name: Install Python dependencies
+    name: Create conda environment for Python dependencies
     command: |
       export PATH=$HOME/conda/bin:$PATH
       conda env create -f python/environment.yml
 
-install_docs_deps: &install_docs_deps
+create_docs_env: &create_docs_env
   run:
-    name: Install Python dependencies
+    name: Create minimal conda environment for docs dependencies
     command: |
       export PATH=$HOME/conda/bin:$PATH
       conda env create -f docs/source/environment.yml
@@ -65,7 +65,8 @@ jobs:
           keys:
             - docs-deps-v1-{{ checksum "docs/source/environment.yml" }}
       - *install_conda
-      - *install_docs_deps
+      - *create_python_env
+      - *create_docs_env
       - save_cache:
           paths:
             - /home/circleci/conda
@@ -84,8 +85,7 @@ jobs:
       - run:
           name: Generate notebook source files
           command: |
-            export PATH=$HOME/conda/bin:$PATH
-            source activate glow
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
             for f in $(find docs/source/_static/notebooks -type f -name '*.html'); do
                 python docs/dev/gen-nb-src.py --html "${f}" --cli-profile docs-ci
             done
@@ -99,7 +99,7 @@ jobs:
           keys:
             - python-deps-v1-{{ checksum "python/environment.yml" }}
       - *install_conda
-      - *install_python_deps
+      - *create_python_env
       - save_cache:
           paths:
             - /home/circleci/conda
@@ -158,7 +158,7 @@ jobs:
           keys:
             - python-deps-v1-{{ checksum "python/environment.yml" }}
       - *install_conda
-      - *install_python_deps
+      - *create_python_env
       - save_cache:
           paths:
             - /home/circleci/conda
@@ -209,7 +209,7 @@ jobs:
           keys:
             - python-deps-v1-{{ checksum "python/environment.yml" }}
       - *install_conda
-      - *install_python_deps
+      - *create_python_env
       - save_cache:
           paths:
             - /home/circleci/conda
