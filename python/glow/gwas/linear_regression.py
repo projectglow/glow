@@ -54,7 +54,7 @@ def linear_regression(genotype_df: DataFrame,
         - `effect`: The effect size estimate for the genotype
         - `stderror`: The estimated standard error of the effect
         - `tvalue`: The T statistic
-        - `pvalue`: P value estimed from a two sided T-test
+        - `pvalue`: P value estimated from a two sided T-test
         - `phenotype`: The phenotype name as determined by the column names of `phenotype_df`
     '''
     if int(genotype_df.sql_ctx.sparkSession.version.split('.')[0]) < 3:
@@ -78,7 +78,7 @@ def linear_regression(genotype_df: DataFrame,
         raise ValueError('dt must be np.float32 or np.float64')
 
     if values_column == _GENOTYPES_COLUMN_NAME:
-        raise ValueError(f'The values column not be called "{_GENOTYPES_COLUMN_NAME}"')
+        raise ValueError(f'The values column should not be called "{_GENOTYPES_COLUMN_NAME}"')
     elif isinstance(values_column, str):
         genotype_df = (genotype_df.withColumn(_VALUES_COLUMN_NAME,
                                               fx.col(values_column).cast(
@@ -99,7 +99,7 @@ def linear_regression(genotype_df: DataFrame,
     ]
     fields = [
         field for field in genotype_df.schema.fields
-        if field.name not in set([_VALUES_COLUMN_NAME, _GENOTYPES_COLUMN_NAME])
+        if field.name != _VALUES_COLUMN_NAME
     ] + result_fields
     result_struct = StructType(fields)
 
