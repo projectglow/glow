@@ -18,15 +18,19 @@ create_python_env: &create_python_env
   run:
     name: Create conda environment for Python dependencies
     command: |
-      export PATH=$HOME/conda/bin:$PATH
-      conda env create -f python/environment.yml
+      if [ ! -d "/home/circleci/conda/envs/glow" ]; then
+        export PATH=$HOME/conda/bin:$PATH
+        conda env create -f python/environment.yml
+      fi
 
 create_docs_env: &create_docs_env
   run:
     name: Create minimal conda environment for docs dependencies
     command: |
-      export PATH=$HOME/conda/bin:$PATH
-      conda env create -f docs/source/environment.yml
+      if [ ! -d "/home/circleci/conda/envs/glow-docs" ]; then
+        export PATH=$HOME/conda/bin:$PATH
+        conda env create -f docs/source/environment.yml
+      fi
 
 install_pyspark2: &install_pyspark2
   run: # Evict PySpark 3.0.0 in favor of PySpark 2.4.5
