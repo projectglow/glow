@@ -1,0 +1,16 @@
+name: glow-docs
+channels:
+  - bioconda
+  - conda-forge
+dependencies:
+  - hail>=0.2.58
+  - nptyping=1.3.0
+  - numpy>=1.17.4
+  - pandas>=0.25.3
+  - pip
+  - sphinx
+  - sphinx_rtd_theme
+  - typeguard=2.9.1
+  - pip:
+      - Sphinx-Substitution-Extensions==2019.6.15.0 # Substitutions in code blocks
+      - sphinx-tabs==1.1.13 # Code tabs (Python/Scala)
