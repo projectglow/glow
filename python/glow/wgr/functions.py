@@ -139,6 +139,7 @@ def reshape_for_gwas(spark: SparkSession, label_df: pd.DataFrame) -> DataFrame:
     Examples:
         .. invisible-code-block:
             import pandas as pd
+
         >>> label_df = pd.DataFrame({'label1': [1, 2], 'label2': [3, 4]}, index=['sample1', 'sample2'])
         >>> reshaped = reshape_for_gwas(spark, label_df)
         >>> reshaped.head()
