@@ -77,15 +77,16 @@ def linear_regression(genotype_df: DataFrame,
     else:
         raise ValueError('dt must be np.float32 or np.float64')
 
-    if values_column == _GENOTYPES_COLUMN_NAME:
-        raise ValueError(f'The values column should not be called "{_GENOTYPES_COLUMN_NAME}"')
-    elif isinstance(values_column, str):
+    if isinstance(values_column, str):
+        if values_column == _GENOTYPES_COLUMN_NAME:
+            raise ValueError(f'The values column should not be called "{_GENOTYPES_COLUMN_NAME}"')
         genotype_df = (genotype_df.withColumn(_VALUES_COLUMN_NAME,
                                               fx.col(values_column).cast(
                                                   ArrayType(sql_type))).drop(values_column))
     else:
         genotype_df = genotype_df.withColumn(_VALUES_COLUMN_NAME,
                                              values_column.cast(ArrayType(sql_type)))
+
     if _GENOTYPES_COLUMN_NAME in [field.name for field in genotype_df.schema]:
         genotype_df = genotype_df.drop(_GENOTYPES_COLUMN_NAME)
 
@@ -97,10 +98,8 @@ def linear_regression(genotype_df: DataFrame,
         StructField('pvalue', sql_type),
         StructField('phenotype', StringType())
     ]
-    fields = [
-        field for field in genotype_df.schema.fields
-        if field.name != _VALUES_COLUMN_NAME
-    ] + result_fields
+    fields = [field for field in genotype_df.schema.fields if field.name != _VALUES_COLUMN_NAME
+              ] + result_fields
     result_struct = StructType(fields)
 
     C = covariate_df.to_numpy(dt, copy=True)
