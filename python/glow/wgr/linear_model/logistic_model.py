@@ -19,6 +19,7 @@ from pyspark.sql.functions import pandas_udf, PandasUDFType
 import pyspark.sql.functions as f
 from typeguard import typechecked
 from typing import Any, Dict, List
+import warnings
 from glow.logging import record_hls_event
 
 
@@ -164,7 +165,7 @@ class LogisticRegression:
 
         if response == 'linear':
             if not covdf.empty:
-                warn('Ignoring covariates for linear response')
+                warnings.warn('Ignoring covariates for linear response')
                 covdf = pd.DataFrame({})
             transform_udf = pandas_udf(
                 lambda key, pdf: apply_model(key, transform_key_pattern, pdf, labeldf,
