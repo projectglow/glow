@@ -153,7 +153,7 @@ class LogisticRegression:
             validation routine.
             covdf : Pandas DataFrame containing covariates to be included in every model in the stacking
                 ensemble.  The covariates should not include an explicit intercept term, as one will be
-                added automatically.
+                added automatically. Covariates will be ignored for a linear response.
             response : String specifying what transformation to apply ("linear" or "sigmoid")
 
         Returns:
@@ -164,7 +164,7 @@ class LogisticRegression:
 
         if response == 'linear':
             if not covdf.empty:
-                print('Ignoring covariates for linear response')
+                warn('Ignoring covariates for linear response')
                 covdf = pd.DataFrame({})
             transform_udf = pandas_udf(
                 lambda key, pdf: apply_model(key, transform_key_pattern, pdf, labeldf,
@@ -211,7 +211,7 @@ class LogisticRegression:
             validation routine.
             covdf : Pandas DataFrame containing covariates to be included in every model in the stacking
                 ensemble (optional). The covariates should not include an explicit intercept term, as one will be
-                added automatically.
+                added automatically. Covariates will be ignored for a linear response.
             response : String specifying the desired output.  Can be 'linear' to specify the direct output of the linear
                 WGR model (default) or 'sigmoid' to specify predicted label probabilities.
 
@@ -250,7 +250,7 @@ class LogisticRegression:
             validation routine.
             covdf : covdf : Pandas DataFrame containing covariates to be included in every model in the stacking
                 ensemble (optional). The covariates should not include an explicit intercept term, as one will be
-                added automatically.
+                added automatically. Covariates will be ignored for a linear response.
             response : String specifying the desired output.  Can be 'linear' to specify the direct output of the linear
                 WGR model (default) or 'sigmoid' to specify predicted label probabilities.
             chromosomes : List of chromosomes for which to generate a prediction (optional). If not provided, the
@@ -289,7 +289,7 @@ class LogisticRegression:
             sample_blocks : Dict containing a mapping of sample_block ID to a list of corresponding sample IDs
             covdf : Pandas DataFrame containing covariates to be included in every model in the stacking
                 ensemble (optional). The covariates should not include an explicit intercept term, as one will be
-                added automatically.
+                added automatically. Covariates will be ignored during the transformation step for a linear response.
             response : String specifying the desired output.  Can be 'linear' to specify the direct output of the linear
                 WGR model (default) or 'sigmoid' to specify predicted label probabilities.
 
