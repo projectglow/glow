@@ -8,6 +8,7 @@ from pyspark.sql.types import DoubleType, StringType, StructField, StructType
 from scipy import stats
 from typeguard import typechecked
 from ..wgr.linear_model.functions import __assert_all_present
+from .functions import _is_spark3_plus, _output_schema
 
 __all__ = ['linear_regression']
 
@@ -50,7 +51,7 @@ def linear_regression(genotype_df: DataFrame,
         - `pvalue`: P value estimed from a two sided t-test
         - `phenotype`: The phenotype name as determined by the column names of `phenotype_df`
     '''
-    if int(genotype_df.sql_ctx.sparkSession.version.split('.')[0]) < 3:
+    if not _is_spark3_plus(genotype_df.sql_ctx.sparkSession):
         raise AttributeError(
             'Pandas based linear regression is only supported on Spark 3.0 or greater')
 
@@ -71,9 +72,7 @@ def linear_regression(genotype_df: DataFrame,
         StructField('pvalue', DoubleType()),
         StructField('phenotype', StringType())
     ]
-    fields = [field
-              for field in genotype_df.schema.fields if field.name != values_column] + result_fields
-    result_struct = StructType(fields)
+    result_struct = _output_schema(genotype_df.schema.fields, result_fields, set(values_column))
 
     C = covariate_df.to_numpy(np.float64, copy=True)
     if fit_intercept:
