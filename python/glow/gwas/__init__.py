@@ -1,0 +1,1 @@
+from glow.gwas.linear_regression import *

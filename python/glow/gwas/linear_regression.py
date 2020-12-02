@@ -28,6 +28,19 @@ def linear_regression(genotype_df: DataFrame,
     In each Spark task, we project the covariates out of a block of genotypes and then compute the regression statistics for each phenotype,
     taking into account the distinct missingness patterns of each phenotype.
 
+    Examples:
+        .. invisible-code-block:
+            import pandas as pd
+            import numpy as np
+            import glow
+            glow.register(spark)
+        >>> n_samples, n_phenotypes, n_covariates = (10, 3, 3)
+        >>> phenotype_df = pd.DataFrame(np.random.random((n_samples, n_phenotypes)), columns=['p1', 'p2', 'p3'])
+        >>> covariate_df = pd.DataFrame(np.random.random((n_samples, n_phenotypes)))
+        >>> genotype_df = spark.read.format('vcf').load('test-data/1kg_sample.vcf')
+        >>> results = glow.gwas.linear_regression(genotype_df, phenotype_df, covariate_df,
+        ... values_column=glow.genotype_states('genotypes'))
+
     Args:
         genotype_df : Spark DataFrame containing genomic data
         phenotype_df : Pandas DataFrame containing phenotypic data
