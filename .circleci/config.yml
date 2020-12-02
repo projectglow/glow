@@ -3,19 +3,34 @@ setup_base: &setup_base
   docker:
     - image: circleci/openjdk:8
 
-install_conda_deps: &install_conda_deps
+install_conda: &install_conda
   run:
-    name: Install dependencies
+    name: Install conda
     command: |
-      export PATH=$HOME/conda/bin:$PATH
       if [ ! -d "/home/circleci/conda" ]; then
         wget https://repo.anaconda.com/miniconda/Miniconda3-py37_4.8.3-Linux-x86_64.sh
         /bin/bash Miniconda3-py37_4.8.3-Linux-x86_64.sh -b -p $HOME/conda
-        conda env create -f python/environment.yml
       else
         echo "Conda already installed"
       fi
 
+create_python_env: &create_python_env
+  run:
+    name: Create conda environment for Python dependencies
+    command: |
+      if [ ! -d "/home/circleci/conda/envs/glow" ]; then
+        export PATH=$HOME/conda/bin:$PATH
+        conda env create -f python/environment.yml
+      fi
+
+create_docs_env: &create_docs_env
+  run:
+    name: Create minimal conda environment for docs dependencies
+    command: |
+      if [ ! -d "/home/circleci/conda/envs/glow-docs" ]; then
+        export PATH=$HOME/conda/bin:$PATH
+        conda env create -f docs/source/environment.yml
+      fi
 
 install_pyspark2: &install_pyspark2
   run: # Evict PySpark 3.0.0 in favor of PySpark 2.4.5
@@ -52,17 +67,19 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - conda-deps-v1-{{ checksum "python/environment.yml" }}
-      - *install_conda_deps
+            - conda-deps-v1-{{ checksum "python/environment.yml" }}-{{ checksum "docs/source/environment.yml" }}
+      - *install_conda
+      - *create_python_env
+      - *create_docs_env
       - save_cache:
           paths:
             - /home/circleci/conda
-          key: conda-deps-v1-{{ checksum "python/environment.yml" }}
+          key: conda-deps-v1-{{ checksum "python/environment.yml" }}-{{ checksum "docs/source/environment.yml" }}
       - run:
           name: Check docs links
           environment:
           command: |
-            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            export PATH=$HOME/conda/envs/glow-docs/bin:$PATH
             cd docs
             make linkcheck
       - run:
@@ -72,8 +89,7 @@ jobs:
       - run:
           name: Generate notebook source files
           command: |
-            export PATH=$HOME/conda/bin:$PATH
-            source activate glow
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
             for f in $(find docs/source/_static/notebooks -type f -name '*.html'); do
                 python docs/dev/gen-nb-src.py --html "${f}" --cli-profile docs-ci
             done
@@ -86,7 +102,8 @@ jobs:
       - restore_cache:
           keys:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}
-      - *install_conda_deps
+      - *install_conda
+      - *create_python_env
       - save_cache:
           paths:
             - /home/circleci/conda
@@ -144,7 +161,8 @@ jobs:
       - restore_cache:
           keys:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}
-      - *install_conda_deps
+      - *install_conda
+      - *create_python_env
       - save_cache:
           paths:
             - /home/circleci/conda
@@ -194,7 +212,8 @@ jobs:
       - restore_cache:
           keys:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}
-      - *install_conda_deps
+      - *install_conda
+      - *create_python_env
       - save_cache:
           paths:
             - /home/circleci/conda
