@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from glow.glow import *
-from glow.functions import *
-from glow.hail import *
-from glow.wgr import *
+from .glow import *
+from .functions import *
+from .hail import *
+from .wgr import *
+from . import gwas

@@ -1,8 +1,8 @@
 .. _gwas:
 
-==============================================
-Genome-wide Association Study Regression Tests
-==============================================
+======================================================
+GloWGR: Genome-wide Association Study Regression Tests
+======================================================
 
 .. invisible-code-block: python
 
@@ -12,11 +12,13 @@ Genome-wide Association Study Regression Tests
     genotypes_vcf = 'test-data/gwas/genotypes.vcf.gz'
     covariates_csv = 'test-data/gwas/covariates.csv.gz'
     continuous_phenotypes_csv = 'test-data/gwas/continuous-phenotypes.csv.gz'
+    continuous_offset_csv = 'test-data/gwas/continuous-offsets.csv.gz'
     binary_phenotypes_csv = 'test-data/gwas/binary-phenotypes.csv.gz'
-    offset_csv = 'test-data/gwas/offset.csv.gz'
+    binary_offset_csv = 'test-data/gwas/binary-offsets.csv.gz'
 
 Glow contains functions for performing simple regression analyses used in
-genome-wide association studies (GWAS).
+genome-wide association studies (GWAS). These functions are best used in conjunction with the
+:ref:`GloWGR whole genome regression method <glowgr>`.
 
 .. tip::
   Glow automatically converts literal one-dimensional and two-dimensional ``numpy`` ``ndarray`` s of ``double`` s
@@ -27,7 +29,7 @@ genome-wide association studies (GWAS).
 Linear regression
 =================
 
-``linear_regression_gwas`` performs a linear regression association test optimized for performance
+``linear_regression`` performs a linear regression association test optimized for performance
 in a GWAS setting.
 
 Example
@@ -35,10 +37,9 @@ Example
 
 .. code-block:: python
 
-  from glow.wgr.functions import reshape_for_gwas
+  import glow
   import numpy as np
   import pandas as pd
-  from pyspark.ml.linalg import DenseMatrix
   from pyspark.sql import Row
   from pyspark.sql.functions import col, lit
 
@@ -47,30 +48,19 @@ Example
 
   # genotype_states returns the number of alt alleles for each sample
   # mean_substitute replaces any missing genotype states with the mean of the non-missing states
-  genotypes = glow.transform('split_multiallelics', variants) \
-    .withColumn('gt', glow.mean_substitute(glow.genotype_states(col('genotypes')))) \
-    .cache()
+  genotypes = (glow.transform('split_multiallelics', variants)
+    .withColumn('gt', glow.mean_substitute(glow.genotype_states(col('genotypes'))))
+    .select('contigName', 'start', 'names', 'gt')
+    .cache())
 
-  # Read covariates from a CSV file and add an intercept
+  # Read covariates from a CSV file
   covariates = pd.read_csv(covariates_csv, index_col=0)
-  covariates['intercept'] = 1.
 
   # Read phenotypes from a CSV file
-  pd_phenotypes = pd.read_csv(continuous_phenotypes_csv, index_col=0)
-  phenotypes = reshape_for_gwas(spark, pd_phenotypes)
+  phenotypes = pd.read_csv(continuous_phenotypes_csv, index_col=0)
 
   # Run linear regression test
-  lin_reg_df = genotypes.crossJoin(phenotypes).select(
-    'contigName',
-    'start',
-    'names',
-    'label',
-    glow.expand_struct(glow.linear_regression_gwas(
-      col('gt'),
-      phenotypes.values,
-      lit(covariates.to_numpy())
-    ))
-  )
+  lin_reg_df = glow.gwas.linear_regression(genotypes, phenotypes, covariates, values_column='gt')
 
 .. invisible-code-block: python
 
@@ -78,66 +68,41 @@ Example
      contigName='22',
      start=16050114,
      names=['rs587755077'],
-     label='Continuous_Trait_1',
-     beta=0.1472251285257647,
-     standardError=0.1415532796964315,
-     pValue=0.298408742884705
+     phenotype='Continuous_Trait_1',
+     effect=0.14722512852575978,
+     stderror=0.14155327969643167,
+     pvalue=0.2984087428847886,
+     tvalue=1.0400686500623064
    )
    assert_rows_equal(lin_reg_df.filter('contigName = 22 and start = 16050114').head(), expected_lin_reg_row)
 
-Parameters
-----------
+The linear regression function accepts GloWGR phenotypic predictions (either global or per chromosome) as an offset.
 
-.. list-table::
-  :header-rows: 1
+.. code-block:: python
 
-  * - Name
-    - Type
-    - Details
-  * - ``genotypes``
-    - ``array<double>`` (or numeric type that can be cast to ``double``)
-    - A numeric representation of the genotype for each sample at a given site, for example the
-      result of the ``genotype_states`` function. This parameter can vary for each row in the dataset.
-  * - ``covariates``
-    - ``spark.ml`` ``Matrix``
-    - A matrix containing the covariates to use in the linear regression model. Each row in the
-      matrix represents observations for a sample. The indexing must match that of the ``genotypes``
-      array that is, the 0th row in the covariate matrix should correspond to the same sample as the
-      0th element in the ``genotypes`` array. This matrix must be constant for each row in the
-      dataset. If desired, you must explicitly include an intercept covariate in this matrix.
-  * - ``phenotypes``
-    - ``array<double>`` (or numeric type that can be cast to ``double``)
-    - A numeric representation of the phenotype for each sample. This parameter may vary for each
-      row in the dataset. The indexing of this array must match the ``genotypes`` and
-      ``covariates`` parameters.
+  offsets = pd.read_csv(continuous_offset_csv, index_col=0)
+  lin_reg_df = glow.gwas.linear_regression(genotypes, phenotypes, covariates, offset_df=offsets, values_column='gt')
 
-Return
-------
+.. invisible-code-block: python
 
-The function returns a struct with the following fields. The computation of each value matches the
-`lm R package <https://www.rdocumentation.org/packages/stats/versions/3.6.1/topics/lm>`_.
+   expected_lin_reg_row = Row(
+     contigName='22',
+     start=16050114,
+     names=['rs587755077'],
+     effect=0.14153340605722264,
+     stderror=0.17619727316255493,
+     tvalue=0.8032667221055554,
+     pvalue=0.42189707280260846,
+     phenotype='Continuous_Trait_1')
+   assert_rows_equal(lin_reg_df.filter('contigName = 22 and start = 16050114').head(), expected_lin_reg_row)
 
-.. list-table::
-  :header-rows: 1
+For complete parameter usage information, check out the API reference for :func:`glow.gwas.linear_regression`.
 
-  * - Name
-    - Type
-    - Details
-  * - ``beta``
-    - ``double``
-    - The fit effect coefficient of the ``genotypes`` parameter.
-  * - ``standardError``
-    - ``double``
-    - The standard error of ``beta``.
-  * - ``pValue``
-    - ``double``
-    - The P-value of the t-statistic for ``beta``.
+.. note::
 
-Implementation details
-----------------------
-
-The linear regression model is fit using the QR decomposition. For performance, the QR decomposition
-of the covariate matrix is computed once and reused for each (``genotypes``, ``phenotypes``) pair.
+  Glow also includes a SQL-based function for performing linear regression. However, this function
+  only processes one phenotype at time, and so performs more slowly than the batch linear regression function
+  documented above. To read more about the SQL-based function, see the docs for :func:`glow.functions.linear_regression_gwas`.
 
 .. _logistic-regression:
 
@@ -185,7 +150,7 @@ Example
   # Logistic regression with offset
 
   # Read offset from a csv file
-  offset = np.hstack(pd.read_csv(offset_csv, index_col=0)[[trait]].to_numpy()).astype('double')
+  offset = np.hstack(pd.read_csv(binary_offset_csv, index_col=0)[[trait]].to_numpy()).astype('double')
 
   # LRT test with offset
   lrt_log_reg_with_offset_df = genotypes.select(

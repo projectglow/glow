@@ -33,42 +33,53 @@ def linear_regression(genotype_df: DataFrame,
     taking into account the distinct missingness patterns of each phenotype.
 
     Examples:
-        .. invisible-code-block:
-            import pandas as pd
-            import numpy as np
-            import glow
-            glow.register(spark)
-        >>> n_samples, n_phenotypes, n_covariates = (10, 3, 3)
+        >>> np.random.seed(42)
+        >>> n_samples, n_phenotypes, n_covariates = (710, 3, 3)
         >>> phenotype_df = pd.DataFrame(np.random.random((n_samples, n_phenotypes)), columns=['p1', 'p2', 'p3'])
         >>> covariate_df = pd.DataFrame(np.random.random((n_samples, n_phenotypes)))
-        >>> genotype_df = spark.read.format('vcf').load('test-data/1kg_sample.vcf')
+        >>> genotype_df = (spark.read.format('vcf').load('test-data/1kg_sample.vcf')
+        ... .select('contigName', 'start', 'genotypes'))
         >>> results = glow.gwas.linear_regression(genotype_df, phenotype_df, covariate_df,
         ... values_column=glow.genotype_states('genotypes'))
+        >>> results.head()
+        Row(contigName='1', start=904164, effect=0.045375278332013026, stderror=0.02146198393915597, tvalue=2.114216395867711, pvalue=0.03484727575045105, phenotype='p1')
+
+        >>> phenotype_df = pd.DataFrame(np.random.random((n_samples, n_phenotypes)), columns=['p1', 'p2', 'p3'])
+        >>> covariate_df = pd.DataFrame(np.random.random((n_samples, n_phenotypes)))
+        >>> genotype_df = (spark.read.format('vcf').load('test-data/1kg_sample.vcf')
+        ... .select('contigName', 'start', 'genotypes'))
+        >>> contigs = ['1', '2', '3']
+        >>> offset_index = pd.MultiIndex.from_product([phenotype_df.index, contigs])
+        >>> offset_df = pd.DataFrame(np.random.random((n_samples * len(contigs), n_phenotypes)),
+        ... index=offset_index, columns=phenotype_df.columns)
+        >>> results = glow.gwas.linear_regression(genotype_df, phenotype_df, covariate_df,
+        ... offset_df=offset_df, values_column=glow.genotype_states('genotypes'))
 
     Args:
         genotype_df : Spark DataFrame containing genomic data
         phenotype_df : Pandas DataFrame containing phenotypic data
         covariate_df : An optional Pandas DataFrame containing covariates
         offset_df : An optional Pandas DataFrame containing the phenotype offset. The actual phenotype used
-                    for linear regression is `phenotype_df` minus the appropriate offset. The `offset_df` may
-                    have one or two levels of indexing. If one level, the index should be the same as the `phenotype_df`.
-                    If two levels, the level 0 index should be the same as the `phenotype_df`, and the level 1 index
+                    for linear regression is ``phenotype_df`` minus the appropriate offset. The ``offset_df`` may
+                    have one or two levels of indexing. If one level, the index should be the same as the ``phenotype_df``.
+                    If two levels, the level 0 index should be the same as the ``phenotype_df``, and the level 1 index
                     should be the contig name. The two level index scheme allows for per-contig offsets like
                     LOCO predictions from GloWGR.
         fit_intercept : Whether or not to add an intercept column to the covariate DataFrame
         values_column : A column name or column expression to test with linear regression. If a column name is provided,
-                        `genotype_df` should have a column with this name and a numeric array type. If a column expression
+                        ``genotype_df`` should have a column with this name and a numeric array type. If a column expression
                         is provided, the expression should return a numeric array type.
-        dt : The numpy datatype to use in the linear regression test. Must be `np.float32` or `np.float64`.
+        dt : The numpy datatype to use in the linear regression test. Must be ``np.float32`` or ``np.float64``.
 
     Returns:
-        A Spark DataFrame that contains:
-        - All columns from `genotype_df` except the `values_column` and the `genotypes` column if one exists
-        - `effect`: The effect size estimate for the genotype
-        - `stderror`: The estimated standard error of the effect
-        - `tvalue`: The T statistic
-        - `pvalue`: P value estimated from a two sided T-test
-        - `phenotype`: The phenotype name as determined by the column names of `phenotype_df`
+        A Spark DataFrame that contains
+
+        - All columns from ``genotype_df`` except the ``values_column`` and the ``genotypes`` column if one exists
+        - ``effect``: The effect size estimate for the genotype
+        - ``stderror``: The estimated standard error of the effect
+        - ``tvalue``: The T statistic
+        - ``pvalue``: P value estimated from a two sided T-test
+        - ``phenotype``: The phenotype name as determined by the column names of ``phenotype_df``
     '''
     if int(genotype_df.sql_ctx.sparkSession.version.split('.')[0]) < 3:
         raise AttributeError(

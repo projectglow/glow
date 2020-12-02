@@ -12,3 +12,15 @@ Ridge model
 
 .. automodule:: glow.wgr.linear_model.ridge_model
   :members:
+
+Logistic model
+~~~~~~~~~~~~~~
+
+.. automodule:: glow.wgr.linear_model.logistic_model
+  :members:
+
+GWAS functions
+~~~~~~~~~~~~~~
+
+.. automodule:: glow.gwas
+  :members:
