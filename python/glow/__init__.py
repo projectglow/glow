@@ -13,8 +13,11 @@
 # limitations under the License.
 
 __all__ = []
+
+
 def extend_all(module):
     __all__.extend(module.__all__)
+
 
 from .glow import *
 from . import glow
@@ -24,7 +27,7 @@ from .functions import *
 from . import functions
 extend_all(functions)
 
-from .wgr import * # For backwards compatibility. Avoid showing this import in docs.
+from .wgr import *  # For backwards compatibility. Avoid showing this import in docs.
 
 from . import wgr
 from . import gwas

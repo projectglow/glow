@@ -22,6 +22,7 @@ from typeguard import check_argument_types, check_return_type
 
 __all__ = ['register', 'transform']
 
+
 def transform(operation: str,
               df: DataFrame,
               arg_map: Dict[str, Any] = None,

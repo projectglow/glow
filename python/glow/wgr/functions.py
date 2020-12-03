@@ -21,6 +21,7 @@ from typing import Dict, List
 
 __all__ = ['get_sample_ids', 'block_variants_and_samples', 'reshape_for_gwas']
 
+
 def __validate_sample_ids(sample_ids: List[str]):
     """"
     Validates that a set of sample IDs are valid (non-empty and unique).
