@@ -172,8 +172,7 @@ Example
 
 .. code-block:: python
 
-    from glow.wgr.linear_model import RidgeReducer, RidgeRegression, LogisticRegression
-    from glow.wgr.functions import block_variants_and_samples, get_sample_ids
+    from glow.wgr import RidgeReducer, RidgeRegression, LogisticRegression, block_variants_and_samples, get_sample_ids
     from pyspark.sql.functions import col, lit
 
     variants_per_block = 1000

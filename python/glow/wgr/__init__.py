@@ -11,3 +11,12 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+from .linear_model.ridge_model import *
+from .linear_model import ridge_model
+from .linear_model.logistic_model import *
+from .linear_model import logistic_model
+from .functions import *
+from . import functions
+
+__all__ = functions.__all__ + logistic_model.__all__ + ridge_model.__all__

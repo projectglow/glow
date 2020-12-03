@@ -19,6 +19,7 @@ from pyspark.sql import DataFrame, Row, SparkSession, SQLContext
 from typeguard import check_argument_types, check_return_type
 from typing import Dict, List
 
+__all__ = ['get_sample_ids', 'block_variants_and_samples', 'reshape_for_gwas']
 
 def __validate_sample_ids(sample_ids: List[str]):
     """"

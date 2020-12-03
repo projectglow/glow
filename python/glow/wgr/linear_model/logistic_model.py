@@ -21,6 +21,8 @@ from typeguard import typechecked
 from typing import Any, Dict, List
 from glow.logging import record_hls_event
 
+__all__ = ['LogisticRegression']
+
 
 @typechecked
 class LogisticRegression:
