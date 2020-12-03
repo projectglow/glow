@@ -269,7 +269,7 @@ def test_logistic_regression_transform(spark):
 
     logreg = LogisticRegression(alpha_values)
     modeldf, cvdf = logreg.fit(lvl1df, labeldf, sample_blocks, covdf)
-    wgr_cov_df = logreg.transform(lvl1df, labeldf, sample_blocks, modeldf, cvdf)
+    wgr_cov_df = logreg.transform(lvl1df, labeldf, sample_blocks, modeldf, cvdf, covdf)
     wgr_cov_glow = wgr_cov_df[test_label].to_numpy()
 
     assert (np.allclose(np.array(test_values['wgr_cov']), wgr_cov_glow))

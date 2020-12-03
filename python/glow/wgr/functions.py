@@ -66,11 +66,11 @@ def get_sample_ids(data: DataFrame) -> List[str]:
     Extracts sample IDs from a variant DataFrame, such as one read from PLINK files.
 
     Requires that the sample IDs:
-        - Are in `genotype.sampleId`
-        - Are the same across all the variant rows
-        - Are a list of strings
-        - Are non-empty
-        - Are unique
+    - Are in `genotype.sampleId`
+    - Are the same across all the variant rows
+    - Are a list of strings
+    - Are non-empty
+    - Are unique
 
     Args:
         data : The variant DataFrame containing sample IDs
@@ -139,6 +139,7 @@ def reshape_for_gwas(spark: SparkSession, label_df: pd.DataFrame) -> DataFrame:
     Examples:
         .. invisible-code-block:
             import pandas as pd
+
         >>> label_df = pd.DataFrame({'label1': [1, 2], 'label2': [3, 4]}, index=['sample1', 'sample2'])
         >>> reshaped = reshape_for_gwas(spark, label_df)
         >>> reshaped.head()
