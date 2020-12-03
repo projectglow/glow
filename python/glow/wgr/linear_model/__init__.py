@@ -11,3 +11,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+
+# These imports are for backwards compatibility only.
+# Do not reference in documentation or examples
+from .ridge_model import *	
+from .logistic_model import *
