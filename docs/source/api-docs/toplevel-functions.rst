@@ -7,6 +7,8 @@ Glow Top-Level Functions
 .. autofunction:: glow.transform
 
 
+.. _pyspark_functions:
+
 PySpark Functions
 ~~~~~~~~~~~~~~~~~
 

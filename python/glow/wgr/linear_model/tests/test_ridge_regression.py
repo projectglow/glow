@@ -15,6 +15,7 @@
 from glow.wgr.linear_model import RidgeReducer, RidgeRegression
 from glow.wgr.linear_model.ridge_model import *
 from glow.wgr.linear_model.functions import generate_alphas
+import numpy as np
 import pandas as pd
 from pyspark.sql.functions import *
 import math
