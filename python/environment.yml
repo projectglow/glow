@@ -11,7 +11,7 @@ dependencies:
   - jupyter
   - nomkl # Skip MKL for local development
   - nptyping=1.3.0
-  - numpy=1.17.4
+  - numpy=1.17.5
   - pandas=0.25.3
   - pip
   - pyarrow=0.15.1

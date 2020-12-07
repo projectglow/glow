@@ -7,7 +7,6 @@ import glow
 
 
 def run_linear_regression(genotype_df, phenotype_df, covariate_df, fit_intercept=True):
-    df = glow.DataFrame()
     phenotype_names = phenotype_df.columns.astype('str').to_series()
     C = covariate_df.to_numpy('float64', copy=True)
     if fit_intercept:
