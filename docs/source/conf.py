@@ -56,6 +56,11 @@ substitutions = [
     ('|pypi-version|', pypi_version)
 ]
 
+rst_prolog = f"""
+.. |mvn-version| replace:: {mvn_version}
+.. |pypi-version| replace:: {pypi_version}
+"""
+
 # -- General configuration ---------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -76,9 +81,10 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.githubpages',
     'notebook',
+    'sphinx-prompt',
     'sphinx_substitution_extensions',
     'sphinx_tabs.tabs',
-    'sphinx.ext.napoleon'
+    'sphinx.ext.napoleon',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -238,3 +244,7 @@ linkcheck_ignore = [
     # Captcha required
     r'https://gatk.broadinstitute.org*',
 ]
+
+
+# -- Autodoc options ---------------------------------------------------------
+autodoc_typehints = 'description'

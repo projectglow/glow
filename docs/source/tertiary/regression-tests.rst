@@ -16,9 +16,10 @@ GloWGR: Genome-wide Association Study Regression Tests
     binary_phenotypes_csv = 'test-data/gwas/binary-phenotypes.csv.gz'
     binary_offset_csv = 'test-data/gwas/binary-offsets.csv.gz'
 
-Glow contains functions for performing simple regression analyses used in
+Glow contains functions for performing regression analyses used in
 genome-wide association studies (GWAS). These functions are best used in conjunction with the
-:ref:`GloWGR whole genome regression method <glowgr>`.
+:ref:`GloWGR whole genome regression method <glowgr>`, but also work as standalone
+analysis tools.
 
 .. tip::
   Glow automatically converts literal one-dimensional and two-dimensional ``numpy`` ``ndarray`` s of ``double`` s
@@ -30,7 +31,8 @@ Linear regression
 =================
 
 ``linear_regression`` performs a linear regression association test optimized for performance
-in a GWAS setting.
+in a GWAS setting. It uses vectorized linear algebra libraries to process multiple phenotypes
+efficiently.
 
 Example
 -------
@@ -102,7 +104,7 @@ For complete parameter usage information, check out the API reference for :func:
 
   Glow also includes a SQL-based function for performing linear regression. However, this function
   only processes one phenotype at time, and so performs more slowly than the batch linear regression function
-  documented above. To read more about the SQL-based function, see the docs for :func:`glow.functions.linear_regression_gwas`.
+  documented above. To read more about the SQL-based function, see the docs for :func:`linear_regression <glow.functions.linear_regression_gwas>`.
 
 .. _logistic-regression:
 

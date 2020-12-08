@@ -28,7 +28,7 @@ dependencies:
   - pip:
     - setuptools==41.2.0 # Python packaging
     - twine==2.0.0 # Pypi publishing
-    - sphinx-autobuild==2020.9.1
-    - Sphinx-Substitution-Extensions==2019.6.15.0 # Substitutions in code blocks
-    - sphinx-tabs==1.1.13 # Code tabs (Python/Scala)
-    - sybil==1.4.0 # Automatic doctest
+    - sphinx-autobuild
+    - Sphinx-Substitution-Extensions=2020.05.27.0 # Substitutions in code blocks
+    - sphinx-tabs # Code tabs (Python/Scala)
+    - sybil # Automatic doctest
