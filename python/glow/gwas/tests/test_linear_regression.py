@@ -2,6 +2,7 @@ import numpy as np
 import statsmodels.api as sm
 import pandas as pd
 import glow.gwas.linear_regression as lr
+import glow.gwas.functions as gwas_fx
 import pytest
 
 
@@ -9,7 +10,7 @@ def run_linear_regression(genotype_df, phenotype_df, covariate_df, fit_intercept
     phenotype_names = phenotype_df.columns.astype('str').to_series()
     C = covariate_df.to_numpy('float64', copy=True)
     if fit_intercept:
-        C = lr._add_intercept(C, genotype_df.shape[0])
+        C = gwas_fx._add_intercept(C, genotype_df.shape[0])
     if not C.size:
         C = np.zeros((genotype_df.shape[0], 1))
     Y = phenotype_df.to_numpy('float64', copy=True)
@@ -63,7 +64,7 @@ def statsmodels_baseline(genotype_df,
     C = covariate_df.to_numpy('float64')
     num_samples = C.shape[0] if C.size else genotype_df.shape[0]
     if fit_intercept:
-        C = lr._add_intercept(C, num_samples)
+        C = gwas_fx._add_intercept(C, num_samples)
     Y = phenotype_df.to_numpy('float64')
     X = genotype_df.to_numpy('float64')
     phenotype_df.columns = phenotype_df.columns.astype('str')
