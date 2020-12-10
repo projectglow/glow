@@ -8,10 +8,11 @@ dependencies:
   - click=7.1.1 # Docs notebook source generation
   - databricks-cli=0.9.1 # Docs notebook source generation
   - jinja2
-  - jupyter
+  - jupyterlab
   - nomkl # Skip MKL for local development
   - nptyping=1.3.0
   - numpy=1.17.4
+  - opt_einsum
   - pandas=0.25.3
   - pip
   - pyarrow=0.15.1
