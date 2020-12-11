@@ -28,8 +28,7 @@ def linear_regression(genotype_df: DataFrame,
     The implementation is a distributed version of the method used in regenie: 
     https://www.biorxiv.org/content/10.1101/2020.06.19.162354v2
 
-    Implementation details
-    ~~~~~~~~~~~~~~~~~~~~~~
+    Implementation details:
 
     On the driver node, we decompose the covariate matrix into an orthonormal basis and use it to project the covariates 
     out of the phenotype matrix. The orthonormal basis and the phenotype residuals are broadcast as part of a Pandas UDF.
