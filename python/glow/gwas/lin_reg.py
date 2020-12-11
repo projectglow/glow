@@ -45,8 +45,8 @@ def linear_regression(genotype_df: DataFrame,
         ... .select('contigName', 'start', 'genotypes'))
         >>> results = glow.gwas.linear_regression(genotype_df, phenotype_df, covariate_df,
         ... values_column=glow.genotype_states('genotypes'))
-        >>> results.head()
-        Row(contigName='1', start=904164, effect=0.045375278332013026, stderror=0.02146198393915597, tvalue=2.114216395867711, pvalue=0.03484727575045105, phenotype='p1')
+        >>> results.head() # doctest: +ELLIPSIS
+        Row(contigName='1', start=904164, effect=0.0453..., stderror=0.0214..., tvalue=2.114..., pvalue=0.0348..., phenotype='p1')
 
         >>> phenotype_df = pd.DataFrame(np.random.random((n_samples, n_phenotypes)), columns=['p1', 'p2', 'p3'])
         >>> covariate_df = pd.DataFrame(np.random.random((n_samples, n_phenotypes)))
