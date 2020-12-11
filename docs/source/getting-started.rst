@@ -27,13 +27,15 @@ Glow requires Apache Spark 2.4.3 or later.
         and then start the `Spark shell <http://spark.apache.org/docs/latest/rdd-programming-guide.html#using-the-shell>`_
         with the Glow maven package:
 
-        .. substitution-code-block:: sh
+        .. code-block:: sh
+          :substitutions:
 
           ./bin/pyspark --packages io.projectglow:glow-spark3_2.12:|mvn-version| --conf spark.hadoop.io.compression.codecs=io.projectglow.sql.util.BGZFCodec
 
         To start a Jupyter notebook instead of a shell:
 
-        .. substitution-code-block:: sh
+        .. code-block:: sh
+          :substitutions:
 
           PYSPARK_DRIVER_PYTHON=jupyter PYSPARK_DRIVER_PYTHON_OPTS=notebook ./bin/pyspark --packages io.projectglow:glow-spark3_2.12:|mvn-version| --conf spark.hadoop.io.compression.codecs=io.projectglow.sql.util.BGZFCodec
 
@@ -58,7 +60,8 @@ Glow requires Apache Spark 2.4.3 or later.
         Start the `Spark shell <http://spark.apache.org/docs/latest/rdd-programming-guide.html#using-the-shell>`_
         with the Glow maven package:
 
-        .. substitution-code-block:: sh
+        .. code-block:: sh
+          :substitutions:
 
           ./bin/spark-shell --packages io.projectglow:glow-spark3_2.12:|mvn-version| --conf spark.hadoop.io.compression.codecs=io.projectglow.sql.util.BGZFCodec
 

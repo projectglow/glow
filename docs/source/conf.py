@@ -51,11 +51,6 @@ mvn_version_file.close()
 
 pypi_version = imp.load_source('version', '../../python/version.py').VERSION
 
-substitutions = [
-    ('|mvn-version|', mvn_version),
-    ('|pypi-version|', pypi_version)
-]
-
 rst_prolog = f"""
 .. |mvn-version| replace:: {mvn_version}
 .. |pypi-version| replace:: {pypi_version}
@@ -85,6 +80,7 @@ extensions = [
     'sphinx_substitution_extensions',
     'sphinx_tabs.tabs',
     'sphinx.ext.napoleon',
+    'sphinx_autodoc_typehints',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -247,4 +243,4 @@ linkcheck_ignore = [
 
 
 # -- Autodoc options ---------------------------------------------------------
-autodoc_typehints = 'description'
+set_type_checking_flag=True

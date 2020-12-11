@@ -99,6 +99,7 @@ def block_variants_and_samples(variant_df: DataFrame, sample_ids: List[str],
     same sample-blocking logic as the blocked GT matrix transformer.
 
     Requires that:
+
     - Each variant row has the same number of values
     - The number of values per row matches the number of sample IDs
 
