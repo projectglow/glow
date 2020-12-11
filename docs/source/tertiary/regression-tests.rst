@@ -31,7 +31,7 @@ Linear regression
 =================
 
 ``linear_regression`` performs a linear regression association test optimized for performance
-in a GWAS setting. You provide a Spark DataFrame containing the genetic data and Pandas DataFrame's
+in a GWAS setting. You provide a Spark DataFrame containing the genetic data and Pandas DataFrames
 with the phenotypes, covariates, and optional offsets (typically predicted phenotypes from
 GloWGR). The function returns a Spark DataFrame with association test results for each
 (variant, phenotype) pair.
