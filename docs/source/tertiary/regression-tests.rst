@@ -1,8 +1,8 @@
 .. _gwas:
 
-======================================================
-GloWGR: Genome-wide Association Study Regression Tests
-======================================================
+=============================================================
+GloWGR: Genome-Wide Association Study (GWAS) Regression Tests
+=============================================================
 
 .. invisible-code-block: python
 
@@ -31,8 +31,14 @@ Linear regression
 =================
 
 ``linear_regression`` performs a linear regression association test optimized for performance
-in a GWAS setting. It uses vectorized linear algebra libraries to process multiple phenotypes
-efficiently.
+in a GWAS setting. You provide a Spark DataFrame containing the genetic data and Pandas DataFrame's
+with the phenotypes, covariates, and optional offsets (typically predicted phenotypes from
+GloWGR). The function returns a Spark DataFrame with association test results for each
+(variant, phenotype) pair.
+
+Each worker node in the cluster tests a subset of the total variant dataset. Multiple phenotypes
+and variants are tested together to take advantage of efficient matrix-matrix linear algebra
+primitives.
 
 Example
 -------
