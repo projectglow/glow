@@ -18,7 +18,7 @@ def run_linear_regression(genotype_df, phenotype_df, covariate_df, fit_intercept
     Y[~Y_mask] = 0
     Q = np.linalg.qr(C)[0]
     Y = lr._residualize_in_place(Y, Q)
-    Y_state = lr._create_YState(Y, Y_mask)
+    Y_state = lr._create_YState(Y, phenotype_df, None, Y_mask, np.float64)
     dof = C.shape[0] - C.shape[1] - 1
     pdf = pd.DataFrame({lr._VALUES_COLUMN_NAME: list(genotype_df.to_numpy('float64').T)})
 
