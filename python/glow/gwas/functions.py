@@ -11,15 +11,18 @@ from ..wgr.linear_model.functions import __assert_all_present, __check_binary
 _VALUES_COLUMN_NAME = '_glow_regression_values'
 _GENOTYPES_COLUMN_NAME = 'genotypes'
 
+
 def _check_spark_version(spark: SparkSession) -> bool:
     if int(spark.version.split('.')[0]) < 3:
-        raise AttributeError('Pandas based regression tests are only supported on Spark 3.0 or greater')
+        raise AttributeError(
+            'Pandas based regression tests are only supported on Spark 3.0 or greater')
 
 
 def _output_schema(input_fields: List[StructField], result_fields: List[StructField]) -> StructType:
 
     fields = [field for field in input_fields if field.name != _VALUES_COLUMN_NAME] + result_fields
     return StructType(fields)
+
 
 def _validate_covariates_and_phenotypes(covariate_df, phenotype_df, is_binary):
     for col in covariate_df:
@@ -32,6 +35,7 @@ def _validate_covariates_and_phenotypes(covariate_df, phenotype_df, is_binary):
     if is_binary:
         __check_binary(phenotype_df)
 
+
 def _regression_sql_type(dt):
     if dt == np.float32:
         return FloatType()
@@ -40,16 +44,16 @@ def _regression_sql_type(dt):
     else:
         raise ValueError('dt must be np.float32 or np.float64')
 
+
 def _prepare_genotype_df(genotype_df, values_column, sql_type):
     if isinstance(values_column, str):
         if values_column == _GENOTYPES_COLUMN_NAME:
             raise ValueError(f'The values column should not be called "{_GENOTYPES_COLUMN_NAME}"')
         out = (genotype_df.withColumn(_VALUES_COLUMN_NAME,
-                                              fx.col(values_column).cast(
-                                                  ArrayType(sql_type))).drop(values_column))
+                                      fx.col(values_column).cast(
+                                          ArrayType(sql_type))).drop(values_column))
     else:
-        out = genotype_df.withColumn(_VALUES_COLUMN_NAME,
-                                             values_column.cast(ArrayType(sql_type)))
+        out = genotype_df.withColumn(_VALUES_COLUMN_NAME, values_column.cast(ArrayType(sql_type)))
 
     if _GENOTYPES_COLUMN_NAME in [field.name for field in genotype_df.schema]:
         out = out.drop(_GENOTYPES_COLUMN_NAME)
@@ -61,6 +65,7 @@ def _add_intercept(C: NDArray[(Any, Any), Float], num_samples: int) -> NDArray[(
     intercept = np.ones((num_samples, 1))
     return np.hstack((intercept, C)) if C.size else intercept
 
+
 @typechecked
 def _einsum(subscripts: str, *operands: NDArray) -> NDArray:
     '''
@@ -68,20 +73,21 @@ def _einsum(subscripts: str, *operands: NDArray) -> NDArray:
     '''
     return oe.contract(subscripts, *operands, casting='no', optimize='dp')
 
+
 @typechecked
 def _add_intercept(C: NDArray[(Any, Any), Float], num_samples: int) -> NDArray[(Any, Any), Float]:
     intercept = np.ones((num_samples, 1))
     return np.hstack((intercept, C)) if C.size else intercept
 
+
 def _have_same_elements(idx1: pd.Index, idx2: pd.Index) -> bool:
     return idx1.sort_values().equals(idx2.sort_values())
 
+
 T = TypeVar('T')
-def _loco_dispatch(
-    genotype_pdf: pd.DataFrame, 
-    state: Union[T, Dict[str, T]], 
-    f: Callable,
-    *args):
+
+
+def _loco_dispatch(genotype_pdf: pd.DataFrame, state: Union[T, Dict[str, T]], f: Callable, *args):
     '''
     Given a pandas DataFrame, dispatch into one or more calls of the linear regression kernel
     depending whether we have one Y matrix or one Y matrix per contig.
@@ -92,13 +98,10 @@ def _loco_dispatch(
     else:
         return f(genotype_pdf, state, *args)
 
+
 @typechecked
-def _loco_make_state(
-        Y: NDArray[(Any, Any), Float], 
-        phenotype_df: pd.DataFrame, 
-        offset_df: pd.DataFrame, 
-        f: Callable[..., T],
-        *args) -> Union[T, Dict[str, T]]:
+def _loco_make_state(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame,
+                     offset_df: pd.DataFrame, f: Callable[..., T], *args) -> Union[T, Dict[str, T]]:
     if not offset_df.empty:
         if not _have_same_elements(phenotype_df.columns, offset_df.columns):
             raise ValueError(f'phenotype_df and offset_df should have the same column names.')

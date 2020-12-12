@@ -14,7 +14,6 @@ from .functions import _VALUES_COLUMN_NAME, _GENOTYPES_COLUMN_NAME
 __all__ = ['linear_regression']
 
 
-
 @typechecked
 def linear_regression(genotype_df: DataFrame,
                       phenotype_df: pd.DataFrame,
@@ -57,7 +56,7 @@ def linear_regression(genotype_df: DataFrame,
         - `pvalue`: P value estimated from a two sided T-test
         - `phenotype`: The phenotype name as determined by the column names of `phenotype_df`
     '''
-    
+
     gwas_fx._check_spark_version(genotype_df.sql_ctx.sparkSession)
 
     gwas_fx._validate_covariates_and_phenotypes(covariate_df, phenotype_df, is_binary=False)
@@ -88,23 +87,20 @@ def linear_regression(genotype_df: DataFrame,
     _residualize_in_place(Y, Q)
 
     Y_state = gwas_fx._loco_make_state(Y, phenotype_df, offset_df,
-        lambda a, b, c: _create_YState(a, b, c, Y_mask, dt))
+                                       lambda y, pdf, odf: _create_YState(y, pdf, odf, Y_mask, dt))
 
     dof = C.shape[0] - C.shape[1] - 1
 
     def map_func(pdf_iterator):
         for pdf in pdf_iterator:
-            yield gwas_fx._loco_dispatch(pdf, Y_state, _linear_regression_inner,Y_mask, Q, dof,
-                                              phenotype_df.columns.to_series().astype('str'))
+            yield gwas_fx._loco_dispatch(pdf, Y_state, _linear_regression_inner, Y_mask, Q, dof,
+                                         phenotype_df.columns.to_series().astype('str'))
 
     return genotype_df.mapInPandas(map_func, result_struct)
 
-def _create_YState(
-        Y: NDArray[(Any, Any), Float],
-        phenotype_df: pd.DataFrame,
-        offset_df: pd.DataFrame,
-        Y_mask: NDArray[(Any, Any), Float],
-        dt) -> NDArray[(Any, Any), Float]:
+
+def _create_YState(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame,
+                   offset_df: pd.DataFrame, Y_mask: NDArray[(Any, Any), Float], dt) -> YState:
     if offset_df is not None:
         Y = (pd.DataFrame(Y, phenotype_df.index, phenotype_df.columns) - offset_df).to_numpy(dt)
     Y *= Y_mask
@@ -129,6 +125,7 @@ def _residualize_in_place(M: NDArray[(Any, Any), Float],
     '''
     M -= Q @ (Q.T @ M)
     return M
+
 
 @typechecked
 def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,

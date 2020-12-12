@@ -344,6 +344,7 @@ def test_multi_offset_with_missing(spark):
                                           extra_cols=extra_cols)
     baseline = statsmodels_baseline(genotype_df, phenotype_df, covariate_df,
                                     [offset_df.xs(contig, level=1) for contig in contigs] * 6)
+    assert regression_results_equal(results, baseline)
 
 
 @pytest.mark.min_spark('3')
