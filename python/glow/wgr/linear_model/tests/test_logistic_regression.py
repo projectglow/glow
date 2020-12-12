@@ -12,12 +12,16 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+from pyspark.sql.pandas.functions import PandasUDFType
 from glow.wgr.linear_model.functions import *
 from glow.wgr.linear_model.logistic_udfs import *
 from glow.wgr.linear_model.logistic_model import *
+from pyspark.sql import functions as f
 import json
 import math
 import pytest
+import pandas as pd
+import numpy as np
 
 data_root = 'test-data/wgr/logistic-regression'
 
@@ -58,7 +62,7 @@ def test_map_irls_eqn(spark):
     with open(f'{data_root}/test_map_irls_eqn.json') as json_file:
         test_values = json.load(json_file)
     map_key_pattern = ['sample_block', 'label', 'alpha_name']
-    map_udf = pandas_udf(
+    map_udf = f.pandas_udf(
         lambda key, pdf: map_irls_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks, covdf,
                                       beta_cov_dict, maskdf, alphas), irls_eqn_struct,
         PandasUDFType.GROUPED_MAP)
@@ -92,13 +96,13 @@ def test_reduce_irls_eqn(spark):
     map_key_pattern = ['sample_block', 'label', 'alpha_name']
     reduce_key_pattern = ['header_block', 'header', 'label', 'alpha_name']
 
-    map_udf = pandas_udf(
+    map_udf = f.pandas_udf(
         lambda key, pdf: map_irls_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks, covdf,
                                       beta_cov_dict, maskdf, alphas), irls_eqn_struct,
         PandasUDFType.GROUPED_MAP)
 
-    reduce_udf = pandas_udf(lambda key, pdf: reduce_irls_eqn(key, reduce_key_pattern, pdf),
-                            irls_eqn_struct, PandasUDFType.GROUPED_MAP)
+    reduce_udf = f.pandas_udf(lambda key, pdf: reduce_irls_eqn(key, reduce_key_pattern, pdf),
+                              irls_eqn_struct, PandasUDFType.GROUPED_MAP)
 
     reducedf = lvl1df \
         .withColumn('alpha_name', f.explode(f.array([f.lit(n) for n in alphas.keys()]))) \
@@ -133,15 +137,15 @@ def test_solve_irls_eqn(spark):
     reduce_key_pattern = ['header_block', 'header', 'label', 'alpha_name']
     model_key_pattern = ['sample_block', 'label', 'alpha_name']
 
-    map_udf = pandas_udf(
+    map_udf = f.pandas_udf(
         lambda key, pdf: map_irls_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks, covdf,
                                       beta_cov_dict, maskdf, alphas), irls_eqn_struct,
         PandasUDFType.GROUPED_MAP)
 
-    reduce_udf = pandas_udf(lambda key, pdf: reduce_irls_eqn(key, reduce_key_pattern, pdf),
-                            irls_eqn_struct, PandasUDFType.GROUPED_MAP)
+    reduce_udf = f.pandas_udf(lambda key, pdf: reduce_irls_eqn(key, reduce_key_pattern, pdf),
+                              irls_eqn_struct, PandasUDFType.GROUPED_MAP)
 
-    model_udf = pandas_udf(
+    model_udf = f.pandas_udf(
         lambda key, pdf: solve_irls_eqn(key, model_key_pattern, pdf, labeldf, alphas, covdf),
         model_struct, PandasUDFType.GROUPED_MAP)
 
@@ -183,19 +187,19 @@ def test_score_logistic_model(spark):
     model_key_pattern = ['sample_block', 'label', 'alpha_name']
     score_key_pattern = ['sample_block', 'label']
 
-    map_udf = pandas_udf(
+    map_udf = f.pandas_udf(
         lambda key, pdf: map_irls_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks, covdf,
                                       beta_cov_dict, maskdf, alphas), irls_eqn_struct,
         PandasUDFType.GROUPED_MAP)
 
-    reduce_udf = pandas_udf(lambda key, pdf: reduce_irls_eqn(key, reduce_key_pattern, pdf),
-                            irls_eqn_struct, PandasUDFType.GROUPED_MAP)
+    reduce_udf = f.pandas_udf(lambda key, pdf: reduce_irls_eqn(key, reduce_key_pattern, pdf),
+                              irls_eqn_struct, PandasUDFType.GROUPED_MAP)
 
-    model_udf = pandas_udf(
+    model_udf = f.pandas_udf(
         lambda key, pdf: solve_irls_eqn(key, model_key_pattern, pdf, labeldf, alphas, covdf),
         model_struct, PandasUDFType.GROUPED_MAP)
 
-    score_udf = pandas_udf(
+    score_udf = f.pandas_udf(
         lambda key, pdf: score_models(key,
                                       score_key_pattern,
                                       pdf,
