@@ -128,6 +128,7 @@ Example
   # Read a single phenotype from a CSV file
   trait = 'Binary_Trait_1'
   phenotype = np.hstack(pd.read_csv(binary_phenotypes_csv, index_col=0)[[trait]].to_numpy()).astype('double')
+  covariates['intercept'] = 1
 
   # Likelihood ratio test
   lrt_log_reg_df = genotypes.select(
