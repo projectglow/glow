@@ -11,6 +11,7 @@ from scipy import stats
 import opt_einsum as oe
 from . import functions as gwas_fx
 from .functions import _VALUES_COLUMN_NAME
+from .approx_firth_correction import *
 
 __all__ = ['logistic_regression']
 
@@ -79,19 +80,15 @@ def logistic_regression(
     Y_mask = ~(np.isnan(Y))
     np.nan_to_num(Y, copy=False)
 
-    state = gwas_fx._loco_make_state(
+    log_reg_state = gwas_fx._loco_make_state(
         Y, phenotype_df, offset_df,
-        lambda y, pdf, odf: _assemble_log_reg_state(y, pdf, odf, C, Y_mask))
+        lambda y, pdf, odf: _assemble_log_reg_state(y, pdf, odf, C, Y_mask, correction))
 
     def map_func(pdf_iterator):
         for pdf in pdf_iterator:
-            yield gwas_fx._loco_dispatch(pdf, state, _logistic_regression_inner, C,
+            yield gwas_fx._loco_dispatch(pdf, log_reg_state, _logistic_regression_inner, C,
                                          Y_mask.astype(np.float64), correction, p_threshold,
                                          phenotype_df.columns.to_series().astype('str'))
-
-    firth_state = gwas_fx._loco_make_state(
-        Y, phenotype_df, offset_df,
-        lambda y, pdf, odf: _assemble_approx_firth_state(y, pdf, odf, C, Y_mask))
 
     return genotype_df.mapInPandas(map_func, result_struct)
 
@@ -125,6 +122,7 @@ class LogRegState:
     inv_CtGammaC: NDArray[(Any, Any), Float]
     gamma: NDArray[(Any, Any), Float]
     Y_res: NDArray[(Any, Any), Float]
+    approx_firth_state: Optional[ApproxFirthState]
 
 
 @typechecked
@@ -133,7 +131,8 @@ def _assemble_log_reg_state(
         phenotype_df: pd.DataFrame,  # Unused, only to share code with lin_reg.py
         offset_df: Optional[pd.DataFrame],
         C: NDArray[(Any, Any), Float],
-        Y_mask: NDArray[(Any, Any), Float]) -> LogRegState:
+        Y_mask: NDArray[(Any, Any), Float],
+        correction: str) -> LogRegState:
     Y_pred = np.row_stack([
         _logistic_null_model_predictions(
             Y[:, i], C, Y_mask[:, i],
@@ -143,7 +142,13 @@ def _assemble_log_reg_state(
     gamma = Y_pred * (1 - Y_pred)
     CtGammaC = C.T @ (gamma[:, :, None] * C)
     CtGammaC_inv = np.linalg.inv(CtGammaC)
-    return LogRegState(CtGammaC_inv, gamma, (Y - Y_pred.T) * Y_mask)
+
+    if correction == correction_approx_firth:
+        approx_firth_state = assemble_approx_firth_state(Y, offset_df, C, Y_mask)
+    else:
+        approx_firth_state = None
+
+    return LogRegState(CtGammaC_inv, gamma, (Y - Y_pred.T) * Y_mask, approx_firth_state)
 
 
 def _logistic_residualize(X: NDArray[(Any, Any), Float], C: NDArray[(Any, Any), Float],
@@ -159,7 +164,7 @@ def _logistic_residualize(X: NDArray[(Any, Any), Float], C: NDArray[(Any, Any), 
 
 def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogRegState,
                                C: NDArray[(Any, Any), Float], Y_mask: NDArray[(Any, Any), Float],
-                               phenotype_names: pd.Series) -> pd.DataFrame:
+                               correction: str, p_threshold: double, phenotype_names: pd.Series) -> pd.DataFrame:
     '''
     Tests a block of genotypes for association with binary traits. We first residualize
     the genotypes based on the null model fit, then perform a fast score test to check for
@@ -184,13 +189,20 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
     out_df['tvalue'] = list(np.ravel(t_values))
     out_df['pvalue'] = list(np.ravel(p_values))
     out_df['phenotype'] = phenotype_names.repeat(genotype_pdf.shape[0]).tolist()
-    return out_df
 
-
-def _get_correction_fn(correction: str):
     if correction != correction_none:
-        sites_to_correct = p_values.map(lambda p: p < p_threshold)
+        correction_indices = out_df.index[out_df['pvalue'] < p_threshold]
         if correction == correction_approx_firth:
-            t_values, p_values, effect_size, standard_error =
+            for correction_idx in correction_indices:
+                snp_index = correction_idx % genotype_pdf.shape[0]
+                phenotype_index = correction_idx / phenotype_names.size
+                out_df.iloc[correction_idx] = correct_approx_firth(
+                    X_res[snp_index, phenotype_index],
+                    log_reg_state.Y_res[phenotype_index],
+                    log_reg_state.approx_firth_state.logit_offset[phenotype_index],
+                    log_reg_state.approx_firth_state.penalized_LL_null_fit[phenotype_index],
+                )
         else:
-            raise ValueError(f"Supported correction methods: {correction_approx_firth}.")
+            raise ValueError(f"Only supported correction method is {correction_approx_firth}")
+
+    return out_df

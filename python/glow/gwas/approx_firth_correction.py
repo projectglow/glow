@@ -1,18 +1,14 @@
-from pyspark.sql.types import StringType, StructField
 from typing import Any, Optional
 import pandas as pd
+from pandas import Series
 import numpy as np
-from pyspark.sql import DataFrame
-import statsmodels.api as sm
 from dataclasses import dataclass
 from typeguard import typechecked
 from nptyping import Float, NDArray
 from scipy import stats
-import opt_einsum as oe
-from . import functions as gwas_fx
-from .functions import _VALUES_COLUMN_NAME
 
-def calculate_log_likelihood(beta, X, y, offset):
+
+def _calculate_log_likelihood(beta, X, y, offset):
     pi = 1 - 1 / (np.exp(X @ beta + offset) + 1)
     G = np.diagflat(pi * (1-pi))
     I = np.atleast_2d(X.T @ G @ X) # fisher information matrix
@@ -22,10 +18,10 @@ def calculate_log_likelihood(beta, X, y, offset):
     return (pi, G, I, LL_matrix, penalized_LL)
 
 
-def fit_firth_logistic(beta_init, X, y, offset, tolerance=1e-5, max_iter=250, max_step_size=5, max_half_steps=25):
+def _fit_firth_logistic(beta_init, X, y, offset, tolerance=1e-5, max_iter=250, max_step_size=5, max_half_steps=25):
     n_iter = 0
     beta = beta_init
-    pi, G, I, LL_matrix, penalized_LL = calculate_log_likelihood(beta, X, y, offset)
+    pi, G, I, LL_matrix, penalized_LL = _calculate_log_likelihood(beta, X, y, offset)
     while n_iter < max_iter:
         # inverse of the fisher information matrix
         invI = np.linalg.pinv(I)
@@ -49,7 +45,7 @@ def fit_firth_logistic(beta_init, X, y, offset, tolerance=1e-5, max_iter=250, ma
             delta = delta / mx
 
         new_beta = beta + delta
-        pi, G, I, new_LL_matrix, new_penalized_LL = calculate_log_likelihood(new_beta, X, y, offset)
+        pi, G, I, new_LL_matrix, new_penalized_LL = _calculate_log_likelihood(new_beta, X, y, offset)
 
         # if the penalized log likelihood decreased, recompute with step-halving
         n_half_steps = 0
@@ -58,7 +54,7 @@ def fit_firth_logistic(beta_init, X, y, offset, tolerance=1e-5, max_iter=250, ma
                 raise ValueError("Too many half-steps!")
             delta /= 2
             new_beta = beta + delta
-            pi, G, I, new_LL_matrix, new_penalized_LL = calculate_log_likelihood(new_beta, X, y, offset)
+            pi, G, I, new_LL_matrix, new_penalized_LL = _calculate_log_likelihood(new_beta, X, y, offset)
             n_half_steps += 1
 
         beta = new_beta
@@ -73,7 +69,6 @@ def fit_firth_logistic(beta_init, X, y, offset, tolerance=1e-5, max_iter=250, ma
     return beta, LL_matrix, penalized_LL
 
 
-# Null fit
 @dataclass
 class ApproxFirthState:
     penalized_LL_null_fit: NDArray[(Any), Float]
@@ -81,9 +76,8 @@ class ApproxFirthState:
 
 
 @typechecked
-def _assemble_approx_firth_state(
+def assemble_approx_firth_state(
         Y: NDArray[(Any, Any), Float],
-        phenotype_df: pd.DataFrame,  # Unused, only to share code with lin_reg.py
         offset_df: Optional[pd.DataFrame],
         C: NDArray[(Any, Any), Float],
         Y_mask: NDArray[(Any, Any), Float]) -> ApproxFirthState:
@@ -99,32 +93,21 @@ def _assemble_approx_firth_state(
         b0_null_fit = np.zeros(1 + C.shape(0))
         b0_null_fit[0] = (0.5 + y.sum()) / (y_mask.sum() + 1)
         b0_null_fit[0] = np.log(b0_null_fit[0] / (1 - b0_null_fit[0])) - offset.mean()
-        b_null_fit, _, penalized_LL_null_fit[i] = fit_firth_logistic(b0_null_fit, C, y, offset)
+        b_null_fit, _, penalized_LL_null_fit[i] = _fit_firth_logistic(b0_null_fit, C, y, offset)
         logit_offset[i] = offset + (C.values * b_null_fit).sum(axis=1)
 
     return ApproxFirthState(penalized_LL_null_fit, logit_offset)
 
 
-def _correct_approx_firth_row(r, X_res, approx_firth_state, log_reg_state) -> Series:
-    b_snp_fit, snp_LL_matrix, snp_penalized_LL = fit_firth_logistic(
+def correct_approx_firth(x_res, y_res, logit_offset, penalized_LL_null_fit) -> Series:
+    b_snp_fit, snp_LL_matrix, snp_penalized_LL = _fit_firth_logistic(
         np.zeros(1),
-        X_res[r.snp],
-        log_reg_state.Y_res[r.phenotype],
-        approx_firth_state.logit_offset[r.phenotype]
+        x_res,
+        y_res,
+        logit_offset
     )
-    r.tval = 2 * (snp_penalized_LL - approx_firth_state.penalized_LL_null_fit)
-    r.pvalue = stats.chi2.sf(r.tval, 1)
-    r.effect = b_snp_fit.item()
-    r.stderr = np.linalg.pinv(snp_LL_matrix).item()
-    return r
-
-
-@typechecked
-def _correct_approx_firth_inner(genotype_pdf: pd.DataFrame, approx_firth_state: ApproxFirthState,
-                               C: NDArray[(Any, Any), Float], Y_mask: NDArray[(Any, Any), Float],
-                               log_reg_state: LogRegState, uncorrected_pdf: pd.DataFrame, p_threshold: double) -> pd.DataFrame:
-    X = np.column_stack(genotype_pdf[_VALUES_COLUMN_NAME].array)
-    X_res = _logistic_residualize(X, C, Y_mask, log_reg_state.gamma, log_reg_state.inv_CtGammaC)
-    out_df = uncorrected_pdf.apply(lambda r: _correct_approx_firth_row(r, X_res, approx_firth_state, log_reg_state) if r.pvalue < p_threshold else r, axis=0)
-    del genotype_pdf[_VALUES_COLUMN_NAME]
-    return out_df
+    tvalue = 2 * (snp_penalized_LL - penalized_LL_null_fit)
+    pvalue = stats.chi2.sf(tvalue, 1)
+    effect = b_snp_fit.item()
+    stderr = np.linalg.pinv(snp_LL_matrix).item()
+    return Series({'tvalue': tvalue, 'pvalue': pvalue, 'effect': effect, 'stderr': stderr})
