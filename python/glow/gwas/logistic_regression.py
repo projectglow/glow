@@ -14,7 +14,8 @@ from .functions import _VALUES_COLUMN_NAME
 
 __all__ = ['logistic_regression']
 
-fallback_none = 'none'
+correction_none = 'none'
+correction_approx_firth = 'approx-firth'
 
 
 @typechecked
@@ -23,8 +24,8 @@ def logistic_regression(
         phenotype_df: pd.DataFrame,
         covariate_df: pd.DataFrame = pd.DataFrame({}),
         offset_df: pd.DataFrame = pd.DataFrame({}),
-        # TODO: fallback is probably not the best name
-        fallback: str = 'none',  # TODO: Make approx-firth default
+        correction: str = correction_approx_firth,
+        p_threshold: double = 0.05,
         fit_intercept: bool = True,
         values_column: str = 'values',
         dt: type = np.float64) -> DataFrame:
@@ -50,12 +51,13 @@ def logistic_regression(
                     If two levels, the level 0 index should be the same as the `phenotype_df`, and the level 1 index
                     should be the contig name. The two level index scheme allows for per-contig offsets like
                     LOCO predictions from GloWGR.
-        fallback : Which test to use for variants that meet a significance threshold for the score test
+        correction : Which correction method to use for variants that meet a significance threshold for the score test
+        p_threshold : The significance threshold at which correction should be applied
         fit_intercept : Whether or not to add an intercept column to the covariate DataFrame
-        values_column : A column name or column expression to test with linear regression. If a column name is provided,
+        values_column : A column name or column expression to test with logistic regression. If a column name is provided,
                         `genotype_df` should have a column with this name and a numeric array type. If a column expression
                         is provided, the expression should return a numeric array type.
-        dt : The numpy datatype to use in the linear regression test. Must be `np.float32` or `np.float64`.
+        dt : The numpy datatype to use in the logistic regression test. Must be `np.float32` or `np.float64`.
     '''
 
     gwas_fx._check_spark_version(genotype_df.sql_ctx.sparkSession)
@@ -84,8 +86,12 @@ def logistic_regression(
     def map_func(pdf_iterator):
         for pdf in pdf_iterator:
             yield gwas_fx._loco_dispatch(pdf, state, _logistic_regression_inner, C,
-                                         Y_mask.astype(np.float64), fallback,
+                                         Y_mask.astype(np.float64), correction, p_threshold,
                                          phenotype_df.columns.to_series().astype('str'))
+
+    firth_state = gwas_fx._loco_make_state(
+        Y, phenotype_df, offset_df,
+        lambda y, pdf, odf: _assemble_approx_firth_state(y, pdf, odf, C, Y_mask))
 
     return genotype_df.mapInPandas(map_func, result_struct)
 
@@ -153,7 +159,7 @@ def _logistic_residualize(X: NDArray[(Any, Any), Float], C: NDArray[(Any, Any), 
 
 def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogRegState,
                                C: NDArray[(Any, Any), Float], Y_mask: NDArray[(Any, Any), Float],
-                               fallback_method: str, phenotype_names: pd.Series) -> pd.DataFrame:
+                               phenotype_names: pd.Series) -> pd.DataFrame:
     '''
     Tests a block of genotypes for association with binary traits. We first residualize
     the genotypes based on the null model fit, then perform a fast score test to check for
@@ -173,13 +179,18 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
     t_values = np.ravel(num / denom)
     p_values = stats.chi2.sf(t_values, 1)
 
-    if fallback_method != fallback_none:
-        # TODO: Call approx firth here
-        ()
-
     del genotype_pdf[_VALUES_COLUMN_NAME]
     out_df = pd.concat([genotype_pdf] * log_reg_state.Y_res.shape[1])
     out_df['tvalue'] = list(np.ravel(t_values))
     out_df['pvalue'] = list(np.ravel(p_values))
     out_df['phenotype'] = phenotype_names.repeat(genotype_pdf.shape[0]).tolist()
     return out_df
+
+
+def _get_correction_fn(correction: str):
+    if correction != correction_none:
+        sites_to_correct = p_values.map(lambda p: p < p_threshold)
+        if correction == correction_approx_firth:
+            t_values, p_values, effect_size, standard_error =
+        else:
+            raise ValueError(f"Supported correction methods: {correction_approx_firth}.")
