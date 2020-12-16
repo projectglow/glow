@@ -22,6 +22,14 @@ def _spark_builder():
         .config("spark.hadoop.io.compression.codecs", "io.projectglow.sql.util.BGZFCodec") \
         .config("spark.ui.enabled", "false")
 
+# PyTest only allows skipping doctests at the file level, so mark that
+# files require specific versions here
+SPARK3_PLUS_FILES = ['python/glow/gwas/lin_reg.py']
+def pytest_ignore_collect(path):
+    major_version = _spark_builder().getOrCreate().version.split('.')[0]
+    if int(major_version) < 3 and any([str(path).endswith(p) for p in SPARK3_PLUS_FILES]):
+        return True
+
 
 @pytest.fixture(scope="module")
 def spark_builder():
