@@ -846,9 +846,8 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
   test("Small partitions") {
     val sess = spark.newSession()
     sess.conf.set("spark.sql.files.maxPartitionBytes", "100")
-    val rows = sess.read.format(sourceName).load(testMultiBlockVcf).filter(
-      "contigName = '20' and start > 10012714 and end < 10014990"
-    )
+    val rows = sess.read.format(sourceName).load(testMultiBlockVcf)
+      .filter("contigName = '20' and start > 10012714 and end < 10014990")
     assert(rows.count() == 3)
   }
 }
