@@ -489,10 +489,10 @@ object TabixIndexHelper extends GlowLogging {
               }
             val blockRangeStart = Math.max(file.start, minOverBlocks >> 16) // Shift 16 bits to get
             // file offset of the bin from bgzipped virtual file offset.
-            val blockRangeEnd = Math.min(file.start + file.length, (maxOverBlocks >> 16) + 0xFFFF)
+            val blockRangeEnd = Math.min(file.start + file.length, maxOverBlocks >> 16)
             // 0xFFFF is the maximum possible length of an uncompressed bin.
             if (blockRangeStart <= blockRangeEnd) {
-              Some((blockRangeStart, blockRangeEnd))
+              Some((blockRangeStart, Math.min(file.start + file.length, blockRangeEnd + 0xFFFF)))
             } else {
               None
             }

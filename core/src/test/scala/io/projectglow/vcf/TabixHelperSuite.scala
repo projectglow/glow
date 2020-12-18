@@ -34,6 +34,7 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
   lazy val multiAllelicVcf = s"$tabixTestVcf/combined.chr20_18210071_18210093.g.vcf.gz"
   lazy val testNoTbiVcf = s"$tabixTestVcf/NA12878_21_10002403NoTbi.vcf.gz"
   lazy val oneRowGzipVcf = s"$testDataHome/vcf/1row_not_bgz.vcf.gz"
+  lazy val testMultiBlockVcf = s"$tabixTestVcf/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf.gz"
 
   def printFilterContig(filterContig: FilterContig): Unit = {
     filterContig.getContigName.foreach(i => logger.debug(s"$i"))
@@ -807,5 +808,41 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
       TabixIndexHelper
         .getFileRangeToRead(fs, partitionedFile, conf, false, false, interval)
         .isEmpty)
+  }
+
+  test("Do not read partitioned file starting after offset end") {
+    val path = new Path(testMultiBlockVcf)
+    val conf = sparkContext.hadoopConfiguration
+    val fs = path.getFileSystem(conf)
+    val interval = Some(SimpleInterval("20", 10132301, 10214079))
+    // Tabix offsets for this interval is (1005005266,1005032301) -> (15335,15335)
+
+    val p1 = PartitionedFile(InternalRow.empty, testMultiBlockVcf, 0, 15334)
+    val r1 = TabixIndexHelper.getFileRangeToRead(fs, p1, conf, true, true, interval)
+    assert(r1.isEmpty)
+
+    val p2 = PartitionedFile(InternalRow.empty, testMultiBlockVcf, 15330, 1000)
+    val r2 = TabixIndexHelper.getFileRangeToRead(fs, p2, conf, true, true, interval)
+    assert(r2 == Some(15335, 16330))
+
+    val p3 = PartitionedFile(InternalRow.empty, testMultiBlockVcf, 15340, 1000)
+    val r3 = TabixIndexHelper.getFileRangeToRead(fs, p3, conf, true, true, interval)
+    assert(r3.isEmpty)
+
+    val p4 = PartitionedFile(InternalRow.empty, testMultiBlockVcf, 20000, 1000)
+    val r4 = TabixIndexHelper.getFileRangeToRead(fs, p4, conf, true, true, interval)
+    assert(r4.isEmpty)
+
+    val p5 = PartitionedFile(InternalRow.empty, testMultiBlockVcf, 15330, 65635)
+    val r5 = TabixIndexHelper.getFileRangeToRead(fs, p5, conf, true, true, interval)
+    assert(r5 == Some(15335, 15335 + 0xFFFF))
+  }
+
+  test("Small partitions") {
+    spark.conf.set("spark.sql.files.maxPartitionBytes", "100")
+    val rows = spark.read.format(sourceName).load(testMultiBlockVcf).filter(
+      "contigName = '20' and start > 10012714 and end < 10014990"
+    )
+    assert(rows.count() == 3)
   }
 }
