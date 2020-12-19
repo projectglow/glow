@@ -485,7 +485,7 @@ object TabixIndexHelper extends GlowLogging {
             // Do not return any files without a BGZIP header
             var fileContainsBlockStart = false
             // Shift 16 bits to get file offset of the bin from bgzipped virtual file offset.
-            val firstStart, firstLast =
+            val (firstStart, firstLast) =
               (offsetList(0).getStartPosition >> 16, offsetList(0).getEndPosition >> 16)
             val (minOverBlocks, maxOverBlocks) = offsetList.foldLeft((firstStart, firstLast)) {
               case ((aStart, aEnd), o) =>
