@@ -482,16 +482,23 @@ object TabixIndexHelper extends GlowLogging {
           if (offsetList.isEmpty) {
             None
           } else {
-            val (minOverBlocks, maxOverBlocks) = offsetList
-              .foldLeft((offsetList(0).getStartPosition, offsetList(0).getEndPosition)) {
-                case ((myStart, myEnd), e) =>
-                  (Math.min(myStart, e.getStartPosition), Math.max(myEnd, e.getEndPosition))
-              }
-            val blockRangeStart = Math.max(file.start, minOverBlocks >> 16) // Shift 16 bits to get
-            // file offset of the bin from bgzipped virtual file offset.
-            val blockRangeEnd = Math.min(file.start + file.length, maxOverBlocks >> 16)
-            // 0xFFFF is the maximum possible length of an uncompressed bin.
-            if (blockRangeStart <= blockRangeEnd) {
+            // Do not return any files without a BGZIP header
+            var fileContainsBlockStart = false
+            // Shift 16 bits to get file offset of the bin from bgzipped virtual file offset.
+            val firstStart, firstLast =
+              (offsetList(0).getStartPosition >> 16, offsetList(0).getEndPosition >> 16)
+            val (minOverBlocks, maxOverBlocks) = offsetList.foldLeft((firstStart, firstLast)) {
+              case ((aStart, aEnd), o) =>
+                val bStart = o.getStartPosition >> 16
+                val bEnd = o.getEndPosition >> 16
+                if (!fileContainsBlockStart) {
+                  fileContainsBlockStart = (file.start <= bStart) && (file.start + file.length >= bStart)
+                }
+                (Math.min(aStart, bStart), Math.max(aEnd, bStart))
+            }
+            val blockRangeStart = Math.max(file.start, minOverBlocks)
+            val blockRangeEnd = Math.min(file.start + file.length, maxOverBlocks)
+            if (blockRangeStart <= blockRangeEnd && fileContainsBlockStart) {
               Some((blockRangeStart, Math.min(file.start + file.length, blockRangeEnd + 0xFFFF)))
             } else {
               None

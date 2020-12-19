@@ -24,6 +24,7 @@ import org.apache.hadoop.fs.Path
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.datasources.PartitionedFile
 import org.apache.spark.sql.sources._
+import org.apache.spark.sql.types.StructType
 
 class TabixHelperSuite extends GlowBaseTest with GlowLogging {
 
@@ -843,6 +844,21 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     assert(r5 == Some(15335, 15335 + 0xFFFF))
   }
 
+  test("Check if partition includes BGZF block start") {
+    val path = new Path(testMultiBlockVcf)
+    val conf = sparkContext.hadoopConfiguration
+    val fs = path.getFileSystem(conf)
+    val interval = Some(SimpleInterval("20", 1, Int.MaxValue))
+
+    val p1 = PartitionedFile(InternalRow.empty, testMultiBlockVcf, 0, 100)
+    val r1 = TabixIndexHelper.getFileRangeToRead(fs, p1, conf, true, true, interval)
+    assert(r1 == Some(0, 100))
+
+    val p2 = PartitionedFile(InternalRow.empty, testMultiBlockVcf, 100, 200)
+    val r2 = TabixIndexHelper.getFileRangeToRead(fs, p2, conf, true, true, interval)
+    assert(r2.isEmpty)
+  }
+
   test("Small partitions") {
     val sess = spark.newSession()
     sess.conf.set("spark.sql.files.maxPartitionBytes", "100")
@@ -852,5 +868,24 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
       .load(testMultiBlockVcf)
       .filter("contigName = '20' and start > 10012714 and end < 10014990")
     assert(rows.count() == 3)
+  }
+
+  test("Get all of BGZIP block even if file partition ends partway through") {
+    val schema = spark.read.format(sourceName).load(testMultiBlockVcf).schema
+    val format = new VCFFileFormat()
+    val reader = format.buildReader(
+      spark,
+      dataSchema = schema,
+      partitionSchema = StructType(Nil),
+      requiredSchema = schema,
+      filters = Seq(EqualTo("contigName", "20")),
+      options = Map.empty,
+      hadoopConf = spark.sessionState.newHadoopConf()
+    )
+    val p1 = PartitionedFile(InternalRow.empty, testMultiBlockVcf, 0, 100)
+    val p2 = PartitionedFile(InternalRow.empty, testMultiBlockVcf, 0, 15335)
+    val allRowsSize = reader(p2).size
+    assert(allRowsSize == 280) // Sanity check
+    assert(reader(p1).size == allRowsSize)
   }
 }
