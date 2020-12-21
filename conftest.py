@@ -28,7 +28,11 @@ SPARK_VERSION = os.environ['SPARK_VERSION']
 
 # PyTest only allows skipping doctests at the file level, so mark that
 # files require specific versions here
-SPARK3_PLUS_FILES = ['python/glow/gwas/lin_reg.py']
+SPARK3_PLUS_FILES = [
+    'python/glow/gwas/lin_reg.py',
+    'docs/source/tertiary/regression-tests.rst'
+]
+
 def pytest_ignore_collect(path):
     major_version = SPARK_VERSION.split('.')[0]
     if int(major_version) < 3 and any([str(path).endswith(p) for p in SPARK3_PLUS_FILES]):
