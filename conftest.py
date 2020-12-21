@@ -15,6 +15,7 @@
 
 from pyspark.sql import SparkSession
 import pytest
+import os
 
 def _spark_builder():
     return SparkSession.builder \
@@ -22,11 +23,14 @@ def _spark_builder():
         .config("spark.hadoop.io.compression.codecs", "io.projectglow.sql.util.BGZFCodec") \
         .config("spark.ui.enabled", "false")
 
+# sbt guarantees that this environment variable is set for python tests
+SPARK_VERSION = os.environ['SPARK_VERSION']
+
 # PyTest only allows skipping doctests at the file level, so mark that
 # files require specific versions here
 SPARK3_PLUS_FILES = ['python/glow/gwas/lin_reg.py']
 def pytest_ignore_collect(path):
-    major_version = _spark_builder().getOrCreate().version.split('.')[0]
+    major_version = SPARK_VERSION.split('.')[0]
     if int(major_version) < 3 and any([str(path).endswith(p) for p in SPARK3_PLUS_FILES]):
         return True
 
@@ -46,8 +50,7 @@ def pytest_runtest_setup(item):
     min_spark_version = next((mark.args[0] for mark in item.iter_markers(name='min_spark')), None)
     if min_spark_version:
         min_version_components = min_spark_version.split('.')
-        version = _spark_builder().getOrCreate().version
-        version_components = version.split('.')
+        version_components = SPARK_VERSION.split('.')
         for actual, required in zip(version_components, min_version_components):
             if int(actual) < int(required):
-                pytest.skip(f'cannot run on spark {version}')
+                pytest.skip(f'cannot run on spark {SPARK_VERSION}')
