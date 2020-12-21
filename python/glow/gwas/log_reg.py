@@ -178,7 +178,7 @@ def _logistic_residualize(X: NDArray[(Any, Any), Float], C: NDArray[(Any, Any), 
 
 def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogRegState,
                                C: NDArray[(Any, Any), Float], Y_mask: NDArray[(Any, Any), Float],
-                               correction: str, p_threshold: double, phenotype_names: pd.Series) -> pd.DataFrame:
+                               correction: str, pvalue_threshold: double, phenotype_names: pd.Series) -> pd.DataFrame:
     '''
     Tests a block of genotypes for association with binary traits. We first residualize
     the genotypes based on the null model fit, then perform a fast score test to check for
@@ -205,7 +205,7 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
     out_df['phenotype'] = phenotype_names.repeat(genotype_pdf.shape[0]).tolist()
 
     if correction != correction_none:
-        correction_indices = out_df.index[out_df['pvalue'] < p_threshold]
+        correction_indices = out_df.index[out_df['pvalue'] < pvalue_threshold]
         if correction == correction_approx_firth:
             for correction_idx in correction_indices:
                 snp_index = correction_idx % genotype_pdf.shape[0]
