@@ -26,7 +26,7 @@ def logistic_regression(
         covariate_df: pd.DataFrame = pd.DataFrame({}),
         offset_df: pd.DataFrame = pd.DataFrame({}),
         correction: str = correction_approx_firth,
-        p_threshold: double = 0.05,
+        pvalue_threshold: float = 0.05,
         fit_intercept: bool = True,
         values_column: str = 'values',
         dt: type = np.float64) -> DataFrame:
@@ -36,8 +36,14 @@ def logistic_regression(
     https://www.biorxiv.org/content/10.1101/2020.06.19.162354v2
 
     On the driver node, we fit a logistic regression model based on the covariates for each
-    phenotype. We broadcast the resulting residuals, gamma vectors
-    (where gamma is defined as y_hat * (1 - y_hat)), and (C.T gamma C)^-1 matrices. In each task,
+    phenotype:
+
+    logit(y) ~ C
+
+    where y is a phenotype vector and C is the covariate matrix.
+
+    We compute the probability predictions h_hat and broadcast the residuals (y - y_hat), gamma vectors
+    (where gamma is defined as y_hat * (1 - Y_hat)), and (C.T gamma C)^-1 matrices. In each task,
     we then adjust the new genotypes based on the null fit, perform a score test as a fast scan
     for potentially significant variants, and then test variants with p values below a threshold
     using a more selective, more expensive test.
@@ -46,19 +52,27 @@ def logistic_regression(
         genotype_df : Spark DataFrame containing genomic data
         phenotype_df : Pandas DataFrame containing phenotypic data
         covariate_df : An optional Pandas DataFrame containing covariates
-        offset_df : An optional Pandas DataFrame containing the phenotype offset. The actual phenotype used
-                    for linear regression is `phenotype_df` minus the appropriate offset. The `offset_df` may
-                    have one or two levels of indexing. If one level, the index should be the same as the `phenotype_df`.
-                    If two levels, the level 0 index should be the same as the `phenotype_df`, and the level 1 index
+        offset_df : An optional Pandas DataFrame containing the phenotype offset. This value will be used
+                    as a offset in the covariate only and per variant logistic regression models. The ``offset_df`` may
+                    have one or two levels of indexing. If one level, the index should be the same as the ``phenotype_df``.
+                    If two levels, the level 0 index should be the same as the ``phenotype_df``, and the level 1 index
                     should be the contig name. The two level index scheme allows for per-contig offsets like
                     LOCO predictions from GloWGR.
-        correction : Which correction method to use for variants that meet a significance threshold for the score test
-        p_threshold : The significance threshold at which correction should be applied
+        correction : Which test to use for variants that meet a significance threshold for the score test
+        pvalue_threshold : Variants with a pvalue below this threshold will be tested using the ``correction`` method.
         fit_intercept : Whether or not to add an intercept column to the covariate DataFrame
-        values_column : A column name or column expression to test with logistic regression. If a column name is provided,
-                        `genotype_df` should have a column with this name and a numeric array type. If a column expression
+        values_column : A column name or column expression to test with linear regression. If a column name is provided,
+                        ``genotype_df`` should have a column with this name and a numeric array type. If a column expression
                         is provided, the expression should return a numeric array type.
-        dt : The numpy datatype to use in the logistic regression test. Must be `np.float32` or `np.float64`.
+        dt : The numpy datatype to use in the linear regression test. Must be `np.float32` or `np.float64`.
+
+    Returns:
+        A Spark DataFrame that contains
+
+        - All columns from ``genotype_df`` except the ``values_column`` and the ``genotypes`` column if one exists
+        - ``tvalue``: The chi squared test statistic according to the score test or the correction method
+        - ``pvalue``: P value estimated from the test statistic
+        - ``phenotype``: The phenotype name as determiend by the column names of ``phenotype_df``
     '''
 
     gwas_fx._check_spark_version(genotype_df.sql_ctx.sparkSession)
@@ -82,12 +96,12 @@ def logistic_regression(
 
     log_reg_state = gwas_fx._loco_make_state(
         Y, phenotype_df, offset_df,
-        lambda y, pdf, odf: _assemble_log_reg_state(y, pdf, odf, C, Y_mask, correction))
+        lambda y, pdf, odf: _create_log_reg_state(y, pdf, odf, C, Y_mask, correction))
 
     def map_func(pdf_iterator):
         for pdf in pdf_iterator:
             yield gwas_fx._loco_dispatch(pdf, log_reg_state, _logistic_regression_inner, C,
-                                         Y_mask.astype(np.float64), correction, p_threshold,
+                                         Y_mask.astype(np.float64), correction, pvalue_threshold,
                                          phenotype_df.columns.to_series().astype('str'))
 
     return genotype_df.mapInPandas(map_func, result_struct)
@@ -126,7 +140,7 @@ class LogRegState:
 
 
 @typechecked
-def _assemble_log_reg_state(
+def _create_log_reg_state(
         Y: NDArray[(Any, Any), Float],
         phenotype_df: pd.DataFrame,  # Unused, only to share code with lin_reg.py
         offset_df: Optional[pd.DataFrame],
@@ -141,14 +155,14 @@ def _assemble_log_reg_state(
     ])
     gamma = Y_pred * (1 - Y_pred)
     CtGammaC = C.T @ (gamma[:, :, None] * C)
-    CtGammaC_inv = np.linalg.inv(CtGammaC)
+    inv_CtGammaC = np.linalg.inv(CtGammaC)
 
     if correction == correction_approx_firth:
         approx_firth_state = assemble_approx_firth_state(Y, offset_df, C, Y_mask)
     else:
         approx_firth_state = None
 
-    return LogRegState(CtGammaC_inv, gamma, (Y - Y_pred.T) * Y_mask, approx_firth_state)
+    return LogRegState(inv_CtGammaC, gamma, (Y - Y_pred.T) * Y_mask, approx_firth_state)
 
 
 def _logistic_residualize(X: NDArray[(Any, Any), Float], C: NDArray[(Any, Any), Float],
