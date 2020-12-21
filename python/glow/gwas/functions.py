@@ -71,7 +71,7 @@ def _einsum(subscripts: str, *operands: NDArray) -> NDArray:
     '''
     A wrapper around np.einsum to ensure uniform options.
     '''
-    return oe.contract(subscripts, *operands, casting='no', optimize='dp')
+    return oe.contract(subscripts, *operands, casting='no', optimize='dp', memory_limit='max_input')
 
 
 @typechecked
