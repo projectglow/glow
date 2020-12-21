@@ -99,14 +99,6 @@ def linear_regression(genotype_df: DataFrame,
     return genotype_df.mapInPandas(map_func, result_struct)
 
 
-def _create_YState(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame,
-                   offset_df: pd.DataFrame, Y_mask: NDArray[(Any, Any), Float], dt) -> YState:
-    if offset_df is not None:
-        Y = (pd.DataFrame(Y, phenotype_df.index, phenotype_df.columns) - offset_df).to_numpy(dt)
-    Y *= Y_mask
-    return YState(Y, np.sum(Y * Y, axis=0))
-
-
 @dataclass
 class YState:
     '''
@@ -114,6 +106,14 @@ class YState:
     '''
     Y: NDArray[(Any, Any), Float]
     YdotY: NDArray[(Any), Float]
+
+
+def _create_YState(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame,
+                   offset_df: pd.DataFrame, Y_mask: NDArray[(Any, Any), Float], dt) -> YState:
+    if offset_df is not None:
+        Y = (pd.DataFrame(Y, phenotype_df.index, phenotype_df.columns) - offset_df).to_numpy(dt)
+    Y *= Y_mask
+    return YState(Y, np.sum(Y * Y, axis=0))
 
 
 @typechecked
