@@ -514,6 +514,7 @@ object TabixIndexHelper extends GlowLogging {
             val blockRangeStart = Math.max(file.start, minOverBlocks)
             val blockRangeEnd = Math.min(file.start + file.length, maxOverBlocks)
             if (blockRangeStart <= blockRangeEnd && fileContainsBlockStart) {
+              // 0xFFFF is the maximum possible length of an uncompressed bin
               Some((blockRangeStart, Math.min(file.start + file.length, blockRangeEnd + 0xFFFF)))
             } else {
               None
