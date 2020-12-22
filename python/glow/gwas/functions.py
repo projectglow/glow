@@ -66,7 +66,6 @@ def _add_intercept(C: NDArray[(Any, Any), Float], num_samples: int) -> NDArray[(
     return np.hstack((intercept, C)) if C.size else intercept
 
 
-@typechecked
 def _einsum(subscripts: str, *operands: NDArray) -> NDArray:
     '''
     A wrapper around np.einsum to ensure uniform options.
