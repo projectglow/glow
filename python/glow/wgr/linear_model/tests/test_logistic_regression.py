@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from pyspark.sql.pandas.functions import PandasUDFType
+from pyspark.sql.functions import PandasUDFType
 from glow.wgr.linear_model.functions import *
 from glow.wgr.linear_model.logistic_udfs import *
 from glow.wgr.linear_model.logistic_model import *

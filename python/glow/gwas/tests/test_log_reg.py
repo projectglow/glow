@@ -1,4 +1,3 @@
-import statsmodels
 import glow.gwas.log_reg as lr
 import glow.gwas.functions as gwas_fx
 import statsmodels.api as sm
@@ -159,6 +158,12 @@ def test_multiple_spark(spark):
     assert regression_results_equal(glow, golden)
 
 
+def random_mask(size, missing_per_column):
+    base = np.ones(size[0], dtype=bool)
+    base[:missing_per_column] = False
+    return np.column_stack([np.random.permutation(base) for _ in range(size[1])])
+
+
 @pytest.mark.min_spark('3')
 def test_multiple_spark_missing(spark):
     n_sample = 50
@@ -166,7 +171,7 @@ def test_multiple_spark_missing(spark):
     n_pheno = 5
     phenotype_df = pd.DataFrame(random_phenotypes((n_sample, n_pheno)))
     Y = phenotype_df.to_numpy()
-    Y[np.tril_indices_from(Y, k=-20)] = np.nan
+    Y[~random_mask(Y.shape, 10)] = np.nan
     assert phenotype_df.isna().sum().sum() > 0
     covariate_df = pd.DataFrame(np.random.random((n_sample, n_cov)))
     genotype_df = pd.DataFrame(np.random.random((n_sample, 1)))
@@ -182,7 +187,7 @@ def test_spark_no_intercept(spark):
     n_pheno = 5
     phenotype_df = pd.DataFrame(random_phenotypes((n_sample, n_pheno)))
     Y = phenotype_df.to_numpy()
-    Y[np.tril_indices_from(Y, k=-20)] = np.nan
+    Y[~random_mask(Y.shape, 15)] = np.nan
     assert phenotype_df.isna().sum().sum() > 0
     covariate_df = pd.DataFrame(np.random.random((n_sample, n_cov)))
     genotype_df = pd.DataFrame(np.random.random((n_sample, 1)))

@@ -27,6 +27,8 @@ import warnings
 # TODO(hhd): Remove this and start using applyInPandas once we only support Spark 3.x.
 warnings.filterwarnings('ignore', category=UserWarning, message='.*applyInPandas.*')
 
+__all__ = ['RidgeReducer', 'RidgeRegression']
+
 
 @typechecked
 class RidgeReducer:
@@ -156,7 +158,7 @@ class RidgeReducer:
             labeldf : Pandas DataFrame containing the target labels used in fitting the ridge models
             sample_blocks : Dict containing a mapping of sample_block ID to a list of corresponding sample IDs
             covdf : Pandas DataFrame containing covariates to be included in every model in the stacking
-                ensemble (optional).
+                    ensemble (optional).
 
         Returns:
             Spark DataFrame representing the reduced block matrix
@@ -263,7 +265,7 @@ class RidgeRegression:
             sample_blocks : Dict containing a mapping of sample_block ID to a list of corresponding sample IDs
             modeldf : Spark DataFrame produced by the RidgeRegression fit method, representing the reducer model
             cvdf : Spark DataFrame produced by the RidgeRegression fit method, containing the results of the cross
-            validation routine.
+                validation routine.
             covdf : Pandas DataFrame containing covariates to be included in every model in the stacking
                 ensemble (optional).
 
@@ -307,11 +309,11 @@ class RidgeRegression:
             sample_blocks : Dict containing a mapping of sample_block ID to a list of corresponding sample IDs
             modeldf : Spark DataFrame produced by the RidgeRegression fit method, representing the reducer model
             cvdf : Spark DataFrame produced by the RidgeRegression fit method, containing the results of the cross
-            validation routine.
+                validation routine.
             covdf : Pandas DataFrame containing covariates to be included in every model in the stacking
-            ensemble (optional).
+                ensemble (optional).
             chromosomes : List of chromosomes for which to generate a prediction (optional). If not provided, the
-            chromosomes will be inferred from the block matrix.
+                chromosomes will be inferred from the block matrix.
 
         Returns:
             Pandas DataFrame containing prediction y_hat values per chromosome. The rows are indexed by sample ID and

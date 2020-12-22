@@ -24,6 +24,7 @@ import org.apache.hadoop.fs.Path
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.datasources.PartitionedFile
 import org.apache.spark.sql.sources._
+import org.apache.spark.sql.types.StructType
 
 class TabixHelperSuite extends GlowBaseTest with GlowLogging {
 
@@ -34,6 +35,7 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
   lazy val multiAllelicVcf = s"$tabixTestVcf/combined.chr20_18210071_18210093.g.vcf.gz"
   lazy val testNoTbiVcf = s"$tabixTestVcf/NA12878_21_10002403NoTbi.vcf.gz"
   lazy val oneRowGzipVcf = s"$testDataHome/vcf/1row_not_bgz.vcf.gz"
+  lazy val testMultiBlockVcf = s"$tabixTestVcf/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf.gz"
 
   def printFilterContig(filterContig: FilterContig): Unit = {
     filterContig.getContigName.foreach(i => logger.debug(s"$i"))
@@ -807,5 +809,83 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
       TabixIndexHelper
         .getFileRangeToRead(fs, partitionedFile, conf, false, false, interval)
         .isEmpty)
+  }
+
+  test("Overlapping partitions and tabix offsets") {
+    val path = new Path(testMultiBlockVcf)
+    val conf = sparkContext.hadoopConfiguration
+    val fs = path.getFileSystem(conf)
+    val interval = Some(SimpleInterval("20", 10132301, 10214079))
+    // Tabix offsets for this interval is (1005005266,1005032301) -> (15335,15335)
+
+    // Partition before offset start
+    val p1 = PartitionedFile(InternalRow.empty, testMultiBlockVcf, 0, 15334)
+    val r1 = TabixIndexHelper.getFileRangeToRead(fs, p1, conf, true, true, interval)
+    assert(r1.isEmpty)
+
+    // Partition overlapping with offset
+    val p2 = PartitionedFile(InternalRow.empty, testMultiBlockVcf, 15330, 1000)
+    val r2 = TabixIndexHelper.getFileRangeToRead(fs, p2, conf, true, true, interval)
+    assert(r2 == Some(15335, 16330))
+
+    // Partition starts within 0xFFFF of offset
+    val p3 = PartitionedFile(InternalRow.empty, testMultiBlockVcf, 15340, 1000)
+    val r3 = TabixIndexHelper.getFileRangeToRead(fs, p3, conf, true, true, interval)
+    assert(r3.isEmpty)
+
+    // Partition after offset
+    val p4 = PartitionedFile(InternalRow.empty, testMultiBlockVcf, 20000, 1000)
+    val r4 = TabixIndexHelper.getFileRangeToRead(fs, p4, conf, true, true, interval)
+    assert(r4.isEmpty)
+
+    // Do not exceed file start/end
+    val p5 = PartitionedFile(InternalRow.empty, testMultiBlockVcf, 15330, 65635)
+    val r5 = TabixIndexHelper.getFileRangeToRead(fs, p5, conf, true, true, interval)
+    assert(r5 == Some(15335, 15335 + 0xFFFF))
+  }
+
+  test("Check if partition includes BGZF block start") {
+    val path = new Path(testMultiBlockVcf)
+    val conf = sparkContext.hadoopConfiguration
+    val fs = path.getFileSystem(conf)
+    val interval = Some(SimpleInterval("20", 1, Int.MaxValue))
+
+    val p1 = PartitionedFile(InternalRow.empty, testMultiBlockVcf, 0, 100)
+    val r1 = TabixIndexHelper.getFileRangeToRead(fs, p1, conf, true, true, interval)
+    assert(r1 == Some(0, 100))
+
+    val p2 = PartitionedFile(InternalRow.empty, testMultiBlockVcf, 100, 200)
+    val r2 = TabixIndexHelper.getFileRangeToRead(fs, p2, conf, true, true, interval)
+    assert(r2.isEmpty)
+  }
+
+  test("Small partitions") {
+    val sess = spark.newSession()
+    sess.conf.set("spark.sql.files.maxPartitionBytes", "100")
+    val rows = sess
+      .read
+      .format(sourceName)
+      .load(testMultiBlockVcf)
+      .filter("contigName = '20' and start > 10012714 and end < 10014990")
+    assert(rows.count() == 3)
+  }
+
+  test("Get all of BGZIP block even if file partition ends partway through") {
+    val schema = spark.read.format(sourceName).load(testMultiBlockVcf).schema
+    val format = new VCFFileFormat()
+    val reader = format.buildReader(
+      spark,
+      dataSchema = schema,
+      partitionSchema = StructType(Nil),
+      requiredSchema = schema,
+      filters = Seq(EqualTo("contigName", "20")),
+      options = Map.empty,
+      hadoopConf = spark.sessionState.newHadoopConf()
+    )
+    val p1 = PartitionedFile(InternalRow.empty, testMultiBlockVcf, 0, 100)
+    val p2 = PartitionedFile(InternalRow.empty, testMultiBlockVcf, 0, 15335)
+    val allRowsSize = reader(p2).size
+    assert(allRowsSize == 280) // Sanity check
+    assert(reader(p1).size == allRowsSize)
   }
 }

@@ -98,13 +98,25 @@ def logistic_regression(
         Y, phenotype_df, offset_df,
         lambda y, pdf, odf: _create_log_reg_state(y, pdf, odf, C, Y_mask, correction, fit_intercept))
 
-    def map_func(pdf_iterator):
-        for pdf in pdf_iterator:
-            yield gwas_fx._loco_dispatch(pdf, log_reg_state, _logistic_regression_inner, C,
-                                         Y_mask.astype(np.float64), correction, pvalue_threshold,
-                                         phenotype_df.columns.to_series().astype('str'))
+    sc = genotype_df.sql_ctx.sparkSession.sparkContext
+    bc_state = sc.broadcast(state)
+    bc_C = sc.broadcast(C)
+    bc_Y_mask = sc.broadcast(Y_mask.astype(dt))
+
+    map_func = make_map_func(bc_state, bc_C, bc_Y_mask, correction,
+                             phenotype_df.columns.to_series().astype('str'))
 
     return genotype_df.mapInPandas(map_func, result_struct)
+
+
+def make_map_func(bc_state, bc_C, bc_Y_mask, correction, column_names):
+    def map_func(pdf_iterator):
+        for pdf in pdf_iterator:
+            yield gwas_fx._loco_dispatch(pdf, bc_state.value, _logistic_regression_inner,
+                                         bc_C.value, bc_Y_mask.value, correction, pvalue_threshold,
+                                         column_names)
+
+    return map_func
 
 
 @typechecked

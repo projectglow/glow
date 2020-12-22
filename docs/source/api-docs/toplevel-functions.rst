@@ -1,5 +1,7 @@
 Glow Top-Level Functions
 ------------------------
 
-.. automodule:: glow.glow
-  :members:
+.. autofunction:: glow.register
+
+
+.. autofunction:: glow.transform

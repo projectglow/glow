@@ -248,6 +248,9 @@ lazy val pythonSettings = Seq(
   publish / skip := true,
   env := {
     val baseEnv = Seq(
+      // Set so that Python tests can easily know the Spark version
+      "SPARK_VERSION" -> sparkVersion.value,
+      // Tell PySPark to use the same jars that as our scala tests
       "SPARK_CLASSPATH" -> sparkClasspath.value,
       "SPARK_HOME" -> sparkHome.value,
       "PYTHONPATH" -> pythonPath.value
