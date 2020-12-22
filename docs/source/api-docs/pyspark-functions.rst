@@ -1,10 +1,12 @@
 .. _pyspark_functions:
 
-Glow PySpark Functions
-----------------------
+PySpark Functions
+-----------------
 
-Glow includes a number of functions that operate on PySpark columns. These functions are
-interoperable with functions provided by PySpark or other libraries.
+Glow includes a number of functions that 
+operate on PySpark columns. These functions are interoperable with functions 
+provided by PySpark or other libraries.
 
-.. automodule:: glow.functions
+.. automodule:: glow
   :members:
+  :exclude-members: register, transform

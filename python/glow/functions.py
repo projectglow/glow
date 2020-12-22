@@ -21,11 +21,14 @@ from pyspark.sql.column import Column, _to_java_column, _to_seq
 from typeguard import check_argument_types, check_return_type
 from typing import Union
 
+__all__ = [] # Extended within each group
+
 def sc():
     return SparkContext._active_spark_context
 
 ########### complex_type_manipulation
 
+__all__.append('add_struct_fields')
 def add_struct_fields(struct: Union[Column, str], *fields: Union[Column, str]) -> Column:
     """
     Adds fields to a struct.
@@ -50,6 +53,7 @@ def add_struct_fields(struct: Union[Column, str], *fields: Union[Column, str]) -
     return output
 
 
+__all__.append('array_summary_stats')
 def array_summary_stats(arr: Union[Column, str]) -> Column:
     """
     Computes the minimum, maximum, mean, standard deviation for an array of numerics.
@@ -73,6 +77,7 @@ def array_summary_stats(arr: Union[Column, str]) -> Column:
     return output
 
 
+__all__.append('array_to_dense_vector')
 def array_to_dense_vector(arr: Union[Column, str]) -> Column:
     """
     Converts an array of numerics into a ``spark.ml`` ``DenseVector``.
@@ -97,6 +102,7 @@ def array_to_dense_vector(arr: Union[Column, str]) -> Column:
     return output
 
 
+__all__.append('array_to_sparse_vector')
 def array_to_sparse_vector(arr: Union[Column, str]) -> Column:
     """
     Converts an array of numerics into a ``spark.ml`` ``SparseVector``.
@@ -121,6 +127,7 @@ def array_to_sparse_vector(arr: Union[Column, str]) -> Column:
     return output
 
 
+__all__.append('expand_struct')
 def expand_struct(struct: Union[Column, str]) -> Column:
     """
     Promotes fields of a nested struct to top-level columns similar to using ``struct.*`` from SQL, but can be used in more contexts.
@@ -144,6 +151,7 @@ def expand_struct(struct: Union[Column, str]) -> Column:
     return output
 
 
+__all__.append('explode_matrix')
 def explode_matrix(matrix: Union[Column, str]) -> Column:
     """
     Explodes a ``spark.ml`` ``Matrix`` (sparse or dense) into multiple arrays, one per row of the matrix.
@@ -169,6 +177,7 @@ def explode_matrix(matrix: Union[Column, str]) -> Column:
     return output
 
 
+__all__.append('subset_struct')
 def subset_struct(struct: Union[Column, str], *fields: str) -> Column:
     """
     Selects fields from a struct.
@@ -193,6 +202,7 @@ def subset_struct(struct: Union[Column, str], *fields: str) -> Column:
     return output
 
 
+__all__.append('vector_to_array')
 def vector_to_array(vector: Union[Column, str]) -> Column:
     """
     Converts a ``spark.ml`` ``Vector`` (sparse or dense) to an array of doubles.
@@ -218,6 +228,7 @@ def vector_to_array(vector: Union[Column, str]) -> Column:
 
 ########### etl
 
+__all__.append('hard_calls')
 def hard_calls(probabilities: Union[Column, str], numAlts: Union[Column, str], phased: Union[Column, str], threshold: float = None) -> Column:
     """
     Converts an array of probabilities to hard calls. The probabilities are assumed to be diploid. See :ref:`variant-data-transformations` for more details.
@@ -254,6 +265,7 @@ def hard_calls(probabilities: Union[Column, str], numAlts: Union[Column, str], p
     return output
 
 
+__all__.append('lift_over_coordinates')
 def lift_over_coordinates(contigName: Union[Column, str], start: Union[Column, str], end: Union[Column, str], chainFile: str, minMatchRatio: float = None) -> Column:
     """
     Performs liftover for the coordinates of a variant. To perform liftover of alleles and add additional metadata, see :ref:`liftover`.
@@ -289,6 +301,7 @@ def lift_over_coordinates(contigName: Union[Column, str], start: Union[Column, s
     return output
 
 
+__all__.append('normalize_variant')
 def normalize_variant(contigName: Union[Column, str], start: Union[Column, str], end: Union[Column, str], refAllele: Union[Column, str], altAlleles: Union[Column, str], refGenomePathString: str) -> Column:
     """
     Normalizes the variant with a behavior similar to vt normalize or bcftools norm.
@@ -331,6 +344,7 @@ def normalize_variant(contigName: Union[Column, str], start: Union[Column, str],
     return output
 
 
+__all__.append('mean_substitute')
 def mean_substitute(array: Union[Column, str], missingValue: Union[Column, str] = None) -> Column:
     """
     Substitutes the missing values of a numeric array using the mean of the non-missing values. Any values that are NaN, null or equal to the missing value parameter are considered missing. See :ref:`variant-data-transformations` for more details.
@@ -362,6 +376,7 @@ def mean_substitute(array: Union[Column, str], missingValue: Union[Column, str] 
 
 ########### quality_control
 
+__all__.append('call_summary_stats')
 def call_summary_stats(genotypes: Union[Column, str]) -> Column:
     """
     Computes call summary statistics for an array of genotype structs. See :ref:`variant-qc` for more details.
@@ -386,6 +401,7 @@ def call_summary_stats(genotypes: Union[Column, str]) -> Column:
     return output
 
 
+__all__.append('dp_summary_stats')
 def dp_summary_stats(genotypes: Union[Column, str]) -> Column:
     """
     Computes summary statistics for the depth field from an array of genotype structs. See :ref:`variant-qc`.
@@ -409,6 +425,7 @@ def dp_summary_stats(genotypes: Union[Column, str]) -> Column:
     return output
 
 
+__all__.append('hardy_weinberg')
 def hardy_weinberg(genotypes: Union[Column, str]) -> Column:
     """
     Computes statistics relating to the Hardy Weinberg equilibrium. See :ref:`variant-qc` for more details.
@@ -436,6 +453,7 @@ def hardy_weinberg(genotypes: Union[Column, str]) -> Column:
     return output
 
 
+__all__.append('gq_summary_stats')
 def gq_summary_stats(genotypes: Union[Column, str]) -> Column:
     """
     Computes summary statistics about the genotype quality field for an array of genotype structs. See :ref:`variant-qc`.
@@ -463,6 +481,7 @@ def gq_summary_stats(genotypes: Union[Column, str]) -> Column:
     return output
 
 
+__all__.append('sample_call_summary_stats')
 def sample_call_summary_stats(genotypes: Union[Column, str], refAllele: Union[Column, str], alternateAlleles: Union[Column, str]) -> Column:
     """
     Computes per-sample call summary statistics. See :ref:`sample-qc` for more details.
@@ -492,6 +511,7 @@ def sample_call_summary_stats(genotypes: Union[Column, str], refAllele: Union[Co
     return output
 
 
+__all__.append('sample_dp_summary_stats')
 def sample_dp_summary_stats(genotypes: Union[Column, str]) -> Column:
     """
     Computes per-sample summary statistics about the depth field in an array of genotype structs.
@@ -519,6 +539,7 @@ def sample_dp_summary_stats(genotypes: Union[Column, str]) -> Column:
     return output
 
 
+__all__.append('sample_gq_summary_stats')
 def sample_gq_summary_stats(genotypes: Union[Column, str]) -> Column:
     """
     Computes per-sample summary statistics about the genotype quality field in an array of genotype structs.
@@ -547,6 +568,7 @@ def sample_gq_summary_stats(genotypes: Union[Column, str]) -> Column:
 
 ########### gwas_functions
 
+__all__.append('linear_regression_gwas')
 def linear_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Column, str], covariates: Union[Column, str]) -> Column:
     """
     Performs a linear regression association test optimized for performance in a GWAS setting. See :ref:`linear-regression` for details.
@@ -576,6 +598,7 @@ def linear_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Colu
     return output
 
 
+__all__.append('logistic_regression_gwas')
 def logistic_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Column, str], covariates: Union[Column, str], test: str, offset: Union[Column, str] = None) -> Column:
     """
     Performs a logistic regression association test optimized for performance in a GWAS setting. See :ref:`logistic-regression` for more details.
@@ -617,6 +640,7 @@ def logistic_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Co
     return output
 
 
+__all__.append('genotype_states')
 def genotype_states(genotypes: Union[Column, str]) -> Column:
     """
     Gets the number of alternate alleles for an array of genotype structs. Returns ``-1`` if there are any ``-1`` s (no-calls) in the calls array.

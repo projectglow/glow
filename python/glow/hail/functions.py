@@ -21,6 +21,8 @@ import pyspark.sql.functions as fx
 from typing import List, NoReturn, Optional
 from typeguard import check_argument_types, check_return_type
 
+__all__ = ['from_matrix_table']
+
 
 def _get_sample_ids(col_key: StructExpression, include_sample_ids: bool) -> Optional[List[str]]:
     assert check_argument_types()

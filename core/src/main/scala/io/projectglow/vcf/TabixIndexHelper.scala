@@ -422,6 +422,21 @@ object TabixIndexHelper extends GlowLogging {
    * If a check fails generates appropriate message
    * Otherwise generates block range by querying tabix index based
    * on the filteredSimpleInterval produces by makeFilteredInterval.
+   *
+   * Returns a block range if the partitioned file contains the start position of a gzip
+   * block that overlaps the filtered interval (based on the tabix index). The block
+   * range excludes any part of the file before the start of the first desired block,
+   * or after the end of the last desired block.
+   *
+   * No block range will be returned if:
+   * - The partitioned file does not include any of the desired blocks' start positions
+   * - The partitioned file ends before the start of the first desired block
+   * - The partitioned file starts after the start of the last desired block
+   *
+   * This is designed based on the following invariants:
+   * - Spark's files are partitioned arbitrarily
+   * - The bgzip codec requires that a block starts within the partitioned file
+   * - The bgzip codec reads an entire block, whether or not it fits within the partition
    */
   def getFileRangeToRead(
       hadoopFs: FileSystem,
@@ -482,17 +497,25 @@ object TabixIndexHelper extends GlowLogging {
           if (offsetList.isEmpty) {
             None
           } else {
-            val (minOverBlocks, maxOverBlocks) = offsetList
-              .foldLeft((offsetList(0).getStartPosition, offsetList(0).getEndPosition)) {
-                case ((myStart, myEnd), e) =>
-                  (Math.min(myStart, e.getStartPosition), Math.max(myEnd, e.getEndPosition))
-              }
-            val blockRangeStart = Math.max(file.start, minOverBlocks >> 16) // Shift 16 bits to get
-            // file offset of the bin from bgzipped virtual file offset.
-            val blockRangeEnd = Math.min(file.start + file.length, (maxOverBlocks >> 16) + 0xFFFF)
-            // 0xFFFF is the maximum possible length of an uncompressed bin.
-            if (blockRangeStart <= blockRangeEnd) {
-              Some((blockRangeStart, blockRangeEnd))
+            // Flag used to avoid returning any files without a BGZIP header
+            var fileContainsBlockStart = false
+            // Shift 16 bits to get file offset of the bin from bgzipped virtual file offset.
+            val (firstStart, firstEnd) =
+              (offsetList(0).getStartPosition >> 16, offsetList(0).getEndPosition >> 16)
+            val (minOverBlocks, maxOverBlocks) = offsetList.foldLeft((firstStart, firstEnd)) {
+              case ((aStart, aEnd), o) =>
+                val bStart = o.getStartPosition >> 16
+                val bEnd = o.getEndPosition >> 16
+                if (!fileContainsBlockStart) {
+                  fileContainsBlockStart = (file.start <= bStart) && (file.start + file.length >= bStart)
+                }
+                (Math.min(aStart, bStart), Math.max(aEnd, bEnd))
+            }
+            val blockRangeStart = Math.max(file.start, minOverBlocks)
+            val blockRangeEnd = Math.min(file.start + file.length, maxOverBlocks)
+            if (blockRangeStart <= blockRangeEnd && fileContainsBlockStart) {
+              // 0xFFFF is the maximum possible length of an uncompressed bin
+              Some((blockRangeStart, Math.min(file.start + file.length, blockRangeEnd + 0xFFFF)))
             } else {
               None
             }

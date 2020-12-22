@@ -172,8 +172,7 @@ Example
 
 .. code-block:: python
 
-    from glow.wgr.linear_model import RidgeReducer, RidgeRegression, LogisticRegression
-    from glow.wgr.functions import block_variants_and_samples, get_sample_ids
+    from glow.wgr import RidgeReducer, RidgeRegression, LogisticRegression, block_variants_and_samples, get_sample_ids
     from pyspark.sql.functions import col, lit
 
     variants_per_block = 1000
@@ -459,7 +458,7 @@ Assuming ``regression`` is initialized to ``RidgeRegression`` (for quantitative 
 Proceed to GWAS
 ---------------
 
-:ref:`Glow GWAS functionality <gwas>` can be used to perform genome-wide association study using the phenotypic predictors to correct for polygenic effects.
+:ref:`GloWGR GWAS functionality <gwas>` can be used to perform genome-wide association study using the phenotypic predictors to correct for polygenic effects.
 
 - **For quantitative phenotypes**, this is typically done by subtracting the predictor from the phenotype vector.
 - **For binary phenotypes**, this is done by using the predictor as the offset in logistic regression (see :ref:`logistic_regression_gwas <logistic-regression>` function).
