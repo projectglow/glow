@@ -19,6 +19,8 @@ from pyspark.sql import DataFrame, Row, SparkSession, SQLContext
 from typeguard import check_argument_types, check_return_type
 from typing import Dict, List
 
+__all__ = ['get_sample_ids', 'block_variants_and_samples', 'reshape_for_gwas']
+
 
 def __validate_sample_ids(sample_ids: List[str]):
     """"
@@ -66,11 +68,12 @@ def get_sample_ids(data: DataFrame) -> List[str]:
     Extracts sample IDs from a variant DataFrame, such as one read from PLINK files.
 
     Requires that the sample IDs:
-    - Are in `genotype.sampleId`
-    - Are the same across all the variant rows
-    - Are a list of strings
-    - Are non-empty
-    - Are unique
+
+        - Are in `genotype.sampleId`
+        - Are the same across all the variant rows
+        - Are a list of strings
+        - Are non-empty
+        - Are unique
 
     Args:
         data : The variant DataFrame containing sample IDs
@@ -96,6 +99,7 @@ def block_variants_and_samples(variant_df: DataFrame, sample_ids: List[str],
     same sample-blocking logic as the blocked GT matrix transformer.
 
     Requires that:
+
     - Each variant row has the same number of values
     - The number of values per row matches the number of sample IDs
 
@@ -152,6 +156,7 @@ def reshape_for_gwas(spark: SparkSession, label_df: pd.DataFrame) -> DataFrame:
         Row(label='label1', contigName='chr1', values=[1])
 
     Requires that:
+
         - The input label DataFrame is indexed by sample id or by (sample id, contig name)
 
     Args:

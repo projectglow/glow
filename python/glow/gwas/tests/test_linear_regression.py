@@ -1,8 +1,9 @@
 import numpy as np
 import statsmodels.api as sm
 import pandas as pd
-import glow.gwas.linear_regression as lr
+import glow.gwas.lin_reg as lr
 import pytest
+import glow
 
 
 def run_linear_regression(genotype_df, phenotype_df, covariate_df, fit_intercept=True):

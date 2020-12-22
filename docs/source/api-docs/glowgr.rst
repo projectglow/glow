@@ -1,14 +1,14 @@
 GloWGR
 ------
 
-Data preparation and helper functions
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+WGR functions
+~~~~~~~~~~~~~
 
-.. automodule:: glow.wgr.functions
+.. automodule:: glow.wgr
   :members:
 
-Ridge model 
-~~~~~~~~~~~
+GWAS functions
+~~~~~~~~~~~~~~
 
-.. automodule:: glow.wgr.linear_model.ridge_model
+.. automodule:: glow.gwas
   :members:

@@ -21,6 +21,8 @@ from pyspark.sql.column import Column, _to_java_column, _to_seq
 from typeguard import check_argument_types, check_return_type
 from typing import Union
 
+__all__ = [] # Extended within each group
+
 def sc():
     return SparkContext._active_spark_context
 
@@ -28,6 +30,7 @@ def sc():
 ########### {{ group_name }}
 {% for function in group['functions'] if not function.exclude_python %}
 
+__all__.append('{{ function.name }}')
 def {{ function.name }}({{ function.args|map('fmt_python_signature')|join(', ') }}) -> Column:
     """
     {{ function.doc|trim|indent(4) }}

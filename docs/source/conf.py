@@ -31,6 +31,11 @@ sys.path.insert(0, os.path.abspath('.'))
 sys.path.append(os.path.abspath('../extensions'))
 sys.path.append(os.path.abspath('../../python'))
 
+# Without this import, autodoc fails on the glow.hail module with error
+# WARNING: autodoc: failed to import module 'hail' from module 'glow'; the following exception was raised:
+# cannot import name 'AbstractStreamWriter' from 'aiohttp.abc'
+import glow.hail
+
 
 # -- Project information -----------------------------------------------------
 
@@ -51,10 +56,10 @@ mvn_version_file.close()
 
 pypi_version = imp.load_source('version', '../../python/version.py').VERSION
 
-substitutions = [
-    ('|mvn-version|', mvn_version),
-    ('|pypi-version|', pypi_version)
-]
+rst_prolog = f"""
+.. |mvn-version| replace:: {mvn_version}
+.. |pypi-version| replace:: {pypi_version}
+"""
 
 # -- General configuration ---------------------------------------------------
 
@@ -76,9 +81,11 @@ extensions = [
     'sphinx.ext.viewcode',
     'sphinx.ext.githubpages',
     'notebook',
+    'sphinx-prompt',
     'sphinx_substitution_extensions',
     'sphinx_tabs.tabs',
-    'sphinx.ext.napoleon'
+    'sphinx.ext.napoleon',
+    'sphinx_autodoc_typehints',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -238,3 +245,7 @@ linkcheck_ignore = [
     # Captcha required
     r'https://gatk.broadinstitute.org*',
 ]
+
+
+# -- Autodoc options ---------------------------------------------------------
+set_type_checking_flag=True
