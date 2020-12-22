@@ -51,7 +51,7 @@ def logistic_regression(
         phenotype_df : Pandas DataFrame containing phenotypic data
         covariate_df : An optional Pandas DataFrame containing covariates
         offset_df : An optional Pandas DataFrame containing the phenotype offset. This value will be used
-                    as a offset in the covariate only and per variant logistic regression models. The ``offset_df`` may
+                    as an offset in the covariate only and per variant logistic regression models. The ``offset_df`` may
                     have one or two levels of indexing. If one level, the index should be the same as the ``phenotype_df``.
                     If two levels, the level 0 index should be the same as the ``phenotype_df``, and the level 1 index
                     should be the contig name. The two level index scheme allows for per-contig offsets like
@@ -62,7 +62,7 @@ def logistic_regression(
         values_column : A column name or column expression to test with linear regression. If a column name is provided,
                         ``genotype_df`` should have a column with this name and a numeric array type. If a column expression
                         is provided, the expression should return a numeric array type.
-        dt : The numpy datatype to use in the linear regression test. Must be `np.float32` or `np.float64`.
+        dt : The numpy datatype to use in the linear regression test. Must be ``np.float32`` or ``np.float64``.
 
     Returns:
         A Spark DataFrame that contains
