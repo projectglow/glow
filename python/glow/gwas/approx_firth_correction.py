@@ -8,7 +8,12 @@ from nptyping import Float, NDArray
 from scipy import stats
 
 
-def _calculate_log_likelihood(beta, X, y, offset):
+def _calculate_log_likelihood(
+        beta: NDArray[(Any,), Float],
+        X: NDArray[(Any, Any), Float],
+        y: NDArray[(Any,), Float],
+        offset: NDArray[(Any,), Float]):
+
     pi = 1 - 1 / (np.exp(X @ beta + offset) + 1)
     G = np.diagflat(pi * (1-pi))
     I = np.atleast_2d(X.T @ G @ X) # fisher information matrix
@@ -18,7 +23,16 @@ def _calculate_log_likelihood(beta, X, y, offset):
     return (pi, G, I, LL_matrix, penalized_LL)
 
 
-def _fit_firth_logistic(beta_init, X, y, offset, tolerance=1e-5, max_iter=250, max_step_size=5, max_half_steps=25):
+def _fit_firth_logistic(
+        beta_init: NDArray[(Any,), Float],
+        X: NDArray[(Any, Any), Float],
+        y: NDArray[(Any,), Float],
+        offset: NDArray[(Any,), Float],
+        tolerance=1e-5,
+        max_iter=250,
+        max_step_size=5,
+        max_half_steps=25):
+
     n_iter = 0
     beta = beta_init
     pi, G, I, LL_matrix, penalized_LL = _calculate_log_likelihood(beta, X, y, offset)
@@ -71,38 +85,45 @@ def _fit_firth_logistic(beta_init, X, y, offset, tolerance=1e-5, max_iter=250, m
 
 @dataclass
 class ApproxFirthState:
-    penalized_LL_null_fit: NDArray[(Any), Float]
-    logit_offset: NDArray[(Any), Float]
+    logit_offset: NDArray[(Any, Any), Float]
+    penalized_LL_null_fit: NDArray[(Any,), Float]
 
 
 @typechecked
-def assemble_approx_firth_state(
+def create_approx_firth_state(
         Y: NDArray[(Any, Any), Float],
         offset_df: Optional[pd.DataFrame],
         C: NDArray[(Any, Any), Float],
-        Y_mask: NDArray[(Any, Any), Float]) -> ApproxFirthState:
+        Y_mask: NDArray[(Any, Any), Float],
+        fit_intercept: bool) -> ApproxFirthState:
 
     num_Y = Y.shape[1]
     penalized_LL_null_fit = np.zeros(num_Y)
-    logit_offset = np.zeros(num_Y)
+    logit_offset = np.zeros(Y.shape)
 
     for i in range(num_Y):
         y = Y[:, i]
         y_mask = Y_mask[:, i]
         offset = offset_df.iloc[:, i].to_numpy() if offset_df is not None else np.zeros(y.shape)
-        b0_null_fit = np.zeros(1 + C.shape(0))
-        b0_null_fit[0] = (0.5 + y.sum()) / (y_mask.sum() + 1)
-        b0_null_fit[0] = np.log(b0_null_fit[0] / (1 - b0_null_fit[0])) - offset.mean()
+        b0_null_fit = np.zeros(C.shape[1])
+        if fit_intercept:
+            b0_null_fit[-1] = (0.5 + y.sum()) / (y_mask.sum() + 1)
+            b0_null_fit[-1] = np.log(b0_null_fit[-1] / (1 - b0_null_fit[-1])) - offset.mean()
         b_null_fit, _, penalized_LL_null_fit[i] = _fit_firth_logistic(b0_null_fit, C, y, offset)
-        logit_offset[i] = offset + (C.values * b_null_fit).sum(axis=1)
+        logit_offset[:, i] = offset + (C @ b_null_fit)
 
-    return ApproxFirthState(penalized_LL_null_fit, logit_offset)
+    return ApproxFirthState(logit_offset, penalized_LL_null_fit)
 
 
-def correct_approx_firth(x_res, y_res, logit_offset, penalized_LL_null_fit) -> Series:
+def correct_approx_firth(
+        x_res: NDArray[(Any,), Float],
+        y_res: NDArray[(Any,), Float],
+        logit_offset: NDArray[(Any,), Float],
+        penalized_LL_null_fit: Float) -> Series:
+
     b_snp_fit, snp_LL_matrix, snp_penalized_LL = _fit_firth_logistic(
         np.zeros(1),
-        x_res,
+        np.expand_dims(x_res, axis=1),
         y_res,
         logit_offset
     )

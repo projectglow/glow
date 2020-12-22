@@ -32,7 +32,7 @@ def logistic_regression(
         dt: type = np.float64) -> DataFrame:
     '''
     Uses logistic regression to test for association between genotypes and one or more binary
-    phenotypes. This is a distributed version of the method from regenie: 
+    phenotypes. This is a distributed version of the method from regenie:
     https://www.biorxiv.org/content/10.1101/2020.06.19.162354v2
 
     On the driver node, we fit a logistic regression model based on the covariates for each
@@ -96,7 +96,7 @@ def logistic_regression(
 
     log_reg_state = gwas_fx._loco_make_state(
         Y, phenotype_df, offset_df,
-        lambda y, pdf, odf: _create_log_reg_state(y, pdf, odf, C, Y_mask, correction))
+        lambda y, pdf, odf: _create_log_reg_state(y, pdf, odf, C, Y_mask, correction, fit_intercept))
 
     def map_func(pdf_iterator):
         for pdf in pdf_iterator:
@@ -146,7 +146,8 @@ def _create_log_reg_state(
         offset_df: Optional[pd.DataFrame],
         C: NDArray[(Any, Any), Float],
         Y_mask: NDArray[(Any, Any), Float],
-        correction: str) -> LogRegState:
+        correction: str,
+        fit_intercept: bool) -> LogRegState:
     Y_pred = np.row_stack([
         _logistic_null_model_predictions(
             Y[:, i], C, Y_mask[:, i],
@@ -158,7 +159,7 @@ def _create_log_reg_state(
     inv_CtGammaC = np.linalg.inv(CtGammaC)
 
     if correction == correction_approx_firth:
-        approx_firth_state = assemble_approx_firth_state(Y, offset_df, C, Y_mask)
+        approx_firth_state = create_approx_firth_state(Y, offset_df, C, Y_mask, fit_intercept)
     else:
         approx_firth_state = None
 
@@ -178,7 +179,7 @@ def _logistic_residualize(X: NDArray[(Any, Any), Float], C: NDArray[(Any, Any), 
 
 def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogRegState,
                                C: NDArray[(Any, Any), Float], Y_mask: NDArray[(Any, Any), Float],
-                               correction: str, pvalue_threshold: double, phenotype_names: pd.Series) -> pd.DataFrame:
+                               correction: str, pvalue_threshold: float, phenotype_names: pd.Series) -> pd.DataFrame:
     '''
     Tests a block of genotypes for association with binary traits. We first residualize
     the genotypes based on the null model fit, then perform a fast score test to check for
@@ -209,9 +210,9 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
         if correction == correction_approx_firth:
             for correction_idx in correction_indices:
                 snp_index = correction_idx % genotype_pdf.shape[0]
-                phenotype_index = correction_idx / phenotype_names.size
+                phenotype_index = int(correction_idx / phenotype_names.size)
                 out_df.iloc[correction_idx] = correct_approx_firth(
-                    X_res[snp_index, phenotype_index],
+                    X_res[snp_index][phenotype_index],
                     log_reg_state.Y_res[phenotype_index],
                     log_reg_state.approx_firth_state.logit_offset[phenotype_index],
                     log_reg_state.approx_firth_state.penalized_LL_null_fit[phenotype_index],
