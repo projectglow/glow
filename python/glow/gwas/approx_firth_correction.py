@@ -17,10 +17,18 @@ def _calculate_log_likelihood(
     pi = 1 - 1 / (np.exp(X @ beta + offset) + 1)
     G = np.diagflat(pi * (1-pi))
     I = np.atleast_2d(X.T @ G @ X) # fisher information matrix
-    LL_matrix = np.atleast_2d(y @ np.log(pi) + (1-y) @ np.log(1-pi))
+    eps = 1e-15 # Avoid log underflow
+    LL_matrix = np.atleast_2d(y @ np.log(pi + eps) + (1-y) @ np.log(1-pi + eps))
     _, logdet = np.linalg.slogdet(I)
     penalized_LL = np.sum(LL_matrix) + 0.5 * logdet
     return (pi, G, I, LL_matrix, penalized_LL)
+
+
+@dataclass
+class FirthFitResults:
+    beta: NDArray[(Any,), Float]
+    LL_matrix: NDArray[(Any, Any), Float]
+    penalized_LL: Float
 
 
 def _fit_firth_logistic(
@@ -30,8 +38,8 @@ def _fit_firth_logistic(
         offset: NDArray[(Any,), Float],
         tolerance=1e-5,
         max_iter=250,
-        max_step_size=5,
-        max_half_steps=25):
+        max_step_size=25,
+        max_half_steps=25) -> Optional[FirthFitResults]:
 
     n_iter = 0
     beta = beta_init
@@ -65,7 +73,8 @@ def _fit_firth_logistic(
         n_half_steps = 0
         while new_penalized_LL < penalized_LL:
             if n_half_steps == max_half_steps:
-                raise ValueError("Too many half-steps!")
+                print("Too many half-steps!")
+                return None
             delta /= 2
             new_beta = beta + delta
             pi, G, I, new_LL_matrix, new_penalized_LL = _calculate_log_likelihood(new_beta, X, y, offset)
@@ -78,9 +87,10 @@ def _fit_firth_logistic(
         n_iter += 1
 
     if n_iter == max_iter:
-        raise ValueError("Too many iterations!")
+        print("Too many iterations!")
+        return None
 
-    return beta, LL_matrix, penalized_LL
+    return FirthFitResults(beta, LL_matrix, penalized_LL)
 
 
 @dataclass
@@ -109,8 +119,12 @@ def create_approx_firth_state(
         if fit_intercept:
             b0_null_fit[-1] = (0.5 + y.sum()) / (y_mask.sum() + 1)
             b0_null_fit[-1] = np.log(b0_null_fit[-1] / (1 - b0_null_fit[-1])) - offset.mean()
-        b_null_fit, _, penalized_LL_null_fit[i] = _fit_firth_logistic(b0_null_fit, C, y, offset)
-        logit_offset[:, i] = offset + (C @ b_null_fit)
+        firthFitResult = _fit_firth_logistic(
+            b0_null_fit, C, y, offset, max_step_size=5, max_iter=5000)
+        if firthFitResult is None:
+            raise ValueError("Null fit failed!")
+        penalized_LL_null_fit[i] = firthFitResult.penalized_LL
+        logit_offset[:, i] = offset + (C @ firthFitResult.beta)
 
     return ApproxFirthState(logit_offset, penalized_LL_null_fit)
 
@@ -119,16 +133,18 @@ def correct_approx_firth(
         x_res: NDArray[(Any,), Float],
         y_res: NDArray[(Any,), Float],
         logit_offset: NDArray[(Any,), Float],
-        penalized_LL_null_fit: Float) -> Series:
+        penalized_LL_null_fit: Float) -> Optional[Series]:
 
-    b_snp_fit, snp_LL_matrix, snp_penalized_LL = _fit_firth_logistic(
+    firthFitResult = _fit_firth_logistic(
         np.zeros(1),
         np.expand_dims(x_res, axis=1),
         y_res,
         logit_offset
     )
-    tvalue = 2 * (snp_penalized_LL - penalized_LL_null_fit)
+    if firthFitResult is None:
+        return None
+    tvalue = 2 * (firthFitResult.penalized_LL - penalized_LL_null_fit)
     pvalue = stats.chi2.sf(tvalue, 1)
-    effect = b_snp_fit.item()
-    stderr = np.linalg.pinv(snp_LL_matrix).item()
+    effect = firthFitResult.beta.item()
+    stderr = np.linalg.pinv(firthFitResult.LL_matrix).item()
     return Series({'tvalue': tvalue, 'pvalue': pvalue, 'effect': effect, 'stderr': stderr})

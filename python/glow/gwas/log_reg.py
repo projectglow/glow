@@ -211,12 +211,17 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
             for correction_idx in correction_indices:
                 snp_index = correction_idx % genotype_pdf.shape[0]
                 phenotype_index = int(correction_idx / phenotype_names.size)
-                out_df.iloc[correction_idx] = correct_approx_firth(
+                approx_firth_results = correct_approx_firth(
                     X_res[snp_index][phenotype_index],
                     log_reg_state.Y_res[phenotype_index],
                     log_reg_state.approx_firth_state.logit_offset[phenotype_index],
                     log_reg_state.approx_firth_state.penalized_LL_null_fit[phenotype_index],
                 )
+                if approx_firth_results is not None:
+                    out_df.iloc[correction_idx]['tvalue'] = approx_firth_results.tvalue
+                    out_df.iloc[correction_idx]['pvalue'] = approx_firth_results.pvalue
+                else:
+                    print(f"Could not correct {out_df.iloc[correction_idx]}")
         else:
             raise ValueError(f"Only supported correction method is {correction_approx_firth}")
 
