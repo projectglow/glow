@@ -94,7 +94,7 @@ def logistic_regression(
     Y_mask = ~(np.isnan(Y))
     np.nan_to_num(Y, copy=False)
 
-    log_reg_state = gwas_fx._loco_make_state(
+    state = gwas_fx._loco_make_state(
         Y, phenotype_df, offset_df,
         lambda y, pdf, odf: _create_log_reg_state(y, pdf, odf, C, Y_mask, correction, fit_intercept))
 
@@ -103,13 +103,13 @@ def logistic_regression(
     bc_C = sc.broadcast(C)
     bc_Y_mask = sc.broadcast(Y_mask.astype(dt))
 
-    map_func = make_map_func(bc_state, bc_C, bc_Y_mask, correction,
+    map_func = make_map_func(bc_state, bc_C, bc_Y_mask, correction, pvalue_threshold,
                              phenotype_df.columns.to_series().astype('str'))
 
     return genotype_df.mapInPandas(map_func, result_struct)
 
 
-def make_map_func(bc_state, bc_C, bc_Y_mask, correction, column_names):
+def make_map_func(bc_state, bc_C, bc_Y_mask, correction, pvalue_threshold, column_names):
     def map_func(pdf_iterator):
         for pdf in pdf_iterator:
             yield gwas_fx._loco_dispatch(pdf, bc_state.value, _logistic_regression_inner,
@@ -223,15 +223,15 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
             for correction_idx in correction_indices:
                 snp_index = correction_idx % genotype_pdf.shape[0]
                 phenotype_index = int(correction_idx / phenotype_names.size)
-                approx_firth_results = correct_approx_firth(
+                approx_firth_snp_fit = correct_approx_firth(
                     X_res[snp_index][phenotype_index],
                     log_reg_state.Y_res[phenotype_index],
                     log_reg_state.approx_firth_state.logit_offset[phenotype_index],
                     log_reg_state.approx_firth_state.penalized_LL_null_fit[phenotype_index],
                 )
-                if approx_firth_results is not None:
-                    out_df.iloc[correction_idx]['tvalue'] = approx_firth_results.tvalue
-                    out_df.iloc[correction_idx]['pvalue'] = approx_firth_results.pvalue
+                if approx_firth_snp_fit is not None:
+                    out_df.iloc[correction_idx]['tvalue'] = approx_firth_snp_fit.tvalue
+                    out_df.iloc[correction_idx]['pvalue'] = approx_firth_snp_fit.pvalue
                 else:
                     print(f"Could not correct {out_df.iloc[correction_idx]}")
         else:
