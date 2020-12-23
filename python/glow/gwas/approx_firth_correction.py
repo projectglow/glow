@@ -18,8 +18,8 @@ class Intermediates:
 @dataclass
 class LogLikelihood:
     intermediates: Intermediates
-    LL_matrix: NDArray[(Any, Any), Float]
-    deviance: Float
+    unpenalized_log_likelihood: Float
+    deviance: Float # 2 * penalized log likelihood
 
 
 @dataclass
@@ -31,7 +31,7 @@ class FirthFit:
 @dataclass
 class ApproxFirthState:
     logit_offset: NDArray[(Any, Any), Float]
-    null_fit_deviance: NDArray[(Any,), Float]
+    null_model_deviance: NDArray[(Any,), Float]
 
 
 @typechecked
@@ -45,11 +45,11 @@ def _calculate_log_likelihood(
     pi = 1 - 1 / (np.exp(X @ beta + offset) + 1)
     G = np.diagflat(pi * (1-pi))
     I = np.atleast_2d(X.T @ G @ X)
-    LL_matrix = np.atleast_2d(y @ np.log(pi + eps) + (1-y) @ np.log(1-pi + eps))
+    unpenalized_log_likelihood = y @ np.log(pi + eps) + (1-y) @ np.log(1-pi + eps)
     _, logdet = np.linalg.slogdet(I)
     penalty = 0.5 * logdet
-    deviance = -2 * (np.sum(LL_matrix) + penalty)
-    return LogLikelihood(Intermediates(pi, G, I), LL_matrix, deviance)
+    deviance = -2 * (unpenalized_log_likelihood + penalty)
+    return LogLikelihood(Intermediates(pi, G, I), unpenalized_log_likelihood, deviance)
 
 
 @typechecked
@@ -139,7 +139,7 @@ def create_approx_firth_state(
     '''
 
     num_Y = Y.shape[1]
-    null_fit_deviance = np.zeros(num_Y)
+    null_model_deviance = np.zeros(num_Y)
     logit_offset = np.zeros(Y.shape)
 
     for i in range(num_Y):
@@ -154,10 +154,10 @@ def create_approx_firth_state(
         firth_fit_result = _fit_firth(b0_null_fit, C, y, offset)
         if firth_fit_result is None:
             raise ValueError("Null fit failed!")
-        null_fit_deviance[i] = firth_fit_result.log_likelihood.deviance
+        null_model_deviance[i] = firth_fit_result.log_likelihood.deviance
         logit_offset[:, i] = offset + (C @ firth_fit_result.beta)
 
-    return ApproxFirthState(logit_offset, null_fit_deviance)
+    return ApproxFirthState(logit_offset, null_model_deviance)
 
 
 @typechecked
@@ -165,7 +165,7 @@ def correct_approx_firth(
         x_res: NDArray[(Any,), Float],
         y_res: NDArray[(Any,), Float],
         logit_offset: NDArray[(Any,), Float],
-        deviance: Float) -> Optional[Series]:
+        null_model_deviance: Float) -> Optional[Series]:
     '''
     Calculate LRT statistics for a SNP using the approximate Firth method.
 
@@ -181,9 +181,9 @@ def correct_approx_firth(
     if firth_fit is None:
         return None
     # Likelihood-ratio test
-    tvalue = -1 * (firth_fit.log_likelihood.deviance - deviance)
+    tvalue = -1 * (firth_fit.log_likelihood.deviance - null_model_deviance)
     pvalue = stats.chi2.sf(tvalue, 1)
     effect = firth_fit.beta.item()
     # Hessian of the unpenalized log-likelihood
-    stderr = np.linalg.pinv(firth_fit.log_likelihood.LL_matrix).item()
+    stderr = 1 / firth_fit.log_likelihood.unpenalized_log_likelihood
     return Series({'tvalue': tvalue, 'pvalue': pvalue, 'effect': effect, 'stderr': stderr})

@@ -216,7 +216,7 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
                     X_res[snp_index][phenotype_index],
                     log_reg_state.Y_res[phenotype_index],
                     log_reg_state.approx_firth_state.logit_offset[phenotype_index],
-                    log_reg_state.approx_firth_state.null_fit_deviance[phenotype_index],
+                    log_reg_state.approx_firth_state.null_model_deviance[phenotype_index],
                 )
                 if approx_firth_snp_fit is not None:
                     out_df.iloc[correction_idx]['tvalue'] = approx_firth_snp_fit.tvalue
