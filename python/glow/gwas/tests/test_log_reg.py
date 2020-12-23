@@ -66,6 +66,7 @@ def run_logistic_regression_spark(spark,
     results = (lr.logistic_regression(spark.createDataFrame(pdf),
                                       phenotype_df,
                                       covariate_df,
+                                      correction=lr.correction_none,
                                       values_column=values_column,
                                       **kwargs).toPandas().sort_values(['phenotype',
                                                                         'idx']).drop('idx', axis=1))
