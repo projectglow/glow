@@ -178,6 +178,6 @@ def correct_approx_firth(
     tvalue = -1 * (firth_fit.log_likelihood.deviance - null_model_deviance)
     pvalue = stats.chi2.sf(tvalue, 1)
     effect = firth_fit.beta.item()
-    # Hessian of the unpenalized log-likelihood
-    stderr = np.linalg.pinv(firth_fit.log_likelihood.I).diagonal()[-1]
+    # Based on the Hessian of the unpenalized log-likelihood
+    stderr = np.sqrt(np.linalg.pinv(firth_fit.log_likelihood.I).diagonal()[-1])
     return Series({'tvalue': tvalue, 'pvalue': pvalue, 'effect': effect, 'stderr': stderr})
