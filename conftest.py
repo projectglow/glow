@@ -13,6 +13,7 @@
 # limitations under the License.
 
 
+import numpy as np
 from pyspark.sql import SparkSession
 import pytest
 import os
@@ -49,6 +50,16 @@ def spark(spark_builder):
     print("set up new spark session")
     sess = spark_builder.getOrCreate()
     return sess.newSession()
+
+def pytest_addoption(parser):
+    parser.addoption('--random-seed', action='store', type=int, help='Seed to use for random number generator')
+
+@pytest.fixture(scope="function")
+def rg(pytestconfig):
+    seed = pytestconfig.getoption('random_seed')   
+    seed_seq = np.random.SeedSequence(seed)
+    print(f'Creating random number generator with seed {seed_seq.entropy}')
+    return np.random.default_rng(seed_seq)
 
 def pytest_runtest_setup(item):
     min_spark_version = next((mark.args[0] for mark in item.iter_markers(name='min_spark')), None)

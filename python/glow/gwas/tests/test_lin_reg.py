@@ -1,6 +1,7 @@
 import numpy as np
 import statsmodels.api as sm
 import pandas as pd
+import glow.gwas.functions as gwas_fx
 import glow.gwas.lin_reg as lr
 import pytest
 import glow
@@ -10,7 +11,7 @@ def run_linear_regression(genotype_df, phenotype_df, covariate_df, fit_intercept
     phenotype_names = phenotype_df.columns.astype('str').to_series()
     C = covariate_df.to_numpy('float64', copy=True)
     if fit_intercept:
-        C = lr._add_intercept(C, genotype_df.shape[0])
+        C = gwas_fx._add_intercept(C, genotype_df.shape[0])
     if not C.size:
         C = np.zeros((genotype_df.shape[0], 1))
     Y = phenotype_df.to_numpy('float64', copy=True)
@@ -18,7 +19,7 @@ def run_linear_regression(genotype_df, phenotype_df, covariate_df, fit_intercept
     Y[~Y_mask] = 0
     Q = np.linalg.qr(C)[0]
     Y = lr._residualize_in_place(Y, Q)
-    Y_state = lr._create_YState(Y, Y_mask)
+    Y_state = lr._create_YState(Y, phenotype_df, None, Y_mask, np.float64)
     dof = C.shape[0] - C.shape[1] - 1
     pdf = pd.DataFrame({lr._VALUES_COLUMN_NAME: list(genotype_df.to_numpy('float64').T)})
 
@@ -64,7 +65,7 @@ def statsmodels_baseline(genotype_df,
     C = covariate_df.to_numpy('float64')
     num_samples = C.shape[0] if C.size else genotype_df.shape[0]
     if fit_intercept:
-        C = lr._add_intercept(C, num_samples)
+        C = gwas_fx._add_intercept(C, num_samples)
     Y = phenotype_df.to_numpy('float64')
     X = genotype_df.to_numpy('float64')
     phenotype_df.columns = phenotype_df.columns.astype('str')
@@ -168,55 +169,55 @@ def test_r_glm_covariates():
     assert_glow_equals_golden(genotype_df, phenotype_df, covariate_df, fit_intercept=False)
 
 
-def test_multiple():
+def test_multiple(rg):
     num_samples = 100
-    genotype_df = pd.DataFrame(np.random.random((num_samples, 10)))
-    phenotype_df = pd.DataFrame(np.random.random((num_samples, 25)))
-    covariate_df = pd.DataFrame(np.random.random((num_samples, 5)))
+    genotype_df = pd.DataFrame(rg.random((num_samples, 10)))
+    phenotype_df = pd.DataFrame(rg.random((num_samples, 25)))
+    covariate_df = pd.DataFrame(rg.random((num_samples, 5)))
     assert_glow_equals_golden(genotype_df, phenotype_df, covariate_df)
 
 
-def test_missing():
+def test_missing(rg):
     num_samples = 10
-    genotype_df = pd.DataFrame(np.random.random((num_samples, 1)))
-    phenotype_df = pd.DataFrame(np.random.random((num_samples, 1)))
+    genotype_df = pd.DataFrame(rg.random((num_samples, 1)))
+    phenotype_df = pd.DataFrame(rg.random((num_samples, 1)))
     phenotype_df.loc[0, 0] = np.nan
-    covariate_df = pd.DataFrame(np.random.random((num_samples, 3)))
+    covariate_df = pd.DataFrame(rg.random((num_samples, 3)))
     glow = run_linear_regression(genotype_df, phenotype_df, covariate_df)
     baseline = statsmodels_baseline(genotype_df, phenotype_df, covariate_df)
     assert regression_results_equal(glow, baseline)
 
 
 @pytest.mark.min_spark('3')
-def test_missing_spark(spark):
+def test_missing_spark(spark, rg):
     num_samples = 10
-    genotype_df = pd.DataFrame(np.random.random((num_samples, 1)))
-    phenotype_df = pd.DataFrame(np.random.random((num_samples, 3)))
+    genotype_df = pd.DataFrame(rg.random((num_samples, 1)))
+    phenotype_df = pd.DataFrame(rg.random((num_samples, 3)))
     phenotype_df.loc[0, 0] = np.nan
     phenotype_df.loc[[1, 3, 5], 1] = np.nan
-    covariate_df = pd.DataFrame(np.random.random((num_samples, 3)))
+    covariate_df = pd.DataFrame(rg.random((num_samples, 3)))
     glow = run_linear_regression_spark(spark, genotype_df, phenotype_df, covariate_df)
     baseline = statsmodels_baseline(genotype_df, phenotype_df, covariate_df)
     assert regression_results_equal(glow, baseline)
 
 
 @pytest.mark.min_spark('3')
-def test_multiple_spark(spark):
+def test_multiple_spark(spark, rg):
     num_samples = 100
-    genotype_df = pd.DataFrame(np.random.random((num_samples, 10)))
-    phenotype_df = pd.DataFrame(np.random.random((num_samples, 25)))
-    covariate_df = pd.DataFrame(np.random.random((num_samples, 5)))
+    genotype_df = pd.DataFrame(rg.random((num_samples, 10)))
+    phenotype_df = pd.DataFrame(rg.random((num_samples, 25)))
+    covariate_df = pd.DataFrame(rg.random((num_samples, 5)))
     baseline = statsmodels_baseline(genotype_df, phenotype_df, covariate_df)
     results = run_linear_regression_spark(spark, genotype_df, phenotype_df, covariate_df)
     assert regression_results_equal(baseline, results)
 
 
 @pytest.mark.min_spark('3')
-def test_propagate_extra_cols(spark):
+def test_propagate_extra_cols(spark, rg):
     num_samples = 10
-    genotype_df = pd.DataFrame(np.random.random((num_samples, 3)))
-    phenotype_df = pd.DataFrame(np.random.random((num_samples, 5)))
-    covariate_df = pd.DataFrame(np.random.random((num_samples, 2)))
+    genotype_df = pd.DataFrame(rg.random((num_samples, 3)))
+    phenotype_df = pd.DataFrame(rg.random((num_samples, 5)))
+    covariate_df = pd.DataFrame(rg.random((num_samples, 2)))
     extra_cols = pd.DataFrame({'genotype_idx': range(3), 'animal': 'monkey'})
     results = run_linear_regression_spark(spark, genotype_df, phenotype_df, covariate_df,
                                           extra_cols)
@@ -228,11 +229,11 @@ def test_propagate_extra_cols(spark):
 
 
 @pytest.mark.min_spark('3')
-def test_different_values_column(spark):
+def test_different_values_column(spark, rg):
     num_samples = 10
-    genotype_df = pd.DataFrame(np.random.random((num_samples, 3)))
-    phenotype_df = pd.DataFrame(np.random.random((num_samples, 5)))
-    covariate_df = pd.DataFrame(np.random.random((num_samples, 2)))
+    genotype_df = pd.DataFrame(rg.random((num_samples, 3)))
+    phenotype_df = pd.DataFrame(rg.random((num_samples, 5)))
+    covariate_df = pd.DataFrame(rg.random((num_samples, 2)))
     results = run_linear_regression_spark(spark,
                                           genotype_df,
                                           phenotype_df,
@@ -242,52 +243,52 @@ def test_different_values_column(spark):
 
 
 @pytest.mark.min_spark('3')
-def test_intercept_no_covariates(spark):
+def test_intercept_no_covariates(spark, rg):
     num_samples = 10
-    genotype_df = pd.DataFrame(np.random.random((num_samples, 10)))
-    phenotype_df = pd.DataFrame(np.random.random((num_samples, 25)))
+    genotype_df = pd.DataFrame(rg.random((num_samples, 10)))
+    phenotype_df = pd.DataFrame(rg.random((num_samples, 25)))
     # No error
     run_linear_regression_spark(spark, genotype_df, phenotype_df, pd.DataFrame({}))
 
 
 @pytest.mark.min_spark('3')
-def test_validates_missing_covariates(spark):
+def test_validates_missing_covariates(spark, rg):
     num_samples = 10
-    genotype_df = pd.DataFrame(np.random.random((num_samples, 3)))
-    phenotype_df = pd.DataFrame(np.random.random((num_samples, 5)))
-    covariate_df = pd.DataFrame(np.random.random((num_samples, 2)))
+    genotype_df = pd.DataFrame(rg.random((num_samples, 3)))
+    phenotype_df = pd.DataFrame(rg.random((num_samples, 5)))
+    covariate_df = pd.DataFrame(rg.random((num_samples, 2)))
     covariate_df.loc[0, 0] = np.nan
     with pytest.raises(ValueError):
         run_linear_regression_spark(spark, genotype_df, phenotype_df, covariate_df)
 
 
 @pytest.mark.min_spark('3')
-def test_validate_same_number_of_rows(spark):
-    genotype_df = pd.DataFrame(np.random.random((4, 3)))
-    phenotype_df = pd.DataFrame(np.random.random((4, 5)))
-    covariate_df = pd.DataFrame(np.random.random((5, 2)))
+def test_validate_same_number_of_rows(spark, rg):
+    genotype_df = pd.DataFrame(rg.random((4, 3)))
+    phenotype_df = pd.DataFrame(rg.random((4, 5)))
+    covariate_df = pd.DataFrame(rg.random((5, 2)))
     with pytest.raises(ValueError):
         run_linear_regression_spark(spark, genotype_df, phenotype_df, covariate_df)
 
 
-def test_error_for_old_spark(spark):
+def test_error_for_old_spark(spark, rg):
     if spark.version.startswith('2'):
         num_samples = 10
-        genotype_df = pd.DataFrame(np.random.random((num_samples, 10)))
-        phenotype_df = pd.DataFrame(np.random.random((num_samples, 25)))
+        genotype_df = pd.DataFrame(rg.random((num_samples, 10)))
+        phenotype_df = pd.DataFrame(rg.random((num_samples, 25)))
         with pytest.raises(AttributeError):
             run_linear_regression_spark(spark, genotype_df, phenotype_df, pd.DataFrame({}))
 
 
 @pytest.mark.min_spark('3')
-def test_simple_offset(spark):
+def test_simple_offset(spark, rg):
     num_samples = 25
     num_pheno = 6
     num_geno = 10
-    genotype_df = pd.DataFrame(np.random.random((num_samples, num_geno)))
-    phenotype_df = pd.DataFrame(np.random.random((num_samples, num_pheno)))
-    covariate_df = pd.DataFrame(np.random.random((num_samples, 2)))
-    offset_df = pd.DataFrame(np.random.random((num_samples, num_pheno)))
+    genotype_df = pd.DataFrame(rg.random((num_samples, num_geno)))
+    phenotype_df = pd.DataFrame(rg.random((num_samples, num_pheno)))
+    covariate_df = pd.DataFrame(rg.random((num_samples, 2)))
+    offset_df = pd.DataFrame(rg.random((num_samples, num_pheno)))
     results = run_linear_regression_spark(spark,
                                           genotype_df,
                                           phenotype_df,
@@ -298,15 +299,15 @@ def test_simple_offset(spark):
 
 
 @pytest.mark.min_spark('3')
-def test_multi_offset(spark):
+def test_multi_offset(spark, rg):
     num_samples = 25
     num_pheno = 25
     num_geno = 10
-    genotype_df = pd.DataFrame(np.random.random((num_samples, num_geno)))
-    phenotype_df = pd.DataFrame(np.random.random((num_samples, num_pheno)))
-    covariate_df = pd.DataFrame(np.random.random((num_samples, 10)))
+    genotype_df = pd.DataFrame(rg.random((num_samples, num_geno)))
+    phenotype_df = pd.DataFrame(rg.random((num_samples, num_pheno)))
+    covariate_df = pd.DataFrame(rg.random((num_samples, 10)))
     offset_index = pd.MultiIndex.from_product([phenotype_df.index, ['chr1', 'chr2']])
-    offset_df = pd.DataFrame(np.random.random((num_samples * 2, num_pheno)), index=offset_index)
+    offset_df = pd.DataFrame(rg.random((num_samples * 2, num_pheno)), index=offset_index)
     extra_cols = pd.DataFrame({'contigName': ['chr1', 'chr2'] * 5})
     results = run_linear_regression_spark(spark,
                                           genotype_df,
@@ -321,20 +322,19 @@ def test_multi_offset(spark):
 
 
 @pytest.mark.min_spark('3')
-def test_multi_offset_with_missing(spark):
+def test_multi_offset_with_missing(spark, rg):
     num_samples = 25
     num_pheno = 24
     num_geno = 18
     contigs = ['chr1', 'chr2', 'chr3']
-    genotype_df = pd.DataFrame(np.random.random((num_samples, num_geno)))
-    phenotype_df = pd.DataFrame(np.random.random((num_samples, num_pheno)))
+    genotype_df = pd.DataFrame(rg.random((num_samples, num_geno)))
+    phenotype_df = pd.DataFrame(rg.random((num_samples, num_pheno)))
     missing = np.triu(np.ones(phenotype_df.shape))
     missing[:, -1] = 0
     phenotype_df[missing.astype('bool')] = np.nan
-    covariate_df = pd.DataFrame(np.random.random((num_samples, 10)))
+    covariate_df = pd.DataFrame(rg.random((num_samples, 10)))
     offset_index = pd.MultiIndex.from_product([phenotype_df.index, contigs])
-    offset_df = pd.DataFrame(np.random.random((num_samples * len(contigs), num_pheno)),
-                             index=offset_index)
+    offset_df = pd.DataFrame(rg.random((num_samples * len(contigs), num_pheno)), index=offset_index)
     extra_cols = pd.DataFrame({'contigName': contigs * 6})
     results = run_linear_regression_spark(spark,
                                           genotype_df,
@@ -344,53 +344,54 @@ def test_multi_offset_with_missing(spark):
                                           extra_cols=extra_cols)
     baseline = statsmodels_baseline(genotype_df, phenotype_df, covariate_df,
                                     [offset_df.xs(contig, level=1) for contig in contigs] * 6)
+    assert regression_results_equal(results, baseline)
 
 
 @pytest.mark.min_spark('3')
-def test_offset_wrong_columns(spark):
+def test_offset_wrong_columns(spark, rg):
     num_samples = 25
     num_pheno = 10
-    genotype_df = pd.DataFrame(np.random.random((num_samples, 10)))
-    phenotype_df = pd.DataFrame(np.random.random((num_samples, num_pheno)))
-    offset_df = pd.DataFrame(np.random.random((num_samples, num_pheno)), columns=range(10, 20))
+    genotype_df = pd.DataFrame(rg.random((num_samples, 10)))
+    phenotype_df = pd.DataFrame(rg.random((num_samples, num_pheno)))
+    offset_df = pd.DataFrame(rg.random((num_samples, num_pheno)), columns=range(10, 20))
     with pytest.raises(ValueError):
         run_linear_regression_spark(spark, genotype_df, phenotype_df, offset_df=offset_df)
 
 
 @pytest.mark.min_spark('3')
-def test_offset_wrong_index(spark):
+def test_offset_wrong_index(spark, rg):
     num_samples = 25
     num_pheno = 10
-    genotype_df = pd.DataFrame(np.random.random((num_samples, 10)))
-    phenotype_df = pd.DataFrame(np.random.random((num_samples, num_pheno)))
-    offset_df = pd.DataFrame(np.random.random((num_samples, num_pheno)), index=range(1, 26))
+    genotype_df = pd.DataFrame(rg.random((num_samples, 10)))
+    phenotype_df = pd.DataFrame(rg.random((num_samples, num_pheno)))
+    offset_df = pd.DataFrame(rg.random((num_samples, num_pheno)), index=range(1, 26))
     with pytest.raises(ValueError):
         run_linear_regression_spark(spark, genotype_df, phenotype_df, offset_df=offset_df)
 
 
 @pytest.mark.min_spark('3')
-def test_offset_wrong_multi_index(spark):
+def test_offset_wrong_multi_index(spark, rg):
     num_samples = 25
     num_pheno = 10
     contigs = ['chr1', 'chr2']
-    genotype_df = pd.DataFrame(np.random.random((num_samples, 10)))
-    phenotype_df = pd.DataFrame(np.random.random((num_samples, num_pheno)))
-    offset_df = pd.DataFrame(np.random.random((num_samples * len(contigs), num_pheno)),
+    genotype_df = pd.DataFrame(rg.random((num_samples, 10)))
+    phenotype_df = pd.DataFrame(rg.random((num_samples, num_pheno)))
+    offset_df = pd.DataFrame(rg.random((num_samples * len(contigs), num_pheno)),
                              pd.MultiIndex.from_product([range(1, 26), contigs]))
     with pytest.raises(ValueError):
         run_linear_regression_spark(spark, genotype_df, phenotype_df, offset_df=offset_df)
 
 
 @pytest.mark.min_spark('3')
-def test_offset_different_index_order(spark):
+def test_offset_different_index_order(spark, rg):
     num_samples = 25
     num_pheno = 6
     num_geno = 10
-    genotype_df = pd.DataFrame(np.random.random((num_samples, num_geno)))
-    phenotype_df = pd.DataFrame(np.random.random((num_samples, num_pheno)))
+    genotype_df = pd.DataFrame(rg.random((num_samples, num_geno)))
+    phenotype_df = pd.DataFrame(rg.random((num_samples, num_pheno)))
     phenotype_df.columns = phenotype_df.columns.astype('str')
-    covariate_df = pd.DataFrame(np.random.random((num_samples, 2)))
-    offset_df = pd.DataFrame(np.random.random((num_samples, num_pheno)))
+    covariate_df = pd.DataFrame(rg.random((num_samples, 2)))
+    offset_df = pd.DataFrame(rg.random((num_samples, num_pheno)))
     offset_df.columns = offset_df.columns.astype('str')
     baseline = statsmodels_baseline(genotype_df, phenotype_df, covariate_df, [offset_df] * num_geno)
 
@@ -407,11 +408,11 @@ def test_offset_different_index_order(spark):
 
 
 @pytest.mark.min_spark('3')
-def test_cast_genotypes(spark):
+def test_cast_genotypes(spark, rg):
     num_samples = 10
-    genotype_df = pd.DataFrame(np.random.randint(0, 10, (num_samples, 10)))
-    phenotype_df = pd.DataFrame(np.random.random((num_samples, 5)))
-    covariate_df = pd.DataFrame(np.random.random((num_samples, 5)))
+    genotype_df = pd.DataFrame(rg.integers(0, 10, (num_samples, 10)))
+    phenotype_df = pd.DataFrame(rg.random((num_samples, 5)))
+    covariate_df = pd.DataFrame(rg.random((num_samples, 5)))
     baseline = statsmodels_baseline(genotype_df, phenotype_df, covariate_df)
     results = run_linear_regression_spark(spark, genotype_df, phenotype_df, covariate_df)
     assert results['effect'].dtype == np.float64
@@ -419,11 +420,11 @@ def test_cast_genotypes(spark):
 
 
 @pytest.mark.min_spark('3')
-def test_cast_genotypes_float32(spark):
+def test_cast_genotypes_float32(spark, rg):
     num_samples = 10
-    genotype_df = pd.DataFrame(np.random.randint(0, 10, (num_samples, 10)))
-    phenotype_df = pd.DataFrame(np.random.random((num_samples, 5)))
-    covariate_df = pd.DataFrame(np.random.random((num_samples, 5)))
+    genotype_df = pd.DataFrame(rg.integers(0, 10, (num_samples, 10)))
+    phenotype_df = pd.DataFrame(rg.random((num_samples, 5)))
+    covariate_df = pd.DataFrame(rg.random((num_samples, 5)))
     baseline = statsmodels_baseline(genotype_df, phenotype_df, covariate_df)
     results = run_linear_regression_spark(spark,
                                           genotype_df,
@@ -435,21 +436,21 @@ def test_cast_genotypes_float32(spark):
 
 
 @pytest.mark.min_spark('3')
-def test_bad_datatype(spark):
+def test_bad_datatype(spark, rg):
     num_samples = 10
-    genotype_df = pd.DataFrame(np.random.random((num_samples, 10)))
-    phenotype_df = pd.DataFrame(np.random.random((num_samples, 5)))
-    covariate_df = pd.DataFrame(np.random.random((num_samples, 5)))
+    genotype_df = pd.DataFrame(rg.random((num_samples, 10)))
+    phenotype_df = pd.DataFrame(rg.random((num_samples, 5)))
+    covariate_df = pd.DataFrame(rg.random((num_samples, 5)))
     with pytest.raises(ValueError):
         run_linear_regression_spark(spark, genotype_df, phenotype_df, covariate_df, dt=np.int32)
 
 
 @pytest.mark.min_spark('3')
-def test_bad_column_name(spark):
+def test_bad_column_name(spark, rg):
     num_samples = 10
-    genotype_df = pd.DataFrame(np.random.random((num_samples, 10)))
-    phenotype_df = pd.DataFrame(np.random.random((num_samples, 5)))
-    covariate_df = pd.DataFrame(np.random.random((num_samples, 5)))
+    genotype_df = pd.DataFrame(rg.random((num_samples, 10)))
+    phenotype_df = pd.DataFrame(rg.random((num_samples, 5)))
+    covariate_df = pd.DataFrame(rg.random((num_samples, 5)))
     with pytest.raises(ValueError):
         run_linear_regression_spark(spark,
                                     genotype_df,
@@ -459,12 +460,12 @@ def test_bad_column_name(spark):
 
 
 @pytest.mark.min_spark('3')
-def test_values_expr(spark):
+def test_values_expr(spark, rg):
     from pyspark.sql.functions import array, lit
     num_samples = 5
     genotype_df = spark.range(1).withColumn('genotypes', lit(42))
-    phenotype_df = pd.DataFrame(np.random.random((num_samples, 5)))
-    covariate_df = pd.DataFrame(np.random.random((num_samples, 2)))
+    phenotype_df = pd.DataFrame(rg.random((num_samples, 5)))
+    covariate_df = pd.DataFrame(rg.random((num_samples, 2)))
     array_vals = [lit(i) for i in range(num_samples)]
     results = lr.linear_regression(genotype_df,
                                    phenotype_df,
