@@ -8,11 +8,10 @@ from pyspark.sql.types import ArrayType, FloatType, DoubleType, StringType, Stru
 from scipy import stats
 from typeguard import typechecked
 from ..wgr.linear_model.functions import __assert_all_present
+from . import functions as gwas_fx
+from .functions import _VALUES_COLUMN_NAME, _GENOTYPES_COLUMN_NAME
 
 __all__ = ['linear_regression']
-
-_VALUES_COLUMN_NAME = '_linreg_values'
-_GENOTYPES_COLUMN_NAME = 'genotypes'
 
 
 @typechecked
@@ -84,38 +83,14 @@ def linear_regression(genotype_df: DataFrame,
         - ``pvalue``: P value estimated from a two sided T-test
         - ``phenotype``: The phenotype name as determined by the column names of ``phenotype_df``
     '''
-    if int(genotype_df.sql_ctx.sparkSession.version.split('.')[0]) < 3:
-        raise AttributeError(
-            'Pandas based linear regression is only supported on Spark 3.0 or greater')
 
-    # Validate input
-    for col in covariate_df:
-        __assert_all_present(covariate_df, col, 'covariate')
-    if not covariate_df.empty:
-        if phenotype_df.shape[0] != covariate_df.shape[0]:
-            raise ValueError(
-                f'phenotype_df and covariate_df must have the same number of rows ({phenotype_df.shape[0]} != {covariate_df.shape[0]}'
-            )
+    gwas_fx._check_spark_version(genotype_df.sql_ctx.sparkSession)
 
-    if dt == np.float32:
-        sql_type = FloatType()
-    elif dt == np.float64:
-        sql_type = DoubleType()
-    else:
-        raise ValueError('dt must be np.float32 or np.float64')
+    gwas_fx._validate_covariates_and_phenotypes(covariate_df, phenotype_df, is_binary=False)
 
-    if isinstance(values_column, str):
-        if values_column == _GENOTYPES_COLUMN_NAME:
-            raise ValueError(f'The values column should not be called "{_GENOTYPES_COLUMN_NAME}"')
-        genotype_df = (genotype_df.withColumn(_VALUES_COLUMN_NAME,
-                                              fx.col(values_column).cast(
-                                                  ArrayType(sql_type))).drop(values_column))
-    else:
-        genotype_df = genotype_df.withColumn(_VALUES_COLUMN_NAME,
-                                             values_column.cast(ArrayType(sql_type)))
+    sql_type = gwas_fx._regression_sql_type(dt)
 
-    if _GENOTYPES_COLUMN_NAME in [field.name for field in genotype_df.schema]:
-        genotype_df = genotype_df.drop(_GENOTYPES_COLUMN_NAME)
+    genotype_df = gwas_fx._prepare_genotype_df(genotype_df, values_column, sql_type)
 
     # Construct output schema
     result_fields = [
@@ -125,13 +100,11 @@ def linear_regression(genotype_df: DataFrame,
         StructField('pvalue', sql_type),
         StructField('phenotype', StringType())
     ]
-    fields = [field for field in genotype_df.schema.fields if field.name != _VALUES_COLUMN_NAME
-              ] + result_fields
-    result_struct = StructType(fields)
+    result_struct = gwas_fx._output_schema(genotype_df.schema.fields, result_fields)
 
     C = covariate_df.to_numpy(dt, copy=True)
     if fit_intercept:
-        C = _add_intercept(C, phenotype_df.shape[0])
+        C = gwas_fx._add_intercept(C, phenotype_df.shape[0])
 
     # Prepare covariate basis and phenotype residuals
     Q = np.linalg.qr(C)[0]
@@ -140,52 +113,17 @@ def linear_regression(genotype_df: DataFrame,
     np.nan_to_num(Y, copy=False)
     _residualize_in_place(Y, Q)
 
-    if not offset_df.empty:
-        if not _have_same_elements(phenotype_df.columns, offset_df.columns):
-            raise ValueError(f'phenotype_df and offset_df should have the same column names.')
-        if offset_df.index.nlevels == 1:  # Indexed by sample id
-            if not _have_same_elements(phenotype_df.index, offset_df.index):
-                raise ValueError(f'phenotype_df and offset_df should have the same index.')
-            Y_state = _create_YState_from_offset(Y, Y_mask, phenotype_df, offset_df, dt)
-        elif offset_df.index.nlevels == 2:  # Indexed by sample id and contig
-            all_contigs = offset_df.index.get_level_values(1).unique()
-            Y_state = {}
-            for contig in all_contigs:
-                offset_for_contig = offset_df.xs(contig, level=1)
-                if not _have_same_elements(phenotype_df.index, offset_for_contig.index):
-                    raise ValueError(
-                        'When using a multi-indexed offset_df, the offsets for each contig '
-                        'should have the same index as phenotype_df')
-                Y_state[contig] = _create_YState_from_offset(Y, Y_mask, phenotype_df,
-                                                             offset_for_contig, dt)
-    else:
-        Y_state = _create_YState(Y, Y_mask)
+    Y_state = gwas_fx._loco_make_state(Y, phenotype_df, offset_df,
+                                       lambda y, pdf, odf: _create_YState(y, pdf, odf, Y_mask, dt))
 
     dof = C.shape[0] - C.shape[1] - 1
 
     def map_func(pdf_iterator):
         for pdf in pdf_iterator:
-            yield _linear_regression_dispatch(pdf, Y_state, Y_mask, Q, dof,
-                                              phenotype_df.columns.to_series().astype('str'))
+            yield gwas_fx._loco_dispatch(pdf, Y_state, _linear_regression_inner, Y_mask, Q, dof,
+                                         phenotype_df.columns.to_series().astype('str'))
 
     return genotype_df.mapInPandas(map_func, result_struct)
-
-
-def _have_same_elements(idx1: pd.Index, idx2: pd.Index) -> bool:
-    return idx1.sort_values().equals(idx2.sort_values())
-
-
-def _create_YState_from_offset(Y: NDArray[(Any, Any), Float], Y_mask: NDArray[(Any, Any), Float],
-                               phenotype_df: pd.DataFrame, offset_df: pd.DataFrame,
-                               dt) -> NDArray[(Any, Any), Float]:
-    Y = (pd.DataFrame(Y, phenotype_df.index, phenotype_df.columns) - offset_df).to_numpy(dt)
-    return _create_YState(Y, Y_mask)
-
-
-def _create_YState(Y: NDArray[(Any, Any), Float],
-                   Y_mask: NDArray[(Any, Any), Float]) -> NDArray[(Any, Any), Float]:
-    Y *= Y_mask
-    return YState(Y, np.sum(Y * Y, axis=0))
 
 
 @dataclass
@@ -197,18 +135,12 @@ class YState:
     YdotY: NDArray[(Any), Float]
 
 
-@typechecked
-def _add_intercept(C: NDArray[(Any, Any), Float], num_samples: int) -> NDArray[(Any, Any), Float]:
-    intercept = np.ones((num_samples, 1))
-    return np.hstack((intercept, C)) if C.size else intercept
-
-
-@typechecked
-def _einsum(subscripts: str, *operands: NDArray) -> NDArray:
-    '''
-    A wrapper around np.einsum to ensure uniform options.
-    '''
-    return np.einsum(subscripts, *operands, casting='no')
+def _create_YState(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame,
+                   offset_df: pd.DataFrame, Y_mask: NDArray[(Any, Any), Float], dt) -> YState:
+    if offset_df is not None:
+        Y = (pd.DataFrame(Y, phenotype_df.index, phenotype_df.columns) - offset_df).to_numpy(dt)
+    Y *= Y_mask
+    return YState(Y, np.sum(Y * Y, axis=0))
 
 
 @typechecked
@@ -220,19 +152,6 @@ def _residualize_in_place(M: NDArray[(Any, Any), Float],
     '''
     M -= Q @ (Q.T @ M)
     return M
-
-
-def _linear_regression_dispatch(genotype_pdf: pd.DataFrame,
-                                Y_state: Union[YState, Dict[str, YState]], *args) -> pd.DataFrame:
-    '''
-    Given a pandas DataFrame, dispatch into one or more calls of the linear regression kernel
-    depending whether we have one Y matrix or one Y matrix per contig.
-    '''
-    if isinstance(Y_state, dict):
-        return genotype_pdf.groupby('contigName', sort=False, as_index=False)\
-            .apply(lambda pdf: _linear_regression_inner(pdf, Y_state[pdf['contigName'].iloc[0]], *args))
-    else:
-        return _linear_regression_inner(genotype_pdf, Y_state, *args)
 
 
 @typechecked
@@ -255,7 +174,7 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
     '''
     X = _residualize_in_place(np.column_stack(genotype_pdf[_VALUES_COLUMN_NAME].array), Q)
     XdotY = Y_state.Y.T @ X
-    XdotX_reciprocal = 1 / _einsum('sp,sg,sg->pg', Y_mask, X, X)
+    XdotX_reciprocal = 1 / gwas_fx._einsum('sp,sg,sg->pg', Y_mask, X, X)
     betas = XdotY * XdotX_reciprocal
     standard_error = np.sqrt((Y_state.YdotY[:, None] * XdotX_reciprocal - betas * betas) / dof)
     T = betas / standard_error
