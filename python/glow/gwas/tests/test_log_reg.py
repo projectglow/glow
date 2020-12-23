@@ -91,8 +91,8 @@ def assert_glow_equals_golden(genotype_df, phenotype_df, covariate_df, fit_inter
     assert regression_results_equal(glow, golden)
 
 
-def random_phenotypes(shape):
-    return np.random.randint(low=0, high=2, size=shape).astype(np.float64)
+def random_phenotypes(shape, rg):
+    return rg.integers(low=0, high=2, size=shape).astype(np.float64)
 
 
 def test_spector_non_missing():
@@ -121,76 +121,76 @@ def test_spector_no_intercept():
     assert_glow_equals_golden(genotype_df, phenotype_df, covariate_df, fit_intercept=False)
 
 
-def test_multiple():
+def test_multiple(rg):
     n_sample = 50
     n_cov = 10
     n_pheno = 25
-    phenotype_df = pd.DataFrame(random_phenotypes((n_sample, n_pheno)))
-    covariate_df = pd.DataFrame(np.random.random((n_sample, n_cov)))
-    genotype_df = pd.DataFrame(np.random.random((n_sample, 1)))
+    phenotype_df = pd.DataFrame(random_phenotypes((n_sample, n_pheno), rg))
+    covariate_df = pd.DataFrame(rg.random((n_sample, n_cov)))
+    genotype_df = pd.DataFrame(rg.random((n_sample, 1)))
     assert_glow_equals_golden(genotype_df, phenotype_df, covariate_df)
 
 
-def test_multiple_missing():
+def test_multiple_missing(rg):
     n_sample = 50
     n_cov = 2
     n_pheno = 31
-    phenotype_df = pd.DataFrame(random_phenotypes((n_sample, n_pheno)))
+    phenotype_df = pd.DataFrame(random_phenotypes((n_sample, n_pheno), rg))
     Y = phenotype_df.to_numpy()
     Y[np.tril_indices_from(Y, k=-20)] = np.nan
     assert phenotype_df.isna().sum().sum() > 0
-    covariate_df = pd.DataFrame(np.random.random((n_sample, n_cov)))
-    genotype_df = pd.DataFrame(np.random.random((n_sample, 1)))
+    covariate_df = pd.DataFrame(rg.random((n_sample, n_cov)))
+    genotype_df = pd.DataFrame(rg.random((n_sample, 1)))
     assert_glow_equals_golden(genotype_df, phenotype_df, covariate_df)
 
 
 @pytest.mark.min_spark('3')
-def test_multiple_spark(spark):
+def test_multiple_spark(spark, rg):
     n_sample = 40
     n_cov = 5
     n_pheno = 5
-    phenotype_df = pd.DataFrame(random_phenotypes((n_sample, n_pheno)))
-    covariate_df = pd.DataFrame(np.random.random((n_sample, n_cov)))
-    genotype_df = pd.DataFrame(np.random.random((n_sample, 1)))
+    phenotype_df = pd.DataFrame(random_phenotypes((n_sample, n_pheno), rg))
+    covariate_df = pd.DataFrame(rg.random((n_sample, n_cov)))
+    genotype_df = pd.DataFrame(rg.random((n_sample, 1)))
     run_score_test(genotype_df, phenotype_df, covariate_df)
     glow = run_logistic_regression_spark(spark, genotype_df, phenotype_df, covariate_df)
     golden = statsmodels_baseline(genotype_df, phenotype_df, covariate_df)
     assert regression_results_equal(glow, golden)
 
 
-def random_mask(size, missing_per_column):
+def random_mask(size, missing_per_column, rg):
     base = np.ones(size[0], dtype=bool)
     base[:missing_per_column] = False
-    return np.column_stack([np.random.permutation(base) for _ in range(size[1])])
+    return np.column_stack([rg.permutation(base) for _ in range(size[1])])
 
 
 @pytest.mark.min_spark('3')
-def test_multiple_spark_missing(spark):
+def test_multiple_spark_missing(spark, rg):
     n_sample = 50
     n_cov = 5
     n_pheno = 5
-    phenotype_df = pd.DataFrame(random_phenotypes((n_sample, n_pheno)))
+    phenotype_df = pd.DataFrame(random_phenotypes((n_sample, n_pheno), rg))
     Y = phenotype_df.to_numpy()
-    Y[~random_mask(Y.shape, 10)] = np.nan
+    Y[~random_mask(Y.shape, 10, rg)] = np.nan
     assert phenotype_df.isna().sum().sum() > 0
-    covariate_df = pd.DataFrame(np.random.random((n_sample, n_cov)))
-    genotype_df = pd.DataFrame(np.random.random((n_sample, 1)))
+    covariate_df = pd.DataFrame(rg.random((n_sample, n_cov)))
+    genotype_df = pd.DataFrame(rg.random((n_sample, 1)))
     glow = run_logistic_regression_spark(spark, genotype_df, phenotype_df, covariate_df)
     golden = statsmodels_baseline(genotype_df, phenotype_df, covariate_df)
     assert regression_results_equal(glow, golden)
 
 
 @pytest.mark.min_spark('3')
-def test_spark_no_intercept(spark):
+def test_spark_no_intercept(spark, rg):
     n_sample = 50
     n_cov = 5
     n_pheno = 5
-    phenotype_df = pd.DataFrame(random_phenotypes((n_sample, n_pheno)))
+    phenotype_df = pd.DataFrame(random_phenotypes((n_sample, n_pheno), rg))
     Y = phenotype_df.to_numpy()
-    Y[~random_mask(Y.shape, 15)] = np.nan
+    Y[~random_mask(Y.shape, 15, rg)] = np.nan
     assert phenotype_df.isna().sum().sum() > 0
-    covariate_df = pd.DataFrame(np.random.random((n_sample, n_cov)))
-    genotype_df = pd.DataFrame(np.random.random((n_sample, 1)))
+    covariate_df = pd.DataFrame(rg.random((n_sample, n_cov)))
+    genotype_df = pd.DataFrame(rg.random((n_sample, 1)))
     glow = run_logistic_regression_spark(spark,
                                          genotype_df,
                                          phenotype_df,
@@ -201,14 +201,14 @@ def test_spark_no_intercept(spark):
 
 
 @pytest.mark.min_spark('3')
-def test_simple_offset(spark):
+def test_simple_offset(spark, rg):
     num_samples = 25
     num_pheno = 6
     num_geno = 10
-    genotype_df = pd.DataFrame(np.random.random((num_samples, num_geno)))
-    phenotype_df = pd.DataFrame(random_phenotypes((num_samples, num_pheno)))
-    covariate_df = pd.DataFrame(np.random.random((num_samples, 2)))
-    offset_df = pd.DataFrame(np.random.random((num_samples, num_pheno)))
+    genotype_df = pd.DataFrame(rg.random((num_samples, num_geno)))
+    phenotype_df = pd.DataFrame(random_phenotypes((num_samples, num_pheno), rg))
+    covariate_df = pd.DataFrame(rg.random((num_samples, 2)))
+    offset_df = pd.DataFrame(rg.random((num_samples, num_pheno)))
     results = run_logistic_regression_spark(spark,
                                             genotype_df,
                                             phenotype_df,
@@ -219,15 +219,15 @@ def test_simple_offset(spark):
 
 
 @pytest.mark.min_spark('3')
-def test_multi_offset(spark):
+def test_multi_offset(spark, rg):
     num_samples = 50
     num_pheno = 25
     num_geno = 10
-    genotype_df = pd.DataFrame(np.random.random((num_samples, num_geno)))
-    phenotype_df = pd.DataFrame(random_phenotypes((num_samples, num_pheno)))
-    covariate_df = pd.DataFrame(np.random.random((num_samples, 10)))
+    genotype_df = pd.DataFrame(rg.random((num_samples, num_geno)))
+    phenotype_df = pd.DataFrame(random_phenotypes((num_samples, num_pheno), rg))
+    covariate_df = pd.DataFrame(rg.random((num_samples, 10)))
     offset_index = pd.MultiIndex.from_product([phenotype_df.index, ['chr1', 'chr2']])
-    offset_df = pd.DataFrame(np.random.random((num_samples * 2, num_pheno)), index=offset_index)
+    offset_df = pd.DataFrame(rg.random((num_samples * 2, num_pheno)), index=offset_index)
     extra_cols = pd.DataFrame({'contigName': ['chr1', 'chr2'] * 5})
     results = run_logistic_regression_spark(spark,
                                             genotype_df,
@@ -242,11 +242,11 @@ def test_multi_offset(spark):
 
 
 @pytest.mark.min_spark('3')
-def test_cast_genotypes_float32(spark):
+def test_cast_genotypes_float32(spark, rg):
     num_samples = 50
-    genotype_df = pd.DataFrame(np.random.randint(0, 10, (num_samples, 10)))
-    phenotype_df = pd.DataFrame(random_phenotypes((num_samples, 5)))
-    covariate_df = pd.DataFrame(np.random.random((num_samples, 5)))
+    genotype_df = pd.DataFrame(rg.integers(0, 10, (num_samples, 10)))
+    phenotype_df = pd.DataFrame(random_phenotypes((num_samples, 5), rg))
+    covariate_df = pd.DataFrame(rg.random((num_samples, 5)))
     baseline = statsmodels_baseline(genotype_df, phenotype_df, covariate_df)
     results = run_logistic_regression_spark(spark,
                                             genotype_df,
@@ -258,19 +258,18 @@ def test_cast_genotypes_float32(spark):
 
 
 @pytest.mark.min_spark('3')
-def test_multi_offset_with_missing(spark):
+def test_multi_offset_with_missing(spark, rg):
     num_samples = 25
     num_pheno = 24
     num_geno = 18
     contigs = ['chr1', 'chr2', 'chr3']
-    genotype_df = pd.DataFrame(np.random.random((num_samples, num_geno)))
-    phenotype_df = pd.DataFrame(random_phenotypes((num_samples, num_pheno)))
+    genotype_df = pd.DataFrame(rg.random((num_samples, num_geno)))
+    phenotype_df = pd.DataFrame(random_phenotypes((num_samples, num_pheno), rg))
     phenotype_df.iloc[0, 0] = np.nan
     phenotype_df.iloc[1, 0] = np.nan
-    covariate_df = pd.DataFrame(np.random.random((num_samples, 2)))
+    covariate_df = pd.DataFrame(rg.random((num_samples, 2)))
     offset_index = pd.MultiIndex.from_product([phenotype_df.index, contigs])
-    offset_df = pd.DataFrame(np.random.random((num_samples * len(contigs), num_pheno)),
-                             index=offset_index)
+    offset_df = pd.DataFrame(rg.random((num_samples * len(contigs), num_pheno)), index=offset_index)
     extra_cols = pd.DataFrame({'contigName': contigs * 6})
     results = run_logistic_regression_spark(spark,
                                             genotype_df,
@@ -283,30 +282,30 @@ def test_multi_offset_with_missing(spark):
     assert regression_results_equal(results, baseline)
 
 
-def test_error_for_old_spark(spark):
+def test_error_for_old_spark(spark, rg):
     if spark.version.startswith('2'):
         num_samples = 10
-        genotype_df = pd.DataFrame(np.random.random((num_samples, 10)))
-        phenotype_df = pd.DataFrame(random_phenotypes((num_samples, 25)))
+        genotype_df = pd.DataFrame(rg.random((num_samples, 10)))
+        phenotype_df = pd.DataFrame(random_phenotypes((num_samples, 25), rg))
         with pytest.raises(AttributeError):
             run_logistic_regression_spark(spark, genotype_df, phenotype_df, pd.DataFrame({}))
 
 
 @pytest.mark.min_spark('3')
-def test_intercept_no_covariates(spark):
+def test_intercept_no_covariates(spark, rg):
     num_samples = 10
-    genotype_df = pd.DataFrame(np.random.random((num_samples, 10)))
-    phenotype_df = pd.DataFrame(random_phenotypes((num_samples, 2)))
+    genotype_df = pd.DataFrame(rg.random((num_samples, 10)))
+    phenotype_df = pd.DataFrame(random_phenotypes((num_samples, 2), rg))
     # No error
     run_logistic_regression_spark(spark, genotype_df, phenotype_df, pd.DataFrame({}))
 
 
 @pytest.mark.min_spark('3')
-def test_propagate_extra_cols(spark):
+def test_propagate_extra_cols(spark, rg):
     num_samples = 50
-    genotype_df = pd.DataFrame(np.random.random((num_samples, 3)))
-    phenotype_df = pd.DataFrame(random_phenotypes((num_samples, 5)))
-    covariate_df = pd.DataFrame(np.random.random((num_samples, 2)))
+    genotype_df = pd.DataFrame(rg.random((num_samples, 3)))
+    phenotype_df = pd.DataFrame(random_phenotypes((num_samples, 5), rg))
+    covariate_df = pd.DataFrame(rg.random((num_samples, 2)))
     extra_cols = pd.DataFrame({'genotype_idx': range(3), 'animal': 'monkey'})
     results = run_logistic_regression_spark(spark, genotype_df, phenotype_df, covariate_df,
                                             extra_cols)

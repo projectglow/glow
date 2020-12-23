@@ -9,16 +9,10 @@ from scipy import stats
 
 
 @dataclass
-class Intermediates:
+class LogLikelihood:
     pi: NDArray[(Any,), Float]
     G: NDArray[(Any, Any), Float] # diag(pi(1-pi))
     I: NDArray[(Any, Any), Float] # Fisher information matrix, X'GX
-
-
-@dataclass
-class LogLikelihood:
-    intermediates: Intermediates
-    unpenalized_log_likelihood: Float
     deviance: Float # 2 * penalized log likelihood
 
 
@@ -49,7 +43,7 @@ def _calculate_log_likelihood(
     _, logdet = np.linalg.slogdet(I)
     penalty = 0.5 * logdet
     deviance = -2 * (unpenalized_log_likelihood + penalty)
-    return LogLikelihood(Intermediates(pi, G, I), unpenalized_log_likelihood, deviance)
+    return LogLikelihood(pi, G, I, deviance)
 
 
 @typechecked
@@ -82,12 +76,12 @@ def _fit_firth(
     beta = beta_init
     log_likelihood = _calculate_log_likelihood(beta, X, y, offset)
     while n_iter < max_iter:
-        invI = np.linalg.pinv(log_likelihood.intermediates.I)
+        invI = np.linalg.pinv(log_likelihood.I)
 
         # build hat matrix
-        rootG_X = np.sqrt(log_likelihood.intermediates.G) @ X
+        rootG_X = np.sqrt(log_likelihood.G) @ X
         h = np.diagonal(rootG_X @ invI @ rootG_X.T)
-        U = X.T @ (y - log_likelihood.intermediates.pi + h * (0.5 - log_likelihood.intermediates.pi))
+        U = X.T @ (y - log_likelihood.pi + h * (0.5 - log_likelihood.pi))
 
         # f' / f''
         delta = invI @ U
@@ -185,5 +179,5 @@ def correct_approx_firth(
     pvalue = stats.chi2.sf(tvalue, 1)
     effect = firth_fit.beta.item()
     # Hessian of the unpenalized log-likelihood
-    stderr = 1 / firth_fit.log_likelihood.unpenalized_log_likelihood
+    stderr = np.linalg.pinv(firth_fit.log_likelihood.I).diagonal()[-1]
     return Series({'tvalue': tvalue, 'pvalue': pvalue, 'effect': effect, 'stderr': stderr})
