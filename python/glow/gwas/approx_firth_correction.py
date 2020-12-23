@@ -19,7 +19,7 @@ class Intermediates:
 class LogLikelihood:
     intermediates: Intermediates
     LL_matrix: NDArray[(Any, Any), Float]
-    penalized_LL: Float
+    deviance: Float
 
 
 @dataclass
@@ -31,7 +31,7 @@ class FirthFit:
 @dataclass
 class ApproxFirthState:
     logit_offset: NDArray[(Any, Any), Float]
-    penalized_LL_null_fit: NDArray[(Any,), Float]
+    null_fit_deviance: NDArray[(Any,), Float]
 
 
 @typechecked
@@ -47,8 +47,9 @@ def _calculate_log_likelihood(
     I = np.atleast_2d(X.T @ G @ X)
     LL_matrix = np.atleast_2d(y @ np.log(pi + eps) + (1-y) @ np.log(1-pi + eps))
     _, logdet = np.linalg.slogdet(I)
-    penalized_LL = np.sum(LL_matrix) + 0.5 * logdet
-    return LogLikelihood(Intermediates(pi, G, I), LL_matrix, penalized_LL)
+    penalty = 0.5 * logdet
+    deviance = -2 * (np.sum(LL_matrix) + penalty)
+    return LogLikelihood(Intermediates(pi, G, I), LL_matrix, deviance)
 
 
 @typechecked
@@ -58,7 +59,7 @@ def _fit_firth(
         y: NDArray[(Any,), Float],
         offset: NDArray[(Any,), Float],
         convergence_limit: float = 1e-5,
-        likelihood_tolerance: float = 1e-6,
+        deviance_tolerance: float = 1e-6,
         max_iter: int = 250,
         max_step_size: int = 25,
         max_half_steps: int = 25) -> Optional[FirthFit]:
@@ -70,7 +71,7 @@ def _fit_firth(
     :param y: Dependent variable (phenotype)
     :param offset: Offset (phenotype offset only for null fit, also with covariate offset for SNP fit)
     :param convergence_limit: Convergence is reached if all entries of the penalized score have smaller magnitude
-    :param likelihood_tolerance: Non-inferiority margin of penalized likelihood when halving step size
+    :param deviance_tolerance: Non-inferiority margin when halving step size
     :param max_iter: Maximum number of Firth iterations
     :param max_step_size: Maximum step size during a Firth iteration
     :param max_half_steps: Maximum number of half-steps during a Firth iteration
@@ -86,16 +87,14 @@ def _fit_firth(
         # build hat matrix
         rootG_X = np.sqrt(log_likelihood.intermediates.G) @ X
         h = np.diagonal(rootG_X @ invI @ rootG_X.T)
-
         U = X.T @ (y - log_likelihood.intermediates.pi + h * (0.5 - log_likelihood.intermediates.pi))
-        if np.linalg.norm(U, np.inf) < convergence_limit:
-            break
 
         # f' / f''
         delta = invI @ U
 
         # force absolute step size to be less than max_step_size for each entry of beta
-        mx = np.linalg.norm(delta, np.inf) / max_step_size
+        step_size = np.linalg.norm(delta, np.inf)
+        mx = step_size / max_step_size
         if mx > 1:
             delta = delta / mx
 
@@ -103,9 +102,9 @@ def _fit_firth(
 
         # if the penalized log likelihood decreased, recompute with step-halving
         n_half_steps = 0
-        while new_log_likelihood.penalized_LL < (log_likelihood.penalized_LL + likelihood_tolerance):
+        while new_log_likelihood.deviance >= log_likelihood.deviance + deviance_tolerance:
             if n_half_steps == max_half_steps:
-                print("Too many half-steps!")
+                print(f"Too many half-steps! {new_log_likelihood.deviance} vs {log_likelihood.deviance}")
                 return None
             delta /= 2
             new_log_likelihood = _calculate_log_likelihood(beta + delta, X, y, offset)
@@ -113,6 +112,10 @@ def _fit_firth(
 
         beta = beta + delta
         log_likelihood = new_log_likelihood
+
+        if np.linalg.norm(U, np.inf) < convergence_limit:
+            break
+
         n_iter += 1
 
     if n_iter == max_iter:
@@ -136,7 +139,7 @@ def create_approx_firth_state(
     '''
 
     num_Y = Y.shape[1]
-    penalized_LL_null_fit = np.zeros(num_Y)
+    null_fit_deviance = np.zeros(num_Y)
     logit_offset = np.zeros(Y.shape)
 
     for i in range(num_Y):
@@ -151,10 +154,10 @@ def create_approx_firth_state(
         firth_fit_result = _fit_firth(b0_null_fit, C, y, offset)
         if firth_fit_result is None:
             raise ValueError("Null fit failed!")
-        penalized_LL_null_fit[i] = firth_fit_result.log_likelihood.penalized_LL
+        null_fit_deviance[i] = firth_fit_result.log_likelihood.deviance
         logit_offset[:, i] = offset + (C @ firth_fit_result.beta)
 
-    return ApproxFirthState(logit_offset, penalized_LL_null_fit)
+    return ApproxFirthState(logit_offset, null_fit_deviance)
 
 
 @typechecked
@@ -162,7 +165,7 @@ def correct_approx_firth(
         x_res: NDArray[(Any,), Float],
         y_res: NDArray[(Any,), Float],
         logit_offset: NDArray[(Any,), Float],
-        penalized_LL_null_fit: Float) -> Optional[Series]:
+        deviance: Float) -> Optional[Series]:
     '''
     Calculate LRT statistics for a SNP using the approximate Firth method.
 
@@ -178,7 +181,7 @@ def correct_approx_firth(
     if firth_fit is None:
         return None
     # Likelihood-ratio test
-    tvalue = 2 * (firth_fit.penalized_LL - penalized_LL_null_fit)
+    tvalue = -1 * (firth_fit.log_likelihood.deviance - deviance)
     pvalue = stats.chi2.sf(tvalue, 1)
     effect = firth_fit.beta.item()
     # Hessian of the unpenalized log-likelihood
