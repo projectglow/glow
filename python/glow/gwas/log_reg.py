@@ -100,8 +100,8 @@ def logistic_regression(
 
     def map_func(pdf_iterator):
         for pdf in pdf_iterator:
-            yield gwas_fx._loco_dispatch(pdf, state, _logistic_regression_inner,
-                                         C, Y_mask, correction, phenotype_names)
+            yield gwas_fx._loco_dispatch(pdf, state, _logistic_regression_inner, C, Y_mask,
+                                         correction, phenotype_names)
 
     return genotype_df.mapInPandas(map_func, result_struct)
 
