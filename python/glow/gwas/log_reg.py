@@ -53,7 +53,7 @@ def logistic_regression(
         phenotype_df : Pandas DataFrame containing phenotypic data
         covariate_df : An optional Pandas DataFrame containing covariates
         offset_df : An optional Pandas DataFrame containing the phenotype offset. This value will be used
-                    as a offset in the covariate only and per variant logistic regression models. The ``offset_df`` may
+                    as an offset in the covariate only and per variant logistic regression models. The ``offset_df`` may
                     have one or two levels of indexing. If one level, the index should be the same as the ``phenotype_df``.
                     If two levels, the level 0 index should be the same as the ``phenotype_df``, and the level 1 index
                     should be the contig name. The two level index scheme allows for per-contig offsets like
@@ -64,7 +64,7 @@ def logistic_regression(
         values_column : A column name or column expression to test with linear regression. If a column name is provided,
                         ``genotype_df`` should have a column with this name and a numeric array type. If a column expression
                         is provided, the expression should return a numeric array type.
-        dt : The numpy datatype to use in the linear regression test. Must be `np.float32` or `np.float64`.
+        dt : The numpy datatype to use in the linear regression test. Must be ``np.float32`` or ``np.float64``.
 
     Returns:
         A Spark DataFrame that contains
@@ -98,25 +98,14 @@ def logistic_regression(
         Y, phenotype_df, offset_df,
         lambda y, pdf, odf: _create_log_reg_state(y, pdf, odf, C, Y_mask, correction, fit_intercept))
 
-    sc = genotype_df.sql_ctx.sparkSession.sparkContext
-    bc_state = sc.broadcast(state)
-    bc_C = sc.broadcast(C)
-    bc_Y_mask = sc.broadcast(Y_mask.astype(dt))
+    phenotype_names = phenotype_df.columns.to_series().astype('str')
 
-    map_func = make_map_func(bc_state, bc_C, bc_Y_mask, correction, pvalue_threshold,
-                             phenotype_df.columns.to_series().astype('str'))
-
-    return genotype_df.mapInPandas(map_func, result_struct)
-
-
-def make_map_func(bc_state, bc_C, bc_Y_mask, correction, pvalue_threshold, column_names):
     def map_func(pdf_iterator):
         for pdf in pdf_iterator:
-            yield gwas_fx._loco_dispatch(pdf, bc_state.value, _logistic_regression_inner,
-                                         bc_C.value, bc_Y_mask.value, correction, pvalue_threshold,
-                                         column_names)
+            yield gwas_fx._loco_dispatch(pdf, state, _logistic_regression_inner,
+                                         C, Y_mask, correction, pvalue_threshold, phenotype_names)
 
-    return map_func
+    return genotype_df.mapInPandas(map_func, result_struct)
 
 
 @typechecked

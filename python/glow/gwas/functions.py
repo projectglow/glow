@@ -66,18 +66,11 @@ def _add_intercept(C: NDArray[(Any, Any), Float], num_samples: int) -> NDArray[(
     return np.hstack((intercept, C)) if C.size else intercept
 
 
-@typechecked
 def _einsum(subscripts: str, *operands: NDArray) -> NDArray:
     '''
     A wrapper around np.einsum to ensure uniform options.
     '''
     return oe.contract(subscripts, *operands, casting='no', optimize='dp', memory_limit='max_input')
-
-
-@typechecked
-def _add_intercept(C: NDArray[(Any, Any), Float], num_samples: int) -> NDArray[(Any, Any), Float]:
-    intercept = np.ones((num_samples, 1))
-    return np.hstack((intercept, C)) if C.size else intercept
 
 
 def _have_same_elements(idx1: pd.Index, idx2: pd.Index) -> bool:
