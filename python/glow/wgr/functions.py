@@ -179,11 +179,15 @@ def reshape_for_gwas(spark: SparkSession, label_df: pd.DataFrame) -> DataFrame:
     elif label_df.index.nlevels == 2:  # Indexed by sample id and contig name
         # stacking sorts the new column index, so we remember the original sample
         # ordering in case it's not sorted
-        ordered_cols = pd.unique(label_df.index.get_level_values(0))
-        transposed_df = label_df.T.stack()[ordered_cols]
-        column_names = ['label', 'contigName', 'values']
+        def transpose_one(contig):
+            transposed = label_df.xs(contig, level=1).T
+            return transposed
+
+        contigs = label_df.index.get_level_values(1).unique()
+        transposed_df = pd.concat([transpose_one(contig) for contig in contigs], keys=contigs, names=['contig', 'label'])
+        column_names = ['contigName', 'label', 'values']
     else:
         raise ValueError('label_df must be indexed by sample id or by (sample id, contig name)')
 
-    transposed_df['values_array'] = transposed_df.to_numpy().tolist()
+    transposed_df['values_array'] = list(transposed_df.to_numpy())
     return spark.createDataFrame(transposed_df[['values_array']].reset_index(), column_names)

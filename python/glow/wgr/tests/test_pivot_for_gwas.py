@@ -19,7 +19,7 @@ def test_pivot_loco(spark):
         ['sample_id', 'contigName'])
     pivoted = functions.reshape_for_gwas(spark, df)
     assert pivoted.count() == 12
-    assert pivoted.columns == ['label', 'contigName', 'values']
+    assert pivoted.columns == ['contigName', 'label', 'values']
     pt_list = pivoted.where('label = "sim100" and contigName = 1').head().values
     expected = df.xs(1, level='contigName')['sim100'].to_numpy()
     assert np.allclose(expected, np.array(pt_list))
@@ -32,7 +32,7 @@ def test_pivot_loco_string_contig(spark):
                      }).set_index(['sample_id', 'contigName'])
     pivoted = functions.reshape_for_gwas(spark, df)
     assert pivoted.count() == 12
-    assert pivoted.columns == ['label', 'contigName', 'values']
+    assert pivoted.columns == ['contigName', 'label', 'values']
     pt_list = pivoted.where('label = "sim100" and contigName = "1"').head().values
     expected = df.xs('1', level='contigName')['sim100'].to_numpy()
     assert np.allclose(expected, np.array(pt_list))
