@@ -13,12 +13,6 @@ _VALUES_COLUMN_NAME = '_glow_regression_values'
 _GENOTYPES_COLUMN_NAME = 'genotypes'
 
 
-class _OffsetType(Enum):
-    NO_OFFSET = 0
-    SINGLE_OFFSET = 1
-    LOCO_OFFSET = 2
-
-
 def _check_spark_version(spark: SparkSession) -> bool:
     if int(spark.version.split('.')[0]) < 3:
         raise AttributeError(
@@ -99,8 +93,17 @@ def _loco_dispatch(genotype_pdf: pd.DataFrame, state: Union[T, Dict[str, T]], f:
         return f(genotype_pdf, state, *args)
 
 
+class _OffsetType(Enum):
+    NO_OFFSET = 0
+    SINGLE_OFFSET = 1
+    LOCO_OFFSET = 2
+
+
 @typechecked
 def _validate_offset(phenotype_df: pd.DataFrame, offset_df: pd.DataFrame) -> _OffsetType:
+    '''
+    Validates that the offset df matches the phenotype df. Returns the type of offset.
+    '''
     if not offset_df.empty:
         if not _have_same_elements(phenotype_df.columns, offset_df.columns):
             raise ValueError(f'phenotype_df and offset_df should have the same column names.')

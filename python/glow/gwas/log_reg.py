@@ -113,7 +113,7 @@ class LogRegState:
     Y_res: NDArray[(Any, Any), Float]
 
 
-def fit_null_model(y, X, mask, offset):
+def _logistic_null_model_predictions(y, X, mask, offset):
     if offset is not None:
         offset = offset[mask]
     model = sm.GLM(y[mask],
@@ -130,11 +130,18 @@ def fit_null_model(y, X, mask, offset):
     return remapped_predictions
 
 
-def _create_one_log_reg_state(C: NDArray[(Any, Any), Float], row: pd.Series) -> pd.Series:
+def _prepare_one_phenotype(C: NDArray[(Any, Any), Float], row: pd.Series) -> pd.Series:
+    '''
+    Creates the broadcasted information for one (phenotype, offset) pair. The returned series
+    contains the information eventually stored in a LogRegState.
+
+    This function accepts and returns a pandas series for integration with Pandas UDFs and
+    pd.DataFrame.apply.
+    '''
     y = row['values']
     mask = ~np.isnan(y)
-    y_pred = fit_null_model(y, C, mask, row.get('offset'))
-    y_res = (np.nan_to_num(y) - y_pred) * mask
+    y_pred = _logistic_null_model_predictions(y, C, mask, row.get('offset'))
+    y_res = np.nan_to_num(y - y_pred)
     gamma = y_pred * (1 - y_pred)
     CtGammaC = C.T @ (gamma[:, None] * C)
     inv_CtGammaC = np.linalg.inv(CtGammaC)
@@ -145,8 +152,12 @@ def _create_one_log_reg_state(C: NDArray[(Any, Any), Float], row: pd.Series) -> 
     return row
 
 
-def _create_log_reg_state_from_pdf(pdf: pd.DataFrame, phenotypes: pd.Series,
-                                   n_covar: int) -> LogRegState:
+@typechecked
+def _pdf_to_log_reg_state(pdf: pd.DataFrame, phenotypes: pd.Series, n_covar: int) -> LogRegState:
+    '''
+    Converts a Pandas DataFrame with the contents of a LogRegState object
+    into a more convenient form.
+    '''
     sorted_pdf = pdf.set_index('label').reindex(phenotypes, axis=0)
     inv_CtGammaC = np.row_stack(sorted_pdf['inv_CtGammaC'].array).reshape(
         phenotypes.shape[0], n_covar, n_covar)
@@ -160,6 +171,12 @@ def _create_log_reg_state(
         spark: SparkSession, phenotype_df: pd.DataFrame, offset_df: pd.DataFrame,
         sql_type: DataType, C: NDArray[(Any, Any),
                                        Float]) -> Union[LogRegState, Dict[str, LogRegState]]:
+    '''
+    Creates the broadcasted LogRegState object (or one object per contig if LOCO offsets were provided).
+
+    Fitting the null logistic models can be expensive, so the work is distributed across the cluster
+    using Pandas UDFs.
+    '''
     offset_type = gwas_fx._validate_offset(phenotype_df, offset_df)
     pivoted_phenotype_df = reshape_for_gwas(spark, phenotype_df)
     result_fields = [
@@ -179,20 +196,19 @@ def _create_log_reg_state(
 
     def map_func(pdf_iterator):
         for pdf in pdf_iterator:
-            yield pdf.apply(lambda r: _create_one_log_reg_state(C, r), axis=1, result_type='expand')
+            yield pdf.apply(lambda r: _prepare_one_phenotype(C, r), axis=1, result_type='expand')
 
     pdf = df.mapInPandas(map_func, StructType(result_fields)).toPandas()
     phenotypes = phenotype_df.columns.to_series().astype('str')
     n_covar = C.shape[1]
 
     if offset_type != gwas_fx._OffsetType.LOCO_OFFSET:
-        state = _create_log_reg_state_from_pdf(pdf, phenotypes, n_covar)
+        state = _pdf_to_log_reg_state(pdf, phenotypes, n_covar)
         return state
 
     all_contigs = pdf['contigName'].unique()
     return {
-        contig: _create_log_reg_state_from_pdf(pdf.loc[pdf.contigName == contig, :], phenotypes,
-                                               n_covar)
+        contig: _pdf_to_log_reg_state(pdf.loc[pdf.contigName == contig, :], phenotypes, n_covar)
         for contig in all_contigs
     }
 

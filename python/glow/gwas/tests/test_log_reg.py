@@ -14,13 +14,13 @@ def run_score_test(genotype_df, phenotype_df, covariate_df, fit_intercept=True):
     Y_mask = ~np.isnan(Y)
     Y[~Y_mask] = 0
     state_rows = [
-        lr._create_one_log_reg_state(C, pd.Series({
+        lr._prepare_one_phenotype(C, pd.Series({
             'label': c,
             'values': phenotype_df[c]
         })) for c in phenotype_df
     ]
     phenotype_names = phenotype_df.columns.to_series().astype('str')
-    state = lr._create_log_reg_state_from_pdf(pd.DataFrame(state_rows), phenotype_names, C.shape[1])
+    state = lr._pdf_to_log_reg_state(pd.DataFrame(state_rows), phenotype_names, C.shape[1])
     values_df = pd.DataFrame({gwas_fx._VALUES_COLUMN_NAME: list(genotype_df.to_numpy().T)})
     return lr._logistic_regression_inner(values_df, state, C, Y_mask, lr.fallback_none,
                                          phenotype_df.columns.to_series().astype('str'))

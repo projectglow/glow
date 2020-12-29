@@ -184,7 +184,9 @@ def reshape_for_gwas(spark: SparkSession, label_df: pd.DataFrame) -> DataFrame:
             return transposed
 
         contigs = label_df.index.get_level_values(1).unique()
-        transposed_df = pd.concat([transpose_one(contig) for contig in contigs], keys=contigs, names=['contig', 'label'])
+        transposed_df = pd.concat([transpose_one(contig) for contig in contigs],
+                                  keys=contigs,
+                                  names=['contig', 'label'])
         column_names = ['contigName', 'label', 'values']
     else:
         raise ValueError('label_df must be indexed by sample id or by (sample id, contig name)')

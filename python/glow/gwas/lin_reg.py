@@ -151,7 +151,7 @@ def _create_one_YState(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame
                        offset_df: pd.DataFrame, Y_mask: NDArray[(Any, Any), Float], dt) -> YState:
     if not offset_df.empty:
         Y = (pd.DataFrame(Y, phenotype_df.index, phenotype_df.columns) - offset_df).to_numpy(dt)
-    Y = np.nan_to_num(Y) * Y_mask
+    Y *= Y_mask
     return YState(Y, np.sum(Y * Y, axis=0))
 
 
