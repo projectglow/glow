@@ -153,7 +153,7 @@ def reshape_for_gwas(spark: SparkSession, label_df: pd.DataFrame) -> DataFrame:
         ...     index=pd.MultiIndex.from_tuples([('sample1', 'chr1'), ('sample1', 'chr2')]))
         >>> reshaped = reshape_for_gwas(spark, loco_label_df)
         >>> reshaped.head()
-        Row(label='label1', contigName='chr1', values=[1])
+        Row(contigName='chr1', label='label1', values=[1])
 
     Requires that:
 
