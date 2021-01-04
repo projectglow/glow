@@ -191,5 +191,10 @@ def reshape_for_gwas(spark: SparkSession, label_df: pd.DataFrame) -> DataFrame:
     else:
         raise ValueError('label_df must be indexed by sample id or by (sample id, contig name)')
 
-    transposed_df['values_array'] = list(transposed_df.to_numpy())
+    # Can only create create a Spark DataFrame from pandas with ndarray columns in Spark 3+
+    if int(spark.version.split('.')[0]) < 3:
+        values = transposed_df.to_numpy().tolist()
+    else:
+        values = list(transposed_df.to_numpy())
+    transposed_df['values_array'] = values
     return spark.createDataFrame(transposed_df[['values_array']].reset_index(), column_names)
