@@ -37,4 +37,5 @@ setup(name='glow.py',
           'Intended Audience :: Developers',
           'Programming Language :: Python :: 3.7',
       ],
-      url='https://projectglow.io')
+      url='https://projectglow.io',
+      data_files=[('', ['../LICENSE.txt'])])
