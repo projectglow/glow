@@ -78,7 +78,7 @@ def _have_same_elements(idx1: pd.Index, idx2: pd.Index) -> bool:
     return idx1.sort_values().equals(idx2.sort_values())
 
 
-def _get_contigs_from_offset_df(offset_df: pd.DataFrame) -> pd.Series:
+def _get_contigs_from_loco_df(offset_df: pd.DataFrame) -> pd.Series:
     return offset_df.index.get_level_values(1).unique()
 
 
@@ -116,7 +116,7 @@ def _validate_offset(phenotype_df: pd.DataFrame, offset_df: pd.DataFrame) -> _Of
                 raise ValueError(f'phenotype_df and offset_df should have the same index.')
             return _OffsetType.SINGLE_OFFSET
         elif offset_df.index.nlevels == 2:  # Indexed by sample id and contig
-            all_contigs = offset_df.index.get_level_values(1).unique()
+            all_contigs = _get_contigs_from_loco_df(offset_df)
             for contig in all_contigs:
                 offset_for_contig = offset_df.xs(contig, level=1)
                 if not _have_same_elements(phenotype_df.index, offset_for_contig.index):

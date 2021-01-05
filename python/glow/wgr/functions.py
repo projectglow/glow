@@ -18,6 +18,7 @@ from pyspark import SparkContext
 from pyspark.sql import DataFrame, Row, SparkSession, SQLContext
 from typeguard import check_argument_types, check_return_type
 from typing import Dict, List
+from ..gwas.functions import _get_contigs_from_loco_df
 
 __all__ = ['get_sample_ids', 'block_variants_and_samples', 'reshape_for_gwas']
 
@@ -183,7 +184,7 @@ def reshape_for_gwas(spark: SparkSession, label_df: pd.DataFrame) -> DataFrame:
             transposed = label_df.xs(contig, level=1).T
             return transposed
 
-        contigs = label_df.index.get_level_values(1).unique()
+        contigs = _get_contigs_from_loco_df(label_df)
         transposed_df = pd.concat([transpose_one(contig) for contig in contigs],
                                   keys=contigs,
                                   names=['contig', 'label'])

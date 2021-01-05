@@ -141,7 +141,7 @@ def _create_YState(Y: NDArray[(Any, Any),
     if offset_type != gwas_fx._OffsetType.LOCO_OFFSET:
         return _create_one_YState(Y, phenotype_df, offset_df, Y_mask, dt)
 
-    all_contigs = gwas_fx._get_contigs_from_offset_df(offset_df)
+    all_contigs = gwas_fx._get_contigs_from_loco_df(offset_df)
     return {
         contig: _create_one_YState(Y, phenotype_df, offset_df.xs(contig, level=1), Y_mask, dt)
         for contig in all_contigs

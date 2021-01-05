@@ -108,9 +108,9 @@ def logistic_regression(
 
 @dataclass
 class LogRegState:
-    inv_CtGammaC: NDArray[(Any, Any, Any), Float]
-    gamma: NDArray[(Any, Any), Float]
-    Y_res: NDArray[(Any, Any), Float]
+    inv_CtGammaC: NDArray[(Any, Any, Any), Float]  # n_phenotypes x n_covariates x n_covariates
+    gamma: NDArray[(Any, Any), Float]  # n_samples x n_phenotypes
+    Y_res: NDArray[(Any, Any), Float]  # n_samples x n_phenotypes
 
 
 def _logistic_null_model_predictions(y, X, mask, offset):
