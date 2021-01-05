@@ -12,6 +12,7 @@ import opt_einsum as oe
 from . import functions as gwas_fx
 from .functions import _VALUES_COLUMN_NAME
 from .approx_firth_correction import *
+from .lin_reg import _residualize_in_place
 
 __all__ = ['logistic_regression']
 
@@ -196,6 +197,12 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
     c, d: covariate
     '''
     X = np.column_stack(genotype_pdf[_VALUES_COLUMN_NAME].array)
+
+    # Based on Joelle's code
+    # if correction == correction_approx_firth:
+    #     Q = np.linalg.qr(C)[0]
+    #     X = _residualize_in_place(X, Q)
+
     with oe.shared_intermediates():
         X_res = _logistic_residualize(X, C, Y_mask, log_reg_state.gamma, log_reg_state.inv_CtGammaC)
         num = gwas_fx._einsum('sgp,sp->pg', X_res, log_reg_state.Y_res)**2
@@ -222,8 +229,7 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
                 approx_firth_snp_fit = correct_approx_firth(
                     X_res[:, snp_index, phenotype_index],
                     log_reg_state.Y_res[:, phenotype_index],
-                    log_reg_state.approx_firth_state.logit_offset[:, phenotype_index],
-                    log_reg_state.approx_firth_state.null_model_deviance[phenotype_index],
+                    log_reg_state.approx_firth_state.logit_offset[:, phenotype_index]
                 )
                 if approx_firth_snp_fit is not None:
                     print(f"Corrected {out_df.iloc[correction_idx]} to {approx_firth_snp_fit}")

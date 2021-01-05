@@ -35,12 +35,6 @@ def test_end_to_end(spark):
     offset_trait2_df = _read_offset_df(test_data_dir + 'fit_bin_out_2.loco', 'Y2')
     offset_df = pd.merge(offset_trait1_df, offset_trait2_df, left_index=True, right_index=True)
 
-    genotype_df.show()
-    genotype_df.printSchema()
-    print(phenotype_df)
-    print(covariate_df)
-    print(offset_df)
-
     glowgr_df = lr.logistic_regression(genotype_df,
                            phenotype_df,
                            covariate_df,

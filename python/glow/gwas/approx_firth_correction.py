@@ -24,7 +24,6 @@ class FirthFit:
 @dataclass
 class ApproxFirthState:
     logit_offset: NDArray[(Any, Any), Float]
-    null_model_deviance: NDArray[(Any,), Float]
 
 
 @dataclass
@@ -41,15 +40,15 @@ def _calculate_log_likelihood(
         X: NDArray[(Any, Any), Float],
         y: NDArray[(Any,), Float],
         offset: NDArray[(Any,), Float],
-        eps: float = 1e-15) -> LogLikelihood:
+        eps: float = 0) -> LogLikelihood:
 
     pi = 1 - 1 / (np.exp(X @ beta + offset) + 1)
     G = np.diagflat(pi * (1-pi))
     I = np.atleast_2d(X.T @ G @ X)
 
     unpenalized_log_likelihood = y @ np.log(pi + eps) + (1-y) @ np.log(1-pi + eps)
-    _, logdet = np.linalg.slogdet(I)
-    penalty = 0.5 * logdet
+    _, log_abs_det = np.linalg.slogdet(I)
+    penalty = 0.5 * log_abs_det
     deviance = -2 * (unpenalized_log_likelihood + penalty)
     return LogLikelihood(pi, G, I, deviance)
 
@@ -91,11 +90,14 @@ def _fit_firth(
         h = np.diagonal(rootG_X @ invI @ rootG_X.T)
         U = X.T @ (y - log_likelihood.pi + h * (0.5 - log_likelihood.pi))
 
+        if np.amax(np.abs(U)) < convergence_limit:
+            break
+
         # f' / f''
         delta = invI @ U
 
         # force absolute step size to be less than max_step_size for each entry of beta
-        step_size = np.linalg.norm(delta, np.inf)
+        step_size = np.amax(np.abs(delta))
         mx = step_size / max_step_size
         if mx > 1:
             delta = delta / mx
@@ -114,9 +116,6 @@ def _fit_firth(
 
         beta = beta + delta
         log_likelihood = new_log_likelihood
-
-        if np.linalg.norm(U, np.inf) < convergence_limit:
-            break
 
         n_iter += 1
 
@@ -137,11 +136,10 @@ def create_approx_firth_state(
     '''
     Performs the null fit for approximate Firth.
 
-    :return: Penalized log-likelihood of null fit and offset with covariate effects for SNP fit
+    :return: Offset with covariate effects for SNP fit
     '''
 
     num_Y = Y.shape[1]
-    null_model_deviance = np.zeros(num_Y)
     logit_offset = np.zeros(Y.shape)
 
     for i in range(num_Y):
@@ -156,36 +154,32 @@ def create_approx_firth_state(
         firth_fit_result = _fit_firth(b0_null_fit, C, y, offset)
         if firth_fit_result is None:
             raise ValueError("Null fit failed!")
-        null_model_deviance[i] = firth_fit_result.log_likelihood.deviance
         logit_offset[:, i] = offset + (C @ firth_fit_result.beta)
 
-    return ApproxFirthState(logit_offset, null_model_deviance)
+    return ApproxFirthState(logit_offset)
 
 
 @typechecked
 def correct_approx_firth(
         x_res: NDArray[(Any,), Float],
         y_res: NDArray[(Any,), Float],
-        logit_offset: NDArray[(Any,), Float],
-        null_model_deviance: Float) -> Optional[FirthStatistics]:
+        logit_offset: NDArray[(Any,), Float]) -> Optional[FirthStatistics]:
     '''
     Calculate LRT statistics for a SNP using the approximate Firth method.
 
     :return: None if the Firth fit did not converge, LRT statistics otherwise
     '''
 
-    firth_fit = _fit_firth(
-        np.zeros(1),
-        np.expand_dims(x_res, axis=1),
-        y_res,
-        logit_offset
-    )
+    beta_init = np.zeros(1)
+    X = np.expand_dims(x_res, axis=1)
+    firth_fit = _fit_firth(beta_init, X, y_res, logit_offset)
     if firth_fit is None:
         return None
 
     effect = firth_fit.beta.item()
     # Likelihood-ratio test
-    tvalue = -1 * (firth_fit.log_likelihood.deviance - null_model_deviance)
+    null_deviance = _calculate_log_likelihood(beta_init, X, y_res, logit_offset).deviance
+    tvalue = -1 * (firth_fit.log_likelihood.deviance - null_deviance)
     pvalue = stats.chi2.sf(tvalue, 1)
     # Based on the Hessian of the unpenalized log-likelihood
     stderr = np.sqrt(np.linalg.pinv(firth_fit.log_likelihood.I).diagonal()[-1])
