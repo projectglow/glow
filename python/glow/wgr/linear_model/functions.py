@@ -17,7 +17,6 @@ import math
 from nptyping import Float, Int, NDArray
 import numpy as np
 import pandas as pd
-import sklearn.linear_model
 from pyspark.sql import DataFrame, Row
 import pyspark.sql.functions as f
 from pyspark.sql.window import Window
