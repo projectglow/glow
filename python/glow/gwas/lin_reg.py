@@ -134,13 +134,14 @@ class YState:
     YdotY: NDArray[(Any), Float]
 
 
-def _create_YState(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame,
-                   offset_df: pd.DataFrame, Y_mask: NDArray[(Any, Any), Float], dt):
+def _create_YState(Y: NDArray[(Any, Any),
+                              Float], phenotype_df: pd.DataFrame, offset_df: pd.DataFrame,
+                   Y_mask: NDArray[(Any, Any), Float], dt) -> Union[YState, Dict[str, YState]]:
     offset_type = gwas_fx._validate_offset(phenotype_df, offset_df)
     if offset_type != gwas_fx._OffsetType.LOCO_OFFSET:
         return _create_one_YState(Y, phenotype_df, offset_df, Y_mask, dt)
 
-    all_contigs = offset_df.index.get_level_values(1).unique()
+    all_contigs = gwas_fx._get_contigs_from_offset_df(offset_df)
     return {
         contig: _create_one_YState(Y, phenotype_df, offset_df.xs(contig, level=1), Y_mask, dt)
         for contig in all_contigs

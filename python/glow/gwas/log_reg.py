@@ -108,7 +108,7 @@ def logistic_regression(
 
 @dataclass
 class LogRegState:
-    inv_CtGammaC: NDArray[(Any, Any), Float]
+    inv_CtGammaC: NDArray[(Any, Any, Any), Float]
     gamma: NDArray[(Any, Any), Float]
     Y_res: NDArray[(Any, Any), Float]
 
@@ -145,7 +145,7 @@ def _prepare_one_phenotype(C: NDArray[(Any, Any), Float], row: pd.Series) -> pd.
     gamma = y_pred * (1 - y_pred)
     CtGammaC = C.T @ (gamma[:, None] * C)
     inv_CtGammaC = np.linalg.inv(CtGammaC)
-    row.label = str(row.label)
+    row.label = str(row.label)  # Ensure that the phenotype name is a string
     row.drop(['values', 'offset'], inplace=True, errors='ignore')
     row['y_res'], row['gamma'], row['inv_CtGammaC'] = np.ravel(y_res), np.ravel(gamma), np.ravel(
         inv_CtGammaC)
@@ -158,9 +158,10 @@ def _pdf_to_log_reg_state(pdf: pd.DataFrame, phenotypes: pd.Series, n_covar: int
     Converts a Pandas DataFrame with the contents of a LogRegState object
     into a more convenient form.
     '''
-    sorted_pdf = pdf.set_index('label').reindex(phenotypes, axis=0)
+    # Ensure that the null fit state is sorted identically to the input phenotype_df
+    sorted_pdf = pdf.set_index('label').reindex(phenotypes, axis='rows')
     inv_CtGammaC = np.row_stack(sorted_pdf['inv_CtGammaC'].array).reshape(
-        phenotypes.shape[0], n_covar, n_covar)
+        phenotypes.size, n_covar, n_covar)
     gamma = np.column_stack(sorted_pdf['gamma'].array)
     Y_res = np.column_stack(sorted_pdf['y_res'].array)
     return LogRegState(inv_CtGammaC, gamma, Y_res)
@@ -196,7 +197,9 @@ def _create_log_reg_state(
 
     def map_func(pdf_iterator):
         for pdf in pdf_iterator:
-            yield pdf.apply(lambda r: _prepare_one_phenotype(C, r), axis=1, result_type='expand')
+            yield pdf.apply(lambda r: _prepare_one_phenotype(C, r),
+                            axis='columns',
+                            result_type='expand')
 
     pdf = df.mapInPandas(map_func, StructType(result_fields)).toPandas()
     phenotypes = phenotype_df.columns.to_series().astype('str')

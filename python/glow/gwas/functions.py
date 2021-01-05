@@ -78,6 +78,10 @@ def _have_same_elements(idx1: pd.Index, idx2: pd.Index) -> bool:
     return idx1.sort_values().equals(idx2.sort_values())
 
 
+def _get_contigs_from_offset_df(offset_df: pd.DataFrame) -> pd.Series:
+    return offset_df.index.get_level_values(1).unique()
+
+
 T = TypeVar('T')
 
 
@@ -95,8 +99,8 @@ def _loco_dispatch(genotype_pdf: pd.DataFrame, state: Union[T, Dict[str, T]], f:
 
 class _OffsetType(Enum):
     NO_OFFSET = 0
-    SINGLE_OFFSET = 1
-    LOCO_OFFSET = 2
+    SINGLE_OFFSET = 1  # Per-sample offset for all contigs
+    LOCO_OFFSET = 2  # Per-sample, per-contig offset
 
 
 @typechecked

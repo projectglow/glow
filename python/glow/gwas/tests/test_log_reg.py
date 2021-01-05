@@ -15,9 +15,9 @@ def run_score_test(genotype_df, phenotype_df, covariate_df, fit_intercept=True):
     Y[~Y_mask] = 0
     state_rows = [
         lr._prepare_one_phenotype(C, pd.Series({
-            'label': c,
-            'values': phenotype_df[c]
-        })) for c in phenotype_df
+            'label': p,
+            'values': phenotype_df[p]
+        })) for p in phenotype_df
     ]
     phenotype_names = phenotype_df.columns.to_series().astype('str')
     state = lr._pdf_to_log_reg_state(pd.DataFrame(state_rows), phenotype_names, C.shape[1])
