@@ -1,6 +1,5 @@
 from typing import Any, Optional
 import pandas as pd
-from pandas import Series
 import numpy as np
 from dataclasses import dataclass
 from typeguard import typechecked
@@ -13,7 +12,7 @@ class LogLikelihood:
     pi: NDArray[(Any,), Float]
     G: NDArray[(Any, Any), Float] # diag(pi(1-pi))
     I: NDArray[(Any, Any), Float] # Fisher information matrix, X'GX
-    deviance: Float # 2 * penalized log likelihood
+    deviance: Float # -2 * penalized log likelihood
 
 
 @dataclass
@@ -28,6 +27,14 @@ class ApproxFirthState:
     null_model_deviance: NDArray[(Any,), Float]
 
 
+@dataclass
+class FirthStatistics:
+    effect: Float
+    stderr: Float
+    tvalue: Float
+    pvalue: Float
+
+
 @typechecked
 def _calculate_log_likelihood(
         beta: NDArray[(Any,), Float],
@@ -39,6 +46,7 @@ def _calculate_log_likelihood(
     pi = 1 - 1 / (np.exp(X @ beta + offset) + 1)
     G = np.diagflat(pi * (1-pi))
     I = np.atleast_2d(X.T @ G @ X)
+
     unpenalized_log_likelihood = y @ np.log(pi + eps) + (1-y) @ np.log(1-pi + eps)
     _, logdet = np.linalg.slogdet(I)
     penalty = 0.5 * logdet
@@ -98,7 +106,7 @@ def _fit_firth(
         n_half_steps = 0
         while new_log_likelihood.deviance >= log_likelihood.deviance + deviance_tolerance:
             if n_half_steps == max_half_steps:
-                print(f"Too many half-steps! {new_log_likelihood.deviance} vs {log_likelihood.deviance}")
+                print(f"Exceeded half-step limit {max_half_steps}")
                 return None
             delta /= 2
             new_log_likelihood = _calculate_log_likelihood(beta + delta, X, y, offset)
@@ -113,7 +121,7 @@ def _fit_firth(
         n_iter += 1
 
     if n_iter == max_iter:
-        print("Too many iterations!")
+        print(f"Exceeded iteration limit {max_iter}")
         return None
 
     return FirthFit(beta, log_likelihood)
@@ -159,7 +167,7 @@ def correct_approx_firth(
         x_res: NDArray[(Any,), Float],
         y_res: NDArray[(Any,), Float],
         logit_offset: NDArray[(Any,), Float],
-        null_model_deviance: Float) -> Optional[Series]:
+        null_model_deviance: Float) -> Optional[FirthStatistics]:
     '''
     Calculate LRT statistics for a SNP using the approximate Firth method.
 
@@ -174,10 +182,11 @@ def correct_approx_firth(
     )
     if firth_fit is None:
         return None
+
+    effect = firth_fit.beta.item()
     # Likelihood-ratio test
     tvalue = -1 * (firth_fit.log_likelihood.deviance - null_model_deviance)
     pvalue = stats.chi2.sf(tvalue, 1)
-    effect = firth_fit.beta.item()
     # Based on the Hessian of the unpenalized log-likelihood
     stderr = np.sqrt(np.linalg.pinv(firth_fit.log_likelihood.I).diagonal()[-1])
-    return Series({'tvalue': tvalue, 'pvalue': pvalue, 'effect': effect, 'stderr': stderr})
+    return FirthStatistics(effect=effect, stderr=stderr, tvalue=tvalue, pvalue=pvalue)

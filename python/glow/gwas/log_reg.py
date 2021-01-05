@@ -79,12 +79,15 @@ def logistic_regression(
     gwas_fx._validate_covariates_and_phenotypes(covariate_df, phenotype_df, is_binary=True)
     sql_type = gwas_fx._regression_sql_type(dt)
     genotype_df = gwas_fx._prepare_genotype_df(genotype_df, values_column, sql_type)
-    result_fields = [
-        # TODO: Probably want to put effect size and stderr here for approx-firth
+    base_result_fields = [
         StructField('tvalue', sql_type),
         StructField('pvalue', sql_type),
         StructField('phenotype', StringType())
     ]
+    if correction == correction_approx_firth:
+        result_fields = [StructField('effect', sql_type), StructField('stderr', sql_type)] + base_result_fields
+    else:
+        result_fields = base_result_fields
 
     result_struct = gwas_fx._output_schema(genotype_df.schema.fields, result_fields)
     C = covariate_df.to_numpy(dt, copy=True)
@@ -206,19 +209,26 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
     out_df['pvalue'] = list(np.ravel(p_values))
     out_df['phenotype'] = phenotype_names.repeat(genotype_pdf.shape[0]).tolist()
 
+    print(out_df)
     if correction != correction_none:
-        correction_indices = out_df.index[out_df['pvalue'] < pvalue_threshold]
+        correction_indices = list(np.where(out_df['pvalue'] < pvalue_threshold)[0])
+        print(f"Correcting {len(correction_indices)} SNPs")
         if correction == correction_approx_firth:
+            out_df['effect'] = np.nan
+            out_df['stderr'] = np.nan
             for correction_idx in correction_indices:
-                snp_index = correction_idx % genotype_pdf.shape[0]
-                phenotype_index = int(correction_idx / phenotype_names.size)
+                snp_index = correction_idx % X_res.shape[0]
+                phenotype_index = int(correction_idx / X_res.shape[0])
                 approx_firth_snp_fit = correct_approx_firth(
-                    X_res[snp_index][phenotype_index],
-                    log_reg_state.Y_res[phenotype_index],
-                    log_reg_state.approx_firth_state.logit_offset[phenotype_index],
+                    X_res[:, snp_index, phenotype_index],
+                    log_reg_state.Y_res[:, phenotype_index],
+                    log_reg_state.approx_firth_state.logit_offset[:, phenotype_index],
                     log_reg_state.approx_firth_state.null_model_deviance[phenotype_index],
                 )
                 if approx_firth_snp_fit is not None:
+                    print(f"Corrected {out_df.iloc[correction_idx]} to {approx_firth_snp_fit}")
+                    out_df.iloc[correction_idx]['effect'] = approx_firth_snp_fit.effect
+                    out_df.iloc[correction_idx]['stderr'] = approx_firth_snp_fit.stderr
                     out_df.iloc[correction_idx]['tvalue'] = approx_firth_snp_fit.tvalue
                     out_df.iloc[correction_idx]['pvalue'] = approx_firth_snp_fit.pvalue
                 else:
