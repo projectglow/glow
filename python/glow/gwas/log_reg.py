@@ -216,7 +216,6 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
     out_df['pvalue'] = list(np.ravel(p_values))
     out_df['phenotype'] = phenotype_names.repeat(genotype_pdf.shape[0]).tolist()
 
-    print(out_df)
     if correction != correction_none:
         correction_indices = list(np.where(out_df['pvalue'] < pvalue_threshold)[0])
         print(f"Correcting {len(correction_indices)} SNPs")
@@ -233,10 +232,10 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
                 )
                 if approx_firth_snp_fit is not None:
                     print(f"Corrected {out_df.iloc[correction_idx]} to {approx_firth_snp_fit}")
-                    out_df.iloc[correction_idx]['effect'] = approx_firth_snp_fit.effect
-                    out_df.iloc[correction_idx]['stderr'] = approx_firth_snp_fit.stderr
-                    out_df.iloc[correction_idx]['tvalue'] = approx_firth_snp_fit.tvalue
-                    out_df.iloc[correction_idx]['pvalue'] = approx_firth_snp_fit.pvalue
+                    out_df.at[correction_idx, 'effect'] = approx_firth_snp_fit.effect
+                    out_df.at[correction_idx, 'stderr'] = approx_firth_snp_fit.stderr
+                    out_df.at[correction_idx, 'tvalue'] = approx_firth_snp_fit.tvalue
+                    out_df.at[correction_idx, 'pvalue'] = approx_firth_snp_fit.pvalue
                 else:
                     print(f"Could not correct {out_df.iloc[correction_idx]}")
         else:

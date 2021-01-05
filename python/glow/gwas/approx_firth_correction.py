@@ -62,7 +62,7 @@ def _fit_firth(
         convergence_limit: float = 1e-5,
         deviance_tolerance: float = 1e-6,
         max_iter: int = 250,
-        max_step_size: int = 25,
+        max_step_size: int = 5,
         max_half_steps: int = 25) -> Optional[FirthFit]:
     '''
     Firth’s bias-Reduced penalized-likelihood logistic regression.
@@ -90,7 +90,9 @@ def _fit_firth(
         h = np.diagonal(rootG_X @ invI @ rootG_X.T)
         U = X.T @ (y - log_likelihood.pi + h * (0.5 - log_likelihood.pi))
 
+        print(f"Considering stopping... {U}")
         if np.amax(np.abs(U)) < convergence_limit:
+            print(f"Stopping! {U}")
             break
 
         # f' / f''
@@ -98,6 +100,7 @@ def _fit_firth(
 
         # force absolute step size to be less than max_step_size for each entry of beta
         step_size = np.amax(np.abs(delta))
+        print(f"Step size is {step_size}")
         mx = step_size / max_step_size
         if mx > 1:
             delta = delta / mx
@@ -106,14 +109,17 @@ def _fit_firth(
 
         # if the penalized log likelihood decreased, recompute with step-halving
         n_half_steps = 0
+        print(f"New deviance is {new_log_likelihood.deviance}, was {log_likelihood.deviance} before")
         while new_log_likelihood.deviance >= log_likelihood.deviance + deviance_tolerance:
             if n_half_steps == max_half_steps:
                 print(f"Exceeded half-step limit {max_half_steps}")
                 return None
             delta /= 2
+            print(f"Halved {n_half_steps} times")
             new_log_likelihood = _calculate_log_likelihood(beta + delta, X, y, offset)
             n_half_steps += 1
 
+        print(f"Beta iter {n_iter}: {beta}")
         beta = beta + delta
         log_likelihood = new_log_likelihood
 

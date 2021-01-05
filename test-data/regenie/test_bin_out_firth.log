@@ -1,4 +1,4 @@
-Start time: Mon Jan  4 17:06:33 2021
+Start time: Tue Jan  5 13:33:11 2021
 
               |==============================|
               |      REGENIE v1.0.6.7.gz     |
@@ -22,7 +22,8 @@ Options in effect:
   --pThresh 0.05 \
   --pred fit_bin_out_pred.list \
   --split \
-  --out test_bin_out_firth
+  --out test_bin_out_firth \
+  --ref-first 
 
 Association testing mode
  * bgen             : [example/example.bgen]
@@ -46,10 +47,10 @@ Chromosome 1 [5 blocks in total]
    -reading loco predictions for the chromosome...done (1ms) 
    -fitting null logistic regression on binary phenotypes...done (0ms) 
    -fitting null Firth logistic regression on binary phenotypes...done (0ms) 
- block [1] : done (10ms) 
- block [2] : done (8ms) 
- block [3] : done (8ms) 
- block [4] : done (7ms) 
+ block [1] : done (8ms) 
+ block [2] : done (6ms) 
+ block [3] : done (7ms) 
+ block [4] : done (6ms) 
  block [5] : done (8ms) 
 
 Association results stored separately for each trait in files : 
@@ -60,6 +61,6 @@ Number of tests with Firth correction : (116/2000)
 Number of failed tests : (0/116)
 Number of ignored SNPs due to low MAC : 0
 
-Elapsed time : 0.0727308s
-End time: Mon Jan  4 17:06:33 2021
+Elapsed time : 0.0679087s
+End time: Tue Jan  5 13:33:11 2021
 
