@@ -40,13 +40,14 @@ def _calculate_log_likelihood(
         X: NDArray[(Any, Any), Float],
         y: NDArray[(Any,), Float],
         offset: NDArray[(Any,), Float],
+        y_mask: NDArray[(Any,), Float],
         eps: float = 0) -> LogLikelihood:
 
-    pi = 1 - 1 / (np.exp(X @ beta + offset) + 1)
-    G = np.diagflat(pi * (1-pi))
+    pi = 1 - 1 / (np.exp(X @ beta + offset * y_mask) + 1)
+    G = np.diagflat(pi * (1-pi) * y_mask)
     I = np.atleast_2d(X.T @ G @ X)
 
-    unpenalized_log_likelihood = y @ np.log(pi + eps) + (1-y) @ np.log(1-pi + eps)
+    unpenalized_log_likelihood = y_mask * (y @ np.log(pi + eps) + (1-y) @ np.log(1-pi + eps))
     _, log_abs_det = np.linalg.slogdet(I)
     penalty = 0.5 * log_abs_det
     deviance = -2 * (unpenalized_log_likelihood + penalty)
@@ -59,13 +60,14 @@ def _fit_firth(
         X: NDArray[(Any, Any), Float],
         y: NDArray[(Any,), Float],
         offset: NDArray[(Any,), Float],
+        y_mask: NDArray[(Any,), Float],
         convergence_limit: float = 1e-5,
         deviance_tolerance: float = 1e-6,
         max_iter: int = 250,
         max_step_size: int = 5,
         max_half_steps: int = 25) -> Optional[FirthFit]:
     '''
-    Firth’s bias-Reduced penalized-likelihood logistic regression.
+    Firth’s bias-reduced penalized-likelihood logistic regression, based on the regenie implementation.
 
     :param beta_init: Initial beta values
     :param X: Independent variable (covariate for null fit, genotype for SNP fit)
@@ -81,18 +83,18 @@ def _fit_firth(
 
     n_iter = 0
     beta = beta_init
-    log_likelihood = _calculate_log_likelihood(beta, X, y, offset)
+    log_likelihood = _calculate_log_likelihood(beta, X, y, offset, y_mask)
     while n_iter < max_iter:
         invI = np.linalg.pinv(log_likelihood.I)
 
         # build hat matrix
         rootG_X = np.sqrt(log_likelihood.G) @ X
         h = np.diagonal(rootG_X @ invI @ rootG_X.T)
-        U = X.T @ (y - log_likelihood.pi + h * (0.5 - log_likelihood.pi))
+        U = X.T @ (y_mask * (y - log_likelihood.pi + h * (0.5 - log_likelihood.pi)))
 
-        print(f"Considering stopping... {U}")
+        # print(f"Considering stopping... {U}")
         if np.amax(np.abs(U)) < convergence_limit:
-            print(f"Stopping! {U}")
+            # print(f"Stopping! {U}")
             break
 
         # f' / f''
@@ -100,26 +102,26 @@ def _fit_firth(
 
         # force absolute step size to be less than max_step_size for each entry of beta
         step_size = np.amax(np.abs(delta))
-        print(f"Step size is {step_size}")
+        # print(f"Delta is {delta}")
         mx = step_size / max_step_size
         if mx > 1:
             delta = delta / mx
 
-        new_log_likelihood = _calculate_log_likelihood(beta + delta, X, y, offset)
+        new_log_likelihood = _calculate_log_likelihood(beta + delta, X, y, offset, y_mask)
 
         # if the penalized log likelihood decreased, recompute with step-halving
         n_half_steps = 0
-        print(f"New deviance is {new_log_likelihood.deviance}, was {log_likelihood.deviance} before")
+        # print(f"New deviance is {new_log_likelihood.deviance}, was {log_likelihood.deviance} before")
         while new_log_likelihood.deviance >= log_likelihood.deviance + deviance_tolerance:
             if n_half_steps == max_half_steps:
                 print(f"Exceeded half-step limit {max_half_steps}")
                 return None
             delta /= 2
-            print(f"Halved {n_half_steps} times")
-            new_log_likelihood = _calculate_log_likelihood(beta + delta, X, y, offset)
+            new_log_likelihood = _calculate_log_likelihood(beta + delta, X, y, offset, y_mask)
+            # print(f"Halved {n_half_steps} times: new deviance {new_log_likelihood.deviance}, old deviance {log_likelihood.deviance}")
             n_half_steps += 1
 
-        print(f"Beta iter {n_iter}: {beta}")
+        # print(f"Beta iter {n_iter}: {beta}")
         beta = beta + delta
         log_likelihood = new_log_likelihood
 
@@ -157,7 +159,7 @@ def create_approx_firth_state(
             b0_null_fit[-1] = (0.5 + y.sum()) / (y_mask.sum() + 1)
             b0_null_fit[-1] = np.log(b0_null_fit[-1] / (1 - b0_null_fit[-1])) - offset.mean()
         # In regenie, this may retry with max_step_size=5, max_iter=5000
-        firth_fit_result = _fit_firth(b0_null_fit, C, y, offset)
+        firth_fit_result = _fit_firth(b0_null_fit, C, y, offset, y_mask)
         if firth_fit_result is None:
             raise ValueError("Null fit failed!")
         logit_offset[:, i] = offset + (C @ firth_fit_result.beta)
@@ -169,7 +171,8 @@ def create_approx_firth_state(
 def correct_approx_firth(
         x_res: NDArray[(Any,), Float],
         y_res: NDArray[(Any,), Float],
-        logit_offset: NDArray[(Any,), Float]) -> Optional[FirthStatistics]:
+        logit_offset: NDArray[(Any,), Float],
+        y_mask: NDArray[(Any,), Float]) -> Optional[FirthStatistics]:
     '''
     Calculate LRT statistics for a SNP using the approximate Firth method.
 
@@ -178,13 +181,13 @@ def correct_approx_firth(
 
     beta_init = np.zeros(1)
     X = np.expand_dims(x_res, axis=1)
-    firth_fit = _fit_firth(beta_init, X, y_res, logit_offset)
+    firth_fit = _fit_firth(beta_init, X, y_res, logit_offset, y_mask)
     if firth_fit is None:
         return None
 
     effect = firth_fit.beta.item()
     # Likelihood-ratio test
-    null_deviance = _calculate_log_likelihood(beta_init, X, y_res, logit_offset).deviance
+    null_deviance = _calculate_log_likelihood(beta_init, X, y_res, logit_offset, y_mask).deviance
     tvalue = -1 * (firth_fit.log_likelihood.deviance - null_deviance)
     pvalue = stats.chi2.sf(tvalue, 1)
     # Based on the Hessian of the unpenalized log-likelihood

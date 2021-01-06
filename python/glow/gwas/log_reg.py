@@ -228,7 +228,8 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
                 approx_firth_snp_fit = correct_approx_firth(
                     X_res[:, snp_index, phenotype_index],
                     log_reg_state.Y_res[:, phenotype_index],
-                    log_reg_state.approx_firth_state.logit_offset[:, phenotype_index]
+                    log_reg_state.approx_firth_state.logit_offset[:, phenotype_index],
+                    Y_mask[:, phenotype_index]
                 )
                 if approx_firth_snp_fit is not None:
                     print(f"Corrected {out_df.iloc[correction_idx]} to {approx_firth_snp_fit}")

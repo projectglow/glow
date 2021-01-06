@@ -1,4 +1,5 @@
 import glow.gwas.log_reg as lr
+import glow.gwas.approx_firth as af
 import glow.functions as fx
 import glow.gwas.functions as gwas_fx
 import pandas as pd
@@ -7,6 +8,12 @@ from pyspark.sql import Row
 from pyspark.sql.functions import col, lit
 import numpy as np
 import pytest
+
+
+default_phenotypes = [1, 0, 0, 1, 1, 1, 1, 0]
+default_genotypes = [0, 0, 1, 2, 2, 1, 1, 1]
+default_covariates = [[1, 1, 1, 1, 1, 1, 1, 1], [2, 3, 2, 3, 2, 3, 2, 3], [-1, -2, -3, -1, -2, -3, -1, -2]]
+default_offset = [0.1, 0.2, 0.3, 0.4, 0.4, 0.3, 0.2, 0.1]
 
 
 def _read_fid_iid_df(file):
@@ -22,30 +29,91 @@ def _read_offset_df(file, trait):
         .set_index(['FID_IID', 'contigName'])
 
 
-def test_versus_firth(spark):
-    phenotypes = [1, 0, 0, 1, 1]
-    genotypes = [0, 0, 1, 2, 2]
-    offset = [0.1, 0.2, 0.3, 0.2, 0.1]
-    covariates = [1, 1, 1, 1, 1]
-    covariate_matrix = DenseMatrix(numRows=5, numCols=1, values=covariates)
-    df = spark.createDataFrame([Row(genotypes=genotypes, phenotypes=phenotypes, covariates=covariate_matrix, offset=offset)])
-    full_firth_fit = df.select(fx.expand_struct(
+def get_golden_firth_fit(
+        spark,
+        phenotypes=default_phenotypes,
+        genotypes=default_genotypes,
+        covariates=default_covariates,
+        offset=default_offset):
+
+    covariate_matrix = DenseMatrix(
+        numRows=len(covariates[0]),
+        numCols=len(covariates),
+        values=list(np.ravel(covariates))
+    )
+    df = spark.createDataFrame([Row(
+        genotypes=genotypes,
+        phenotypes=phenotypes,
+        covariates=covariate_matrix,
+        offset=offset
+    )])
+    return df.select(fx.expand_struct(
         fx.logistic_regression_gwas('genotypes', 'phenotypes', 'covariates', 'Firth', 'offset')
     ))
-    approx_firth_fit = lr.logistic_regression(
-        spark.createDataFrame([Row(values=genotypes)]),
-        pd.DataFrame(phenotypes),
-        pd.DataFrame(covariates),
-        pd.DataFrame(offset),
-        correction=lr.correction_approx_firth,
-        fit_intercept=False,
-        pvalue_threshold=1.0,
-        values_column='values'
-    )
-    full_firth_fit.show()
-    approx_firth_fit.show()
-    assert(False)
 
+
+def compare_full_firth_beta(
+        spark,
+        phenotypes=default_phenotypes,
+        genotypes=default_genotypes,
+        covariates=default_covariates,
+        offset=default_offset):
+
+    golden_firth_fit = get_golden_firth_fit(spark, phenotypes, genotypes, covariates, offset)
+
+    test_firth_fit = af._fit_firth(
+        beta_init=np.zeros(len(covariates) + 1),
+        X=np.column_stack([np.array(covariates).T, genotypes]),
+        y=np.array(phenotypes),
+        offset=np.array(offset),
+        y_mask=[1.] * len(phenotypes),
+    )
+    golden_firth_beta = golden_firth_fit.head().beta
+    test_firth_beta = test_firth_fit.beta[-1]
+    print(golden_firth_fit.head())
+    print(golden_firth_beta)
+    assert False
+    assert np.allclose(golden_firth_beta, test_firth_beta)
+
+
+def test_full_firth(spark):
+    compare_full_firth_beta(spark)
+
+#
+# def test_full_firth_no_offset(spark):
+#     compare_full_firth_beta(spark, offset=[0]*len(default_offset))
+#
+#
+# def test_full_firth_no_intercept(spark):
+#     compare_full_firth_beta(spark, covariates=default_covariates[1:])
+
+
+def test_snp_fit(spark, rg):
+    n_sample = 1000
+    n_pheno = 2
+    n_geno = 2
+    n_cov = 20
+    phenotypes = rg.integers(low=0, high=2, size=(n_sample, n_pheno)).astype(np.float64)
+    genotypes = rg.random((n_sample, n_geno))
+    covariates = rg.random((n_sample, n_cov))
+    offset = rg.random((n_sample, n_pheno))
+
+    golden_snp_fit = get_golden_firth_fit(
+        spark,
+        phenotypes=phenotypes.tolist(),
+        genotypes=genotypes.tolist(),
+        covariates=covariates.tolist(),
+        offset=offset.tolist()
+    )
+    approx_fit_state = af.create_approx_firth_state(
+        Y=phenotypes,
+        offset_df=pd.DataFrame(offset),
+        C=covariates,
+        Y_mask=np.ones(phenotypes.shape),
+        fit_intercept=False
+    )
+    lr._logistic_regression_inner()
+    assert False
 
 
 @pytest.mark.min_spark('3')
