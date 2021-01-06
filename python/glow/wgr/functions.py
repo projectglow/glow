@@ -18,6 +18,7 @@ from pyspark import SparkContext
 from pyspark.sql import DataFrame, Row, SparkSession, SQLContext
 from typeguard import check_argument_types, check_return_type
 from typing import Dict, List
+from ..gwas.functions import _get_contigs_from_loco_df
 
 __all__ = ['get_sample_ids', 'block_variants_and_samples', 'reshape_for_gwas']
 
@@ -153,7 +154,7 @@ def reshape_for_gwas(spark: SparkSession, label_df: pd.DataFrame) -> DataFrame:
         ...     index=pd.MultiIndex.from_tuples([('sample1', 'chr1'), ('sample1', 'chr2')]))
         >>> reshaped = reshape_for_gwas(spark, loco_label_df)
         >>> reshaped.head()
-        Row(label='label1', contigName='chr1', values=[1])
+        Row(contigName='chr1', label='label1', values=[1])
 
     Requires that:
 
@@ -179,11 +180,22 @@ def reshape_for_gwas(spark: SparkSession, label_df: pd.DataFrame) -> DataFrame:
     elif label_df.index.nlevels == 2:  # Indexed by sample id and contig name
         # stacking sorts the new column index, so we remember the original sample
         # ordering in case it's not sorted
-        ordered_cols = pd.unique(label_df.index.get_level_values(0))
-        transposed_df = label_df.T.stack()[ordered_cols]
-        column_names = ['label', 'contigName', 'values']
+        def transpose_one(contig):
+            transposed = label_df.xs(contig, level=1).T
+            return transposed
+
+        contigs = _get_contigs_from_loco_df(label_df)
+        transposed_df = pd.concat([transpose_one(contig) for contig in contigs],
+                                  keys=contigs,
+                                  names=['contig', 'label'])
+        column_names = ['contigName', 'label', 'values']
     else:
         raise ValueError('label_df must be indexed by sample id or by (sample id, contig name)')
 
-    transposed_df['values_array'] = transposed_df.to_numpy().tolist()
+    # Can only create a Spark DataFrame from pandas with ndarray columns in Spark 3+
+    if int(spark.version.split('.')[0]) < 3:
+        values = transposed_df.to_numpy().tolist()
+    else:
+        values = list(transposed_df.to_numpy())
+    transposed_df['values_array'] = values
     return spark.createDataFrame(transposed_df[['values_array']].reset_index(), column_names)
