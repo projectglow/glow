@@ -113,8 +113,7 @@ def linear_regression(genotype_df: DataFrame,
     np.nan_to_num(Y, copy=False)
     _residualize_in_place(Y, Q)
 
-    Y_state = gwas_fx._loco_make_state(Y, phenotype_df, offset_df,
-                                       lambda y, pdf, odf: _create_YState(y, pdf, odf, Y_mask, dt))
+    Y_state = _create_YState(Y, phenotype_df, offset_df, Y_mask, dt)
 
     dof = C.shape[0] - C.shape[1] - 1
 
@@ -135,9 +134,23 @@ class YState:
     YdotY: NDArray[(Any), Float]
 
 
-def _create_YState(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame,
-                   offset_df: pd.DataFrame, Y_mask: NDArray[(Any, Any), Float], dt) -> YState:
-    if offset_df is not None:
+def _create_YState(Y: NDArray[(Any, Any),
+                              Float], phenotype_df: pd.DataFrame, offset_df: pd.DataFrame,
+                   Y_mask: NDArray[(Any, Any), Float], dt) -> Union[YState, Dict[str, YState]]:
+    offset_type = gwas_fx._validate_offset(phenotype_df, offset_df)
+    if offset_type != gwas_fx._OffsetType.LOCO_OFFSET:
+        return _create_one_YState(Y, phenotype_df, offset_df, Y_mask, dt)
+
+    all_contigs = gwas_fx._get_contigs_from_loco_df(offset_df)
+    return {
+        contig: _create_one_YState(Y, phenotype_df, offset_df.xs(contig, level=1), Y_mask, dt)
+        for contig in all_contigs
+    }
+
+
+def _create_one_YState(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame,
+                       offset_df: pd.DataFrame, Y_mask: NDArray[(Any, Any), Float], dt) -> YState:
+    if not offset_df.empty:
         Y = (pd.DataFrame(Y, phenotype_df.index, phenotype_df.columns) - offset_df).to_numpy(dt)
     Y *= Y_mask
     return YState(Y, np.sum(Y * Y, axis=0))
