@@ -1,11 +1,9 @@
 import glow.gwas.log_reg as lr
 import glow.gwas.approx_firth as af
 import glow.functions as fx
-import glow.gwas.functions as gwas_fx
 import pandas as pd
 from pyspark.ml.linalg import DenseMatrix
 from pyspark.sql import Row
-from pyspark.sql.functions import col, lit
 import numpy as np
 import pytest
 
@@ -66,77 +64,43 @@ def compare_full_firth_beta(
         X=np.column_stack([np.array(covariates).T, genotypes]),
         y=np.array(phenotypes),
         offset=np.array(offset),
-        y_mask=[1.] * len(phenotypes),
+        y_mask=np.ones(len(phenotypes)),
     )
     golden_firth_beta = golden_firth_fit.head().beta
     test_firth_beta = test_firth_fit.beta[-1]
-    print(golden_firth_fit.head())
-    print(golden_firth_beta)
-    assert False
     assert np.allclose(golden_firth_beta, test_firth_beta)
 
 
 def test_full_firth(spark):
     compare_full_firth_beta(spark)
 
+
+def test_full_firth_no_offset(spark):
+    compare_full_firth_beta(spark, offset=[0]*len(default_offset))
+
+
+def test_full_firth_no_intercept(spark):
+    compare_full_firth_beta(spark, covariates=default_covariates[1:])
+
+
+# @pytest.mark.min_spark('3')
+# def test_end_to_end(spark):
+#     test_data_dir = 'test-data/regenie/'
 #
-# def test_full_firth_no_offset(spark):
-#     compare_full_firth_beta(spark, offset=[0]*len(default_offset))
+#     genotype_df = spark.read.format('bgen').load(test_data_dir + 'example.bgen') \
+#         .withColumn('values', fx.genotype_states('genotypes'))
 #
+#     phenotype_df = _read_fid_iid_df(test_data_dir + 'phenotype_bin.txt')
 #
-# def test_full_firth_no_intercept(spark):
-#     compare_full_firth_beta(spark, covariates=default_covariates[1:])
-
-
-def test_snp_fit(spark, rg):
-    n_sample = 1000
-    n_pheno = 2
-    n_geno = 2
-    n_cov = 20
-    phenotypes = rg.integers(low=0, high=2, size=(n_sample, n_pheno)).astype(np.float64)
-    genotypes = rg.random((n_sample, n_geno))
-    covariates = rg.random((n_sample, n_cov))
-    offset = rg.random((n_sample, n_pheno))
-
-    golden_snp_fit = get_golden_firth_fit(
-        spark,
-        phenotypes=phenotypes.tolist(),
-        genotypes=genotypes.tolist(),
-        covariates=covariates.tolist(),
-        offset=offset.tolist()
-    )
-    approx_fit_state = af.create_approx_firth_state(
-        Y=phenotypes,
-        offset_df=pd.DataFrame(offset),
-        C=covariates,
-        Y_mask=np.ones(phenotypes.shape),
-        fit_intercept=False
-    )
-    lr._logistic_regression_inner()
-    assert False
-
-
-@pytest.mark.min_spark('3')
-def test_end_to_end(spark):
-    test_data_dir = 'test-data/regenie/'
-
-    genotype_df = spark.read.format('bgen').load(test_data_dir + 'example.bgen') \
-        .withColumn('values', fx.genotype_states('genotypes'))
-
-    phenotype_df = _read_fid_iid_df(test_data_dir + 'phenotype_bin.txt')
-
-    covariate_df = _read_fid_iid_df(test_data_dir + 'covariates.txt')
-
-    offset_trait1_df = _read_offset_df(test_data_dir + 'fit_bin_out_1.loco', 'Y1')
-    offset_trait2_df = _read_offset_df(test_data_dir + 'fit_bin_out_2.loco', 'Y2')
-    offset_df = pd.merge(offset_trait1_df, offset_trait2_df, left_index=True, right_index=True)
-
-    # glowgr_df = lr.logistic_regression(genotype_df,
-    #                        phenotype_df,
-    #                        covariate_df,
-    #                        offset_df,
-    #                        correction=lr.correction_approx_firth,
-    #                        values_column='values').toPandas()
-    # print(glowgr_df)
-
-    assert(False)
+#     covariate_df = _read_fid_iid_df(test_data_dir + 'covariates.txt')
+#
+#     offset_trait1_df = _read_offset_df(test_data_dir + 'fit_bin_out_1.loco', 'Y1')
+#     offset_trait2_df = _read_offset_df(test_data_dir + 'fit_bin_out_2.loco', 'Y2')
+#     offset_df = pd.merge(offset_trait1_df, offset_trait2_df, left_index=True, right_index=True)
+#
+#     glowgr_df = lr.logistic_regression(genotype_df,
+#                            phenotype_df,
+#                            covariate_df,
+#                            offset_df,
+#                            correction=lr.correction_approx_firth,
+#                            values_column='values').toPandas()

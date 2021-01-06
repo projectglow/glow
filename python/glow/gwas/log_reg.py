@@ -11,7 +11,7 @@ from scipy import stats
 import opt_einsum as oe
 from . import functions as gwas_fx
 from .functions import _VALUES_COLUMN_NAME
-from .approx_firth_correction import *
+from .approx_firth import *
 from .lin_reg import _residualize_in_place
 
 __all__ = ['logistic_regression']

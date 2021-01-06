@@ -43,11 +43,10 @@ def _calculate_log_likelihood(
         y_mask: NDArray[(Any,), Float],
         eps: float = 0) -> LogLikelihood:
 
-    pi = 1 - 1 / (np.exp(X @ beta + offset * y_mask) + 1)
-    G = np.diagflat(pi * (1-pi) * y_mask)
+    pi = 1 - 1 / (np.exp(X @ beta + offset) + 1)
+    G = np.diagflat(y_mask * pi * (1-pi))
     I = np.atleast_2d(X.T @ G @ X)
-
-    unpenalized_log_likelihood = y_mask * (y @ np.log(pi + eps) + (1-y) @ np.log(1-pi + eps))
+    unpenalized_log_likelihood = (y_mask * y) @ np.log(pi + eps) + (y_mask * (1-y)) @ np.log(1 - pi + eps)
     _, log_abs_det = np.linalg.slogdet(I)
     penalty = 0.5 * log_abs_det
     deviance = -2 * (unpenalized_log_likelihood + penalty)
@@ -92,9 +91,7 @@ def _fit_firth(
         h = np.diagonal(rootG_X @ invI @ rootG_X.T)
         U = X.T @ (y_mask * (y - log_likelihood.pi + h * (0.5 - log_likelihood.pi)))
 
-        # print(f"Considering stopping... {U}")
         if np.amax(np.abs(U)) < convergence_limit:
-            # print(f"Stopping! {U}")
             break
 
         # f' / f''
@@ -102,7 +99,6 @@ def _fit_firth(
 
         # force absolute step size to be less than max_step_size for each entry of beta
         step_size = np.amax(np.abs(delta))
-        # print(f"Delta is {delta}")
         mx = step_size / max_step_size
         if mx > 1:
             delta = delta / mx
@@ -111,17 +107,14 @@ def _fit_firth(
 
         # if the penalized log likelihood decreased, recompute with step-halving
         n_half_steps = 0
-        # print(f"New deviance is {new_log_likelihood.deviance}, was {log_likelihood.deviance} before")
         while new_log_likelihood.deviance >= log_likelihood.deviance + deviance_tolerance:
             if n_half_steps == max_half_steps:
                 print(f"Exceeded half-step limit {max_half_steps}")
                 return None
             delta /= 2
             new_log_likelihood = _calculate_log_likelihood(beta + delta, X, y, offset, y_mask)
-            # print(f"Halved {n_half_steps} times: new deviance {new_log_likelihood.deviance}, old deviance {log_likelihood.deviance}")
             n_half_steps += 1
 
-        # print(f"Beta iter {n_iter}: {beta}")
         beta = beta + delta
         log_likelihood = new_log_likelihood
 
