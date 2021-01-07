@@ -5,12 +5,13 @@ from dataclasses import dataclass
 from typeguard import typechecked
 from nptyping import Float, NDArray
 from scipy import stats
+import statsmodels.api as sm
 
 
 @dataclass
 class LogLikelihood:
     pi: NDArray[(Any,), Float]
-    G: NDArray[(Any, Any), Float] # diag(pi(1-pi))
+    rootG_X: NDArray[(Any, Any), Float] # sqrt(diag(pi(1-pi)))X
     I: NDArray[(Any, Any), Float] # Fisher information matrix, X'GX
     deviance: Float # -2 * penalized log likelihood
 
@@ -45,12 +46,13 @@ def _calculate_log_likelihood(
 
     pi = 1 - 1 / (np.exp(X @ beta + offset) + 1)
     G = np.diagflat(y_mask * pi * (1-pi))
-    I = np.atleast_2d(X.T @ G @ X)
+    rootG_X = np.sqrt(G) @ X
+    I = np.atleast_2d(rootG_X.T @ rootG_X)
     unpenalized_log_likelihood = (y_mask * y) @ np.log(pi + eps) + (y_mask * (1-y)) @ np.log(1 - pi + eps)
     _, log_abs_det = np.linalg.slogdet(I)
     penalty = 0.5 * log_abs_det
     deviance = -2 * (unpenalized_log_likelihood + penalty)
-    return LogLikelihood(pi, G, I, deviance)
+    return LogLikelihood(pi, rootG_X, I, deviance)
 
 
 @typechecked
@@ -81,42 +83,44 @@ def _fit_firth(
     '''
 
     n_iter = 0
-    beta = beta_init
+    beta = beta_init.copy()
     log_likelihood = _calculate_log_likelihood(beta, X, y, offset, y_mask)
     while n_iter < max_iter:
         invI = np.linalg.pinv(log_likelihood.I)
 
         # build hat matrix
-        rootG_X = np.sqrt(log_likelihood.G) @ X
-        h = np.diagonal(rootG_X @ invI @ rootG_X.T)
+        h = np.diagonal(log_likelihood.rootG_X @ invI @ log_likelihood.rootG_X.T)
+
+        # modified score function
         U = X.T @ (y_mask * (y - log_likelihood.pi + h * (0.5 - log_likelihood.pi)))
 
-        if np.amax(np.abs(U)) < convergence_limit:
-            break
+        print(f"Beginning of {n_iter} iterations, U {U} beta {beta}")
 
         # f' / f''
         delta = invI @ U
+        # print(f"Iter {n_iter} invI {invI} U {U} delta {delta}")
 
         # force absolute step size to be less than max_step_size for each entry of beta
         step_size = np.amax(np.abs(delta))
         mx = step_size / max_step_size
         if mx > 1:
-            delta = delta / mx
-
-        new_log_likelihood = _calculate_log_likelihood(beta + delta, X, y, offset, y_mask)
+            delta /= mx
 
         # if the penalized log likelihood decreased, recompute with step-halving
         n_half_steps = 0
-        while new_log_likelihood.deviance >= log_likelihood.deviance + deviance_tolerance:
-            if n_half_steps == max_half_steps:
-                print(f"Exceeded half-step limit {max_half_steps}")
-                return None
-            delta /= 2
+        while n_half_steps < max_half_steps:
             new_log_likelihood = _calculate_log_likelihood(beta + delta, X, y, offset, y_mask)
+            if new_log_likelihood.deviance < log_likelihood.deviance + deviance_tolerance:
+                break
+            delta /= 2
             n_half_steps += 1
 
-        beta = beta + delta
+        beta += delta
         log_likelihood = new_log_likelihood
+
+        if np.amax(np.abs(U)) < convergence_limit:
+            print(f"Quitting after {n_iter} iterations, U {U}")
+            break
 
         n_iter += 1
 
@@ -140,10 +144,9 @@ def create_approx_firth_state(
     :return: Offset with covariate effects for SNP fit
     '''
 
-    num_Y = Y.shape[1]
     logit_offset = np.zeros(Y.shape)
 
-    for i in range(num_Y):
+    for i in range(Y.shape[1]):
         y = Y[:, i]
         y_mask = Y_mask[:, i]
         offset = offset_df.iloc[:, i].to_numpy() if offset_df is not None else np.zeros(y.shape)
@@ -151,11 +154,10 @@ def create_approx_firth_state(
         if fit_intercept:
             b0_null_fit[-1] = (0.5 + y.sum()) / (y_mask.sum() + 1)
             b0_null_fit[-1] = np.log(b0_null_fit[-1] / (1 - b0_null_fit[-1])) - offset.mean()
-        # In regenie, this may retry with max_step_size=5, max_iter=5000
         firth_fit_result = _fit_firth(b0_null_fit, C, y, offset, y_mask)
         if firth_fit_result is None:
             raise ValueError("Null fit failed!")
-        logit_offset[:, i] = offset + (C @ firth_fit_result.beta)
+        logit_offset[:, i] = offset + y_mask * (C @ firth_fit_result.beta)
 
     return ApproxFirthState(logit_offset)
 
@@ -185,4 +187,5 @@ def correct_approx_firth(
     pvalue = stats.chi2.sf(tvalue, 1)
     # Based on the Hessian of the unpenalized log-likelihood
     stderr = np.sqrt(np.linalg.pinv(firth_fit.log_likelihood.I).diagonal()[-1])
+    print(f"Deviance {null_deviance} {firth_fit.log_likelihood.deviance} Corrected to {effect} {stderr} {tvalue} {pvalue}")
     return FirthStatistics(effect=effect, stderr=stderr, tvalue=tvalue, pvalue=pvalue)

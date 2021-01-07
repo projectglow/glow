@@ -1,4 +1,4 @@
-Start time: Wed Jan  6 17:01:32 2021
+Start time: Wed Jan  6 18:07:08 2021
 
               |==============================|
               |      REGENIE v1.0.6.7.gz     |
@@ -8,7 +8,7 @@ Copyright (c) 2020 Joelle Mbatchou and Jonathan Marchini.
 Distributed under the MIT License.
 Compiled with Boost Iostream library.
 
-Log of output saved in file : test_bin_out_firth.log
+Log of output saved in file : test_bin_out_no_correction.log
 
 Options in effect:
   --step 2 \
@@ -17,12 +17,9 @@ Options in effect:
   --phenoFile example/phenotype_bin.txt \
   --bsize 200 \
   --bt \
-  --firth \
-  --approx \
-  --pThresh 0.9999 \
   --pred fit_bin_out_pred.list \
   --split \
-  --out test_bin_out_firth \
+  --out test_bin_out_no_correction \
   --ref-first 
 
 Association testing mode
@@ -41,26 +38,22 @@ Association testing mode
  * # blocks         : [5]
  * approximate memory usage : 2MB
  * using minimum MAC of 5 (variants with lower MAC are ignored)
- * using fast Firth correction for logistic regression p-values less than 0.9999
 
 Chromosome 1 [5 blocks in total]
    -reading loco predictions for the chromosome...done (0ms) 
    -fitting null logistic regression on binary phenotypes...done (0ms) 
-   -fitting null Firth logistic regression on binary phenotypes...done (0ms) 
- block [1] : done (51ms) 
- block [2] : done (42ms) 
- block [3] : done (45ms) 
- block [4] : done (44ms) 
- block [5] : done (44ms) 
+ block [1] : done (5ms) 
+ block [2] : done (4ms) 
+ block [3] : done (4ms) 
+ block [4] : done (5ms) 
+ block [5] : done (3ms) 
 
 Association results stored separately for each trait in files : 
-* [test_bin_out_firth_Y1.regenie]
-* [test_bin_out_firth_Y2.regenie]
+* [test_bin_out_no_correction_Y1.regenie]
+* [test_bin_out_no_correction_Y2.regenie]
 
-Number of tests with Firth correction : (2000/2000)
-Number of failed tests : (0/2000)
 Number of ignored SNPs due to low MAC : 0
 
-Elapsed time : 0.254557s
-End time: Wed Jan  6 17:01:32 2021
+Elapsed time : 0.048419s
+End time: Wed Jan  6 18:07:08 2021
 

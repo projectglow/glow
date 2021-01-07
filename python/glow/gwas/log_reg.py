@@ -198,10 +198,10 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
     '''
     X = np.column_stack(genotype_pdf[_VALUES_COLUMN_NAME].array)
 
-    # Based on Joelle's code
-    # if correction == correction_approx_firth:
-    #     Q = np.linalg.qr(C)[0]
-    #     X = _residualize_in_place(X, Q)
+    # For approximate Firth correction, we perform a linear residualization
+    if correction == correction_approx_firth:
+        Q = np.linalg.qr(C)[0]
+        X = _residualize_in_place(X, Q)
 
     with oe.shared_intermediates():
         X_res = _logistic_residualize(X, C, Y_mask, log_reg_state.gamma, log_reg_state.inv_CtGammaC)
@@ -218,25 +218,25 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
 
     if correction != correction_none:
         correction_indices = list(np.where(out_df['pvalue'] < pvalue_threshold)[0])
-        print(f"Correcting {len(correction_indices)} SNPs")
+        print(f"Will correct {correction_indices}")
         if correction == correction_approx_firth:
             out_df['effect'] = np.nan
             out_df['stderr'] = np.nan
             for correction_idx in correction_indices:
-                snp_index = correction_idx % X_res.shape[0]
-                phenotype_index = int(correction_idx / X_res.shape[0])
+                snp_idx = correction_idx % X.shape[1]
+                pheno_idx = int(correction_idx / X.shape[1])
                 approx_firth_snp_fit = correct_approx_firth(
-                    X_res[:, snp_index, phenotype_index],
-                    log_reg_state.Y_res[:, phenotype_index],
-                    log_reg_state.approx_firth_state.logit_offset[:, phenotype_index],
-                    Y_mask[:, phenotype_index]
+                    # X_res[:, snp_idx, pheno_idx],
+                    X[:, snp_idx],
+                    log_reg_state.Y_res[:, pheno_idx],
+                    log_reg_state.approx_firth_state.logit_offset[:, pheno_idx],
+                    Y_mask[:, pheno_idx]
                 )
                 if approx_firth_snp_fit is not None:
-                    print(f"Corrected {out_df.iloc[correction_idx]} to {approx_firth_snp_fit}")
-                    out_df.at[correction_idx, 'effect'] = approx_firth_snp_fit.effect
-                    out_df.at[correction_idx, 'stderr'] = approx_firth_snp_fit.stderr
-                    out_df.at[correction_idx, 'tvalue'] = approx_firth_snp_fit.tvalue
-                    out_df.at[correction_idx, 'pvalue'] = approx_firth_snp_fit.pvalue
+                    out_df.effect.iloc[correction_idx] = approx_firth_snp_fit.effect
+                    out_df.stderr.iloc[correction_idx] = approx_firth_snp_fit.stderr
+                    out_df.tvalue.iloc[correction_idx] = approx_firth_snp_fit.tvalue
+                    out_df.pvalue.iloc[correction_idx] = approx_firth_snp_fit.pvalue
                 else:
                     print(f"Could not correct {out_df.iloc[correction_idx]}")
         else:
