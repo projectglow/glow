@@ -13,7 +13,7 @@ from . import functions as gwas_fx
 from .functions import _VALUES_COLUMN_NAME
 from .approx_firth import *
 from .lin_reg import _residualize_in_place
-from sklearn.preprocessing import StandardScaler
+
 
 __all__ = ['logistic_regression']
 
@@ -151,7 +151,7 @@ def _create_log_reg_state(
         phenotype_df: pd.DataFrame,  # Unused, only to share code with lin_reg.py
         offset_df: Optional[pd.DataFrame],
         C: NDArray[(Any, Any), Float],
-        Y_mask: NDArray[(Any, Any), Float],
+        Y_mask: NDArray[(Any, Any), bool],
         correction: str,
         fit_intercept: bool) -> LogRegState:
     Y_pred = np.row_stack([
@@ -173,7 +173,7 @@ def _create_log_reg_state(
 
 
 def _logistic_residualize(X: NDArray[(Any, Any), Float], C: NDArray[(Any, Any), Float],
-                          Y_mask: NDArray[(Any, Any), Float], gamma: NDArray[(Any, Any), Float],
+                          Y_mask: NDArray[(Any, Any), bool], gamma: NDArray[(Any, Any), Float],
                           inv_CtGammaC: NDArray[(Any, Any), Float]) -> NDArray[(Any, Any), Float]:
     '''
     Residualize the genotype vectors given the null model predictions.
@@ -184,7 +184,7 @@ def _logistic_residualize(X: NDArray[(Any, Any), Float], C: NDArray[(Any, Any), 
 
 
 def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogRegState,
-                               C: NDArray[(Any, Any), Float], Y: NDArray[(Any, Any), Float], Y_mask: NDArray[(Any, Any), Float],
+                               C: NDArray[(Any, Any), Float], Y: NDArray[(Any, Any), Float], Y_mask: NDArray[(Any, Any), bool],
                                correction: str, pvalue_threshold: float, phenotype_names: pd.Series) -> pd.DataFrame:
     '''
     Tests a block of genotypes for association with binary traits. We first residualize
@@ -200,10 +200,8 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
     X = np.column_stack(genotype_pdf[_VALUES_COLUMN_NAME].array)
 
     # For approximate Firth correction, we perform a linear residualization
-    scaler = StandardScaler()
     if correction == correction_approx_firth:
         Q = np.linalg.qr(C)[0]
-        # X = scaler.fit_transform(X)
         X = _residualize_in_place(X, Q)
 
     with oe.shared_intermediates():
@@ -221,7 +219,6 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
 
     if correction != correction_none:
         correction_indices = list(np.where(out_df['pvalue'] < pvalue_threshold)[0])
-        print(f"Will correct {correction_indices}")
         if correction == correction_approx_firth:
             out_df['effect'] = np.nan
             out_df['stderr'] = np.nan
@@ -229,9 +226,8 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
                 snp_idx = correction_idx % X.shape[1]
                 pheno_idx = int(correction_idx / X.shape[1])
                 approx_firth_snp_fit = correct_approx_firth(
-                    # X_res[:, snp_idx, pheno_idx],
-                    X[:, snp_idx], Y[:, pheno_idx],
-                    # log_reg_state.Y_res[:, pheno_idx],
+                    X[:, snp_idx],
+                    Y[:, pheno_idx],
                     log_reg_state.approx_firth_state.logit_offset[:, pheno_idx],
                     Y_mask[:, pheno_idx]
                 )

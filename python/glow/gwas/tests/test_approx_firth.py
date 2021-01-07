@@ -2,6 +2,7 @@ import glow.gwas.log_reg as lr
 import glow.gwas.approx_firth as af
 import glow.functions as fx
 import pandas as pd
+from pandas.testing import assert_frame_equal
 from pyspark.ml.linalg import DenseMatrix
 from pyspark.sql import Row
 import numpy as np
@@ -92,9 +93,11 @@ def test_full_firth_no_intercept(spark):
 def test_end_to_end(spark):
     test_data_dir = 'test-data/regenie/'
 
+    num_snps = 10
+
     genotype_df = spark.read.format('bgen').load(test_data_dir + 'example.bgen') \
         .withColumn('values', fx.genotype_states('genotypes')) \
-        .filter('start < 10')
+        .filter(f'start < {num_snps}')
 
     phenotype_df = _read_fid_iid_df(test_data_dir + 'phenotype_bin.txt')
 
@@ -104,15 +107,6 @@ def test_end_to_end(spark):
     offset_trait2_df = _read_offset_df(test_data_dir + 'fit_bin_out_2.loco', 'Y2')
     offset_df = pd.merge(offset_trait1_df, offset_trait2_df, left_index=True, right_index=True)
 
-    without_correction_df = lr.logistic_regression(genotype_df,
-                                       phenotype_df,
-                                       covariate_df,
-                                       offset_df,
-                                       correction=lr.correction_approx_firth,
-                                       pvalue_threshold=0,
-                                       values_column='values').toPandas()
-    print(without_correction_df)
-
     glowgr_df = lr.logistic_regression(genotype_df,
                            phenotype_df,
                            covariate_df,
@@ -121,5 +115,19 @@ def test_end_to_end(spark):
                            pvalue_threshold=0.9999,
                            values_column='values').toPandas()
 
-    print(glowgr_df)
-    assert False
+    regenie_trait1_df = pd.read_table(test_data_dir + 'test_bin_out_firth_Y1.regenie', sep='\s+')
+    regenie_trait1_df = regenie_trait1_df[regenie_trait1_df['ID'] <= num_snps]
+    regenie_trait1_df['phenotype'] = 'Y1'
+    regenie_trait2_df = pd.read_table(test_data_dir + 'test_bin_out_firth_Y2.regenie', sep='\s+')
+    regenie_trait2_df = regenie_trait2_df[regenie_trait2_df['ID'] <= num_snps]
+    regenie_trait2_df['phenotype'] = 'Y2'
+    regenie_df = pd.concat([regenie_trait1_df, regenie_trait2_df], ignore_index=True)
+
+    glowgr_df['ID'] = glowgr_df['names'].apply(lambda x: int(x[-1]))
+    glowgr_df = glowgr_df.rename(columns={'effect': 'BETA', 'stderr': 'SE'}).astype({'ID': 'int64'})
+    regenie_df['pvalue'] = np.power(10, -regenie_df['LOG10P'])
+    assert_frame_equal(
+        glowgr_df[['ID', 'BETA', 'SE', 'pvalue', 'phenotype']],
+        regenie_df[['ID', 'BETA', 'SE', 'pvalue', 'phenotype']],
+        check_dtype=False
+    )
