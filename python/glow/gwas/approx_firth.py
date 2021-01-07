@@ -11,7 +11,7 @@ import statsmodels.api as sm
 @dataclass
 class LogLikelihood:
     pi: NDArray[(Any,), Float]
-    rootG_X: NDArray[(Any, Any), Float] # sqrt(diag(pi(1-pi)))X
+    G: NDArray[(Any, Any), Float] # sqrt(diag(pi(1-pi)))X
     I: NDArray[(Any, Any), Float] # Fisher information matrix, X'GX
     deviance: Float # -2 * penalized log likelihood
 
@@ -36,23 +36,38 @@ class FirthStatistics:
 
 
 @typechecked
+# def _calculate_log_likelihood(
+#         beta: NDArray[(Any,), Float],
+#         X: NDArray[(Any, Any), Float],
+#         y: NDArray[(Any,), Float],
+#         offset: NDArray[(Any,), Float],
+#         y_mask: NDArray[(Any,), Float],
+#         eps: float = 0) -> LogLikelihood:
+#
+#     pi = 1 - 1 / (np.exp(X @ beta + offset) + 1)
+#     G = np.diagflat(y_mask * pi * (1-pi))
+#     rootG_X = np.sqrt(G) @ X
+#     I = np.atleast_2d(rootG_X.T @ rootG_X)
+#     unpenalized_log_likelihood = (y_mask * y) @ np.log(pi + eps) + (y_mask * (1-y)) @ np.log(1 - pi + eps)
+#     _, log_abs_det = np.linalg.slogdet(I)
+#     penalty = 0.5 * log_abs_det
+#     deviance = -2 * (unpenalized_log_likelihood + penalty)
+#     return LogLikelihood(pi, rootG_X, I, deviance)
+
+
+@typechecked
 def _calculate_log_likelihood(
         beta: NDArray[(Any,), Float],
-        X: NDArray[(Any, Any), Float],
-        y: NDArray[(Any,), Float],
-        offset: NDArray[(Any,), Float],
-        y_mask: NDArray[(Any,), Float],
-        eps: float = 0) -> LogLikelihood:
+        model) -> LogLikelihood:
 
-    pi = 1 - 1 / (np.exp(X @ beta + offset) + 1)
-    G = np.diagflat(y_mask * pi * (1-pi))
-    rootG_X = np.sqrt(G) @ X
-    I = np.atleast_2d(rootG_X.T @ rootG_X)
-    unpenalized_log_likelihood = (y_mask * y) @ np.log(pi + eps) + (y_mask * (1-y)) @ np.log(1 - pi + eps)
-    _, log_abs_det = np.linalg.slogdet(I)
+    pi = model.predict(beta)
+    G = np.diagflat(pi * (1-pi))
+    I = -1 * model.hessian(beta)
+    unpenalized_log_likelihood = model.loglike(beta)
+    log_abs_det = np.log(np.linalg.det(I))
     penalty = 0.5 * log_abs_det
     deviance = -2 * (unpenalized_log_likelihood + penalty)
-    return LogLikelihood(pi, rootG_X, I, deviance)
+    return LogLikelihood(pi, G, I, deviance)
 
 
 @typechecked
@@ -84,15 +99,24 @@ def _fit_firth(
 
     n_iter = 0
     beta = beta_init.copy()
-    log_likelihood = _calculate_log_likelihood(beta, X, y, offset, y_mask)
+    model = sm.GLM(y[y_mask],
+                   X[y_mask],
+                   family=sm.families.Binomial(),
+                   offset=offset,
+                   missing='ignore')
+    log_likelihood = _calculate_log_likelihood(beta, model)
     while n_iter < max_iter:
         invI = np.linalg.pinv(log_likelihood.I)
 
         # build hat matrix
-        h = np.diagonal(log_likelihood.rootG_X @ invI @ log_likelihood.rootG_X.T)
+        rootW = np.sqrt(log_likelihood.G)
+        H = np.dot(np.transpose(X), np.transpose(rootW))
+        H = np.matmul(invI, H)
+        H = np.matmul(np.dot(rootW, X), H)
+        h = np.diagonal(H)
 
         # modified score function
-        U = X.T @ (y_mask * (y - log_likelihood.pi + h * (0.5 - log_likelihood.pi)))
+        U = X.T @ (y - log_likelihood.pi + h * (0.5 - log_likelihood.pi))
 
         print(f"Beginning of {n_iter} iterations, U {U} beta {beta}")
 
@@ -109,7 +133,7 @@ def _fit_firth(
         # if the penalized log likelihood decreased, recompute with step-halving
         n_half_steps = 0
         while n_half_steps < max_half_steps:
-            new_log_likelihood = _calculate_log_likelihood(beta + delta, X, y, offset, y_mask)
+            new_log_likelihood = _calculate_log_likelihood(beta + delta, model)
             if new_log_likelihood.deviance < log_likelihood.deviance + deviance_tolerance:
                 break
             delta /= 2
@@ -157,15 +181,15 @@ def create_approx_firth_state(
         firth_fit_result = _fit_firth(b0_null_fit, C, y, offset, y_mask)
         if firth_fit_result is None:
             raise ValueError("Null fit failed!")
-        logit_offset[:, i] = offset + y_mask * (C @ firth_fit_result.beta)
+        logit_offset[:, i] = offset + C @ firth_fit_result.beta
 
     return ApproxFirthState(logit_offset)
 
 
 @typechecked
 def correct_approx_firth(
-        x_res: NDArray[(Any,), Float],
-        y_res: NDArray[(Any,), Float],
+        x: NDArray[(Any,), Float],
+        y: NDArray[(Any,), Float],
         logit_offset: NDArray[(Any,), Float],
         y_mask: NDArray[(Any,), Float]) -> Optional[FirthStatistics]:
     '''
@@ -175,14 +199,19 @@ def correct_approx_firth(
     '''
 
     beta_init = np.zeros(1)
-    X = np.expand_dims(x_res, axis=1)
-    firth_fit = _fit_firth(beta_init, X, y_res, logit_offset, y_mask)
+    X = np.expand_dims(x, axis=1)
+    firth_fit = _fit_firth(beta_init, X, y, logit_offset, y_mask)
     if firth_fit is None:
         return None
 
     effect = firth_fit.beta.item()
     # Likelihood-ratio test
-    null_deviance = _calculate_log_likelihood(beta_init, X, y_res, logit_offset, y_mask).deviance
+    null_model = sm.GLM(y[y_mask],
+                   X[y_mask],
+                   family=sm.families.Binomial(),
+                   offset=logit_offset,
+                   missing='ignore')
+    null_deviance = _calculate_log_likelihood(beta_init, null_model).deviance
     tvalue = -1 * (firth_fit.log_likelihood.deviance - null_deviance)
     pvalue = stats.chi2.sf(tvalue, 1)
     # Based on the Hessian of the unpenalized log-likelihood

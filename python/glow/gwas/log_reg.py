@@ -13,6 +13,7 @@ from . import functions as gwas_fx
 from .functions import _VALUES_COLUMN_NAME
 from .approx_firth import *
 from .lin_reg import _residualize_in_place
+from sklearn.preprocessing import StandardScaler
 
 __all__ = ['logistic_regression']
 
@@ -106,7 +107,7 @@ def logistic_regression(
 
     def map_func(pdf_iterator):
         for pdf in pdf_iterator:
-            yield gwas_fx._loco_dispatch(pdf, state, _logistic_regression_inner, C, Y_mask,
+            yield gwas_fx._loco_dispatch(pdf, state, _logistic_regression_inner, C, Y, Y_mask,
                                          correction, pvalue_threshold, phenotype_names)
 
     return genotype_df.mapInPandas(map_func, result_struct)
@@ -183,7 +184,7 @@ def _logistic_residualize(X: NDArray[(Any, Any), Float], C: NDArray[(Any, Any), 
 
 
 def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogRegState,
-                               C: NDArray[(Any, Any), Float], Y_mask: NDArray[(Any, Any), Float],
+                               C: NDArray[(Any, Any), Float], Y: NDArray[(Any, Any), Float], Y_mask: NDArray[(Any, Any), Float],
                                correction: str, pvalue_threshold: float, phenotype_names: pd.Series) -> pd.DataFrame:
     '''
     Tests a block of genotypes for association with binary traits. We first residualize
@@ -199,8 +200,10 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
     X = np.column_stack(genotype_pdf[_VALUES_COLUMN_NAME].array)
 
     # For approximate Firth correction, we perform a linear residualization
+    scaler = StandardScaler()
     if correction == correction_approx_firth:
         Q = np.linalg.qr(C)[0]
+        # X = scaler.fit_transform(X)
         X = _residualize_in_place(X, Q)
 
     with oe.shared_intermediates():
@@ -227,8 +230,8 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
                 pheno_idx = int(correction_idx / X.shape[1])
                 approx_firth_snp_fit = correct_approx_firth(
                     # X_res[:, snp_idx, pheno_idx],
-                    X[:, snp_idx],
-                    log_reg_state.Y_res[:, pheno_idx],
+                    X[:, snp_idx], Y[:, pheno_idx],
+                    # log_reg_state.Y_res[:, pheno_idx],
                     log_reg_state.approx_firth_state.logit_offset[:, pheno_idx],
                     Y_mask[:, pheno_idx]
                 )
