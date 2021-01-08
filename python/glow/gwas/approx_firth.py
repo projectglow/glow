@@ -24,11 +24,6 @@ class FirthFit:
 
 
 @dataclass
-class ApproxFirthState:
-    logit_offset: NDArray[(Any, Any), Float]
-
-
-@dataclass
 class FirthStatistics:
     effect: Float
     stderr: Float
@@ -128,41 +123,37 @@ def _fit_firth(
 
 
 @typechecked
-def create_approx_firth_state(
-        Y: NDArray[(Any, Any), Float],
-        offset_df: Optional[pd.DataFrame],
+def perform_null_firth_fit(
+        y: NDArray[(Any,), Float],
         C: NDArray[(Any, Any), Float],
-        Y_mask: NDArray[(Any, Any), bool],
-        fit_intercept: bool) -> ApproxFirthState:
+        mask: NDArray[(Any,), bool],
+        offset: Optional[NDArray[(Any,), Float]],
+        fit_intercept: bool) -> NDArray[(Any, Any), Float]:
     '''
     Performs the null fit for approximate Firth.
 
     :return: Offset with covariate effects for SNP fit
     '''
 
-    logit_offset = np.zeros(Y.shape)
+    firth_offset = np.zeros(y.shape)
+    offset = offset[mask] if offset is not None else np.zeros(y.shape)
+    b0_null_fit = np.zeros(C.shape[1])
+    if fit_intercept:
+        b0_null_fit[-1] = (0.5 + y.sum()) / (mask.sum() + 1)
+        b0_null_fit[-1] = np.log(b0_null_fit[-1] / (1 - b0_null_fit[-1])) - offset.mean()
+    firth_fit_result = _fit_firth(b0_null_fit, C[mask, :], y, offset)
+    if firth_fit_result is None:
+        raise ValueError("Null fit failed!")
+    firth_offset[mask] = offset + C[mask, :] @ firth_fit_result.beta
 
-    for i in range(Y.shape[1]):
-        y_mask = Y_mask[:, i]
-        y = Y[y_mask, i]
-        offset = offset_df.iloc[y_mask, i].to_numpy() if offset_df is not None else np.zeros(y.shape)
-        b0_null_fit = np.zeros(C.shape[1])
-        if fit_intercept:
-            b0_null_fit[-1] = (0.5 + y.sum()) / (y_mask.sum() + 1)
-            b0_null_fit[-1] = np.log(b0_null_fit[-1] / (1 - b0_null_fit[-1])) - offset.mean()
-        firth_fit_result = _fit_firth(b0_null_fit, C[y_mask, :], y, offset)
-        if firth_fit_result is None:
-            raise ValueError("Null fit failed!")
-        logit_offset[y_mask, i] = offset + C[y_mask, :] @ firth_fit_result.beta
-
-    return ApproxFirthState(logit_offset)
+    return firth_offset
 
 
 @typechecked
 def correct_approx_firth(
         x: NDArray[(Any,), Float],
         y: NDArray[(Any,), Float],
-        logit_offset: NDArray[(Any,), Float],
+        firth_offset: NDArray[(Any,), Float],
         y_mask: NDArray[(Any,), bool]) -> Optional[FirthStatistics]:
     '''
     Calculate LRT statistics for a SNP using the approximate Firth method.
@@ -173,7 +164,7 @@ def correct_approx_firth(
     beta_init = np.zeros(1)
     masked_y = y[y_mask]
     masked_X = np.expand_dims(x, axis=1)[y_mask, :]
-    masked_offset = logit_offset[y_mask]
+    masked_offset = firth_offset[y_mask]
     firth_fit = _fit_firth(beta_init, masked_X, masked_y, masked_offset)
     if firth_fit is None:
         return None

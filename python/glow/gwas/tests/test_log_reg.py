@@ -6,16 +6,25 @@ import numpy as np
 import pytest
 
 
-def run_score_test(genotype_df, phenotype_df, covariate_df, fit_intercept=True):
+def run_score_test(genotype_df, phenotype_df, covariate_df, correction=lr.correction_none, fit_intercept=True):
     C = covariate_df.to_numpy(copy=True)
     if fit_intercept:
         C = gwas_fx._add_intercept(C, phenotype_df.shape[0])
     Y = phenotype_df.to_numpy(copy=True)
     Y_mask = ~np.isnan(Y)
     Y[~Y_mask] = 0
-    state = lr._create_log_reg_state(Y, pd.DataFrame(), None, C, Y_mask, lr.correction_none, fit_intercept)
+    state_rows = [
+        lr._prepare_one_phenotype(
+            C,
+            pd.Series({'label': p, 'values': phenotype_df[p]}),
+            correction,
+            fit_intercept
+        ) for p in phenotype_df
+    ]
+    phenotype_names = phenotype_df.columns.to_series().astype('str')
+    state = lr._pdf_to_log_reg_state(pd.DataFrame(state_rows), phenotype_names, C.shape[1])
     values_df = pd.DataFrame({gwas_fx._VALUES_COLUMN_NAME: list(genotype_df.to_numpy().T)})
-    return lr._logistic_regression_inner(values_df, state, C, Y_mask, lr.correction_none, 0.05,
+    return lr._logistic_regression_inner(values_df, state, C, Y, Y_mask, lr.correction_none, 0.05,
                                          phenotype_df.columns.to_series().astype('str'))
 
 

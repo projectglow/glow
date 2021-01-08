@@ -1,8 +1,8 @@
-from pyspark.sql.types import StringType, StructField
-from typing import Any, Optional
+from pyspark.sql.types import ArrayType, StringType, StructField, DataType, StructType
+from typing import Any, Optional, Dict, Union
 import pandas as pd
 import numpy as np
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, SparkSession
 import statsmodels.api as sm
 from dataclasses import dataclass
 from typeguard import typechecked
@@ -10,10 +10,10 @@ from nptyping import Float, NDArray
 from scipy import stats
 import opt_einsum as oe
 from . import functions as gwas_fx
+from . import approx_firth as af
 from .functions import _VALUES_COLUMN_NAME
-from .approx_firth import *
 from .lin_reg import _residualize_in_place
-
+from ..wgr.functions import reshape_for_gwas
 
 __all__ = ['logistic_regression']
 
@@ -77,7 +77,8 @@ def logistic_regression(
         - ``phenotype``: The phenotype name as determiend by the column names of ``phenotype_df``
     '''
 
-    gwas_fx._check_spark_version(genotype_df.sql_ctx.sparkSession)
+    spark = genotype_df.sql_ctx.sparkSession
+    gwas_fx._check_spark_version(spark)
     gwas_fx._validate_covariates_and_phenotypes(covariate_df, phenotype_df, is_binary=True)
     sql_type = gwas_fx._regression_sql_type(dt)
     genotype_df = gwas_fx._prepare_genotype_df(genotype_df, values_column, sql_type)
@@ -99,9 +100,7 @@ def logistic_regression(
     Y_mask = ~(np.isnan(Y))
     np.nan_to_num(Y, copy=False)
 
-    state = gwas_fx._loco_make_state(
-        Y, phenotype_df, offset_df,
-        lambda y, pdf, odf: _create_log_reg_state(y, pdf, odf, C, Y_mask, correction, fit_intercept))
+    state = _create_log_reg_state(spark, phenotype_df, offset_df, sql_type, C, correction, fit_intercept)
 
     phenotype_names = phenotype_df.columns.to_series().astype('str')
 
@@ -113,18 +112,19 @@ def logistic_regression(
     return genotype_df.mapInPandas(map_func, result_struct)
 
 
-@typechecked
-def _logistic_null_model_predictions(
-    y: NDArray[Any, Float],
-    X: NDArray[Any, Float],
-    y_mask: NDArray[Any, bool],
-    # nptying can't handle optional NDArrays, so don't verify the type for offset
-    offset
-) -> NDArray[Any, Float]:
+@dataclass
+class LogRegState:
+    inv_CtGammaC: NDArray[(Any, Any, Any), Float]  # n_phenotypes x n_covariates x n_covariates
+    gamma: NDArray[(Any, Any), Float]  # n_samples x n_phenotypes
+    Y_res: NDArray[(Any, Any), Float]  # n_samples x n_phenotypes
+    firth_offset: Optional[NDArray[(Any, Any), Float]] # n_samples x n_phenotypes
+
+
+def _logistic_null_model_predictions(y, X, mask, offset):
     if offset is not None:
-        offset = offset[y_mask]
-    model = sm.GLM(y[y_mask],
-                   X[y_mask],
+        offset = offset[mask]
+    model = sm.GLM(y[mask],
+                   X[mask, :],
                    family=sm.families.Binomial(),
                    offset=offset,
                    missing='ignore')
@@ -133,43 +133,104 @@ def _logistic_null_model_predictions(
 
     # Store 0 as prediction for samples with missing phenotypes
     remapped_predictions = np.zeros(y.shape)
-    remapped_predictions[y_mask] = predictions
+    remapped_predictions[mask] = predictions
     return remapped_predictions
 
 
-@dataclass
-class LogRegState:
-    inv_CtGammaC: NDArray[(Any, Any), Float]
-    gamma: NDArray[(Any, Any), Float]
-    Y_res: NDArray[(Any, Any), Float]
-    approx_firth_state: Optional[ApproxFirthState]
+def _prepare_one_phenotype(C: NDArray[(Any, Any), Float], row: pd.Series, correction: str, fit_intercept: bool) -> pd.Series:
+    '''
+    Creates the broadcasted information for one (phenotype, offset) pair. The returned series
+    contains the information eventually stored in a LogRegState.
+
+    This function accepts and returns a pandas series for integration with Pandas UDFs and
+    pd.DataFrame.apply.
+    '''
+    y = row['values']
+    mask = ~np.isnan(y)
+    offset = row.get('offset')
+    y_pred = _logistic_null_model_predictions(y, C, mask, offset)
+    y_res = np.nan_to_num(y - y_pred)
+    gamma = y_pred * (1 - y_pred)
+    CtGammaC = C.T @ (gamma[:, None] * C)
+    inv_CtGammaC = np.linalg.inv(CtGammaC)
+    row.label = str(row.label)  # Ensure that the phenotype name is a string
+    row.drop(['values', 'offset'], inplace=True, errors='ignore')
+    row['y_res'], row['gamma'], row['inv_CtGammaC'] = np.ravel(y_res), np.ravel(gamma), np.ravel(
+        inv_CtGammaC)
+    if correction == correction_approx_firth:
+        row['firth_offset'] = np.ravel(af.perform_null_firth_fit(y, C, mask, offset, fit_intercept))
+    return row
+
+
+@typechecked
+def _pdf_to_log_reg_state(pdf: pd.DataFrame, phenotypes: pd.Series, n_covar: int) -> LogRegState:
+    '''
+    Converts a Pandas DataFrame with the contents of a LogRegState object
+    into a more convenient form.
+    '''
+    # Ensure that the null fit state is sorted identically to the input phenotype_df
+    sorted_pdf = pdf.set_index('label').reindex(phenotypes, axis='rows')
+    inv_CtGammaC = np.row_stack(sorted_pdf['inv_CtGammaC'].array).reshape(
+        phenotypes.size, n_covar, n_covar)
+    gamma = np.column_stack(sorted_pdf['gamma'].array)
+    Y_res = np.column_stack(sorted_pdf['y_res'].array)
+    if 'firth_offset' in sorted_pdf:
+        firth_offset = np.column_stack(sorted_pdf['firth_offset'].array)
+    else:
+        firth_offset = None
+    return LogRegState(inv_CtGammaC, gamma, Y_res, firth_offset)
 
 
 @typechecked
 def _create_log_reg_state(
-        Y: NDArray[(Any, Any), Float],
-        phenotype_df: pd.DataFrame,  # Unused, only to share code with lin_reg.py
-        offset_df: Optional[pd.DataFrame],
-        C: NDArray[(Any, Any), Float],
-        Y_mask: NDArray[(Any, Any), bool],
-        correction: str,
-        fit_intercept: bool) -> LogRegState:
-    Y_pred = np.row_stack([
-        _logistic_null_model_predictions(
-            Y[:, i], C, Y_mask[:, i],
-            offset_df.iloc[:, i].to_numpy() if offset_df is not None else None)
-        for i in range(Y.shape[1])
-    ])
-    gamma = Y_pred * (1 - Y_pred)
-    CtGammaC = C.T @ (gamma[:, :, None] * C)
-    inv_CtGammaC = np.linalg.inv(CtGammaC)
+        spark: SparkSession, phenotype_df: pd.DataFrame, offset_df: pd.DataFrame,
+        sql_type: DataType, C: NDArray[(Any, Any), Float], correction: str, fit_intercept: bool) -> Union[LogRegState, Dict[str, LogRegState]]:
+    '''
+    Creates the broadcasted LogRegState object (or one object per contig if LOCO offsets were provided).
+
+    Fitting the null logistic models can be expensive, so the work is distributed across the cluster
+    using Pandas UDFs.
+    '''
+    offset_type = gwas_fx._validate_offset(phenotype_df, offset_df)
+    pivoted_phenotype_df = reshape_for_gwas(spark, phenotype_df)
+    result_fields = [
+        StructField('label', StringType()),
+        StructField('y_res', ArrayType(sql_type)),
+        StructField('gamma', ArrayType(sql_type)),
+        StructField('inv_CtGammaC', ArrayType(sql_type))
+    ]
 
     if correction == correction_approx_firth:
-        approx_firth_state = create_approx_firth_state(Y, offset_df, C, Y_mask, fit_intercept)
-    else:
-        approx_firth_state = None
+        result_fields.append(StructField('firth_offset', ArrayType(sql_type)))
 
-    return LogRegState(inv_CtGammaC, gamma, (Y - Y_pred.T) * Y_mask, approx_firth_state)
+    if offset_type == gwas_fx._OffsetType.NO_OFFSET:
+        df = pivoted_phenotype_df
+    else:
+        pivoted_offset_df = reshape_for_gwas(spark, offset_df).withColumnRenamed('values', 'offset')
+        df = pivoted_offset_df.join(pivoted_phenotype_df, on='label')
+
+    if offset_type == gwas_fx._OffsetType.LOCO_OFFSET:
+        result_fields.append(StructField('contigName', StringType()))
+
+    def map_func(pdf_iterator):
+        for pdf in pdf_iterator:
+            yield pdf.apply(lambda r: _prepare_one_phenotype(C, r, correction, fit_intercept),
+                            axis='columns',
+                            result_type='expand')
+
+    pdf = df.mapInPandas(map_func, StructType(result_fields)).toPandas()
+    phenotypes = phenotype_df.columns.to_series().astype('str')
+    n_covar = C.shape[1]
+
+    if offset_type != gwas_fx._OffsetType.LOCO_OFFSET:
+        state = _pdf_to_log_reg_state(pdf, phenotypes, n_covar)
+        return state
+
+    all_contigs = pdf['contigName'].unique()
+    return {
+        contig: _pdf_to_log_reg_state(pdf.loc[pdf.contigName == contig, :], phenotypes, n_covar)
+        for contig in all_contigs
+    }
 
 
 def _logistic_residualize(X: NDArray[(Any, Any), Float], C: NDArray[(Any, Any), Float],
@@ -179,7 +240,7 @@ def _logistic_residualize(X: NDArray[(Any, Any), Float], C: NDArray[(Any, Any), 
     Residualize the genotype vectors given the null model predictions.
     X_res = X - C(C.T gamma C)^-1 C.T gamma X
     '''
-    X_hat = gwas_fx._einsum('ic,pcd,ds,ps,sg,sp->igp', C, inv_CtGammaC, C.T, gamma, X, Y_mask)
+    X_hat = gwas_fx._einsum('ic,pcd,ds,sp,sg,sp->igp', C, inv_CtGammaC, C.T, gamma, X, Y_mask)
     return X[:, :, None] - X_hat
 
 
@@ -207,7 +268,7 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
     with oe.shared_intermediates():
         X_res = _logistic_residualize(X, C, Y_mask, log_reg_state.gamma, log_reg_state.inv_CtGammaC)
         num = gwas_fx._einsum('sgp,sp->pg', X_res, log_reg_state.Y_res)**2
-        denom = gwas_fx._einsum('sgp,sgp,ps->pg', X_res, X_res, log_reg_state.gamma)
+        denom = gwas_fx._einsum('sgp,sgp,sp->pg', X_res, X_res, log_reg_state.gamma)
     t_values = np.ravel(num / denom)
     p_values = stats.chi2.sf(t_values, 1)
 
@@ -225,10 +286,10 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
             for correction_idx in correction_indices:
                 snp_idx = correction_idx % X.shape[1]
                 pheno_idx = int(correction_idx / X.shape[1])
-                approx_firth_snp_fit = correct_approx_firth(
+                approx_firth_snp_fit = af.correct_approx_firth(
                     X[:, snp_idx],
                     Y[:, pheno_idx],
-                    log_reg_state.approx_firth_state.logit_offset[:, pheno_idx],
+                    log_reg_state.firth_offset[:, pheno_idx],
                     Y_mask[:, pheno_idx]
                 )
                 if approx_firth_snp_fit is not None:
