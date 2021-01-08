@@ -16,7 +16,7 @@ default_offset = [0.1, 0.2, 0.3, 0.4, 0.4, 0.3, 0.2, 0.1]
 
 
 def _read_fid_iid_df(file):
-    df = pd.read_table(file, sep='\s+')
+    df = pd.read_table(file, sep=r'\s+')
     df['FID_IID'] = df['FID'].astype(str) + '_' + df['IID'].astype(str)
     return df.sort_values(by=['FID', 'IID']) \
         .drop(columns=['FID', 'IID']) \
@@ -24,7 +24,7 @@ def _read_fid_iid_df(file):
 
 
 def _read_offset_df(file, trait):
-    df = pd.melt(pd.read_table(file, sep='\s+'), id_vars=['FID_IID']) \
+    df = pd.melt(pd.read_table(file, sep=r'\s+'), id_vars=['FID_IID']) \
         .rename(columns={'FID_IID': 'contigName', 'variable': 'FID_IID', 'value': trait}) \
         .astype({'FID_IID': 'str', 'contigName': 'str'})
     df[['FID', 'IID']] = df.FID_IID.str.split('_', expand=True)
@@ -70,7 +70,7 @@ def compare_full_firth_beta(
         X=np.column_stack([np.array(covariates).T, genotypes]),
         y=np.array(phenotypes),
         offset=np.array(offset),
-        y_mask=np.ones(len(phenotypes)),
+        y_mask=np.ones(len(phenotypes), dtype=bool),
     )
     golden_firth_beta = golden_firth_fit.head().beta
     test_firth_beta = test_firth_fit.beta[-1]
@@ -93,7 +93,7 @@ def test_full_firth_no_intercept(spark):
 def test_end_to_end(spark):
     test_data_dir = 'test-data/regenie/'
 
-    num_snps = 10
+    num_snps = 100 # Spot check
 
     genotype_df = spark.read.format('bgen').load(test_data_dir + 'example.bgen') \
         .withColumn('values', fx.genotype_states('genotypes')) \
@@ -115,10 +115,10 @@ def test_end_to_end(spark):
                            pvalue_threshold=0.9999,
                            values_column='values').toPandas()
 
-    regenie_trait1_df = pd.read_table(test_data_dir + 'test_bin_out_firth_Y1.regenie', sep='\s+')
+    regenie_trait1_df = pd.read_table(test_data_dir + 'test_bin_out_firth_Y1.regenie', sep=r'\s+')
     regenie_trait1_df = regenie_trait1_df[regenie_trait1_df['ID'] <= num_snps]
     regenie_trait1_df['phenotype'] = 'Y1'
-    regenie_trait2_df = pd.read_table(test_data_dir + 'test_bin_out_firth_Y2.regenie', sep='\s+')
+    regenie_trait2_df = pd.read_table(test_data_dir + 'test_bin_out_firth_Y2.regenie', sep=r'\s+')
     regenie_trait2_df = regenie_trait2_df[regenie_trait2_df['ID'] <= num_snps]
     regenie_trait2_df['phenotype'] = 'Y2'
     regenie_df = pd.concat([regenie_trait1_df, regenie_trait2_df], ignore_index=True)
@@ -129,5 +129,6 @@ def test_end_to_end(spark):
     assert_frame_equal(
         glowgr_df[['ID', 'BETA', 'SE', 'pvalue', 'phenotype']],
         regenie_df[['ID', 'BETA', 'SE', 'pvalue', 'phenotype']],
-        check_dtype=False
+        check_dtype=False,
+        check_less_precise=True
     )

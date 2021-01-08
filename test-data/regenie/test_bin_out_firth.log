@@ -1,4 +1,4 @@
-Start time: Wed Jan  6 17:01:32 2021
+Start time: Thu Jan  7 18:39:08 2021
 
               |==============================|
               |      REGENIE v1.0.6.7.gz     |
@@ -44,14 +44,14 @@ Association testing mode
  * using fast Firth correction for logistic regression p-values less than 0.9999
 
 Chromosome 1 [5 blocks in total]
-   -reading loco predictions for the chromosome...done (0ms) 
+   -reading loco predictions for the chromosome...done (1ms) 
    -fitting null logistic regression on binary phenotypes...done (0ms) 
    -fitting null Firth logistic regression on binary phenotypes...done (0ms) 
- block [1] : done (51ms) 
- block [2] : done (42ms) 
- block [3] : done (45ms) 
- block [4] : done (44ms) 
- block [5] : done (44ms) 
+ block [1] : done (48ms) 
+ block [2] : done (43ms) 
+ block [3] : done (47ms) 
+ block [4] : done (50ms) 
+ block [5] : done (47ms) 
 
 Association results stored separately for each trait in files : 
 * [test_bin_out_firth_Y1.regenie]
@@ -61,6 +61,6 @@ Number of tests with Firth correction : (2000/2000)
 Number of failed tests : (0/2000)
 Number of ignored SNPs due to low MAC : 0
 
-Elapsed time : 0.254557s
-End time: Wed Jan  6 17:01:32 2021
+Elapsed time : 0.267278s
+End time: Thu Jan  7 18:39:08 2021
 
