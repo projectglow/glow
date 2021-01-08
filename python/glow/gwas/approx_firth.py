@@ -57,7 +57,6 @@ def _fit_firth(
         X: NDArray[(Any, Any), Float],
         y: NDArray[(Any,), Float],
         offset: NDArray[(Any,), Float],
-        y_mask: NDArray[(Any,), bool],
         convergence_limit: float = 1e-5,
         deviance_tolerance: float = 1e-6,
         max_iter: int = 250,
@@ -80,8 +79,8 @@ def _fit_firth(
 
     n_iter = 0
     beta = beta_init.copy()
-    model = sm.GLM(y[y_mask],
-                   X[y_mask],
+    model = sm.GLM(y,
+                   X,
                    family=sm.families.Binomial(),
                    offset=offset,
                    missing='ignore')
@@ -144,17 +143,17 @@ def create_approx_firth_state(
     logit_offset = np.zeros(Y.shape)
 
     for i in range(Y.shape[1]):
-        y = Y[:, i]
         y_mask = Y_mask[:, i]
-        offset = offset_df.iloc[:, i].to_numpy() if offset_df is not None else np.zeros(y.shape)
+        y = Y[y_mask, i]
+        offset = offset_df.iloc[y_mask, i].to_numpy() if offset_df is not None else np.zeros(y.shape)
         b0_null_fit = np.zeros(C.shape[1])
         if fit_intercept:
             b0_null_fit[-1] = (0.5 + y.sum()) / (y_mask.sum() + 1)
             b0_null_fit[-1] = np.log(b0_null_fit[-1] / (1 - b0_null_fit[-1])) - offset.mean()
-        firth_fit_result = _fit_firth(b0_null_fit, C, y, offset, y_mask)
+        firth_fit_result = _fit_firth(b0_null_fit, C[y_mask, :], y, offset)
         if firth_fit_result is None:
             raise ValueError("Null fit failed!")
-        logit_offset[:, i] = offset + C @ firth_fit_result.beta
+        logit_offset[y_mask, i] = offset + C[y_mask, :] @ firth_fit_result.beta
 
     return ApproxFirthState(logit_offset)
 
@@ -172,17 +171,19 @@ def correct_approx_firth(
     '''
 
     beta_init = np.zeros(1)
-    X = np.expand_dims(x, axis=1)
-    firth_fit = _fit_firth(beta_init, X, y, logit_offset, y_mask)
+    masked_y = y[y_mask]
+    masked_X = np.expand_dims(x, axis=1)[y_mask, :]
+    masked_offset = logit_offset[y_mask]
+    firth_fit = _fit_firth(beta_init, masked_X, masked_y, masked_offset)
     if firth_fit is None:
         return None
 
     effect = firth_fit.beta.item()
     # Likelihood-ratio test
-    null_model = sm.GLM(y[y_mask],
-                        X[y_mask],
+    null_model = sm.GLM(masked_y,
+                        masked_X,
                         family=sm.families.Binomial(),
-                        offset=logit_offset,
+                        offset=masked_offset,
                         missing='ignore')
     null_deviance = _calculate_log_likelihood(beta_init, null_model).deviance
     tvalue = -1 * (firth_fit.log_likelihood.deviance - null_deviance)
