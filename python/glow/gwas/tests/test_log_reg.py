@@ -6,7 +6,11 @@ import numpy as np
 import pytest
 
 
-def run_score_test(genotype_df, phenotype_df, covariate_df, correction=lr.correction_none, fit_intercept=True):
+def run_score_test(genotype_df,
+                   phenotype_df,
+                   covariate_df,
+                   correction=lr.correction_none,
+                   fit_intercept=True):
     C = covariate_df.to_numpy(copy=True)
     if fit_intercept:
         C = gwas_fx._add_intercept(C, phenotype_df.shape[0])
@@ -14,12 +18,10 @@ def run_score_test(genotype_df, phenotype_df, covariate_df, correction=lr.correc
     Y_mask = ~np.isnan(Y)
     Y[~Y_mask] = 0
     state_rows = [
-        lr._prepare_one_phenotype(
-            C,
-            pd.Series({'label': p, 'values': phenotype_df[p]}),
-            correction,
-            fit_intercept
-        ) for p in phenotype_df
+        lr._prepare_one_phenotype(C, pd.Series({
+            'label': p,
+            'values': phenotype_df[p]
+        }), correction, fit_intercept) for p in phenotype_df
     ]
     phenotype_names = phenotype_df.columns.to_series().astype('str')
     state = lr._pdf_to_log_reg_state(pd.DataFrame(state_rows), phenotype_names, C.shape[1])

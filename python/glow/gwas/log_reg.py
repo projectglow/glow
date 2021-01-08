@@ -22,16 +22,15 @@ correction_approx_firth = 'approx-firth'
 
 
 @typechecked
-def logistic_regression(
-        genotype_df: DataFrame,
-        phenotype_df: pd.DataFrame,
-        covariate_df: pd.DataFrame = pd.DataFrame({}),
-        offset_df: pd.DataFrame = pd.DataFrame({}),
-        correction: str = correction_approx_firth,
-        pvalue_threshold: float = 0.05,
-        fit_intercept: bool = True,
-        values_column: str = 'values',
-        dt: type = np.float64) -> DataFrame:
+def logistic_regression(genotype_df: DataFrame,
+                        phenotype_df: pd.DataFrame,
+                        covariate_df: pd.DataFrame = pd.DataFrame({}),
+                        offset_df: pd.DataFrame = pd.DataFrame({}),
+                        correction: str = correction_approx_firth,
+                        pvalue_threshold: float = 0.05,
+                        fit_intercept: bool = True,
+                        values_column: str = 'values',
+                        dt: type = np.float64) -> DataFrame:
     '''
     Uses logistic regression to test for association between genotypes and one or more binary
     phenotypes. This is a distributed version of the method from regenie:
@@ -88,7 +87,8 @@ def logistic_regression(
         StructField('phenotype', StringType())
     ]
     if correction == correction_approx_firth:
-        result_fields = [StructField('effect', sql_type), StructField('stderr', sql_type)] + base_result_fields
+        result_fields = [StructField('effect', sql_type),
+                         StructField('stderr', sql_type)] + base_result_fields
     else:
         result_fields = base_result_fields
 
@@ -100,7 +100,8 @@ def logistic_regression(
     Y_mask = ~(np.isnan(Y))
     np.nan_to_num(Y, copy=False)
 
-    state = _create_log_reg_state(spark, phenotype_df, offset_df, sql_type, C, correction, fit_intercept)
+    state = _create_log_reg_state(spark, phenotype_df, offset_df, sql_type, C, correction,
+                                  fit_intercept)
 
     phenotype_names = phenotype_df.columns.to_series().astype('str')
 
@@ -117,7 +118,7 @@ class LogRegState:
     inv_CtGammaC: NDArray[(Any, Any, Any), Float]  # n_phenotypes x n_covariates x n_covariates
     gamma: NDArray[(Any, Any), Float]  # n_samples x n_phenotypes
     Y_res: NDArray[(Any, Any), Float]  # n_samples x n_phenotypes
-    firth_offset: Optional[NDArray[(Any, Any), Float]] # n_samples x n_phenotypes
+    firth_offset: Optional[NDArray[(Any, Any), Float]]  # n_samples x n_phenotypes
 
 
 def _logistic_null_model_predictions(y, X, mask, offset):
@@ -137,7 +138,8 @@ def _logistic_null_model_predictions(y, X, mask, offset):
     return remapped_predictions
 
 
-def _prepare_one_phenotype(C: NDArray[(Any, Any), Float], row: pd.Series, correction: str, fit_intercept: bool) -> pd.Series:
+def _prepare_one_phenotype(C: NDArray[(Any, Any), Float], row: pd.Series, correction: str,
+                           fit_intercept: bool) -> pd.Series:
     '''
     Creates the broadcasted information for one (phenotype, offset) pair. The returned series
     contains the information eventually stored in a LogRegState.
@@ -182,9 +184,9 @@ def _pdf_to_log_reg_state(pdf: pd.DataFrame, phenotypes: pd.Series, n_covar: int
 
 
 @typechecked
-def _create_log_reg_state(
-        spark: SparkSession, phenotype_df: pd.DataFrame, offset_df: pd.DataFrame,
-        sql_type: DataType, C: NDArray[(Any, Any), Float], correction: str, fit_intercept: bool) -> Union[LogRegState, Dict[str, LogRegState]]:
+def _create_log_reg_state(spark: SparkSession, phenotype_df: pd.DataFrame, offset_df: pd.DataFrame,
+                          sql_type: DataType, C: NDArray[(Any, Any), Float], correction: str,
+                          fit_intercept: bool) -> Union[LogRegState, Dict[str, LogRegState]]:
     '''
     Creates the broadcasted LogRegState object (or one object per contig if LOCO offsets were provided).
 
@@ -245,8 +247,9 @@ def _logistic_residualize(X: NDArray[(Any, Any), Float], C: NDArray[(Any, Any), 
 
 
 def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogRegState,
-                               C: NDArray[(Any, Any), Float], Y: NDArray[(Any, Any), Float], Y_mask: NDArray[(Any, Any), bool],
-                               correction: str, pvalue_threshold: float, phenotype_names: pd.Series) -> pd.DataFrame:
+                               C: NDArray[(Any, Any), Float], Y: NDArray[(Any, Any), Float],
+                               Y_mask: NDArray[(Any, Any), bool], correction: str,
+                               pvalue_threshold: float, phenotype_names: pd.Series) -> pd.DataFrame:
     '''
     Tests a block of genotypes for association with binary traits. We first residualize
     the genotypes based on the null model fit, then perform a fast score test to check for
@@ -287,11 +290,8 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
                 snp_idx = correction_idx % X.shape[1]
                 pheno_idx = int(correction_idx / X.shape[1])
                 approx_firth_snp_fit = af.correct_approx_firth(
-                    X[:, snp_idx],
-                    Y[:, pheno_idx],
-                    log_reg_state.firth_offset[:, pheno_idx],
-                    Y_mask[:, pheno_idx]
-                )
+                    X[:, snp_idx], Y[:, pheno_idx], log_reg_state.firth_offset[:, pheno_idx],
+                    Y_mask[:, pheno_idx])
                 if approx_firth_snp_fit is not None:
                     out_df.effect.iloc[correction_idx] = approx_firth_snp_fit.effect
                     out_df.stderr.iloc[correction_idx] = approx_firth_snp_fit.stderr
