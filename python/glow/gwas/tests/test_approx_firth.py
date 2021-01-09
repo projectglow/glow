@@ -89,7 +89,7 @@ def _read_regenie_df(file, trait, num_snps):
 
 
 @pytest.mark.min_spark('3')
-def compare_to_regenie(spark, pvalue_threshold, regenie_prefix, compare_all_cols):
+def compare_to_regenie(spark, pvalue_threshold, regenie_prefix, compare_all_cols, uncorrected, corrected):
     test_data_dir = 'test-data/regenie/'
 
     num_snps = 100  # Spot check
@@ -125,7 +125,7 @@ def compare_to_regenie(spark, pvalue_threshold, regenie_prefix, compare_all_cols
         ignore_index=True)
 
     glowgr_df['ID'] = glowgr_df['names'].apply(lambda x: int(x[-1]))
-    glowgr_df = glowgr_df.rename(columns={'effect': 'BETA', 'stderr': 'SE'}).astype({'ID': 'int64'})
+    glowgr_df = glowgr_df.rename(columns={'effect': 'BETA', 'stderror': 'SE'}).astype({'ID': 'int64'})
     regenie_df['pvalue'] = np.power(10, -regenie_df['LOG10P'])
 
     if compare_all_cols:
@@ -137,10 +137,18 @@ def compare_to_regenie(spark, pvalue_threshold, regenie_prefix, compare_all_cols
                        check_dtype=False,
                        check_less_precise=True)
 
+    corrected_counts = glowgr_df.correction.value_counts()
+    if uncorrected > 0:
+        assert corrected_counts['none'] == uncorrected
+    if corrected > 0:
+        assert corrected_counts['approx-firth'] == corrected
+
+    return glowgr_df
+
 
 def test_correct_all_versus_regenie(spark):
-    compare_to_regenie(spark, 0.9999, 'test_bin_out_firth_', True)
+    compare_to_regenie(spark, 0.9999, 'test_bin_out_firth_', True, uncorrected=0, corrected=200)
 
 
 def test_correct_half_versus_regenie(spark):
-    compare_to_regenie(spark, 0.5, 'test_bin_out_half_firth_', False)
+    compare_to_regenie(spark, 0.5, 'test_bin_out_half_firth_', False, uncorrected=103, corrected=97)

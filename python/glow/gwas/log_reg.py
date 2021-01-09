@@ -59,7 +59,7 @@ def logistic_regression(genotype_df: DataFrame,
                     should be the contig name. The two level index scheme allows for per-contig offsets like
                     LOCO predictions from GloWGR.
         correction : Which test to use for variants that meet a significance threshold for the score test. Supported
-                     methods are `none` and `approx-firth`.
+                     methods are ``none`` and ``approx-firth``.
         pvalue_threshold : Variants with a pvalue below this threshold will be tested using the ``correction`` method.
         fit_intercept : Whether or not to add an intercept column to the covariate DataFrame
         values_column : A column name or column expression to test with linear regression. If a column name is provided,
@@ -74,8 +74,10 @@ def logistic_regression(genotype_df: DataFrame,
         - ``tvalue``: The chi squared test statistic according to the score test or the correction method
         - ``pvalue``: P value estimated from the test statistic
         - ``phenotype``: The phenotype name as determiend by the column names of ``phenotype_df``
+        - ``correction``: The correction method used.
+                          If ``none`` and ``pvalue < pvalue_threshold``, the correction method failed.
         - ``effect``: The effect size (if approximate Firth correction was applied)
-        - ``stderr``: Standard error of the effect size (if approximate Firth correction was applied)
+        - ``stderror``: Standard error of the effect size (if approximate Firth correction was applied)
     '''
 
     spark = genotype_df.sql_ctx.sparkSession
@@ -90,7 +92,8 @@ def logistic_regression(genotype_df: DataFrame,
     ]
     if correction == correction_approx_firth:
         result_fields = [StructField('effect', sql_type),
-                         StructField('stderr', sql_type)] + base_result_fields
+                         StructField('stderror', sql_type),
+                         StructField('correction', StringType())] + base_result_fields
     elif correction == correction_none:
         result_fields = base_result_fields
     else:
@@ -290,10 +293,11 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
     out_df['phenotype'] = phenotype_names.repeat(genotype_pdf.shape[0]).tolist()
 
     if correction != correction_none:
+        out_df['correction'] = 'none'
         correction_indices = list(np.where(out_df['pvalue'] < pvalue_threshold)[0])
         if correction == correction_approx_firth:
             out_df['effect'] = np.nan
-            out_df['stderr'] = np.nan
+            out_df['stderror'] = np.nan
             for correction_idx in correction_indices:
                 snp_idx = correction_idx % X.shape[1]
                 pheno_idx = int(correction_idx / X.shape[1])
@@ -301,11 +305,10 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
                     X[:, snp_idx], Y[:, pheno_idx], log_reg_state.firth_offset[:, pheno_idx],
                     Y_mask[:, pheno_idx])
                 if approx_firth_snp_fit is not None:
+                    out_df.correction.iloc[correction_idx] = 'approx-firth'
                     out_df.effect.iloc[correction_idx] = approx_firth_snp_fit.effect
-                    out_df.stderr.iloc[correction_idx] = approx_firth_snp_fit.stderr
+                    out_df.stderror.iloc[correction_idx] = approx_firth_snp_fit.stderror
                     out_df.tvalue.iloc[correction_idx] = approx_firth_snp_fit.tvalue
                     out_df.pvalue.iloc[correction_idx] = approx_firth_snp_fit.pvalue
-                else:
-                    print(f"Could not correct {out_df.iloc[correction_idx]}")
 
     return out_df
