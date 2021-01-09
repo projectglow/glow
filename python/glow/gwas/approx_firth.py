@@ -11,15 +11,14 @@ import statsmodels.api as sm
 
 @dataclass
 class LogLikelihood:
-    pi: NDArray[(Any, ), Float]
-    G: NDArray[(Any, Any), Float]  # diag(pi(1-pi))
+    pi: NDArray[(Any, ), Float] # n_samples
     I: NDArray[(Any, Any), Float]  # Fisher information matrix
     deviance: Float  # -2 * penalized log likelihood
 
 
 @dataclass
 class FirthFit:
-    beta: NDArray[(Any, ), Float]
+    beta: NDArray[(Any, ), Float] # n_covariates for null fit, 1 for SNP fit
     log_likelihood: LogLikelihood
 
 
@@ -33,15 +32,13 @@ class FirthStatistics:
 
 @typechecked
 def _calculate_log_likelihood(beta: NDArray[(Any, ), Float], model: Model) -> LogLikelihood:
-
     pi = model.predict(beta)
-    G = np.diagflat(pi * (1 - pi))
     I = -model.hessian(beta)
     unpenalized_log_likelihood = model.loglike(beta)
     _, log_abs_det = np.linalg.slogdet(I)
     penalty = 0.5 * log_abs_det
     deviance = -2 * (unpenalized_log_likelihood + penalty)
-    return LogLikelihood(pi, G, I, deviance)
+    return LogLikelihood(pi, I, deviance)
 
 
 @typechecked
@@ -55,29 +52,35 @@ def _fit_firth(beta_init: NDArray[(Any, ), Float],
                max_step_size: int = 5,
                max_half_steps: int = 25) -> Optional[FirthFit]:
     '''
-    Firth’s bias-reduced penalized-likelihood logistic regression, based on the regenie implementation.
+    Firth’s bias-reduced penalized-likelihood logistic regression, based on the regenie implementation:
+    https://www.biorxiv.org/content/10.1101/2020.06.19.162354v2
 
-    :param beta_init: Initial beta values
-    :param X: Independent variable (covariate for null fit, genotype for SNP fit)
-    :param y: Dependent variable (phenotype)
-    :param offset: Offset (phenotype offset only for null fit, also with covariate offset for SNP fit)
-    :param convergence_limit: Convergence is reached if all entries of the penalized score have smaller magnitude
-    :param deviance_tolerance: Non-inferiority margin when halving step size
-    :param max_iter: Maximum number of Firth iterations
-    :param max_step_size: Maximum step size during a Firth iteration
-    :param max_half_steps: Maximum number of half-steps during a Firth iteration
-    :return: None if the fit failed
+    Args:
+        beta_init : Initial beta values
+        X : Independent variable (covariate for null fit, genotype for SNP fit)
+        y : Dependent variable (phenotype)
+        offset : Phenotype offset only for null fit, phenotype + covariate effects for SNP fit
+        convergence_limit : Convergence is reached if all entries of the penalized score have smaller magnitude
+        deviance_tolerance : Non-inferiority margin when halving step size (default from regenie)
+        max_iter : Maximum number of Firth iterations (default from regenie)
+        max_step_size : Maximum step size during a Firth iteration (default from regenie)
+        max_half_steps : Maximum number of half-steps during a Firth iteration (default from regenie)
+
+    Returns:
+        None if the fit failed. Otherwise, a FirthFit object containing the fit information.
     '''
 
     n_iter = 0
     beta = beta_init.copy()
     model = sm.GLM(y, X, family=sm.families.Binomial(), offset=offset, missing='ignore')
     log_likelihood = _calculate_log_likelihood(beta, model)
+
     while n_iter < max_iter:
         invI = np.linalg.pinv(log_likelihood.I)
 
         # build hat matrix
-        rootG_X = np.sqrt(log_likelihood.G) @ X
+        rootG = np.sqrt(log_likelihood.pi * (1 - log_likelihood.pi))
+        rootG_X = np.expand_dims(rootG, 1) * X # equivalent to np.diagflat(pi * (1 - pi)) @ X
         h = np.diagonal(rootG_X @ invI @ rootG_X.T)
 
         # modified score function
@@ -109,7 +112,7 @@ def _fit_firth(beta_init: NDArray[(Any, ), Float],
         n_iter += 1
 
     if n_iter == max_iter:
-        print(f"Exceeded iteration limit {max_iter}")
+        # Failed to converge
         return None
 
     return FirthFit(beta, log_likelihood)
@@ -118,11 +121,14 @@ def _fit_firth(beta_init: NDArray[(Any, ), Float],
 @typechecked
 def perform_null_firth_fit(y: NDArray[(Any, ), Float], C: NDArray[(Any, Any), Float],
                            mask: NDArray[(Any, ), bool], offset: Optional[NDArray[(Any, ), Float]],
-                           fit_intercept: bool) -> NDArray[(Any, Any), Float]:
+                           fit_intercept: bool) -> NDArray[(Any, ), Float]:
     '''
-    Performs the null fit for approximate Firth.
+    Performs the null fit for approximate Firth in order to calculate the covariate effects to be
+    used as an offset during the SNP fits.
 
-    :return: Offset with covariate effects for SNP fit
+    Returns:
+        None if the Firth fit did not converge.
+        Otherwise, offset vector with per-sample covariate effects for SNP fits.
     '''
 
     firth_offset = np.zeros(y.shape)
@@ -139,14 +145,14 @@ def perform_null_firth_fit(y: NDArray[(Any, ), Float], C: NDArray[(Any, Any), Fl
     return firth_offset
 
 
-@typechecked
+# Skip typechecking for optimization
 def correct_approx_firth(x: NDArray[(Any, ), Float], y: NDArray[(Any, ), Float],
                          firth_offset: NDArray[(Any, ), Float],
                          y_mask: NDArray[(Any, ), bool]) -> Optional[FirthStatistics]:
     '''
     Calculate LRT statistics for a SNP using the approximate Firth method.
 
-    :return: None if the Firth fit did not converge, LRT statistics otherwise
+    :return: None if the Firth fit did not converge. Otherwise, likelihood-ratio test statistics.
     '''
 
     beta_init = np.zeros(1)

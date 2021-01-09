@@ -3,13 +3,12 @@ import numpy as np
 from nptyping import Float, NDArray
 from dataclasses import dataclass
 from typing import Any, Dict, Union
-from pyspark.sql import functions as fx, Column, DataFrame
+from pyspark.sql import Column, DataFrame
 from pyspark.sql.types import ArrayType, FloatType, DoubleType, StringType, StructField, StructType
 from scipy import stats
 from typeguard import typechecked
-from ..wgr.linear_model.functions import __assert_all_present
 from . import functions as gwas_fx
-from .functions import _VALUES_COLUMN_NAME, _GENOTYPES_COLUMN_NAME
+from .functions import _VALUES_COLUMN_NAME
 
 __all__ = ['linear_regression']
 
@@ -157,17 +156,6 @@ def _create_one_YState(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame
 
 
 @typechecked
-def _residualize_in_place(M: NDArray[(Any, Any), Float],
-                          Q: NDArray[(Any, Any), Float]) -> NDArray[(Any, Any), Float]:
-    '''
-    Residualize a matrix in place using an orthonormal basis. The residualized matrix
-    is returned for easy chaining.
-    '''
-    M -= Q @ (Q.T @ M)
-    return M
-
-
-@typechecked
 def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
                              Y_mask: NDArray[(Any, Any), Float], Q: NDArray[(Any, Any), Float],
                              dof: int, phenotype_names: pd.Series) -> pd.DataFrame:
@@ -185,7 +173,7 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
 
     So, if a matrix's indices are `sg` (like the X matrix), it has one row per sample and one column per genotype.
     '''
-    X = _residualize_in_place(np.column_stack(genotype_pdf[_VALUES_COLUMN_NAME].array), Q)
+    X = gwas_fx._residualize_in_place(np.column_stack(genotype_pdf[_VALUES_COLUMN_NAME].array), Q)
     XdotY = Y_state.Y.T @ X
     XdotX_reciprocal = 1 / gwas_fx._einsum('sp,sg,sg->pg', Y_mask, X, X)
     betas = XdotY * XdotX_reciprocal

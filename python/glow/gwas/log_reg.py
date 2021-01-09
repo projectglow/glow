@@ -12,7 +12,6 @@ import opt_einsum as oe
 from . import functions as gwas_fx
 from . import approx_firth as af
 from .functions import _VALUES_COLUMN_NAME
-from .lin_reg import _residualize_in_place
 from ..wgr.functions import reshape_for_gwas
 
 __all__ = ['logistic_regression']
@@ -59,7 +58,8 @@ def logistic_regression(genotype_df: DataFrame,
                     If two levels, the level 0 index should be the same as the ``phenotype_df``, and the level 1 index
                     should be the contig name. The two level index scheme allows for per-contig offsets like
                     LOCO predictions from GloWGR.
-        correction : Which test to use for variants that meet a significance threshold for the score test
+        correction : Which test to use for variants that meet a significance threshold for the score test. Supported
+                     methods are `none` and `approx-firth`.
         pvalue_threshold : Variants with a pvalue below this threshold will be tested using the ``correction`` method.
         fit_intercept : Whether or not to add an intercept column to the covariate DataFrame
         values_column : A column name or column expression to test with linear regression. If a column name is provided,
@@ -74,6 +74,8 @@ def logistic_regression(genotype_df: DataFrame,
         - ``tvalue``: The chi squared test statistic according to the score test or the correction method
         - ``pvalue``: P value estimated from the test statistic
         - ``phenotype``: The phenotype name as determiend by the column names of ``phenotype_df``
+        - ``effect``: The effect size (if approximate Firth correction was applied)
+        - ``stderr``: Standard error of the effect size (if approximate Firth correction was applied)
     '''
 
     spark = genotype_df.sql_ctx.sparkSession
@@ -89,8 +91,10 @@ def logistic_regression(genotype_df: DataFrame,
     if correction == correction_approx_firth:
         result_fields = [StructField('effect', sql_type),
                          StructField('stderr', sql_type)] + base_result_fields
-    else:
+    elif correction == correction_none:
         result_fields = base_result_fields
+    else:
+        raise ValueError(f"Only supported correction methods are '{correction_none}' and '{correction_approx_firth}'")
 
     result_struct = gwas_fx._output_schema(genotype_df.schema.fields, result_fields)
     C = covariate_df.to_numpy(dt, copy=True)
@@ -100,6 +104,11 @@ def logistic_regression(genotype_df: DataFrame,
     Y_mask = ~(np.isnan(Y))
     np.nan_to_num(Y, copy=False)
 
+    if correction == correction_approx_firth:
+        Q = np.linalg.qr(C)[0]
+    else:
+        Q = None
+
     state = _create_log_reg_state(spark, phenotype_df, offset_df, sql_type, C, correction,
                                   fit_intercept)
 
@@ -107,7 +116,7 @@ def logistic_regression(genotype_df: DataFrame,
 
     def map_func(pdf_iterator):
         for pdf in pdf_iterator:
-            yield gwas_fx._loco_dispatch(pdf, state, _logistic_regression_inner, C, Y, Y_mask,
+            yield gwas_fx._loco_dispatch(pdf, state, _logistic_regression_inner, C, Y, Y_mask, Q,
                                          correction, pvalue_threshold, phenotype_names)
 
     return genotype_df.mapInPandas(map_func, result_struct)
@@ -248,8 +257,8 @@ def _logistic_residualize(X: NDArray[(Any, Any), Float], C: NDArray[(Any, Any), 
 
 def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogRegState,
                                C: NDArray[(Any, Any), Float], Y: NDArray[(Any, Any), Float],
-                               Y_mask: NDArray[(Any, Any), bool], correction: str,
-                               pvalue_threshold: float, phenotype_names: pd.Series) -> pd.DataFrame:
+                               Y_mask: NDArray[(Any, Any), bool], Q: Optional[NDArray[(Any, Any), Float]],
+                               correction: str, pvalue_threshold: float, phenotype_names: pd.Series) -> pd.DataFrame:
     '''
     Tests a block of genotypes for association with binary traits. We first residualize
     the genotypes based on the null model fit, then perform a fast score test to check for
@@ -265,8 +274,7 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
 
     # For approximate Firth correction, we perform a linear residualization
     if correction == correction_approx_firth:
-        Q = np.linalg.qr(C)[0]
-        X = _residualize_in_place(X, Q)
+        X = gwas_fx._residualize_in_place(X, Q)
 
     with oe.shared_intermediates():
         X_res = _logistic_residualize(X, C, Y_mask, log_reg_state.gamma, log_reg_state.inv_CtGammaC)
@@ -299,7 +307,5 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
                     out_df.pvalue.iloc[correction_idx] = approx_firth_snp_fit.pvalue
                 else:
                     print(f"Could not correct {out_df.iloc[correction_idx]}")
-        else:
-            raise ValueError(f"Only supported correction method is {correction_approx_firth}")
 
     return out_df
