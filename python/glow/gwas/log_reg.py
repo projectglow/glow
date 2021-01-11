@@ -91,13 +91,17 @@ def logistic_regression(genotype_df: DataFrame,
         StructField('phenotype', StringType())
     ]
     if correction == correction_approx_firth:
-        result_fields = [StructField('effect', sql_type),
-                         StructField('stderror', sql_type),
-                         StructField('correction', StringType())] + base_result_fields
+        result_fields = [
+            StructField('effect', sql_type),
+            StructField('stderror', sql_type),
+            StructField('correction', StringType())
+        ] + base_result_fields
     elif correction == correction_none:
         result_fields = base_result_fields
     else:
-        raise ValueError(f"Only supported correction methods are '{correction_none}' and '{correction_approx_firth}'")
+        raise ValueError(
+            f"Only supported correction methods are '{correction_none}' and '{correction_approx_firth}'"
+        )
 
     result_struct = gwas_fx._output_schema(genotype_df.schema.fields, result_fields)
     C = covariate_df.to_numpy(dt, copy=True)
@@ -260,8 +264,10 @@ def _logistic_residualize(X: NDArray[(Any, Any), Float], C: NDArray[(Any, Any), 
 
 def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogRegState,
                                C: NDArray[(Any, Any), Float], Y: NDArray[(Any, Any), Float],
-                               Y_mask: NDArray[(Any, Any), bool], Q: Optional[NDArray[(Any, Any), Float]],
-                               correction: str, pvalue_threshold: float, phenotype_names: pd.Series) -> pd.DataFrame:
+                               Y_mask: NDArray[(Any, Any),
+                                               bool], Q: Optional[NDArray[(Any, Any),
+                                                                          Float]], correction: str,
+                               pvalue_threshold: float, phenotype_names: pd.Series) -> pd.DataFrame:
     '''
     Tests a block of genotypes for association with binary traits. We first residualize
     the genotypes based on the null model fit, then perform a fast score test to check for

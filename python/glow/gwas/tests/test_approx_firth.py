@@ -111,7 +111,8 @@ def _read_regenie_df(file, trait, num_snps):
 
 
 @pytest.mark.min_spark('3')
-def compare_to_regenie(spark, pvalue_threshold, regenie_prefix, compare_all_cols, uncorrected, corrected):
+def compare_to_regenie(spark, pvalue_threshold, regenie_prefix, compare_all_cols, uncorrected,
+                       corrected):
     test_data_dir = 'test-data/regenie/'
 
     num_snps = 100  # Spot check
@@ -128,18 +129,16 @@ def compare_to_regenie(spark, pvalue_threshold, regenie_prefix, compare_all_cols
     offset_trait2_df = _read_offset_df(test_data_dir + 'fit_bin_out_2.loco', 'Y2')
     offset_df = pd.merge(offset_trait1_df, offset_trait2_df, left_index=True, right_index=True)
 
-    glowgr_df = lr.logistic_regression(
-        genotype_df,
-        phenotype_df,
-        covariate_df,
-        offset_df,
-        correction=lr.correction_approx_firth,
-        pvalue_threshold=pvalue_threshold,
-        values_column='values').toPandas()
+    glowgr_df = lr.logistic_regression(genotype_df,
+                                       phenotype_df,
+                                       covariate_df,
+                                       offset_df,
+                                       correction=lr.correction_approx_firth,
+                                       pvalue_threshold=pvalue_threshold,
+                                       values_column='values').toPandas()
 
     regenie_files = [
-        test_data_dir + regenie_prefix + 'Y1.regenie',
-        test_data_dir + regenie_prefix + 'Y2.regenie'
+        test_data_dir + regenie_prefix + 'Y1.regenie', test_data_dir + regenie_prefix + 'Y2.regenie'
     ]
     regenie_traits = ['Y1', 'Y2']
     regenie_df = pd.concat(
@@ -147,7 +146,10 @@ def compare_to_regenie(spark, pvalue_threshold, regenie_prefix, compare_all_cols
         ignore_index=True)
 
     glowgr_df['ID'] = glowgr_df['names'].apply(lambda x: int(x[-1]))
-    glowgr_df = glowgr_df.rename(columns={'effect': 'BETA', 'stderror': 'SE'}).astype({'ID': 'int64'})
+    glowgr_df = glowgr_df.rename(columns={
+        'effect': 'BETA',
+        'stderror': 'SE'
+    }).astype({'ID': 'int64'})
     regenie_df['pvalue'] = np.power(10, -regenie_df['LOG10P'])
 
     if compare_all_cols:

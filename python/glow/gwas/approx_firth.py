@@ -11,14 +11,14 @@ import statsmodels.api as sm
 
 @dataclass
 class LogLikelihood:
-    pi: NDArray[(Any, ), Float] # n_samples
+    pi: NDArray[(Any, ), Float]  # n_samples
     I: NDArray[(Any, Any), Float]  # Fisher information matrix
     deviance: Float  # -2 * penalized log likelihood
 
 
 @dataclass
 class FirthFit:
-    beta: NDArray[(Any, ), Float] # n_covariates for null fit, 1 for SNP fit
+    beta: NDArray[(Any, ), Float]  # n_covariates for null fit, 1 for SNP fit
     log_likelihood: LogLikelihood
 
 
@@ -80,7 +80,7 @@ def _fit_firth(beta_init: NDArray[(Any, ), Float],
 
         # build hat matrix
         rootG = np.sqrt(log_likelihood.pi * (1 - log_likelihood.pi))
-        rootG_X = np.expand_dims(rootG, 1) * X # equivalent to np.diagflat(pi * (1 - pi)) @ X
+        rootG_X = np.expand_dims(rootG, 1) * X  # equivalent to np.diagflat(pi * (1 - pi)) @ X
         h = np.diagonal(rootG_X @ invI @ rootG_X.T)
 
         # modified score function
