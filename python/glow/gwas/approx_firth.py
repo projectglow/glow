@@ -1,5 +1,4 @@
 from typing import Any, Optional
-import pandas as pd
 import numpy as np
 from dataclasses import dataclass
 from typeguard import typechecked
@@ -121,10 +120,17 @@ def _fit_firth(beta_init: NDArray[(Any, ), Float],
 @typechecked
 def perform_null_firth_fit(y: NDArray[(Any, ), Float], C: NDArray[(Any, Any), Float],
                            mask: NDArray[(Any, ), bool], offset: Optional[NDArray[(Any, ), Float]],
-                           fit_intercept: bool) -> NDArray[(Any, ), Float]:
+                           includes_intercept: bool) -> NDArray[(Any, ), Float]:
     '''
     Performs the null fit for approximate Firth in order to calculate the covariate effects to be
     used as an offset during the SNP fits.
+
+    Args:
+        y : Dependent variable (phenotype)
+        C : Covariate matrix
+        mask : Missingness array; false if the sample is missing a phenotype value, true otherwise
+        offset : Phenotype offset
+        includes_intercept : True if the first column of the covariate matrix C represents an intercept term
 
     Returns:
         None if the Firth fit did not converge.
@@ -132,12 +138,17 @@ def perform_null_firth_fit(y: NDArray[(Any, ), Float], C: NDArray[(Any, Any), Fl
     '''
 
     firth_offset = np.zeros(y.shape)
-    offset = offset[mask] if offset is not None else np.zeros(y.shape)
+    offset = offset if offset is not None else np.zeros(y.shape)
+
+    masked_y = y[mask]
+    masked_C = C[mask, :]
+    masked_offset = offset[mask]
+
     b0_null_fit = np.zeros(C.shape[1])
-    if fit_intercept:
-        b0_null_fit[-1] = (0.5 + y.sum()) / (mask.sum() + 1)
-        b0_null_fit[-1] = np.log(b0_null_fit[-1] / (1 - b0_null_fit[-1])) - offset.mean()
-    firth_fit_result = _fit_firth(b0_null_fit, C[mask, :], y, offset)
+    if includes_intercept:
+        b0_null_fit[0] = (0.5 + masked_y.sum()) / (mask.sum() + 1)
+        b0_null_fit[0] = np.log(b0_null_fit[0] / (1 - b0_null_fit[0])) - masked_offset.mean()
+    firth_fit_result = _fit_firth(b0_null_fit, masked_C, masked_y, masked_offset)
     if firth_fit_result is None:
         raise ValueError("Null fit failed!")
     firth_offset[mask] = offset + C[mask, :] @ firth_fit_result.beta
@@ -148,17 +159,25 @@ def perform_null_firth_fit(y: NDArray[(Any, ), Float], C: NDArray[(Any, Any), Fl
 # Skip typechecking for optimization
 def correct_approx_firth(x: NDArray[(Any, ), Float], y: NDArray[(Any, ), Float],
                          firth_offset: NDArray[(Any, ), Float],
-                         y_mask: NDArray[(Any, ), bool]) -> Optional[FirthStatistics]:
+                         mask: NDArray[(Any, ), bool]) -> Optional[FirthStatistics]:
     '''
     Calculate LRT statistics for a SNP using the approximate Firth method.
 
-    :return: None if the Firth fit did not converge. Otherwise, likelihood-ratio test statistics.
+    Args:
+        x : Genotypes for SNP
+        y : Dependent variable (phenotype)
+        offset : Phenotype offset including covariate effects from the null model fit
+        mask : Missingness array; false if the sample is missing a phenotype value, true otherwise
+
+    Returns:
+        None if the Firth fit did not converge.
+        Otherwise, likelihood-ratio test statistics.
     '''
 
     beta_init = np.zeros(1)
-    masked_y = y[y_mask]
-    masked_X = np.expand_dims(x, axis=1)[y_mask, :]
-    masked_offset = firth_offset[y_mask]
+    masked_y = y[mask]
+    masked_X = np.expand_dims(x, axis=1)[mask, :]
+    masked_offset = firth_offset[mask]
     firth_fit = _fit_firth(beta_init, masked_X, masked_y, masked_offset)
     if firth_fit is None:
         return None

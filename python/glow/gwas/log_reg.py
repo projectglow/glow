@@ -71,13 +71,13 @@ def logistic_regression(genotype_df: DataFrame,
         A Spark DataFrame that contains
 
         - All columns from ``genotype_df`` except the ``values_column`` and the ``genotypes`` column if one exists
+        - ``effect``: The effect size (if approximate Firth correction was applied)
+        - ``stderror``: Standard error of the effect size (if approximate Firth correction was applied)
+        - ``correction``: The correction method used (if the correction test method is not ``none``).
+                  If ``none`` and ``pvalue < pvalue_threshold``, the correction method failed.
         - ``tvalue``: The chi squared test statistic according to the score test or the correction method
         - ``pvalue``: P value estimated from the test statistic
         - ``phenotype``: The phenotype name as determiend by the column names of ``phenotype_df``
-        - ``correction``: The correction method used.
-                          If ``none`` and ``pvalue < pvalue_threshold``, the correction method failed.
-        - ``effect``: The effect size (if approximate Firth correction was applied)
-        - ``stderror``: Standard error of the effect size (if approximate Firth correction was applied)
     '''
 
     spark = genotype_df.sql_ctx.sparkSession
@@ -155,7 +155,7 @@ def _logistic_null_model_predictions(y, X, mask, offset):
 
 
 def _prepare_one_phenotype(C: NDArray[(Any, Any), Float], row: pd.Series, correction: str,
-                           fit_intercept: bool) -> pd.Series:
+                           includes_intercept: bool) -> pd.Series:
     '''
     Creates the broadcasted information for one (phenotype, offset) pair. The returned series
     contains the information eventually stored in a LogRegState.
@@ -176,7 +176,8 @@ def _prepare_one_phenotype(C: NDArray[(Any, Any), Float], row: pd.Series, correc
     row['y_res'], row['gamma'], row['inv_CtGammaC'] = np.ravel(y_res), np.ravel(gamma), np.ravel(
         inv_CtGammaC)
     if correction == correction_approx_firth:
-        row['firth_offset'] = np.ravel(af.perform_null_firth_fit(y, C, mask, offset, fit_intercept))
+        row['firth_offset'] = np.ravel(
+            af.perform_null_firth_fit(y, C, mask, offset, includes_intercept))
     return row
 
 
