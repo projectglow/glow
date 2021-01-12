@@ -110,7 +110,7 @@ def linear_regression(genotype_df: DataFrame,
     Y = phenotype_df.to_numpy(dt, copy=True)
     Y_mask = (~np.isnan(Y)).astype(dt)
     np.nan_to_num(Y, copy=False)
-    _residualize_in_place(Y, Q)
+    gwas_fx._residualize_in_place(Y, Q)
 
     Y_state = _create_YState(Y, phenotype_df, offset_df, Y_mask, dt)
 

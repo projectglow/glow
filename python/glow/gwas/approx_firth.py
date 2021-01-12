@@ -79,7 +79,7 @@ def _fit_firth(beta_init: NDArray[(Any, ), Float],
 
         # build hat matrix
         rootG = np.sqrt(log_likelihood.pi * (1 - log_likelihood.pi))
-        rootG_X = np.expand_dims(rootG, 1) * X  # equivalent to np.diagflat(pi * (1 - pi)) @ X
+        rootG_X = rootG[:, None] * X  # equivalent to sqrt(diagflat(pi * (1 - pi))) @ X
         h = np.diagonal(rootG_X @ invI @ rootG_X.T)
 
         # modified score function
@@ -176,7 +176,7 @@ def correct_approx_firth(x: NDArray[(Any, ), Float], y: NDArray[(Any, ), Float],
 
     beta_init = np.zeros(1)
     masked_y = y[mask]
-    masked_X = np.expand_dims(x, axis=1)[mask, :]
+    masked_X = x[mask, None]
     masked_offset = firth_offset[mask]
     firth_fit = _fit_firth(beta_init, masked_X, masked_y, masked_offset)
     if firth_fit is None:
@@ -190,7 +190,7 @@ def correct_approx_firth(x: NDArray[(Any, ), Float], y: NDArray[(Any, ), Float],
                         offset=masked_offset,
                         missing='ignore')
     null_deviance = _calculate_log_likelihood(beta_init, null_model).deviance
-    tvalue = -1 * (firth_fit.log_likelihood.deviance - null_deviance)
+    tvalue = null_deviance - firth_fit.log_likelihood.deviance
     pvalue = stats.chi2.sf(tvalue, 1)
     # Based on the Hessian of the unpenalized log-likelihood
     stderror = np.sqrt(np.linalg.pinv(firth_fit.log_likelihood.I).diagonal()[-1])

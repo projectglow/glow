@@ -164,11 +164,12 @@ def compare_to_regenie(spark,
         cols = ['ID', 'pvalue', 'phenotype']
     assert_frame_equal(glowgr_df[cols], regenie_df[cols], check_dtype=False, check_less_precise=1)
 
-    corrected_counts = glowgr_df.correction.value_counts()
+    corrected_counts = glowgr_df.correction_method.value_counts()
     if uncorrected > 0:
         assert corrected_counts['none'] == uncorrected
     if corrected > 0:
         assert corrected_counts['approx-firth'] == corrected
+    assert glowgr_df.correction_succeeded.value_counts().to_dict() == {True: uncorrected + corrected}
 
     return glowgr_df
 

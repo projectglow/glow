@@ -1,4 +1,4 @@
-from pyspark.sql.types import ArrayType, StringType, StructField, DataType, StructType
+from pyspark.sql.types import ArrayType, BooleanType, StringType, StructField, DataType, StructType
 from typing import Any, Optional, Dict, Union
 import pandas as pd
 import numpy as np
@@ -73,8 +73,8 @@ def logistic_regression(genotype_df: DataFrame,
         - All columns from ``genotype_df`` except the ``values_column`` and the ``genotypes`` column if one exists
         - ``effect``: The effect size (if approximate Firth correction was applied)
         - ``stderror``: Standard error of the effect size (if approximate Firth correction was applied)
-        - ``correction``: The correction method used (if the correction test method is not ``none``).
-                  If ``none`` and ``pvalue < pvalue_threshold``, the correction method failed.
+        - ``correction_method``: The correction method attempted (if the correction test method is not ``none``).
+        - ``correction_succeeded``: Whether the correction succeeded (if the correction test method is not ``none``).
         - ``tvalue``: The chi squared test statistic according to the score test or the correction method
         - ``pvalue``: P value estimated from the test statistic
         - ``phenotype``: The phenotype name as determiend by the column names of ``phenotype_df``
@@ -94,7 +94,8 @@ def logistic_regression(genotype_df: DataFrame,
         result_fields = [
             StructField('effect', sql_type),
             StructField('stderror', sql_type),
-            StructField('correction', StringType())
+            StructField('correction_method', StringType()),
+            StructField('correction_succeeded', BooleanType())
         ] + base_result_fields
     elif correction == correction_none:
         result_fields = base_result_fields
@@ -300,7 +301,8 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
     out_df['phenotype'] = phenotype_names.repeat(genotype_pdf.shape[0]).tolist()
 
     if correction != correction_none:
-        out_df['correction'] = 'none'
+        out_df['correction_method'] = 'none'
+        out_df['correction_succeeded'] = True
         correction_indices = list(np.where(out_df['pvalue'] < pvalue_threshold)[0])
         if correction == correction_approx_firth:
             out_df['effect'] = np.nan
@@ -311,8 +313,10 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
                 approx_firth_snp_fit = af.correct_approx_firth(
                     X[:, snp_idx], Y[:, pheno_idx], log_reg_state.firth_offset[:, pheno_idx],
                     Y_mask[:, pheno_idx])
-                if approx_firth_snp_fit is not None:
-                    out_df.correction.iloc[correction_idx] = 'approx-firth'
+                out_df.correction_method.iloc[correction_idx] = 'approx-firth'
+                if approx_firth_snp_fit is None:
+                    out_df.correction_succeeded.iloc[correction_idx] = False
+                else:
                     out_df.effect.iloc[correction_idx] = approx_firth_snp_fit.effect
                     out_df.stderror.iloc[correction_idx] = approx_firth_snp_fit.stderror
                     out_df.tvalue.iloc[correction_idx] = approx_firth_snp_fit.tvalue
