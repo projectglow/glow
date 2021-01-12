@@ -111,8 +111,13 @@ def _read_regenie_df(file, trait, num_snps):
 
 
 @pytest.mark.min_spark('3')
-def compare_to_regenie(spark, pvalue_threshold, regenie_prefix, compare_all_cols, uncorrected,
-                       corrected):
+def compare_to_regenie(spark,
+                       pvalue_threshold,
+                       regenie_prefix,
+                       compare_all_cols,
+                       uncorrected,
+                       corrected,
+                       missing=[]):
     test_data_dir = 'test-data/regenie/'
 
     num_snps = 100  # Spot check
@@ -122,6 +127,7 @@ def compare_to_regenie(spark, pvalue_threshold, regenie_prefix, compare_all_cols
         .filter(f'start < {num_snps}')
 
     phenotype_df = _set_fid_iid_df(pd.read_table(test_data_dir + 'phenotype_bin.txt', sep=r'\s+'))
+    phenotype_df.loc[missing, :] = np.nan
 
     covariate_df = _set_fid_iid_df(pd.read_table(test_data_dir + 'covariates.txt', sep=r'\s+'))
 
@@ -156,10 +162,7 @@ def compare_to_regenie(spark, pvalue_threshold, regenie_prefix, compare_all_cols
         cols = ['ID', 'BETA', 'SE', 'pvalue', 'phenotype']
     else:
         cols = ['ID', 'pvalue', 'phenotype']
-    assert_frame_equal(glowgr_df[cols],
-                       regenie_df[cols],
-                       check_dtype=False,
-                       check_less_precise=True)
+    assert_frame_equal(glowgr_df[cols], regenie_df[cols], check_dtype=False, check_less_precise=1)
 
     corrected_counts = glowgr_df.correction.value_counts()
     if uncorrected > 0:
@@ -171,8 +174,28 @@ def compare_to_regenie(spark, pvalue_threshold, regenie_prefix, compare_all_cols
 
 
 def test_correct_all_versus_regenie(spark):
-    compare_to_regenie(spark, 0.9999, 'test_bin_out_firth_', True, uncorrected=0, corrected=200)
+    compare_to_regenie(spark,
+                       0.9999,
+                       'test_bin_out_firth_',
+                       compare_all_cols=True,
+                       uncorrected=0,
+                       corrected=200)
 
 
 def test_correct_half_versus_regenie(spark):
-    compare_to_regenie(spark, 0.5, 'test_bin_out_half_firth_', False, uncorrected=103, corrected=97)
+    compare_to_regenie(spark,
+                       0.5,
+                       'test_bin_out_half_firth_',
+                       compare_all_cols=False,
+                       uncorrected=103,
+                       corrected=97)
+
+
+def test_correct_missing_versus_regenie(spark):
+    compare_to_regenie(spark,
+                       0.9999,
+                       'test_bin_out_missing_firth_',
+                       compare_all_cols=True,
+                       uncorrected=0,
+                       corrected=200,
+                       missing=['35_35', '136_136', '77_77', '100_100', '204_204', '474_474'])
