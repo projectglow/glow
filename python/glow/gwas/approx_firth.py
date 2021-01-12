@@ -151,7 +151,7 @@ def perform_null_firth_fit(y: NDArray[(Any, ), Float], C: NDArray[(Any, Any), Fl
     firth_fit_result = _fit_firth(b0_null_fit, masked_C, masked_y, masked_offset)
     if firth_fit_result is None:
         raise ValueError("Null fit failed!")
-    firth_offset[mask] = offset + C[mask, :] @ firth_fit_result.beta
+    firth_offset[mask] = masked_offset + masked_C @ firth_fit_result.beta
 
     return firth_offset
 
