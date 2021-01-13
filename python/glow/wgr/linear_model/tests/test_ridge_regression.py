@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from glow.wgr.linear_model import RidgeReducer, RidgeRegression
+from glow.wgr.linear_model import RidgeReduction, RidgeRegression
 from glow.wgr.linear_model.ridge_model import *
 from glow.wgr.linear_model.functions import generate_alphas, r_squared
 from glow.wgr.linear_model.ridge_udfs import *
@@ -288,7 +288,7 @@ def test_ridge_reducer_fit(spark):
     B = np.column_stack(
         [(np.linalg.inv(XtX_out + np.identity(XtX_out.shape[1]) * a) @ XtY_out) for a in alphas])
 
-    stack = RidgeReducer(alphas)
+    stack = RidgeReduction(alphas)
     modeldf = stack.fit(blockdf, labeldf, __get_sample_blocks(indexdf))
 
     columns = ['coefficients']
@@ -366,7 +366,7 @@ def test_ridge_reducer_transform_with_cov(spark):
         [(np.linalg.inv(XtX_out_cov + np.diag(d)) @ XtY_out_cov) for d in diags_cov])
     X1_in_cov = X_in_cov @ B_cov
 
-    stack = RidgeReducer(alphas)
+    stack = RidgeReduction(alphas)
     modeldf_cov = stack.fit(blockdf, labeldf, sample_blocks, covdf)
     level1df_cov = stack.transform(blockdf, labeldf, sample_blocks, modeldf_cov, covdf)
 
@@ -435,7 +435,7 @@ def test_one_level_regression(spark):
     group2ids = __get_sample_blocks(indexdf)
     bestAlpha, bestr2, y_hat = __calculate_y_hat(X1, group2ids, testLabel)
 
-    stack0 = RidgeReducer(alphas)
+    stack0 = RidgeReduction(alphas)
     model0df = stack0.fit(blockdf, labeldf, group2ids)
     level1df = stack0.transform(blockdf, labeldf, group2ids, model0df)
 
@@ -511,7 +511,7 @@ def test_reducer_fit_transform(spark):
     blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet').limit(5)
     group2ids = __get_sample_blocks(indexdf)
 
-    stack0 = RidgeReducer(alphas)
+    stack0 = RidgeReduction(alphas)
     model0df = stack0.fit(blockdf, labeldf, group2ids)
     level1df = stack0.transform(blockdf, labeldf, group2ids, model0df)
     fit_transform_df = stack0.fit_transform(blockdf, labeldf, group2ids)
@@ -539,8 +539,8 @@ def test_reducer_generate_alphas(spark):
     blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet').limit(5)
     group2ids = __get_sample_blocks(indexdf)
 
-    stack_without_alphas = RidgeReducer()
-    stack_with_alphas = RidgeReducer(np.array(sorted(list(generate_alphas(blockdf).values()))))
+    stack_without_alphas = RidgeReduction()
+    stack_with_alphas = RidgeReduction(np.array(sorted(list(generate_alphas(blockdf).values()))))
 
     model0_without_alphas = stack_without_alphas.fit(blockdf, labeldf, group2ids)
     model0df = stack_with_alphas.fit(blockdf, labeldf, group2ids)
@@ -578,8 +578,8 @@ def test_reducer_missing_alphas(spark):
     blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet').limit(5)
     group2ids = __get_sample_blocks(indexdf)
 
-    stack_fit = RidgeReducer()
-    stack_transform = RidgeReducer()
+    stack_fit = RidgeReduction()
+    stack_transform = RidgeReduction()
 
     model0df = stack_fit.fit(blockdf, labeldf, group2ids)
     level1df = stack_transform.transform(blockdf, labeldf, group2ids, model0df)
@@ -605,7 +605,7 @@ def test_reducer_fit_validates_inputs(spark):
     blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet').limit(5)
 
     group2ids = __get_sample_blocks(indexdf)
-    reducer = RidgeReducer(alphas)
+    reducer = RidgeReduction(alphas)
 
     with pytest.raises(ValueError):
         reducer.fit(blockdf, label_with_missing, group2ids, covdf)
@@ -628,7 +628,7 @@ def test_reducer_transform_validates_inputs(spark):
     blockdf = spark.read.parquet(f'{data_root}/blockedGT.snappy.parquet').limit(5)
 
     group2ids = __get_sample_blocks(indexdf)
-    reducer = RidgeReducer(alphas)
+    reducer = RidgeReduction(alphas)
     model0df = reducer.fit(blockdf, labeldf, group2ids)
 
     with pytest.raises(ValueError):

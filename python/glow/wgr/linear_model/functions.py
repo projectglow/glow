@@ -105,7 +105,7 @@ def parse_header_block_sample_block_label_alpha_name(
         return header_block, key[0], key[1], key[2]
 
 
-#@typechecked
+# @typechecked
 def assemble_block(n_rows: Int, n_cols: Int, pdf: pd.DataFrame, cov_matrix: NDArray[(Any, Any),
                                                                                     Float],
                    row_mask: NDArray[Any]) -> NDArray[Float]:
@@ -212,8 +212,8 @@ def get_irls_pieces(X: NDArray[Float], y: NDArray[Float], alpha_value: Float,
 
     """
     n_cov = beta_cov.size
-    #If we have no observations in this block (i.e, y.sum() == 0), then we should not try to fit a model and instead
-    #just return a parameterless model based on the population frequency of observations p0
+    # If we have no observations in this block (i.e, y.sum() == 0), then we should not try to fit a model and instead
+    # just return a parameterless model based on the population frequency of observations p0
     if y.sum() > 0:
         alpha_arr = np.zeros(X.shape[1])
         alpha_arr[n_cov:] = alpha_value
@@ -232,7 +232,7 @@ def get_irls_pieces(X: NDArray[Float], y: NDArray[Float], alpha_value: Float,
     return beta, XtGX, XtY
 
 
-#@typechecked
+# @typechecked
 def slice_label_rows(labeldf: pd.DataFrame, label: str, sample_list: List[str],
                      row_mask: NDArray[Any]) -> NDArray[Any]:
     """
@@ -355,7 +355,7 @@ def new_headers(header_block: str, alpha_names: Iterable[str],
         new_header_block = f'chr_{chr}'
     elif match_chr:
         chr = match_chr.group(1)
-        inner_index = abs(hash(chr)) % (10**8)  # Hash to 8 digits
+        inner_index = abs(hash(chr)) % (10 ** 8)  # Hash to 8 digits
         header_prefix = f'chr_{chr}_'
         new_header_block = 'all'
     elif header_block == 'all':
@@ -376,7 +376,7 @@ def new_headers(header_block: str, alpha_names: Iterable[str],
 
 
 @typechecked
-def r_squared(XB: NDArray[Float], Y: NDArray[Float]) -> NDArray[(Any, ), Float]:
+def r_squared(XB: NDArray[Float], Y: NDArray[Float]) -> NDArray[(Any,), Float]:
     """
     Computes the coefficient of determination (R2) metric between the matrix resulting from X*B and the matrix of labels
     Y.
@@ -425,7 +425,7 @@ def log_loss(p: NDArray[Float], y: NDArray[Float]) -> NDArray[Float]:
 
 
 @typechecked
-def create_alpha_dict(alphas: NDArray[(Any, ), Float]) -> Dict[str, Float]:
+def create_alpha_dict(alphas: NDArray[(Any,), Float]) -> Dict[str, Float]:
     """
     Creates a mapping to attach string identifiers to alpha values.
 
@@ -482,25 +482,6 @@ def __is_one(f: float) -> bool:
 
 
 @typechecked
-def __check_standardized(df: pd.DataFrame, name: str) -> None:
-    """
-    Warns if any column of a pandas DataFrame is not standardized to zero mean and unit (unbiased) standard deviation.
-
-    Args:
-        df : Pandas DataFrame
-    """
-    for label, mean in df.mean().items():
-        if not __is_zero(mean):
-            warnings.warn(f"Mean for the {name} dataframe's column {label} should be 0, is {mean}",
-                          UserWarning)
-    for label, std in df.std().items():
-        if not __is_one(std):
-            warnings.warn(
-                f"Standard deviation for the {name} dataframe's column {label} should be approximately 1, is {std}",
-                UserWarning)
-
-
-@typechecked
 def __num_non_binary_values(s: pd.Series) -> int:
     """
     Returns the number of values in a series that are neither 0, 1, nor missing.
@@ -510,7 +491,6 @@ def __num_non_binary_values(s: pd.Series) -> int:
     return int(non_binary_vals)
 
 
-@typechecked
 def __check_binary(df: pd.DataFrame) -> None:
     """
     Warns if any column of a pandas DataFrame is not a binary value equal to 0 or 1.
@@ -526,63 +506,46 @@ def __check_binary(df: pd.DataFrame) -> None:
 
 
 @typechecked
-def __check_binary_or_standardized(df: pd.DataFrame) -> None:
-    """
-    Warns if columns of a pandas DataFrame are neither binary nor standardized.
-
-    Args:
-        df : Pandas DataFrame
-    """
-    for label in df:
-        mean = df[label].mean()
-        std_dev = df[label].std()
-        num_non_binary_values = __num_non_binary_values(df[label])
-        continuous_ok = __is_zero(mean) and __is_one(std_dev)
-
-        if num_non_binary_values == 0:
-            # Valid binary trait
-            continue
-
-        # Check as continuous trait
-        __assert_all_present(df, label, 'label')
-        if not continuous_ok:
-            warnings.warn(
-                f"Label {label} is neither standardized nor binary (mean={mean}, "
-                f"std_dev={std_dev}, num_non_binary_values={num_non_binary_values})", UserWarning)
+def __is_binary(df: pd.DataFrame) -> bool:
+    return df.isin([0, 1, None])
 
 
 @typechecked
-def validate_inputs(labeldf: pd.DataFrame, covdf: pd.DataFrame, label_type='either') -> None:
-    """
-    Performs basic input validation on the label and covariates pandas DataFrames. The covariates
-    DataFrame must have no missing values and should be standardized to zero mean and unit standard
-    deviation. The label DataFrame is validated according to the label type. If label_type is 'continuous', the
-    label DataFrame must contain no missing values and should be standardized to zero mean and unit
-    standard deviation. If 'binary', all values in the label DataFrame should be 0, 1, or
-    missing. If 'either', each column in the label DataFrame should conform to the validation rules
-    for either 'continuous' or 'binary'.
+def __fillna_and_standardize(pdf: pd.DataFrame) -> pd.DataFrame:
+    pdf_mean = pdf.mean()
+    _pdf = pdf.fillna(pdf_mean)
+    return (_pdf - pdf_mean) / pdf.std()
 
-    Args:
-        labeldf : Pandas DataFrame containing target labels
-        covdf : Pandas DataFrame containing covariates
-        label_type : Specifies if the labels are continuous data for linear regression or binary data for logistic
-    """
 
-    if not covdf.empty:
-        for col in covdf:
-            __assert_all_present(covdf, col, 'covariate')
-        __check_standardized(covdf, 'covariate')
-    if label_type == 'continuous':
-        for col in labeldf:
-            __assert_all_present(labeldf, col, 'label')
-        __check_standardized(labeldf, 'label')
+@typechecked
+def prepare_labels_and_warn(labeldf: pd.DataFrame, label_type: str) -> pd.DataFrame:
+    if label_type == 'detect':
+        if __is_binary(labeldf):
+            warnings.warn("The label DataFrame is binary. Ridge reduction for binary phenotypes will be applied.",
+                          UserWarning)
+            return labeldf - labeldf.mean()
+        else:
+            warnings.warn(
+                "The label DataFrame is quantitative. Ridge reduction for quantitative phenotypes will be applied.",
+                UserWarning)
+            return __fillna_and_standardize(labeldf)
+    elif label_type == 'quantitative':
+        warnings.warn("Ridge reduction for quantitative phenotypes will be applied.", UserWarning)
+        return __fillna_and_standardize(labeldf)
     elif label_type == 'binary':
-        __check_binary(labeldf)
-    elif label_type == 'either':
-        __check_binary_or_standardized(labeldf)
+        if __is_binary(labeldf):
+            warnings.warn("Ridge reduction for binary phenotypes will be applied.", UserWarning)
+            return labeldf - labeldf.mean()
+        else:
+            __check_binary(labeldf)
+            raise TypeError("Binary label DataFrame expected!", UserWarning)
     else:
-        raise ValueError(f'label_type should be "continuous", "binary", or "either". Found '
-                         f'{label_type}.')
+        raise ValueError(f'label_type should be "quantitative", "binary", or "detect". Found {label_type}.')
+
+
+@typechecked
+def prepare_covariates(covdf: pd.DataFrame) -> pd.DataFrame:
+    __fillna_and_standardize(covdf)
 
 
 @typechecked
