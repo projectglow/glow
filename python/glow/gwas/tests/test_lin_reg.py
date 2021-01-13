@@ -4,7 +4,6 @@ import pandas as pd
 import glow.gwas.functions as gwas_fx
 import glow.gwas.lin_reg as lr
 import pytest
-import glow
 
 
 def run_linear_regression(genotype_df, phenotype_df, covariate_df, fit_intercept=True):
@@ -18,7 +17,7 @@ def run_linear_regression(genotype_df, phenotype_df, covariate_df, fit_intercept
     Y_mask = ~np.isnan(Y)
     Y[~Y_mask] = 0
     Q = np.linalg.qr(C)[0]
-    Y = lr._residualize_in_place(Y, Q)
+    Y = gwas_fx._residualize_in_place(Y, Q)
     Y_state = lr._create_YState(Y, phenotype_df, pd.DataFrame({}), Y_mask, np.float64)
     dof = C.shape[0] - C.shape[1] - 1
     pdf = pd.DataFrame({lr._VALUES_COLUMN_NAME: list(genotype_df.to_numpy('float64').T)})
