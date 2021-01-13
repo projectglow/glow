@@ -110,7 +110,6 @@ def _read_regenie_df(file, trait, num_snps):
     return df
 
 
-@pytest.mark.min_spark('3')
 def compare_to_regenie(spark,
                        pvalue_threshold,
                        regenie_prefix,
@@ -175,6 +174,7 @@ def compare_to_regenie(spark,
     return glowgr_df
 
 
+@pytest.mark.min_spark('3')
 def test_correct_all_versus_regenie(spark):
     compare_to_regenie(spark,
                        0.9999,
@@ -184,6 +184,7 @@ def test_correct_all_versus_regenie(spark):
                        corrected=200)
 
 
+@pytest.mark.min_spark('3')
 def test_correct_half_versus_regenie(spark):
     compare_to_regenie(spark,
                        0.5,
@@ -193,6 +194,7 @@ def test_correct_half_versus_regenie(spark):
                        corrected=97)
 
 
+@pytest.mark.min_spark('3')
 def test_correct_missing_versus_regenie(spark):
     compare_to_regenie(spark,
                        0.9999,
