@@ -1,0 +1,116 @@
+Start time: Mon Jan  4 14:51:11 2021
+
+              |==============================|
+              |      REGENIE v1.0.6.7.gz     |
+              |==============================|
+
+Copyright (c) 2020 Joelle Mbatchou and Jonathan Marchini.
+Distributed under the MIT License.
+Compiled with Boost Iostream library.
+
+Log of output saved in file : fit_bin_out.log
+
+Options in effect:
+  --step 1 \
+  --bed example/example \
+  --covarFile example/covariates.txt \
+  --phenoFile example/phenotype_bin.txt \
+  --bsize 100 \
+  --bt \
+  --lowmem \
+  --lowmem-prefix tmp_rg \
+  --out fit_bin_out
+
+Fitting null model
+ * bim              : [example/example.bim] n_snps = 1000
+ * fam              : [example/example.fam] n_samples = 500
+ * bed              : [example/example.bed]
+ * phenotypes       : [example/phenotype_bin.txt] n_pheno = 2
+   -number of phenotyped individuals = 500
+ * covariates       : [example/covariates.txt] n_cov = 3
+   -number of individuals with covariate data = 500
+ * number of individuals used in analysis = 500
+   -fitting null logistic regression on binary phenotypes...done (0ms) 
+   -residualizing and scaling phenotypes...done (0ms) 
+   -WARNING: Sample size is less than 5,000 so using LOOCV instead of 5-fold CV.
+ * # threads        : [16]
+ * block size       : [100]
+ * # blocks         : [10]
+ * # CV folds       : [500]
+ * ridge data_l0    : [5 : 0.01 0.25 0.5 0.75 0.99 ]
+ * ridge data_l1    : [5 : 0.01 0.25 0.5 0.75 0.99 ]
+ * approximate memory usage : 955MB
+ * writing level 0 predictions to disk
+   -temporary files will have prefix [tmp_rg_l0_Y]
+   -approximate disk space needed : 1MB
+ * setting memory...done
+
+Chromosome 1
+ block [1] : 100 snps  (0ms) 
+   -residualizing and scaling genotypes...done (0ms) 
+   -calc working matrices...done (2ms) 
+   -calc level 0 ridge...done (1ms) 
+ block [2] : 100 snps  (0ms) 
+   -residualizing and scaling genotypes...done (0ms) 
+   -calc working matrices...done (1ms) 
+   -calc level 0 ridge...done (1ms) 
+ block [3] : 100 snps  (0ms) 
+   -residualizing and scaling genotypes...done (0ms) 
+   -calc working matrices...done (1ms) 
+   -calc level 0 ridge...done (1ms) 
+ block [4] : 100 snps  (0ms) 
+   -residualizing and scaling genotypes...done (0ms) 
+   -calc working matrices...done (2ms) 
+   -calc level 0 ridge...done (1ms) 
+ block [5] : 100 snps  (0ms) 
+   -residualizing and scaling genotypes...done (0ms) 
+   -calc working matrices...done (1ms) 
+   -calc level 0 ridge...done (1ms) 
+ block [6] : 100 snps  (0ms) 
+   -residualizing and scaling genotypes...done (0ms) 
+   -calc working matrices...done (1ms) 
+   -calc level 0 ridge...done (1ms) 
+ block [7] : 100 snps  (0ms) 
+   -residualizing and scaling genotypes...done (0ms) 
+   -calc working matrices...done (1ms) 
+   -calc level 0 ridge...done (1ms) 
+ block [8] : 100 snps  (0ms) 
+   -residualizing and scaling genotypes...done (0ms) 
+   -calc working matrices...done (1ms) 
+   -calc level 0 ridge...done (1ms) 
+ block [9] : 100 snps  (0ms) 
+   -residualizing and scaling genotypes...done (0ms) 
+   -calc working matrices...done (2ms) 
+   -calc level 0 ridge...done (1ms) 
+ block [10] : 100 snps  (0ms) 
+   -residualizing and scaling genotypes...done (0ms) 
+   -calc working matrices...done (1ms) 
+   -calc level 0 ridge...done (1ms) 
+
+ Level 1 ridge with logistic regression...
+   -on phenotype 1 (Y1)...done (5ms) 
+   -on phenotype 2 (Y2)...done (5ms) 
+
+Output
+------
+phenotype 1 (Y1) : 
+  0.01  : Rsq = 0.371801, MSE = 0.115267, -logLik/N = 0.354387<- min value
+  0.25  : Rsq = 0.364832, MSE = 0.11669, -logLik/N = 0.360111
+  0.5   : Rsq = 0.363131, MSE = 0.117053, -logLik/N = 0.361506
+  0.75  : Rsq = 0.364416, MSE = 0.116823, -logLik/N = 0.361244
+  0.99  : Rsq = 0.371366, MSE = 0.115665, -logLik/N = 0.361728
+  * making predictions...writing LOCO predictions...done (5ms) 
+
+phenotype 2 (Y2) : 
+  0.01  : Rsq = 0.446492, MSE = 0.0980476, -logLik/N = 0.317553
+  0.25  : Rsq = 0.443713, MSE = 0.0985328, -logLik/N = 0.316868
+  0.5   : Rsq = 0.441314, MSE = 0.0989783, -logLik/N = 0.317774
+  0.75  : Rsq = 0.443811, MSE = 0.0985451, -logLik/N = 0.316548
+  0.99  : Rsq = 0.463448, MSE = 0.0952377, -logLik/N = 0.309588<- min value
+  * making predictions...writing LOCO predictions...done (5ms) 
+
+List of blup files written to: [fit_bin_out_pred.list]
+
+Elapsed time : 0.0736657s
+End time: Mon Jan  4 14:51:11 2021
+
