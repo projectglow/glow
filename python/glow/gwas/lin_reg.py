@@ -134,9 +134,9 @@ class YState:
     YdotY: NDArray[(Any), Float]
 
 
-def _create_YState(Y: NDArray[(Any, Any),
-                              Float], phenotype_df: pd.DataFrame, offset_df: pd.DataFrame,
-                   Y_mask: NDArray[(Any, Any), Float], dt, contigs: Optional[List[str]]) -> Union[YState, Dict[str, YState]]:
+def _create_YState(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame,
+                   offset_df: pd.DataFrame, Y_mask: NDArray[(Any, Any), Float], dt,
+                   contigs: Optional[List[str]]) -> Union[YState, Dict[str, YState]]:
 
     offset_type = gwas_fx._validate_offset(phenotype_df, offset_df)
     if offset_type != gwas_fx._OffsetType.LOCO_OFFSET:

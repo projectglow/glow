@@ -85,6 +85,7 @@ def test_full_firth_no_intercept():
     test_data = _get_test_data(use_offset=True, use_intercept=False)
     _compare_full_firth_beta(test_data, golden_firth_beta)
 
+
 def test_null_firth_fit_no_offset():
     golden_firth_beta = [
         -1.10598130,  # age
@@ -96,9 +97,25 @@ def test_null_firth_fit_no_offset():
         0.12025404  # intercept
     ]
     test_data = _get_test_data(use_offset=False, use_intercept=True)
-    fit = af.perform_null_firth_fit(test_data.phenotypes, test_data.covariates, 
-        ~np.isnan(test_data.phenotypes), None, includes_intercept=True)
+    fit = af.perform_null_firth_fit(test_data.phenotypes,
+                                    test_data.covariates,
+                                    ~np.isnan(test_data.phenotypes),
+                                    None,
+                                    includes_intercept=True)
     assert np.allclose(fit, test_data.covariates @ golden_firth_beta)
+
+
+def test_profile_big(rg):
+    n = 5000000
+    y = rg.integers(low=0, high=2, size=n).astype(np.float64)
+    C = np.random.random((n, 10))
+    C[:, 0] = 1
+    mask = ~np.isnan(y)
+    import cProfile
+    cProfile.runctx('af.perform_null_firth_fit(y, C, mask, None, True)',
+                    globals(),
+                    locals(),
+                    sort='cumtime')
 
 
 def _set_fid_iid_df(df):

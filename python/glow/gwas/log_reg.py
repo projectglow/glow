@@ -202,9 +202,10 @@ def _pdf_to_log_reg_state(pdf: pd.DataFrame, phenotypes: pd.Series, n_covar: int
 
 
 @typechecked
-def _create_log_reg_state(spark: SparkSession, phenotype_df: pd.DataFrame, offset_df: pd.DataFrame,
-                          sql_type: DataType, C: NDArray[(Any, Any), Float], correction: str,
-                          fit_intercept: bool, contigs: Optional[List[str]]) -> Union[LogRegState, Dict[str, LogRegState]]:
+def _create_log_reg_state(
+        spark: SparkSession, phenotype_df: pd.DataFrame, offset_df: pd.DataFrame,
+        sql_type: DataType, C: NDArray[(Any, Any), Float], correction: str, fit_intercept: bool,
+        contigs: Optional[List[str]]) -> Union[LogRegState, Dict[str, LogRegState]]:
     '''
     Creates the broadcasted LogRegState object (or one object per contig if LOCO offsets were provided).
 
@@ -213,7 +214,6 @@ def _create_log_reg_state(spark: SparkSession, phenotype_df: pd.DataFrame, offse
     '''
     if contigs is not None:
         offset_df = offset_df.loc[pd.IndexSlice[:, contigs], :]
-    print(offset_df)
     offset_type = gwas_fx._validate_offset(phenotype_df, offset_df)
     pivoted_phenotype_df = reshape_for_gwas(spark, phenotype_df)
     result_fields = [

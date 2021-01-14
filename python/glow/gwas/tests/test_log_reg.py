@@ -327,6 +327,7 @@ def test_propagate_extra_cols(spark, rg):
     assert results.animal[results.animal == 'monkey'].all()
     assert results.columns.tolist() == ['genotype_idx', 'animal', 'tvalue', 'pvalue', 'phenotype']
 
+
 @pytest.mark.min_spark('3')
 def test_subset_contigs(spark, rg):
     num_samples = 50
@@ -338,8 +339,8 @@ def test_subset_contigs(spark, rg):
     offset_index = pd.MultiIndex.from_product([phenotype_df.index, contigs])
     offset_df = pd.DataFrame(rg.random((num_samples * 3, num_pheno)), index=offset_index)
     state = lr._create_log_reg_state(spark, phenotype_df, offset_df, sql_type, C, 'none', True,
-        None)
+                                     None)
     assert set(state.keys()) == set(contigs)
     state = lr._create_log_reg_state(spark, phenotype_df, offset_df, sql_type, C, 'none', True,
-        ['chr1', 'chr3'])
+                                     ['chr1', 'chr3'])
     assert set(state.keys()) == set(['chr1', 'chr3'])
