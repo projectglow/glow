@@ -105,19 +105,6 @@ def test_null_firth_fit_no_offset():
     assert np.allclose(fit, test_data.covariates @ golden_firth_beta)
 
 
-def test_profile_big(rg):
-    n = 5000000
-    y = rg.integers(low=0, high=2, size=n).astype(np.float64)
-    C = np.random.random((n, 10))
-    C[:, 0] = 1
-    mask = ~np.isnan(y)
-    import cProfile
-    cProfile.runctx('af.perform_null_firth_fit(y, C, mask, None, True)',
-                    globals(),
-                    locals(),
-                    sort='cumtime')
-
-
 def _set_fid_iid_df(df):
     df['FID_IID'] = df['FID'].astype(str) + '_' + df['IID'].astype(str)
     return df.sort_values(by=['FID', 'IID']) \

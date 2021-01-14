@@ -36,14 +36,14 @@ class Model:
 
 
 @typechecked
-def _calculate_log_likelihood(beta: NDArray[(Any, ), Float], model: Any) -> LogLikelihood:
+def _calculate_log_likelihood(beta: NDArray[(Any, ), Float], model: Model) -> LogLikelihood:
 
-    pi = scipy.special.expit(model.exog @ beta + model.offset)
+    pi = scipy.special.expit(model.X @ beta + model.offset)
     p = pi * (1 - pi)
-    I = model.exog.T @ (p[:, None] * model.exog)
+    I = model.X.T @ (p[:, None] * model.X)
     _, log_abs_det = np.linalg.slogdet(I)
-    unpenalized_log_likelihood = np.sum(model.endog * np.log(pi) +
-                                        (1 - model.endog) * np.log(1 - pi))
+    unpenalized_log_likelihood = np.sum(model.y * np.log(pi) +
+                                        (1 - model.y) * np.log(1 - pi))
 
     penalty = 0.5 * log_abs_det
     deviance = -2 * (unpenalized_log_likelihood + penalty)
