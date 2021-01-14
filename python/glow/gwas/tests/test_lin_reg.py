@@ -474,3 +474,18 @@ def test_values_expr(spark, rg):
     baseline = statsmodels_baseline(pandas_genotype_df, phenotype_df, covariate_df)
     assert regression_results_equal(baseline, results.drop('id').toPandas())
     assert not 'genotypes' in [field.name for field in results.schema]
+
+
+def test_subset_contigs(rg):
+    num_samples = 25
+    num_pheno = 25
+    contigs = ['chr1', 'chr2', 'chr3']
+    phenotype_df = pd.DataFrame(rg.random((num_samples, num_pheno)))
+    offset_index = pd.MultiIndex.from_product([phenotype_df.index, contigs])
+    offset_df = pd.DataFrame(rg.random((num_samples * 3, num_pheno)), index=offset_index)
+    state = lr._create_YState(phenotype_df.to_numpy(), phenotype_df, offset_df,
+                              ~np.isnan(phenotype_df.to_numpy()), np.float64, None)
+    assert set(state.keys()) == set(contigs)
+    state = lr._create_YState(phenotype_df.to_numpy(), phenotype_df, offset_df,
+                              ~np.isnan(phenotype_df.to_numpy()), np.float64, ['chr1', 'chr3'])
+    assert set(state.keys()) == set(['chr1', 'chr3'])

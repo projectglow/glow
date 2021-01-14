@@ -42,8 +42,7 @@ def _calculate_log_likelihood(beta: NDArray[(Any, ), Float], model: Model) -> Lo
     p = pi * (1 - pi)
     I = model.X.T @ (p[:, None] * model.X)
     _, log_abs_det = np.linalg.slogdet(I)
-    unpenalized_log_likelihood = np.sum(model.y * np.log(pi) +
-                                        (1 - model.y) * np.log(1 - pi))
+    unpenalized_log_likelihood = np.sum(model.y * np.log(pi) + (1 - model.y) * np.log(1 - pi))
 
     penalty = 0.5 * log_abs_det
     deviance = -2 * (unpenalized_log_likelihood + penalty)
