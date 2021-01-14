@@ -1,0 +1,66 @@
+Start time: Fri Jan  8 17:27:51 2021
+
+              |==============================|
+              |      REGENIE v1.0.6.7.gz     |
+              |==============================|
+
+Copyright (c) 2020 Joelle Mbatchou and Jonathan Marchini.
+Distributed under the MIT License.
+Compiled with Boost Iostream library.
+
+Log of output saved in file : test_bin_out_half_firth.log
+
+Options in effect:
+  --step 2 \
+  --bgen example/example.bgen \
+  --covarFile example/covariates.txt \
+  --phenoFile example/phenotype_bin.txt \
+  --bsize 200 \
+  --bt \
+  --firth \
+  --approx \
+  --pThresh 0.5 \
+  --pred fit_bin_out_pred.list \
+  --split \
+  --out test_bin_out_half_firth \
+  --ref-first 
+
+Association testing mode
+ * bgen             : [example/example.bgen]
+   -summary : bgen file (v1.2 layout, compressed) with 500 named samples and 1000 variants.
+ * phenotypes       : [example/phenotype_bin.txt] n_pheno = 2
+   -number of phenotyped individuals = 500
+ * covariates       : [example/covariates.txt] n_cov = 3
+   -number of individuals with covariate data = 500
+ * number of individuals used in analysis = 500
+ * LOCO predictions : [fit_bin_out_pred.list] n_files = 2
+   -file [/Users/karen.feng/Desktop/regenie-1.0.6.7/fit_bin_out_1.loco] for phenotype 'Y1'
+   -file [/Users/karen.feng/Desktop/regenie-1.0.6.7/fit_bin_out_2.loco] for phenotype 'Y2'
+ * # threads        : [16]
+ * block size       : [200]
+ * # blocks         : [5]
+ * approximate memory usage : 2MB
+ * using minimum MAC of 5 (variants with lower MAC are ignored)
+ * using fast Firth correction for logistic regression p-values less than 0.5
+
+Chromosome 1 [5 blocks in total]
+   -reading loco predictions for the chromosome...done (0ms) 
+   -fitting null logistic regression on binary phenotypes...done (0ms) 
+   -fitting null Firth logistic regression on binary phenotypes...done (0ms) 
+ block [1] : done (29ms) 
+ block [2] : done (26ms) 
+ block [3] : done (27ms) 
+ block [4] : done (25ms) 
+ block [5] : done (25ms) 
+
+Association results stored separately for each trait in files : 
+* [test_bin_out_half_firth_Y1.regenie]
+* [test_bin_out_half_firth_Y2.regenie]
+
+Number of tests with Firth correction : (988/2000)
+Number of failed tests : (0/988)
+Number of ignored SNPs due to low MAC : 0
+
+Elapsed time : 0.157208s
+End time: Fri Jan  8 17:27:51 2021
+

@@ -110,7 +110,7 @@ def linear_regression(genotype_df: DataFrame,
     Y = phenotype_df.to_numpy(dt, copy=True)
     Y_mask = (~np.isnan(Y)).astype(dt)
     np.nan_to_num(Y, copy=False)
-    _residualize_in_place(Y, Q)
+    Y = gwas_fx._residualize_in_place(Y, Q)
 
     Y_state = _create_YState(Y, phenotype_df, offset_df, Y_mask, dt)
 
@@ -156,17 +156,6 @@ def _create_one_YState(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame
 
 
 @typechecked
-def _residualize_in_place(M: NDArray[(Any, Any), Float],
-                          Q: NDArray[(Any, Any), Float]) -> NDArray[(Any, Any), Float]:
-    '''
-    Residualize a matrix in place using an orthonormal basis. The residualized matrix
-    is returned for easy chaining.
-    '''
-    M -= Q @ (Q.T @ M)
-    return M
-
-
-@typechecked
 def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
                              Y_mask: NDArray[(Any, Any), Float], Q: NDArray[(Any, Any), Float],
                              dof: int, phenotype_names: pd.Series) -> pd.DataFrame:
@@ -184,7 +173,7 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
 
     So, if a matrix's indices are `sg` (like the X matrix), it has one row per sample and one column per genotype.
     '''
-    X = _residualize_in_place(np.column_stack(genotype_pdf[_VALUES_COLUMN_NAME].array), Q)
+    X = gwas_fx._residualize_in_place(np.column_stack(genotype_pdf[_VALUES_COLUMN_NAME].array), Q)
     XdotY = Y_state.Y.T @ X
     XdotX_reciprocal = 1 / gwas_fx._einsum('sp,sg,sg->pg', Y_mask, X, X)
     betas = XdotY * XdotX_reciprocal

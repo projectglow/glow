@@ -126,3 +126,14 @@ def _validate_offset(phenotype_df: pd.DataFrame, offset_df: pd.DataFrame) -> _Of
             return _OffsetType.LOCO_OFFSET
     else:
         return _OffsetType.NO_OFFSET
+
+
+@typechecked
+def _residualize_in_place(M: NDArray[(Any, Any), Float],
+                          Q: NDArray[(Any, Any), Float]) -> NDArray[(Any, Any), Float]:
+    '''
+    Residualize a matrix in place using an orthonormal basis. The residualized matrix
+    is returned for easy chaining.
+    '''
+    M -= Q @ (Q.T @ M)
+    return M
