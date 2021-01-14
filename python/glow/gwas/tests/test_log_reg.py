@@ -1,3 +1,4 @@
+from pyspark.sql.types import ArrayType, DoubleType
 import glow.gwas.log_reg as lr
 import glow.gwas.functions as gwas_fx
 import statsmodels.api as sm
@@ -325,3 +326,20 @@ def test_propagate_extra_cols(spark, rg):
     assert sorted(results['genotype_idx'].tolist()) == [0] * 5 + [1] * 5 + [2] * 5
     assert results.animal[results.animal == 'monkey'].all()
     assert results.columns.tolist() == ['genotype_idx', 'animal', 'tvalue', 'pvalue', 'phenotype']
+
+@pytest.mark.min_spark('3')
+def test_subset_contigs(spark, rg):
+    num_samples = 50
+    num_pheno = 5
+    phenotype_df = pd.DataFrame(random_phenotypes((num_samples, num_pheno), rg))
+    sql_type = DoubleType()
+    C = np.ones((num_samples, 1))
+    contigs = ['chr1', 'chr2', 'chr3']
+    offset_index = pd.MultiIndex.from_product([phenotype_df.index, contigs])
+    offset_df = pd.DataFrame(rg.random((num_samples * 3, num_pheno)), index=offset_index)
+    state = lr._create_log_reg_state(spark, phenotype_df, offset_df, sql_type, C, 'none', True,
+        None)
+    assert set(state.keys()) == set(contigs)
+    state = lr._create_log_reg_state(spark, phenotype_df, offset_df, sql_type, C, 'none', True,
+        ['chr1', 'chr3'])
+    assert set(state.keys()) == set(['chr1', 'chr3'])

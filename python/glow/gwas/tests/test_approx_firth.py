@@ -85,6 +85,21 @@ def test_full_firth_no_intercept():
     test_data = _get_test_data(use_offset=True, use_intercept=False)
     _compare_full_firth_beta(test_data, golden_firth_beta)
 
+def test_null_firth_fit_no_offset():
+    golden_firth_beta = [
+        -1.10598130,  # age
+        -0.06881673,  # oc
+        2.26887464,  # vic
+        -2.11140816,  # vicl
+        -0.78831694,  # vis
+        3.09601263,  # dia
+        0.12025404  # intercept
+    ]
+    test_data = _get_test_data(use_offset=False, use_intercept=True)
+    fit = af.perform_null_firth_fit(test_data.phenotypes, test_data.covariates, 
+        ~np.isnan(test_data.phenotypes), None, includes_intercept=True)
+    assert np.allclose(fit, test_data.covariates @ golden_firth_beta)
+
 
 def _set_fid_iid_df(df):
     df['FID_IID'] = df['FID'].astype(str) + '_' + df['IID'].astype(str)

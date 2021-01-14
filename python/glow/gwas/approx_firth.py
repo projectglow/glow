@@ -1,6 +1,7 @@
 from typing import Any, Optional
 import numpy as np
 from dataclasses import dataclass
+import scipy
 from typeguard import typechecked
 from nptyping import Float, NDArray
 from scipy import stats
@@ -40,7 +41,6 @@ def _calculate_log_likelihood(beta: NDArray[(Any, ), Float], model: Model) -> Lo
     return LogLikelihood(pi, I, deviance)
 
 
-@typechecked
 def _fit_firth(beta_init: NDArray[(Any, ), Float],
                X: NDArray[(Any, Any), Float],
                y: NDArray[(Any, ), Float],
@@ -80,7 +80,7 @@ def _fit_firth(beta_init: NDArray[(Any, ), Float],
         # build hat matrix
         rootG = np.sqrt(log_likelihood.pi * (1 - log_likelihood.pi))
         rootG_X = rootG[:, None] * X  # equivalent to sqrt(diagflat(pi * (1 - pi))) @ X
-        h = np.diagonal(rootG_X @ invI @ rootG_X.T)
+        h = np.sum((rootG_X @ invI) * rootG_X, axis=1)
 
         # modified score function
         U = X.T @ (y - log_likelihood.pi + h * (0.5 - log_likelihood.pi))
@@ -118,9 +118,11 @@ def _fit_firth(beta_init: NDArray[(Any, ), Float],
 
 
 @typechecked
-def perform_null_firth_fit(y: NDArray[(Any, ), Float], C: NDArray[(Any, Any), Float],
-                           mask: NDArray[(Any, ), bool], offset: Optional[NDArray[(Any, ), Float]],
-                           includes_intercept: bool) -> NDArray[(Any, ), Float]:
+def perform_null_firth_fit(y: NDArray[(Any, ), Float], 
+    C: NDArray[(Any, Any), Float],
+    mask: NDArray[(Any, ), bool], 
+    offset: Optional[Any], # Typeguard doesn't work with optional NDArrays
+    includes_intercept: bool) -> NDArray[(Any, ), Float]:
     '''
     Performs the null fit for approximate Firth in order to calculate the covariate effects to be
     used as an offset during the SNP fits.

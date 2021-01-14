@@ -1,5 +1,5 @@
 from pyspark.sql.types import ArrayType, BooleanType, StringType, StructField, DataType, StructType
-from typing import Any, Optional, Dict, Union
+from typing import Any, List, Optional, Dict, Union
 import pandas as pd
 import numpy as np
 from pyspark.sql import DataFrame, SparkSession
@@ -27,6 +27,7 @@ def logistic_regression(genotype_df: DataFrame,
                         offset_df: pd.DataFrame = pd.DataFrame({}),
                         correction: str = correction_approx_firth,
                         pvalue_threshold: float = 0.05,
+                        contigs: Optional[List[str]] = None,
                         fit_intercept: bool = True,
                         values_column: str = 'values',
                         dt: type = np.float64) -> DataFrame:
@@ -117,7 +118,7 @@ def logistic_regression(genotype_df: DataFrame,
         Q = None
 
     state = _create_log_reg_state(spark, phenotype_df, offset_df, sql_type, C, correction,
-                                  fit_intercept)
+                                  fit_intercept, contigs)
 
     phenotype_names = phenotype_df.columns.to_series().astype('str')
 
@@ -203,13 +204,16 @@ def _pdf_to_log_reg_state(pdf: pd.DataFrame, phenotypes: pd.Series, n_covar: int
 @typechecked
 def _create_log_reg_state(spark: SparkSession, phenotype_df: pd.DataFrame, offset_df: pd.DataFrame,
                           sql_type: DataType, C: NDArray[(Any, Any), Float], correction: str,
-                          fit_intercept: bool) -> Union[LogRegState, Dict[str, LogRegState]]:
+                          fit_intercept: bool, contigs: Optional[List[str]]) -> Union[LogRegState, Dict[str, LogRegState]]:
     '''
     Creates the broadcasted LogRegState object (or one object per contig if LOCO offsets were provided).
 
     Fitting the null logistic models can be expensive, so the work is distributed across the cluster
     using Pandas UDFs.
     '''
+    if contigs is not None:
+        offset_df = offset_df.loc[pd.IndexSlice[:, contigs], :]
+    print(offset_df)
     offset_type = gwas_fx._validate_offset(phenotype_df, offset_df)
     pivoted_phenotype_df = reshape_for_gwas(spark, phenotype_df)
     result_fields = [

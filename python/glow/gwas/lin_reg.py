@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from nptyping import Float, NDArray
 from dataclasses import dataclass
-from typing import Any, Dict, Union
+from typing import Any, Dict, List, Optional, Union
 from pyspark.sql import Column, DataFrame
 from pyspark.sql.types import ArrayType, FloatType, DoubleType, StringType, StructField, StructType
 from scipy import stats
@@ -18,6 +18,7 @@ def linear_regression(genotype_df: DataFrame,
                       phenotype_df: pd.DataFrame,
                       covariate_df: pd.DataFrame = pd.DataFrame({}),
                       offset_df: pd.DataFrame = pd.DataFrame({}),
+                      contigs: Optional[List[str]] = None,
                       fit_intercept: bool = True,
                       values_column: Union[str, Column] = 'values',
                       dt: type = np.float64) -> DataFrame:
@@ -112,7 +113,7 @@ def linear_regression(genotype_df: DataFrame,
     np.nan_to_num(Y, copy=False)
     Y = gwas_fx._residualize_in_place(Y, Q)
 
-    Y_state = _create_YState(Y, phenotype_df, offset_df, Y_mask, dt)
+    Y_state = _create_YState(Y, phenotype_df, offset_df, Y_mask, dt, contigs)
 
     dof = C.shape[0] - C.shape[1] - 1
 
@@ -135,15 +136,17 @@ class YState:
 
 def _create_YState(Y: NDArray[(Any, Any),
                               Float], phenotype_df: pd.DataFrame, offset_df: pd.DataFrame,
-                   Y_mask: NDArray[(Any, Any), Float], dt) -> Union[YState, Dict[str, YState]]:
+                   Y_mask: NDArray[(Any, Any), Float], dt, contigs: Optional[List[str]]) -> Union[YState, Dict[str, YState]]:
+
     offset_type = gwas_fx._validate_offset(phenotype_df, offset_df)
     if offset_type != gwas_fx._OffsetType.LOCO_OFFSET:
         return _create_one_YState(Y, phenotype_df, offset_df, Y_mask, dt)
 
-    all_contigs = gwas_fx._get_contigs_from_loco_df(offset_df)
+    if contigs is None:
+        contigs = gwas_fx._get_contigs_from_loco_df(offset_df)
     return {
         contig: _create_one_YState(Y, phenotype_df, offset_df.xs(contig, level=1), Y_mask, dt)
-        for contig in all_contigs
+        for contig in contigs
     }
 
 
