@@ -26,6 +26,7 @@ from typeguard import typechecked
 from typing import Any, Dict, Iterable, List, Tuple
 import scipy.optimize
 import warnings
+from .ridge_model import *
 
 
 @typechecked
@@ -355,7 +356,7 @@ def new_headers(header_block: str, alpha_names: Iterable[str],
         new_header_block = f'chr_{chr}'
     elif match_chr:
         chr = match_chr.group(1)
-        inner_index = abs(hash(chr)) % (10 ** 8)  # Hash to 8 digits
+        inner_index = abs(hash(chr)) % (10**8)  # Hash to 8 digits
         header_prefix = f'chr_{chr}_'
         new_header_block = 'all'
     elif header_block == 'all':
@@ -376,7 +377,7 @@ def new_headers(header_block: str, alpha_names: Iterable[str],
 
 
 @typechecked
-def r_squared(XB: NDArray[Float], Y: NDArray[Float]) -> NDArray[(Any,), Float]:
+def r_squared(XB: NDArray[Float], Y: NDArray[Float]) -> NDArray[(Any, ), Float]:
     """
     Computes the coefficient of determination (R2) metric between the matrix resulting from X*B and the matrix of labels
     Y.
@@ -425,7 +426,7 @@ def log_loss(p: NDArray[Float], y: NDArray[Float]) -> NDArray[Float]:
 
 
 @typechecked
-def create_alpha_dict(alphas: NDArray[(Any,), Float]) -> Dict[str, Float]:
+def create_alpha_dict(alphas: NDArray[(Any, ), Float]) -> Dict[str, Float]:
     """
     Creates a mapping to attach string identifiers to alpha values.
 
@@ -435,6 +436,8 @@ def create_alpha_dict(alphas: NDArray[(Any,), Float]) -> Dict[str, Float]:
     Returns:
         Dict of [alpha names, alpha values]
     """
+    if not (alphas >= 0).all():
+        raise Exception('Alpha values must all be non-negative.')
     return {f'alpha_{i}': a for i, a in enumerate(alphas)}
 
 
@@ -486,7 +489,6 @@ def __num_non_binary_values(s: pd.Series) -> int:
     """
     Returns the number of values in a series that are neither 0, 1, nor missing.
     """
-
     non_binary_vals = (~s.dropna().isin([0, 1])).sum()
     return int(non_binary_vals)
 
@@ -501,13 +503,14 @@ def __check_binary(df: pd.DataFrame) -> None:
     for label in df:
         num_non_binary_vals = __num_non_binary_values(df[label])
         if num_non_binary_vals != 0:
-            warnings.warn(f"Column {label} is not binary ({num_non_binary_vals} non binary values)",
-                          UserWarning)
+            warnings.warn(
+                f"Column {label} is not binary. It has {num_non_binary_vals} non-binary value(s).",
+                UserWarning)
 
 
 @typechecked
-def __is_binary(df: pd.DataFrame) -> bool:
-    return df.isin([0, 1, None])
+def is_binary(df: pd.DataFrame) -> bool:
+    return df.isin([0, 1, None]).all(axis=None).item()
 
 
 @typechecked
@@ -518,11 +521,12 @@ def __fillna_and_standardize(pdf: pd.DataFrame) -> pd.DataFrame:
 
 
 @typechecked
-def prepare_labels_and_warn(labeldf: pd.DataFrame, label_type: str) -> pd.DataFrame:
+def prepare_labels_and_warn(labeldf: pd.DataFrame, binary: bool, label_type: str) -> pd.DataFrame:
     if label_type == 'detect':
-        if __is_binary(labeldf):
-            warnings.warn("The label DataFrame is binary. Ridge reduction for binary phenotypes will be applied.",
-                          UserWarning)
+        if binary:
+            warnings.warn(
+                "The label DataFrame is binary. Ridge reduction for binary phenotypes will be applied.",
+                UserWarning)
             return labeldf - labeldf.mean()
         else:
             warnings.warn(
@@ -533,19 +537,36 @@ def prepare_labels_and_warn(labeldf: pd.DataFrame, label_type: str) -> pd.DataFr
         warnings.warn("Ridge reduction for quantitative phenotypes will be applied.", UserWarning)
         return __fillna_and_standardize(labeldf)
     elif label_type == 'binary':
-        if __is_binary(labeldf):
+        if binary:
             warnings.warn("Ridge reduction for binary phenotypes will be applied.", UserWarning)
             return labeldf - labeldf.mean()
         else:
             __check_binary(labeldf)
             raise TypeError("Binary label DataFrame expected!", UserWarning)
     else:
-        raise ValueError(f'label_type should be "quantitative", "binary", or "detect". Found {label_type}.')
+        raise ValueError(
+            f'label_type should be "quantitative", "binary", or "detect". Found {label_type}.')
 
 
 @typechecked
 def prepare_covariates(covdf: pd.DataFrame) -> pd.DataFrame:
-    __fillna_and_standardize(covdf)
+    return __fillna_and_standardize(covdf)
+
+
+@typechecked()
+def check_model(modeldf):
+    if modeldf is None:
+        raise ValueError(
+            'No model DataFrame found! Run fit() or provide a previously made model using set_model_df()'
+        )
+
+
+@typechecked()
+def check_cv(cvdf):
+    if cvdf is None:
+        raise ValueError(
+            'No cross validation DataFrame found! Run fit() or provide a previously made cv DataFrame using set_cv_df().'
+        )
 
 
 @typechecked
@@ -663,3 +684,16 @@ def apply_model_df(blockdf, modeldf, cvdf, transform_udf, transform_key_pattern,
         .groupBy(transform_key_pattern) \
         .apply(transform_udf) \
         .join(cvdf, ['label', 'alpha'], 'inner')
+
+
+def wgr(blockdf: DataFrame,
+        labeldf: pd.DataFrame,
+        sample_blocks: Dict[str, List[str]],
+        covdf: pd.DataFrame = pd.DataFrame({}),
+        alphas: NDArray[(Any, ), Float] = np.array([]),
+        label_type='detect') -> pd.DataFrame:
+    stack = RidgeReduction(blockdf, labeldf, sample_blocks, covdf, alphas, label_type)
+    stack.fit_transform()
+    # TODO: regression = LogisticRegression(stack) if stack.is_binary else
+    regression = RidgeRegression(stack)
+    return regression.fit_transform_loco()
