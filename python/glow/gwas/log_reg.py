@@ -38,15 +38,16 @@ def logistic_regression(genotype_df: DataFrame,
     On the driver node, we fit a logistic regression model based on the covariates for each
     phenotype:
 
-    logit(y) ~ C
+    .. math::
+        logit(y) \sim C
 
-    where y is a phenotype vector and C is the covariate matrix.
+    where :math:`y` is a phenotype vector and :math:`C` is the covariate matrix.
 
-    We compute the probability predictions h_hat and broadcast the residuals (y - y_hat), gamma vectors
-    (where gamma is defined as y_hat * (1 - Y_hat)), and (C.T gamma C)^-1 matrices. In each task,
-    we then adjust the new genotypes based on the null fit, perform a score test as a fast scan
-    for potentially significant variants, and then test variants with p values below a threshold
-    using a more selective, more expensive test.
+    We compute the probability predictions :math:`\hat{y}` and broadcast the residuals (:math:`y - \hat{y}`),
+    :math:`\gamma` vectors (where :math:`\gamma = \hat{y} * (1 - \hat{y})`), and
+    :math:`(C^\intercal \gamma C)^{-1}` matrices. In each task, we then adjust the new genotypes based on the null fit,
+    perform a score test as a fast scan for potentially significant variants, and then test variants with p-values below
+    a threshold using a more selective, more expensive test.
 
     Args:
         genotype_df : Spark DataFrame containing genomic data
@@ -74,10 +75,10 @@ def logistic_regression(genotype_df: DataFrame,
         - ``effect``: The effect size (if approximate Firth correction was applied)
         - ``stderror``: Standard error of the effect size (if approximate Firth correction was applied)
         - ``correction_succeeded``: Whether the correction succeeded (if the correction test method is not ``none``).
-                                    True if succeeded, False if failed, null if correction was not applied.
+          ``True`` if succeeded, ``False`` if failed, ``null`` if correction was not applied.
         - ``tvalue``: The chi squared test statistic according to the score test or the correction method
-        - ``pvalue``: P value estimated from the test statistic
-        - ``phenotype``: The phenotype name as determiend by the column names of ``phenotype_df``
+        - ``pvalue``: p-value estimated from the test statistic
+        - ``phenotype``: The phenotype name as determined by the column names of ``phenotype_df``
     '''
 
     spark = genotype_df.sql_ctx.sparkSession

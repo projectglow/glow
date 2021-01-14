@@ -117,7 +117,6 @@ def _fit_firth(beta_init: NDArray[(Any, ), Float],
     return FirthFit(beta, log_likelihood)
 
 
-@typechecked
 def perform_null_firth_fit(y: NDArray[(Any, ), Float], C: NDArray[(Any, Any), Float],
                            mask: NDArray[(Any, ), bool], offset: Optional[NDArray[(Any, ), Float]],
                            includes_intercept: bool) -> NDArray[(Any, ), Float]:
@@ -138,7 +137,8 @@ def perform_null_firth_fit(y: NDArray[(Any, ), Float], C: NDArray[(Any, Any), Fl
     '''
 
     firth_offset = np.zeros(y.shape)
-    offset = offset if offset is not None else np.zeros(y.shape)
+    if offset is None:
+        offset = np.zeros(y.shape)
 
     masked_y = y[mask]
     masked_C = C[mask, :]

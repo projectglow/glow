@@ -6,6 +6,7 @@ import pandas as pd
 from nptyping import Float, NDArray
 from typeguard import typechecked
 import opt_einsum as oe
+from ..wgr.functions import _get_contigs_from_loco_df
 from ..wgr.linear_model.functions import __assert_all_present, __check_binary
 from enum import Enum
 
@@ -78,10 +79,6 @@ def _have_same_elements(idx1: pd.Index, idx2: pd.Index) -> bool:
     return idx1.sort_values().equals(idx2.sort_values())
 
 
-def _get_contigs_from_loco_df(offset_df: pd.DataFrame) -> pd.Series:
-    return offset_df.index.get_level_values(1).unique()
-
-
 T = TypeVar('T')
 
 
@@ -110,7 +107,7 @@ def _validate_offset(phenotype_df: pd.DataFrame, offset_df: pd.DataFrame) -> _Of
     '''
     if not offset_df.empty:
         if not _have_same_elements(phenotype_df.columns, offset_df.columns):
-            raise ValueError(f'phenotype_df and offset_df should have the same column names.')
+            raise ValueError(f'phenotype_df and offset_df should have the same column names {phenotype_df.columns} {offset_df.columns}.')
         if offset_df.index.nlevels == 1:  # Indexed by sample id
             if not _have_same_elements(phenotype_df.index, offset_df.index):
                 raise ValueError(f'phenotype_df and offset_df should have the same index.')
