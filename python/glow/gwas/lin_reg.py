@@ -3,13 +3,12 @@ import numpy as np
 from nptyping import Float, NDArray
 from dataclasses import dataclass
 from typing import Any, Dict, Union
-from pyspark.sql import functions as fx, Column, DataFrame
-from pyspark.sql.types import ArrayType, FloatType, DoubleType, StringType, StructField, StructType
+from pyspark.sql import Column, DataFrame
+from pyspark.sql.types import StringType, StructField
 from scipy import stats
 from typeguard import typechecked
-from ..wgr.linear_model.functions import __assert_all_present
 from . import functions as gwas_fx
-from .functions import _VALUES_COLUMN_NAME, _GENOTYPES_COLUMN_NAME
+from .functions import _VALUES_COLUMN_NAME
 
 __all__ = ['linear_regression']
 

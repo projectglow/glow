@@ -13,13 +13,10 @@
 # limitations under the License.
 
 from pyspark.sql.functions import PandasUDFType
-from glow.wgr.linear_model.functions import *
-from glow.wgr.linear_model.logistic_udfs import *
-from glow.wgr.linear_model.logistic_model import *
+from glow.wgr.logistic_udfs import *
+from glow.wgr.logistic_ridge_regression import *
 from pyspark.sql import functions as f
 import json
-import math
-import pytest
 import pandas as pd
 import numpy as np
 
@@ -248,7 +245,7 @@ def test_logistic_regression_fit(spark):
     with open(f'{data_root}/test_logistic_regression_fit.json') as json_file:
         test_values = json.load(json_file)
 
-    logreg = LogisticRegression(alpha_values)
+    logreg = LogisticRidgeRegression(alpha_values)
     modeldf, cvdf = logreg.fit(lvl1df, labeldf, sample_blocks, covdf)
 
     outdf = cvdf.filter(f'label = "{test_label}"').toPandas()
@@ -271,7 +268,7 @@ def test_logistic_regression_transform(spark):
     with open(f'{data_root}/test_logistic_regression_transform.json') as json_file:
         test_values = json.load(json_file)
 
-    logreg = LogisticRegression(alpha_values)
+    logreg = LogisticRidgeRegression(alpha_values)
     modeldf, cvdf = logreg.fit(lvl1df, labeldf, sample_blocks, covdf)
     wgr_cov_df = logreg.transform(lvl1df, labeldf, sample_blocks, modeldf, cvdf, covdf)
     wgr_cov_glow = wgr_cov_df[test_label].to_numpy()
@@ -290,7 +287,7 @@ def test_logistic_regression_predict_proba(spark):
     with open(f'{data_root}/test_logistic_regression_predict_proba.json') as json_file:
         test_values = json.load(json_file)
 
-    logreg = LogisticRegression(alpha_values)
+    logreg = LogisticRidgeRegression(alpha_values)
     modeldf, cvdf = logreg.fit(lvl1df, labeldf, sample_blocks, covdf)
     prob_df = logreg.transform(lvl1df,
                                labeldf,
@@ -313,7 +310,7 @@ def test_logistic_regression_fit_transform(spark):
         .withColumn('sample_ids', f.expr('transform(sample_ids, v -> cast(v as string))'))
     sample_blocks = {r.sample_block: r.sample_ids for r in sample_blocks_df.collect()}
 
-    logreg = LogisticRegression(alpha_values)
+    logreg = LogisticRidgeRegression(alpha_values)
     modeldf, cvdf = logreg.fit(lvl1df, labeldf, sample_blocks, covdf)
     wgr_cov_df0 = logreg.transform(lvl1df, labeldf, sample_blocks, modeldf, cvdf)
     wgr_cov_df1 = logreg.fit_transform(lvl1df, labeldf, sample_blocks, covdf)
@@ -332,7 +329,7 @@ def test_logistic_regression_transform_loco(spark):
         .withColumn('sample_ids', f.expr('transform(sample_ids, v -> cast(v as string))'))
     sample_blocks = {r.sample_block: r.sample_ids for r in sample_blocks_df.collect()}
 
-    logreg = LogisticRegression(alpha_values)
+    logreg = LogisticRidgeRegression(alpha_values)
     modeldf, cvdf = logreg.fit(lvl1df, labeldf, sample_blocks, covdf)
     modeldf_loco1 = modeldf.filter('header NOT LIKE "%chr_1%"')
     wgr_cov_loco1_df0 = logreg.transform(lvl1df, labeldf, sample_blocks, modeldf_loco1, cvdf)

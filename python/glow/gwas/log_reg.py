@@ -11,7 +11,7 @@ from scipy import stats
 import opt_einsum as oe
 from . import functions as gwas_fx
 from .functions import _OffsetType, _VALUES_COLUMN_NAME
-from ..wgr.functions import reshape_for_gwas
+from ..wgr.wgr_functions import reshape_for_gwas
 
 __all__ = ['logistic_regression']
 

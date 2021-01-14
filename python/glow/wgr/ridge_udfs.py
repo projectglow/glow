@@ -12,10 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .functions import *
+from glow.wgr.model_functions import *
 from nptyping import Float
 import pandas as pd
-from pyspark.sql.types import ArrayType, IntegerType, FloatType, StructType, StructField, StringType, DoubleType
+from pyspark.sql.types import ArrayType, IntegerType, StructType, StructField, StringType, DoubleType
 from typeguard import typechecked
 from typing import Dict, List
 '''

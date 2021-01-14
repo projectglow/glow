@@ -22,11 +22,11 @@ from typing import Any, Dict, List
 import warnings
 from glow.logging import record_hls_event
 
-__all__ = ['LogisticRegression']
+__all__ = ['LogisticRidgeRegression']
 
 
 @typechecked
-class LogisticRegression:
+class LogisticRidgeRegression:
     """
     The LogisticRegression class is used to fit logistic regression models against one or more labels optimized over a
     provided list of ridge alpha parameters. The optimal ridge alpha value is chosen for each label by minimizing the

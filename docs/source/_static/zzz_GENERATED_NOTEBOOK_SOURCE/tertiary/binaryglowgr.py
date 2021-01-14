@@ -14,8 +14,8 @@
 
 import glow
 from glow import *
-from glow.wgr.functions import *
-from glow.wgr.linear_model import *
+from glow.wgr.wgr_functions import *
+from glow.wgr import *
 
 import numpy as np
 import pandas as pd
@@ -155,7 +155,7 @@ reduced_block_df.cache()
 
 # COMMAND ----------
 
-estimator = LogisticRegression()
+estimator = LogisticRidgeRegression()
 model_df, cv_df = estimator.fit(reduced_block_df, 
                                 label_df, 
                                 sample_blocks, 

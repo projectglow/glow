@@ -12,8 +12,7 @@
 
 import glow
 from glow import *
-from glow.wgr.functions import *
-from glow.wgr.linear_model import *
+from glow.wgr.wgr_functions import *
 
 import numpy as np
 import pandas as pd

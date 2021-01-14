@@ -6,7 +6,7 @@ import pandas as pd
 from nptyping import Float, NDArray
 from typeguard import typechecked
 import opt_einsum as oe
-from ..wgr.linear_model.functions import __assert_all_present, __check_binary
+from glow.wgr.model_functions import __assert_all_present, __check_binary
 from enum import Enum
 
 _VALUES_COLUMN_NAME = '_glow_regression_values'

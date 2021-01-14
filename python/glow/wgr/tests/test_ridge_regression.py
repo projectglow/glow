@@ -12,10 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from glow.wgr.linear_model import RidgeReduction, RidgeRegression
-from glow.wgr.linear_model.ridge_model import *
-from glow.wgr.linear_model.functions import generate_alphas, r_squared
-from glow.wgr.linear_model.ridge_udfs import *
+from glow.wgr.ridge_reduction import *
+from glow.wgr.ridge_udfs import *
 import numpy as np
 import pandas as pd
 from pyspark.sql.functions import *

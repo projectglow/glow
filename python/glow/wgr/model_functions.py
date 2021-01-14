@@ -17,7 +17,6 @@ import math
 from nptyping import Float, Int, NDArray
 import numpy as np
 import pandas as pd
-import sklearn.linear_model
 from pyspark.sql import DataFrame, Row
 import pyspark.sql.functions as f
 from pyspark.sql.window import Window
@@ -26,7 +25,7 @@ from typeguard import typechecked
 from typing import Any, Dict, Iterable, List, Tuple
 import scipy.optimize
 import warnings
-from .ridge_model import *
+from glow.wgr.ridge_reduction import *
 
 
 @typechecked
@@ -554,7 +553,7 @@ def prepare_covariates(covdf: pd.DataFrame) -> pd.DataFrame:
 
 
 @typechecked()
-def check_model(modeldf):
+def check_model(modeldf: DataFrame) -> None:
     if modeldf is None:
         raise ValueError(
             'No model DataFrame found! Run fit() or provide a previously made model using set_model_df()'
@@ -562,7 +561,7 @@ def check_model(modeldf):
 
 
 @typechecked()
-def check_cv(cvdf):
+def check_cv(cvdf: DataFrame) -> None:
     if cvdf is None:
         raise ValueError(
             'No cross validation DataFrame found! Run fit() or provide a previously made cv DataFrame using set_cv_df().'
