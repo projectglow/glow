@@ -182,7 +182,7 @@ def compare_to_regenie(spark,
         cols = ['ID', 'pvalue', 'phenotype']
     assert_frame_equal(glowgr_df[cols], regenie_df[cols], check_dtype=False, check_less_precise=1)
 
-    correction_counts = glowgr_df.correction_succeeded.value_counts(dropna=False).to_dict()
+    correction_counts = glowgr_df.correctionSucceeded.value_counts(dropna=False).to_dict()
     if uncorrected > 0:
         # null in Spark DataFrame converts to nan in pandas
         assert correction_counts[np.nan] == uncorrected

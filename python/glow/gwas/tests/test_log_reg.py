@@ -40,7 +40,7 @@ def statsmodels_baseline(genotype_df,
     if fit_intercept:
         covariate_df = sm.add_constant(covariate_df)
     p_values = []
-    t_values = []
+    chisq = []
     for phenotype in phenotype_df:
         for genotype_idx in range(genotype_df.shape[1]):
             mask = ~np.isnan(phenotype_df[phenotype].to_numpy())
@@ -56,10 +56,10 @@ def statsmodels_baseline(genotype_df,
             params = model.fit().params
             results = model.score_test(params,
                                        exog_extra=genotype_df.iloc[:, genotype_idx].array[mask])
-            t_values.append(results[0])
+            chisq.append(results[0])
             p_values.append(results[1])
     return pd.DataFrame({
-        'tvalue': np.concatenate(t_values),
+        'chisq': np.concatenate(chisq),
         'pvalue': np.concatenate(p_values),
         'phenotype': phenotype_df.columns.to_series().astype('str').repeat(genotype_df.shape[1])
     })
@@ -325,7 +325,7 @@ def test_propagate_extra_cols(spark, rg):
                                             extra_cols)
     assert sorted(results['genotype_idx'].tolist()) == [0] * 5 + [1] * 5 + [2] * 5
     assert results.animal[results.animal == 'monkey'].all()
-    assert results.columns.tolist() == ['genotype_idx', 'animal', 'tvalue', 'pvalue', 'phenotype']
+    assert results.columns.tolist() == ['genotype_idx', 'animal', 'chisq', 'pvalue', 'phenotype']
 
 
 @pytest.mark.min_spark('3')

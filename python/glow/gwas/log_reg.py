@@ -78,9 +78,9 @@ def logistic_regression(genotype_df: DataFrame,
         - All columns from ``genotype_df`` except the ``values_column`` and the ``genotypes`` column if one exists
         - ``effect``: The effect size (if approximate Firth correction was applied)
         - ``stderror``: Standard error of the effect size (if approximate Firth correction was applied)
-        - ``correction_succeeded``: Whether the correction succeeded (if the correction test method is not ``none``).
+        - ``correctionSucceeded``: Whether the correction succeeded (if the correction test method is not ``none``).
                                     True if succeeded, False if failed, null if correction was not applied.
-        - ``tvalue``: The chi squared test statistic according to the score test or the correction method
+        - ``chisq``: The chi squared test statistic according to the score test or the correction method
         - ``pvalue``: P value estimated from the test statistic
         - ``phenotype``: The phenotype name as determiend by the column names of ``phenotype_df``
     '''
@@ -91,7 +91,7 @@ def logistic_regression(genotype_df: DataFrame,
     sql_type = gwas_fx._regression_sql_type(dt)
     genotype_df = gwas_fx._prepare_genotype_df(genotype_df, values_column, sql_type)
     base_result_fields = [
-        StructField('tvalue', sql_type),
+        StructField('chisq', sql_type),
         StructField('pvalue', sql_type),
         StructField('phenotype', StringType())
     ]
@@ -99,7 +99,7 @@ def logistic_regression(genotype_df: DataFrame,
         result_fields = [
             StructField('effect', sql_type),
             StructField('stderror', sql_type),
-            StructField('correction_succeeded', BooleanType())
+            StructField('correctionSucceeded', BooleanType())
         ] + base_result_fields
     elif correction == correction_none:
         result_fields = base_result_fields
@@ -298,17 +298,17 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
         X_res = _logistic_residualize(X, C, Y_mask, log_reg_state.gamma, log_reg_state.inv_CtGammaC)
         num = gwas_fx._einsum('sgp,sp->pg', X_res, log_reg_state.Y_res)**2
         denom = gwas_fx._einsum('sgp,sgp,sp->pg', X_res, X_res, log_reg_state.gamma)
-    t_values = np.ravel(num / denom)
-    p_values = stats.chi2.sf(t_values, 1)
+    chisq = np.ravel(num / denom)
+    p_values = stats.chi2.sf(chisq, 1)
 
     del genotype_pdf[_VALUES_COLUMN_NAME]
     out_df = pd.concat([genotype_pdf] * log_reg_state.Y_res.shape[1])
-    out_df['tvalue'] = list(np.ravel(t_values))
+    out_df['chisq'] = list(np.ravel(chisq))
     out_df['pvalue'] = list(np.ravel(p_values))
     out_df['phenotype'] = phenotype_names.repeat(genotype_pdf.shape[0]).tolist()
 
     if correction != correction_none:
-        out_df['correction_succeeded'] = None
+        out_df['correctionSucceeded'] = None
         correction_indices = list(np.where(out_df['pvalue'] < pvalue_threshold)[0])
         if correction == correction_approx_firth:
             out_df['effect'] = np.nan
@@ -320,12 +320,12 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
                     X[:, snp_idx], Y[:, pheno_idx], log_reg_state.firth_offset[:, pheno_idx],
                     Y_mask[:, pheno_idx])
                 if approx_firth_snp_fit is None:
-                    out_df.correction_succeeded.iloc[correction_idx] = False
+                    out_df.correctionSucceeded.iloc[correction_idx] = False
                 else:
-                    out_df.correction_succeeded.iloc[correction_idx] = True
+                    out_df.correctionSucceeded.iloc[correction_idx] = True
                     out_df.effect.iloc[correction_idx] = approx_firth_snp_fit.effect
                     out_df.stderror.iloc[correction_idx] = approx_firth_snp_fit.stderror
-                    out_df.tvalue.iloc[correction_idx] = approx_firth_snp_fit.tvalue
+                    out_df.chisq.iloc[correction_idx] = approx_firth_snp_fit.chisq
                     out_df.pvalue.iloc[correction_idx] = approx_firth_snp_fit.pvalue
 
     return out_df

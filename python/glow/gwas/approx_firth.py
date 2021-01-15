@@ -24,7 +24,7 @@ class FirthFit:
 class FirthStatistics:
     effect: Float
     stderror: Float
-    tvalue: Float
+    chisq: Float
     pvalue: Float
 
 
@@ -202,4 +202,4 @@ def correct_approx_firth(x: NDArray[(Any, ), Float], y: NDArray[(Any, ), Float],
     pvalue = stats.chi2.sf(tvalue, 1)
     # Based on the Hessian of the unpenalized log-likelihood
     stderror = np.sqrt(np.linalg.pinv(firth_fit.log_likelihood.I).diagonal()[-1])
-    return FirthStatistics(effect=effect, stderror=stderror, tvalue=tvalue, pvalue=pvalue)
+    return FirthStatistics(effect=effect, stderror=stderror, chisq=tvalue, pvalue=pvalue)
