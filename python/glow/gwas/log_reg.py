@@ -81,7 +81,7 @@ def logistic_regression(genotype_df: DataFrame,
                                     True if succeeded, False if failed, null if correction was not applied.
         - ``chisq``: The chi squared test statistic according to the score test or the correction method
         - ``pvalue``: P value estimated from the test statistic
-        - ``phenotype``: The phenotype name as determiend by the column names of ``phenotype_df``
+        - ``phenotype``: The phenotype name as determined by the column names of ``phenotype_df``
     '''
 
     spark = genotype_df.sql_ctx.sparkSession
