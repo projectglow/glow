@@ -62,9 +62,8 @@ def logistic_regression(genotype_df: DataFrame,
         correction : Which test to use for variants that meet a significance threshold for the score test. Supported
                      methods are ``none`` and ``approx-firth``.
         pvalue_threshold : Variants with a pvalue below this threshold will be tested using the ``correction`` method.
-        contigs : When using LOCO offsets, this parameter indicates the contigs that are currently under
-                  analysis. You can use this parameter to limit the size of the broadcasted data, which may
-                  be necessary with large sample sizes. If this parameter is omitted, it is inferred from
+        contigs : When using LOCO offsets, this parameter indicates the contigs to analyze. You can use this parameter to limit the size of the broadcasted data, which may
+                  be necessary with large sample sizes. If this parameter is omitted, the contigs are inferred from
                   the ``offset_df``.
         fit_intercept : Whether or not to add an intercept column to the covariate DataFrame
         values_column : A column name or column expression to test with linear regression. If a column name is provided,
@@ -216,9 +215,9 @@ def _create_log_reg_state(
     Fitting the null logistic models can be expensive, so the work is distributed across the cluster
     using Pandas UDFs.
     '''
-    if contigs is not None:
-        offset_df = offset_df.loc[pd.IndexSlice[:, contigs], :]
     offset_type = gwas_fx._validate_offset(phenotype_df, offset_df)
+    if offset_type == gwas_fx._OffsetType.LOCO_OFFSET and contigs is not None:
+        offset_df = offset_df.loc[pd.IndexSlice[:, contigs], :]
     pivoted_phenotype_df = reshape_for_gwas(spark, phenotype_df)
     result_fields = [
         StructField('label', StringType()),

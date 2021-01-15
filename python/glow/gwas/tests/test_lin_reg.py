@@ -489,3 +489,18 @@ def test_subset_contigs(rg):
     state = lr._create_YState(phenotype_df.to_numpy(), phenotype_df, offset_df,
                               ~np.isnan(phenotype_df.to_numpy()), np.float64, ['chr1', 'chr3'])
     assert set(state.keys()) == set(['chr1', 'chr3'])
+
+
+@pytest.mark.min_spark('3')
+def test_subset_contigs_no_loco(spark, rg):
+    num_samples = 50
+    num_pheno = 5
+    genotype_df = pd.DataFrame(rg.random((num_samples, 3)))
+    phenotype_df = pd.DataFrame(rg.random((num_samples, num_pheno)))
+    offset_df = pd.DataFrame(rg.random((num_samples, num_pheno)))
+    # No error when contigs are provided without loco offsets
+    run_linear_regression_spark(spark,
+                                genotype_df,
+                                phenotype_df,
+                                offset_df=offset_df,
+                                contigs=['chr1'])

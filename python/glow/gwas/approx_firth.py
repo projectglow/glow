@@ -198,8 +198,8 @@ def correct_approx_firth(x: NDArray[(Any, ), Float], y: NDArray[(Any, ), Float],
     # Likelihood-ratio test
     null_model = Model(masked_X, masked_y, masked_offset)
     null_deviance = _calculate_log_likelihood(beta_init, null_model).deviance
-    tvalue = null_deviance - firth_fit.log_likelihood.deviance
-    pvalue = stats.chi2.sf(tvalue, 1)
+    chisq = null_deviance - firth_fit.log_likelihood.deviance
+    pvalue = stats.chi2.sf(chisq, 1)
     # Based on the Hessian of the unpenalized log-likelihood
     stderror = np.sqrt(np.linalg.pinv(firth_fit.log_likelihood.I).diagonal()[-1])
-    return FirthStatistics(effect=effect, stderror=stderror, chisq=tvalue, pvalue=pvalue)
+    return FirthStatistics(effect=effect, stderror=stderror, chisq=chisq, pvalue=pvalue)
