@@ -67,9 +67,8 @@ def linear_regression(genotype_df: DataFrame,
                     If two levels, the level 0 index should be the same as the ``phenotype_df``, and the level 1 index
                     should be the contig name. The two level index scheme allows for per-contig offsets like
                     LOCO predictions from GloWGR.
-        contigs : When using LOCO offsets, this parameter indicates the contigs that are currently under
-                  analysis. You can use this parameter to limit the size of the broadcasted data, which may
-                  be necessary with large sample sizes. If this parameter is omitted, it is inferred from
+        contigs : When using LOCO offsets, this parameter indicates the contigs to analyze. You can use this parameter to limit the size of the broadcasted data, which may
+                  be necessary with large sample sizes. If this parameter is omitted, the contigs are inferred from
                   the ``offset_df``.
         fit_intercept : Whether or not to add an intercept column to the covariate DataFrame
         values_column : A column name or column expression to test with linear regression. If a column name is provided,
