@@ -111,7 +111,7 @@ For complete parameter usage information, check out the API reference for :func:
   Glow also includes a SQL-based function for performing linear regression. However, this function
   only processes one phenotype at time, and so performs more slowly than the batch linear regression function
   documented above. To read more about the SQL-based function, see the docs for
-  :func:`linear_regression <glow.functions.linear_regression_gwas>`.
+  :func:`glow.linear_regression_gwas`.
 
 .. _logistic-regression:
 
@@ -158,6 +158,42 @@ Example
     values_column='gt'
   )
 
+.. invisible-code-block: python
+
+  expected_corrected_row = Row(
+    contigName='21',
+    start=9411301,
+    names=['rs531010746'],
+    effect=1.6771295643163748,
+    stderror=0.727886866796042,
+    correction_succeeded=True,
+    tvalue=7.561977300936178,
+    pvalue=0.005961255160993639,
+    phenotype='Binary_Trait_2'
+  )
+
+  expected_uncorrected_row = Row(
+      contigName='22',
+      start=16050114,
+      names=['rs587755077'],
+      effect=None,
+      stderror=None,
+      correction_succeeded=None,
+      tvalue=2.8620926885005393,
+      pvalue=0.09068944361066741,
+      phenotype='Binary_Trait_1'
+    )
+
+  assert_rows_equal(
+    log_reg_df.filter("contigName = 21 and start = 9411301 and phenotype = 'Binary_Trait_2'").head(),
+    expected_corrected_row
+  )
+
+  assert_rows_equal(
+    log_reg_df.filter("contigName = 22 and start = 16050114 and phenotype = 'Binary_Trait_1'").head(),
+    expected_uncorrected_row
+  )
+
 The logistic regression function accepts GloWGR phenotypic predictions (either global or per chromosome) as an offset.
 
 .. code-block:: python
@@ -173,6 +209,43 @@ The logistic regression function accepts GloWGR phenotypic predictions (either g
     values_column='gt'
   )
 
+
+.. invisible-code-block: python
+
+  expected_corrected_row = Row(
+    contigName='21',
+    start=9411301,
+    names=['rs531010746'],
+    effect=1.7685129759078362,
+    stderror=0.7304047109477187,
+    correction_succeeded=True,
+    tvalue=8.406635446007385,
+    pvalue=0.003738539179357663,
+    phenotype='Binary_Trait_2'
+  )
+
+  expected_uncorrected_row = Row(
+      contigName='22',
+      start=16050114,
+      names=['rs587755077'],
+      effect=None,
+      stderror=None,
+      correction_succeeded=None,
+      tvalue=3.637471149006905,
+      pvalue=0.05649268083569545,
+      phenotype='Binary_Trait_1'
+    )
+
+  assert_rows_equal(
+    log_reg_df.filter("contigName = 21 and start = 9411301 and phenotype = 'Binary_Trait_2'").head(),
+    expected_corrected_row
+  )
+
+  assert_rows_equal(
+    log_reg_df.filter("contigName = 22 and start = 16050114 and phenotype = 'Binary_Trait_1'").head(),
+    expected_uncorrected_row
+  )
+
 .. tip::
 
  The ``offset`` parameter is especially useful in incorporating the results of :ref:`GloWGR <glowgr>` with
@@ -186,7 +259,7 @@ For complete parameter usage information, check out the API reference for :func:
   Glow also includes a SQL-based function for performing logistic regression. However, this function
   only processes one phenotype at time, and so performs more slowly than the batch logistic regression function
   documented above. To read more about the SQL-based function, see the docs for
-  :func:`logistic_regression <glow.functions.logistic_regression_gwas>`.
+  :func:`glow.logistic_regression_gwas`.
 
 Example notebook and blog post
 ------------------------------
