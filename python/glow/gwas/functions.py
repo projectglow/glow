@@ -107,7 +107,7 @@ def _validate_offset(phenotype_df: pd.DataFrame, offset_df: pd.DataFrame) -> _Of
     '''
     if not offset_df.empty:
         if not _have_same_elements(phenotype_df.columns, offset_df.columns):
-            raise ValueError(f'phenotype_df and offset_df should have the same column names {phenotype_df.columns} {offset_df.columns}.')
+            raise ValueError(f'phenotype_df and offset_df should have the same column names.')
         if offset_df.index.nlevels == 1:  # Indexed by sample id
             if not _have_same_elements(phenotype_df.index, offset_df.index):
                 raise ValueError(f'phenotype_df and offset_df should have the same index.')
