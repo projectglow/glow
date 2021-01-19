@@ -59,7 +59,7 @@ def transform(operation: str,
     return output_df
 
 
-def register(session: SparkSession, new_session: bool=True) -> SparkSession:
+def register(session: SparkSession, new_session: bool = True) -> SparkSession:
     """
     Register SQL extensions and py4j converters for a Spark session.
 
@@ -76,7 +76,8 @@ def register(session: SparkSession, new_session: bool=True) -> SparkSession:
     """
     assert check_argument_types()
     sc = session._sc
-    return SparkSession(sc, session._jvm.io.projectglow.Glow.register(session._jsparkSession, new_session))
+    return SparkSession(
+        sc, session._jvm.io.projectglow.Glow.register(session._jsparkSession, new_session))
 
 
 # Register input converters in idempotent fashion
