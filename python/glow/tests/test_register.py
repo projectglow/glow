@@ -30,8 +30,7 @@ def test_no_register(spark):
 
 
 def test_register(spark):
-    sess = spark.newSession()
-    glow.register(sess)
+    sess = glow.register(spark)
     row_one = Row(Row(str_col='foo', int_col=1, bool_col=True))
     row_two = Row(Row(str_col='bar', int_col=2, bool_col=False))
     df = sess.createDataFrame([row_one, row_two], schema=['base_col'])
@@ -39,3 +38,10 @@ def test_register(spark):
                       .filter("added_col.str_col = 'foo'") \
                       .head()
     assert added_col_row.added_col.rev_str_col == 'oof'
+
+def test_new_session(spark):
+    sess = glow.register(spark, new_session=False)
+    assert sess._jsparkSession.equals(spark._jsparkSession)
+
+    sess = glow.register(spark, new_session=True)
+    assert not sess._jsparkSession.equals(spark._jsparkSession)

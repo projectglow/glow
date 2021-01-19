@@ -40,11 +40,16 @@ class GlowBase {
   val mapper = new ObjectMapper()
   mapper.registerModule(DefaultScalaModule)
 
-  def register(spark: SparkSession): Unit = {
-    new GlowSQLExtensions().apply(SQLUtils.getSessionExtensions(spark))
+  def register(spark: SparkSession, newSession: Boolean = true): SparkSession = {
+    val sess = if (newSession) spark.newSession() else spark
+    new GlowSQLExtensions().apply(SQLUtils.getSessionExtensions(sess))
     SqlExtensionProvider.registerFunctions(
-      spark.sessionState.conf,
-      spark.sessionState.functionRegistry)
+      sess.sessionState.conf,
+      sess.sessionState.functionRegistry)
+
+    // Decrease the parquet columnar batch size (often necessary for large cohorts)
+    spark.conf.set("spark.sql.parquet.columnarReaderBatchSize", "16")
+    sess
   }
 
   /**
