@@ -1,3 +1,4 @@
+from pyspark.sql.types import ArrayType, DoubleType
 import glow.gwas.log_reg as lr
 import glow.gwas.functions as gwas_fx
 import statsmodels.api as sm
@@ -39,7 +40,7 @@ def statsmodels_baseline(genotype_df,
     if fit_intercept:
         covariate_df = sm.add_constant(covariate_df)
     p_values = []
-    t_values = []
+    chisq = []
     for phenotype in phenotype_df:
         for genotype_idx in range(genotype_df.shape[1]):
             mask = ~np.isnan(phenotype_df[phenotype].to_numpy())
@@ -55,10 +56,10 @@ def statsmodels_baseline(genotype_df,
             params = model.fit().params
             results = model.score_test(params,
                                        exog_extra=genotype_df.iloc[:, genotype_idx].array[mask])
-            t_values.append(results[0])
+            chisq.append(results[0])
             p_values.append(results[1])
     return pd.DataFrame({
-        'tvalue': np.concatenate(t_values),
+        'chisq': np.concatenate(chisq),
         'pvalue': np.concatenate(p_values),
         'phenotype': phenotype_df.columns.to_series().astype('str').repeat(genotype_df.shape[1])
     })
@@ -324,4 +325,37 @@ def test_propagate_extra_cols(spark, rg):
                                             extra_cols)
     assert sorted(results['genotype_idx'].tolist()) == [0] * 5 + [1] * 5 + [2] * 5
     assert results.animal[results.animal == 'monkey'].all()
-    assert results.columns.tolist() == ['genotype_idx', 'animal', 'tvalue', 'pvalue', 'phenotype']
+    assert results.columns.tolist() == ['genotype_idx', 'animal', 'chisq', 'pvalue', 'phenotype']
+
+
+@pytest.mark.min_spark('3')
+def test_subset_contigs(spark, rg):
+    num_samples = 50
+    num_pheno = 5
+    phenotype_df = pd.DataFrame(random_phenotypes((num_samples, num_pheno), rg))
+    sql_type = DoubleType()
+    C = np.ones((num_samples, 1))
+    contigs = ['chr1', 'chr2', 'chr3']
+    offset_index = pd.MultiIndex.from_product([phenotype_df.index, contigs])
+    offset_df = pd.DataFrame(rg.random((num_samples * 3, num_pheno)), index=offset_index)
+    state = lr._create_log_reg_state(spark, phenotype_df, offset_df, sql_type, C, 'none', True,
+                                     None)
+    assert set(state.keys()) == set(contigs)
+    state = lr._create_log_reg_state(spark, phenotype_df, offset_df, sql_type, C, 'none', True,
+                                     ['chr1', 'chr3'])
+    assert set(state.keys()) == set(['chr1', 'chr3'])
+
+
+@pytest.mark.min_spark('3')
+def test_subset_contigs_no_loco(spark, rg):
+    num_samples = 50
+    num_pheno = 5
+    genotype_df = pd.DataFrame(rg.random((num_samples, 3)))
+    phenotype_df = pd.DataFrame(random_phenotypes((num_samples, num_pheno), rg))
+    offset_df = pd.DataFrame(rg.random((num_samples, num_pheno)))
+    # No error when contigs are provided without loco offsets
+    run_logistic_regression_spark(spark,
+                                  genotype_df,
+                                  phenotype_df,
+                                  offset_df=offset_df,
+                                  contigs=['chr1'])
