@@ -18,7 +18,7 @@ def run_linear_regression(genotype_df, phenotype_df, covariate_df, fit_intercept
     Y[~Y_mask] = 0
     Q = np.linalg.qr(C)[0]
     Y = gwas_fx._residualize_in_place(Y, Q)
-    Y_state = lr._create_YState(Y, phenotype_df, pd.DataFrame({}), Y_mask, np.float64)
+    Y_state = lr._create_YState(Y, phenotype_df, pd.DataFrame({}), Y_mask, np.float64, None)
     dof = C.shape[0] - C.shape[1] - 1
     pdf = pd.DataFrame({lr._VALUES_COLUMN_NAME: list(genotype_df.to_numpy('float64').T)})
 
@@ -474,3 +474,33 @@ def test_values_expr(spark, rg):
     baseline = statsmodels_baseline(pandas_genotype_df, phenotype_df, covariate_df)
     assert regression_results_equal(baseline, results.drop('id').toPandas())
     assert not 'genotypes' in [field.name for field in results.schema]
+
+
+def test_subset_contigs(rg):
+    num_samples = 25
+    num_pheno = 25
+    contigs = ['chr1', 'chr2', 'chr3']
+    phenotype_df = pd.DataFrame(rg.random((num_samples, num_pheno)))
+    offset_index = pd.MultiIndex.from_product([phenotype_df.index, contigs])
+    offset_df = pd.DataFrame(rg.random((num_samples * 3, num_pheno)), index=offset_index)
+    state = lr._create_YState(phenotype_df.to_numpy(), phenotype_df, offset_df,
+                              ~np.isnan(phenotype_df.to_numpy()), np.float64, None)
+    assert set(state.keys()) == set(contigs)
+    state = lr._create_YState(phenotype_df.to_numpy(), phenotype_df, offset_df,
+                              ~np.isnan(phenotype_df.to_numpy()), np.float64, ['chr1', 'chr3'])
+    assert set(state.keys()) == set(['chr1', 'chr3'])
+
+
+@pytest.mark.min_spark('3')
+def test_subset_contigs_no_loco(spark, rg):
+    num_samples = 50
+    num_pheno = 5
+    genotype_df = pd.DataFrame(rg.random((num_samples, 3)))
+    phenotype_df = pd.DataFrame(rg.random((num_samples, num_pheno)))
+    offset_df = pd.DataFrame(rg.random((num_samples, num_pheno)))
+    # No error when contigs are provided without loco offsets
+    run_linear_regression_spark(spark,
+                                genotype_df,
+                                phenotype_df,
+                                offset_df=offset_df,
+                                contigs=['chr1'])
