@@ -67,7 +67,7 @@ def register(session: SparkSession, new_session: bool = True) -> SparkSession:
         session: Spark session
         new_session: If ``True``, create a new Spark session using ``session.newSession()`` before registering
                      extensions. This may be necessary if you're using functions that register new
-                     analysis rules. The new session will have isolated UDFs, configurations, and temporary tables,
+                     analysis rules. The new session has isolated UDFs, configurations, and temporary tables,
                      but shares the existing ``SparkContext`` and cached data.
 
     Example:
