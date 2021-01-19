@@ -72,7 +72,7 @@ def register(session: SparkSession, new_session: bool = True) -> SparkSession:
 
     Example:
         >>> import glow
-        >>> glow.register(spark)
+        >>> spark = glow.register(spark)
     """
     assert check_argument_types()
     sc = session._sc

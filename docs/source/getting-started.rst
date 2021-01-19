@@ -49,7 +49,7 @@ Glow requires Apache Spark 2.4.3 or later.
         .. code-block:: python
 
           import glow
-          glow.register(spark)
+          spark = glow.register(spark)
           df = spark.read.format('vcf').load(path)
 
     .. tab:: Scala
