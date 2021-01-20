@@ -58,7 +58,7 @@ sample_info_path = "/databricks-datasets/genomics/1000G/samples/populations_1000
 
 delta_silver_path = "/mnt/gwas_test/snps.delta"
 delta_gold_path = "/mnt/gwas_test/snps.qced.delta"
-principal_components_path = "/mnt/gwas_test/pcs.delta"
+principal_components_path = "/dbfs/mnt/gwas_test/pcs.csv"
 gwas_results_path = "/mnt/gwas_test/gwas_results.delta"
 
 # COMMAND ----------
@@ -112,9 +112,9 @@ def get_sample_info(vcf_df, sample_metadata_df):
 # MAGIC 
 # MAGIC ### Ingest 1000 Genomes VCF into Delta Lake
 # MAGIC 
-# MAGIC Use Glow's variant call format (VCF) Spark data source to read genomic files directly from cloud storage.
-# MAGIC 
-# MAGIC Write genotype data into Delta Lake, a high performance big data store with ACID semantics. Delta Lake organizes, indexes and compresses data, allowing for performant and reliable computation on genomics data as it grows over time.
+# MAGIC Using Glow's VCF reader, which enables variant call format (VCF) files to be read as a Spark Datasource directly from cloud storage,
+# MAGIC write genotype data into Delta Lake, a high performance big data store with ACID semantics.
+# MAGIC Delta Lake organizes, indexes and compresses data, allowing for performant and reliable computation on genomics data as it grows over time.
 
 # COMMAND ----------
 
@@ -124,7 +124,7 @@ vcf_view_unsplit = spark.read.format("vcf"). \
 
 # COMMAND ----------
 
-# MAGIC %md Split variants to biallelics with the ``split_multiallelics`` Glow transformer.
+# MAGIC %md Split multiallelics varaints to biallelics
 
 # COMMAND ----------
 
@@ -137,8 +137,7 @@ display(vcf_view.withColumn("genotypes", fx.col("genotypes")[0]))
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC 
-# MAGIC Compute variant-wise summary stats and Hardy-Weinberg equilibrium p-values using the Glow functions ``call_summary_stats`` and ``hardy_weinberg``.
+# MAGIC ##### Note: we compute variant-wise summary stats and Hardy-Weinberg equilibrium P values using `call_summary_stats` & `hardy_weinberg`, which are built into Glow
 
 # COMMAND ----------
 
@@ -156,7 +155,7 @@ vcf_view. \
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC Since metadata associated with Delta Lake are stored directly in the transaction log, we can quickly calculate the size of the Delta Lake and log it to MLflow.
+# MAGIC Since metadata associated with Delta Lake are stored directly in the transaction log, we can quickly calculate the size of the Delta Lake and log it to MLflow
 
 # COMMAND ----------
 
@@ -169,7 +168,7 @@ mlflow.log_metric("Number Variants pre-QC", num_variants)
 # MAGIC 
 # MAGIC #### Run Quality Control
 # MAGIC 
-# MAGIC Perform variant-wise filtering on Hardy-Weinberg equilibrium p-values and allele frequency.
+# MAGIC Perform variant-wise filtering on Hardy-Weinberg equilibrium P-values and allele frequency
 
 # COMMAND ----------
 
@@ -227,7 +226,9 @@ mlflow.log_metric("Number Variants post-QC", num_variants)
 # MAGIC 
 # MAGIC #### Run Principal Component Analysis (PCA)
 # MAGIC 
-# MAGIC Use PCs to control for ancestry in the GWAS.
+# MAGIC To control for ancestry in the GWAS
+# MAGIC 
+# MAGIC Note: `array_to_sparse_vector` is a function built into Glow
 
 # COMMAND ----------
 
@@ -248,23 +249,16 @@ pcs = matrix.computeSVD(num_pcs)
 
 # COMMAND ----------
 
-@dataclass()
-class Covariates:
-    covariates: DenseMatrix
-      
-spark.createDataFrame([Covariates(pcs.V.asML())]). \
-      write. \
-      format("delta"). \
-      save(principal_components_path)
+pd.DataFrame(pcs.V.toArray()).to_csv(principal_components_path)
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC #### Read in sample information and plot out principal components
+# MAGIC #### Read sample information in and plot out principal components
 # MAGIC 
-# MAGIC Annotate sample info with principal components by joining both DataFrames on index.
+# MAGIC Here we annotate sample info with principal components by joining both DataFrames on index
 # MAGIC 
-# MAGIC Note: indexing is performed using the Spark SQL function `monotonically_increasing_id()`.
+# MAGIC Note: indexing is performed using the Spark SQL function `monotonically_increasing_id()`
 
 # COMMAND ----------
 
@@ -283,9 +277,11 @@ pcs_with_samples = pcs_indexed.join(sample_info, "index")
 
 # MAGIC %md
 # MAGIC 
-# MAGIC #### Use the display function to create a scatter plot of PC1 and PC2
+# MAGIC #### Use the display function to create a scatter plot of pc1 and pc2
 # MAGIC 
-# MAGIC Note: because we are only analyzing chromosome 22, the PCA scatter plot does not distinguish populations as well as the whole genome data.
+# MAGIC Note: because we are only analyzing chromosome 22
+# MAGIC 
+# MAGIC the PCA scatter plot does not distinguish populations as well as the whole genome data
 
 # COMMAND ----------
 
@@ -310,8 +306,7 @@ display(bmiPhenotype.select(fx.explode(fx.col("phenotype_values")).alias("bmi"))
 
 # COMMAND ----------
 
-covariates = spark.read.format("delta").load(principal_components_path)
-covariate_df = pd.DataFrame(covariates.head().covariates.toArray())
+covariate_df = pd.read_csv(principal_components_path)
 
 # COMMAND ----------
 
