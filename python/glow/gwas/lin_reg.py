@@ -9,6 +9,7 @@ from scipy import stats
 from typeguard import typechecked
 from . import functions as gwas_fx
 from .functions import _VALUES_COLUMN_NAME
+from ..wgr.functions import _get_contigs_from_loco_df
 
 __all__ = ['linear_regression']
 
@@ -19,7 +20,7 @@ def linear_regression(genotype_df: DataFrame,
                       covariate_df: pd.DataFrame = pd.DataFrame({}),
                       offset_df: pd.DataFrame = pd.DataFrame({}),
                       contigs: Optional[List[str]] = None,
-                      fit_intercept: bool = True,
+                      add_intercept: bool = True,
                       values_column: Union[str, Column] = 'values',
                       dt: type = np.float64) -> DataFrame:
     '''
@@ -70,7 +71,7 @@ def linear_regression(genotype_df: DataFrame,
         contigs : When using LOCO offsets, this parameter indicates the contigs to analyze. You can use this parameter to limit the size of the broadcasted data, which may
                   be necessary with large sample sizes. If this parameter is omitted, the contigs are inferred from
                   the ``offset_df``.
-        fit_intercept : Whether or not to add an intercept column to the covariate DataFrame
+        add_intercept : Whether or not to add an intercept column to the covariate DataFrame
         values_column : A column name or column expression to test with linear regression. If a column name is provided,
                         ``genotype_df`` should have a column with this name and a numeric array type. If a column expression
                         is provided, the expression should return a numeric array type.
@@ -106,7 +107,7 @@ def linear_regression(genotype_df: DataFrame,
     result_struct = gwas_fx._output_schema(genotype_df.schema.fields, result_fields)
 
     C = covariate_df.to_numpy(dt, copy=True)
-    if fit_intercept:
+    if add_intercept:
         C = gwas_fx._add_intercept(C, phenotype_df.shape[0])
 
     # Prepare covariate basis and phenotype residuals
@@ -146,7 +147,7 @@ def _create_YState(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame,
         return _create_one_YState(Y, phenotype_df, offset_df, Y_mask, dt)
 
     if contigs is None:
-        contigs = gwas_fx._get_contigs_from_loco_df(offset_df)
+        contigs = _get_contigs_from_loco_df(offset_df)
     return {
         contig: _create_one_YState(Y, phenotype_df, offset_df.xs(contig, level=1), Y_mask, dt)
         for contig in contigs

@@ -18,9 +18,12 @@ from pyspark import SparkContext
 from pyspark.sql import DataFrame, Row, SparkSession, SQLContext
 from typeguard import check_argument_types, check_return_type
 from typing import Dict, List
-from ..gwas.functions import _get_contigs_from_loco_df
 
 __all__ = ['get_sample_ids', 'block_variants_and_samples', 'reshape_for_gwas']
+
+
+def _get_contigs_from_loco_df(df: pd.DataFrame) -> pd.Series:
+    return df.index.get_level_values(1).unique()
 
 
 def __validate_sample_ids(sample_ids: List[str]):
@@ -70,7 +73,7 @@ def get_sample_ids(data: DataFrame) -> List[str]:
 
     Requires that the sample IDs:
 
-        - Are in `genotype.sampleId`
+        - Are in ``genotype.sampleId``
         - Are the same across all the variant rows
         - Are a list of strings
         - Are non-empty

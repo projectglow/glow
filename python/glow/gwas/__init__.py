@@ -1,2 +1,4 @@
 from .lin_reg import *
-__all__ = ['linear_regression']
+from .log_reg import *
+
+__all__ = lin_reg.__all__ + log_reg.__all__
