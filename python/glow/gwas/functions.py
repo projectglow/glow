@@ -6,7 +6,7 @@ import pandas as pd
 from nptyping import Float, NDArray
 from typeguard import typechecked
 import opt_einsum as oe
-from glow.wgr.model_functions import __assert_all_present, __check_binary
+from glow.wgr.model_functions import _assert_all_present, _check_binary
 from enum import Enum
 
 _VALUES_COLUMN_NAME = '_glow_regression_values'
@@ -27,14 +27,14 @@ def _output_schema(input_fields: List[StructField], result_fields: List[StructFi
 
 def _validate_covariates_and_phenotypes(covariate_df, phenotype_df, is_binary):
     for col in covariate_df:
-        __assert_all_present(covariate_df, col, 'covariate')
+        _assert_all_present(covariate_df, col, 'covariate')
     if not covariate_df.empty:
         if phenotype_df.shape[0] != covariate_df.shape[0]:
             raise ValueError(
                 f'phenotype_df and covariate_df must have the same number of rows ({phenotype_df.shape[0]} != {covariate_df.shape[0]}'
             )
     if is_binary:
-        __check_binary(phenotype_df)
+        _check_binary(phenotype_df)
 
 
 def _regression_sql_type(dt):

@@ -14,18 +14,18 @@
 
 import itertools
 import math
-from nptyping import Float, Int, NDArray
+import re
+import warnings
+from typing import Any, Dict, Iterable, List, Tuple
+
 import numpy as np
 import pandas as pd
-from pyspark.sql import DataFrame, Row
 import pyspark.sql.functions as f
-from pyspark.sql.window import Window
-import re
-from typeguard import typechecked
-from typing import Any, Dict, Iterable, List, Tuple
 import scipy.optimize
-import warnings
-from glow.wgr.ridge_reduction import *
+from nptyping import Float, Int, NDArray
+from pyspark.sql import DataFrame, Row
+from pyspark.sql.window import Window
+from typeguard import typechecked
 
 
 @typechecked
@@ -461,7 +461,7 @@ def generate_alphas(blockdf: DataFrame) -> Dict[str, Float]:
 
 
 @typechecked
-def __assert_all_present(df: pd.DataFrame, col_name: Any, df_name: str) -> None:
+def _assert_all_present(df: pd.DataFrame, col_name: Any, df_name: str) -> None:
     """
     Raises an error if a pandas series has missing values.
 
@@ -474,17 +474,17 @@ def __assert_all_present(df: pd.DataFrame, col_name: Any, df_name: str) -> None:
 
 
 @typechecked
-def __is_zero(f: float) -> bool:
+def _is_zero(f: float) -> bool:
     return math.isclose(f, 0, abs_tol=0.01)
 
 
 @typechecked
-def __is_one(f: float) -> bool:
+def _is_one(f: float) -> bool:
     return math.isclose(f, 1, abs_tol=0.01)
 
 
 @typechecked
-def __num_non_binary_values(s: pd.Series) -> int:
+def _num_non_binary_values(s: pd.Series) -> int:
     """
     Returns the number of values in a series that are neither 0, 1, nor missing.
     """
@@ -492,7 +492,7 @@ def __num_non_binary_values(s: pd.Series) -> int:
     return int(non_binary_vals)
 
 
-def __check_binary(df: pd.DataFrame) -> None:
+def _check_binary(df: pd.DataFrame) -> None:
     """
     Warns if any column of a pandas DataFrame is not a binary value equal to 0 or 1.
 
@@ -500,7 +500,7 @@ def __check_binary(df: pd.DataFrame) -> None:
         df : Pandas DataFrame
     """
     for label in df:
-        num_non_binary_vals = __num_non_binary_values(df[label])
+        num_non_binary_vals = _num_non_binary_values(df[label])
         if num_non_binary_vals != 0:
             warnings.warn(
                 f"Column {label} is not binary. It has {num_non_binary_vals} non-binary value(s).",
@@ -508,39 +508,71 @@ def __check_binary(df: pd.DataFrame) -> None:
 
 
 @typechecked
-def is_binary(df: pd.DataFrame) -> bool:
+def _is_binary(df: pd.DataFrame) -> bool:
+    """
+    Checks whether a Pandas DataFrame is all binary.
+
+    Args:
+        df : Pandas DataFrame
+    """
     return df.isin([0, 1, None]).all(axis=None).item()
 
 
 @typechecked
-def __fillna_and_standardize(pdf: pd.DataFrame) -> pd.DataFrame:
+def _fill_na_and_standardize(pdf: pd.DataFrame) -> pd.DataFrame:
+    """
+    Replaces the NaNs in a Pandas DataFrame with the mean of the column and
+    mean centers and scales the columns.
+
+    Args:
+        df : Pandas DataFrame
+    """
     pdf_mean = pdf.mean()
     _pdf = pdf.fillna(pdf_mean)
-    return (_pdf - pdf_mean) / pdf.std()
+    pdf_std = pdf.std()
+    zero_std_labels = _pdf.columns[pdf_std == 0]
+    if zero_std_labels.empty:
+        return (_pdf - pdf_mean) / pdf_std
+    else:
+        raise ValueError(f"""Column(s) {zero_std_labels.tolist()} have zero std. dev.!""")
 
 
 @typechecked
-def prepare_labels_and_warn(labeldf: pd.DataFrame, binary: bool, label_type: str) -> pd.DataFrame:
+def _prepare_labels_and_warn(label_df: pd.DataFrame, is_binary: bool,
+                             label_type: str) -> pd.DataFrame:
+    """
+    Gets a Pandas DataFrame containing phenotypes (label_df) and whether it is binary or not
+    and generates the appropriate warning based on label_type. Returns standardized label DataFrame
+
+    Args:
+        label_df: Pandas DataFrame of phenotypes
+        is_binary: Whether label_df is binary or not
+        label_type: User's choice for label type treatment ('detect', 'binary', or 'quantitative')
+
+    Returns:
+        Standardized label Pandas Dataframe
+    """
     if label_type == 'detect':
-        if binary:
+        if is_binary:
             warnings.warn(
-                "The label DataFrame is binary. Ridge reduction for binary phenotypes will be applied.",
+                "The label DataFrame is binary. Reduction/regression for binary phenotypes will be applied.",
                 UserWarning)
-            return labeldf - labeldf.mean()
         else:
             warnings.warn(
-                "The label DataFrame is quantitative. Ridge reduction for quantitative phenotypes will be applied.",
+                "The label DataFrame is quantitative. Reduction/regression for quantitative phenotypes will be applied.",
                 UserWarning)
-            return __fillna_and_standardize(labeldf)
+        return _fill_na_and_standardize(label_df)
     elif label_type == 'quantitative':
-        warnings.warn("Ridge reduction for quantitative phenotypes will be applied.", UserWarning)
-        return __fillna_and_standardize(labeldf)
+        warnings.warn("Reduction/regression for quantitative phenotypes will be applied.",
+                      UserWarning)
+        return _fill_na_and_standardize(label_df)
     elif label_type == 'binary':
-        if binary:
-            warnings.warn("Ridge reduction for binary phenotypes will be applied.", UserWarning)
-            return labeldf - labeldf.mean()
+        if is_binary:
+            warnings.warn("Reduction/regression for binary phenotypes will be applied.",
+                          UserWarning)
+            return _fill_na_and_standardize(label_df)
         else:
-            __check_binary(labeldf)
+            _check_binary(label_df)
             raise TypeError("Binary label DataFrame expected!", UserWarning)
     else:
         raise ValueError(
@@ -548,21 +580,59 @@ def prepare_labels_and_warn(labeldf: pd.DataFrame, binary: bool, label_type: str
 
 
 @typechecked
-def prepare_covariates(covdf: pd.DataFrame) -> pd.DataFrame:
-    return __fillna_and_standardize(covdf)
+def _prepare_covariates(cov_df: pd.DataFrame, label_df: pd.DataFrame,
+                        add_intercept: bool) -> pd.DataFrame:
+    """
+    Standardizes the covariate Pandas DataFrame and adds intercept column to it if indicated
+
+    Args:
+        cov_df: Pandas DataFrame of phenotypes
+        label_df: Pandas DataFrame of phenotypes
+        add_intercept: Whether to add intercept to the covariates Pandas DataFrame
+
+    Returns:
+        Standardized covariate Pandas DataFrame with optionally added intercept column
+    """
+    if cov_df.empty:
+        if add_intercept:
+            std_cov_df = pd.DataFrame(data=np.ones(label_df.shape[0]),
+                                      columns=['intercept'],
+                                      index=label_df.index)
+    else:
+        if label_df.shape[0] != cov_df.shape[0]:
+            raise ValueError(
+                f'cov_df must be either empty of have the same number of rows as label_df ({label_df.shape[0]} != {cov_df.shape[0]}'
+            )
+        std_cov_df = _fill_na_and_standardize(cov_df)
+        if add_intercept:
+            std_cov_df.insert(0, 'intercept', 1)
+
+    return std_cov_df
 
 
 @typechecked()
-def check_model(modeldf: DataFrame) -> None:
-    if modeldf is None:
+def _check_model(model_df: DataFrame) -> None:
+    """
+    Raise an error if model_df does not exist
+
+    Args:
+        model_df : Model DataFrame
+    """
+    if model_df is None:
         raise ValueError(
             'No model DataFrame found! Run fit() or provide a previously made model using set_model_df()'
         )
 
 
 @typechecked()
-def check_cv(cvdf: DataFrame) -> None:
-    if cvdf is None:
+def _check_cv(cv_df: DataFrame) -> None:
+    """
+    Raise an error if cv_df does not exist
+
+    Args:
+        cv_df: Cross Validation DataFrame
+    """
+    if cv_df is None:
         raise ValueError(
             'No cross validation DataFrame found! Run fit() or provide a previously made cv DataFrame using set_cv_df().'
         )
@@ -683,16 +753,3 @@ def apply_model_df(blockdf, modeldf, cvdf, transform_udf, transform_key_pattern,
         .groupBy(transform_key_pattern) \
         .apply(transform_udf) \
         .join(cvdf, ['label', 'alpha'], 'inner')
-
-
-def wgr(blockdf: DataFrame,
-        labeldf: pd.DataFrame,
-        sample_blocks: Dict[str, List[str]],
-        covdf: pd.DataFrame = pd.DataFrame({}),
-        alphas: NDArray[(Any, ), Float] = np.array([]),
-        label_type='detect') -> pd.DataFrame:
-    stack = RidgeReduction(blockdf, labeldf, sample_blocks, covdf, alphas, label_type)
-    stack.fit_transform()
-    # TODO: regression = LogisticRegression(stack) if stack.is_binary else
-    regression = RidgeRegression(stack)
-    return regression.fit_transform_loco()

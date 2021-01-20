@@ -13,6 +13,7 @@
 # limitations under the License.
 
 from glow.wgr.model_functions import *
+from glow.wgr.model_functions import _prepare_covariates, _prepare_labels_and_warn
 import math
 import numpy as np
 import pandas as pd
@@ -85,22 +86,53 @@ def test_generate_alphas(spark):
     assert generate_alphas(df) == expected_alphas
 
 
-def test_labels_and_covars_ok(spark):
-    labeldf = pd.DataFrame({'Trait_1': [0, -1, 1], 'Trait_2': [0, 1, -1]})
-    covdf = pd.DataFrame({'Covariate_1': [0, 1, -1], 'Covariate_2': [0, -1, 1]})
-    with pytest.warns(None) as record:
-        validate_inputs(labeldf, covdf, 'continuous')
+def test_prepare_covariates():
+    label_df = pd.DataFrame({'Trait_1': [0, -1, 1], 'Trait_2': [0, 1, math.nan]})
+    cov_df = pd.DataFrame({'Covariate_1': [0, 2, -1], 'Covariate_2': [0, -1, 1]})
+    expected_df = pd.DataFrame({
+        'intercept': [1, 1, 1],
+        'Covariate_1': [-0.218218, 1.091089, -0.872872],
+        'Covariate_2': [0, -1, 1]
+    })
+    assert (np.allclose(_prepare_covariates(cov_df, label_df, True), expected_df, 1e-5))
+    assert (np.allclose(_prepare_covariates(cov_df, label_df, False), expected_df.drop['intercept'],
+                        1e-5))
 
-        # Add a binary trait
-        labeldf['Trait_3'] = [0, 1, math.nan]
-        validate_inputs(labeldf, covdf, 'either')
 
-        # Delete continuous traits and check binary validation
-        del labeldf['Trait_1']
-        del labeldf['Trait_2']
-        validate_inputs(labeldf, covdf, 'binary')
+def test_prepare_covariates_insufficient_elements():
+    label_df = pd.DataFrame({'Trait_1': [0, -1, 1], 'Trait_2': [0, 1, math.nan]})
+    cov_df = pd.DataFrame({'Covariate_1': [0, 2], 'Covariate_2': [0, -1]})
+    with pytest.raises(
+            ValueError,
+            match=r'.*cov_df must be either empty of have the same number of rows as label_df.*'):
+        _prepare_covariates(cov_df, label_df, True)
 
-    assert len(record) == 0
+
+def test_prepare_labels_and_warn():
+    warnings = [
+        "The label DataFrame is binary. Reduction/regression for binary phenotypes will be applied.",
+        "Reduction/regression for binary phenotypes will be applied.",
+        "Reduction/regression for quantitative phenotypes will be applied.",
+        "The label DataFrame is quantitative. Reduction/regression for quantitative phenotypes will be applied."
+    ]
+    b_label_df = pd.DataFrame({'Trait_1': [0, 1, 1], 'Trait_2': [0, 1, math.nan]})
+    q_label_df = pd.DataFrame({'Trait_1': [0, 1.5, 1], 'Trait_2': [0, 1, math.nan]})
+    std_b_label_df = pd.DataFrame({'Trait_1': [0, 1, 1], 'Trait_2': [0, 1, math.nan]})
+    std_q_label_df = pd.DataFrame({'Trait_1': [0, 1, 1], 'Trait_2': [0, 1, math.nan]})
+    with pytest.warns(UserWarning) as record:
+        assert (_prepare_labels_and_warn(b_label_df, True, 'detect').equals(std_b_label_df))
+        _prepare_labels_and_warn(b_label_df, True, 'binary')
+        _prepare_labels_and_warn(b_label_df, True, 'quantitative')
+        _prepare_labels_and_warn(q_label_df, False, 'detect')
+        _prepare_labels_and_warn(q_label_df, False, 'quantitative')
+
+    for i in range(0, 4):
+        assert str(record[i].message) == warnings[i]
+
+    assert str(record[4].message) == warnings[2]
+
+    with pytest.raises(TypeError, match='Binary label DataFrame expected!'):
+        _prepare_labels_and_warn(q_label_df, False, 'binary')
 
 
 def expect_validation_warning(labeldf, covdf, label_types):
@@ -213,7 +245,6 @@ def test_infer_chromosomes(spark):
 
 
 def test_constrained_logistic_fit():
-
     X_raw, y = load_breast_cancer(return_X_y=True)
     mu, sig = X_raw.mean(axis=0), X_raw.std(axis=0)
     X = (X_raw - mu) / sig
