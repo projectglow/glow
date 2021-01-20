@@ -150,7 +150,8 @@ def perform_null_firth_fit(
     '''
 
     firth_offset = np.zeros(y.shape)
-    offset = offset if offset is not None else np.zeros(y.shape)
+    if offset is None:
+        offset = np.zeros(y.shape)
 
     masked_y = y[mask]
     masked_C = C[mask, :]

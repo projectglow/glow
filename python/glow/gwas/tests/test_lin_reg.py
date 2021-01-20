@@ -6,10 +6,10 @@ import glow.gwas.lin_reg as lr
 import pytest
 
 
-def run_linear_regression(genotype_df, phenotype_df, covariate_df, fit_intercept=True):
+def run_linear_regression(genotype_df, phenotype_df, covariate_df, add_intercept=True):
     phenotype_names = phenotype_df.columns.astype('str').to_series()
     C = covariate_df.to_numpy('float64', copy=True)
-    if fit_intercept:
+    if add_intercept:
         C = gwas_fx._add_intercept(C, genotype_df.shape[0])
     if not C.size:
         C = np.zeros((genotype_df.shape[0], 1))
@@ -59,11 +59,11 @@ def statsmodels_baseline(genotype_df,
                          phenotype_df,
                          covariate_df,
                          offset_dfs=None,
-                         fit_intercept=True):
+                         add_intercept=True):
     # Project out covariates from genotypes and phenotypes
     C = covariate_df.to_numpy('float64')
     num_samples = C.shape[0] if C.size else genotype_df.shape[0]
-    if fit_intercept:
+    if add_intercept:
         C = gwas_fx._add_intercept(C, num_samples)
     Y = phenotype_df.to_numpy('float64')
     X = genotype_df.to_numpy('float64')
@@ -107,15 +107,15 @@ def regression_results_equal(df1, df2, rtol=1e-5):
     return strings_equal and numerics_equal
 
 
-def assert_glow_equals_golden(genotype_df, phenotype_df, covariate_df, fit_intercept=True):
+def assert_glow_equals_golden(genotype_df, phenotype_df, covariate_df, add_intercept=True):
     glow = run_linear_regression(genotype_df,
                                  phenotype_df,
                                  covariate_df,
-                                 fit_intercept=fit_intercept)
+                                 add_intercept=add_intercept)
     golden = statsmodels_baseline(genotype_df,
                                   phenotype_df,
                                   covariate_df,
-                                  fit_intercept=fit_intercept)
+                                  add_intercept=add_intercept)
     assert regression_results_equal(glow, golden)
 
 
@@ -147,7 +147,7 @@ def test_r_glm_baseline_covariates():
         'pvalue': [1.489836e-12],
         'phenotype': ['dist']
     })
-    baseline = statsmodels_baseline(genotype_df, phenotype_df, covariate_df, fit_intercept=False)
+    baseline = statsmodels_baseline(genotype_df, phenotype_df, covariate_df, add_intercept=False)
     assert regression_results_equal(expected, baseline)
 
 
@@ -165,7 +165,7 @@ def test_r_glm_covariates():
     phenotype_df = dataset.loc[:, ['dist']]
     phenotype_df.loc[0, 'dist'] = np.nan
     covariate_df = pd.DataFrame({'intercept': np.ones(genotype_df.shape[0])})
-    assert_glow_equals_golden(genotype_df, phenotype_df, covariate_df, fit_intercept=False)
+    assert_glow_equals_golden(genotype_df, phenotype_df, covariate_df, add_intercept=False)
 
 
 def test_multiple(rg):

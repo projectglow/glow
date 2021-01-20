@@ -28,7 +28,7 @@ def logistic_regression(genotype_df: DataFrame,
                         correction: str = correction_approx_firth,
                         pvalue_threshold: float = 0.05,
                         contigs: Optional[List[str]] = None,
-                        fit_intercept: bool = True,
+                        add_intercept: bool = True,
                         values_column: str = 'values',
                         dt: type = np.float64) -> DataFrame:
     '''
@@ -36,18 +36,21 @@ def logistic_regression(genotype_df: DataFrame,
     phenotypes. This is a distributed version of the method from regenie:
     https://www.biorxiv.org/content/10.1101/2020.06.19.162354v2
 
+    Implementation details:
+
     On the driver node, we fit a logistic regression model based on the covariates for each
     phenotype:
 
-    logit(y) ~ C
+    .. math::
+        logit(y) \sim C
 
-    where y is a phenotype vector and C is the covariate matrix.
+    where :math:`y` is a phenotype vector and :math:`C` is the covariate matrix.
 
-    We compute the probability predictions h_hat and broadcast the residuals (y - y_hat), gamma vectors
-    (where gamma is defined as y_hat * (1 - Y_hat)), and (C.T gamma C)^-1 matrices. In each task,
-    we then adjust the new genotypes based on the null fit, perform a score test as a fast scan
-    for potentially significant variants, and then test variants with p values below a threshold
-    using a more selective, more expensive test.
+    We compute the probability predictions :math:`\hat{y}` and broadcast the residuals (:math:`y - \hat{y}`),
+    :math:`\gamma` vectors (where :math:`\gamma = \hat{y} * (1 - \hat{y})`), and
+    :math:`(C^\intercal \gamma C)^{-1}` matrices. In each task, we then adjust the new genotypes based on the null fit,
+    perform a score test as a fast scan for potentially significant variants, and then test variants with p-values below
+    a threshold using a more selective, more expensive test.
 
     Args:
         genotype_df : Spark DataFrame containing genomic data
@@ -65,7 +68,7 @@ def logistic_regression(genotype_df: DataFrame,
         contigs : When using LOCO offsets, this parameter indicates the contigs to analyze. You can use this parameter to limit the size of the broadcasted data, which may
                   be necessary with large sample sizes. If this parameter is omitted, the contigs are inferred from
                   the ``offset_df``.
-        fit_intercept : Whether or not to add an intercept column to the covariate DataFrame
+        add_intercept : Whether or not to add an intercept column to the covariate DataFrame
         values_column : A column name or column expression to test with linear regression. If a column name is provided,
                         ``genotype_df`` should have a column with this name and a numeric array type. If a column expression
                         is provided, the expression should return a numeric array type.
@@ -78,9 +81,9 @@ def logistic_regression(genotype_df: DataFrame,
         - ``effect``: The effect size (if approximate Firth correction was applied)
         - ``stderror``: Standard error of the effect size (if approximate Firth correction was applied)
         - ``correctionSucceeded``: Whether the correction succeeded (if the correction test method is not ``none``).
-                                    True if succeeded, False if failed, null if correction was not applied.
+          ``True`` if succeeded, ``False`` if failed, ``null`` if correction was not applied.
         - ``chisq``: The chi squared test statistic according to the score test or the correction method
-        - ``pvalue``: P value estimated from the test statistic
+        - ``pvalue``: p-value estimated from the test statistic
         - ``phenotype``: The phenotype name as determined by the column names of ``phenotype_df``
     '''
 
@@ -109,7 +112,7 @@ def logistic_regression(genotype_df: DataFrame,
 
     result_struct = gwas_fx._output_schema(genotype_df.schema.fields, result_fields)
     C = covariate_df.to_numpy(dt, copy=True)
-    if fit_intercept:
+    if add_intercept:
         C = gwas_fx._add_intercept(C, phenotype_df.shape[0])
     Y = phenotype_df.to_numpy(dt, copy=True)
     Y_mask = ~(np.isnan(Y))
@@ -121,7 +124,7 @@ def logistic_regression(genotype_df: DataFrame,
         Q = None
 
     state = _create_log_reg_state(spark, phenotype_df, offset_df, sql_type, C, correction,
-                                  fit_intercept, contigs)
+                                  add_intercept, contigs)
 
     phenotype_names = phenotype_df.columns.to_series().astype('str')
 
@@ -207,7 +210,7 @@ def _pdf_to_log_reg_state(pdf: pd.DataFrame, phenotypes: pd.Series, n_covar: int
 @typechecked
 def _create_log_reg_state(
         spark: SparkSession, phenotype_df: pd.DataFrame, offset_df: pd.DataFrame,
-        sql_type: DataType, C: NDArray[(Any, Any), Float], correction: str, fit_intercept: bool,
+        sql_type: DataType, C: NDArray[(Any, Any), Float], correction: str, add_intercept: bool,
         contigs: Optional[List[str]]) -> Union[LogRegState, Dict[str, LogRegState]]:
     '''
     Creates the broadcasted LogRegState object (or one object per contig if LOCO offsets were provided).
@@ -240,7 +243,7 @@ def _create_log_reg_state(
 
     def map_func(pdf_iterator):
         for pdf in pdf_iterator:
-            yield pdf.apply(lambda r: _prepare_one_phenotype(C, r, correction, fit_intercept),
+            yield pdf.apply(lambda r: _prepare_one_phenotype(C, r, correction, add_intercept),
                             axis='columns',
                             result_type='expand')
 
