@@ -1,6 +1,6 @@
 from pyspark.sql import SparkSession, functions as fx
 from pyspark.sql.types import StructField, StructType, FloatType, DoubleType, ArrayType
-from typing import Any, Callable, Dict, List, TypeVar, Union
+from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
 import numpy as np
 import pandas as pd
 from nptyping import Float, NDArray

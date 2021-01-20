@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 from nptyping import Float, NDArray
 from dataclasses import dataclass
-from typing import Any, Dict, Union
+from typing import Any, Dict, List, Optional, Union
 from pyspark.sql import Column, DataFrame
 from pyspark.sql.types import ArrayType, FloatType, DoubleType, StringType, StructField, StructType
 from scipy import stats
@@ -19,6 +19,7 @@ def linear_regression(genotype_df: DataFrame,
                       phenotype_df: pd.DataFrame,
                       covariate_df: pd.DataFrame = pd.DataFrame({}),
                       offset_df: pd.DataFrame = pd.DataFrame({}),
+                      contigs: Optional[List[str]] = None,
                       fit_intercept: bool = True,
                       values_column: Union[str, Column] = 'values',
                       dt: type = np.float64) -> DataFrame:
@@ -67,6 +68,9 @@ def linear_regression(genotype_df: DataFrame,
                     If two levels, the level 0 index should be the same as the ``phenotype_df``, and the level 1 index
                     should be the contig name. The two level index scheme allows for per-contig offsets like
                     LOCO predictions from GloWGR.
+        contigs : When using LOCO offsets, this parameter indicates the contigs to analyze. You can use this parameter to limit the size of the broadcasted data, which may
+                  be necessary with large sample sizes. If this parameter is omitted, the contigs are inferred from
+                  the ``offset_df``.
         fit_intercept : Whether or not to add an intercept column to the covariate DataFrame
         values_column : A column name or column expression to test with linear regression. If a column name is provided,
                         ``genotype_df`` should have a column with this name and a numeric array type. If a column expression
@@ -113,7 +117,7 @@ def linear_regression(genotype_df: DataFrame,
     np.nan_to_num(Y, copy=False)
     Y = gwas_fx._residualize_in_place(Y, Q)
 
-    Y_state = _create_YState(Y, phenotype_df, offset_df, Y_mask, dt)
+    Y_state = _create_YState(Y, phenotype_df, offset_df, Y_mask, dt, contigs)
 
     dof = C.shape[0] - C.shape[1] - 1
 
@@ -134,17 +138,19 @@ class YState:
     YdotY: NDArray[(Any), Float]
 
 
-def _create_YState(Y: NDArray[(Any, Any),
-                              Float], phenotype_df: pd.DataFrame, offset_df: pd.DataFrame,
-                   Y_mask: NDArray[(Any, Any), Float], dt) -> Union[YState, Dict[str, YState]]:
+def _create_YState(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame,
+                   offset_df: pd.DataFrame, Y_mask: NDArray[(Any, Any), Float], dt,
+                   contigs: Optional[List[str]]) -> Union[YState, Dict[str, YState]]:
+
     offset_type = gwas_fx._validate_offset(phenotype_df, offset_df)
     if offset_type != gwas_fx._OffsetType.LOCO_OFFSET:
         return _create_one_YState(Y, phenotype_df, offset_df, Y_mask, dt)
 
-    all_contigs = _get_contigs_from_loco_df(offset_df)
+    if contigs is None:
+        contigs = _get_contigs_from_loco_df(offset_df)
     return {
         contig: _create_one_YState(Y, phenotype_df, offset_df.xs(contig, level=1), Y_mask, dt)
-        for contig in all_contigs
+        for contig in contigs
     }
 
 

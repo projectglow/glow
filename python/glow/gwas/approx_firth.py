@@ -1,11 +1,10 @@
 from typing import Any, Optional
 import numpy as np
 from dataclasses import dataclass
+import scipy
 from typeguard import typechecked
 from nptyping import Float, NDArray
 from scipy import stats
-from statsmodels.base.model import Model
-import statsmodels.api as sm
 
 
 @dataclass
@@ -25,22 +24,31 @@ class FirthFit:
 class FirthStatistics:
     effect: Float
     stderror: Float
-    tvalue: Float
+    chisq: Float
     pvalue: Float
+
+
+@dataclass
+class Model:
+    X: NDArray[(Any, Any), Float]
+    y: NDArray[(Any, ), Float]
+    offset: NDArray[(Any, ), Float]
 
 
 @typechecked
 def _calculate_log_likelihood(beta: NDArray[(Any, ), Float], model: Model) -> LogLikelihood:
-    pi = model.predict(beta)
-    I = -model.hessian(beta)
-    unpenalized_log_likelihood = model.loglike(beta)
+
+    pi = scipy.special.expit(model.X @ beta + model.offset)
+    p = pi * (1 - pi)
+    I = model.X.T @ (p[:, None] * model.X)
     _, log_abs_det = np.linalg.slogdet(I)
+    unpenalized_log_likelihood = np.sum(model.y * np.log(pi) + (1 - model.y) * np.log(1 - pi))
+
     penalty = 0.5 * log_abs_det
     deviance = -2 * (unpenalized_log_likelihood + penalty)
     return LogLikelihood(pi, I, deviance)
 
 
-@typechecked
 def _fit_firth(beta_init: NDArray[(Any, ), Float],
                X: NDArray[(Any, Any), Float],
                y: NDArray[(Any, ), Float],
@@ -71,7 +79,7 @@ def _fit_firth(beta_init: NDArray[(Any, ), Float],
 
     n_iter = 0
     beta = beta_init.copy()
-    model = sm.GLM(y, X, family=sm.families.Binomial(), offset=offset, missing='ignore')
+    model = Model(X, y, offset)
     log_likelihood = _calculate_log_likelihood(beta, model)
 
     while n_iter < max_iter:
@@ -80,7 +88,7 @@ def _fit_firth(beta_init: NDArray[(Any, ), Float],
         # build hat matrix
         rootG = np.sqrt(log_likelihood.pi * (1 - log_likelihood.pi))
         rootG_X = rootG[:, None] * X  # equivalent to sqrt(diagflat(pi * (1 - pi))) @ X
-        h = np.diagonal(rootG_X @ invI @ rootG_X.T)
+        h = np.sum((rootG_X @ invI) * rootG_X, axis=1)
 
         # modified score function
         U = X.T @ (y - log_likelihood.pi + h * (0.5 - log_likelihood.pi))
@@ -117,9 +125,14 @@ def _fit_firth(beta_init: NDArray[(Any, ), Float],
     return FirthFit(beta, log_likelihood)
 
 
-def perform_null_firth_fit(y: NDArray[(Any, ), Float], C: NDArray[(Any, Any), Float],
-                           mask: NDArray[(Any, ), bool], offset: Optional[NDArray[(Any, ), Float]],
-                           includes_intercept: bool) -> NDArray[(Any, ), Float]:
+@typechecked
+def perform_null_firth_fit(
+    y: NDArray[(Any, ), Float],
+    C: NDArray[(Any, Any), Float],
+    mask: NDArray[(Any, ), bool],
+    offset: Optional[Any],  # Typeguard doesn't work with optional NDArrays
+    includes_intercept: bool
+) -> NDArray[(Any, ), Float]:
     '''
     Performs the null fit for approximate Firth in order to calculate the covariate effects to be
     used as an offset during the SNP fits.
@@ -184,14 +197,10 @@ def correct_approx_firth(x: NDArray[(Any, ), Float], y: NDArray[(Any, ), Float],
 
     effect = firth_fit.beta.item()
     # Likelihood-ratio test
-    null_model = sm.GLM(masked_y,
-                        masked_X,
-                        family=sm.families.Binomial(),
-                        offset=masked_offset,
-                        missing='ignore')
+    null_model = Model(masked_X, masked_y, masked_offset)
     null_deviance = _calculate_log_likelihood(beta_init, null_model).deviance
-    tvalue = null_deviance - firth_fit.log_likelihood.deviance
-    pvalue = stats.chi2.sf(tvalue, 1)
+    chisq = null_deviance - firth_fit.log_likelihood.deviance
+    pvalue = stats.chi2.sf(chisq, 1)
     # Based on the Hessian of the unpenalized log-likelihood
     stderror = np.sqrt(np.linalg.pinv(firth_fit.log_likelihood.I).diagonal()[-1])
-    return FirthStatistics(effect=effect, stderror=stderror, tvalue=tvalue, pvalue=pvalue)
+    return FirthStatistics(effect=effect, stderror=stderror, chisq=chisq, pvalue=pvalue)

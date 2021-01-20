@@ -166,8 +166,8 @@ Example
     names=['rs531010746'],
     effect=1.6771295643163748,
     stderror=0.727886866796042,
-    correction_succeeded=True,
-    tvalue=7.561977300936178,
+    correctionSucceeded=True,
+    chisq=7.561977300936178,
     pvalue=0.005961255160993639,
     phenotype='Binary_Trait_2'
   )
@@ -178,8 +178,8 @@ Example
       names=['rs587755077'],
       effect=None,
       stderror=None,
-      correction_succeeded=None,
-      tvalue=2.8620926885005393,
+      correctionSucceeded=None,
+      chisq=2.8620926885005393,
       pvalue=0.09068944361066741,
       phenotype='Binary_Trait_1'
     )
@@ -218,8 +218,8 @@ The logistic regression function accepts GloWGR phenotypic predictions (either g
     names=['rs531010746'],
     effect=1.7685129759078362,
     stderror=0.7304047109477187,
-    correction_succeeded=True,
-    tvalue=8.406635446007385,
+    correctionSucceeded=True,
+    chisq=8.406635446007385,
     pvalue=0.003738539179357663,
     phenotype='Binary_Trait_2'
   )
@@ -230,8 +230,8 @@ The logistic regression function accepts GloWGR phenotypic predictions (either g
       names=['rs587755077'],
       effect=None,
       stderror=None,
-      correction_succeeded=None,
-      tvalue=3.637471149006905,
+      correctionSucceeded=None,
+      chisq=3.637471149006905,
       pvalue=0.05649268083569545,
       phenotype='Binary_Trait_1'
     )

@@ -1,5 +1,5 @@
 from pyspark.sql.types import ArrayType, BooleanType, StringType, StructField, DataType, StructType
-from typing import Any, Optional, Dict, Union
+from typing import Any, List, Optional, Dict, Union
 import pandas as pd
 import numpy as np
 from pyspark.sql import DataFrame, SparkSession
@@ -27,6 +27,7 @@ def logistic_regression(genotype_df: DataFrame,
                         offset_df: pd.DataFrame = pd.DataFrame({}),
                         correction: str = correction_approx_firth,
                         pvalue_threshold: float = 0.05,
+                        contigs: Optional[List[str]] = None,
                         fit_intercept: bool = True,
                         values_column: str = 'values',
                         dt: type = np.float64) -> DataFrame:
@@ -62,6 +63,9 @@ def logistic_regression(genotype_df: DataFrame,
         correction : Which test to use for variants that meet a significance threshold for the score test. Supported
                      methods are ``none`` and ``approx-firth``.
         pvalue_threshold : Variants with a pvalue below this threshold will be tested using the ``correction`` method.
+        contigs : When using LOCO offsets, this parameter indicates the contigs to analyze. You can use this parameter to limit the size of the broadcasted data, which may
+                  be necessary with large sample sizes. If this parameter is omitted, the contigs are inferred from
+                  the ``offset_df``.
         fit_intercept : Whether or not to add an intercept column to the covariate DataFrame
         values_column : A column name or column expression to test with linear regression. If a column name is provided,
                         ``genotype_df`` should have a column with this name and a numeric array type. If a column expression
@@ -74,9 +78,9 @@ def logistic_regression(genotype_df: DataFrame,
         - All columns from ``genotype_df`` except the ``values_column`` and the ``genotypes`` column if one exists
         - ``effect``: The effect size (if approximate Firth correction was applied)
         - ``stderror``: Standard error of the effect size (if approximate Firth correction was applied)
-        - ``correction_succeeded``: Whether the correction succeeded (if the correction test method is not ``none``).
+        - ``correctionSucceeded``: Whether the correction succeeded (if the correction test method is not ``none``).
           ``True`` if succeeded, ``False`` if failed, ``null`` if correction was not applied.
-        - ``tvalue``: The chi squared test statistic according to the score test or the correction method
+        - ``chisq``: The chi squared test statistic according to the score test or the correction method
         - ``pvalue``: p-value estimated from the test statistic
         - ``phenotype``: The phenotype name as determined by the column names of ``phenotype_df``
     '''
@@ -87,7 +91,7 @@ def logistic_regression(genotype_df: DataFrame,
     sql_type = gwas_fx._regression_sql_type(dt)
     genotype_df = gwas_fx._prepare_genotype_df(genotype_df, values_column, sql_type)
     base_result_fields = [
-        StructField('tvalue', sql_type),
+        StructField('chisq', sql_type),
         StructField('pvalue', sql_type),
         StructField('phenotype', StringType())
     ]
@@ -95,7 +99,7 @@ def logistic_regression(genotype_df: DataFrame,
         result_fields = [
             StructField('effect', sql_type),
             StructField('stderror', sql_type),
-            StructField('correction_succeeded', BooleanType())
+            StructField('correctionSucceeded', BooleanType())
         ] + base_result_fields
     elif correction == correction_none:
         result_fields = base_result_fields
@@ -118,7 +122,7 @@ def logistic_regression(genotype_df: DataFrame,
         Q = None
 
     state = _create_log_reg_state(spark, phenotype_df, offset_df, sql_type, C, correction,
-                                  fit_intercept)
+                                  fit_intercept, contigs)
 
     phenotype_names = phenotype_df.columns.to_series().astype('str')
 
@@ -202,9 +206,10 @@ def _pdf_to_log_reg_state(pdf: pd.DataFrame, phenotypes: pd.Series, n_covar: int
 
 
 @typechecked
-def _create_log_reg_state(spark: SparkSession, phenotype_df: pd.DataFrame, offset_df: pd.DataFrame,
-                          sql_type: DataType, C: NDArray[(Any, Any), Float], correction: str,
-                          fit_intercept: bool) -> Union[LogRegState, Dict[str, LogRegState]]:
+def _create_log_reg_state(
+        spark: SparkSession, phenotype_df: pd.DataFrame, offset_df: pd.DataFrame,
+        sql_type: DataType, C: NDArray[(Any, Any), Float], correction: str, fit_intercept: bool,
+        contigs: Optional[List[str]]) -> Union[LogRegState, Dict[str, LogRegState]]:
     '''
     Creates the broadcasted LogRegState object (or one object per contig if LOCO offsets were provided).
 
@@ -212,6 +217,8 @@ def _create_log_reg_state(spark: SparkSession, phenotype_df: pd.DataFrame, offse
     using Pandas UDFs.
     '''
     offset_type = gwas_fx._validate_offset(phenotype_df, offset_df)
+    if offset_type == gwas_fx._OffsetType.LOCO_OFFSET and contigs is not None:
+        offset_df = offset_df.loc[pd.IndexSlice[:, contigs], :]
     pivoted_phenotype_df = reshape_for_gwas(spark, phenotype_df)
     result_fields = [
         StructField('label', StringType()),
@@ -291,17 +298,17 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
         X_res = _logistic_residualize(X, C, Y_mask, log_reg_state.gamma, log_reg_state.inv_CtGammaC)
         num = gwas_fx._einsum('sgp,sp->pg', X_res, log_reg_state.Y_res)**2
         denom = gwas_fx._einsum('sgp,sgp,sp->pg', X_res, X_res, log_reg_state.gamma)
-    t_values = np.ravel(num / denom)
-    p_values = stats.chi2.sf(t_values, 1)
+    chisq = np.ravel(num / denom)
+    p_values = stats.chi2.sf(chisq, 1)
 
     del genotype_pdf[_VALUES_COLUMN_NAME]
     out_df = pd.concat([genotype_pdf] * log_reg_state.Y_res.shape[1])
-    out_df['tvalue'] = list(np.ravel(t_values))
+    out_df['chisq'] = list(np.ravel(chisq))
     out_df['pvalue'] = list(np.ravel(p_values))
     out_df['phenotype'] = phenotype_names.repeat(genotype_pdf.shape[0]).tolist()
 
     if correction != correction_none:
-        out_df['correction_succeeded'] = None
+        out_df['correctionSucceeded'] = None
         correction_indices = list(np.where(out_df['pvalue'] < pvalue_threshold)[0])
         if correction == correction_approx_firth:
             out_df['effect'] = np.nan
@@ -313,12 +320,12 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
                     X[:, snp_idx], Y[:, pheno_idx], log_reg_state.firth_offset[:, pheno_idx],
                     Y_mask[:, pheno_idx])
                 if approx_firth_snp_fit is None:
-                    out_df.correction_succeeded.iloc[correction_idx] = False
+                    out_df.correctionSucceeded.iloc[correction_idx] = False
                 else:
-                    out_df.correction_succeeded.iloc[correction_idx] = True
+                    out_df.correctionSucceeded.iloc[correction_idx] = True
                     out_df.effect.iloc[correction_idx] = approx_firth_snp_fit.effect
                     out_df.stderror.iloc[correction_idx] = approx_firth_snp_fit.stderror
-                    out_df.tvalue.iloc[correction_idx] = approx_firth_snp_fit.tvalue
+                    out_df.chisq.iloc[correction_idx] = approx_firth_snp_fit.chisq
                     out_df.pvalue.iloc[correction_idx] = approx_firth_snp_fit.pvalue
 
     return out_df
