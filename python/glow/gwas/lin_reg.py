@@ -111,9 +111,11 @@ def linear_regression(genotype_df: DataFrame,
 
     # Prepare covariate basis and phenotype residuals
     Q = np.linalg.qr(C)[0]
-    Y = phenotype_df.to_numpy(dt, copy=True)
+    Y = (phenotype_df - phenotype_df.mean()).to_numpy(dt, copy=True)
     Y_mask = (~np.isnan(Y)).astype(dt)
     np.nan_to_num(Y, copy=False)
+    Y_std_dev = np.nanstd(Y, axis=0)
+    Y = Y / Y_std_dev[np.newaxis, :]
     Y = gwas_fx._residualize_in_place(Y, Q)
 
     Y_state = _create_YState(Y, phenotype_df, offset_df, Y_mask, dt, contigs)
@@ -122,7 +124,7 @@ def linear_regression(genotype_df: DataFrame,
 
     def map_func(pdf_iterator):
         for pdf in pdf_iterator:
-            yield gwas_fx._loco_dispatch(pdf, Y_state, _linear_regression_inner, Y_mask, Q, dof,
+            yield gwas_fx._loco_dispatch(pdf, Y_state, _linear_regression_inner, Y_mask, Y_std_dev, Q, dof,
                                          phenotype_df.columns.to_series().astype('str'))
 
     return genotype_df.mapInPandas(map_func, result_struct)
@@ -162,8 +164,8 @@ def _create_one_YState(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame
 
 
 @typechecked
-def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
-                             Y_mask: NDArray[(Any, Any), Float], Q: NDArray[(Any, Any), Float],
+def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState, 
+                             Y_mask: NDArray[(Any, Any), Float], Y_std_dev: NDArray[(Any, ), Float], Q: NDArray[(Any, Any), Float],
                              dof: int, phenotype_names: pd.Series) -> pd.DataFrame:
     '''
     Applies a linear regression model to a block of genotypes. We first project the covariates out of the
@@ -188,11 +190,12 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
     pvalues = 2 * stats.distributions.t.sf(np.abs(T), dof)
 
     del genotype_pdf[_VALUES_COLUMN_NAME]
+    num_genotypes = genotype_pdf.shape[0]
     out_df = pd.concat([genotype_pdf] * Y_state.Y.shape[1])
-    out_df['effect'] = list(np.ravel(betas))
-    out_df['stderror'] = list(np.ravel(standard_error))
+    out_df['effect'] = list(np.ravel(betas) * np.repeat(Y_std_dev, num_genotypes))
+    out_df['stderror'] = list(np.ravel(standard_error) * np.repeat(Y_std_dev, num_genotypes))
     out_df['tvalue'] = list(np.ravel(T))
     out_df['pvalue'] = list(np.ravel(pvalues))
-    out_df['phenotype'] = phenotype_names.repeat(genotype_pdf.shape[0]).tolist()
+    out_df['phenotype'] = phenotype_names.repeat(num_genotypes).tolist()
 
     return out_df

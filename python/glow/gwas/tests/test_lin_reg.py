@@ -22,7 +22,7 @@ def run_linear_regression(genotype_df, phenotype_df, covariate_df, fit_intercept
     dof = C.shape[0] - C.shape[1] - 1
     pdf = pd.DataFrame({lr._VALUES_COLUMN_NAME: list(genotype_df.to_numpy('float64').T)})
 
-    return lr._linear_regression_inner(pdf, Y_state, Y_mask.astype('float64'), Q, dof,
+    return lr._linear_regression_inner(pdf, Y_state, Y_mask.astype('float64'), np.ones(Y.shape[1]), Q, dof,
                                        phenotype_names)
 
 
@@ -204,7 +204,7 @@ def test_missing_spark(spark, rg):
 def test_multiple_spark(spark, rg):
     num_samples = 100
     genotype_df = pd.DataFrame(rg.random((num_samples, 10)))
-    phenotype_df = pd.DataFrame(rg.random((num_samples, 25)))
+    phenotype_df = pd.DataFrame(rg.random((num_samples, 25)) * 10)
     covariate_df = pd.DataFrame(rg.random((num_samples, 5)))
     baseline = statsmodels_baseline(genotype_df, phenotype_df, covariate_df)
     results = run_linear_regression_spark(spark, genotype_df, phenotype_df, covariate_df)
