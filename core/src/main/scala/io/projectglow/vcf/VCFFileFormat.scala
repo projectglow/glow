@@ -64,7 +64,8 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
     super.isSplitable(sparkSession, options, path) || {
       if (codecFactory == null) {
         codecFactory = new CompressionCodecFactory(
-          VCFFileFormat.hadoopConfWithBGZ(sparkSession.sessionState.newHadoopConf())
+          VCFFileFormat.hadoopConfWithBGZ(
+            sparkSession.sessionState.newHadoopConfWithOptions(options))
         )
       }
 
@@ -90,8 +91,9 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
     VCFFileFormat.requireWritableAsVCF(dataSchema)
     options.get(VCFOptions.COMPRESSION).foreach { compressionOption =>
       if (codecFactory == null) {
-        codecFactory =
-          new CompressionCodecFactory(VCFFileFormat.hadoopConfWithBGZ(job.getConfiguration))
+        codecFactory = new CompressionCodecFactory(
+          VCFFileFormat.hadoopConfWithBGZ(
+            sparkSession.sessionState.newHadoopConfWithOptions(options)))
       }
 
       val codec = codecFactory.getCodecByName(compressionOption)

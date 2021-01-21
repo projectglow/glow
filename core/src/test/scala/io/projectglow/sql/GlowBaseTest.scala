@@ -22,7 +22,6 @@ import org.apache.spark.DebugFilesystem
 import org.scalatest.concurrent.{AbstractPatienceConfiguration, Eventually}
 import org.scalatest.time.{Milliseconds, Seconds, Span}
 import org.scalatest.{Args, FunSuite, Status, Tag}
-
 import io.projectglow.Glow
 import io.projectglow.SparkTestShim.SharedSparkSessionBase
 import io.projectglow.common.{GlowLogging, TestUtils}
@@ -35,14 +34,11 @@ abstract class GlowBaseTest
     with TestUtils
     with JenkinsTestPatience {
 
-  override def initializeSession(): Unit = ()
-
-  override protected implicit def spark: SparkSession = {
-    val sess =
-      Glow.register(SparkSession.builder().config(sparkConf).master("local[2]").getOrCreate())
-    SparkSession.setActiveSession(sess)
+  override def initializeSession(): Unit = {
+    super.initializeSession()
+    Glow.register(spark, newSession = false)
+    SparkSession.setActiveSession(spark)
     Log.setGlobalLogLevel(Log.LogLevel.ERROR)
-    sess
   }
 
   protected def gridTest[A](testNamePrefix: String, testTags: Tag*)(params: Seq[A])(

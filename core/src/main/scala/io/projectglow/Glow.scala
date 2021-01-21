@@ -19,14 +19,14 @@ package io.projectglow
 import java.util.ServiceLoader
 
 import scala.collection.JavaConverters._
-
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
 import org.apache.spark.sql.{DataFrame, SQLUtils, SparkSession}
-
 import io.projectglow.common.Named
+import io.projectglow.sql.util.BGZFCodec
 import io.projectglow.sql.{GlowSQLExtensions, SqlExtensionProvider}
 import io.projectglow.transformers.util.{SnakeCaseMap, StringUtils}
+import io.projectglow.vcf.VCFFileFormat
 
 /**
  * The entry point for all language specific functionality, meaning methods that cannot be expressed
@@ -49,7 +49,21 @@ class GlowBase {
 
     // Decrease the parquet columnar batch size (often necessary for large cohorts)
     spark.conf.set("spark.sql.parquet.columnarReaderBatchSize", "16")
+    // Add BGZ compression codec. Note that we do not enable for the enhanced GZIP codec, which automatically
+    // determines if an input file is gzipped or bgzipped, for all datasources since it confuses Spark's built in
+    // datasources.
+    spark.conf.set("io.compression.codecs", compressionCodecsWithBGZ(spark))
     sess
+  }
+
+  private def compressionCodecsWithBGZ(spark: SparkSession): String = {
+    val newCodecs = Seq(classOf[BGZFCodec].getCanonicalName)
+    (spark
+      .sessionState
+      .newHadoopConf()
+      .get("io.compression.codecs", "")
+      .split(",")
+      .filter(codec => codec.nonEmpty && !newCodecs.contains(codec)) ++ newCodecs).mkString(",")
   }
 
   /**
