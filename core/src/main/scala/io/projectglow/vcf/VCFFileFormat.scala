@@ -40,7 +40,7 @@ import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
 import org.apache.spark.sql.types._
-import org.seqdoop.hadoop_bam.util.{BGZFEnhancedGzipCodec, DatabricksBGZFOutputStream}
+import org.seqdoop.hadoop_bam.util.{BGZFEnhancedGzipCodec, GlowBGZFOutputStream}
 
 import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
 import io.projectglow.common.{CommonOptions, GlowLogging, SimpleInterval, VCFOptions, VariantSchemas, WithUtils}
@@ -64,7 +64,8 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
     super.isSplitable(sparkSession, options, path) || {
       if (codecFactory == null) {
         codecFactory = new CompressionCodecFactory(
-          VCFFileFormat.hadoopConfWithBGZ(sparkSession.sessionState.newHadoopConf())
+          VCFFileFormat.hadoopConfWithBGZ(
+            sparkSession.sessionState.newHadoopConfWithOptions(options))
         )
       }
 
@@ -90,8 +91,9 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
     VCFFileFormat.requireWritableAsVCF(dataSchema)
     options.get(VCFOptions.COMPRESSION).foreach { compressionOption =>
       if (codecFactory == null) {
-        codecFactory =
-          new CompressionCodecFactory(VCFFileFormat.hadoopConfWithBGZ(job.getConfiguration))
+        codecFactory = new CompressionCodecFactory(
+          VCFFileFormat.hadoopConfWithBGZ(
+            sparkSession.sessionState.newHadoopConfWithOptions(options)))
       }
 
       val codec = codecFactory.getCodecByName(compressionOption)
@@ -493,7 +495,7 @@ private[projectglow] class VCFOutputWriterFactory(options: Map[String, String])
       dataSchema: StructType,
       context: TaskAttemptContext): OutputWriter = {
     val outputStream = CodecStreams.createOutputStream(context, new Path(path))
-    DatabricksBGZFOutputStream.setWriteEmptyBlockOnClose(outputStream, true)
+    GlowBGZFOutputStream.setWriteEmptyBlockOnClose(outputStream, true)
     val (headerLineSet, sampleIdInfo) =
       VCFHeaderUtils.parseHeaderLinesAndSamples(
         options,
