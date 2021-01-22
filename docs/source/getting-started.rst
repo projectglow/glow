@@ -49,7 +49,7 @@ Glow requires Apache Spark 2.4.3 or later.
         .. code-block:: python
 
           import glow
-          glow.register(spark)
+          spark = glow.register(spark)
           df = spark.read.format('vcf').load(path)
 
     .. tab:: Scala
@@ -70,8 +70,8 @@ Glow requires Apache Spark 2.4.3 or later.
         .. code-block:: scala
 
           import io.projectglow.Glow
-          Glow.register(spark)
-          val df = spark.read.format("vcf").load(path)
+          val sess = Glow.register(spark)
+          val df = sess.read.format("vcf").load(path)
 
 
 Running in the cloud
@@ -80,9 +80,7 @@ Running in the cloud
 The easiest way to use Glow in the cloud is with the `Databricks Runtime for Genomics
 <https://docs.databricks.com/runtime/genomicsruntime.html>`_. However, it works with any cloud
 provider or Spark distribution. You need to install the maven package
-``io.project:glow-spark${spark_version}_${scala_version}:${glow_version}`` and optionally the Python frontend ``glow.py``. Also set the Spark configuration
-``spark.hadoop.io.compression.codecs`` to ``io.projectglow.sql.util.BGZFCodec`` in order to read and write
-BGZF-compressed files.
+``io.project:glow-spark${spark_version}_${scala_version}:${glow_version}`` and optionally the Python frontend ``glow.py``.
 
 Notebooks embedded in the docs
 ------------------------------

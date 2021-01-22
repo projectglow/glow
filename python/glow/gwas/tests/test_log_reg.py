@@ -11,9 +11,9 @@ def run_score_test(genotype_df,
                    phenotype_df,
                    covariate_df,
                    correction=lr.correction_none,
-                   fit_intercept=True):
+                   add_intercept=True):
     C = covariate_df.to_numpy(copy=True)
-    if fit_intercept:
+    if add_intercept:
         C = gwas_fx._add_intercept(C, phenotype_df.shape[0])
     Y = phenotype_df.to_numpy(copy=True)
     Y_mask = ~np.isnan(Y)
@@ -22,7 +22,7 @@ def run_score_test(genotype_df,
         lr._prepare_one_phenotype(C, pd.Series({
             'label': p,
             'values': phenotype_df[p]
-        }), correction, fit_intercept) for p in phenotype_df
+        }), correction, add_intercept) for p in phenotype_df
     ]
     phenotype_names = phenotype_df.columns.to_series().astype('str')
     state = lr._pdf_to_log_reg_state(pd.DataFrame(state_rows), phenotype_names, C.shape[1])
@@ -36,8 +36,8 @@ def statsmodels_baseline(genotype_df,
                          phenotype_df,
                          covariate_df,
                          offset_dfs=None,
-                         fit_intercept=True):
-    if fit_intercept:
+                         add_intercept=True):
+    if add_intercept:
         covariate_df = sm.add_constant(covariate_df)
     p_values = []
     chisq = []
@@ -96,12 +96,12 @@ def regression_results_equal(df1, df2, rtol=1e-5):
     return strings_equal and numerics_equal
 
 
-def assert_glow_equals_golden(genotype_df, phenotype_df, covariate_df, fit_intercept=True):
-    glow = run_score_test(genotype_df, phenotype_df, covariate_df, fit_intercept=fit_intercept)
+def assert_glow_equals_golden(genotype_df, phenotype_df, covariate_df, add_intercept=True):
+    glow = run_score_test(genotype_df, phenotype_df, covariate_df, add_intercept=add_intercept)
     golden = statsmodels_baseline(genotype_df,
                                   phenotype_df,
                                   covariate_df,
-                                  fit_intercept=fit_intercept)
+                                  add_intercept=add_intercept)
     assert regression_results_equal(glow, golden)
 
 
@@ -132,7 +132,7 @@ def test_spector_no_intercept():
     phenotype_df.iloc[[0, 3, 10, 25], 0] = np.nan
     genotype_df = ds.exog.loc[:, ['GPA']]
     covariate_df = ds.exog.drop('GPA', axis=1)
-    assert_glow_equals_golden(genotype_df, phenotype_df, covariate_df, fit_intercept=False)
+    assert_glow_equals_golden(genotype_df, phenotype_df, covariate_df, add_intercept=False)
 
 
 def test_multiple(rg):
@@ -209,8 +209,8 @@ def test_spark_no_intercept(spark, rg):
                                          genotype_df,
                                          phenotype_df,
                                          covariate_df,
-                                         fit_intercept=False)
-    golden = statsmodels_baseline(genotype_df, phenotype_df, covariate_df, fit_intercept=False)
+                                         add_intercept=False)
+    golden = statsmodels_baseline(genotype_df, phenotype_df, covariate_df, add_intercept=False)
     assert regression_results_equal(glow, golden)
 
 

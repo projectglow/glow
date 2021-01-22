@@ -21,7 +21,6 @@ import os
 def _spark_builder():
     return SparkSession.builder \
         .master("local[2]") \
-        .config("spark.hadoop.io.compression.codecs", "io.projectglow.sql.util.BGZFCodec") \
         .config("spark.ui.enabled", "false") \
         .config("spark.sql.execution.arrow.pyspark.enabled", "true")
 

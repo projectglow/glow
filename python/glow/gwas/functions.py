@@ -6,6 +6,7 @@ import pandas as pd
 from nptyping import Float, NDArray
 from typeguard import typechecked
 import opt_einsum as oe
+from ..wgr.functions import _get_contigs_from_loco_df
 from ..wgr.linear_model.functions import __assert_all_present, __check_binary
 from enum import Enum
 
@@ -78,10 +79,6 @@ def _einsum(subscripts: str, *operands: NDArray) -> NDArray:
 
 def _have_same_elements(idx1: pd.Index, idx2: pd.Index) -> bool:
     return idx1.sort_values().equals(idx2.sort_values())
-
-
-def _get_contigs_from_loco_df(offset_df: pd.DataFrame) -> pd.Series:
-    return offset_df.index.get_level_values(1).unique()
 
 
 T = TypeVar('T')
