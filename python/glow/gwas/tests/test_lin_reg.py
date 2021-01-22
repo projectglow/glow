@@ -16,13 +16,22 @@ def run_linear_regression(genotype_df, phenotype_df, covariate_df, fit_intercept
     Y = phenotype_df.to_numpy('float64', copy=True)
     Y_mask = ~np.isnan(Y)
     Y[~Y_mask] = 0
+    Y -= Y.mean(axis=0)
+    print("Test mean centered ", Y)
     Q = np.linalg.qr(C)[0]
-    Y = gwas_fx._residualize_in_place(Y, Q)
+    Y = gwas_fx._residualize_in_place(Y, Q) * Y_mask
+    print("Test residualized ", Y)
+    Y_std_dev = np.sqrt(np.sum(Y ** 2, axis=0) / (Y_mask.sum(axis=0) - Q.shape[1]))
+    print("Test std dev ", Y_std_dev)
+    Y /= Y_std_dev[np.newaxis, :]
+
+    print("Hello! Test made ", Y)
+
     Y_state = lr._create_YState(Y, phenotype_df, pd.DataFrame({}), Y_mask, np.float64, None)
     dof = C.shape[0] - C.shape[1] - 1
     pdf = pd.DataFrame({lr._VALUES_COLUMN_NAME: list(genotype_df.to_numpy('float64').T)})
 
-    return lr._linear_regression_inner(pdf, Y_state, Y_mask.astype('float64'), np.ones(Y.shape[1]), Q, dof,
+    return lr._linear_regression_inner(pdf, Y_state, Y_mask.astype('float64'), Y_std_dev, Q, dof,
                                        phenotype_names)
 
 
@@ -75,17 +84,31 @@ def statsmodels_baseline(genotype_df,
     pvalues = []
     for phenotype_idx in range(Y.shape[1]):
         for genotype_idx in range(X.shape[1]):
-            phenotype = residualize(Y[:, phenotype_idx], C)
+            phenotype = Y[:, phenotype_idx]
+            phenotype_mask = ~np.isnan(phenotype)
+            # phenotype[~phenotype_mask] = 0
+            print("Phenotype ", phenotype)
+            phenotype -= np.nanmean(phenotype)
+            print("Mean-centered phenotype ", phenotype)
+            phenotype = residualize(phenotype, C)
+            print("Residualized phenotype ", phenotype)
+            phenotype_scale = np.sqrt(np.nansum(phenotype ** 2) / (phenotype_mask.sum() - C.shape[1]))
+            print("Sum is ", np.nansum(phenotype ** 2))
+            print("Non-nan sum is ", (~np.isnan(phenotype)).sum())
+            print("C shape is ", C.shape)
+            print("Scale is ", phenotype_scale)
+            phenotype /= phenotype_scale
+            print("Scaled phenotype ", phenotype)
             genotype = residualize(X[:, genotype_idx], C)
             genotype = pd.Series(genotype, name='genotype')
             if offset_dfs:
-                phenotype = phenotype - offset_dfs[genotype_idx].iloc[:, phenotype_idx].to_numpy(
-                    'float64')
+                offset = offset_dfs[genotype_idx].iloc[:, phenotype_idx].to_numpy('float64')
+                phenotype = phenotype - offset
             model = sm.OLS(phenotype, genotype, missing='drop')
             model.df_resid = dof
             results = model.fit()
-            effects.append(results.params.genotype)
-            errors.append(results.bse.genotype)
+            effects.append(results.params.genotype * phenotype_scale)
+            errors.append(results.bse.genotype * phenotype_scale)
             tvalues.append(results.tvalues.genotype)
             pvalues.append(results.pvalues.genotype)
     return pd.DataFrame({
@@ -288,6 +311,7 @@ def test_simple_offset(spark, rg):
     phenotype_df = pd.DataFrame(rg.random((num_samples, num_pheno)))
     covariate_df = pd.DataFrame(rg.random((num_samples, 2)))
     offset_df = pd.DataFrame(rg.random((num_samples, num_pheno)))
+    # offset_df = (offset_df - offset_df.mean()) / offset_df.std()
     results = run_linear_regression_spark(spark,
                                           genotype_df,
                                           phenotype_df,

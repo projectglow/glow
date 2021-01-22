@@ -62,11 +62,12 @@ def linear_regression(genotype_df: DataFrame,
         phenotype_df : Pandas DataFrame containing phenotypic data
         covariate_df : An optional Pandas DataFrame containing covariates
         offset_df : An optional Pandas DataFrame containing the phenotype offset. The actual phenotype used
-                    for linear regression is ``phenotype_df`` minus the appropriate offset. The ``offset_df`` may
-                    have one or two levels of indexing. If one level, the index should be the same as the ``phenotype_df``.
+                    for linear regression is the mean-centered, residualized and scaled ``phenotype_df`` minus the
+                    appropriate offset. The ``offset_df`` may have one or two levels of indexing.
+                    If one level, the index should be the same as the ``phenotype_df``.
                     If two levels, the level 0 index should be the same as the ``phenotype_df``, and the level 1 index
-                    should be the contig name. The two level index scheme allows for per-contig offsets like
-                    LOCO predictions from GloWGR.
+                    should be the contig name.
+                    The two level index scheme allows for per-contig offsets like LOCO predictions from GloWGR.
         contigs : When using LOCO offsets, this parameter indicates the contigs to analyze. You can use this parameter to limit the size of the broadcasted data, which may
                   be necessary with large sample sizes. If this parameter is omitted, the contigs are inferred from
                   the ``offset_df``.
@@ -111,12 +112,14 @@ def linear_regression(genotype_df: DataFrame,
 
     # Prepare covariate basis and phenotype residuals
     Q = np.linalg.qr(C)[0]
-    Y = (phenotype_df - phenotype_df.mean()).to_numpy(dt, copy=True)
+    Y = phenotype_df.to_numpy(dt, copy=True)
     Y_mask = (~np.isnan(Y)).astype(dt)
-    np.nan_to_num(Y, copy=False)
-    Y_std_dev = np.nanstd(Y, axis=0)
-    Y = Y / Y_std_dev[np.newaxis, :]
-    Y = gwas_fx._residualize_in_place(Y, Q)
+    Y = np.nan_to_num(Y, copy=False)
+    Y -= Y.mean(axis=0) # Mean-center
+    Y = gwas_fx._residualize_in_place(Y, Q) * Y_mask # Residualize
+    Y_std_dev = np.sqrt(np.sum(Y ** 2, axis=0) / (Y_mask.sum(axis=0) - Q.shape[1]))
+    Y /= Y_std_dev[np.newaxis, :] # Scale
+    print("Hello! Spark made ", Y)
 
     Y_state = _create_YState(Y, phenotype_df, offset_df, Y_mask, dt, contigs)
 
@@ -192,8 +195,9 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
     del genotype_pdf[_VALUES_COLUMN_NAME]
     num_genotypes = genotype_pdf.shape[0]
     out_df = pd.concat([genotype_pdf] * Y_state.Y.shape[1])
-    out_df['effect'] = list(np.ravel(betas) * np.repeat(Y_std_dev, num_genotypes))
-    out_df['stderror'] = list(np.ravel(standard_error) * np.repeat(Y_std_dev, num_genotypes))
+    Y_std_dev_mat = np.expand_dims(Y_std_dev, axis=1)
+    out_df['effect'] = list(np.ravel(betas * Y_std_dev_mat))
+    out_df['stderror'] = list(np.ravel(standard_error * Y_std_dev_mat))
     out_df['tvalue'] = list(np.ravel(T))
     out_df['pvalue'] = list(np.ravel(pvalues))
     out_df['phenotype'] = phenotype_names.repeat(num_genotypes).tolist()
