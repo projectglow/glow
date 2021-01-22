@@ -119,7 +119,6 @@ def linear_regression(genotype_df: DataFrame,
     Y = gwas_fx._residualize_in_place(Y, Q) * Y_mask # Residualize
     Y_std_dev = np.sqrt(np.sum(Y ** 2, axis=0) / (Y_mask.sum(axis=0) - Q.shape[1]))
     Y /= Y_std_dev[np.newaxis, :] # Scale
-    print("Hello! Spark made ", Y)
 
     Y_state = _create_YState(Y, phenotype_df, offset_df, Y_mask, dt, contigs)
 
@@ -184,7 +183,9 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
 
     So, if a matrix's indices are `sg` (like the X matrix), it has one row per sample and one column per genotype.
     '''
+
     X = gwas_fx._residualize_in_place(np.column_stack(genotype_pdf[_VALUES_COLUMN_NAME].array), Q)
+
     XdotY = Y_state.Y.T @ X
     XdotX_reciprocal = 1 / gwas_fx._einsum('sp,sg,sg->pg', Y_mask, X, X)
     betas = XdotY * XdotX_reciprocal
