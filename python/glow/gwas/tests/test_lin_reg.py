@@ -78,22 +78,21 @@ def statsmodels_baseline(genotype_df,
     pvalues = []
     for phenotype_idx in range(Y.shape[1]):
         for genotype_idx in range(X.shape[1]):
-            phenotype = Y[:, phenotype_idx]
+            phenotype = Y[:, phenotype_idx].copy()
             phenotype_mask = ~np.isnan(phenotype)
             phenotype[~phenotype_mask] = 0
             phenotype -= phenotype.mean()
             phenotype = residualize(phenotype, C) * phenotype_mask
             phenotype_scale = np.sqrt((phenotype ** 2).sum() / (phenotype_mask.sum() - C.shape[1]))
             phenotype /= phenotype_scale
+            if offset_dfs:
+                offset = offset_dfs[genotype_idx].iloc[:, phenotype_idx].to_numpy('float64')
+                phenotype = phenotype - offset
+            phenotype[~phenotype_mask] = np.nan
 
             genotype = residualize(X[:, genotype_idx], C)
             genotype = pd.Series(genotype, name='genotype')
 
-            if offset_dfs:
-                offset = offset_dfs[genotype_idx].iloc[:, phenotype_idx].to_numpy('float64')
-                phenotype = phenotype - offset
-
-            phenotype[~phenotype_mask] = np.nan
             model = sm.OLS(phenotype, genotype, missing='drop')
             model.df_resid = dof
             results = model.fit()
@@ -359,12 +358,6 @@ def test_multi_offset_with_missing(spark, rg):
                                           extra_cols=extra_cols)
     baseline = statsmodels_baseline(genotype_df, phenotype_df, covariate_df,
                                     [offset_df.xs(contig, level=1) for contig in contigs] * 6)
-
-    print("results")
-    print(results)
-
-    print("baseline")
-    print(baseline)
 
     assert regression_results_equal(results, baseline)
 
