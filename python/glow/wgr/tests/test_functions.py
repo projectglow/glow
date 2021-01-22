@@ -94,8 +94,8 @@ def test_prepare_covariates():
         'Covariate_1': [-0.218218, 1.091089, -0.872872],
         'Covariate_2': [0, -1, 1]
     })
-    assert (np.allclose(_prepare_covariates(cov_df, label_df, True), expected_df, 1e-5))
-    assert (np.allclose(_prepare_covariates(cov_df, label_df, False), expected_df.drop['intercept'],
+    assert (np.allclose(_prepare_covariates(cov_df, label_df, True), expected_df))
+    assert (np.allclose(_prepare_covariates(cov_df, label_df, False), expected_df.drop(columns=['intercept']),
                         1e-5))
 
 
@@ -117,14 +117,14 @@ def test_prepare_labels_and_warn():
     ]
     b_label_df = pd.DataFrame({'Trait_1': [0, 1, 1], 'Trait_2': [0, 1, math.nan]})
     q_label_df = pd.DataFrame({'Trait_1': [0, 1.5, 1], 'Trait_2': [0, 1, math.nan]})
-    std_b_label_df = pd.DataFrame({'Trait_1': [0, 1, 1], 'Trait_2': [0, 1, math.nan]})
-    std_q_label_df = pd.DataFrame({'Trait_1': [0, 1, 1], 'Trait_2': [0, 1, math.nan]})
+    b_std_label_df = pd.DataFrame({'Trait_1': [-1.154701, 0.577350, 0.577350], 'Trait_2': [-0.707107, 0.707107, 0]})
+    q_std_label_df = pd.DataFrame({'Trait_1': [-1.091089, 0.872872, 0.218218], 'Trait_2': [-0.707107, 0.707107, 0]})
     with pytest.warns(UserWarning) as record:
-        assert (_prepare_labels_and_warn(b_label_df, True, 'detect').equals(std_b_label_df))
-        _prepare_labels_and_warn(b_label_df, True, 'binary')
-        _prepare_labels_and_warn(b_label_df, True, 'quantitative')
-        _prepare_labels_and_warn(q_label_df, False, 'detect')
-        _prepare_labels_and_warn(q_label_df, False, 'quantitative')
+        assert np.allclose(_prepare_labels_and_warn(b_label_df, True, 'detect'), b_std_label_df)
+        assert np.allclose(_prepare_labels_and_warn(b_label_df, True, 'binary'), b_std_label_df)
+        assert np.allclose(_prepare_labels_and_warn(b_label_df, True, 'quantitative'), b_std_label_df)
+        assert np.allclose(_prepare_labels_and_warn(q_label_df, False, 'detect'), q_std_label_df)
+        assert np.allclose(_prepare_labels_and_warn(q_label_df, False, 'quantitative'), q_std_label_df)
 
     for i in range(0, 4):
         assert str(record[i].message) == warnings[i]
@@ -133,66 +133,6 @@ def test_prepare_labels_and_warn():
 
     with pytest.raises(TypeError, match='Binary label DataFrame expected!'):
         _prepare_labels_and_warn(q_label_df, False, 'binary')
-
-
-def expect_validation_warning(labeldf, covdf, label_types):
-    for label_type in label_types:
-        with pytest.warns(UserWarning):
-            validate_inputs(labeldf, covdf, label_type)
-
-
-def expect_validation_error(labeldf, covdf, label_types):
-    for label_type in label_types:
-        with pytest.raises(ValueError):
-            validate_inputs(labeldf, covdf, label_type)
-
-
-def test_assert_labels_all_present(spark):
-    labeldf = pd.DataFrame({'Trait_1': [0, -1, 1], 'Trait_2': [0, 1, math.nan]})
-    covdf = pd.DataFrame({'Covariate_1': [0, 1, -1], 'Covariate_2': [0, -1, 1]})
-    expect_validation_error(labeldf, covdf, ['continuous'])
-
-
-def test_assert_covars_all_present(spark):
-    labeldf = pd.DataFrame({'Trait_1': [0, -1, 1], 'Trait_2': [0, 1, -1]})
-    covdf = pd.DataFrame({'Covariate_1': [0, 1, -1], 'Covariate_2': [0, -1, math.nan]})
-    expect_validation_error(labeldf, covdf, ['either', 'continuous', 'binary'])
-
-
-def test_check_labels_zero_mean(spark):
-    labeldf = pd.DataFrame({'Trait_1': [0, -1, 1], 'Trait_2': [0, 1, 3]})
-    covdf = pd.DataFrame({'Covariate_1': [0, 1, -1], 'Covariate_2': [0, -1, 1]})
-    expect_validation_warning(labeldf, covdf, ['either', 'continuous'])
-
-
-def test_check_labels_unit_stddev(spark):
-    labeldf = pd.DataFrame({'Trait_1': [0, -1, 1], 'Trait_2': [0, 2, -2]})
-    covdf = pd.DataFrame({'Covariate_1': [0, 1, -1], 'Covariate_2': [0, -1, 1]})
-    expect_validation_warning(labeldf, covdf, ['either', 'continuous'])
-
-
-def test_check_covars_zero_mean(spark):
-    labeldf = pd.DataFrame({'Trait_1': [0, -1, 1], 'Trait_2': [0, 1, -1]})
-    covdf = pd.DataFrame({'Covariate_1': [0, 1, -1], 'Covariate_2': [0, 3, 1]})
-    expect_validation_warning(labeldf, covdf, ['either', 'continuous'])
-
-
-def test_check_covars_unit_stddev(spark):
-    labeldf = pd.DataFrame({'Trait_1': [0, -1, 1], 'Trait_2': [0, 1, -1]})
-    covdf = pd.DataFrame({'Covariate_1': [0, 1, -1], 'Covariate_2': [0, -2, 2]})
-    expect_validation_warning(labeldf, covdf, ['either', 'continuous'])
-
-
-def test_check_labels_binary_or_continuous(spark):
-    labeldf = pd.DataFrame({'Trait_1': [0, 1, math.nan], 'Trait_2': [0, 1, -1]})
-    covdf = pd.DataFrame()
-    with pytest.warns(None) as record:
-        validate_inputs(labeldf, covdf, 'either')
-    assert len(record) == 0
-
-    labeldf['Trait_3'] = [0, 2, 3]
-    with pytest.warns(UserWarning):
-        validate_inputs(labeldf, covdf, 'either')
 
 
 def test_new_headers_one_level(spark):
@@ -212,7 +152,7 @@ def test_new_headers_two_level(spark):
                                                          [('alpha_1', 'sim1'), ('alpha_1', 'sim2'),
                                                           ('alpha_2', 'sim1'), ('alpha_2', 'sim2')])
     assert new_header_block == 'all'
-    contig_hash = abs(hash('decoy_1')) % (10**8)
+    contig_hash = abs(hash('decoy_1')) % (10 ** 8)
     assert sort_keys == [
         contig_hash * 2 + 1, contig_hash * 2 + 1, contig_hash * 2 + 2, contig_hash * 2 + 2
     ]

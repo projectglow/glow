@@ -598,6 +598,8 @@ def _prepare_covariates(cov_df: pd.DataFrame, label_df: pd.DataFrame,
             std_cov_df = pd.DataFrame(data=np.ones(label_df.shape[0]),
                                       columns=['intercept'],
                                       index=label_df.index)
+        else:
+            std_cov_df = cov_df
     else:
         if label_df.shape[0] != cov_df.shape[0]:
             raise ValueError(
