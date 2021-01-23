@@ -1,4 +1,4 @@
-Start time: Fri Jan 22 16:30:05 2021
+Start time: Fri Jan 22 17:35:41 2021
 
               |==============================|
               |      REGENIE v1.0.6.7.gz     |
@@ -18,7 +18,8 @@ Options in effect:
   --bsize 200 \
   --pred fit_lin_out_pred.list \
   --split \
-  --out test_lin_out
+  --out test_lin_out \
+  --ref-first 
 
 Association testing mode
  * bgen             : [example/example.bgen]
@@ -40,7 +41,7 @@ Association testing mode
 
 Chromosome 1 [5 blocks in total]
    -reading loco predictions for the chromosome...done (0ms) 
- block [1] : done (4ms) 
+ block [1] : done (5ms) 
  block [2] : done (3ms) 
  block [3] : done (3ms) 
  block [4] : done (3ms) 
@@ -52,6 +53,6 @@ Association results stored separately for each trait in files :
 
 Number of ignored SNPs due to low MAC : 0
 
-Elapsed time : 0.0451494s
-End time: Fri Jan 22 16:30:05 2021
+Elapsed time : 0.0455034s
+End time: Fri Jan 22 17:35:41 2021
 
