@@ -1,3 +1,4 @@
+import functions as fx
 import numpy as np
 import statsmodels.api as sm
 import pandas as pd
@@ -41,13 +42,13 @@ def run_linear_regression_spark(spark,
     if not extra_cols.empty:
         pdf = pd.concat([pdf, extra_cols], axis=1)
     pdf['idx'] = pdf.index
-    results = (lr.linear_regression(spark.createDataFrame(pdf),
-                                    phenotype_df,
-                                    covariate_df,
-                                    offset_df,
-                                    values_column=values_column,
-                                    **kwargs).toPandas().sort_values(['phenotype',
-                                                                      'idx']).drop('idx', axis=1))
+    results = lr.linear_regression(spark.createDataFrame(pdf),
+                                   phenotype_df,
+                                   covariate_df,
+                                   offset_df,
+                                   values_column=values_column,
+                                   **kwargs).toPandas().sort_values(['phenotype',
+                                                                    'idx']).drop('idx', axis=1)
     return results
 
 
@@ -544,3 +545,22 @@ def test_subset_contigs_no_loco(spark, rg):
                                 phenotype_df,
                                 offset_df=offset_df,
                                 contigs=['chr1'])
+
+
+def compare_linreg_to_regenie(spark, output_prefix, missing=[]):
+
+    (genotype_df, phenotype_df, covariate_df, offset_df) = fx.get_input_dfs(
+        spark,
+        binary=False,
+        missing=missing
+    )
+    glowgr_df = lr.linear_regression(genotype_df,
+                                     phenotype_df,
+                                     covariate_df,
+                                     offset_df,
+                                     values_column='values').toPandas()
+    fx.compare_to_regenie(output_prefix, glowgr_df)
+
+
+def test_versus_regenie(spark):
+    compare_linreg_to_regenie(spark, 'test_lin_out_')

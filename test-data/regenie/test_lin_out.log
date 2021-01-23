@@ -1,0 +1,57 @@
+Start time: Fri Jan 22 16:30:05 2021
+
+              |==============================|
+              |      REGENIE v1.0.6.7.gz     |
+              |==============================|
+
+Copyright (c) 2020 Joelle Mbatchou and Jonathan Marchini.
+Distributed under the MIT License.
+Compiled with Boost Iostream library.
+
+Log of output saved in file : test_lin_out.log
+
+Options in effect:
+  --step 2 \
+  --bgen example/example.bgen \
+  --covarFile example/covariates.txt \
+  --phenoFile example/phenotype.txt \
+  --bsize 200 \
+  --pred fit_lin_out_pred.list \
+  --split \
+  --out test_lin_out
+
+Association testing mode
+ * bgen             : [example/example.bgen]
+   -summary : bgen file (v1.2 layout, compressed) with 500 named samples and 1000 variants.
+ * phenotypes       : [example/phenotype.txt] n_pheno = 2
+   -number of phenotyped individuals = 500
+ * covariates       : [example/covariates.txt] n_cov = 3
+   -number of individuals with covariate data = 500
+ * number of individuals used in analysis = 500
+ * LOCO predictions : [fit_lin_out_pred.list] n_files = 2
+   -file [/Users/karen.feng/Desktop/regenie-1.0.6.7/fit_lin_out_1.loco] for phenotype 'Y1'
+   -file [/Users/karen.feng/Desktop/regenie-1.0.6.7/fit_lin_out_2.loco] for phenotype 'Y2'
+   -residualizing and scaling phenotypes...done (0ms) 
+ * # threads        : [16]
+ * block size       : [200]
+ * # blocks         : [5]
+ * approximate memory usage : 1MB
+ * using minimum MAC of 5 (variants with lower MAC are ignored)
+
+Chromosome 1 [5 blocks in total]
+   -reading loco predictions for the chromosome...done (0ms) 
+ block [1] : done (4ms) 
+ block [2] : done (3ms) 
+ block [3] : done (3ms) 
+ block [4] : done (3ms) 
+ block [5] : done (3ms) 
+
+Association results stored separately for each trait in files : 
+* [test_lin_out_Y1.regenie]
+* [test_lin_out_Y2.regenie]
+
+Number of ignored SNPs due to low MAC : 0
+
+Elapsed time : 0.0451494s
+End time: Fri Jan 22 16:30:05 2021
+

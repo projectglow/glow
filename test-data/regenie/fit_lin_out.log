@@ -1,0 +1,114 @@
+Start time: Fri Jan 22 14:26:50 2021
+
+              |==============================|
+              |      REGENIE v1.0.6.7.gz     |
+              |==============================|
+
+Copyright (c) 2020 Joelle Mbatchou and Jonathan Marchini.
+Distributed under the MIT License.
+Compiled with Boost Iostream library.
+
+Log of output saved in file : fit_lin_out.log
+
+Options in effect:
+  --step 1 \
+  --bed example/example \
+  --covarFile example/covariates.txt \
+  --phenoFile example/phenotype.txt \
+  --bsize 100 \
+  --lowmem \
+  --lowmem-prefix tmp_rg \
+  --out fit_lin_out
+
+Fitting null model
+ * bim              : [example/example.bim] n_snps = 1000
+ * fam              : [example/example.fam] n_samples = 500
+ * bed              : [example/example.bed]
+ * phenotypes       : [example/phenotype.txt] n_pheno = 2
+   -keeping and mean-imputing missing observations (done for each trait)
+   -number of phenotyped individuals = 500
+ * covariates       : [example/covariates.txt] n_cov = 3
+   -number of individuals with covariate data = 500
+ * number of individuals used in analysis = 500
+   -residualizing and scaling phenotypes...done (0ms) 
+ * # threads        : [16]
+ * block size       : [100]
+ * # blocks         : [10]
+ * # CV folds       : [5]
+ * ridge data_l0    : [5 : 0.01 0.25 0.5 0.75 0.99 ]
+ * ridge data_l1    : [5 : 0.01 0.25 0.5 0.75 0.99 ]
+ * approximate memory usage : 1MB
+ * writing level 0 predictions to disk
+   -temporary files will have prefix [tmp_rg_l0_Y]
+   -approximate disk space needed : 1MB
+ * setting memory...done
+
+Chromosome 1
+ block [1] : 100 snps  (0ms) 
+   -residualizing and scaling genotypes...done (0ms) 
+   -calc working matrices...done (1ms) 
+   -calc level 0 ridge...done (10ms) 
+ block [2] : 100 snps  (0ms) 
+   -residualizing and scaling genotypes...done (0ms) 
+   -calc working matrices...done (0ms) 
+   -calc level 0 ridge...done (8ms) 
+ block [3] : 100 snps  (0ms) 
+   -residualizing and scaling genotypes...done (0ms) 
+   -calc working matrices...done (0ms) 
+   -calc level 0 ridge...done (8ms) 
+ block [4] : 100 snps  (0ms) 
+   -residualizing and scaling genotypes...done (0ms) 
+   -calc working matrices...done (0ms) 
+   -calc level 0 ridge...done (7ms) 
+ block [5] : 100 snps  (0ms) 
+   -residualizing and scaling genotypes...done (0ms) 
+   -calc working matrices...done (0ms) 
+   -calc level 0 ridge...done (7ms) 
+ block [6] : 100 snps  (0ms) 
+   -residualizing and scaling genotypes...done (0ms) 
+   -calc working matrices...done (0ms) 
+   -calc level 0 ridge...done (8ms) 
+ block [7] : 100 snps  (0ms) 
+   -residualizing and scaling genotypes...done (0ms) 
+   -calc working matrices...done (0ms) 
+   -calc level 0 ridge...done (6ms) 
+ block [8] : 100 snps  (0ms) 
+   -residualizing and scaling genotypes...done (0ms) 
+   -calc working matrices...done (0ms) 
+   -calc level 0 ridge...done (6ms) 
+ block [9] : 100 snps  (0ms) 
+   -residualizing and scaling genotypes...done (0ms) 
+   -calc working matrices...done (0ms) 
+   -calc level 0 ridge...done (7ms) 
+ block [10] : 100 snps  (0ms) 
+   -residualizing and scaling genotypes...done (0ms) 
+   -calc working matrices...done (0ms) 
+   -calc level 0 ridge...done (7ms) 
+
+ Level 1 ridge...
+   -on phenotype 1 (Y1)...done (1ms) 
+   -on phenotype 2 (Y2)...done (1ms) 
+
+Output
+------
+phenotype 1 (Y1) : 
+  0.01  : Rsq = 0.0178532, MSE = 0.985189
+  0.25  : Rsq = 0.0180187, MSE = 0.983353<- min value
+  0.5   : Rsq = 0.0183081, MSE = 0.984056
+  0.75  : Rsq = 0.0185838, MSE = 0.984105
+  0.99  : Rsq = 0.0188301, MSE = 0.983994
+  * making predictions...writing LOCO predictions...done (4ms) 
+
+phenotype 2 (Y2) : 
+  0.01  : Rsq = 0.013602, MSE = 0.987376<- min value
+  0.25  : Rsq = 0.012938, MSE = 0.991836
+  0.5   : Rsq = 0.0130626, MSE = 0.993289
+  0.75  : Rsq = 0.0132128, MSE = 0.993696
+  0.99  : Rsq = 0.0133522, MSE = 0.993825
+  * making predictions...writing LOCO predictions...done (4ms) 
+
+List of blup files written to: [fit_lin_out_pred.list]
+
+Elapsed time : 0.118302s
+End time: Fri Jan 22 14:26:50 2021
+
