@@ -104,8 +104,6 @@ def test_null_firth_fit_no_offset():
     assert np.allclose(fit, test_data.covariates @ golden_firth_beta)
 
 
-
-
 def _read_regenie_df(file, trait, num_snps):
     df = pd.read_table(file, sep=r'\s+')
     df = df[df['ID'] <= num_snps]
@@ -121,11 +119,9 @@ def compare_corrections_to_regenie(spark,
                                    corrected,
                                    missing=[]):
 
-    (genotype_df, phenotype_df, covariate_df, offset_df) = fx.get_input_dfs(
-        spark,
-        binary=True,
-        missing=missing
-    )
+    (genotype_df, phenotype_df, covariate_df, offset_df) = fx.get_input_dfs(spark,
+                                                                            binary=True,
+                                                                            missing=missing)
     glowgr_df = lr.logistic_regression(genotype_df,
                                        phenotype_df,
                                        covariate_df,
@@ -168,10 +164,11 @@ def test_correct_half_versus_regenie(spark):
 
 @pytest.mark.min_spark('3')
 def test_correct_missing_versus_regenie(spark):
-    compare_corrections_to_regenie(spark,
-                                   0.9999,
-                                   'test_bin_out_missing_firth_',
-                                   compare_all_cols=True,
-                                   uncorrected=0,
-                                   corrected=200,
-                                   missing=['35_35', '136_136', '77_77', '100_100', '204_204', '474_474'])
+    compare_corrections_to_regenie(
+        spark,
+        0.9999,
+        'test_bin_out_missing_firth_',
+        compare_all_cols=True,
+        uncorrected=0,
+        corrected=200,
+        missing=['35_35', '136_136', '77_77', '100_100', '204_204', '474_474'])

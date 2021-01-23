@@ -116,10 +116,10 @@ def linear_regression(genotype_df: DataFrame,
     Y = phenotype_df.to_numpy(dt, copy=True)
     Y_mask = (~np.isnan(Y)).astype(dt)
     Y = np.nan_to_num(Y, copy=False)
-    Y -= Y.mean(axis=0) # Mean-center
-    Y = gwas_fx._residualize_in_place(Y, Q) * Y_mask # Residualize
-    Y_std_dev = np.sqrt(np.sum(Y ** 2, axis=0) / (Y_mask.sum(axis=0) - Q.shape[1]))
-    Y /= Y_std_dev[np.newaxis, :] # Scale
+    Y -= Y.mean(axis=0)  # Mean-center
+    Y = gwas_fx._residualize_in_place(Y, Q) * Y_mask  # Residualize
+    Y_std_dev = np.sqrt(np.sum(Y**2, axis=0) / (Y_mask.sum(axis=0) - Q.shape[1]))
+    Y /= Y_std_dev[np.newaxis, :]  # Scale
 
     Y_state = _create_YState(Y, phenotype_df, offset_df, Y_mask, dt, contigs)
 
@@ -127,7 +127,8 @@ def linear_regression(genotype_df: DataFrame,
 
     def map_func(pdf_iterator):
         for pdf in pdf_iterator:
-            yield gwas_fx._loco_dispatch(pdf, Y_state, _linear_regression_inner, Y_mask, Y_std_dev, Q, dof,
+            yield gwas_fx._loco_dispatch(pdf, Y_state, _linear_regression_inner, Y_mask, Y_std_dev,
+                                         Q, dof,
                                          phenotype_df.columns.to_series().astype('str'))
 
     return genotype_df.mapInPandas(map_func, result_struct)
@@ -167,9 +168,10 @@ def _create_one_YState(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame
 
 
 @typechecked
-def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState, 
-                             Y_mask: NDArray[(Any, Any), Float], Y_std_dev: NDArray[(Any, ), Float], Q: NDArray[(Any, Any), Float],
-                             dof: int, phenotype_names: pd.Series) -> pd.DataFrame:
+def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
+                             Y_mask: NDArray[(Any, Any), Float], Y_std_dev: NDArray[(Any, ), Float],
+                             Q: NDArray[(Any, Any), Float], dof: int,
+                             phenotype_names: pd.Series) -> pd.DataFrame:
     '''
     Applies a linear regression model to a block of genotypes. We first project the covariates out of the
     genotype block and then perform single variate linear regression for each site.

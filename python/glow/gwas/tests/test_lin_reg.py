@@ -20,7 +20,7 @@ def run_linear_regression(genotype_df, phenotype_df, covariate_df, add_intercept
     Y -= Y.mean(axis=0)
     Q = np.linalg.qr(C)[0]
     Y = gwas_fx._residualize_in_place(Y, Q) * Y_mask
-    Y_std_dev = np.sqrt(np.sum(Y ** 2, axis=0) / (Y_mask.sum(axis=0) - Q.shape[1]))
+    Y_std_dev = np.sqrt(np.sum(Y**2, axis=0) / (Y_mask.sum(axis=0) - Q.shape[1]))
     Y /= Y_std_dev[np.newaxis, :]
     Y_state = lr._create_YState(Y, phenotype_df, pd.DataFrame({}), Y_mask, np.float64, None)
     dof = C.shape[0] - C.shape[1] - 1
@@ -48,7 +48,7 @@ def run_linear_regression_spark(spark,
                                    offset_df,
                                    values_column=values_column,
                                    **kwargs).toPandas().sort_values(['phenotype',
-                                                                    'idx']).drop('idx', axis=1)
+                                                                     'idx']).drop('idx', axis=1)
     return results
 
 
@@ -84,7 +84,7 @@ def statsmodels_baseline(genotype_df,
             phenotype[~phenotype_mask] = 0
             phenotype -= phenotype.mean()
             phenotype = residualize(phenotype, C) * phenotype_mask
-            phenotype_scale = np.sqrt((phenotype ** 2).sum() / (phenotype_mask.sum() - C.shape[1]))
+            phenotype_scale = np.sqrt((phenotype**2).sum() / (phenotype_mask.sum() - C.shape[1]))
             phenotype /= phenotype_scale
             if offset_dfs:
                 offset = offset_dfs[genotype_idx].iloc[:, phenotype_idx].to_numpy('float64')
@@ -549,11 +549,9 @@ def test_subset_contigs_no_loco(spark, rg):
 
 def compare_linreg_to_regenie(spark, output_prefix, missing=[]):
 
-    (genotype_df, phenotype_df, covariate_df, offset_df) = fx.get_input_dfs(
-        spark,
-        binary=False,
-        missing=missing
-    )
+    (genotype_df, phenotype_df, covariate_df, offset_df) = fx.get_input_dfs(spark,
+                                                                            binary=False,
+                                                                            missing=missing)
     glowgr_df = lr.linear_regression(genotype_df,
                                      phenotype_df,
                                      covariate_df,
