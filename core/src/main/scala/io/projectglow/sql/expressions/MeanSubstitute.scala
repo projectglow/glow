@@ -101,6 +101,8 @@ case class MeanSubstitute(array: Expression, missingValue: Expression)
     array.aggregate(
       createNamedStruct(Literal(0d), Literal(0L)),
       updateSumAndCountConditionally,
+      // Note: it's important that we perform the substitution in the finish function. Otherwise the mean is
+      // recomputed for each missing element.
       acc => array.arrayTransform(el => substituteWithMean(el, calculateMean(acc)))
     )
   }
