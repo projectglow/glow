@@ -352,6 +352,18 @@ class VariantQcExprsSuite extends GlowBaseTest {
     assert(test == Seq(1.5, 1.5, 0.0, 1.0, 2.0, 3.0))
   }
 
+  test("mean substitute big array") {
+    val values = Array.fill(100000)(None: Option[Int])
+    values(0) = Some(1)
+    val test = spark
+      .createDataFrame(Seq(OptIntDatum(values)))
+      .selectExpr("mean_substitute(numbers)")
+      .collect()
+      .head
+      .getSeq[Double](0)
+    assert(test.forall(_ == 1))
+  }
+
   test("null array") {
     val test = spark
       .createDataFrame(Seq(Datum(null)))
