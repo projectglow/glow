@@ -581,10 +581,12 @@ def compare_linreg_to_regenie(spark, output_prefix, missing=[], single_chr=True)
     fx.compare_to_regenie(output_prefix, glowgr_df)
 
 
+@pytest.mark.min_spark('3')
 def test_versus_regenie(spark):
     compare_linreg_to_regenie(spark, 'test_lin_out_')
 
 
+@pytest.mark.min_spark('3')
 def test_missing_versus_regenie(spark):
     compare_linreg_to_regenie(
         spark,
@@ -592,5 +594,6 @@ def test_missing_versus_regenie(spark):
         missing=['35_35', '136_136', '77_77', '100_100', '204_204', '474_474'])
 
 
+@pytest.mark.min_spark('3')
 def test_three_chr_versus_regenie(spark):
     compare_linreg_to_regenie(spark, 'test_lin_out_3chr_', single_chr=False)
