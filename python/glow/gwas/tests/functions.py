@@ -38,23 +38,31 @@ def _read_offset_df(file, trait):
 
 
 def _read_regenie_df(file, trait, num_snps):
-    df = pd.read_table(file, sep=r'\s+')
-    df = df[df['ID'] <= num_snps]
+    df = pd.read_table(file, sep=r'\s+').astype({'ID': 'str'})
+    df = df[df['GENPOS'] <= num_snps]
     df['phenotype'] = trait
     return df
 
 
-def get_input_dfs(spark, binary, num_snps=100, missing=[]):
+def get_input_dfs(spark, binary, num_snps=100, missing=[], single_chr=True):
+    if single_chr:
+        genotype_file = 'example.bgen'
+    else:
+        genotype_file = 'example_3chr.bgen'
     if binary:
         phenotype_file = 'phenotype_bin.txt'
         offset_trait1_file = 'fit_bin_out_1.loco'
         offset_trait2_file = 'fit_bin_out_2.loco'
     else:
         phenotype_file = 'phenotype.txt'
-        offset_trait1_file = 'fit_lin_out_1.loco'
-        offset_trait2_file = 'fit_lin_out_2.loco'
+        if single_chr:
+            offset_trait1_file = 'fit_lin_out_1.loco'
+            offset_trait2_file = 'fit_lin_out_2.loco'
+        else:
+            offset_trait1_file = 'fit_lin_out_3chr_1.loco'
+            offset_trait2_file = 'fit_lin_out_3chr_2.loco'
 
-    genotype_df = spark.read.format('bgen').load(test_data_dir + 'example.bgen') \
+    genotype_df = spark.read.format('bgen').load(test_data_dir + genotype_file) \
         .withColumn('values', fx.genotype_states('genotypes')) \
         .filter(f'start < {num_snps}')
 
@@ -78,17 +86,17 @@ def compare_to_regenie(output_prefix, glowgr_df, compare_all_cols=True, num_snps
     regenie_df = pd.concat(
         [_read_regenie_df(f, t, num_snps) for f, t in zip(regenie_files, regenie_traits)],
         ignore_index=True)
+    regenie_df['pvalue'] = np.power(10, -regenie_df['LOG10P'])
 
-    glowgr_df['ID'] = glowgr_df['names'].apply(lambda x: int(x[-1]))
+    glowgr_df['ID'] = glowgr_df['names'].apply(lambda x: str(x[-1]))
     glowgr_df = glowgr_df.rename(columns={
         'effect': 'BETA',
         'stderror': 'SE'
-    }).astype({'ID': 'int64'})
-    regenie_df['pvalue'] = np.power(10, -regenie_df['LOG10P'])
+    })
 
-    assert_frame_equal(glowgr_df[['ID', 'phenotype']],
-                       regenie_df[['ID', 'phenotype']],
-                       check_dtype=False)
+    regenie_df = regenie_df.set_index(['ID', 'phenotype'])
+    glowgr_df = glowgr_df.set_index(['ID', 'phenotype']).reindex(regenie_df.index)
+
     if compare_all_cols:
         cols = ['BETA', 'SE', 'pvalue']
     else:

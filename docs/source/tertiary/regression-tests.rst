@@ -206,10 +206,10 @@ an offset.
      contigName='22',
      start=16050114,
      names=['rs587755077'],
-     effect=0.14153340605722264,
-     stderror=0.17619727316255493,
-     tvalue=0.8032667221055554,
-     pvalue=0.42189707280260846,
+     effect=0.14270211676783012,
+     stderror=0.16438780778222647,
+     tvalue=0.8680821205236547,
+     pvalue=0.38543283172628373,
      phenotype='Continuous_Trait_1')
    assert_rows_equal(lin_reg_df.filter('contigName = 22 and start = 16050114').head(), expected_lin_reg_row)
 
