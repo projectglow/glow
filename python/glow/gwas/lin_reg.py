@@ -62,16 +62,17 @@ def linear_regression(genotype_df: DataFrame,
         genotype_df : Spark DataFrame containing genomic data
         phenotype_df : Pandas DataFrame containing phenotypic data
         covariate_df : An optional Pandas DataFrame containing covariates
-        offset_df : An optional Pandas DataFrame containing the phenotype offset. The actual phenotype used
-                    for linear regression is the mean-centered, residualized and scaled ``phenotype_df`` minus the
-                    appropriate offset. The ``offset_df`` may have one or two levels of indexing.
+        offset_df : An optional Pandas DataFrame containing the phenotype offset, as output by GloWGR's RidgeRegression
+                    or Regenie step 1. The actual phenotype used for linear regression is the mean-centered,
+                    residualized and scaled ``phenotype_df`` minus the appropriate offset. The ``offset_df`` may have
+                    one or two levels of indexing.
                     If one level, the index should be the same as the ``phenotype_df``.
                     If two levels, the level 0 index should be the same as the ``phenotype_df``, and the level 1 index
                     should be the contig name. The two level index scheme allows for per-contig offsets like
                     LOCO predictions from GloWGR.
-        contigs : When using LOCO offsets, this parameter indicates the contigs to analyze. You can use this parameter to limit the size of the broadcasted data, which may
-                  be necessary with large sample sizes. If this parameter is omitted, the contigs are inferred from
-                  the ``offset_df``.
+        contigs : When using LOCO offsets, this parameter indicates the contigs to analyze. You can use this parameter
+                  to limit the size of the broadcasted data, which may be necessary with large sample sizes. If this
+                  parameter is omitted, the contigs are inferred from the ``offset_df``.
         add_intercept : Whether or not to add an intercept column to the covariate DataFrame
         values_column : A column name or column expression to test with linear regression. If a column name is provided,
                         ``genotype_df`` should have a column with this name and a numeric array type. If a column
@@ -119,7 +120,7 @@ def linear_regression(genotype_df: DataFrame,
     Y -= Y.mean(axis=0)  # Mean-center
     Y = gwas_fx._residualize_in_place(Y, Q) * Y_mask  # Residualize
     Y_scale = np.sqrt(np.sum(Y**2, axis=0) / (Y_mask.sum(axis=0) - Q.shape[1]))
-    Y /= Y_scale[np.newaxis, :]  # Scale
+    Y /= Y_scale[None, :]  # Scale
 
     Y_state = _create_YState(Y, phenotype_df, offset_df, Y_mask, dt, contigs)
 
@@ -163,6 +164,7 @@ def _create_one_YState(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame
                        offset_df: pd.DataFrame, Y_mask: NDArray[(Any, Any), Float], dt) -> YState:
     if not offset_df.empty:
         base_Y = pd.DataFrame(Y, phenotype_df.index, phenotype_df.columns)
+        # Reindex so the numpy array maintains ordering after subtracting offset
         Y = (base_Y - offset_df).reindex(phenotype_df.index).to_numpy(dt)
     Y *= Y_mask
     return YState(Y, np.sum(Y * Y, axis=0))
@@ -201,7 +203,7 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
     del genotype_pdf[_VALUES_COLUMN_NAME]
     num_genotypes = genotype_pdf.shape[0]
     out_df = pd.concat([genotype_pdf] * Y_state.Y.shape[1])
-    Y_scale_mat = np.expand_dims(Y_scale, axis=1)
+    Y_scale_mat = Y_scale[:, None]
     out_df['effect'] = list(np.ravel(betas * Y_scale_mat))
     out_df['stderror'] = list(np.ravel(standard_error * Y_scale_mat))
     out_df['tvalue'] = list(np.ravel(T))

@@ -20,13 +20,12 @@ def run_linear_regression(genotype_df, phenotype_df, covariate_df, add_intercept
     Y -= Y.mean(axis=0)
     Q = np.linalg.qr(C)[0]
     Y = gwas_fx._residualize_in_place(Y, Q) * Y_mask
-    Y_std_dev = np.sqrt(np.sum(Y**2, axis=0) / (Y_mask.sum(axis=0) - Q.shape[1]))
-    Y /= Y_std_dev[np.newaxis, :]
+    Y_scale = np.ones(Y.shape[1])
     Y_state = lr._create_YState(Y, phenotype_df, pd.DataFrame({}), Y_mask, np.float64, None)
     dof = C.shape[0] - C.shape[1] - 1
     pdf = pd.DataFrame({lr._VALUES_COLUMN_NAME: list(genotype_df.to_numpy('float64').T)})
 
-    return lr._linear_regression_inner(pdf, Y_state, Y_mask.astype('float64'), Y_std_dev, Q, dof,
+    return lr._linear_regression_inner(pdf, Y_state, Y_mask.astype('float64'), Y_scale, Q, dof,
                                        phenotype_names)
 
 
