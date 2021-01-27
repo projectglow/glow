@@ -90,6 +90,4 @@ def compare_to_regenie(output_prefix, glowgr_df, compare_all_cols=True, num_snps
         cols = ['ID', 'BETA', 'SE', 'pvalue', 'phenotype']
     else:
         cols = ['ID', 'pvalue', 'phenotype']
-    print(glowgr_df[cols])
-    print(regenie_df[cols])
     assert_frame_equal(glowgr_df[cols], regenie_df[cols], check_dtype=False, check_less_precise=1)
