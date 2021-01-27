@@ -23,7 +23,7 @@
 
 # DBTITLE 1,Import glow and define path variables
 import glow
-glow.register(spark)
+spark = glow.register(spark)
 chain_file = '/opt/liftover/b37ToHg38.over.chain'
 reference_file = '/mnt/dbnucleus/dbgenomics/grch38/data/GRCh38_full_analysis_set_plus_decoy_hla.fa'
 vcf_file = 'dbfs:/databricks-datasets/genomics/1kg-vcfs/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz'
@@ -31,9 +31,9 @@ vcf_file = 'dbfs:/databricks-datasets/genomics/1kg-vcfs/ALL.chr22.phase3_shapeit
 # COMMAND ----------
 
 # DBTITLE 1,First, read in a VCF from a flat file or Delta Lake table.
-input_df = spark.read.format("vcf") \
-  .load(vcf_file) \
-  .cache()
+input_df = (spark.read.format("vcf")
+  .load(vcf_file)
+  .cache())
 
 # COMMAND ----------
 

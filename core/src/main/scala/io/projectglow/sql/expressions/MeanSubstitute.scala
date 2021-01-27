@@ -83,17 +83,8 @@ case class MeanSubstitute(array: Expression, missingValue: Expression)
     )
   }
 
-  lazy val arrayMean: Expression = {
-    // Sum and count of non-missing values
-    array.aggregate(
-      createNamedStruct(Literal(0d), Literal(0L)),
-      updateSumAndCountConditionally,
-      calculateMean
-    )
-  }
-
-  def substituteWithMean(arrayElement: Expression): Expression = {
-    If(isMissing(arrayElement), arrayMean, arrayElement)
+  def substituteWithMean(arrayElement: Expression, meanExpr: Expression): Expression = {
+    If(isMissing(arrayElement), meanExpr, arrayElement)
   }
 
   override def rewrite: Expression = {
@@ -107,7 +98,12 @@ case class MeanSubstitute(array: Expression, missingValue: Expression)
         s"Missing value must be of numeric type; provided type is ${missingValue.dataType}.")
     }
 
-    // Replace missing values with the provided strategy
-    array.arrayTransform(substituteWithMean(_))
+    array.aggregate(
+      createNamedStruct(Literal(0d), Literal(0L)),
+      updateSumAndCountConditionally,
+      // Note: it's important that we perform the substitution in the finish function. Otherwise the mean is
+      // recomputed for each missing element.
+      acc => array.arrayTransform(el => substituteWithMean(el, calculateMean(acc)))
+    )
   }
 }

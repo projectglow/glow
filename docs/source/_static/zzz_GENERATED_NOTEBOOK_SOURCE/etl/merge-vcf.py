@@ -1,7 +1,7 @@
 # Databricks notebook source
 from pyspark.sql.functions import *
 import glow
-glow.register(spark)
+spark = glow.register(spark)
 
 # COMMAND ----------
 

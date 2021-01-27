@@ -24,15 +24,25 @@ package object dsl {
 
   trait ImplicitOperators {
     def expr: Expression
+
+    // Ensure that lambda variables have unique names for nested functions
+    private var lambdaCounter = 0
+    private def nextLambdaName(): String = {
+      lambdaCounter += 1
+      lambdaCounter.toString
+    }
+
     private def makeLambdaFunction(f: Expression => Expression): LambdaFunction = {
-      val x = UnresolvedNamedLambdaVariable(Seq("x"))
+      val x = UnresolvedNamedLambdaVariable(Seq(nextLambdaName()))
       LambdaFunction(f(x), Seq(x))
     }
+
     private def makeLambdaFunction(f: (Expression, Expression) => Expression): LambdaFunction = {
-      val x = UnresolvedNamedLambdaVariable(Seq("x"))
-      val y = UnresolvedNamedLambdaVariable(Seq("y"))
+      val x = UnresolvedNamedLambdaVariable(Seq(nextLambdaName()))
+      val y = UnresolvedNamedLambdaVariable(Seq(nextLambdaName()))
       LambdaFunction(f(x, y), Seq(x, y))
     }
+
     def arrayTransform(fn: Expression => Expression): Expression = {
       ArrayTransform(expr, makeLambdaFunction(fn))
     }
