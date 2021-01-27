@@ -86,8 +86,12 @@ def compare_to_regenie(output_prefix, glowgr_df, compare_all_cols=True, num_snps
     }).astype({'ID': 'int64'})
     regenie_df['pvalue'] = np.power(10, -regenie_df['LOG10P'])
 
+    assert_frame_equal(glowgr_df[['ID', 'phenotype']],
+                       regenie_df[['ID', 'phenotype']],
+                       check_dtype=False)
     if compare_all_cols:
-        cols = ['ID', 'BETA', 'SE', 'pvalue', 'phenotype']
+        cols = ['BETA', 'SE', 'pvalue']
     else:
-        cols = ['ID', 'pvalue', 'phenotype']
-    assert_frame_equal(glowgr_df[cols], regenie_df[cols], check_dtype=False, check_less_precise=1)
+        cols = ['pvalue']
+    assert np.isclose(glowgr_df[cols].to_numpy(), regenie_df[cols].to_numpy(), rtol=1e-2,
+                      atol=1e-3).all()

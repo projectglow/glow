@@ -562,3 +562,10 @@ def compare_linreg_to_regenie(spark, output_prefix, missing=[]):
 
 def test_versus_regenie(spark):
     compare_linreg_to_regenie(spark, 'test_lin_out_')
+
+
+def test_missing_versus_regenie(spark):
+    compare_linreg_to_regenie(
+        spark,
+        'test_lin_out_missing_',
+        missing=['35_35', '136_136', '77_77', '100_100', '204_204', '474_474'])
