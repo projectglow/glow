@@ -313,6 +313,27 @@ def test_simple_offset(spark, rg):
 
 
 @pytest.mark.min_spark('3')
+def test_simple_offset_out_of_order(spark, rg):
+    num_samples = 25
+    num_pheno = 6
+    num_geno = 10
+    samples = [f'sample_{i}' for i in range(0, num_samples)]
+    traits = [f'trait_{i}' for i in range(0, num_pheno)]
+    genos = [f'snp_{i}' for i in range(0, num_geno)]
+    genotype_df = pd.DataFrame(rg.random((num_samples, num_geno)), samples, genos)
+    phenotype_df = pd.DataFrame(rg.random((num_samples, num_pheno)), samples, traits)
+    covariate_df = pd.DataFrame(rg.random((num_samples, 2)))
+    offset_df = pd.DataFrame(rg.random((num_samples, num_pheno)), samples, traits)
+    results = run_linear_regression_spark(spark,
+                                          genotype_df,
+                                          phenotype_df,
+                                          covariate_df,
+                                          offset_df=offset_df.sample(frac=1))
+    baseline = statsmodels_baseline(genotype_df, phenotype_df, covariate_df, [offset_df] * num_geno)
+    assert regression_results_equal(results, baseline)
+
+
+@pytest.mark.min_spark('3')
 def test_multi_offset(spark, rg):
     num_samples = 25
     num_pheno = 25
@@ -570,6 +591,7 @@ def test_missing_versus_regenie(spark):
         spark,
         'test_lin_out_missing_',
         missing=['35_35', '136_136', '77_77', '100_100', '204_204', '474_474'])
+
 
 def test_three_chr_versus_regenie(spark):
     compare_linreg_to_regenie(spark, 'test_lin_out_3chr_', single_chr=False)

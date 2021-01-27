@@ -89,10 +89,7 @@ def compare_to_regenie(output_prefix, glowgr_df, compare_all_cols=True, num_snps
     regenie_df['pvalue'] = np.power(10, -regenie_df['LOG10P'])
 
     glowgr_df['ID'] = glowgr_df['names'].apply(lambda x: str(x[-1]))
-    glowgr_df = glowgr_df.rename(columns={
-        'effect': 'BETA',
-        'stderror': 'SE'
-    })
+    glowgr_df = glowgr_df.rename(columns={'effect': 'BETA', 'stderror': 'SE'})
 
     regenie_df = regenie_df.set_index(['ID', 'phenotype'])
     glowgr_df = glowgr_df.set_index(['ID', 'phenotype']).reindex(regenie_df.index)
