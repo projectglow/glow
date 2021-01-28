@@ -18,8 +18,6 @@ from glow.wgr.linear_model.logistic_udfs import *
 from glow.wgr.linear_model.logistic_model import *
 from pyspark.sql import functions as f
 import json
-import math
-import pytest
 import pandas as pd
 import numpy as np
 
