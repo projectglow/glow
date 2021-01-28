@@ -114,6 +114,27 @@ To run Scala tests against the staged Maven artifact with the current stable ver
 stagedRelease/test
 ```
 
+## Testing code on a Databricks cluster
+
+To test your changes on a Databricks cluster, you'll need to build and install the Python and Scala artifacts.
+
+To build an uber jar (Glow + dependencies) with your changes:
+
+`sbt core/assembly`
+
+The uber jar will be at a path like `glow/core/target/${scala_version}/${artifact-name}-assembly-${version}-SNAPSHOT.jar`.
+
+To build a wheel with the Python code:
+
+1. Activate the Glow dev conda environment (`conda activate glow`)
+#. `cd` into the `python` directory
+#. Run `python setup.py bdist_wheel`
+
+The wheel file will be at a path like `python/dist/glow.py-${version}-py3-none-any.whl`.
+
+You can then [install these libraries on a Databricks cluster](https://docs.databricks.com/libraries/index.html).
+
+
 ## IntelliJ Tips
 
 If you use IntelliJ, you'll want to:
