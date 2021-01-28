@@ -62,19 +62,21 @@ def linear_regression(genotype_df: DataFrame,
         genotype_df : Spark DataFrame containing genomic data
         phenotype_df : Pandas DataFrame containing phenotypic data
         covariate_df : An optional Pandas DataFrame containing covariates
-        offset_df : An optional Pandas DataFrame containing the phenotype offset. The actual phenotype used
-                    for linear regression is ``phenotype_df`` minus the appropriate offset. The ``offset_df`` may
-                    have one or two levels of indexing. If one level, the index should be the same as the ``phenotype_df``.
+        offset_df : An optional Pandas DataFrame containing the phenotype offset, as output by GloWGR's RidgeRegression
+                    or Regenie step 1. The actual phenotype used for linear regression is the mean-centered,
+                    residualized and scaled ``phenotype_df`` minus the appropriate offset. The ``offset_df`` may have
+                    one or two levels of indexing.
+                    If one level, the index should be the same as the ``phenotype_df``.
                     If two levels, the level 0 index should be the same as the ``phenotype_df``, and the level 1 index
                     should be the contig name. The two level index scheme allows for per-contig offsets like
                     LOCO predictions from GloWGR.
-        contigs : When using LOCO offsets, this parameter indicates the contigs to analyze. You can use this parameter to limit the size of the broadcasted data, which may
-                  be necessary with large sample sizes. If this parameter is omitted, the contigs are inferred from
-                  the ``offset_df``.
+        contigs : When using LOCO offsets, this parameter indicates the contigs to analyze. You can use this parameter
+                  to limit the size of the broadcasted data, which may be necessary with large sample sizes. If this
+                  parameter is omitted, the contigs are inferred from the ``offset_df``.
         add_intercept : Whether or not to add an intercept column to the covariate DataFrame
         values_column : A column name or column expression to test with linear regression. If a column name is provided,
-                        ``genotype_df`` should have a column with this name and a numeric array type. If a column expression
-                        is provided, the expression should return a numeric array type.
+                        ``genotype_df`` should have a column with this name and a numeric array type. If a column
+                        expression is provided, the expression should return a numeric array type.
         dt : The numpy datatype to use in the linear regression test. Must be ``np.float32`` or ``np.float64``.
 
     Returns:
@@ -114,8 +116,11 @@ def linear_regression(genotype_df: DataFrame,
     Q = np.linalg.qr(C)[0]
     Y = phenotype_df.to_numpy(dt, copy=True)
     Y_mask = (~np.isnan(Y)).astype(dt)
-    np.nan_to_num(Y, copy=False)
-    Y = gwas_fx._residualize_in_place(Y, Q)
+    Y = np.nan_to_num(Y, copy=False)
+    Y -= Y.mean(axis=0)  # Mean-center
+    Y = gwas_fx._residualize_in_place(Y, Q) * Y_mask  # Residualize
+    Y_scale = np.sqrt(np.sum(Y**2, axis=0) / (Y_mask.sum(axis=0) - Q.shape[1]))
+    Y /= Y_scale[None, :]  # Scale
 
     Y_state = _create_YState(Y, phenotype_df, offset_df, Y_mask, dt, contigs)
 
@@ -123,7 +128,8 @@ def linear_regression(genotype_df: DataFrame,
 
     def map_func(pdf_iterator):
         for pdf in pdf_iterator:
-            yield gwas_fx._loco_dispatch(pdf, Y_state, _linear_regression_inner, Y_mask, Q, dof,
+            yield gwas_fx._loco_dispatch(pdf, Y_state, _linear_regression_inner, Y_mask, Y_scale, Q,
+                                         dof,
                                          phenotype_df.columns.to_series().astype('str'))
 
     return genotype_df.mapInPandas(map_func, result_struct)
@@ -157,15 +163,18 @@ def _create_YState(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame,
 def _create_one_YState(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame,
                        offset_df: pd.DataFrame, Y_mask: NDArray[(Any, Any), Float], dt) -> YState:
     if not offset_df.empty:
-        Y = (pd.DataFrame(Y, phenotype_df.index, phenotype_df.columns) - offset_df).to_numpy(dt)
+        base_Y = pd.DataFrame(Y, phenotype_df.index, phenotype_df.columns)
+        # Reindex so the numpy array maintains ordering after subtracting offset
+        Y = (base_Y - offset_df).reindex(phenotype_df.index).to_numpy(dt)
     Y *= Y_mask
     return YState(Y, np.sum(Y * Y, axis=0))
 
 
 @typechecked
 def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
-                             Y_mask: NDArray[(Any, Any), Float], Q: NDArray[(Any, Any), Float],
-                             dof: int, phenotype_names: pd.Series) -> pd.DataFrame:
+                             Y_mask: NDArray[(Any, Any), Float], Y_scale: NDArray[(Any, ), Float],
+                             Q: NDArray[(Any, Any), Float], dof: int,
+                             phenotype_names: pd.Series) -> pd.DataFrame:
     '''
     Applies a linear regression model to a block of genotypes. We first project the covariates out of the
     genotype block and then perform single variate linear regression for each site.
@@ -180,7 +189,10 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
 
     So, if a matrix's indices are `sg` (like the X matrix), it has one row per sample and one column per genotype.
     '''
-    X = gwas_fx._residualize_in_place(np.column_stack(genotype_pdf[_VALUES_COLUMN_NAME].array), Q)
+
+    X = np.column_stack(genotype_pdf[_VALUES_COLUMN_NAME].array)
+    X = gwas_fx._residualize_in_place(X, Q)
+
     XdotY = Y_state.Y.T @ X
     XdotX_reciprocal = 1 / gwas_fx._einsum('sp,sg,sg->pg', Y_mask, X, X)
     betas = XdotY * XdotX_reciprocal
@@ -189,11 +201,13 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
     pvalues = 2 * stats.distributions.t.sf(np.abs(T), dof)
 
     del genotype_pdf[_VALUES_COLUMN_NAME]
+    num_genotypes = genotype_pdf.shape[0]
     out_df = pd.concat([genotype_pdf] * Y_state.Y.shape[1])
-    out_df['effect'] = list(np.ravel(betas))
-    out_df['stderror'] = list(np.ravel(standard_error))
+    Y_scale_mat = Y_scale[:, None]
+    out_df['effect'] = list(np.ravel(betas * Y_scale_mat))
+    out_df['stderror'] = list(np.ravel(standard_error * Y_scale_mat))
     out_df['tvalue'] = list(np.ravel(T))
     out_df['pvalue'] = list(np.ravel(pvalues))
-    out_df['phenotype'] = phenotype_names.repeat(genotype_pdf.shape[0]).tolist()
+    out_df['phenotype'] = phenotype_names.repeat(num_genotypes).tolist()
 
     return out_df
