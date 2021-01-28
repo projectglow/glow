@@ -94,9 +94,9 @@ class LogisticRidgeRegression:
         del state['reduced_block_df'], state['model_df'], state['cv_df']
         return state
 
-    def __setstate__(self, state):
-        # Restore instance attributes
-        self.__dict__.update(state)
+    # def __setstate__(self, state):
+    #     # Restore instance attributes
+    #     self.__dict__.update(state)
 
     def set_label_df(self, label_df: pd.DataFrame) -> None:
         _prepare_labels_and_warn(label_df, _is_binary(label_df), 'binary')

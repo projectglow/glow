@@ -245,8 +245,8 @@ def test_logistic_regression_fit(spark):
     with open(f'{data_root}/test_logistic_regression_fit.json') as json_file:
         test_values = json.load(json_file)
 
-    logreg = LogisticRidgeRegression(alpha_values)
-    modeldf, cvdf = logreg.fit(lvl1df, labeldf, sample_blocks, covdf)
+    logreg = LogisticRidgeRegression(lvl1df, labeldf, sample_blocks, covdf, alphas=alpha_values)
+    modeldf, cvdf = logreg.fit()
 
     outdf = cvdf.filter(f'label = "{test_label}"').toPandas()
 
@@ -268,9 +268,9 @@ def test_logistic_regression_transform(spark):
     with open(f'{data_root}/test_logistic_regression_transform.json') as json_file:
         test_values = json.load(json_file)
 
-    logreg = LogisticRidgeRegression(alpha_values)
-    modeldf, cvdf = logreg.fit(lvl1df, labeldf, sample_blocks, covdf)
-    wgr_cov_df = logreg.transform(lvl1df, labeldf, sample_blocks, modeldf, cvdf, covdf)
+    logreg = LogisticRidgeRegression(lvl1df, labeldf, sample_blocks, covdf, alphas=alpha_values)
+    logreg.fit()
+    wgr_cov_df = logreg.transform()
     wgr_cov_glow = wgr_cov_df[test_label].to_numpy()
 
     assert (np.allclose(np.array(test_values['wgr_cov']), wgr_cov_glow))
@@ -287,15 +287,9 @@ def test_logistic_regression_predict_proba(spark):
     with open(f'{data_root}/test_logistic_regression_predict_proba.json') as json_file:
         test_values = json.load(json_file)
 
-    logreg = LogisticRidgeRegression(alpha_values)
-    modeldf, cvdf = logreg.fit(lvl1df, labeldf, sample_blocks, covdf)
-    prob_df = logreg.transform(lvl1df,
-                               labeldf,
-                               sample_blocks,
-                               modeldf,
-                               cvdf,
-                               covdf,
-                               response='sigmoid')
+    logreg = LogisticRidgeRegression(lvl1df, labeldf, sample_blocks, covdf, alphas=alpha_values)
+    logreg.fit()
+    prob_df = logreg.transform(response='sigmoid')
     prob_glow = prob_df[test_label].to_numpy()
 
     assert (np.allclose(np.array(test_values['prob']), prob_glow))
@@ -310,10 +304,10 @@ def test_logistic_regression_fit_transform(spark):
         .withColumn('sample_ids', f.expr('transform(sample_ids, v -> cast(v as string))'))
     sample_blocks = {r.sample_block: r.sample_ids for r in sample_blocks_df.collect()}
 
-    logreg = LogisticRidgeRegression(alpha_values)
-    modeldf, cvdf = logreg.fit(lvl1df, labeldf, sample_blocks, covdf)
-    wgr_cov_df0 = logreg.transform(lvl1df, labeldf, sample_blocks, modeldf, cvdf)
-    wgr_cov_df1 = logreg.fit_transform(lvl1df, labeldf, sample_blocks, covdf)
+    logreg = LogisticRidgeRegression(lvl1df, labeldf, sample_blocks, covdf, alphas=alpha_values)
+    logreg.fit()
+    wgr_cov_df0 = logreg.transform()
+    wgr_cov_df1 = logreg.fit_transform()
     wgr_cov0 = wgr_cov_df0[test_label].to_numpy()
     wgr_cov1 = wgr_cov_df1[test_label].to_numpy()
 
@@ -329,16 +323,13 @@ def test_logistic_regression_transform_loco(spark):
         .withColumn('sample_ids', f.expr('transform(sample_ids, v -> cast(v as string))'))
     sample_blocks = {r.sample_block: r.sample_ids for r in sample_blocks_df.collect()}
 
-    logreg = LogisticRidgeRegression(alpha_values)
-    modeldf, cvdf = logreg.fit(lvl1df, labeldf, sample_blocks, covdf)
+    logreg = LogisticRidgeRegression(lvl1df, labeldf, sample_blocks, covdf, alphas=alpha_values)
+    modeldf, cvdf = logreg.fit()
+    wgr_cov_loco1_df1 = logreg.transform_loco(chromosomes=['1'])
     modeldf_loco1 = modeldf.filter('header NOT LIKE "%chr_1%"')
-    wgr_cov_loco1_df0 = logreg.transform(lvl1df, labeldf, sample_blocks, modeldf_loco1, cvdf)
-    wgr_cov_loco1_df1 = logreg.transform_loco(lvl1df,
-                                              labeldf,
-                                              sample_blocks,
-                                              modeldf,
-                                              cvdf,
-                                              chromosomes=['1'])
+    logreg.model_df = modeldf_loco1
+    wgr_cov_loco1_df0 = logreg.transform()
+
     wgr_cov_loco1_0 = wgr_cov_loco1_df0[test_label].to_numpy()
     wgr_cov_loco1_1 = wgr_cov_loco1_df1[test_label].to_numpy()
 

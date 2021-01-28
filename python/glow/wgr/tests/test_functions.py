@@ -95,8 +95,8 @@ def test_prepare_covariates():
         'Covariate_2': [0, -1, 1]
     })
     assert (np.allclose(_prepare_covariates(cov_df, label_df, True), expected_df))
-    assert (np.allclose(_prepare_covariates(cov_df, label_df, False), expected_df.drop(columns=['intercept']),
-                        1e-5))
+    assert (np.allclose(_prepare_covariates(cov_df, label_df, False),
+                        expected_df.drop(columns=['intercept']), 1e-5))
 
 
 def test_prepare_covariates_insufficient_elements():
@@ -117,14 +117,22 @@ def test_prepare_labels_and_warn():
     ]
     b_label_df = pd.DataFrame({'Trait_1': [0, 1, 1], 'Trait_2': [0, 1, math.nan]})
     q_label_df = pd.DataFrame({'Trait_1': [0, 1.5, 1], 'Trait_2': [0, 1, math.nan]})
-    b_std_label_df = pd.DataFrame({'Trait_1': [-1.154701, 0.577350, 0.577350], 'Trait_2': [-0.707107, 0.707107, 0]})
-    q_std_label_df = pd.DataFrame({'Trait_1': [-1.091089, 0.872872, 0.218218], 'Trait_2': [-0.707107, 0.707107, 0]})
+    b_std_label_df = pd.DataFrame({
+        'Trait_1': [-1.154701, 0.577350, 0.577350],
+        'Trait_2': [-0.707107, 0.707107, 0]
+    })
+    q_std_label_df = pd.DataFrame({
+        'Trait_1': [-1.091089, 0.872872, 0.218218],
+        'Trait_2': [-0.707107, 0.707107, 0]
+    })
     with pytest.warns(UserWarning) as record:
         assert np.allclose(_prepare_labels_and_warn(b_label_df, True, 'detect'), b_std_label_df)
         assert np.allclose(_prepare_labels_and_warn(b_label_df, True, 'binary'), b_std_label_df)
-        assert np.allclose(_prepare_labels_and_warn(b_label_df, True, 'quantitative'), b_std_label_df)
+        assert np.allclose(_prepare_labels_and_warn(b_label_df, True, 'quantitative'),
+                           b_std_label_df)
         assert np.allclose(_prepare_labels_and_warn(q_label_df, False, 'detect'), q_std_label_df)
-        assert np.allclose(_prepare_labels_and_warn(q_label_df, False, 'quantitative'), q_std_label_df)
+        assert np.allclose(_prepare_labels_and_warn(q_label_df, False, 'quantitative'),
+                           q_std_label_df)
 
     for i in range(0, 4):
         assert str(record[i].message) == warnings[i]
@@ -152,7 +160,7 @@ def test_new_headers_two_level(spark):
                                                          [('alpha_1', 'sim1'), ('alpha_1', 'sim2'),
                                                           ('alpha_2', 'sim1'), ('alpha_2', 'sim2')])
     assert new_header_block == 'all'
-    contig_hash = abs(hash('decoy_1')) % (10 ** 8)
+    contig_hash = abs(hash('decoy_1')) % (10**8)
     assert sort_keys == [
         contig_hash * 2 + 1, contig_hash * 2 + 1, contig_hash * 2 + 2, contig_hash * 2 + 2
     ]

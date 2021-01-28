@@ -211,7 +211,8 @@ def estimate_loco_offsets(block_df: DataFrame,
                           sample_blocks: Dict[str, List[str]],
                           cov_df: pd.DataFrame = pd.DataFrame({}),
                           add_intercept: bool = True,
-                          alphas: NDArray[(Any, ), Float] = np.array([]),
+                          reduction_alphas: NDArray[(Any, ), Float] = np.array([]),
+                          regression_alphas: NDArray[(Any, ), Float] = np.array([]),
                           label_type='detect',
                           chromosomes: List[str] = []) -> pd.DataFrame:
     """
@@ -227,9 +228,13 @@ def estimate_loco_offsets(block_df: DataFrame,
             ensemble (optional).
         add_intercept: If True, an intercept column (all ones) will be added to the covariates
             (as the first column)
-        alphas : array_like of alpha values used in the ridge reduction (optional).
+        reduction_alphas : array_like of alpha values used in the ridge reduction (optional). If not provided, the
+            automatically generates alphas for reduction.
+        regression_alphas : array_like of alpha values used in the ridge or logistic ridge regression (optional).
+            If not provided, the automatically generates alphas for regression.
         label_type: String to determine type treatment of labels. It can be 'detect' (default), 'binary',
-            or 'quantitative'.
+            or 'quantitative'. On 'detect' the function picks binary or quantitative based on whether label_df is all
+            binary or not, respectively.
         chromosomes : List of chromosomes for which to generate offsets (optional). If not provided, the
                 chromosomes will be inferred from the block matrix.
 
@@ -238,12 +243,13 @@ def estimate_loco_offsets(block_df: DataFrame,
         chromosome; the columns are indexed by label. The column types are float64. The DataFrame is sorted using
         chromosome as the primary sort key, and sample ID as the secondary sort key.
     """
-    ridge_reduced = RidgeReduction(block_df, label_df, sample_blocks, cov_df, add_intercept, alphas,
-                                   label_type)
-    ridge_reduced.fit_transform()
-    if ridge_reduced.is_binary:
+    ridge_reduced = RidgeReduction(block_df, label_df, sample_blocks, cov_df, add_intercept,
+                                   reduction_alphas, label_type)
+
+    ridge_reduced.fit_transform().cache()
+    if ridge_reduced.is_binary():
         regression = LogisticRidgeRegression.from_ridge_reduction(ridge_reduced)
         return regression.fit_transform_loco('linear', chromosomes)
     else:
-        regression = RidgeRegression.from_ridge_reduction(ridge_reduced)
+        regression = RidgeRegression.from_ridge_reduction(ridge_reduced, regression_alphas)
         return regression.fit_transform_loco(chromosomes)
