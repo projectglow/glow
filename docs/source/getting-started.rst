@@ -73,15 +73,6 @@ Glow requires Apache Spark 2.4.3 or later.
           val sess = Glow.register(spark)
           val df = sess.read.format("vcf").load(path)
 
-
-Running in the cloud
---------------------
-
-The easiest way to use Glow in the cloud is with the `Databricks Runtime for Genomics
-<https://docs.databricks.com/runtime/genomicsruntime.html>`_. However, it works with any cloud
-provider or Spark distribution. You need to install the maven package
-``io.project:glow-spark${spark_version}_${scala_version}:${glow_version}`` and optionally the Python frontend ``glow.py``.
-
 Notebooks embedded in the docs
 ------------------------------
 
