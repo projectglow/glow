@@ -140,19 +140,20 @@ class LogisticRidgeRegression:
                               index=self._label_df.index)
 
         beta_cov_dict = {}
-        for label in self._label_df:
-            row_mask = slice_label_rows(maskdf, label, list(self._label_df.index),
-                                        np.array([])).ravel()
-            cov_mat = slice_label_rows(self._std_cov_df, 'all', list(self._label_df.index),
-                                       row_mask)
-            y = slice_label_rows(self._label_df, label, list(self._label_df.index),
-                                 row_mask).ravel()
-            fit_result = constrained_logistic_fit(cov_mat,
-                                                  y,
-                                                  np.zeros(cov_mat.shape[1]),
-                                                  guess=np.array([]),
-                                                  n_cov=0)
-            beta_cov_dict[label] = fit_result.x
+        if not self._std_cov_df.empty:
+            for label in self._label_df:
+                row_mask = slice_label_rows(maskdf, label, list(self._label_df.index),
+                                            np.array([])).ravel()
+                cov_mat = slice_label_rows(self._std_cov_df, 'all', list(self._label_df.index),
+                                           row_mask)
+                y = slice_label_rows(self._label_df, label, list(self._label_df.index),
+                                     row_mask).ravel()
+                fit_result = constrained_logistic_fit(cov_mat,
+                                                      y,
+                                                      np.zeros(cov_mat.shape[1]),
+                                                      guess=np.array([]),
+                                                      n_cov=0)
+                beta_cov_dict[label] = fit_result.x
 
         map_udf = pandas_udf(
             lambda key, pdf: map_irls_eqn(key, map_key_pattern, pdf, self._label_df, self.

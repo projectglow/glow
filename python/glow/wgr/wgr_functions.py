@@ -248,7 +248,7 @@ def estimate_loco_offsets(block_df: DataFrame,
 
     ridge_reduced.fit_transform().cache()
     if ridge_reduced.is_binary():
-        regression = LogisticRidgeRegression.from_ridge_reduction(ridge_reduced)
+        regression = LogisticRidgeRegression.from_ridge_reduction(ridge_reduced, regression_alphas)
         return regression.fit_transform_loco('linear', chromosomes)
     else:
         regression = RidgeRegression.from_ridge_reduction(ridge_reduced, regression_alphas)

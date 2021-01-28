@@ -67,11 +67,15 @@ def test_estimate_loco_offsets_logistic_ridge(spark):
     y_hat_df = estimate_loco_offsets(blockdf,
                                      labeldf,
                                      group2ids,
-                                     add_intercept=False,
+                                     # add_intercept=False,
                                      reduction_alphas=alphas,
                                      regression_alphas=alphas)
 
-    stack0 = RidgeReduction(blockdf, labeldf, group2ids, add_intercept=False, alphas=alphas)
+    stack0 = RidgeReduction(blockdf,
+                            labeldf,
+                            group2ids,
+                            # add_intercept=False,
+                            alphas=alphas)
     stack0.fit_transform()
     regressor = LogisticRidgeRegression.from_ridge_reduction(stack0, alphas)
     yhatdf = regressor.fit_transform_loco()
