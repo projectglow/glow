@@ -85,8 +85,6 @@ Joint genotyping
 
 The merge logic in this document allows you to quickly aggregate genotyping array data or single
 sample VCFs. For a more sophisticated aggregation that unifies alleles at overlapping sites and uses
-cohort-level statistics to refine genotype calls, we recommend running a joint genotyping pipeline
-like `the one included in the Databricks Runtime for Genomics
-<https://docs.databricks.com/applications/genomics/tertiary/joint-genotyping-pipeline.html>`_.
+cohort-level statistics to refine genotype calls, we recommend running a joint genotyping pipeline.
 
 .. notebook:: .. etl/merge-vcf.html
