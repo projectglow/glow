@@ -30,10 +30,10 @@ notebooks to your Databricks Community Edition workspace.
 .. image:: import-dbc.gif
    :alt: Import demo notebooks
    :align: right
-   :scale: 45 %
+   :scale: 32 %
 
 1. Log into your `Databricks Community Edition workspace <https://community.cloud.databricks.com/login.html>`_.
-2. Download the desired Glow notebooks, such as :download:`the GloWGR demo <../../tertiary/glowgr.html>`.
+2. Download the desired Glow notebooks, such as :download:`the GloWGR demo <../../_static/notebooks/tertiary/glowgr.html>`.
 3. Click the `Workspace button <https://docs.databricks.com/workspace/workspace-objects.html#workspace-root-folder>`_
    in the left sidebar of your workspace.
 4. In your user folder, right-click and select "Import".
@@ -65,7 +65,7 @@ third-party code.
 .. image:: attach-mlflow.gif
    :alt: Attach MLflow to the cluster
    :align: right
-   :scale: 45 %
+   :scale: 32 %
 
 1. Log into your `Databricks Community Edition workspace <https://community.cloud.databricks.com/login.html>`_.
 2. Click the `Clusters button <https://docs.databricks.com/clusters/create.html>`_ in the left sidebar of your
@@ -73,7 +73,7 @@ third-party code.
 3. Click an existing cluster.
 4. Select the "Libraries" tab.
 5. Click "Install New."
-6. Set the Library Source to ``maven`` and the Coordinates to ``io.projectglow:glow-spark3_2.12:|mvn-version|``. Click "Install".
+6. Set the Library Source to ``maven`` and the Coordinates to ``io.projectglow:glow-spark3_2.12:${version}``. Click "Install".
 7. Set the Library Source to ``PyPi`` and the Package to ``glow.py``. Click "Install".
 
 |div-clear|
