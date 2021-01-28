@@ -39,8 +39,7 @@ covariates_path = '/dbfs/databricks-datasets/genomics/gwas/Covs_test_simulation.
 
 sample_blocks_path = '/dbfs/tmp/wgr_sample_blocks.json'
 block_matrix_path = 'dbfs:/tmp/wgr_block_matrix.delta'
-y_hat_path = '/dbfs/tmp/wgr_y_hat.csv'
-binary_gwas_results_path = '/dbfs/tmp/binary_wgr_gwas_results.delta'
+y_hat_path = '/dbfs/tmp/wgr_y_binary_hat.csv'
 
 # COMMAND ----------
 
@@ -112,10 +111,6 @@ block_df.write.format('delta').mode('overwrite').save(block_matrix_path)
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
 block_df = spark.read.format('delta').load(block_matrix_path)
 with open(sample_blocks_path, 'r') as f:
   sample_blocks = json.load(f)
@@ -171,8 +166,3 @@ for label_df_chunk in chunk_columns(label_df, chunk_size):
   regression = glow.wgr.LogisticRidgeRegression.from_ridge_reduction(reducer)
   
   loco_estimates.append(regression.fit_transform_loco())
-
-# COMMAND ----------
-
-all_traits_loco_df = pd.concat(loco_estimates, axis='columns')
-all_traits_loco_df.to_csv(y_hat_path)
