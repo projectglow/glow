@@ -127,8 +127,8 @@ The uber jar will be at a path like `glow/core/target/${scala_version}/${artifac
 To build a wheel with the Python code:
 
 1. Activate the Glow dev conda environment (`conda activate glow`)
-#. `cd` into the `python` directory
-#. Run `python setup.py bdist_wheel`
+2. `cd` into the `python` directory
+3. Run `python setup.py bdist_wheel`
 
 The wheel file will be at a path like `python/dist/glow.py-${version}-py3-none-any.whl`.
 
