@@ -554,22 +554,20 @@ def _prepare_labels_and_warn(label_df: pd.DataFrame, is_binary: bool,
     """
     if label_type == 'detect':
         if is_binary:
-            warnings.warn(
+            print(
                 "The label DataFrame is binary. Reduction/regression for binary phenotypes will be applied.",
-                UserWarning)
+            )
         else:
-            warnings.log(
+            print(
                 "The label DataFrame is quantitative. Reduction/regression for quantitative phenotypes will be applied.",
-                UserWarning)
+            )
         return _fill_na_and_standardize(label_df)
     elif label_type == 'quantitative':
-        warnings.warn("Reduction/regression for quantitative phenotypes will be applied.",
-                      UserWarning)
+        print("Reduction/regression for quantitative phenotypes will be applied.")
         return _fill_na_and_standardize(label_df)
     elif label_type == 'binary':
         if is_binary:
-            warnings.warn("Reduction/regression for binary phenotypes will be applied.",
-                          UserWarning)
+            print("Reduction/regression for binary phenotypes will be applied.")
             return _fill_na_and_standardize(label_df)
         else:
             _check_binary(label_df)
