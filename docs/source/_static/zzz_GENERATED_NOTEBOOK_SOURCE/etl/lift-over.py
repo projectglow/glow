@@ -16,8 +16,6 @@
 # MAGIC 
 # MAGIC To perform variant liftover, you must download a reference file to each node of the cluster. Here, we assume the reference genome is downloaded to 
 # MAGIC ```/mnt/dbnucleus/dbgenomics/grch38/data/GRCh38_full_analysis_set_plus_decoy_hla.fa```
-# MAGIC 
-# MAGIC If you are using a Databricks cluster with [Databricks Runtime for Genomics](https://docs.databricks.com/applications/genomics/index.html), this can be achieved by setting [environment variable](https://docs.databricks.com/user-guide/clusters/spark-config.html#environment-variables) `refGenomeId=grch38`.
 
 # COMMAND ----------
 

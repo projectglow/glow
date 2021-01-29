@@ -13,7 +13,8 @@ import statsmodels.api as sm
 import numpy as np
 from pyspark.sql.types import DoubleType
 import glow
-glow.register(spark)  #this line is not required when running on databrikcs genomics runtime 
+
+glow.register(spark)
 
 # COMMAND ----------
 
