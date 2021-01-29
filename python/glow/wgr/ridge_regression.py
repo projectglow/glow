@@ -128,6 +128,24 @@ class RidgeRegression:
     def get_alphas(self) -> Dict[str, Float]:
         return self._alphas
 
+    def set_model_df(self, model_df: pd.DataFrame) -> None:
+        self.model_df = model_df
+
+    def set_cv_df(self, cv_df: pd.DataFrame) -> None:
+        self.cv_df = cv_df
+
+    def cache_model_cv_df(self) -> None:
+        _check_model(self.model_df)
+        _check_cv(self.cv_df)
+        self.model_df = self.model_df.cache()
+        self.cv_df = self.cv_df.cache()
+
+    def unpersist_model_cv_df(self) -> None:
+        _check_model(self.model_df)
+        _check_cv(self.cv_df)
+        self.model_df.unpersist()
+        self.cv_df.unpersist()
+
     def fit(self) -> (DataFrame, DataFrame):
         """
         Fits a ridge regression model, represented by a Spark DataFrame containing coefficients for each of the ridge
@@ -214,6 +232,9 @@ class RidgeRegression:
         """
         loco_chromosomes = chromosomes if chromosomes else infer_chromosomes(self.reduced_block_df)
         loco_chromosomes.sort()
+
+        # Cache model and CV DataFrames to avoid re-computing for each chromosome
+        self.cache_model_cv_df()
 
         y_hat_df = pd.DataFrame({})
         orig_model_df = self.model_df
