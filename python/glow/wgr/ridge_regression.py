@@ -128,17 +128,23 @@ class RidgeRegression:
     def get_alphas(self) -> Dict[str, Float]:
         return self._alphas
 
-    def set_model_df(self, model_df: pd.DataFrame) -> None:
+    def set_model_df(self, model_df: DataFrame) -> None:
         self.model_df = model_df
 
-    def set_cv_df(self, cv_df: pd.DataFrame) -> None:
+    def get_model_df(self) -> DataFrame:
+        return self.model_df
+
+    def set_cv_df(self, cv_df: DataFrame) -> None:
         self.cv_df = cv_df
+
+    def get_cv_df(self) -> DataFrame:
+        return self.cv_df
 
     def cache_model_cv_df(self) -> None:
         _check_model(self.model_df)
         _check_cv(self.cv_df)
-        self.model_df = self.model_df.cache()
-        self.cv_df = self.cv_df.cache()
+        self.model_df.cache()
+        self.cv_df.cache()
 
     def unpersist_model_cv_df(self) -> None:
         _check_model(self.model_df)
@@ -221,6 +227,8 @@ class RidgeRegression:
         Generates predictions for the target labels in the provided label DataFrame by applying the model resulting from
         the RidgeRegression fit method to the starting reduced block matrix using a leave-one-chromosome-out (LOCO) approach.
 
+        Caches the model and cross-validation DataFrames.
+
         Args:
             chromosomes : List of chromosomes for which to generate a prediction (optional). If not provided, the
                 chromosomes will be inferred from the block matrix.
@@ -267,6 +275,8 @@ class RidgeRegression:
         Fits a ridge regression model and then generates predictions for the target labels in the provided label
         DataFrame by applying the model resulting from the RidgeRegression fit method to the starting reduced block
         matrix using a leave-one-chromosome-out (LOCO) approach.
+
+        Caches the model and cross-validation DataFrames.
 
         Args:
             chromosomes : List of chromosomes for which to generate a prediction (optional). If not provided, the
