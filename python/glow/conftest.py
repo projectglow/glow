@@ -19,7 +19,7 @@ import pytest
 
 @pytest.fixture(autouse=True, scope="module")
 def add_glow(doctest_namespace, spark):
-    glow.register(spark)
+    glow.register(spark, new_session=False)
     doctest_namespace['Row'] = Row
     doctest_namespace['spark'] = spark
     doctest_namespace['lit'] = functions.lit

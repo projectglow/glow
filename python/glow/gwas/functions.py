@@ -1,12 +1,13 @@
 from pyspark.sql import SparkSession, functions as fx
 from pyspark.sql.types import StructField, StructType, FloatType, DoubleType, ArrayType
-from typing import Any, Callable, Dict, List, TypeVar, Union
+from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
 import numpy as np
 import pandas as pd
 from nptyping import Float, NDArray
 from typeguard import typechecked
 import opt_einsum as oe
 from glow.wgr.model_functions import _assert_all_present, _check_binary
+from glow.wgr.wgr_functions import _get_contigs_from_loco_df
 from enum import Enum
 
 _VALUES_COLUMN_NAME = '_glow_regression_values'
@@ -33,6 +34,8 @@ def _validate_covariates_and_phenotypes(covariate_df, phenotype_df, is_binary):
             raise ValueError(
                 f'phenotype_df and covariate_df must have the same number of rows ({phenotype_df.shape[0]} != {covariate_df.shape[0]}'
             )
+    if not (np.sum(~np.isnan(phenotype_df)) > covariate_df.shape[1]).all():
+        raise ValueError('There must be more non-missing samples than covariates')
     if is_binary:
         _check_binary(phenotype_df)
 
@@ -76,10 +79,6 @@ def _einsum(subscripts: str, *operands: NDArray) -> NDArray:
 
 def _have_same_elements(idx1: pd.Index, idx2: pd.Index) -> bool:
     return idx1.sort_values().equals(idx2.sort_values())
-
-
-def _get_contigs_from_loco_df(offset_df: pd.DataFrame) -> pd.Series:
-    return offset_df.index.get_level_values(1).unique()
 
 
 T = TypeVar('T')

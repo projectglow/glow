@@ -262,6 +262,6 @@ files must be located at ``{prefix}.bim`` and ``{prefix}.fam``.
 .. important::
 
     The PLINK reader sets the first allele in the ``.bed`` file as the alternate allele, and the
-    second allele as an alternate allele.
+    second allele as the reference allele.
 
 .. notebook:: .. etl/variant-data.html
