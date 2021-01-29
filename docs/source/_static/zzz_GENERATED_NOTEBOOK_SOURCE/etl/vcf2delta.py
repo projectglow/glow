@@ -3,7 +3,7 @@
 # MAGIC 
 # MAGIC ### Write VCF files into <img width="175px" src="https://docs.delta.io/latest/_static/delta-lake-logo.png">  
 # MAGIC 
-# MAGIC ### using [Glow](https://glow.readthedocs.io/en/latest/) <img src="https://databricks-knowledge-repo-images.s3.us-east-2.amazonaws.com/HLS/glow/project_glow_logo.png" alt="logo" width="35"/> 
+# MAGIC ### using Glow <img src="https://databricks-knowledge-repo-images.s3.us-east-2.amazonaws.com/HLS/glow/project_glow_logo.png" alt="logo" width="35"/> 
 # MAGIC 
 # MAGIC Delta Lake is an open-source storage layer that brings ACID transactions to Apache Spark™ and big data workloads.
 # MAGIC 
@@ -50,6 +50,8 @@ vcf_output_path = "dbfs:/home/genomics/vcf/subset.vcf"
 
 # MAGIC %md
 # MAGIC ####![Spark Logo Tiny](https://kpistoropen.blob.core.windows.net/collateral/roadshow/logo_spark_tiny.png)  Read in pVCF as a [Spark Data Source](https://spark.apache.org/docs/latest/sql-data-sources.html) using Glow <img src="https://databricks-knowledge-repo-images.s3.us-east-2.amazonaws.com/HLS/glow/project_glow_logo.png" alt="logo" width="30"/>
+# MAGIC 
+# MAGIC [Glow](https://glow.readthedocs.io/en/latest/) is built into the Databricks Runtime for Genomics
 
 # COMMAND ----------
 
