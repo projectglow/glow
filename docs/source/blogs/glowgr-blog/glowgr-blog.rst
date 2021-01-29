@@ -192,8 +192,7 @@ project `hosted on Github`_, with an Apache 2 license. You can get
 started with `this notebook`_ that shows how to use GloWGR on data from
 1,000 Genomes, by reading the `preprint`_, by `reading our project
 docs`_, or you can `create a fork of the repository`_ to start
-contributing code today. Glow is installed in the Databricks Genomics
-Runtime (`Azure`_ | `AWS`_), and you can `start a preview today`_.
+contributing code today.
 
 
 .. _UK Biobank: https://www.ukbiobank.ac.uk/
@@ -223,4 +222,3 @@ Runtime (`Azure`_ | `AWS`_), and you can `start a preview today`_.
 .. _create a fork of the repository: https://github.com/projectglow/glow/fork
 .. _Azure: https://docs.microsoft.com/en-us/azure/databricks/runtime/genomicsruntime#dbr-genomics
 .. _AWS: https://docs.databricks.com/runtime/genomicsruntime.html#dbr-genomics
-.. _start a preview today: https://pages.databricks.com/genomics-preview.html
