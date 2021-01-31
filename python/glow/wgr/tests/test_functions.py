@@ -108,8 +108,36 @@ def test_prepare_covariates_insufficient_elements():
         _prepare_covariates(cov_df, label_df, True)
 
 
-def test_prepare_labels_and_warn():
+def test_prepare_labels_and_warn(capfd):
+    messages = [
+        "The label DataFrame is binary. Reduction/regression for binary phenotypes will be applied.\n",
+        "Reduction/regression for binary phenotypes will be applied.\n",
+        "Reduction/regression for quantitative phenotypes will be applied.\n",
+        "The label DataFrame is quantitative. Reduction/regression for quantitative phenotypes will be applied.\n"
+    ]
+    b_label_df = pd.DataFrame({'Trait_1': [0, 1, 1], 'Trait_2': [0, 1, math.nan]})
     q_label_df = pd.DataFrame({'Trait_1': [0, 1.5, 1], 'Trait_2': [0, 1, math.nan]})
+    b_std_label_df = pd.DataFrame({
+        'Trait_1': [-1.154701, 0.577350, 0.577350],
+        'Trait_2': [-0.707107, 0.707107, 0]
+    })
+    q_std_label_df = pd.DataFrame({
+        'Trait_1': [-1.091089, 0.872872, 0.218218],
+        'Trait_2': [-0.707107, 0.707107, 0]
+    })
+
+    assert np.allclose(_prepare_labels_and_warn(b_label_df, True, 'detect'), b_std_label_df)
+    assert capfd.readouterr().out == messages[0]
+    assert np.allclose(_prepare_labels_and_warn(b_label_df, True, 'binary'), b_std_label_df)
+    assert capfd.readouterr().out == messages[1]
+    assert np.allclose(_prepare_labels_and_warn(b_label_df, True, 'quantitative'),
+                       b_std_label_df)
+    assert capfd.readouterr().out == messages[2]
+    assert np.allclose(_prepare_labels_and_warn(q_label_df, False, 'detect'), q_std_label_df)
+    assert capfd.readouterr().out == messages[3]
+    assert np.allclose(_prepare_labels_and_warn(q_label_df, False, 'quantitative'),
+                       q_std_label_df)
+    assert capfd.readouterr().out == messages[2]
 
     with pytest.raises(TypeError, match='Binary label DataFrame expected!'):
         _prepare_labels_and_warn(q_label_df, False, 'binary')

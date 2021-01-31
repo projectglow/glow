@@ -95,10 +95,6 @@ class LogisticRidgeRegression:
         del state['reduced_block_df'], state['model_df'], state['cv_df']
         return state
 
-    # def __setstate__(self, state):
-    #     # Restore instance attributes
-    #     self.__dict__.update(state)
-
     def set_label_df(self, label_df: pd.DataFrame) -> None:
         _prepare_labels_and_warn(label_df, _is_binary(label_df), 'binary')
         self._label_df = label_df
@@ -120,25 +116,13 @@ class LogisticRidgeRegression:
     def get_alphas(self) -> Dict[str, Float]:
         return self._alphas
 
-    def set_model_df(self, model_df: DataFrame) -> None:
-        self.model_df = model_df
-
-    def get_model_df(self) -> DataFrame:
-        return self.model_df
-
-    def set_cv_df(self, cv_df: DataFrame) -> None:
-        self.cv_df = cv_df
-
-    def get_cv_df(self) -> DataFrame:
-        return self.cv_df
-
-    def cache_model_cv_df(self) -> None:
+    def _cache_model_cv_df(self) -> None:
         _check_model(self.model_df)
         _check_cv(self.cv_df)
         self.model_df.cache()
         self.cv_df.cache()
 
-    def unpersist_model_cv_df(self) -> None:
+    def _unpersist_model_cv_df(self) -> None:
         _check_model(self.model_df)
         _check_cv(self.cv_df)
         self.model_df.unpersist()
@@ -282,9 +266,8 @@ class LogisticRidgeRegression:
         """
         Generates predictions for the target labels in the provided label DataFrame by applying the model resulting from
         the LogisticRidgeRegression fit method to the starting reduced block matrix using
-        a leave-one-chromosome-out (LOCO) approach.
-
-        Caches the model and cross-validation DataFrames.
+        a leave-one-chromosome-out (LOCO) approach (this method caches the model and cross-validation DataFrames in the
+        process for better performance).
 
         Args:
             response : String specifying the desired output.  Can be 'linear' to specify the direct output of the linear
@@ -301,7 +284,7 @@ class LogisticRidgeRegression:
         loco_chromosomes.sort()
 
         # Cache model and CV DataFrames to avoid re-computing for each chromosome
-        self.cache_model_cv_df()
+        self._cache_model_cv_df()
 
         y_hat_df = pd.DataFrame({})
         orig_model_df = self.model_df
@@ -316,6 +299,7 @@ class LogisticRidgeRegression:
             self.model_df = orig_model_df
 
         self.y_hat_df = y_hat_df.set_index('contigName', append=True)
+        self._unpersist_model_cv_df()
         return self.y_hat_df
 
     def fit_transform(self, response: str = 'linear') -> pd.DataFrame:
@@ -339,9 +323,8 @@ class LogisticRidgeRegression:
         """
         Fits a logistic ridge regression model with a block matrix, then generates predictions for the target labels
         in the provided label DataFrame by applying the model resulting from the LogisticRidgeRegression fit method
-        to the starting reduced block matrix using a leave-one-chromosome-out (LOCO) approach.
-
-        Caches the model and cross-validation DataFrames.
+        to the starting reduced block matrix using a leave-one-chromosome-out (LOCO) approach (this method caches the
+        model and cross-validation DataFrames in the process for better performance).
 
         Args:
             response : String specifying the desired output.  Can be 'linear' to specify the direct output of the linear

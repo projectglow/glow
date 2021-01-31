@@ -347,20 +347,8 @@ def test_model_cv_df(spark):
 
     logreg = LogisticRidgeRegression(lvl1df, labeldf, sample_blocks, covdf, alphas=alpha_values)
 
-    model_df = spark.createDataFrame([('Alice', 1)])
-    logreg.set_model_df(model_df)
-    retrieved_model_df = logreg.get_model_df()
-    assert retrieved_model_df.subtract(model_df).count() == 0
-    assert model_df.subtract(retrieved_model_df).count() == 0
-
-    cv_df = spark.createDataFrame([('Bob', 2)])
-    logreg.set_cv_df(cv_df)
-    retrieved_cv_df = logreg.get_cv_df()
-    assert retrieved_cv_df.subtract(cv_df).count() == 0
-    assert cv_df.subtract(retrieved_cv_df).count() == 0
-
     assert str(logreg.model_df.storageLevel) == 'Serialized 1x Replicated'
-    logreg.cache_model_cv_df()
+    logreg._cache_model_cv_df()
     assert str(logreg.model_df.storageLevel) == 'Disk Memory Deserialized 1x Replicated'
-    logreg.unpersist_model_cv_df()
+    logreg._unpersist_model_cv_df()
     assert str(logreg.model_df.storageLevel) == 'Serialized 1x Replicated'

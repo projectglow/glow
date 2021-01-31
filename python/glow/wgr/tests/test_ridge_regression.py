@@ -648,20 +648,10 @@ def test_model_cv_df(spark):
                                 add_intercept=False,
                                 alphas=alphas)
 
-    model_df = spark.createDataFrame([('Alice', 1)])
-    regressor.set_model_df(model_df)
-    retrieved_model_df = regressor.get_model_df()
-    assert retrieved_model_df.subtract(model_df).count() == 0
-    assert model_df.subtract(retrieved_model_df).count() == 0
-
-    cv_df = spark.createDataFrame([('Bob', 2)])
-    regressor.set_cv_df(cv_df)
-    retrieved_cv_df = regressor.get_cv_df()
-    assert retrieved_cv_df.subtract(cv_df).count() == 0
-    assert cv_df.subtract(retrieved_cv_df).count() == 0
+    regressor.model_df = spark.createDataFrame([('Alice', 1)])
 
     assert str(regressor.model_df.storageLevel) == 'Serialized 1x Replicated'
-    regressor.cache_model_cv_df()
+    regressor._cache_model_cv_df()
     assert str(regressor.model_df.storageLevel) == 'Disk Memory Deserialized 1x Replicated'
-    regressor.unpersist_model_cv_df()
+    regressor._unpersist_model_cv_df()
     assert str(regressor.model_df.storageLevel) == 'Serialized 1x Replicated'
