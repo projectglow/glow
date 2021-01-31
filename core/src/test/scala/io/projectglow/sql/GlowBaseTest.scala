@@ -18,15 +18,13 @@ package io.projectglow.sql
 
 import htsjdk.samtools.util.Log
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.{DebugFilesystem, SparkConf}
+import org.apache.spark.DebugFilesystem
 import org.scalatest.concurrent.{AbstractPatienceConfiguration, Eventually}
 import org.scalatest.time.{Milliseconds, Seconds, Span}
 import org.scalatest.{Args, FunSuite, Status, Tag}
-
 import io.projectglow.Glow
 import io.projectglow.SparkTestShim.SharedSparkSessionBase
 import io.projectglow.common.{GlowLogging, TestUtils}
-import io.projectglow.sql.util.BGZFCodec
 
 abstract class GlowBaseTest
     extends FunSuite
@@ -36,21 +34,11 @@ abstract class GlowBaseTest
     with TestUtils
     with JenkinsTestPatience {
 
-  override protected def sparkConf: SparkConf = {
-    super
-      .sparkConf
-      .set("spark.hadoop.io.compression.codecs", classOf[BGZFCodec].getCanonicalName)
-      .set(GlowConf.FAST_VCF_READER_ENABLED.key, "false") // TODO(hhd): Enable the fast reader once we're confident
-  }
-
-  override def initializeSession(): Unit = ()
-
-  override protected implicit def spark: SparkSession = {
-    val sess = SparkSession.builder().config(sparkConf).master("local[2]").getOrCreate()
-    Glow.register(sess)
-    SparkSession.setActiveSession(sess)
+  override def initializeSession(): Unit = {
+    super.initializeSession()
+    Glow.register(spark, newSession = false)
+    SparkSession.setActiveSession(spark)
     Log.setGlobalLogLevel(Log.LogLevel.ERROR)
-    sess
   }
 
   protected def gridTest[A](testNamePrefix: String, testTags: Tag*)(params: Seq[A])(

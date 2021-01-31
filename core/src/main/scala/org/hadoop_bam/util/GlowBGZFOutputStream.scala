@@ -25,7 +25,7 @@ import org.apache.hadoop.io.compress.CompressionOutputStream
  * A copy of Hadoop-BAM's [[BGZFCompressionOutputStream]] that allows us to set
  * whether an empty gzip block should be written at the end of the output stream.
  */
-class DatabricksBGZFOutputStream(outputStream: OutputStream)
+class GlowBGZFOutputStream(outputStream: OutputStream)
     extends CompressionOutputStream(outputStream) {
 
   var writeEmptyBlockOnClose: Boolean = false
@@ -59,9 +59,9 @@ class DatabricksBGZFOutputStream(outputStream: OutputStream)
   }
 }
 
-object DatabricksBGZFOutputStream {
+object GlowBGZFOutputStream {
   def setWriteEmptyBlockOnClose(os: OutputStream, value: Boolean): Unit = os match {
-    case s: DatabricksBGZFOutputStream => s.writeEmptyBlockOnClose = value
+    case s: GlowBGZFOutputStream => s.writeEmptyBlockOnClose = value
     case _ => // No op
   }
 }

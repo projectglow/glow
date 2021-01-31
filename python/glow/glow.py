@@ -59,19 +59,25 @@ def transform(operation: str,
     return output_df
 
 
-def register(session: SparkSession):
+def register(session: SparkSession, new_session: bool = True) -> SparkSession:
     """
     Register SQL extensions and py4j converters for a Spark session.
 
     Args:
         session: Spark session
+        new_session: If ``True``, create a new Spark session using ``session.newSession()`` before registering
+                     extensions. This may be necessary if you're using functions that register new
+                     analysis rules. The new session has isolated UDFs, configurations, and temporary tables,
+                     but shares the existing ``SparkContext`` and cached data.
 
     Example:
         >>> import glow
-        >>> glow.register(spark)
+        >>> spark = glow.register(spark)
     """
     assert check_argument_types()
-    session._jvm.io.projectglow.Glow.register(session._jsparkSession)
+    sc = session._sc
+    return SparkSession(
+        sc, session._jvm.io.projectglow.Glow.register(session._jsparkSession, new_session))
 
 
 # Register input converters in idempotent fashion

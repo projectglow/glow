@@ -24,7 +24,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.SparkException
 import org.apache.spark.sql.{DataFrame, SQLUtils}
 import org.apache.spark.sql.sources.DataSourceRegister
-import org.seqdoop.hadoop_bam.util.DatabricksBGZFOutputStream
+import org.seqdoop.hadoop_bam.util.GlowBGZFOutputStream
 
 import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
 import io.projectglow.sql.BigFileDatasource
@@ -94,7 +94,7 @@ object BigVCFDatasource extends HlsEventRecorder {
           .getOrElse(baos)
 
         // Write an empty GZIP block iff this is the last partition
-        DatabricksBGZFOutputStream.setWriteEmptyBlockOnClose(outputStream, idx == nParts - 1)
+        GlowBGZFOutputStream.setWriteEmptyBlockOnClose(outputStream, idx == nParts - 1)
 
         // Write the header if this is the first nonempty partition
         val partitionWithHeader = if (firstNonemptyPartition == -1) 0 else firstNonemptyPartition

@@ -10,17 +10,17 @@
 # MAGIC Genome-wide association studies (GWAS) correlate genetic variants with a trait or disease of interest.
 # MAGIC 
 # MAGIC As cohorts have increased in size to millions, there is a need to robustly engineer GWAS to work at scale.
+# MAGIC To that end, we have developed an extensible Spark-native implementation of GWAS using Glow.
 # MAGIC 
-# MAGIC To that end we have developed an extensible Spark-native implementation of GWAS using Glow.
-# MAGIC 
-# MAGIC That leverages the high performance big-data store, [Delta Lake](https://delta.io), and uses [mlflow](https://mlflow.org/) to log parameters, metrics and plots associated with each run.
+# MAGIC This notebook leverages the high performance big-data store [Delta Lake](https://delta.io) and uses [mlflow](https://mlflow.org/) to log parameters, metrics and plots associated with each run.
 
 # COMMAND ----------
 
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 
-from pyspark.sql.functions import array_min, col, monotonically_increasing_id, when, log10
+import pyspark.sql.functions as fx
 from pyspark.sql.types import StringType
 from pyspark.ml.linalg import Vector, Vectors, SparseVector, DenseMatrix
 from pyspark.ml.stat import Summarizer
@@ -36,7 +36,7 @@ glow.register(spark)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC #### parameters
+# MAGIC #### Parameters
 
 # COMMAND ----------
 
@@ -48,7 +48,7 @@ mlflow.log_param("principal components", num_pcs)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC #### paths
+# MAGIC #### Paths
 
 # COMMAND ----------
 
@@ -58,13 +58,13 @@ sample_info_path = "/databricks-datasets/genomics/1000G/samples/populations_1000
 
 delta_silver_path = "/mnt/gwas_test/snps.delta"
 delta_gold_path = "/mnt/gwas_test/snps.qced.delta"
-principal_components_path = "/mnt/gwas_test/pcs.delta"
+principal_components_path = "/dbfs/mnt/gwas_test/pcs.csv"
 gwas_results_path = "/mnt/gwas_test/gwas_results.delta"
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC #### helper functions
+# MAGIC #### Helper functions
 
 # COMMAND ----------
 
@@ -102,7 +102,7 @@ def get_sample_info(vcf_df, sample_metadata_df):
   sample_id_indexed = spark.createDataFrame(sample_id_list, StringType()). \
                             coalesce(1). \
                             withColumnRenamed("value", "Sample"). \
-                            withColumn("index", monotonically_increasing_id())
+                            withColumn("index", fx.monotonically_increasing_id())
   sample_id_annotated = sample_id_indexed.join(sample_metadata_df, "Sample")
   return sample_id_annotated
 
@@ -112,11 +112,9 @@ def get_sample_info(vcf_df, sample_metadata_df):
 # MAGIC 
 # MAGIC ### Ingest 1000 Genomes VCF into Delta Lake
 # MAGIC 
-# MAGIC Using Glow's VCF reader, which enables variant call format (VCF) files to be read as a Spark Datasource directly from cloud storage 
-# MAGIC 
-# MAGIC Write genotype data into Delta Lake, a high performance big data store with ACID semantics
-# MAGIC 
-# MAGIC Delta Lake organizes, indexes and compresses data, allowing for performant and reliable computation on genomics data as it grows over time
+# MAGIC Using Glow's VCF reader, which enables variant call format (VCF) files to be read as a Spark Datasource directly from cloud storage,
+# MAGIC write genotype data into Delta Lake, a high performance big data store with ACID semantics.
+# MAGIC Delta Lake organizes, indexes and compresses data, allowing for performant and reliable computation on genomics data as it grows over time.
 
 # COMMAND ----------
 
@@ -126,7 +124,7 @@ vcf_view_unsplit = spark.read.format("vcf"). \
 
 # COMMAND ----------
 
-# MAGIC %md Split multiallelics varaints to biallelics:
+# MAGIC %md Split multiallelics varaints to biallelics
 
 # COMMAND ----------
 
@@ -134,32 +132,30 @@ vcf_view = glow.transform("split_multiallelics", vcf_view_unsplit)
 
 # COMMAND ----------
 
-display(vcf_view.withColumn("genotypes", col("genotypes")[0]))
+display(vcf_view.withColumn("genotypes", fx.col("genotypes")[0]))
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ##### Note: we compute variant-wise summary stats and Hardy-Weinberg equilibrium P values using
-# MAGIC 
-# MAGIC `call_summary_stats` & `hardy_weinberg`
-# MAGIC 
-# MAGIC which are built into Glow
+# MAGIC ##### Note: we compute variant-wise summary stats and Hardy-Weinberg equilibrium P values using `call_summary_stats` & `hardy_weinberg`, which are built into Glow
 
 # COMMAND ----------
 
-vcf_view. \  
-   selectExpr("*", "expand_struct(call_summary_stats(genotypes))", "expand_struct(hardy_weinberg(genotypes))"). \
-   write. \
-   mode("overwrite"). \
-   format("delta"). \
-   save(delta_silver_path)
+vcf_view. \
+  select(
+    fx.expr("*"),
+    glow.expand_struct(glow.call_summary_stats(fx.col("genotypes"))),
+    glow.expand_struct(glow.hardy_weinberg(fx.col("genotypes")))
+  ). \
+  write. \
+  mode("overwrite"). \
+  format("delta"). \
+  save(delta_silver_path)
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC Since metadata associated with Delta Lake are stored directly in the transaction log, 
-# MAGIC 
-# MAGIC we can quickly calculate the size of the Delta Lake and log it to MLflow
+# MAGIC Since metadata associated with Delta Lake are stored directly in the transaction log, we can quickly calculate the size of the Delta Lake and log it to MLflow
 
 # COMMAND ----------
 
@@ -178,9 +174,9 @@ mlflow.log_metric("Number Variants pre-QC", num_variants)
 
 hwe = spark.read.format("delta"). \
                  load(delta_silver_path). \
-                 where((col("alleleFrequencies").getItem(0) >= allele_freq_cutoff) & 
-                       (col("alleleFrequencies").getItem(0) <= (1.0 - allele_freq_cutoff))). \
-                 withColumn("log10pValueHwe", when(col("pValueHwe") == 0, 26).otherwise(-log10(col("pValueHwe"))))
+                 where((fx.col("alleleFrequencies").getItem(0) >= allele_freq_cutoff) & 
+                       (fx.col("alleleFrequencies").getItem(0) <= (1.0 - allele_freq_cutoff))). \
+                 withColumn("log10pValueHwe", fx.when(fx.col("pValueHwe") == 0, 26).otherwise(-fx.log10(fx.col("pValueHwe"))))
 
 # COMMAND ----------
 
@@ -211,9 +207,9 @@ mlflow.log_artifact("/databricks/driver/hwe.png")
 
 spark.read.format("delta"). \
    load(delta_silver_path). \
-   where((col("alleleFrequencies").getItem(0) >= allele_freq_cutoff) & 
-         (col("alleleFrequencies").getItem(0) <= (1.0 - allele_freq_cutoff)) &
-         (col("pValueHwe") >= hwe_cutoff)). \
+   where((fx.col("alleleFrequencies").getItem(0) >= allele_freq_cutoff) & 
+         (fx.col("alleleFrequencies").getItem(0) <= (1.0 - allele_freq_cutoff)) &
+         (fx.col("pValueHwe") >= hwe_cutoff)). \
    write. \
    mode("overwrite"). \
    format("delta"). \
@@ -238,7 +234,7 @@ mlflow.log_metric("Number Variants post-QC", num_variants)
 
 vectorized = spark.read.format("delta"). \
                         load(delta_gold_path). \
-                        selectExpr("array_to_sparse_vector(genotype_states(genotypes)) as features"). \
+                        select(glow.array_to_sparse_vector(glow.genotype_states(fx.col("genotypes"))).alias("features")). \
                         cache()
 
 # COMMAND ----------
@@ -253,14 +249,7 @@ pcs = matrix.computeSVD(num_pcs)
 
 # COMMAND ----------
 
-@dataclass()
-class Covariates:
-    covariates: DenseMatrix
-      
-spark.createDataFrame([Covariates(pcs.V.asML())]). \
-      write. \
-      format("delta"). \
-      save(principal_components_path)
+pd.DataFrame(pcs.V.toArray()).to_csv(principal_components_path)
 
 # COMMAND ----------
 
@@ -281,7 +270,7 @@ sample_metadata = spark.read.option("header", True).csv(sample_info_path)
 sample_info = get_sample_info(vcf_view, sample_metadata)
 sample_count = sample_info.count()
 mlflow.log_param("number of samples", sample_count)
-pcs_indexed = pcs_df.coalesce(1).withColumn("index", monotonically_increasing_id())
+pcs_indexed = pcs_df.coalesce(1).withColumn("index", fx.monotonically_increasing_id())
 pcs_with_samples = pcs_indexed.join(sample_info, "index")
 
 # COMMAND ----------
@@ -303,8 +292,6 @@ display(pcs_with_samples)
 # MAGIC %md
 # MAGIC 
 # MAGIC #### Prepare data for GWAS
-# MAGIC 
-# MAGIC crossJoin phenotypes, covariates, and genotypes
 
 # COMMAND ----------
 
@@ -315,35 +302,48 @@ bmiPhenotype = spark.read. \
 
 # COMMAND ----------
 
-display(bmiPhenotype.selectExpr("explode(phenotype_values) AS bmi"))
+display(bmiPhenotype.select(fx.explode(fx.col("phenotype_values")).alias("bmi")))
 
 # COMMAND ----------
 
-covariates = spark.read.format("delta").load(principal_components_path)
-phenotypeAndCovariates = bmiPhenotype.crossJoin(covariates)
-genotypes = spark.read.format("delta").load(delta_gold_path)
+covariate_df = pd.read_csv(principal_components_path)
 
 # COMMAND ----------
 
-phenotype = bmiPhenotype.select("phenotype").collect()[0].phenotype
+phenotype_df = bmiPhenotype.toPandas(). \
+  explode('phenotype_values'). \
+  reset_index(drop=True). \
+  pivot(columns='phenotype', values='phenotype_values')
+
+# COMMAND ----------
+
+phenotype = phenotype_df.columns[0]
 mlflow.log_param("phenotype", phenotype)
 
 # COMMAND ----------
 
+genotypes = spark.read.format("delta").load(delta_gold_path)
+
+# COMMAND ----------
+
 # MAGIC %md
-# MAGIC #### Run `linear_regression_gwas`
+# MAGIC #### Run `linear_regression`
 # MAGIC 
 # MAGIC Note: `genotype_states` is a utility function in Glow that converts an genotypes array, e.g. `[0,1]` into an integer containing the number of alternate alleles, e.g. `1`
 
 # COMMAND ----------
 
-genotypes.crossJoin(phenotypeAndCovariates). \
-          selectExpr("contigName", "start", "phenotype",
-                     "expand_struct(linear_regression_gwas(genotype_states(genotypes), phenotype_values, covariates))"). \
-          write. \
-          format("delta"). \
-          mode("overwrite"). \
-          save(gwas_results_path)
+results = glow.gwas.linear_regression(
+  genotypes.select('contigName', 'start', 'genotypes'),
+  phenotype_df,
+  covariate_df,
+  values_column=glow.genotype_states(fx.col('genotypes'))
+)
+
+results.write. \
+  format("delta"). \
+  mode("overwrite"). \
+  save(gwas_results_path)
 
 # COMMAND ----------
 
@@ -364,7 +364,7 @@ display(spark.read.format("delta").load(gwas_results_path).limit(100))
 
 # MAGIC %r
 # MAGIC library(SparkR)
-# MAGIC gwas_df <- read.df("/databricks-datasets/genomics/1000G/gwas/1kg.all.09162019.gwas_results.delta", source="delta")
+# MAGIC gwas_df <- read.df("/mnt/gwas_test/gwas_results.delta", source="delta")
 # MAGIC gwas_results <- select(gwas_df, c(cast(alias(gwas_df$contigName, "CHR"), "double"), alias(gwas_df$start, "BP"), alias(gwas_df$pValue, "P")))
 # MAGIC gwas_results_rdf <- as.data.frame(gwas_results)
 
