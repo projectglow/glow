@@ -334,3 +334,33 @@ def test_logistic_regression_transform_loco(spark):
     wgr_cov_loco1_1 = wgr_cov_loco1_df1[test_label].to_numpy()
 
     assert (np.allclose(wgr_cov_loco1_0, wgr_cov_loco1_1))
+
+
+def test_model_cv_df(spark):
+    covdf = pd.read_csv(f'{data_root}/cov.csv').set_index('sample_id')
+    covdf.index = covdf.index.astype(str, copy=False)
+    lvl1df = spark.read.parquet(f'{data_root}/bt_reduceded_1part.snappy.parquet')
+    sample_blocks_df = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet') \
+        .withColumn('sample_block', f.col('sample_block').cast('string')) \
+        .withColumn('sample_ids', f.expr('transform(sample_ids, v -> cast(v as string))'))
+    sample_blocks = {r.sample_block: r.sample_ids for r in sample_blocks_df.collect()}
+
+    logreg = LogisticRidgeRegression(lvl1df, labeldf, sample_blocks, covdf, alphas=alpha_values)
+
+    model_df = spark.createDataFrame([('Alice', 1)])
+    logreg.set_model_df(model_df)
+    retrieved_model_df = logreg.get_model_df()
+    assert retrieved_model_df.subtract(model_df).count() == 0
+    assert model_df.subtract(retrieved_model_df).count() == 0
+
+    cv_df = spark.createDataFrame([('Bob', 2)])
+    logreg.set_cv_df(cv_df)
+    retrieved_cv_df = logreg.get_cv_df()
+    assert retrieved_cv_df.subtract(cv_df).count() == 0
+    assert cv_df.subtract(retrieved_cv_df).count() == 0
+
+    assert str(logreg.model_df.storageLevel) == 'Serialized 1x Replicated'
+    logreg.cache_model_cv_df()
+    assert str(logreg.model_df.storageLevel) == 'Disk Memory Deserialized 1x Replicated'
+    logreg.unpersist_model_cv_df()
+    assert str(logreg.model_df.storageLevel) == 'Serialized 1x Replicated'

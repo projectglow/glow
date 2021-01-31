@@ -9,7 +9,7 @@ from scipy import stats
 from typeguard import typechecked
 from . import functions as gwas_fx
 from .functions import _VALUES_COLUMN_NAME
-from ..wgr.functions import _get_contigs_from_loco_df
+from ..wgr.wgr_functions import _get_contigs_from_loco_df
 
 __all__ = ['linear_regression']
 

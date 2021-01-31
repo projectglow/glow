@@ -20,11 +20,9 @@ from pyspark.sql import DataFrame, Row, SparkSession, SQLContext
 from typeguard import check_argument_types, check_return_type
 from typing import Any, Dict, List
 from nptyping import Float, NDArray
-from ..gwas.functions import _get_contigs_from_loco_df
 from .ridge_reduction import RidgeReduction
 from .ridge_regression import RidgeRegression
 from .logistic_ridge_regression import LogisticRidgeRegression
-
 
 __all__ = ['get_sample_ids', 'block_variants_and_samples', 'reshape_for_gwas']
 

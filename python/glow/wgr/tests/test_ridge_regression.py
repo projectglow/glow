@@ -635,3 +635,33 @@ def test_two_level_regression_transform_loco_infer_contigs(spark):
     y_hat = regressor.fit_transform_loco()
 
     pd.testing.assert_frame_equal(y_hat, level2_yhat_loco_df)
+
+
+def test_model_cv_df(spark):
+    indexdf = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet')
+    level1df = spark.read.parquet(f'{data_root}/level1BlockedGT.snappy.parquet').limit(5)
+    group2ids = __get_sample_blocks(indexdf)
+
+    regressor = RidgeRegression(level1df,
+                                std_labeldf,
+                                group2ids,
+                                add_intercept=False,
+                                alphas=alphas)
+
+    model_df = spark.createDataFrame([('Alice', 1)])
+    regressor.set_model_df(model_df)
+    retrieved_model_df = regressor.get_model_df()
+    assert retrieved_model_df.subtract(model_df).count() == 0
+    assert model_df.subtract(retrieved_model_df).count() == 0
+
+    cv_df = spark.createDataFrame([('Bob', 2)])
+    regressor.set_cv_df(cv_df)
+    retrieved_cv_df = regressor.get_cv_df()
+    assert retrieved_cv_df.subtract(cv_df).count() == 0
+    assert cv_df.subtract(retrieved_cv_df).count() == 0
+
+    assert str(regressor.model_df.storageLevel) == 'Serialized 1x Replicated'
+    regressor.cache_model_cv_df()
+    assert str(regressor.model_df.storageLevel) == 'Disk Memory Deserialized 1x Replicated'
+    regressor.unpersist_model_cv_df()
+    assert str(regressor.model_df.storageLevel) == 'Serialized 1x Replicated'

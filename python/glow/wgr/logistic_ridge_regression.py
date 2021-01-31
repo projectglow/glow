@@ -17,6 +17,7 @@ from .ridge_reduction import RidgeReduction
 from .model_functions import _prepare_labels_and_warn, _prepare_covariates, _check_model, _check_cv, _is_binary
 from nptyping import Float, NDArray
 import pandas as pd
+from pyspark.sql import DataFrame
 from pyspark.sql.functions import pandas_udf, PandasUDFType
 import pyspark.sql.functions as f
 from typeguard import typechecked
@@ -118,6 +119,30 @@ class LogisticRidgeRegression:
 
     def get_alphas(self) -> Dict[str, Float]:
         return self._alphas
+
+    def set_model_df(self, model_df: DataFrame) -> None:
+        self.model_df = model_df
+
+    def get_model_df(self) -> DataFrame:
+        return self.model_df
+
+    def set_cv_df(self, cv_df: DataFrame) -> None:
+        self.cv_df = cv_df
+
+    def get_cv_df(self) -> DataFrame:
+        return self.cv_df
+
+    def cache_model_cv_df(self) -> None:
+        _check_model(self.model_df)
+        _check_cv(self.cv_df)
+        self.model_df.cache()
+        self.cv_df.cache()
+
+    def unpersist_model_cv_df(self) -> None:
+        _check_model(self.model_df)
+        _check_cv(self.cv_df)
+        self.model_df.unpersist()
+        self.cv_df.unpersist()
 
     def fit(self) -> (DataFrame, DataFrame):
         """
@@ -259,6 +284,8 @@ class LogisticRidgeRegression:
         the LogisticRidgeRegression fit method to the starting reduced block matrix using
         a leave-one-chromosome-out (LOCO) approach.
 
+        Caches the model and cross-validation DataFrames.
+
         Args:
             response : String specifying the desired output.  Can be 'linear' to specify the direct output of the linear
                 WGR model (default) or 'sigmoid' to specify predicted label probabilities.
@@ -272,6 +299,9 @@ class LogisticRidgeRegression:
         """
         loco_chromosomes = chromosomes if chromosomes else infer_chromosomes(self.reduced_block_df)
         loco_chromosomes.sort()
+
+        # Cache model and CV DataFrames to avoid re-computing for each chromosome
+        self.cache_model_cv_df()
 
         y_hat_df = pd.DataFrame({})
         orig_model_df = self.model_df
@@ -310,6 +340,8 @@ class LogisticRidgeRegression:
         Fits a logistic ridge regression model with a block matrix, then generates predictions for the target labels
         in the provided label DataFrame by applying the model resulting from the LogisticRidgeRegression fit method
         to the starting reduced block matrix using a leave-one-chromosome-out (LOCO) approach.
+
+        Caches the model and cross-validation DataFrames.
 
         Args:
             response : String specifying the desired output.  Can be 'linear' to specify the direct output of the linear
