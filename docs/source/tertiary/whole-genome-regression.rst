@@ -479,7 +479,7 @@ Example notebook
 Two example notebooks are provided below, the first for quantitative phenotypes and the second for binary phenotypes.
 
 
-.. notebook:: / tertiary/glowgr.html
+.. notebook:: .. tertiary/glowgr.html
   :title: GloWGR notebook for quantitative phenotypes
 
 

@@ -86,6 +86,7 @@ for contig in contigs:
     covariate_df,
     offset_df,
     values_column='values',
+    # In addition to filtering the DataFrame, hint to Glow that the input only contains one contig
     contigs=[contig])
   
   # Write the results to a Delta Lake table partitioned by contigName

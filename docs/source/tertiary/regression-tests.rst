@@ -268,7 +268,7 @@ an offset.
  phenotypes in GWAS. Please refer to :ref:`glowgr` for details and example notebook.
 
 Example notebooks and blog post
-------------------------------
+-------------------------------
 
 .. notebook:: .. tertiary/gwas-quantitative.html
   :title: GloWGR: GWAS for quantitative traits

@@ -164,7 +164,7 @@ for label_df_chunk in chunk_columns(label_df, chunk_size):
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC Merge loco prediction DataFrames and save to a CSV
+# MAGIC Merge LOCO prediction DataFrames and save to a CSV
 
 # COMMAND ----------
 
