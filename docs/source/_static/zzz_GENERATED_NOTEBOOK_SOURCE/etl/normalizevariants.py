@@ -4,8 +4,6 @@
 # MAGIC To use variant normalizer, a copy of the reference genome `.fa/.fasta` file (along with its `.fai` file) must be downloaded to each node of the cluster. 
 # MAGIC 
 # MAGIC Here, we assume the reference genome is downloaded to the following path: `/mnt/dbnucleus/dbgenomics/grch38/data/GRCh38_full_analysis_set_plus_decoy_hla.fa`
-# MAGIC 
-# MAGIC If you are using a Databricks cluster with [Databricks Runtime for Genomics](https://docs.databricks.com/applications/genomics/index.html), this can be done by setting the [environment variable](https://docs.databricks.com/user-guide/clusters/spark-config.html#environment-variables) ``refGenomeId=grch38`` for your cluster.
 
 # COMMAND ----------
 

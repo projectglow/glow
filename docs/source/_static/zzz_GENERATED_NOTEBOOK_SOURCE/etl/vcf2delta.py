@@ -28,7 +28,7 @@
 # COMMAND ----------
 
 import glow
-glow.register(spark)
+spark = glow.register(spark)
 import pyspark.sql.functions as fx
 from pyspark.sql.types import *
 from random import sample
