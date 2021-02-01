@@ -149,10 +149,14 @@ class LogisticRidgeRegression:
                               index=self._label_df.index)
 
         beta_cov_dict = {}
-        if not self._std_cov_df.empty:
-            for label in self._label_df:
+
+        for label in self._label_df:
+            if self._std_cov_df.empty:
+                beta_cov_dict[label] = np.array([])
+            else:
                 row_mask = slice_label_rows(maskdf, label, list(self._label_df.index),
                                             np.array([])).ravel()
+
                 cov_mat = slice_label_rows(self._std_cov_df, 'all', list(self._label_df.index),
                                            row_mask)
                 y = slice_label_rows(self._label_df, label, list(self._label_df.index),

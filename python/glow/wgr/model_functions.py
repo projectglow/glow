@@ -183,7 +183,8 @@ def constrained_logistic_fit(X: NDArray[Float], y: NDArray[Float], alpha_arr: ND
         z = X @ beta
         p = 1 / (1 + np.exp(-z))
         grad = -(np.dot((y - p), X) - beta * alpha_arr) / y.size
-        grad[:n_cov] = 0
+        if n_cov > 0:
+            grad[:n_cov] = 0
         return grad
 
     return scipy.optimize.minimize(objective, guess, jac=gradient, method='L-BFGS-B')
@@ -223,7 +224,8 @@ def get_irls_pieces(X: NDArray[Float], y: NDArray[Float], alpha_value: Float,
         beta = ridge_fit.x
     else:
         beta = np.zeros(X.shape[1])
-        beta[:n_cov] = beta_cov
+        if n_cov > 0:
+            beta[:n_cov] = beta_cov
 
     z = X @ beta
     p = sigmoid(z)

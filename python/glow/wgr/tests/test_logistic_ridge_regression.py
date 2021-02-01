@@ -347,6 +347,12 @@ def test_model_cv_df(spark):
 
     logreg = LogisticRidgeRegression(lvl1df, labeldf, sample_blocks, covdf, alphas=alpha_values)
 
+    model_df = spark.createDataFrame([('Alice', 1)])
+    logreg.model_df = model_df
+
+    cv_df = spark.createDataFrame([('Bob', 2)])
+    logreg.cv_df = cv_df
+
     assert str(logreg.model_df.storageLevel) == 'Serialized 1x Replicated'
     logreg._cache_model_cv_df()
     assert str(logreg.model_df.storageLevel) == 'Disk Memory Deserialized 1x Replicated'

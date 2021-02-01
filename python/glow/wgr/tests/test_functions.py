@@ -130,13 +130,11 @@ def test_prepare_labels_and_warn(capfd):
     assert capfd.readouterr().out == messages[0]
     assert np.allclose(_prepare_labels_and_warn(b_label_df, True, 'binary'), b_std_label_df)
     assert capfd.readouterr().out == messages[1]
-    assert np.allclose(_prepare_labels_and_warn(b_label_df, True, 'quantitative'),
-                       b_std_label_df)
+    assert np.allclose(_prepare_labels_and_warn(b_label_df, True, 'quantitative'), b_std_label_df)
     assert capfd.readouterr().out == messages[2]
     assert np.allclose(_prepare_labels_and_warn(q_label_df, False, 'detect'), q_std_label_df)
     assert capfd.readouterr().out == messages[3]
-    assert np.allclose(_prepare_labels_and_warn(q_label_df, False, 'quantitative'),
-                       q_std_label_df)
+    assert np.allclose(_prepare_labels_and_warn(q_label_df, False, 'quantitative'), q_std_label_df)
     assert capfd.readouterr().out == messages[2]
 
     with pytest.raises(TypeError, match='Binary label DataFrame expected!'):

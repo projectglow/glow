@@ -56,7 +56,30 @@ def test_estimate_loco_offsets_ridge(spark):
     assert (np.allclose(y_hat_df, yhatdf))
 
 
-def test_estimate_loco_offsets_logistic_ridge(spark):
+def test_estimate_loco_offsets_logistic_ridge_no_intercept_no_cov(spark):
+    labeldf = pd.read_csv(f'{logistic_ridge_data_root}/binary_phenotypes.csv').set_index('sample_id')
+    labeldf.index = labeldf.index.astype(str, copy=False)
+    indexdf = spark.read.parquet(f'{ridge_data_root}/groupedIDs.snappy.parquet')
+    blockdf = spark.read.parquet(f'{ridge_data_root}/blockedGT.snappy.parquet')
+
+    group2ids = __get_sample_blocks(indexdf)
+
+    y_hat_df = estimate_loco_offsets(blockdf,
+                                     labeldf,
+                                     group2ids,
+                                     add_intercept=False,
+                                     reduction_alphas=alphas,
+                                     regression_alphas=alphas)
+
+    stack0 = RidgeReduction(blockdf, labeldf, group2ids, add_intercept=False, alphas=alphas)
+    stack0.fit_transform()
+    regressor = LogisticRidgeRegression.from_ridge_reduction(stack0, alphas)
+    yhatdf = regressor.fit_transform_loco()
+
+    assert (np.allclose(y_hat_df, yhatdf))
+
+
+def test_estimate_loco_offsets_logistic_ridge_with_intercept_no_cov(spark):
     labeldf = pd.read_csv(f'{logistic_ridge_data_root}/binary_phenotypes.csv').set_index('sample_id')
     labeldf.index = labeldf.index.astype(str, copy=False)
     indexdf = spark.read.parquet(f'{ridge_data_root}/groupedIDs.snappy.parquet')
@@ -76,6 +99,66 @@ def test_estimate_loco_offsets_logistic_ridge(spark):
         blockdf,
         labeldf,
         group2ids,
+        # add_intercept=False,
+        alphas=alphas)
+    stack0.fit_transform()
+    regressor = LogisticRidgeRegression.from_ridge_reduction(stack0, alphas)
+    yhatdf = regressor.fit_transform_loco()
+
+    assert (np.allclose(y_hat_df, yhatdf))
+
+
+def test_estimate_loco_offsets_logistic_ridge_no_intercept_with_cov(spark):
+    covdf = pd.read_csv(f'{logistic_ridge_data_root}/cov.csv').set_index('sample_id')
+    covdf.index = covdf.index.astype(str, copy=False)
+    labeldf = pd.read_csv(f'{logistic_ridge_data_root}/binary_phenotypes.csv').set_index('sample_id')
+    labeldf.index = labeldf.index.astype(str, copy=False)
+    indexdf = spark.read.parquet(f'{ridge_data_root}/groupedIDs.snappy.parquet')
+    blockdf = spark.read.parquet(f'{ridge_data_root}/blockedGT.snappy.parquet')
+
+    group2ids = __get_sample_blocks(indexdf)
+
+    y_hat_df = estimate_loco_offsets(blockdf,
+                                     labeldf,
+                                     group2ids,
+                                     covdf,
+                                     add_intercept=False,
+                                     reduction_alphas=alphas,
+                                     regression_alphas=alphas)
+
+    stack0 = RidgeReduction(blockdf, labeldf, group2ids, covdf, add_intercept=False, alphas=alphas)
+    stack0.fit_transform()
+    regressor = LogisticRidgeRegression.from_ridge_reduction(stack0, alphas)
+    yhatdf = regressor.fit_transform_loco()
+    print(y_hat_df)
+
+    assert (np.allclose(y_hat_df, yhatdf))
+
+
+def test_estimate_loco_offsets_logistic_ridge_with_intercept_with_cov(spark):
+    covdf = pd.read_csv(f'{logistic_ridge_data_root}/cov.csv').set_index('sample_id')
+    covdf.index = covdf.index.astype(str, copy=False)
+    labeldf = pd.read_csv(f'{logistic_ridge_data_root}/binary_phenotypes.csv').set_index('sample_id')
+    labeldf.index = labeldf.index.astype(str, copy=False)
+    indexdf = spark.read.parquet(f'{ridge_data_root}/groupedIDs.snappy.parquet')
+    blockdf = spark.read.parquet(f'{ridge_data_root}/blockedGT.snappy.parquet')
+
+    group2ids = __get_sample_blocks(indexdf)
+
+    y_hat_df = estimate_loco_offsets(
+        blockdf,
+        labeldf,
+        group2ids,
+        covdf,
+        # add_intercept=False,
+        reduction_alphas=alphas,
+        regression_alphas=alphas)
+
+    stack0 = RidgeReduction(
+        blockdf,
+        labeldf,
+        group2ids,
+        covdf,
         # add_intercept=False,
         alphas=alphas)
     stack0.fit_transform()

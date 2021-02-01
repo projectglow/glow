@@ -649,6 +649,11 @@ def test_model_cv_df(spark):
                                 alphas=alphas)
 
     regressor.model_df = spark.createDataFrame([('Alice', 1)])
+    model_df = spark.createDataFrame([('Alice', 1)])
+    regressor.model_df = model_df
+
+    cv_df = spark.createDataFrame([('Bob', 2)])
+    regressor.cv_df = cv_df
 
     assert str(regressor.model_df.storageLevel) == 'Serialized 1x Replicated'
     regressor._cache_model_cv_df()
