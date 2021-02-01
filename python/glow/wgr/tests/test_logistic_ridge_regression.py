@@ -13,9 +13,8 @@
 # limitations under the License.
 
 from pyspark.sql.functions import PandasUDFType
-from glow.wgr.linear_model.functions import *
-from glow.wgr.linear_model.logistic_udfs import *
-from glow.wgr.linear_model.logistic_model import *
+from glow.wgr.logistic_udfs import *
+from glow.wgr.logistic_ridge_regression import *
 from pyspark.sql import functions as f
 import json
 import pandas as pd
@@ -246,8 +245,8 @@ def test_logistic_regression_fit(spark):
     with open(f'{data_root}/test_logistic_regression_fit.json') as json_file:
         test_values = json.load(json_file)
 
-    logreg = LogisticRegression(alpha_values)
-    modeldf, cvdf = logreg.fit(lvl1df, labeldf, sample_blocks, covdf)
+    logreg = LogisticRidgeRegression(lvl1df, labeldf, sample_blocks, covdf, alphas=alpha_values)
+    modeldf, cvdf = logreg.fit()
 
     outdf = cvdf.filter(f'label = "{test_label}"').toPandas()
 
@@ -269,9 +268,9 @@ def test_logistic_regression_transform(spark):
     with open(f'{data_root}/test_logistic_regression_transform.json') as json_file:
         test_values = json.load(json_file)
 
-    logreg = LogisticRegression(alpha_values)
-    modeldf, cvdf = logreg.fit(lvl1df, labeldf, sample_blocks, covdf)
-    wgr_cov_df = logreg.transform(lvl1df, labeldf, sample_blocks, modeldf, cvdf, covdf)
+    logreg = LogisticRidgeRegression(lvl1df, labeldf, sample_blocks, covdf, alphas=alpha_values)
+    logreg.fit()
+    wgr_cov_df = logreg.transform()
     wgr_cov_glow = wgr_cov_df[test_label].to_numpy()
 
     assert (np.allclose(np.array(test_values['wgr_cov']), wgr_cov_glow))
@@ -288,15 +287,9 @@ def test_logistic_regression_predict_proba(spark):
     with open(f'{data_root}/test_logistic_regression_predict_proba.json') as json_file:
         test_values = json.load(json_file)
 
-    logreg = LogisticRegression(alpha_values)
-    modeldf, cvdf = logreg.fit(lvl1df, labeldf, sample_blocks, covdf)
-    prob_df = logreg.transform(lvl1df,
-                               labeldf,
-                               sample_blocks,
-                               modeldf,
-                               cvdf,
-                               covdf,
-                               response='sigmoid')
+    logreg = LogisticRidgeRegression(lvl1df, labeldf, sample_blocks, covdf, alphas=alpha_values)
+    logreg.fit()
+    prob_df = logreg.transform(response='sigmoid')
     prob_glow = prob_df[test_label].to_numpy()
 
     assert (np.allclose(np.array(test_values['prob']), prob_glow))
@@ -311,10 +304,10 @@ def test_logistic_regression_fit_transform(spark):
         .withColumn('sample_ids', f.expr('transform(sample_ids, v -> cast(v as string))'))
     sample_blocks = {r.sample_block: r.sample_ids for r in sample_blocks_df.collect()}
 
-    logreg = LogisticRegression(alpha_values)
-    modeldf, cvdf = logreg.fit(lvl1df, labeldf, sample_blocks, covdf)
-    wgr_cov_df0 = logreg.transform(lvl1df, labeldf, sample_blocks, modeldf, cvdf)
-    wgr_cov_df1 = logreg.fit_transform(lvl1df, labeldf, sample_blocks, covdf)
+    logreg = LogisticRidgeRegression(lvl1df, labeldf, sample_blocks, covdf, alphas=alpha_values)
+    logreg.fit()
+    wgr_cov_df0 = logreg.transform()
+    wgr_cov_df1 = logreg.fit_transform()
     wgr_cov0 = wgr_cov_df0[test_label].to_numpy()
     wgr_cov1 = wgr_cov_df1[test_label].to_numpy()
 
@@ -330,17 +323,38 @@ def test_logistic_regression_transform_loco(spark):
         .withColumn('sample_ids', f.expr('transform(sample_ids, v -> cast(v as string))'))
     sample_blocks = {r.sample_block: r.sample_ids for r in sample_blocks_df.collect()}
 
-    logreg = LogisticRegression(alpha_values)
-    modeldf, cvdf = logreg.fit(lvl1df, labeldf, sample_blocks, covdf)
+    logreg = LogisticRidgeRegression(lvl1df, labeldf, sample_blocks, covdf, alphas=alpha_values)
+    modeldf, cvdf = logreg.fit()
+    wgr_cov_loco1_df1 = logreg.transform_loco(chromosomes=['1'])
     modeldf_loco1 = modeldf.filter('header NOT LIKE "%chr_1%"')
-    wgr_cov_loco1_df0 = logreg.transform(lvl1df, labeldf, sample_blocks, modeldf_loco1, cvdf)
-    wgr_cov_loco1_df1 = logreg.transform_loco(lvl1df,
-                                              labeldf,
-                                              sample_blocks,
-                                              modeldf,
-                                              cvdf,
-                                              chromosomes=['1'])
+    logreg.model_df = modeldf_loco1
+    wgr_cov_loco1_df0 = logreg.transform()
+
     wgr_cov_loco1_0 = wgr_cov_loco1_df0[test_label].to_numpy()
     wgr_cov_loco1_1 = wgr_cov_loco1_df1[test_label].to_numpy()
 
     assert (np.allclose(wgr_cov_loco1_0, wgr_cov_loco1_1))
+
+
+def test_model_cv_df(spark):
+    covdf = pd.read_csv(f'{data_root}/cov.csv').set_index('sample_id')
+    covdf.index = covdf.index.astype(str, copy=False)
+    lvl1df = spark.read.parquet(f'{data_root}/bt_reduceded_1part.snappy.parquet')
+    sample_blocks_df = spark.read.parquet(f'{data_root}/groupedIDs.snappy.parquet') \
+        .withColumn('sample_block', f.col('sample_block').cast('string')) \
+        .withColumn('sample_ids', f.expr('transform(sample_ids, v -> cast(v as string))'))
+    sample_blocks = {r.sample_block: r.sample_ids for r in sample_blocks_df.collect()}
+
+    logreg = LogisticRidgeRegression(lvl1df, labeldf, sample_blocks, covdf, alphas=alpha_values)
+
+    model_df = spark.createDataFrame([('Alice', 1)])
+    logreg.model_df = model_df
+
+    cv_df = spark.createDataFrame([('Bob', 2)])
+    logreg.cv_df = cv_df
+
+    assert str(logreg.model_df.storageLevel) == 'Serialized 1x Replicated'
+    logreg._cache_model_cv_df()
+    assert str(logreg.model_df.storageLevel) == 'Disk Memory Deserialized 1x Replicated'
+    logreg._unpersist_model_cv_df()
+    assert str(logreg.model_df.storageLevel) == 'Serialized 1x Replicated'

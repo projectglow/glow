@@ -12,7 +12,7 @@ import opt_einsum as oe
 from . import functions as gwas_fx
 from . import approx_firth as af
 from .functions import _VALUES_COLUMN_NAME
-from ..wgr.functions import reshape_for_gwas
+from ..wgr.wgr_functions import reshape_for_gwas
 
 __all__ = ['logistic_regression']
 

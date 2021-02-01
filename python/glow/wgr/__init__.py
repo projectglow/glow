@@ -12,11 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from .linear_model.ridge_model import *
-from .linear_model import ridge_model
-from .linear_model.logistic_model import *
-from .linear_model import logistic_model
-from .functions import *
-from . import functions
+from glow.wgr.ridge_reduction import *
+from glow.wgr.ridge_regression import *
+from glow.wgr.logistic_ridge_regression import *
+from .wgr_functions import *
+from . import wgr_functions, logistic_ridge_regression, ridge_reduction, ridge_regression
 
-__all__ = functions.__all__ + logistic_model.__all__ + ridge_model.__all__
+__all__ = wgr_functions.__all__ + logistic_ridge_regression.__all__ + ridge_reduction.__all__ + ridge_regression.__all__

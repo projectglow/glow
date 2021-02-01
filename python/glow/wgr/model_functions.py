@@ -14,17 +14,18 @@
 
 import itertools
 import math
-from nptyping import Float, Int, NDArray
+import re
+import warnings
+from typing import Any, Dict, Iterable, List, Tuple
+
 import numpy as np
 import pandas as pd
-from pyspark.sql import DataFrame, Row
 import pyspark.sql.functions as f
-from pyspark.sql.window import Window
-import re
-from typeguard import typechecked
-from typing import Any, Dict, Iterable, List, Tuple
 import scipy.optimize
-import warnings
+from nptyping import Float, Int, NDArray
+from pyspark.sql import DataFrame, Row
+from pyspark.sql.window import Window
+from typeguard import typechecked
 
 
 @typechecked
@@ -104,7 +105,7 @@ def parse_header_block_sample_block_label_alpha_name(
         return header_block, key[0], key[1], key[2]
 
 
-#@typechecked
+# @typechecked
 def assemble_block(n_rows: Int, n_cols: Int, pdf: pd.DataFrame, cov_matrix: NDArray[(Any, Any),
                                                                                     Float],
                    row_mask: NDArray[Any]) -> NDArray[Float]:
@@ -182,7 +183,8 @@ def constrained_logistic_fit(X: NDArray[Float], y: NDArray[Float], alpha_arr: ND
         z = X @ beta
         p = 1 / (1 + np.exp(-z))
         grad = -(np.dot((y - p), X) - beta * alpha_arr) / y.size
-        grad[:n_cov] = 0
+        if n_cov > 0:
+            grad[:n_cov] = 0
         return grad
 
     return scipy.optimize.minimize(objective, guess, jac=gradient, method='L-BFGS-B')
@@ -211,8 +213,8 @@ def get_irls_pieces(X: NDArray[Float], y: NDArray[Float], alpha_value: Float,
 
     """
     n_cov = beta_cov.size
-    #If we have no observations in this block (i.e, y.sum() == 0), then we should not try to fit a model and instead
-    #just return a parameterless model based on the population frequency of observations p0
+    # If we have no observations in this block (i.e, y.sum() == 0), then we should not try to fit a model and instead
+    # just return a parameterless model based on the population frequency of observations p0
     if y.sum() > 0:
         alpha_arr = np.zeros(X.shape[1])
         alpha_arr[n_cov:] = alpha_value
@@ -222,7 +224,8 @@ def get_irls_pieces(X: NDArray[Float], y: NDArray[Float], alpha_value: Float,
         beta = ridge_fit.x
     else:
         beta = np.zeros(X.shape[1])
-        beta[:n_cov] = beta_cov
+        if n_cov > 0:
+            beta[:n_cov] = beta_cov
 
     z = X @ beta
     p = sigmoid(z)
@@ -231,7 +234,7 @@ def get_irls_pieces(X: NDArray[Float], y: NDArray[Float], alpha_value: Float,
     return beta, XtGX, XtY
 
 
-#@typechecked
+# @typechecked
 def slice_label_rows(labeldf: pd.DataFrame, label: str, sample_list: List[str],
                      row_mask: NDArray[Any]) -> NDArray[Any]:
     """
@@ -434,6 +437,8 @@ def create_alpha_dict(alphas: NDArray[(Any, ), Float]) -> Dict[str, Float]:
     Returns:
         Dict of [alpha names, alpha values]
     """
+    if not (alphas >= 0).all():
+        raise Exception('Alpha values must all be non-negative.')
     return {f'alpha_{i}': a for i, a in enumerate(alphas)}
 
 
@@ -458,7 +463,7 @@ def generate_alphas(blockdf: DataFrame) -> Dict[str, Float]:
 
 
 @typechecked
-def __assert_all_present(df: pd.DataFrame, col_name: Any, df_name: str) -> None:
+def _assert_all_present(df: pd.DataFrame, col_name: Any, df_name: str) -> None:
     """
     Raises an error if a pandas series has missing values.
 
@@ -471,46 +476,25 @@ def __assert_all_present(df: pd.DataFrame, col_name: Any, df_name: str) -> None:
 
 
 @typechecked
-def __is_zero(f: float) -> bool:
+def _is_zero(f: float) -> bool:
     return math.isclose(f, 0, abs_tol=0.01)
 
 
 @typechecked
-def __is_one(f: float) -> bool:
+def _is_one(f: float) -> bool:
     return math.isclose(f, 1, abs_tol=0.01)
 
 
 @typechecked
-def __check_standardized(df: pd.DataFrame, name: str) -> None:
-    """
-    Warns if any column of a pandas DataFrame is not standardized to zero mean and unit (unbiased) standard deviation.
-
-    Args:
-        df : Pandas DataFrame
-    """
-    for label, mean in df.mean().items():
-        if not __is_zero(mean):
-            warnings.warn(f"Mean for the {name} dataframe's column {label} should be 0, is {mean}",
-                          UserWarning)
-    for label, std in df.std().items():
-        if not __is_one(std):
-            warnings.warn(
-                f"Standard deviation for the {name} dataframe's column {label} should be approximately 1, is {std}",
-                UserWarning)
-
-
-@typechecked
-def __num_non_binary_values(s: pd.Series) -> int:
+def _num_non_binary_values(s: pd.Series) -> int:
     """
     Returns the number of values in a series that are neither 0, 1, nor missing.
     """
-
     non_binary_vals = (~s.dropna().isin([0, 1])).sum()
     return int(non_binary_vals)
 
 
-@typechecked
-def __check_binary(df: pd.DataFrame) -> None:
+def _check_binary(df: pd.DataFrame) -> None:
     """
     Warns if any column of a pandas DataFrame is not a binary value equal to 0 or 1.
 
@@ -518,70 +502,142 @@ def __check_binary(df: pd.DataFrame) -> None:
         df : Pandas DataFrame
     """
     for label in df:
-        num_non_binary_vals = __num_non_binary_values(df[label])
+        num_non_binary_vals = _num_non_binary_values(df[label])
         if num_non_binary_vals != 0:
-            warnings.warn(f"Column {label} is not binary ({num_non_binary_vals} non binary values)",
-                          UserWarning)
+            warnings.warn(
+                f"Column {label} is not binary. It has {num_non_binary_vals} non-binary value(s).",
+                UserWarning)
 
 
 @typechecked
-def __check_binary_or_standardized(df: pd.DataFrame) -> None:
+def _is_binary(df: pd.DataFrame) -> bool:
     """
-    Warns if columns of a pandas DataFrame are neither binary nor standardized.
+    Checks whether a Pandas DataFrame is all binary.
 
     Args:
         df : Pandas DataFrame
     """
-    for label in df:
-        mean = df[label].mean()
-        std_dev = df[label].std()
-        num_non_binary_values = __num_non_binary_values(df[label])
-        continuous_ok = __is_zero(mean) and __is_one(std_dev)
-
-        if num_non_binary_values == 0:
-            # Valid binary trait
-            continue
-
-        # Check as continuous trait
-        __assert_all_present(df, label, 'label')
-        if not continuous_ok:
-            warnings.warn(
-                f"Label {label} is neither standardized nor binary (mean={mean}, "
-                f"std_dev={std_dev}, num_non_binary_values={num_non_binary_values})", UserWarning)
+    return df.isin([0, 1, None]).all(axis=None).item()
 
 
 @typechecked
-def validate_inputs(labeldf: pd.DataFrame, covdf: pd.DataFrame, label_type='either') -> None:
+def _fill_na_and_standardize(pdf: pd.DataFrame) -> pd.DataFrame:
     """
-    Performs basic input validation on the label and covariates pandas DataFrames. The covariates
-    DataFrame must have no missing values and should be standardized to zero mean and unit standard
-    deviation. The label DataFrame is validated according to the label type. If label_type is 'continuous', the
-    label DataFrame must contain no missing values and should be standardized to zero mean and unit
-    standard deviation. If 'binary', all values in the label DataFrame should be 0, 1, or
-    missing. If 'either', each column in the label DataFrame should conform to the validation rules
-    for either 'continuous' or 'binary'.
+    Replaces the NaNs in a Pandas DataFrame with the mean of the column and
+    mean centers and scales the columns.
 
     Args:
-        labeldf : Pandas DataFrame containing target labels
-        covdf : Pandas DataFrame containing covariates
-        label_type : Specifies if the labels are continuous data for linear regression or binary data for logistic
+        df : Pandas DataFrame
     """
-
-    if not covdf.empty:
-        for col in covdf:
-            __assert_all_present(covdf, col, 'covariate')
-        __check_standardized(covdf, 'covariate')
-    if label_type == 'continuous':
-        for col in labeldf:
-            __assert_all_present(labeldf, col, 'label')
-        __check_standardized(labeldf, 'label')
-    elif label_type == 'binary':
-        __check_binary(labeldf)
-    elif label_type == 'either':
-        __check_binary_or_standardized(labeldf)
+    pdf_mean = pdf.mean()
+    _pdf = pdf.fillna(pdf_mean)
+    pdf_std = pdf.std()
+    zero_std_labels = _pdf.columns[pdf_std == 0]
+    if zero_std_labels.empty:
+        return (_pdf - pdf_mean) / pdf_std
     else:
-        raise ValueError(f'label_type should be "continuous", "binary", or "either". Found '
-                         f'{label_type}.')
+        raise ValueError(f"""Column(s) {zero_std_labels.tolist()} have zero std. dev.!""")
+
+
+@typechecked
+def _prepare_labels_and_warn(label_df: pd.DataFrame, is_binary: bool,
+                             label_type: str) -> pd.DataFrame:
+    """
+    Gets a Pandas DataFrame containing phenotypes (label_df) and whether it is binary or not
+    and generates the appropriate warning based on label_type. Returns standardized label DataFrame
+
+    Args:
+        label_df: Pandas DataFrame of phenotypes
+        is_binary: Whether label_df is binary or not
+        label_type: User's choice for label type treatment ('detect', 'binary', or 'quantitative')
+
+    Returns:
+        Standardized label Pandas Dataframe
+    """
+    if label_type == 'detect':
+        if is_binary:
+            print(
+                "The label DataFrame is binary. Reduction/regression for binary phenotypes will be applied.",
+            )
+        else:
+            print(
+                "The label DataFrame is quantitative. Reduction/regression for quantitative phenotypes will be applied.",
+            )
+        return _fill_na_and_standardize(label_df)
+    elif label_type == 'quantitative':
+        print("Reduction/regression for quantitative phenotypes will be applied.")
+        return _fill_na_and_standardize(label_df)
+    elif label_type == 'binary':
+        if is_binary:
+            print("Reduction/regression for binary phenotypes will be applied.")
+            return _fill_na_and_standardize(label_df)
+        else:
+            _check_binary(label_df)
+            raise TypeError("Binary label DataFrame expected!", UserWarning)
+    else:
+        raise ValueError(
+            f'label_type should be "quantitative", "binary", or "detect". Found {label_type}.')
+
+
+@typechecked
+def _prepare_covariates(cov_df: pd.DataFrame, label_df: pd.DataFrame,
+                        add_intercept: bool) -> pd.DataFrame:
+    """
+    Standardizes the covariate Pandas DataFrame and adds intercept column to it if indicated
+
+    Args:
+        cov_df: Pandas DataFrame of phenotypes
+        label_df: Pandas DataFrame of phenotypes
+        add_intercept: Whether to add intercept to the covariates Pandas DataFrame
+
+    Returns:
+        Standardized covariate Pandas DataFrame with optionally added intercept column
+    """
+    if cov_df.empty:
+        if add_intercept:
+            std_cov_df = pd.DataFrame(data=np.ones(label_df.shape[0]),
+                                      columns=['intercept'],
+                                      index=label_df.index)
+        else:
+            std_cov_df = cov_df
+    else:
+        if label_df.shape[0] != cov_df.shape[0]:
+            raise ValueError(
+                f'cov_df must be either empty of have the same number of rows as label_df ({label_df.shape[0]} != {cov_df.shape[0]}'
+            )
+        std_cov_df = _fill_na_and_standardize(cov_df)
+        if add_intercept:
+            std_cov_df.insert(0, 'intercept', 1)
+
+    return std_cov_df
+
+
+@typechecked()
+def _check_model(model_df: DataFrame) -> None:
+    """
+    Raise an error if model_df does not exist
+
+    Args:
+        model_df : Model DataFrame
+    """
+    if model_df is None:
+        raise ValueError(
+            'No model DataFrame found! Run fit() or provide a previously made model using set_model_df()'
+        )
+
+
+@typechecked()
+def _check_cv(cv_df: DataFrame) -> None:
+    """
+    Raise an error if cv_df does not exist
+
+    Args:
+        cv_df: Cross Validation DataFrame
+    """
+    if cv_df is None:
+        raise ValueError(
+            'No cross validation DataFrame found! Run fit() or provide a previously made cv DataFrame using set_cv_df().'
+        )
 
 
 @typechecked
