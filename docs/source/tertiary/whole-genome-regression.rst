@@ -92,8 +92,6 @@ The phenotype data is represented as a Pandas DataFrame indexed by the sample ID
 
     import pandas as pd
     label_df = pd.read_csv(continuous_phenotypes_csv, index_col='sample_id')[['Continuous_Trait_1', 'Continuous_Trait_2']]
-    # label_df = label_df.fillna(label_df.mean())
-    # label_df = ((label_df - label_df.mean())/label_df.std())[['Continuous_Trait_1', 'Continuous_Trait_2']]
 
 
 - **For binary phenotypes:** Phenotype values are either 0 or 1. No standardization is needed.
@@ -117,8 +115,6 @@ Example
 .. code-block:: python
 
     covariate_df = pd.read_csv(covariates_csv, index_col='sample_id')
-    # covariate_df = covariate_df.fillna(covariate_df.mean())
-    # covariate_df = (covariate_df - covariate_df.mean())/covariate_df.std()
 
 ---------------------------------
 Stage 1. Genotype matrix blocking
