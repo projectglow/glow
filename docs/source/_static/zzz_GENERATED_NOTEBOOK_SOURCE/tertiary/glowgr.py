@@ -159,11 +159,7 @@ def chunk_columns(df, chunk_size):
 chunk_size = 10
 loco_estimates = []
 for label_df_chunk in chunk_columns(label_df, chunk_size):
-  reducer = glow.wgr.RidgeReduction(block_df, label_df_chunk, sample_blocks, covariate_df, add_intercept=True)
-  reducer.fit_transform().cache()
-  regression = glow.wgr.RidgeRegression.from_ridge_reduction(reducer)
-  
-  loco_estimates.append(regression.fit_transform_loco())
+  loco_estimates.append(glow.wgr.estimate_loco_offsets(block_df, label_df_chunk, sample_blocks, covariate_df))
 
 # COMMAND ----------
 

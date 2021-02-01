@@ -267,10 +267,16 @@ an offset.
  The ``offset`` parameter is especially useful in incorporating the results of :ref:`GloWGR <glowgr>` with
  phenotypes in GWAS. Please refer to :ref:`glowgr` for details and example notebook.
 
-Example notebook and blog post
+Example notebooks and blog post
 ------------------------------
+
+.. notebook:: .. tertiary/gwas-quantitative.html
+  :title: GloWGR: GWAS for quantitative traits
+
+.. notebook:: .. tertiary/gwas-binary.html
+  :title: GloWGR: GWAS for binary traits
 
 A detailed example and explanation of a GWAS workflow is available `here <https://databricks.com/blog/2019/09/20/engineering-population-scale-genome-wide-association-studies-with-apache-spark-delta-lake-and-mlflow.html>`_.
 
 .. notebook:: .. tertiary/gwas.html
-  :title: GWAS notebook
+  :title: GWAS with MLflow instrumentation
