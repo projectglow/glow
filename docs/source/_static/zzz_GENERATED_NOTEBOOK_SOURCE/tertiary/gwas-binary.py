@@ -4,7 +4,7 @@
 # MAGIC 
 # MAGIC ### <img src="https://databricks-knowledge-repo-images.s3.us-east-2.amazonaws.com/HLS/glow/project_glow_logo.png" alt="logo" width="35"/> GloWGR: genome-wide association study
 # MAGIC 
-# MAGIC ### Linear regression
+# MAGIC ### Logistic regression
 # MAGIC 
 # MAGIC This notebook shows how to use the `logistic_regression` function in Glow to perform a genome-wide association study for binary traits. We incorporate the whole genome regression predictions to control for population structure and relatedness.
 
