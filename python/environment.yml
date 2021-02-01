@@ -4,7 +4,7 @@ channels:
   - conda-forge
 dependencies:
   - python=3.7
-  - bedtools
+  - bedtools=2.30.0
   - click=7.1.1 # Docs notebook source generation
   - databricks-cli=0.9.1 # Docs notebook source generation
   - jinja2
