@@ -24,7 +24,7 @@ from .ridge_reduction import RidgeReduction
 from .ridge_regression import RidgeRegression
 from .logistic_ridge_regression import LogisticRidgeRegression
 
-__all__ = ['get_sample_ids', 'block_variants_and_samples', 'reshape_for_gwas']
+__all__ = ['get_sample_ids', 'block_variants_and_samples', 'reshape_for_gwas', 'estimate_loco_offsets']
 
 
 def _get_contigs_from_loco_df(df: pd.DataFrame) -> pd.Series:
