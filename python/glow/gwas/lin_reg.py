@@ -4,12 +4,12 @@ from nptyping import Float, NDArray
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union
 from pyspark.sql import Column, DataFrame
-from pyspark.sql.types import ArrayType, FloatType, DoubleType, StringType, StructField, StructType
+from pyspark.sql.types import StringType, StructField
 from scipy import stats
 from typeguard import typechecked
 from . import functions as gwas_fx
 from .functions import _VALUES_COLUMN_NAME
-from ..wgr.functions import _get_contigs_from_loco_df
+from ..wgr.wgr_functions import _get_contigs_from_loco_df
 
 __all__ = ['linear_regression']
 

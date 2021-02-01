@@ -14,12 +14,19 @@
 
 from glow import glow
 import pandas as pd
+import numpy as np
 from pyspark import SparkContext
 from pyspark.sql import DataFrame, Row, SparkSession, SQLContext
 from typeguard import check_argument_types, check_return_type
-from typing import Dict, List
+from typing import Any, Dict, List
+from nptyping import Float, NDArray
+from .ridge_reduction import RidgeReduction
+from .ridge_regression import RidgeRegression
+from .logistic_ridge_regression import LogisticRidgeRegression
 
-__all__ = ['get_sample_ids', 'block_variants_and_samples', 'reshape_for_gwas']
+__all__ = [
+    'get_sample_ids', 'block_variants_and_samples', 'reshape_for_gwas', 'estimate_loco_offsets'
+]
 
 
 def _get_contigs_from_loco_df(df: pd.DataFrame) -> pd.Series:
@@ -202,3 +209,52 @@ def reshape_for_gwas(spark: SparkSession, label_df: pd.DataFrame) -> DataFrame:
         values = list(transposed_df.to_numpy())
     transposed_df['values_array'] = values
     return spark.createDataFrame(transposed_df[['values_array']].reset_index(), column_names)
+
+
+def estimate_loco_offsets(block_df: DataFrame,
+                          label_df: pd.DataFrame,
+                          sample_blocks: Dict[str, List[str]],
+                          cov_df: pd.DataFrame = pd.DataFrame({}),
+                          add_intercept: bool = True,
+                          reduction_alphas: NDArray[(Any, ), Float] = np.array([]),
+                          regression_alphas: NDArray[(Any, ), Float] = np.array([]),
+                          label_type='detect',
+                          chromosomes: List[str] = []) -> pd.DataFrame:
+    """
+    The one-stop function to generate WGR predictors to be used as offsets in gwas functions. Given the
+    input the function performs the ridge reduction followed by appropriate choice of ridge regression or
+    logistic ridge regression in a loco manner.
+
+    Args:
+        block_df : Spark DataFrame representing the beginning block matrix X
+        label_df : Pandas DataFrame containing the target labels used in fitting the ridge models
+        sample_blocks : Dict containing a mapping of sample_block ID to a list of corresponding sample IDs
+        cov_df : Pandas DataFrame containing covariates to be included in every model in the stacking
+            ensemble (optional).
+        add_intercept: If True, an intercept column (all ones) will be added to the covariates
+            (as the first column)
+        reduction_alphas : array_like of alpha values used in the ridge reduction (optional). If not provided, the
+            automatically generates alphas for reduction.
+        regression_alphas : array_like of alpha values used in the ridge or logistic ridge regression (optional).
+            If not provided, the automatically generates alphas for regression.
+        label_type: String to determine type treatment of labels. It can be 'detect' (default), 'binary',
+            or 'quantitative'. On 'detect' the function picks binary or quantitative based on whether label_df is all
+            binary or not, respectively.
+        chromosomes : List of chromosomes for which to generate offsets (optional). If not provided, the
+                chromosomes will be inferred from the block matrix.
+
+    Returns:
+        Pandas DataFrame containing offset values per chromosome. The rows are indexed by sample ID and
+        chromosome; the columns are indexed by label. The column types are float64. The DataFrame is sorted using
+        chromosome as the primary sort key, and sample ID as the secondary sort key.
+    """
+    ridge_reduced = RidgeReduction(block_df, label_df, sample_blocks, cov_df, add_intercept,
+                                   reduction_alphas, label_type)
+
+    ridge_reduced.fit_transform().cache()
+    if ridge_reduced.is_binary():
+        regression = LogisticRidgeRegression.from_ridge_reduction(ridge_reduced, regression_alphas)
+        return regression.fit_transform_loco('linear', chromosomes)
+    else:
+        regression = RidgeRegression.from_ridge_reduction(ridge_reduced, regression_alphas)
+        return regression.fit_transform_loco(chromosomes)

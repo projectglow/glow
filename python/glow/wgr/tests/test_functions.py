@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from glow.wgr.linear_model.functions import *
+from glow.wgr.model_functions import *
+from glow.wgr.model_functions import _prepare_covariates, _prepare_labels_and_warn
 import math
 import numpy as np
 import pandas as pd
@@ -85,82 +86,59 @@ def test_generate_alphas(spark):
     assert generate_alphas(df) == expected_alphas
 
 
-def test_labels_and_covars_ok(spark):
-    labeldf = pd.DataFrame({'Trait_1': [0, -1, 1], 'Trait_2': [0, 1, -1]})
-    covdf = pd.DataFrame({'Covariate_1': [0, 1, -1], 'Covariate_2': [0, -1, 1]})
-    with pytest.warns(None) as record:
-        validate_inputs(labeldf, covdf, 'continuous')
-
-        # Add a binary trait
-        labeldf['Trait_3'] = [0, 1, math.nan]
-        validate_inputs(labeldf, covdf, 'either')
-
-        # Delete continuous traits and check binary validation
-        del labeldf['Trait_1']
-        del labeldf['Trait_2']
-        validate_inputs(labeldf, covdf, 'binary')
-
-    assert len(record) == 0
+def test_prepare_covariates():
+    label_df = pd.DataFrame({'Trait_1': [0, -1, 1], 'Trait_2': [0, 1, math.nan]})
+    cov_df = pd.DataFrame({'Covariate_1': [0, 2, -1], 'Covariate_2': [0, -1, 1]})
+    expected_df = pd.DataFrame({
+        'intercept': [1, 1, 1],
+        'Covariate_1': [-0.218218, 1.091089, -0.872872],
+        'Covariate_2': [0, -1, 1]
+    })
+    assert (np.allclose(_prepare_covariates(cov_df, label_df, True), expected_df))
+    assert (np.allclose(_prepare_covariates(cov_df, label_df, False),
+                        expected_df.drop(columns=['intercept']), 1e-5))
 
 
-def expect_validation_warning(labeldf, covdf, label_types):
-    for label_type in label_types:
-        with pytest.warns(UserWarning):
-            validate_inputs(labeldf, covdf, label_type)
+def test_prepare_covariates_insufficient_elements():
+    label_df = pd.DataFrame({'Trait_1': [0, -1, 1], 'Trait_2': [0, 1, math.nan]})
+    cov_df = pd.DataFrame({'Covariate_1': [0, 2], 'Covariate_2': [0, -1]})
+    with pytest.raises(
+            ValueError,
+            match=r'.*cov_df must be either empty of have the same number of rows as label_df.*'):
+        _prepare_covariates(cov_df, label_df, True)
 
 
-def expect_validation_error(labeldf, covdf, label_types):
-    for label_type in label_types:
-        with pytest.raises(ValueError):
-            validate_inputs(labeldf, covdf, label_type)
+def test_prepare_labels_and_warn(capfd):
+    messages = [
+        "The label DataFrame is binary. Reduction/regression for binary phenotypes will be applied.\n",
+        "Reduction/regression for binary phenotypes will be applied.\n",
+        "Reduction/regression for quantitative phenotypes will be applied.\n",
+        "The label DataFrame is quantitative. Reduction/regression for quantitative phenotypes will be applied.\n"
+    ]
+    b_label_df = pd.DataFrame({'Trait_1': [0, 1, 1], 'Trait_2': [0, 1, math.nan]})
+    q_label_df = pd.DataFrame({'Trait_1': [0, 1.5, 1], 'Trait_2': [0, 1, math.nan]})
+    b_std_label_df = pd.DataFrame({
+        'Trait_1': [-1.154701, 0.577350, 0.577350],
+        'Trait_2': [-0.707107, 0.707107, 0]
+    })
+    q_std_label_df = pd.DataFrame({
+        'Trait_1': [-1.091089, 0.872872, 0.218218],
+        'Trait_2': [-0.707107, 0.707107, 0]
+    })
 
+    assert np.allclose(_prepare_labels_and_warn(b_label_df, True, 'detect'), b_std_label_df)
+    assert capfd.readouterr().out == messages[0]
+    assert np.allclose(_prepare_labels_and_warn(b_label_df, True, 'binary'), b_std_label_df)
+    assert capfd.readouterr().out == messages[1]
+    assert np.allclose(_prepare_labels_and_warn(b_label_df, True, 'quantitative'), b_std_label_df)
+    assert capfd.readouterr().out == messages[2]
+    assert np.allclose(_prepare_labels_and_warn(q_label_df, False, 'detect'), q_std_label_df)
+    assert capfd.readouterr().out == messages[3]
+    assert np.allclose(_prepare_labels_and_warn(q_label_df, False, 'quantitative'), q_std_label_df)
+    assert capfd.readouterr().out == messages[2]
 
-def test_assert_labels_all_present(spark):
-    labeldf = pd.DataFrame({'Trait_1': [0, -1, 1], 'Trait_2': [0, 1, math.nan]})
-    covdf = pd.DataFrame({'Covariate_1': [0, 1, -1], 'Covariate_2': [0, -1, 1]})
-    expect_validation_error(labeldf, covdf, ['continuous'])
-
-
-def test_assert_covars_all_present(spark):
-    labeldf = pd.DataFrame({'Trait_1': [0, -1, 1], 'Trait_2': [0, 1, -1]})
-    covdf = pd.DataFrame({'Covariate_1': [0, 1, -1], 'Covariate_2': [0, -1, math.nan]})
-    expect_validation_error(labeldf, covdf, ['either', 'continuous', 'binary'])
-
-
-def test_check_labels_zero_mean(spark):
-    labeldf = pd.DataFrame({'Trait_1': [0, -1, 1], 'Trait_2': [0, 1, 3]})
-    covdf = pd.DataFrame({'Covariate_1': [0, 1, -1], 'Covariate_2': [0, -1, 1]})
-    expect_validation_warning(labeldf, covdf, ['either', 'continuous'])
-
-
-def test_check_labels_unit_stddev(spark):
-    labeldf = pd.DataFrame({'Trait_1': [0, -1, 1], 'Trait_2': [0, 2, -2]})
-    covdf = pd.DataFrame({'Covariate_1': [0, 1, -1], 'Covariate_2': [0, -1, 1]})
-    expect_validation_warning(labeldf, covdf, ['either', 'continuous'])
-
-
-def test_check_covars_zero_mean(spark):
-    labeldf = pd.DataFrame({'Trait_1': [0, -1, 1], 'Trait_2': [0, 1, -1]})
-    covdf = pd.DataFrame({'Covariate_1': [0, 1, -1], 'Covariate_2': [0, 3, 1]})
-    expect_validation_warning(labeldf, covdf, ['either', 'continuous'])
-
-
-def test_check_covars_unit_stddev(spark):
-    labeldf = pd.DataFrame({'Trait_1': [0, -1, 1], 'Trait_2': [0, 1, -1]})
-    covdf = pd.DataFrame({'Covariate_1': [0, 1, -1], 'Covariate_2': [0, -2, 2]})
-    expect_validation_warning(labeldf, covdf, ['either', 'continuous'])
-
-
-def test_check_labels_binary_or_continuous(spark):
-    labeldf = pd.DataFrame({'Trait_1': [0, 1, math.nan], 'Trait_2': [0, 1, -1]})
-    covdf = pd.DataFrame()
-    with pytest.warns(None) as record:
-        validate_inputs(labeldf, covdf, 'either')
-    assert len(record) == 0
-
-    labeldf['Trait_3'] = [0, 2, 3]
-    with pytest.warns(UserWarning):
-        validate_inputs(labeldf, covdf, 'either')
+    with pytest.raises(TypeError, match='Binary label DataFrame expected!'):
+        _prepare_labels_and_warn(q_label_df, False, 'binary')
 
 
 def test_new_headers_one_level(spark):
@@ -213,7 +191,6 @@ def test_infer_chromosomes(spark):
 
 
 def test_constrained_logistic_fit():
-
     X_raw, y = load_breast_cancer(return_X_y=True)
     mu, sig = X_raw.mean(axis=0), X_raw.std(axis=0)
     X = (X_raw - mu) / sig

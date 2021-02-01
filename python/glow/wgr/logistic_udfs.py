@@ -109,7 +109,8 @@ def map_irls_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf:
         row_mask = slice_label_rows(maskdf, label, sample_list, np.array([])).ravel()
 
     alpha_value = alphas[alpha_name]
-    cov_matrix = slice_label_rows(covdf, 'all', sample_list, np.array([]))
+    cov_matrix = np.array([]) if covdf.empty else slice_label_rows(covdf, 'all', sample_list,
+                                                                   np.array([]))
     n_cov = len(covdf.columns)
     header_col = np.concatenate([covdf.columns, pdf['header']])
     #Add new sort_keys for covariates, starting from -n_cov up to 0 to ensure they come ahead of the headers.
