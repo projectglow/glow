@@ -91,9 +91,10 @@ The phenotype data is represented as a Pandas DataFrame indexed by the sample ID
   .. code-block:: python
 
     import pandas as pd
-    label_df = pd.read_csv(continuous_phenotypes_csv, index_col='sample_id')
-    label_df = label_df.fillna(label_df.mean())
-    label_df = ((label_df - label_df.mean())/label_df.std())[['Continuous_Trait_1', 'Continuous_Trait_2']]
+    label_df = pd.read_csv(continuous_phenotypes_csv, index_col='sample_id')[['Continuous_Trait_1', 'Continuous_Trait_2']]
+    # label_df = label_df.fillna(label_df.mean())
+    # label_df = ((label_df - label_df.mean())/label_df.std())[['Continuous_Trait_1', 'Continuous_Trait_2']]
+
 
 - **For binary phenotypes:** Phenotype values are either 0 or 1. No standardization is needed.
 
@@ -116,8 +117,8 @@ Example
 .. code-block:: python
 
     covariate_df = pd.read_csv(covariates_csv, index_col='sample_id')
-    covariate_df = covariate_df.fillna(covariate_df.mean())
-    covariate_df = (covariate_df - covariate_df.mean())/covariate_df.std()
+    # covariate_df = covariate_df.fillna(covariate_df.mean())
+    # covariate_df = (covariate_df - covariate_df.mean())/covariate_df.std()
 
 ---------------------------------
 Stage 1. Genotype matrix blocking
@@ -172,7 +173,7 @@ Example
 
 .. code-block:: python
 
-    from glow.wgr import RidgeReducer, RidgeRegression, LogisticRegression, block_variants_and_samples, get_sample_ids
+    from glow.wgr import RidgeReduction, RidgeRegression, LogisticRidgeRegression, block_variants_and_samples, get_sample_ids
     from pyspark.sql.functions import col, lit
 
     variants_per_block = 1000
@@ -208,7 +209,7 @@ Example
 
 .. code-block:: python
 
-    reducer = RidgeReducer()
+    reduction = RidgeReduction(block_df, label_df, sample_blocks, covariate_df)
 
 .. _ridge_reducer_model_fitting:
 
@@ -245,7 +246,7 @@ Example
 
 .. code-block:: python
 
-    model_df = reducer.fit(block_df, label_df, sample_blocks, covariate_df)
+    model_df = reduction.fit()
 
 3. Model transformation
 =======================
@@ -293,7 +294,7 @@ Example
 
 .. code-block:: python
 
-    reduced_block_df = reducer.transform(block_df, label_df, sample_blocks, model_df, covariate_df)
+    reduced_block_df = reduction.transform()
 
 Performing fit and transform in a single step
 =============================================
@@ -303,9 +304,9 @@ If the block genotype matrix, phenotype DataFrame, sample block mapping, and cov
 Example
 -------
 
-.. code-block:: python
+::
 
-    reduced_block_df = reducer.fit_transform(block_df, label_df, sample_blocks, covariate_df)
+    reduced_block_df = reduction.fit_transform()
 
 ---------------------------------------
 Stage 3. Estimate phenotypic predictors
@@ -333,7 +334,7 @@ At this stage, the block matrix :math:`X_1` is used to fit a final predictive mo
 
  .. code-block:: python
 
-     regression = RidgeRegression()
+     regression = RidgeRegression.from_ridge_reduction(reduction)
 
 - **For binary phenotypes:** Everything is the same except that ``LogisticRegression`` class is used instead of ``RidgeRegression``.
 
@@ -341,7 +342,7 @@ At this stage, the block matrix :math:`X_1` is used to fit a final predictive mo
 
  ::
 
-     regression = LogisticRegression()
+     regression = LogisticRidgeRegression.from_ridge_reduction(reduction)
 
 
 2. Model fitting
@@ -378,7 +379,7 @@ Assuming ``regression`` is initialized to ``RidgeRegression`` (for quantitative 
 
 .. code-block:: python
 
-    model_df, cv_df = regression.fit(reduced_block_df, label_df, sample_blocks, covariate_df)
+    model_df, cv_df = regression.fit()
 
 3. Model transformation
 =======================
@@ -430,28 +431,28 @@ Assuming ``regression`` is initialized to ``RidgeRegression`` (for quantitative 
 
 .. code-block:: python
 
-    y_hat_df = regression.transform_loco(reduced_block_df, label_df, sample_blocks, model_df, cv_df, covariate_df)
+    y_hat_df = regression.transform_loco()
 
 **For binary phenotypes**:
 
 ::
 
-    y_hat_df = regression.transform_loco(reduced_block_df, label_df, sample_blocks, model_df, cv_df)
+    y_hat_df = regression.transform_loco()
 
 
 
 .. invisible-code-block: python
 
     import math
-    assert math.isclose(y_hat_df.at[('HG00096', '22'),'Continuous_Trait_1'], -0.5577744539844645)
+    assert math.isclose(y_hat_df.at[('HG00096', '22'),'Continuous_Trait_1'], -0.5627750538139388)
 
     # binary phenotype test
     label_df = pd.read_csv(binary_phenotypes_csv, index_col='sample_id')
-    reduced_block_df = reducer.fit_transform(block_df, label_df, sample_blocks, covariate_df)
-    regression = LogisticRegression()
-    model_df, cv_df = regression.fit(reduced_block_df, label_df, sample_blocks, covariate_df)
-    y_hat_df = regression.transform_loco(reduced_block_df, label_df, sample_blocks, model_df, cv_df)
-    assert math.isclose(y_hat_df.at[('HG00096', '22'),'Binary_Trait_1'], -0.00017000209584173355)
+    reduction = RidgeReduction(block_df, label_df, sample_blocks, covariate_df)
+    reduction.fit_transform()
+    regression = LogisticRidgeRegression.from_ridge_reduction(reduction)
+    y_hat_df = regression.fit_transform_loco()
+    assert math.isclose(y_hat_df.at[('HG00096', '22'),'Binary_Trait_1'], 0.0014362933881161765)
 
 
 ---------------
