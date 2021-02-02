@@ -457,9 +457,6 @@ Proceed to GWAS
 
 :ref:`GloWGR GWAS functionality <gwas>` can be used to perform genome-wide association study using the phenotypic predictors to correct for polygenic effects.
 
-- **For quantitative phenotypes**, this is typically done by subtracting the predictor from the phenotype vector.
-- **For binary phenotypes**, this is done by using the predictor as the offset in logistic regression (see :ref:`logistic_regression_gwas <logistic-regression>` function).
-
 ---------------
 Troubleshooting
 ---------------
