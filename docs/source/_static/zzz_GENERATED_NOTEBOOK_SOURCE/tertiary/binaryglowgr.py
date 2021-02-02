@@ -8,23 +8,14 @@
 
 # COMMAND ----------
 
-# MAGIC %pip install bioinfokit
-
-# COMMAND ----------
-
 import glow
-from glow import *
-from glow.wgr.functions import *
-from glow.wgr.linear_model import *
 
+import json
 import numpy as np
 import pandas as pd
-from pyspark.sql import *
-from pyspark.sql.functions import *
-from pyspark.sql.types import *
+import pyspark.sql.functions as fx
 
-from matplotlib import pyplot as plt
-from bioinfokit import visuz
+spark = glow.register(spark)
 
 # COMMAND ----------
 
@@ -36,7 +27,9 @@ dbutils.widgets.text('sample_block_count', '10')
 # MAGIC %md
 # MAGIC 
 # MAGIC #### Step 0: Prepare input paths.
-# MAGIC Note: The data in this problem is fabricated for demonstration purpose and is bilogically meaningless.
+# MAGIC Glow can read variant data from common file formats like VCF, BGEN, and Plink. However, for best performance we encourage you to load your data in a Delta Lake table before running GloWGR.
+# MAGIC 
+# MAGIC Note: The data in this problem is fabricated for demonstration purpose and is biologically meaningless.
 
 # COMMAND ----------
 
@@ -44,8 +37,9 @@ variants_path = 'dbfs:/databricks-datasets/genomics/gwas/hapgen-variants.delta'
 binary_phenotypes_path = '/dbfs/databricks-datasets/genomics/gwas/Ysim_binary_test_simulation.csv'
 covariates_path = '/dbfs/databricks-datasets/genomics/gwas/Covs_test_simulation.csv'
 
-y_hat_path = '/dbfs/tmp/wgr_y_hat.csv'
-binary_gwas_results_path = '/dbfs/tmp/binary_wgr_gwas_results.delta'
+sample_blocks_path = '/dbfs/tmp/wgr_sample_blocks.json'
+block_matrix_path = 'dbfs:/tmp/wgr_block_matrix.delta'
+y_hat_path = '/dbfs/tmp/wgr_y_binary_hat.csv'
 
 # COMMAND ----------
 
@@ -65,10 +59,23 @@ sample_block_count = int(dbutils.widgets.get('sample_block_count'))
 # COMMAND ----------
 
 base_variant_df = spark.read.format('delta').load(variants_path)
-variant_df = glow.transform('split_multiallelics', base_variant_df) \
-  .withColumn('values', mean_substitute(genotype_states(col('genotypes')))) \
-  .filter(size(array_distinct('values')) > 1) \
-  .alias('variant_df')
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC 
+# MAGIC Extract sample IDs from a variant DataFrame with `glow.wgr.get_sample_ids`.
+
+# COMMAND ----------
+
+sample_ids = glow.wgr.get_sample_ids(base_variant_df)
+
+# COMMAND ----------
+
+variant_df = (glow.transform('split_multiallelics', base_variant_df)
+  .withColumn('values', glow.mean_substitute(glow.genotype_states('genotypes')))
+  .filter(fx.size(fx.array_distinct('values')) > 1)
+  .alias('variant_df'))
 
 # COMMAND ----------
 
@@ -76,26 +83,37 @@ display(variant_df)
 
 # COMMAND ----------
 
+# MAGIC 
 # MAGIC %md
 # MAGIC 
-# MAGIC Extract sample IDs from a variant DataFrame with `glow.wgr.functions.get_sample_ids`.
-
-# COMMAND ----------
-
-sample_ids = get_sample_ids(variant_df)
-
-# COMMAND ----------
-
-# MAGIC %md
+# MAGIC Create the beginning block genotype matrix and sample block ID mapping with `glow.wgr.block_variants_and_samples`.
 # MAGIC 
-# MAGIC Create the beginning block genotype matrix and sample block ID mapping with `glow.wgr.functions.block_variants_and_samples`.
+# MAGIC Write the block matrix to Delta and the sample blocks a JSON file so that we can reuse them for multiple phenotype batches.
 
 # COMMAND ----------
 
-block_df, sample_blocks = block_variants_and_samples(variant_df, 
+block_df, sample_blocks = glow.wgr.block_variants_and_samples(variant_df, 
                                                      sample_ids, 
                                                      variants_per_block, 
                                                      sample_block_count)
+
+# COMMAND ----------
+
+with open(sample_blocks_path, 'w') as f:
+  json.dump(sample_blocks, f)
+block_df.write.format('delta').mode('overwrite').save(block_matrix_path)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC 
+# MAGIC #### Step 2: Run whole genome regression (WGR) to calculate expected phenotypes
+
+# COMMAND ----------
+
+block_df = spark.read.format('delta').load(block_matrix_path)
+with open(sample_blocks_path, 'r') as f:
+  sample_blocks = json.load(f)
 
 # COMMAND ----------
 
@@ -122,121 +140,30 @@ label_df['Trait_1'].sum()
 # COMMAND ----------
 
 covariate_df = pd.read_csv(covariates_path, index_col='sample_id')
-covariate_df = covariate_df.fillna(covariate_df.mean())
-covariate_df = (covariate_df - covariate_df.mean()) / covariate_df.std()
 covariate_df
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC 
-# MAGIC #### Step 2: Run whole genome regression (WGR) to calculate expected phenotypes
+# MAGIC GloWGR runs best on small batches of phenotypes. Break the phenotype DataFrame into column chunks and generate
+# MAGIC leave-one-chromosome-out (LOCO) phenotype predictions for each chunk.
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC 
-# MAGIC Perform dimensionality reduction on the block genotype matrix with ``glow.wgr.linear_model.RidgeReducer``.
+def chunk_columns(df, chunk_size):
+  for start in range(0, df.shape[1], chunk_size):
+    chunk = df.iloc[:, range(start, min(start + chunk_size, df.shape[1]))]
+    yield chunk
 
 # COMMAND ----------
 
-stack = RidgeReducer()
-reduced_block_df = stack.fit_transform(block_df, 
-                             label_df, 
-                             sample_blocks, 
-                             covariate_df)
-reduced_block_df.cache()
+chunk_size = 10
+loco_estimates = []
+for label_df_chunk in chunk_columns(label_df, chunk_size):
+  loco_estimates.append(glow.wgr.estimate_loco_offsets(block_df, label_df_chunk, sample_blocks, covariate_df))
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC 
-# MAGIC Calculate expected phenotypes per label and per sample with ``glow.wgr.linear_model.LogisticRegression`` under the leave-one-chromosome-out (LOCO) scheme.
-
-# COMMAND ----------
-
-estimator = LogisticRegression()
-model_df, cv_df = estimator.fit(reduced_block_df, 
-                                label_df, 
-                                sample_blocks, 
-                                covariate_df)
-model_df.cache()
-cv_df.cache()
-
-# COMMAND ----------
-
-y_hat_df = estimator.transform_loco(
-  reduced_block_df,
-  label_df,
-  sample_blocks,
-  model_df,
-  cv_df)
-y_hat_df
-
-# COMMAND ----------
-
-y_hat_df.to_csv(y_hat_path)
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC 
-# MAGIC #### Step 3: Run logistic regression GWAS with adjusted phenotypes
-# MAGIC 
-# MAGIC Use the WGR-predicted phenotypes as offset during GWAS using logistics regression.
-
-# COMMAND ----------
-
-# Convert the pandas dataframe into a Spark DataFrame
-reshaped_phenotypes = reshape_for_gwas(spark, label_df).alias('reshaped_phenotypes')
-offset = reshape_for_gwas(spark, y_hat_df).alias('offset')
-
-
-# COMMAND ----------
-
-wgr_gwas = variant_df.join(reshaped_phenotypes).join(offset, ['contigName']).select(
-  'contigName',
-  'start',
-  'names',
-  'reshaped_phenotypes.label',
-  expand_struct(logistic_regression_gwas( 
-    variant_df.values,
-    reshaped_phenotypes.values,
-    lit(covariate_df.to_numpy()),
-    'lrt', # use 'firth' for Firth logistic regression 
-    offset.values
-  )))\
-.filter('beta!="NaN"')
-  
-display(wgr_gwas.limit(20))
-
-
-# COMMAND ----------
-
-wgr_gwas.write.format('delta').mode('overwrite').save(binary_gwas_results_path)
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC 
-# MAGIC #### Step 4: Visualize GWAS results.
-
-# COMMAND ----------
-
-pdf = spark.read.format('delta').load(binary_gwas_results_path).toPandas()
-
-# COMMAND ----------
-
-visuz.marker.mhat(pdf.loc[pdf.label == 'Trait_2', :], chr='contigName', pv='pValue', show=True, gwas_sign_line=True)
-
-# COMMAND ----------
-
-values = pdf.loc[pdf.label == 'Trait_2', 'pValue']
-fig, ax = plt.subplots()
-ax.set_xlim((0, 6))
-ax.set_ylim((0, 6))
-expected = -np.log10(np.linspace(10, 0, len(values), endpoint=False))
-ax.scatter(expected, np.sort(-np.log10(values)))
-ax.plot(ax.get_xlim(), ax.get_ylim(), ls='--')
-ax.set_xlabel('Expected -log10(p)')
-ax.set_ylabel('Observed -log10(p)')
+all_traits_loco_df = pd.concat(loco_estimates, axis='columns')
+all_traits_loco_df.to_csv(y_hat_path)

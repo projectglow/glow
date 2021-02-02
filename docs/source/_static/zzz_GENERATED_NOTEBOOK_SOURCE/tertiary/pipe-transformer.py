@@ -2,10 +2,8 @@
 import pyspark.sql.functions as fx
 from pyspark.sql.types import *
 import glow
-glow.register(spark)
+spark = glow.register(spark)
 import json
-from bdgenomics.adam.adamContext import ADAMContext
-ac = ADAMContext(spark)
 
 # COMMAND ----------
 
@@ -16,7 +14,7 @@ display(glow.transform('pipe', df, cmd=['rev'], input_formatter='text', output_f
 # COMMAND ----------
 
 # DBTITLE 1,Read 1kg chr22
-df = spark.read.format("vcf").option("flattenInfoFields", False).load("/databricks-datasets/genomics/1kg-vcfs")
+df = spark.read.format("vcf").option("flattenInfoFields", False).load("/databricks-datasets/genomics/1kg-vcfs/*.vcf.gz")
 df = sqlContext.createDataFrame(sc.parallelize(df.take(1000)), df.schema).cache()
 
 # COMMAND ----------
@@ -36,7 +34,7 @@ display(transformed_df.drop("genotypes"))
 # MAGIC %scala
 # MAGIC import io.projectglow.Glow
 # MAGIC 
-# MAGIC val df = spark.read.format("vcf").load("/databricks-datasets/genomics/1kg-vcfs").limit(10)
+# MAGIC val df = spark.read.format("vcf").load("/databricks-datasets/genomics/1kg-vcfs/*.vcf.gz").limit(10)
 # MAGIC val transformed = Glow.transform("pipe", df, Map(
 # MAGIC            "cmd" -> Seq("grep", "-v", "#INFO"),
 # MAGIC            "inputFormatter" -> "vcf",
