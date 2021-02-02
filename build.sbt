@@ -452,8 +452,8 @@ Seq(
   commitStableVersion,
   tagRelease
 ) ++
-crossReleaseStep(publishArtifacts, requiresPySpark = false) ++
-crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test"), requiresPySpark = false) ++
+crossReleaseStep(publishArtifacts, requiresPySpark = false, requiresHail = false) ++
+crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test"), requiresPySpark = false, requiresHail = false) ++
 Seq(
   setNextVersion,
   commitNextVersion
