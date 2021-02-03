@@ -405,23 +405,33 @@ updateCondaEnv := {
   "conda env update -f python/environment.yml" !
 }
 
-def crossReleaseStep(step: ReleaseStep, requiresPySpark: Boolean): Seq[ReleaseStep] = {
+def crossReleaseStep(step: ReleaseStep, requiresPySpark: Boolean, requiresHail: Boolean): Seq[ReleaseStep] = {
   val updateCondaEnvStep = releaseStepCommandAndRemaining(
     if (requiresPySpark) "updateCondaEnv" else "")
   val changePySparkVersionStep = releaseStepCommandAndRemaining(
     if (requiresPySpark) "changePySparkVersion" else "")
+  val installHailStep = releaseStepCommandAndRemaining(
+    if (requiresHail) "installHail" else "")
+  val uninstallHailStep = releaseStepCommandAndRemaining(
+    if (requiresHail) "uninstallHail" else "")
 
   Seq(
     updateCondaEnvStep,
     releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark3""""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
+    installHailStep,
     step,
+    uninstallHailStep,
     changePySparkVersionStep,
     releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark2""""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala211""""),
+    installHailStep,
     step,
+    uninstallHailStep,
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
+    installHailStep,
     step,
+    uninstallHailStep,
     updateCondaEnvStep
   )
 }
@@ -431,7 +441,10 @@ releaseProcess := Seq[ReleaseStep](
   inquireVersions,
   runClean
 ) ++
-crossReleaseStep(runTest, true) ++
+crossReleaseStep(releaseStepCommandAndRemaining("core/test"), requiresPySpark = false, requiresHail = false) ++
+crossReleaseStep(releaseStepCommandAndRemaining("python/test"), requiresPySpark = true, requiresHail = false) ++
+crossReleaseStep(releaseStepCommandAndRemaining("docs/test"), requiresPySpark = true, requiresHail = false) ++
+crossReleaseStep(releaseStepCommandAndRemaining("hail/test"), requiresPySpark = true, requiresHail = true) ++
 Seq(
   setReleaseVersion,
   updateStableVersion,
@@ -439,8 +452,8 @@ Seq(
   commitStableVersion,
   tagRelease
 ) ++
-crossReleaseStep(publishArtifacts, false) ++
-crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test"), false) ++
+crossReleaseStep(publishArtifacts, requiresPySpark = false, requiresHail = false) ++
+crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test"), requiresPySpark = false, requiresHail = false) ++
 Seq(
   setNextVersion,
   commitNextVersion
