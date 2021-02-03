@@ -345,7 +345,7 @@ ThisBuild / developers := List(
   Developer(
     "henrydavidge",
     "Henry Davidge",
-    "hhd@databricks.com",
+    "henry@davidge.me",
     url("https://github.com/henrydavidge")),
   Developer(
     "karenfeng",
