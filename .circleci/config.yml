@@ -118,6 +118,14 @@ jobs:
             export SCALA_VERSION="2.11.12"
             sbt coverage core/test coverageReport exit
       - run:
+          name: Run docs tests
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            export SPARK_VERSION="2.4.5"
+            export SCALA_VERSION="2.11.12"
+            sbt docs/test exit
+      - run:
           name: Run Python tests
           no_output_timeout: 30m
           environment:
@@ -137,14 +145,6 @@ jobs:
             sudo apt-get update
             sudo apt-get -y install rsync
             sbt installHail hail/test uninstallHail exit
-      - run:
-          name: Run docs tests
-          environment:
-          command: |
-            export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="2.4.5"
-            export SCALA_VERSION="2.11.12"
-            sbt docs/test exit
       - *check_clean_repo
       - store_artifacts:
           path: ~/glow/unit-tests.log
@@ -177,6 +177,14 @@ jobs:
             export SCALA_VERSION="2.12.8"
             sbt core/test exit
       - run:
+          name: Run docs tests
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            export SPARK_VERSION="2.4.5"
+            export SCALA_VERSION="2.12.8"
+            sbt docs/test exit
+      - run:
           name: Run Python tests
           no_output_timeout: 30m
           environment:
@@ -195,14 +203,6 @@ jobs:
             sudo apt-get update
             sudo apt-get -y install rsync
             sbt installHail hail/test uninstallHail exit
-      - run:
-          name: Run docs tests
-          environment:
-          command: |
-            export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="2.4.5"
-            export SCALA_VERSION="2.12.8"
-            sbt docs/test exit
 
 
   spark-3-tests:
@@ -227,6 +227,14 @@ jobs:
             export SCALA_VERSION="2.12.8"
             sbt core/test exit
       - run:
+          name: Run docs tests
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            export SPARK_VERSION="3.0.0"
+            export SCALA_VERSION="2.12.8"
+            sbt docs/test exit
+      - run:
           name: Run Python tests
           no_output_timeout: 30m
           environment:
@@ -245,14 +253,6 @@ jobs:
             sudo apt-get update
             sudo apt-get -y install rsync
             sbt installHail hail/test uninstallHail exit
-      - run:
-          name: Run docs tests
-          environment:
-          command: |
-            export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="3.0.0"
-            export SCALA_VERSION="2.12.8"
-            sbt docs/test exit
       - *check_clean_repo
       - store_artifacts:
           path: ~/glow/unit-tests.log

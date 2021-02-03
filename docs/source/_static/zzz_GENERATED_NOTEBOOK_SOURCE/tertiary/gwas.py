@@ -31,7 +31,7 @@ from dataclasses import dataclass
 
 import mlflow
 import glow
-glow.register(spark)
+spark = glow.register(spark)
 
 # COMMAND ----------
 
@@ -118,13 +118,13 @@ def get_sample_info(vcf_df, sample_metadata_df):
 
 # COMMAND ----------
 
-vcf_view_unsplit = spark.read.format("vcf"). \
-   option("flattenInfoFields", "false"). \
-   load(vcf_path)
+vcf_view_unsplit = (spark.read.format("vcf")
+   .option("flattenInfoFields", "false")
+   .load(vcf_path))
 
 # COMMAND ----------
 
-# MAGIC %md Split multiallelics varaints to biallelics
+# MAGIC %md Split multiallelics variants to biallelics
 
 # COMMAND ----------
 
@@ -141,16 +141,16 @@ display(vcf_view.withColumn("genotypes", fx.col("genotypes")[0]))
 
 # COMMAND ----------
 
-vcf_view. \
-  select(
+(vcf_view
+  .select(
     fx.expr("*"),
     glow.expand_struct(glow.call_summary_stats(fx.col("genotypes"))),
     glow.expand_struct(glow.hardy_weinberg(fx.col("genotypes")))
-  ). \
-  write. \
-  mode("overwrite"). \
-  format("delta"). \
-  save(delta_silver_path)
+  )
+  .write
+  .mode("overwrite")
+  .format("delta")
+  .save(delta_silver_path))
 
 # COMMAND ----------
 
@@ -172,11 +172,11 @@ mlflow.log_metric("Number Variants pre-QC", num_variants)
 
 # COMMAND ----------
 
-hwe = spark.read.format("delta"). \
-                 load(delta_silver_path). \
-                 where((fx.col("alleleFrequencies").getItem(0) >= allele_freq_cutoff) & 
-                       (fx.col("alleleFrequencies").getItem(0) <= (1.0 - allele_freq_cutoff))). \
-                 withColumn("log10pValueHwe", fx.when(fx.col("pValueHwe") == 0, 26).otherwise(-fx.log10(fx.col("pValueHwe"))))
+hwe = (spark.read.format("delta")
+                 .load(delta_silver_path)
+                 .where((fx.col("alleleFrequencies").getItem(0) >= allele_freq_cutoff) & 
+                       (fx.col("alleleFrequencies").getItem(0) <= (1.0 - allele_freq_cutoff)))
+                 .withColumn("log10pValueHwe", fx.when(fx.col("pValueHwe") == 0, 26).otherwise(-fx.log10(fx.col("pValueHwe")))))
 
 # COMMAND ----------
 
@@ -205,15 +205,15 @@ mlflow.log_artifact("/databricks/driver/hwe.png")
 
 # COMMAND ----------
 
-spark.read.format("delta"). \
-   load(delta_silver_path). \
-   where((fx.col("alleleFrequencies").getItem(0) >= allele_freq_cutoff) & 
+(spark.read.format("delta")
+   .load(delta_silver_path)
+   .where((fx.col("alleleFrequencies").getItem(0) >= allele_freq_cutoff) & 
          (fx.col("alleleFrequencies").getItem(0) <= (1.0 - allele_freq_cutoff)) &
-         (fx.col("pValueHwe") >= hwe_cutoff)). \
-   write. \
-   mode("overwrite"). \
-   format("delta"). \
-   save(delta_gold_path)
+         (fx.col("pValueHwe") >= hwe_cutoff))
+   .write
+   .mode("overwrite")
+   .format("delta")
+   .save(delta_gold_path))
 
 # COMMAND ----------
 
@@ -232,10 +232,10 @@ mlflow.log_metric("Number Variants post-QC", num_variants)
 
 # COMMAND ----------
 
-vectorized = spark.read.format("delta"). \
-                        load(delta_gold_path). \
-                        select(glow.array_to_sparse_vector(glow.genotype_states(fx.col("genotypes"))).alias("features")). \
-                        cache()
+vectorized = (spark.read.format("delta")
+                        .load(delta_gold_path)
+                        .select(glow.array_to_sparse_vector(glow.genotype_states(fx.col("genotypes"))).alias("features"))
+                        .cache())
 
 # COMMAND ----------
 
@@ -295,25 +295,13 @@ display(pcs_with_samples)
 
 # COMMAND ----------
 
-bmiPhenotype = spark.read. \
-                     format("parquet"). \
-                     load(phenotype_path). \
-                     withColumnRenamed("values", "phenotype_values")
-
-# COMMAND ----------
-
-display(bmiPhenotype.select(fx.explode(fx.col("phenotype_values")).alias("bmi")))
+phenotype_df = pd.read_parquet('/dbfs/' + phenotype_path).explode('values').rename({'values': 'bmi'}, axis='columns').reset_index(drop=True)
+del phenotype_df['phenotype']
+phenotype_df
 
 # COMMAND ----------
 
 covariate_df = pd.read_csv(principal_components_path)
-
-# COMMAND ----------
-
-phenotype_df = bmiPhenotype.toPandas(). \
-  explode('phenotype_values'). \
-  reset_index(drop=True). \
-  pivot(columns='phenotype', values='phenotype_values')
 
 # COMMAND ----------
 
@@ -340,10 +328,10 @@ results = glow.gwas.linear_regression(
   values_column=glow.genotype_states(fx.col('genotypes'))
 )
 
-results.write. \
-  format("delta"). \
-  mode("overwrite"). \
-  save(gwas_results_path)
+(results.write
+  .format("delta")
+  .mode("overwrite")
+  .save(gwas_results_path))
 
 # COMMAND ----------
 

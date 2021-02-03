@@ -206,10 +206,10 @@ an offset.
      contigName='22',
      start=16050114,
      names=['rs587755077'],
-     effect=0.14153340605722264,
-     stderror=0.17619727316255493,
-     tvalue=0.8032667221055554,
-     pvalue=0.42189707280260846,
+     effect=0.14270211676783012,
+     stderror=0.16438780778222647,
+     tvalue=0.8680821205236547,
+     pvalue=0.38543283172628373,
      phenotype='Continuous_Trait_1')
    assert_rows_equal(lin_reg_df.filter('contigName = 22 and start = 16050114').head(), expected_lin_reg_row)
 
@@ -267,10 +267,16 @@ an offset.
  The ``offset`` parameter is especially useful in incorporating the results of :ref:`GloWGR <glowgr>` with
  phenotypes in GWAS. Please refer to :ref:`glowgr` for details and example notebook.
 
-Example notebook and blog post
-------------------------------
+Example notebooks and blog post
+-------------------------------
+
+.. notebook:: .. tertiary/gwas-quantitative.html
+  :title: GloWGR: GWAS for quantitative traits
+
+.. notebook:: .. tertiary/gwas-binary.html
+  :title: GloWGR: GWAS for binary traits
 
 A detailed example and explanation of a GWAS workflow is available `here <https://databricks.com/blog/2019/09/20/engineering-population-scale-genome-wide-association-studies-with-apache-spark-delta-lake-and-mlflow.html>`_.
 
 .. notebook:: .. tertiary/gwas.html
-  :title: GWAS notebook
+  :title: GWAS with MLflow instrumentation

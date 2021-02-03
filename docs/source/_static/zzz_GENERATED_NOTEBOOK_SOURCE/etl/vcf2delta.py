@@ -28,7 +28,7 @@
 # COMMAND ----------
 
 import glow
-glow.register(spark)
+spark = glow.register(spark)
 import pyspark.sql.functions as fx
 from pyspark.sql.types import *
 from random import sample
@@ -50,8 +50,6 @@ vcf_output_path = "dbfs:/home/genomics/vcf/subset.vcf"
 
 # MAGIC %md
 # MAGIC ####![Spark Logo Tiny](https://kpistoropen.blob.core.windows.net/collateral/roadshow/logo_spark_tiny.png)  Read in pVCF as a [Spark Data Source](https://spark.apache.org/docs/latest/sql-data-sources.html) using Glow <img src="https://databricks-knowledge-repo-images.s3.us-east-2.amazonaws.com/HLS/glow/project_glow_logo.png" alt="logo" width="30"/>
-# MAGIC 
-# MAGIC [Glow](https://glow.readthedocs.io/en/latest/) is built into the Databricks Runtime for Genomics
 
 # COMMAND ----------
 
