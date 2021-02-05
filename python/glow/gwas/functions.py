@@ -35,7 +35,7 @@ def _validate_covariates_and_phenotypes(covariate_df, phenotype_df, is_binary):
             raise ValueError(
                 f'phenotype_df and covariate_df must have the same number of rows ({phenotype_df.shape[0]} != {covariate_df.shape[0]}'
             )
-    if not (np.sum(~np.isnan(phenotype_df)) > covariate_df.shape[1]).all():
+    if not ((~phenotype_df.isna()).sum() > covariate_df.shape[1]).all():
         raise ValueError('There must be more non-missing samples than covariates')
     if is_binary:
         _check_binary(phenotype_df)
