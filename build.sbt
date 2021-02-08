@@ -291,6 +291,8 @@ ThisBuild / yapf := {
       "--recursive",
       "--exclude",
       "python/glow/functions.py",
+      "--exclude",
+      "python/build/lib/glow/functions.py",
       "python")
   ).!
   require(ret == 0, "Python style tests failed")
