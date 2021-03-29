@@ -7,7 +7,6 @@ Split Multiallelic Variants
 .. invisible-code-block: python
 
     import glow
-    glow.register(spark)
 
     test_dir = 'test-data/variantsplitternormalizer-test/'
     df_original = spark.read.format('vcf').load(test_dir + '01_IN_altered_multiallelic.vcf')

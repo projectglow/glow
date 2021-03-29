@@ -13,12 +13,16 @@
 # limitations under the License.
 
 
+import glow
 from sybil import Sybil
 from sybil.parsers.codeblock import CodeBlockParser
 from pandas.testing import assert_series_equal
 import pytest
 import pandas as pd
 
+@pytest.fixture(scope="module")
+def register_glow(spark):
+    glow.register(spark, new_session=False)
 
 @pytest.fixture(scope="session")
 def assert_rows_equal():
@@ -36,5 +40,5 @@ pytest_collect_file = Sybil(
         CodeBlockParser(future_imports=['print_function']),
     ],
     pattern='*.rst',
-    fixtures=['assert_rows_equal', 'spark'],
+    fixtures=['assert_rows_equal', 'spark', 'register_glow'],
 ).pytest()

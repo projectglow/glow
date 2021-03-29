@@ -7,7 +7,6 @@ GloWGR: Genome-Wide Association Study (GWAS) Regression Tests
 .. invisible-code-block: python
 
     import glow
-    glow.register(spark)
 
     genotypes_vcf = 'test-data/gwas/genotypes.vcf.gz'
     covariates_csv = 'test-data/gwas/covariates.csv.gz'

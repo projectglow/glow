@@ -5,7 +5,6 @@ Parallelizing Command-Line Bioinformatics Tools With the Pipe Transformer
 .. invisible-code-block: python
 
     import glow
-    glow.register(spark)
 
     path = 'test-data/NA12878_21_10002403.vcf'
     bed = 'test-data/bedtools/intersect_21.bed'

@@ -4,11 +4,6 @@
 Sample Quality Control
 ======================
 
-.. invisible-code-block: python
-
-    import glow
-    glow.register(spark, new_session=False)
-
 You can calculate quality control statistics on your variant data using Spark SQL functions, which
 can be expressed in Python, R, Scala, or SQL.
 
