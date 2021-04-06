@@ -48,11 +48,11 @@ class GlowBase {
       sess.sessionState.functionRegistry)
 
     // Decrease the parquet columnar batch size (often necessary for large cohorts)
-    spark.conf.set("spark.sql.parquet.columnarReaderBatchSize", "16")
+    sess.conf.set("spark.sql.parquet.columnarReaderBatchSize", "16")
     // Add BGZ compression codec. Note that we do not enable for the enhanced GZIP codec, which automatically
     // determines if an input file is gzipped or bgzipped, for all datasources since it confuses Spark's built in
     // datasources.
-    spark.conf.set("io.compression.codecs", compressionCodecsWithBGZ(spark))
+    sess.conf.set("io.compression.codecs", compressionCodecsWithBGZ(spark))
     sess
   }
 

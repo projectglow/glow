@@ -7,8 +7,6 @@ Liftover
 .. invisible-code-block: python
 
     import glow
-    glow.register(spark)
-
     input_df = spark.read.format('vcf').load('test-data/combined.chr20_18210071_18210093.g.vcf')
     chain_file = 'test-data/liftover/hg38ToHg19.over.chain.gz'
     reference_file = 'test-data/liftover/hg19.chr20.fa.gz'

@@ -7,7 +7,6 @@ Variant Normalization
 .. invisible-code-block: python
 
     import glow
-    glow.register(spark)
 
     test_dir = 'test-data/variantsplitternormalizer-test/'
     df_original = spark.read.format('vcf').load(test_dir + 'test_left_align_hg38_altered.vcf')

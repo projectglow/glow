@@ -12,7 +12,6 @@ Read and Write VCF, Plink, and BGEN with Spark
     import shutil
 
     import glow
-    glow.register(spark)
 
 
 Glow makes it possible to read and write variant data at scale using Spark SQL.

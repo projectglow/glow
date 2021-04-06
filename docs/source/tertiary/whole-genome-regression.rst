@@ -7,7 +7,6 @@ GloWGR: Whole Genome Regression
 .. invisible-code-block: python
 
     import glow
-    glow.register(spark, new_session=False)
 
     genotypes_vcf = 'test-data/gwas/genotypes.vcf.gz'
     covariates_csv = 'test-data/gwas/covariates.csv.gz'

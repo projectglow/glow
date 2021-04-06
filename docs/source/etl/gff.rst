@@ -10,7 +10,6 @@ Read Genome Annotations (GFF3) as a Spark DataFrame
     from pyspark.sql.types import *
 
     import glow
-    glow.register(spark)
 
 `GFF3 (Generic Feature Format Version 3) <https://github.com/The-Sequence-Ontology/Specifications/blob/master/gff3.md>`_ is a 9-column tab-separated text file format commonly used to store genomic annotations.
 Typically, the majority of annotation data in this format appears in the ninth column, called ``attributes``, as a semi-colon-separated list of ``<tag>=<value>`` entries. If Spark's standard ``csv`` data source is used to read GFF3 files, the whole list of attribute tag-value pairs will be read as a single string-typed column, making queries on  these tags/values cumbersome.
