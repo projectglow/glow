@@ -7,7 +7,6 @@ Hail Interoperation
     import glow
     import hail as hl
     hl.init(spark.sparkContext, idempotent=True, quiet=True)
-    glow.register(spark)
 
     vcf = 'test-data/NA12878_21_10002403.vcf'
     mt = hl.import_vcf(vcf)

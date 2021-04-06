@@ -17,8 +17,8 @@
 package io.projectglow
 
 import org.apache.spark.sql.DataFrame
-
 import io.projectglow.sql.GlowBaseTest
+import org.apache.spark.SparkException
 
 class GlowSuite extends GlowBaseTest {
   def checkTransform(df: DataFrame): Unit = {
@@ -86,6 +86,19 @@ class GlowSuite extends GlowBaseTest {
     }
     Glow.transform("dummyTransformer", spark.emptyDataFrame, Map("pi" -> 3.14159))
     Glow.transform("dummyTransformer", spark.emptyDataFrame, Map("pi" -> "3.14159"))
+  }
+
+  test("registers bgz conf") {
+    val sess = spark.newSession()
+    val path = s"$testDataHome/vcf-merge/HG00096.vcf.bgz"
+
+    intercept[SparkException] {
+      // Exception because bgz codec is not registered
+      sess.read.format("vcf").load(path).collect()
+    }
+
+    val sessWithGlow = Glow.register(sess)
+    sessWithGlow.read.format("vcf").load(path).collect() // No error
   }
 }
 

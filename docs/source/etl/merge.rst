@@ -7,7 +7,6 @@ Merging Variant Datasets
 .. invisible-code-block: python
 
     import glow
-    glow.register(spark)
     path1 = 'test-data/vcf-merge/HG00096.vcf.bgz'
     path2 = 'test-data/vcf-merge/HG00097.vcf.bgz'
 

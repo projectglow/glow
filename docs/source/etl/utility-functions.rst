@@ -5,7 +5,6 @@ Utility Functions
 .. invisible-code-block: python
 
     import glow
-    glow.register(spark)
 
 Glow includes a variety of utility functions for performing basic data manipulation.
 
