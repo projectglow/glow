@@ -426,7 +426,7 @@ def log_loss(p: NDArray[Float], y: NDArray[Float]) -> NDArray[Float]:
     return -(y * np.log(p + eps) + (1 - y) * np.log(1 - p + eps)).sum(axis=0) / y.shape[0]
 
 
-#@typechecked
+# @typechecked
 def create_alpha_dict(alphas: NDArray[(Any, ), Float]) -> Dict[str, Float]:
     """
     Creates a mapping to attach string identifiers to alpha values.
