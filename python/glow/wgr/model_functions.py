@@ -442,7 +442,7 @@ def create_alpha_dict(alphas: NDArray[(Any, ), Float]) -> Dict[str, Float]:
     return {f'alpha_{i}': a for i, a in enumerate(alphas)}
 
 
-@typechecked
+# @typechecked -- typeguard does not support numpy array
 def generate_alphas(blockdf: DataFrame) -> Dict[str, Float]:
     """
     Generates alpha values using a range of heritability values and the number of distinct headers (without labels).
