@@ -510,7 +510,7 @@ def test_tie_break(spark):
                                 std_labeldf,
                                 group2ids,
                                 add_intercept=False,
-                                alphas=np.array([0.1, 0.2, 0.1, 0.2]))
+                                alphas=[0.1, 0.2, 0.1, 0.2])
     _, cvdf = regressor.fit()
 
     assert cvdf.count() == len(labeldf.columns)
@@ -555,8 +555,7 @@ def test_reducer_generate_alphas(spark):
                                        std_labeldf,
                                        group2ids,
                                        add_intercept=False,
-                                       alphas=np.array(
-                                           sorted(list(generate_alphas(blockdf).values()))))
+                                       alphas=sorted(list(generate_alphas(blockdf).values())))
 
     model0_without_alphas = stack_without_alphas.fit()
     model0df = stack_with_alphas.fit()
@@ -580,8 +579,7 @@ def test_regression_generate_alphas(spark):
                                             std_labeldf,
                                             group2ids,
                                             add_intercept=False,
-                                            alphas=np.array(
-                                                sorted(list(generate_alphas(level1df).values()))))
+                                            alphas=sorted(list(generate_alphas(level1df).values())))
 
     model1_without_alphas, cv_without_alphas = regressor_without_alphas.fit()
     model1df, cvdf = regressor_with_alphas.fit()
