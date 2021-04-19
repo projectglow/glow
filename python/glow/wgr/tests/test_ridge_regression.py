@@ -40,7 +40,7 @@ covdf_empty = pd.DataFrame({})
 covdf_with_missing = std_covdf.copy()
 covdf_with_missing.loc['1073199471', 'cov1'] = math.nan
 
-alphas = np.array([0.1, 1, 10])
+alphas = [0.1, 1, 10]
 alphaMap = {f'alpha_{i}': a for i, a in enumerate(alphas)}
 columnIndexer = sorted(enumerate(alphaMap.keys()), key=lambda t: t[1])
 coefOrder = [i for i, a in columnIndexer]
