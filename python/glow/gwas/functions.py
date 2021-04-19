@@ -65,7 +65,7 @@ def _prepare_genotype_df(genotype_df, values_column, sql_type):
     return out
 
 
-@typechecked
+# @typechecked -- typeguard does not support numpy array
 def _add_intercept(C: NDArray[(Any, Any), Float], num_samples: int) -> NDArray[(Any, Any), Float]:
     intercept = np.ones((num_samples, 1))
     return np.hstack((intercept, C)) if C.size else intercept
@@ -128,7 +128,7 @@ def _validate_offset(phenotype_df: pd.DataFrame, offset_df: pd.DataFrame) -> _Of
         return _OffsetType.NO_OFFSET
 
 
-@typechecked
+# @typechecked -- typeguard does not support numpy array
 def _residualize_in_place(M: NDArray[(Any, Any), Float],
                           Q: NDArray[(Any, Any), Float]) -> NDArray[(Any, Any), Float]:
     '''

@@ -105,7 +105,7 @@ def parse_header_block_sample_block_label_alpha_name(
         return header_block, key[0], key[1], key[2]
 
 
-# @typechecked
+# @typechecked -- typeguard does not support numpy array
 def assemble_block(n_rows: Int, n_cols: Int, pdf: pd.DataFrame, cov_matrix: NDArray[(Any, Any),
                                                                                     Float],
                    row_mask: NDArray[Any]) -> NDArray[Float]:
@@ -149,7 +149,7 @@ def assemble_block(n_rows: Int, n_cols: Int, pdf: pd.DataFrame, cov_matrix: NDAr
         return X[row_mask, :]
 
 
-@typechecked
+# @typechecked -- typeguard does not support numpy array
 def constrained_logistic_fit(X: NDArray[Float], y: NDArray[Float], alpha_arr: NDArray[Float],
                              guess: NDArray[Float], n_cov: Int) -> scipy.optimize.OptimizeResult:
     """
@@ -190,7 +190,7 @@ def constrained_logistic_fit(X: NDArray[Float], y: NDArray[Float], alpha_arr: ND
     return scipy.optimize.minimize(objective, guess, jac=gradient, method='L-BFGS-B')
 
 
-@typechecked
+# @typechecked -- typeguard does not support numpy array
 def get_irls_pieces(X: NDArray[Float], y: NDArray[Float], alpha_value: Float,
                     beta_cov: NDArray[Float]) -> (NDArray[Float], NDArray[Float], NDArray[Float]):
     """
@@ -234,7 +234,7 @@ def get_irls_pieces(X: NDArray[Float], y: NDArray[Float], alpha_value: Float,
     return beta, XtGX, XtY
 
 
-# @typechecked
+# @typechecked -- typeguard does not support numpy array
 def slice_label_rows(labeldf: pd.DataFrame, label: str, sample_list: List[str],
                      row_mask: NDArray[Any]) -> NDArray[Any]:
     """
@@ -377,7 +377,7 @@ def new_headers(header_block: str, alpha_names: Iterable[str],
     return new_header_block, sort_keys, headers
 
 
-@typechecked
+# @typechecked -- typeguard does not support numpy array
 def r_squared(XB: NDArray[Float], Y: NDArray[Float]) -> NDArray[(Any, ), Float]:
     """
     Computes the coefficient of determination (R2) metric between the matrix resulting from X*B and the matrix of labels
@@ -396,7 +396,7 @@ def r_squared(XB: NDArray[Float], Y: NDArray[Float]) -> NDArray[(Any, ), Float]:
     return 1 - (res / tot)
 
 
-@typechecked
+# @typechecked -- typeguard does not support numpy array
 def sigmoid(z: NDArray[Float]) -> NDArray[Float]:
     """
     Computes the sigmoid function for each element in input z
@@ -410,7 +410,7 @@ def sigmoid(z: NDArray[Float]) -> NDArray[Float]:
     return 1 / (1 + np.exp(-z))
 
 
-@typechecked
+# @typechecked -- typeguard does not support numpy array
 def log_loss(p: NDArray[Float], y: NDArray[Float]) -> NDArray[Float]:
     """
     Computes the log loss of probability values p and observed binary variable y.
@@ -426,7 +426,7 @@ def log_loss(p: NDArray[Float], y: NDArray[Float]) -> NDArray[Float]:
     return -(y * np.log(p + eps) + (1 - y) * np.log(1 - p + eps)).sum(axis=0) / y.shape[0]
 
 
-# @typechecked
+# @typechecked -- typeguard does not support numpy array
 def create_alpha_dict(alphas: NDArray[(Any, ), Float]) -> Dict[str, Float]:
     """
     Creates a mapping to attach string identifiers to alpha values.
