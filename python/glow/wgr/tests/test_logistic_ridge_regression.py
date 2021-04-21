@@ -43,7 +43,7 @@ for label in labeldf:
                                           n_cov=0)
     beta_cov_dict[label] = fit_result.x
 
-alpha_values = np.array([10, 30, 100])
+alpha_values = [10, 30, 100]
 alphas = {f'alpha_{i}': a for i, a in enumerate(alpha_values)}
 test_sample_block = '1'
 test_label = 'sim50'

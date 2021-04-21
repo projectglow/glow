@@ -35,7 +35,7 @@ class Model:
     offset: NDArray[(Any, ), Float]
 
 
-@typechecked
+# @typechecked -- typeguard does not support numpy array
 def _calculate_log_likelihood(beta: NDArray[(Any, ), Float], model: Model) -> LogLikelihood:
 
     pi = scipy.special.expit(model.X @ beta + model.offset)
@@ -125,7 +125,7 @@ def _fit_firth(beta_init: NDArray[(Any, ), Float],
     return FirthFit(beta, log_likelihood)
 
 
-@typechecked
+# @typechecked -- typeguard does not support numpy array
 def perform_null_firth_fit(
     y: NDArray[(Any, ), Float],
     C: NDArray[(Any, Any), Float],

@@ -207,7 +207,7 @@ def _pdf_to_log_reg_state(pdf: pd.DataFrame, phenotypes: pd.Series, n_covar: int
     return LogRegState(inv_CtGammaC, gamma, Y_res, firth_offset)
 
 
-@typechecked
+# @typechecked -- typeguard does not support numpy array
 def _create_log_reg_state(
         spark: SparkSession, phenotype_df: pd.DataFrame, offset_df: pd.DataFrame,
         sql_type: DataType, C: NDArray[(Any, Any), Float], correction: str, add_intercept: bool,
