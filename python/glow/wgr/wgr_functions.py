@@ -216,8 +216,8 @@ def estimate_loco_offsets(block_df: DataFrame,
                           sample_blocks: Dict[str, List[str]],
                           cov_df: pd.DataFrame = pd.DataFrame({}),
                           add_intercept: bool = True,
-                          reduction_alphas: NDArray[(Any, ), Float] = np.array([]),
-                          regression_alphas: NDArray[(Any, ), Float] = np.array([]),
+                          reduction_alphas: List[float] = [],
+                          regression_alphas: List[float] = [],
                           label_type='detect',
                           chromosomes: List[str] = []) -> pd.DataFrame:
     """

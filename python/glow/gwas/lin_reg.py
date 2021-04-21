@@ -170,7 +170,7 @@ def _create_one_YState(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame
     return YState(Y, np.sum(Y * Y, axis=0))
 
 
-@typechecked
+# @typechecked -- typeguard does not support numpy array
 def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
                              Y_mask: NDArray[(Any, Any), Float], Y_scale: NDArray[(Any, ), Float],
                              Q: NDArray[(Any, Any), Float], dof: int,

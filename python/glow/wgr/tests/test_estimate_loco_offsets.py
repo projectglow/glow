@@ -22,7 +22,7 @@ import pandas as pd
 ridge_data_root = 'test-data/wgr/ridge-regression'
 logistic_ridge_data_root = 'test-data/wgr/logistic-regression'
 
-alphas = np.array([0.1, 1, 10])
+alphas = [0.1, 1, 10]
 
 
 def __get_sample_blocks(indexdf):
