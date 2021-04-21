@@ -65,7 +65,7 @@ class RidgeReduction:
         self._label_type = label_type
         self.set_label_df(label_df)
         self.set_cov_df(cov_df, add_intercept)
-        self.set_alphas(np.array(alphas))
+        self.set_alphas(alphas)
         self.model_df = None
         self.reduced_block_df = None
 
@@ -98,9 +98,9 @@ class RidgeReduction:
     def get_cov_df(self) -> pd.DataFrame:
         return self._cov_df
 
-    def set_alphas(self, alphas: NDArray[(Any, ), Float]) -> None:
+    def set_alphas(self, alphas: List[float]) -> None:
         self._alphas = generate_alphas(
-            self.block_df) if alphas.size == 0 else create_alpha_dict(alphas)
+            self.block_df) if len(alphas) == 0 else create_alpha_dict(alphas)
 
     def get_alphas(self) -> Dict[str, Float]:
         return self._alphas

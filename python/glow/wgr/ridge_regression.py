@@ -66,7 +66,7 @@ class RidgeRegression:
         self.sample_blocks = sample_blocks
         self.set_label_df(label_df)
         self.set_cov_df(cov_df, add_intercept)
-        self.set_alphas(np.array(alphas))
+        self.set_alphas(alphas)
         self.model_df = None
         self.cv_df = None
         self.y_hat_df = None
@@ -87,7 +87,7 @@ class RidgeRegression:
         obj._std_label_df = ridge_reduced._std_label_df
         obj._cov_df = ridge_reduced.get_cov_df()
         obj._std_cov_df = ridge_reduced._std_cov_df
-        obj.set_alphas(np.array(alphas))
+        obj.set_alphas(alphas)
         obj.model_df = None
         obj.cv_df = None
         obj.y_hat_df = None
@@ -114,9 +114,9 @@ class RidgeRegression:
     def get_cov_df(self) -> pd.DataFrame:
         return self._cov_df
 
-    def set_alphas(self, alphas: NDArray[(Any, ), Float]) -> None:
+    def set_alphas(self, alphas: List[float]) -> None:
         self._alphas = generate_alphas(
-            self.reduced_block_df) if alphas.size == 0 else create_alpha_dict(alphas)
+            self.reduced_block_df) if len(alphas) == 0 else create_alpha_dict(alphas)
 
     def get_alphas(self) -> Dict[str, Float]:
         return self._alphas

@@ -59,7 +59,7 @@ class LogisticRidgeRegression:
         self.sample_blocks = sample_blocks
         self.set_label_df(label_df)
         self.set_cov_df(cov_df, add_intercept)
-        self.set_alphas(np.array(alphas))
+        self.set_alphas(alphas)
         self.model_df = None
         self.cv_df = None
         self.y_hat_df = None
@@ -79,7 +79,7 @@ class LogisticRidgeRegression:
         obj._label_df = ridge_reduced.get_label_df()
         obj._cov_df = ridge_reduced.get_cov_df()
         obj._std_cov_df = ridge_reduced._std_cov_df
-        obj.set_alphas(np.array(alphas))
+        obj.set_alphas(alphas)
         obj.model_df = None
         obj.cv_df = None
         obj.y_hat_df = None
@@ -106,9 +106,9 @@ class LogisticRidgeRegression:
     def get_cov_df(self) -> pd.DataFrame:
         return self._cov_df
 
-    def set_alphas(self, alphas: NDArray[(Any, ), Float]) -> None:
+    def set_alphas(self, alphas: List[float]) -> None:
         self._alphas = generate_alphas(
-            self.reduced_block_df) if alphas.size == 0 else create_alpha_dict(alphas)
+            self.reduced_block_df) if len(alphas) == 0 else create_alpha_dict(alphas)
 
     def get_alphas(self) -> Dict[str, Float]:
         return self._alphas
@@ -192,7 +192,8 @@ class LogisticRidgeRegression:
             .groupBy(model_key_pattern) \
             .apply(model_udf) \
             .withColumn('alpha_label_coef', f.expr('struct(alphas[0] AS alpha, labels[0] AS label, coefficients[0] AS coefficient)')) \
-            .groupBy('header_block', 'sample_block', 'header', 'sort_key', f.col('alpha_label_coef.label')) \
+            .withColumn('alpha_label_coef_label', f.expr('labels[0]')) \
+            .groupBy('header_block', 'sample_block', 'header', 'sort_key', 'alpha_label_coef_label') \
             .agg(f.sort_array(f.collect_list('alpha_label_coef')).alias('alphas_labels_coefs')) \
             .selectExpr('*', 'alphas_labels_coefs.alpha AS alphas', 'alphas_labels_coefs.label AS labels', 'alphas_labels_coefs.coefficient AS coefficients') \
             .drop('alphas_labels_coefs', 'label')
