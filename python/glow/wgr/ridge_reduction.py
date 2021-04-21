@@ -45,7 +45,7 @@ class RidgeReduction:
                  sample_blocks: Dict[str, List[str]],
                  cov_df: pd.DataFrame = pd.DataFrame({}),
                  add_intercept: bool = True,
-                 alphas: NDArray[(Any, ), Float] = np.array([]),
+                 alphas: List[float] = [],
                  label_type='detect') -> None:
         """
         Args:
@@ -98,9 +98,9 @@ class RidgeReduction:
     def get_cov_df(self) -> pd.DataFrame:
         return self._cov_df
 
-    def set_alphas(self, alphas: NDArray[(Any, ), Float]) -> None:
+    def set_alphas(self, alphas: List[float]) -> None:
         self._alphas = generate_alphas(
-            self.block_df) if alphas.size == 0 else create_alpha_dict(alphas)
+            self.block_df) if len(alphas) == 0 else create_alpha_dict(alphas)
 
     def get_alphas(self) -> Dict[str, Float]:
         return self._alphas
