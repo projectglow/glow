@@ -359,6 +359,9 @@ ThisBuild / developers := List(
     url("https://github.com/kianfar77"))
 )
 
+// Release using Sonatype
+publishTo := sonatypePublishToBundle.value
+
 ThisBuild / pomIncludeRepository := { _ =>
   false
 }
