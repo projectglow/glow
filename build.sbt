@@ -437,10 +437,10 @@ releaseProcess := Seq[ReleaseStep](
   inquireVersions,
   runClean
 ) ++
-crossReleaseStep(releaseStepCommandAndRemaining("core/test"), requiresPySpark = false, requiresHail = false) ++
-crossReleaseStep(releaseStepCommandAndRemaining("python/test"), requiresPySpark = true, requiresHail = false) ++
-crossReleaseStep(releaseStepCommandAndRemaining("docs/test"), requiresPySpark = true, requiresHail = false) ++
-crossReleaseStep(releaseStepCommandAndRemaining("hail/test"), requiresPySpark = true, requiresHail = true) ++
+//crossReleaseStep(releaseStepCommandAndRemaining("core/test"), requiresPySpark = false, requiresHail = false) ++
+//crossReleaseStep(releaseStepCommandAndRemaining("python/test"), requiresPySpark = true, requiresHail = false) ++
+//crossReleaseStep(releaseStepCommandAndRemaining("docs/test"), requiresPySpark = true, requiresHail = false) ++
+//crossReleaseStep(releaseStepCommandAndRemaining("hail/test"), requiresPySpark = true, requiresHail = true) ++
 Seq(
   setReleaseVersion,
   updateStableVersion,
