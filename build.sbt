@@ -448,8 +448,8 @@ Seq(
   commitStableVersion,
   tagRelease
 ) ++
-crossReleaseStep(publishSigned, requiresPySpark = false, requiresHail = false) ++
-crossReleaseStep(sonatypeBundleRelease, requiresPySpark = false, requiresHail = false) ++
+crossReleaseStep(releaseStepCommandAndRemaining("publishSigned"), requiresPySpark = false, requiresHail = false) ++
+crossReleaseStep(releaseStepCommandAndRemaining("sonatypeBundleRelease"), requiresPySpark = false, requiresHail = false) ++
 crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test"), requiresPySpark = false, requiresHail = false) ++
 Seq(
   setNextVersion,
