@@ -190,7 +190,6 @@ lazy val core = (project in file("core"))
     // do so.
     packageOptions in (Compile, packageBin) +=
     Package.ManifestAttributes("Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
-    bintrayRepository := "glow",
     libraryDependencies ++= coreDependencies.value :+ scalaLoggingDependency.value,
     Compile / unmanagedSourceDirectories +=
     baseDirectory.value / "src" / "main" / "shim" / majorMinorVersion(sparkVersion.value),
@@ -334,7 +333,6 @@ lazy val docs = (project in file("docs"))
   )
   .dependsOn(core % "test->test", python)
 
-// Publish to Bintray
 ThisBuild / description := "An open-source toolkit for large-scale genomic analysis"
 ThisBuild / homepage := Some(url("https://projectglow.io"))
 ThisBuild / scmInfo := Some(
@@ -366,9 +364,6 @@ ThisBuild / pomIncludeRepository := { _ =>
 }
 ThisBuild / publishMavenStyle := true
 
-ThisBuild / bintrayOrganization := Some("projectglow")
-ThisBuild / bintrayRepository := "glow"
-
 lazy val stableVersion = settingKey[String]("Stable version")
 ThisBuild / stableVersion := IO
   .read((ThisBuild / baseDirectory).value / "stable-version.txt")
@@ -383,7 +378,6 @@ lazy val stagedRelease = (project in file("core/src/test"))
       sparkVersion.value),
     libraryDependencies ++= testSparkDependencies.value ++ testCoreDependencies.value :+
     "io.projectglow" %% s"glow-spark${majorVersion(sparkVersion.value)}" % stableVersion.value % "test",
-    resolvers := Seq("bintray-staging" at "https://dl.bintray.com/projectglow/glow"),
     org
       .jetbrains
       .sbt
@@ -454,7 +448,8 @@ Seq(
   commitStableVersion,
   tagRelease
 ) ++
-crossReleaseStep(publishArtifacts, requiresPySpark = false, requiresHail = false) ++
+crossReleaseStep(publishSigned, requiresPySpark = false, requiresHail = false) ++
+crossReleaseStep(sonatypeBundleRelease, requiresPySpark = false, requiresHail = false) ++
 crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test"), requiresPySpark = false, requiresHail = false) ++
 Seq(
   setNextVersion,
