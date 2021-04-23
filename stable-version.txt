@@ -1,1 +1,1 @@
-1.0.0-sonatypetest
+1.0.0
