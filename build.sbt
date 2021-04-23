@@ -361,7 +361,7 @@ lazy val stagedRelease = (project in file("core/src/test"))
       sparkVersion.value),
     libraryDependencies ++= testSparkDependencies.value ++ testCoreDependencies.value :+
     "io.projectglow" %% s"glow-spark${majorVersion(sparkVersion.value)}" % stableVersion.value % "test",
-    resolvers := Seq(sonatypeDefaultResolver.value),
+    resolvers := Seq(MavenCache("local-sonatype-staging", sonatypeBundleDirectory.value)),
     org
       .jetbrains
       .sbt
