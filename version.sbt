@@ -1,1 +1,1 @@
-version in ThisBuild := "1.0.0-sonatypetest"
+version in ThisBuild := "1.0.1-SNAPSHOT"
