@@ -342,6 +342,24 @@ ThisBuild / scmInfo := Some(
   )
 )
 
+ThisBuild / developers := List(
+  Developer(
+    "henrydavidge",
+    "Henry Davidge",
+    "henry@davidge.me",
+    url("https://github.com/henrydavidge")),
+  Developer(
+    "karenfeng",
+    "Karen Feng",
+    "karen.feng@databricks.com",
+    url("https://github.com/karenfeng")),
+  Developer(
+    "kianfar77",
+    "Kiavash Kianfar",
+    "kiavash.kianfar@databricks.com",
+    url("https://github.com/kianfar77"))
+)
+
 ThisBuild / pomIncludeRepository := { _ =>
   false
 }
@@ -426,10 +444,10 @@ releaseProcess := Seq[ReleaseStep](
   inquireVersions,
   runClean
 ) ++
-//crossReleaseStep(releaseStepCommandAndRemaining("core/test"), requiresPySpark = false, requiresHail = false) ++
-//crossReleaseStep(releaseStepCommandAndRemaining("python/test"), requiresPySpark = true, requiresHail = false) ++
-//crossReleaseStep(releaseStepCommandAndRemaining("docs/test"), requiresPySpark = true, requiresHail = false) ++
-//crossReleaseStep(releaseStepCommandAndRemaining("hail/test"), requiresPySpark = true, requiresHail = true) ++
+crossReleaseStep(releaseStepCommandAndRemaining("core/test"), requiresPySpark = false, requiresHail = false) ++
+crossReleaseStep(releaseStepCommandAndRemaining("python/test"), requiresPySpark = true, requiresHail = false) ++
+crossReleaseStep(releaseStepCommandAndRemaining("docs/test"), requiresPySpark = true, requiresHail = false) ++
+crossReleaseStep(releaseStepCommandAndRemaining("hail/test"), requiresPySpark = true, requiresHail = true) ++
 Seq(
   setReleaseVersion,
   updateStableVersion,
