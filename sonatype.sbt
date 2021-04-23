@@ -9,7 +9,7 @@ licenses := Seq("APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt"))
 import xerial.sbt.Sonatype._
 sonatypeProjectHosting := Some(GitHubHosting("projectglow", "glow", "karen.feng@databricks.com"))
 
-developers := List(
+ThisBuild / developers := List(
   Developer(
     "henrydavidge",
     "Henry Davidge",
@@ -28,4 +28,4 @@ developers := List(
 )
 
 // Release using Sonatype
-publishTo := sonatypePublishToBundle.value
+ThisBuild / publishTo := sonatypePublishToBundle.value
