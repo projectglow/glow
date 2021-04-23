@@ -341,26 +341,6 @@ ThisBuild / scmInfo := Some(
     "scm:git@github.com:projectglow/glow.git"
   )
 )
-ThisBuild / developers := List(
-  Developer(
-    "henrydavidge",
-    "Henry Davidge",
-    "henry@davidge.me",
-    url("https://github.com/henrydavidge")),
-  Developer(
-    "karenfeng",
-    "Karen Feng",
-    "karen.feng@databricks.com",
-    url("https://github.com/karenfeng")),
-  Developer(
-    "kianfar77",
-    "Kiavash Kianfar",
-    "kiavash.kianfar@databricks.com",
-    url("https://github.com/kianfar77"))
-)
-
-// Release using Sonatype
-publishTo := sonatypePublishToBundle.value
 
 ThisBuild / pomIncludeRepository := { _ =>
   false
@@ -452,7 +432,8 @@ Seq(
   tagRelease
 ) ++
 crossReleaseStep(releaseStepCommandAndRemaining("publishSigned"), requiresPySpark = false, requiresHail = false) ++
-crossReleaseStep(releaseStepCommandAndRemaining("sonatypeBundleRelease"), requiresPySpark = false, requiresHail = false) ++
+crossReleaseStep(releaseStepCommandAndRemaining("sonatypePrepare"), requiresPySpark = false, requiresHail = false) ++
+crossReleaseStep(releaseStepCommandAndRemaining("sonatypeBundleUpload"), requiresPySpark = false, requiresHail = false) ++
 crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test"), requiresPySpark = false, requiresHail = false) ++
 Seq(
   setNextVersion,
