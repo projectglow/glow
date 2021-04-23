@@ -416,6 +416,11 @@ def crossReleaseStep(step: ReleaseStep, requiresPySpark: Boolean, requiresHail: 
   )
 }
 
+def sonatypeSteps(): Seq[ReleaseStep] = Seq(
+  releaseStepCommandAndRemaining("sonatypePrepare"),
+  releaseStepCommandAndRemaining("sonatypeBundleUpload")
+)
+
 releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,
   inquireVersions,
@@ -433,10 +438,7 @@ Seq(
   tagRelease
 ) ++
 crossReleaseStep(releaseStepCommandAndRemaining("publishSigned"), requiresPySpark = false, requiresHail = false) ++
-Seq(
-  releaseStepCommandAndRemaining("sonatypePrepare"),
-  releaseStepCommandAndRemaining("sonatypeBundleUpload")
-) ++
+sonatypeSteps ++
 crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test"), requiresPySpark = false, requiresHail = false) ++
 Seq(
   setNextVersion,
