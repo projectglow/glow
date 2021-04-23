@@ -433,8 +433,10 @@ Seq(
   tagRelease
 ) ++
 crossReleaseStep(releaseStepCommandAndRemaining("publishSigned"), requiresPySpark = false, requiresHail = false) ++
-crossReleaseStep(releaseStepCommandAndRemaining("sonatypePrepare"), requiresPySpark = false, requiresHail = false) ++
-crossReleaseStep(releaseStepCommandAndRemaining("sonatypeBundleUpload"), requiresPySpark = false, requiresHail = false) ++
+Seq(
+  releaseStepCommandAndRemaining("sonatypePrepare"),
+  releaseStepCommandAndRemaining("sonatypeBundleUpload")
+) ++
 crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test"), requiresPySpark = false, requiresHail = false) ++
 Seq(
   setNextVersion,
