@@ -213,6 +213,26 @@ def test_missing_spark(spark, rg):
     baseline = statsmodels_baseline(genotype_df, phenotype_df, covariate_df)
     assert regression_results_equal(glow, baseline)
 
+@pytest.mark.min_spark('3')
+def test_sum_(spark, rg):
+    num_samples = 10
+    genotype_df = pd.DataFrame(rg.random((num_samples, 1)))
+    phenotype_df = pd.DataFrame(rg.random((num_samples, 3)))
+    phenotype_df.loc[0, 0] = np.nan
+    phenotype_df.loc[[1, 3, 5], 1] = np.nan
+    covariate_df = pd.DataFrame(rg.random((num_samples, 3)))
+    glow = run_linear_regression_spark(spark, genotype_df, phenotype_df, covariate_df)
+    baseline = statsmodels_baseline(genotype_df, phenotype_df, covariate_df)
+    assert regression_results_equal(glow, baseline)
+
+@pytest.mark.min_spark('3')
+def test_verbose_output(spark, rg):
+    num_samples = 5
+    genotype_df =  pd.DataFrame({'rs0': [0, 0, 0, 0, 0], 'rs1': [2,2,1,1,1], 'rs2': [1,0,0,1,1], 'rs3': [1,2,0,1,1]})
+    phenotype_df = pd.DataFrame({'phe1': [np.nan, 1, 1, 1, 1], 'phe2': [np.nan,1,0,0,0], 'phe3': [1,0,1,0,1]})
+    covariate_df = pd.DataFrame(rg.random((num_samples, 2)))
+    glow = run_linear_regression_spark(spark, genotype_df, phenotype_df, covariate_df)
+    #TODO complete assertions
 
 @pytest.mark.min_spark('3')
 def test_multiple_spark(spark, rg):
