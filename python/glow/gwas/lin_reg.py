@@ -185,7 +185,6 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
 
     So, if a matrix's indices are `sg` (like the X matrix), it has one row per sample and one column per genotype.
     '''
-
     X = np.column_stack(genotype_pdf[_VALUES_COLUMN_NAME].array)
     del genotype_pdf[_VALUES_COLUMN_NAME]
     num_genotypes = genotype_pdf.shape[0]
@@ -209,6 +208,12 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
     out_df['tvalue'] = list(np.ravel(T))
     out_df['pvalue'] = list(np.ravel(pvalues))
     out_df['phenotype'] = phenotype_names.repeat(num_genotypes).tolist()
+    out_df["n"] = list(np.ravel(Y_mask.T @ np.ones(X.shape)))
+    out_df["sum_x"] = list(np.ravel(sum_x))
+    out_df["y_transpose_x"] = list(np.ravel(y_transpose_x))
+    #TODO cleanup
+    from pdb_clone import pdb
+    pdb.set_trace_remote()
 
     return out_df
 
