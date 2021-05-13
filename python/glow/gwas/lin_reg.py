@@ -117,6 +117,7 @@ def linear_regression(genotype_df: DataFrame,
     Y = phenotype_df.to_numpy(dt, copy=True)
     Y_mask = (~np.isnan(Y)).astype(dt)
     Y = np.nan_to_num(Y, copy=False)
+    Y_raw_nan_filled = np.nan_to_num(Y, copy=True)
     Y -= Y.mean(axis=0)  # Mean-center
     Y = gwas_fx._residualize_in_place(Y, Q) * Y_mask  # Residualize
     Y_scale = np.sqrt(np.sum(Y**2, axis=0) / (Y_mask.sum(axis=0) - Q.shape[1]))
@@ -130,7 +131,7 @@ def linear_regression(genotype_df: DataFrame,
         for pdf in pdf_iterator:
             yield gwas_fx._loco_dispatch(pdf, Y_state, _linear_regression_inner, Y_mask, Y_scale, Q,
                                          dof,
-                                         phenotype_df.columns.to_series().astype('str'))
+                                         phenotype_df.columns.to_series().astype('str'), Y_raw_nan_filled)
 
     return genotype_df.mapInPandas(map_func, result_struct)
 
@@ -174,7 +175,7 @@ def _create_one_YState(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame
 def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
                              Y_mask: NDArray[(Any, Any), Float], Y_scale: NDArray[(Any, ), Float],
                              Q: NDArray[(Any, Any), Float], dof: int,
-                             phenotype_names: pd.Series) -> pd.DataFrame:
+                             phenotype_names: pd.Series, Y_raw: NDArray[(Any, Any), Float]) -> pd.DataFrame:
     '''
     Applies a linear regression model to a block of genotypes. We first project the covariates out of the
     genotype block and then perform single variate linear regression for each site.
@@ -189,8 +190,9 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
 
     So, if a matrix's indices are `sg` (like the X matrix), it has one row per sample and one column per genotype.
     '''
-
     X = np.column_stack(genotype_pdf[_VALUES_COLUMN_NAME].array)
+    sum_x = Y_mask.T @ X #rows indexed by phe, cols indexed by variants
+    y_transpose_x = Y_raw.T @ X
     X = gwas_fx._residualize_in_place(X, Q)
 
     XdotY = Y_state.Y.T @ X
@@ -201,6 +203,7 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
     pvalues = 2 * stats.distributions.t.sf(np.abs(T), dof)
 
     del genotype_pdf[_VALUES_COLUMN_NAME]
+
     num_genotypes = genotype_pdf.shape[0]
     out_df = pd.concat([genotype_pdf] * Y_state.Y.shape[1])
     Y_scale_mat = Y_scale[:, None]
@@ -209,5 +212,11 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
     out_df['tvalue'] = list(np.ravel(T))
     out_df['pvalue'] = list(np.ravel(pvalues))
     out_df['phenotype'] = phenotype_names.repeat(num_genotypes).tolist()
+    out_df["n"] = list(np.ravel(Y_mask.T @ np.ones(X.shape)))
+    out_df["sum_x"] = list(np.ravel(sum_x))
+    out_df["y_transpose_x"] = list(np.ravel(y_transpose_x))
+    #TODO cleanup
+    from pdb_clone import pdb
+    pdb.set_trace_remote()
 
     return out_df
