@@ -4,7 +4,7 @@ from nptyping import Float, NDArray
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union
 from pyspark.sql import Column, DataFrame
-from pyspark.sql.types import StringType, StructField
+from pyspark.sql.types import StringType, StructField, IntegerType
 from scipy import stats
 from typeguard import typechecked
 from . import functions as gwas_fx
@@ -105,7 +105,7 @@ def linear_regression(genotype_df: DataFrame,
         StructField('tvalue', sql_type),
         StructField('pvalue', sql_type),
         StructField('phenotype', StringType()),
-        StructField('n', sql_type),
+        StructField('n', IntegerType()),
         StructField('sum_x', sql_type),
         StructField('y_transpose_x', sql_type)
     ]
