@@ -104,7 +104,10 @@ def linear_regression(genotype_df: DataFrame,
         StructField('stderror', sql_type),
         StructField('tvalue', sql_type),
         StructField('pvalue', sql_type),
-        StructField('phenotype', StringType())
+        StructField('phenotype', StringType()),
+        StructField('n', sql_type),
+        StructField('sum_x', sql_type),
+        StructField('y_transpose_x', sql_type)
     ]
     result_struct = gwas_fx._output_schema(genotype_df.schema.fields, result_fields)
 
@@ -215,8 +218,6 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
     out_df["n"] = list(np.ravel(Y_mask.T @ np.ones(X.shape)))
     out_df["sum_x"] = list(np.ravel(sum_x))
     out_df["y_transpose_x"] = list(np.ravel(y_transpose_x))
-    #TODO cleanup
-    from pdb_clone import pdb
-    pdb.set_trace_remote()
+
 
     return out_df
