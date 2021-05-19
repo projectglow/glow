@@ -79,6 +79,8 @@ def linear_regression(genotype_df: DataFrame,
                         ``genotype_df`` should have a column with this name and a numeric array type. If a column
                         expression is provided, the expression should return a numeric array type.
         dt : The numpy datatype to use in the linear regression test. Must be ``np.float32`` or ``np.float64``.
+        verbose_output: Whether or not to generate additional test statistics (n, sum_x, y_transpose_x)
+                        to the output DataFrame (default = False)
 
     Returns:
         A Spark DataFrame that contains
@@ -89,6 +91,9 @@ def linear_regression(genotype_df: DataFrame,
         - ``tvalue``: The T statistic
         - ``pvalue``: P value estimated from a two sided T-test
         - ``phenotype``: The phenotype name as determined by the column names of ``phenotype_df``
+        - ``n``: (verbose_output only) number of samples with non-null phenotype
+        - ``sum_x``: (verbose_output only) sum of genotype inputs, X
+        - ``y_transpose_x``: (verbose_output only) dot product of phenotype response and genotype input
     '''
 
     gwas_fx._check_spark_version(genotype_df.sql_ctx.sparkSession)
