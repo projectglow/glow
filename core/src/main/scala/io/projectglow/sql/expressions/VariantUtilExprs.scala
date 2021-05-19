@@ -55,7 +55,6 @@ object VariantUtilExprs {
           }
           j += 1
         }
-
         output.setInt(i, if (j == 0) -1 else sum)
         i += 1
       }
