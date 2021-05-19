@@ -41,20 +41,24 @@ object VariantUtilExprs {
       val calls = genotypes
         .getStruct(i, genotypesSize)
         .getArray(genotypesIdx)
-      var sum = 0
-      var j = 0
-      while (j < calls.numElements() && sum >= 0) {
-        if (calls.getInt(j) >= 0) {
-          sum += calls.getInt(j)
-        } else {
-          sum = -1 // missing
+      if (calls == null) {
+        output.setInt(i, -1) // missing
+        i += 1
+      } else {
+        var sum = 0
+        var j = 0
+        while (j < calls.numElements() && sum >= 0) {
+          if (calls.getInt(j) >= 0) {
+            sum += calls.getInt(j)
+          } else {
+            sum = -1 // missing
+          }
+          j += 1
         }
-        j += 1
+        output.setInt(i, if (j == 0) -1 else sum)
+        i += 1
       }
-      output.setInt(i, if (j == 0) -1 else sum)
-      i += 1
     }
-
     output
   }
 
