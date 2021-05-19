@@ -64,6 +64,15 @@ class VariantUtilExprsSuite extends GlowBaseTest {
     assert(states == Seq(-1, 2))
   }
 
+  test("-1 if call array is null") { // e.g. hail to glow transformation represents missing calls as null
+    import sess.implicits._
+    val states = makeGenotypesDf(Seq(null, Seq(1, 1)))
+      .selectExpr("genotype_states(genotypes)")
+      .as[Seq[Int]]
+      .head
+    assert(states == Seq(-1, 2))
+  }
+
   case class TestCase(ref: String, alt: String, vt: VariantType)
   val bases = Seq("A", "C", "G", "T")
   val testCases = Seq(
