@@ -1,0 +1,24 @@
+{
+  "name": "Glow notebook integration test",
+  "new_cluster": {
+    "spark_version": "8.0.x-scala2.12",
+    "node_type_id": "Standard_L32s_v2",
+    "autoscale" : {
+      "min_workers": 1,
+      "max_workers": 5
+    }
+  },
+  "libraries": [
+    {
+      "maven": {
+        "coordinates": "io.projectglow:glow-spark3_2.12:1.0.1"
+      }
+    },
+    {
+      "pypi": {
+        "package": "glow.py"
+      }
+    }
+  ],
+  "timeout_seconds": 3600
+}
