@@ -1,5 +1,5 @@
 '''
-Runs a Glow notebook in Databricks as an integration test.
+Runs all Glow notebooks in Databricks as an integration test.
 
 Before running this, configure your Databricks CLI profile.
 
@@ -66,15 +66,14 @@ def main(cli_profile, workspace_tmp_dir):
                 run_state = json.loads(run_get)['state']
                 nb_to_run_state[nb] = run_state
             if all([run_state['life_cycle_state'] == 'TERMINATED' for run_state in nb_to_run_state.values()]):
-                print("All jobs are terminated!")
                 for nb, run_state in nb_to_run_state.items():
                     print(f"{nb}: {run_state['result_state']}")
                 break
             else:
-                print("Not all jobs are terminated.")
                 for nb, run_state in nb_to_run_state.items():
                     print(f"{nb}: {run_state['life_cycle_state']} {run_state['state_message']}")
             time.sleep(60)
+        run_cli_workspace_cmd(cli_profile, ['rm', '-r', work_dir])
 
 
 if __name__ == '__main__':
