@@ -22,7 +22,6 @@ SOURCE_EXTS = ['scala', 'py', 'r', 'sql']
 
 def run_cli_cmd(cli_profile, api, args):
     cmd = ['databricks', '--profile', cli_profile, api] + args
-    # print(f"Running command {cmd}")
     res = subprocess.run(cmd, capture_output=True)
     if res.returncode is not 0:
         raise ValueError(res)
@@ -49,14 +48,12 @@ def main(cli_profile, workspace_tmp_dir):
         run_cli_cmd(cli_profile, 'workspace', ['import_dir', SOURCE_DIR, work_dir])
 
         for nb in nbs:
-            print(f"Launching run for notebook {nb}")
             jobs_json['name'] = 'Glow notebook integration test - ' + nb
             jobs_json['notebook_task'] = {'notebook_path': work_dir + '/' + nb}
             run_submit = run_cli_cmd(cli_profile, 'runs', ['submit', '--json', json.dumps(jobs_json)])
             run_id = json.loads(run_submit)['run_id']
-            print(f"Run ID is {run_id}")
+            print(f"Launched run for notebook {nb} with run ID {run_id}")
             nb_to_run_id[nb] = str(run_id)
-            break
     finally:
         nb_to_run_state = {}
         while True:
@@ -71,7 +68,7 @@ def main(cli_profile, workspace_tmp_dir):
                 break
             else:
                 for nb, run_state in nb_to_run_state.items():
-                    print(f"{nb}: {run_state['life_cycle_state']} {run_state['state_message']}")
+                    print(f"{nb} [{run_state['life_cycle_state']}] {run_state['state_message']}")
             time.sleep(60)
         run_cli_workspace_cmd(cli_profile, ['rm', '-r', work_dir])
 

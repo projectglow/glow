@@ -2,11 +2,8 @@
   "name": "Glow notebook integration test",
   "new_cluster": {
     "spark_version": "7.6.x-scala2.12",
-    "node_type_id": "Standard_L32s_v2",
-    "autoscale" : {
-      "min_workers": 1,
-      "max_workers": 5
-    }
+    "node_type_id": "Standard_DS3_v2",
+    "num_workers": 2
   },
   "libraries": [
     {
