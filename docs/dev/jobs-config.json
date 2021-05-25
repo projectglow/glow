@@ -2,7 +2,19 @@
   "new_cluster": {
     "spark_version": "7.6.x-scala2.12",
     "node_type_id": "Standard_DS3_v2",
-    "num_workers": 2
+    "num_workers": 2,
+    "init_scripts": [
+      {
+        "dbfs": {
+          "destination": "dbfs:/glow-init-scripts/bedtools.sh"
+        }
+      },
+      {
+        "dbfs": {
+          "destination": "dbfs:/glow-init-scripts/chain.sh"
+        }
+      }
+    ]
   },
   "libraries": [
     {

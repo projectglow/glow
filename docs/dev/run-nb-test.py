@@ -16,7 +16,9 @@ import os
 import uuid
 
 SOURCE_DIR = 'docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE'
-CLUSTER_JSON = 'docs/dev/cluster-config.json'
+JOBS_JSON = 'docs/dev/jobs-config.json'
+INIT_SCRIPT_DIR = 'docs/dev/init-scripts'
+DBFS_INIT_SCRIPT_DIR = 'dbfs:/glow-init-scripts'
 SOURCE_EXTS = ['scala', 'py', 'r', 'sql']
 
 
@@ -34,7 +36,7 @@ def run_cli_cmd(cli_profile, api, args):
 def main(cli_profile, workspace_tmp_dir):
     identifier = str(uuid.uuid4())
     work_dir = os.path.join(workspace_tmp_dir, identifier)
-    with open('docs/dev/jobs-config.json', 'r') as f:
+    with open(JOBS_JSON, 'r') as f:
         jobs_json = json.load(f)
 
     nbs = [os.path.relpath(path, SOURCE_DIR).split('.')[0]
@@ -47,12 +49,15 @@ def main(cli_profile, workspace_tmp_dir):
         run_cli_cmd(cli_profile, 'workspace', ['mkdirs', work_dir])
         run_cli_cmd(cli_profile, 'workspace', ['import_dir', SOURCE_DIR, work_dir])
 
+        print(f"Installing init scripts")
+        run_cli_cmd(cli_profile, 'fs', ['cp', INIT_SCRIPT_DIR, DBFS_INIT_SCRIPT_DIR, '--recursive', '--overwrite'])
+
+        print(f"Launching runs")
         for nb in nbs:
             jobs_json['name'] = 'Glow notebook integration test - ' + nb
             jobs_json['notebook_task'] = {'notebook_path': work_dir + '/' + nb}
             run_submit = run_cli_cmd(cli_profile, 'runs', ['submit', '--json', json.dumps(jobs_json)])
             run_id = json.loads(run_submit)['run_id']
-            print(f"Launched run for notebook {nb} with run ID {run_id}")
             nb_to_run_id[nb] = str(run_id)
     finally:
         nb_to_run_state = {}
@@ -62,15 +67,16 @@ def main(cli_profile, workspace_tmp_dir):
                 run_get = run_cli_cmd(cli_profile, 'runs', ['get', '--run-id', run_id])
                 run_state = json.loads(run_get)['state']
                 nb_to_run_state[nb] = run_state
+            for nb, run_state in nb_to_run_state.items():
+                base_msg = f"{nb} (Run ID {nb_to_run_id[nb]}) [{run_state['life_cycle_state']}]"
+                if run_state['life_cycle_state'] == 'TERMINATED':
+                    print(base_msg, run_state['result_state'])
+                else:
+                    print(base_msg, run_state['state_message'])
             if all([run_state['life_cycle_state'] == 'TERMINATED' for run_state in nb_to_run_state.values()]):
-                for nb, run_state in nb_to_run_state.items():
-                    print(f"{nb}: {run_state['result_state']}")
                 break
-            else:
-                for nb, run_state in nb_to_run_state.items():
-                    print(f"{nb} [{run_state['life_cycle_state']}] {run_state['state_message']}")
             time.sleep(60)
-        run_cli_workspace_cmd(cli_profile, ['rm', '-r', work_dir])
+        run_cli_cmd(cli_profile, 'workspace', ['rm', '-r', work_dir])
 
 
 if __name__ == '__main__':

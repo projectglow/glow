@@ -37,8 +37,8 @@ variants_path = 'dbfs:/databricks-datasets/genomics/gwas/hapgen-variants.delta'
 binary_phenotypes_path = '/dbfs/databricks-datasets/genomics/gwas/Ysim_binary_test_simulation.csv'
 covariates_path = '/dbfs/databricks-datasets/genomics/gwas/Covs_test_simulation.csv'
 
-sample_blocks_path = '/dbfs/tmp/wgr_sample_blocks.json'
-block_matrix_path = 'dbfs:/tmp/wgr_block_matrix.delta'
+sample_blocks_path = '/dbfs/tmp/binary_wgr_sample_blocks.json'
+block_matrix_path = 'dbfs:/tmp/binary_wgr_block_matrix.delta'
 y_hat_path = '/dbfs/tmp/wgr_y_binary_hat.csv'
 
 # COMMAND ----------
