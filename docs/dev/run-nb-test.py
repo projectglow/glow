@@ -68,7 +68,7 @@ def main(cli_profile, workspace_tmp_dir):
                 run_info = json.loads(run_get)
                 nb_to_run_info[nb] = run_info
             for nb, run_info in nb_to_run_info.items():
-                base_msg = f"{nb} (Run ID {nb_to_run_id[nb]}) [{run_state['life_cycle_state']}]"
+                base_msg = f"{nb} (Run ID {nb_to_run_id[nb]}) [{run_info['state']['life_cycle_state']}]"
                 if run_info['state']['life_cycle_state'] == 'TERMINATED':
                     if run_info['state']['result_state' == 'FAILED']:
                         print(base_msg, run_info['state']['result_state'], run_info['run_page_url'])
