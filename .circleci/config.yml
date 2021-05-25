@@ -263,6 +263,17 @@ jobs:
       - store_test_results:
           path: ~/glow/core/target/scala-2.12/test-reports
 
+
+  notebook-tests:
+    <<: *setup_base
+    steps:
+      - checkout
+      - run:
+          name: Run notebook tests
+          command: |
+            python docs/dev/run-nb-test.py --html "${f}" --cli-profile docs-ci
+
+
 workflows:
   version: 2
   test:
@@ -282,3 +293,4 @@ workflows:
     jobs:
       - check-docs
       - spark-3-tests
+      - notebook-tests

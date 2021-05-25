@@ -10,16 +10,15 @@ import click
 from datetime import datetime
 import glob
 import json
-import subprocess
-import time
 import os
+import subprocess
+import sys
+import time
 import uuid
 
 SOURCE_DIR = 'docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE'
 JOBS_JSON = 'docs/dev/jobs-config.json'
 INIT_SCRIPT_DIR = 'docs/dev/init-scripts'
-DBFS_INIT_SCRIPT_DIR = 'dbfs:/glow-init-scripts'
-SOURCE_EXTS = ['scala', 'py', 'r', 'sql']
 
 
 def run_cli_cmd(cli_profile, api, args):
@@ -33,7 +32,8 @@ def run_cli_cmd(cli_profile, api, args):
 @click.command()
 @click.option('--cli-profile', default='DEFAULT', help='Databricks CLI profile name.')
 @click.option('--workspace-tmp-dir', default='/tmp/glow-nb-test-ci', help='Base workspace dir for import and testing.')
-def main(cli_profile, workspace_tmp_dir):
+@click.option('--dbfs-init-script-dir', default='dbfs:/glow-init-scripts', help='DBFS directory for init scripts.')
+def main(cli_profile, workspace_tmp_dir, dbfs_init_script_dir):
     identifier = str(uuid.uuid4())
     work_dir = os.path.join(workspace_tmp_dir, identifier)
     with open(JOBS_JSON, 'r') as f:
@@ -50,7 +50,7 @@ def main(cli_profile, workspace_tmp_dir):
         run_cli_cmd(cli_profile, 'workspace', ['import_dir', SOURCE_DIR, work_dir])
 
         print(f"Installing init scripts")
-        run_cli_cmd(cli_profile, 'fs', ['cp', INIT_SCRIPT_DIR, DBFS_INIT_SCRIPT_DIR, '--recursive', '--overwrite'])
+        run_cli_cmd(cli_profile, 'fs', ['cp', INIT_SCRIPT_DIR, dbfs_init_script_dir, '--recursive', '--overwrite'])
 
         print(f"Launching runs")
         for nb in nbs:
@@ -70,7 +70,7 @@ def main(cli_profile, workspace_tmp_dir):
             for nb, run_info in nb_to_run_info.items():
                 base_msg = f"{nb} (Run ID {nb_to_run_id[nb]}) [{run_info['state']['life_cycle_state']}]"
                 if run_info['state']['life_cycle_state'] == 'TERMINATED':
-                    if run_info['state']['result_state' == 'FAILED']:
+                    if run_info['state']['result_state'] == 'FAILED':
                         print(base_msg, run_info['state']['result_state'], run_info['run_page_url'])
                     else:
                         print(base_msg, run_info['state']['result_state'])
@@ -80,6 +80,16 @@ def main(cli_profile, workspace_tmp_dir):
                 break
             time.sleep(60)
         run_cli_cmd(cli_profile, 'workspace', ['rm', '-r', work_dir])
+        if all([run_info['state']['result_state'] == 'SUCCESS' for run_info in nb_to_run_info.values()]):
+            print("===========================")
+            print("|   All tasks succeeded!   |")
+            print("============================")
+            sys.exit(0)
+        else:
+            print("===========================")
+            print("|    Some tasks failed.    |")
+            print("============================")
+            sys.exit(1)
 
 
 if __name__ == '__main__':
