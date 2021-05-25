@@ -60,20 +60,23 @@ def main(cli_profile, workspace_tmp_dir):
             run_id = json.loads(run_submit)['run_id']
             nb_to_run_id[nb] = str(run_id)
     finally:
-        nb_to_run_state = {}
+        nb_to_run_info = {}
         while True:
             print(f"=== Status check at {datetime.now().strftime('%H:%M:%S')} ===")
             for nb, run_id in nb_to_run_id.items():
                 run_get = run_cli_cmd(cli_profile, 'runs', ['get', '--run-id', run_id])
-                run_state = json.loads(run_get)['state']
-                nb_to_run_state[nb] = run_state
-            for nb, run_state in nb_to_run_state.items():
+                run_info = json.loads(run_get)
+                nb_to_run_info[nb] = run_info
+            for nb, run_info in nb_to_run_info.items():
                 base_msg = f"{nb} (Run ID {nb_to_run_id[nb]}) [{run_state['life_cycle_state']}]"
-                if run_state['life_cycle_state'] == 'TERMINATED':
-                    print(base_msg, run_state['result_state'])
+                if run_info['state']['life_cycle_state'] == 'TERMINATED':
+                    if run_info['state']['result_state' == 'FAILED']:
+                        print(base_msg, run_info['state']['result_state'], run_info['run_page_url'])
+                    else:
+                        print(base_msg, run_info['state']['result_state'])
                 else:
-                    print(base_msg, run_state['state_message'])
-            if all([run_state['life_cycle_state'] == 'TERMINATED' for run_state in nb_to_run_state.values()]):
+                    print(base_msg, run_info['state']['state_message'])
+            if all([run_info['state']['life_cycle_state'] == 'TERMINATED' for run_info in nb_to_run_info.values()]):
                 break
             time.sleep(60)
         run_cli_cmd(cli_profile, 'workspace', ['rm', '-r', work_dir])

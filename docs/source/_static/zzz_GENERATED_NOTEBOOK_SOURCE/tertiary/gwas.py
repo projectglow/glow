@@ -31,6 +31,8 @@ from dataclasses import dataclass
 
 import mlflow
 import glow
+
+mlflow.set_experiment("/tmp/gwas")
 spark = glow.register(spark)
 
 # COMMAND ----------
