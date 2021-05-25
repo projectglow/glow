@@ -152,7 +152,7 @@ vcf.join(normalized_vcf, ["contigName", "start", "end", "referenceAllele", "alte
 
 # COMMAND ----------
 
-display(spark.sql("DESCRIBE HISTORY genomes"))
+display(spark.sql(f"DESCRIBE HISTORY delta.`{delta_output_path}`"))
 
 # COMMAND ----------
 

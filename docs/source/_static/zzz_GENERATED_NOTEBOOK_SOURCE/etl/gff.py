@@ -1,4 +1,9 @@
 # Databricks notebook source
+import glow
+spark = glow.register(spark)
+
+# COMMAND ----------
+
 from pyspark.sql.types import *
 
 # Human genome annotations in GFF3 are available at https://ftp.ncbi.nlm.nih.gov/genomes/refseq/vertebrate_mammalian/Homo_sapiens/reference/GCF_000001405.39_GRCh38.p13/
@@ -21,7 +26,7 @@ original_gff_df.printSchema()
 # COMMAND ----------
 
 # DBTITLE 0,Read in the GFF3 with the inferred schema
-display(original_gff_df)
+display(original_gff_df.limit(5))
 
 # COMMAND ----------
 
@@ -45,7 +50,7 @@ original_gff_df = spark.read \
   .format("gff") \
   .load(gff_path) \
 
-display(original_gff_df)
+display(original_gff_df.limit(5))
 
 # COMMAND ----------
 
@@ -70,4 +75,4 @@ original_gff_df = spark.read \
   .format("gff") \
   .load(gff_path) \
 
-display(original_gff_df)
+display(original_gff_df.limit(5))
