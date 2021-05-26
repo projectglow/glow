@@ -270,17 +270,17 @@ jobs:
       - checkout
       - restore_cache:
           keys:
-            - conda-deps-v1-{{ checksum "docs/source/environment.yml" }}
+            - conda-deps-v1-{{ checksum "python/environment.yml" }}
       - *install_conda
-      - *create_docs_env
+      - *create_python_env
       - save_cache:
           paths:
             - /home/circleci/conda
-          key: conda-deps-v1-{{ checksum "docs/source/environment.yml" }}
+          key: conda-deps-v1-{{ checksum "python/environment.yml" }}
       - run:
           name: Run notebook tests
           command: |
-            export PATH=$HOME/conda/envs/glow-docs/bin:$PATH
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
             python docs/dev/run-nb-test.py --html "${f}" --cli-profile docs-ci
 
 
