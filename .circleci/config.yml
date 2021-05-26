@@ -278,10 +278,12 @@ workflows:
   version: 2
   test:
     jobs:
-      - check-docs
-      - scala-2_11-tests
-      - scala-2_12-tests
-      - spark-3-tests
+      - notebook-tests
+# Temporary - for testing only!
+#      - check-docs
+#      - scala-2_11-tests
+#      - scala-2_12-tests
+#      - spark-3-tests
   nightly:
     triggers:
       - schedule:
