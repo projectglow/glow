@@ -1,12 +1,8 @@
 {
   "new_cluster": {
     "spark_version": "7.6.x-scala2.12",
-    "node_type_id": "Standard_L8s",
+    "node_type_id": "Standard_DS3_v2",
     "num_workers": 2,
-    "spark_conf": {
-      "spark.sql.execution.arrow.pyspark.enabled": "true",
-      "spark.driver.maxResultSize": "20g"
-    },
     "init_scripts": [
       {
         "dbfs": {

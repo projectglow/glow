@@ -79,7 +79,7 @@ contigs = ['21', '22']
 
 # COMMAND ----------
 
-for contig in contigs:
+for num, contig in enumerate(contigs):
   results = glow.gwas.logistic_regression(
     variant_df.where(fx.col('contigName') == contig),
     phenotype_df,
@@ -90,7 +90,8 @@ for contig in contigs:
     contigs=[contig])
   
   # Write the results to a Delta Lake table partitioned by contigName
-  results.write.format('delta').partitionBy('contigName').mode('append').save(gwas_results_path)
+  mode = 'overwrite' if num == 0 else 'append'
+  results.write.format('delta').partitionBy('contigName').mode(mode).save(gwas_results_path)
 
 # COMMAND ----------
 
