@@ -5,8 +5,8 @@
     "num_workers": 2,
     "spark_conf": {
       "spark.driver.maxResultSize": "10g",
-      "spark.driver.memory": "10g",
-      "spark.executor.memory": "10g"
+      "spark.driver.memory": "20g",
+      "spark.executor.memory": "20g"
     },
     "init_scripts": [
       {

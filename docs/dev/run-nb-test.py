@@ -79,11 +79,11 @@ def main(cli_profile, workspace_tmp_dir, dbfs_init_script_dir):
             if all([run_info['state']['life_cycle_state'] == 'TERMINATED' for run_info in nb_to_run_info.values()]):
                 break
             time.sleep(60)
-        run_cli_cmd(cli_profile, 'workspace', ['rm', '-r', work_dir])
         if all([run_info['state']['result_state'] == 'SUCCESS' for run_info in nb_to_run_info.values()]):
             print("===========================")
             print("|   All tasks succeeded!   |")
             print("============================")
+            run_cli_cmd(cli_profile, 'workspace', ['rm', '-r', work_dir])
             sys.exit(0)
         else:
             print("===========================")
