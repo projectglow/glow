@@ -278,6 +278,10 @@ jobs:
             - /home/circleci/conda
           key: conda-deps-v1-{{ checksum "python/environment.yml" }}
       - run:
+          name: Configure Databricks CLI
+          command: |
+            printf "[docs-ci]\nhost = https://westus2.azuredatabricks.net\ntoken = ${DATABRICKS_API_TOKEN}\n" > ~/.databrickscfg
+      - run:
           name: Run notebook tests
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
