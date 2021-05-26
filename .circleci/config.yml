@@ -281,7 +281,7 @@ jobs:
           name: Run notebook tests
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            python docs/dev/run-nb-test.py --html "${f}" --cli-profile docs-ci
+            python docs/dev/run-nb-test.py --cli-profile docs-ci
 
 
 workflows:
