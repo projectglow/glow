@@ -4,7 +4,7 @@ Introduction to Glow
 Genomics data has been doubling every seven months globally. It has now reached a scale where genomics has 
 become a big data problem. However, most of the tools for working with genomics data are built to work on 
 single nodes and will not scale. Furthermore, it has become challenging for scientists to manage storage 
-of public data.
+analytics and sharing of public data.
 
 Glow solves these problems by bridging bioinformatics and the big data ecosystem. It enables bioinformaticians 
 and computational biologists to leverage best practices used by data engineers and data scientists across industry.
@@ -14,9 +14,13 @@ enabling distributed computation on and distributed storage of genotype data. Th
 with genomics file formats and bioinformatics tools developed in academia, enabling users to easily share data 
 with collaborators.
 
+When combined with Delta Lake, Glow solves what is known as the "n+1" problem in genomics. Allowing continuous
+integration and analytics on new samples without a need for data freezes.
+
 Glow is used to:
 
 - Ingest public genotype data into a data lake that acts as a single source of truth.
+- Perform joint-genotyping of genotype data on top of delta-lake.
 - Run quality control, statistical analysis, and  association studies on population-scale datasets.
 - Build reproducible, production-grade genomics data pipelines that will scale to petabytes and beyond.
 
@@ -35,3 +39,5 @@ Glow features:
 - Integration with other data types: Genomic data can generate additional insights when joined with data sets
   such as electronic health records, real world evidence, and medical images. Since Glow returns native Spark
   SQL DataFrames, its simple to join multiple data sets together.
+- GloWGR, a distributed version of the `regenie <https://rgcgithub.github.io/regenie/>`_ method, rewritten 
+  from the ground up in Python.
