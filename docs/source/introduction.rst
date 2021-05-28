@@ -1,28 +1,28 @@
 Introduction to Glow
 ====================
 
-Genomics data has been doubling every seven months globally. It has now reached a scale where genomics has 
-become a big data problem. However, most of the tools for working with genomics data are built to work on 
-single nodes and will not scale. Furthermore, it has become challenging for scientists to manage storage 
-analytics and sharing of public data.
+Genomics data has been doubling every seven months globally. It has reached a scale where genomics has  
+become a big data problem. However, most tools for working with genomics data run on single nodes and 
+will not scale. Furthermore, it has become challenging for scientists to manage storage, analytics  
+and sharing of public data.
 
 Glow solves these problems by bridging bioinformatics and the big data ecosystem. It enables bioinformaticians 
 and computational biologists to leverage best practices used by data engineers and data scientists across industry.
 
-Under the hood, Glow is built on `Apache Spark <https://spark.apache.org/docs/latest/api/python/index.html>`_ and `Delta Lake <https://delta.io/>`_,
+Glow is built on `Apache Spark <https://spark.apache.org/docs/latest/api/python/index.html>`_ and `Delta Lake <https://delta.io/>`_,
 enabling distributed computation on and distributed storage of genotype data. The library is backwards compatible 
 with genomics file formats and bioinformatics tools developed in academia, enabling users to easily share data 
 with collaborators.
 
 When combined with Delta Lake, Glow solves the "n+1" problem in genomics, allowing continuous integration
-of genomes and analytics on them without data freezes.
+of and analytics on whole genomes without data freezes.
 
 Glow is used to:
 
-- Ingest public genotype data into a data lake that acts as a single source of truth.
+- Ingest genotype data into a data lake that acts as a single source of truth.
 - Perform joint-genotyping of genotype data on top of delta-lake.
 - Run quality control, statistical analysis, and  association studies on population-scale datasets.
-- Build reproducible, production-grade genomics data pipelines that will scale to petabytes and beyond.
+- Build reproducible, production-grade genomics data pipelines that will scale to tens of trillions of records.
 
 .. image:: _static/images/glow_ref_arch_genomics.png
 
