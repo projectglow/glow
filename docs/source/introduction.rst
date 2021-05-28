@@ -14,8 +14,8 @@ enabling distributed computation on and distributed storage of genotype data. Th
 with genomics file formats and bioinformatics tools developed in academia, enabling users to easily share data 
 with collaborators.
 
-When combined with Delta Lake, Glow solves what is known as the "n+1" problem in genomics. Allowing continuous
-integration and analytics on new samples without a need for data freezes.
+When combined with Delta Lake, Glow solves the "n+1" problem in genomics, allowing continuous integration
+of genomes and analytics on them without data freezes.
 
 Glow is used to:
 
