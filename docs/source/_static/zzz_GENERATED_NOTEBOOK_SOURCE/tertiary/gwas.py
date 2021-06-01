@@ -31,6 +31,8 @@ from dataclasses import dataclass
 
 import mlflow
 import glow
+
+mlflow.set_experiment("/tmp/gwas")
 spark = glow.register(spark)
 
 # COMMAND ----------
@@ -322,7 +324,7 @@ genotypes = spark.read.format("delta").load(delta_gold_path)
 # COMMAND ----------
 
 results = glow.gwas.linear_regression(
-  genotypes.select('contigName', 'start', 'genotypes'),
+  genotypes.select('contigName', 'start', 'names', 'genotypes'),
   phenotype_df,
   covariate_df,
   values_column=glow.genotype_states(fx.col('genotypes'))
@@ -353,7 +355,7 @@ display(spark.read.format("delta").load(gwas_results_path).limit(100))
 # MAGIC %r
 # MAGIC library(SparkR)
 # MAGIC gwas_df <- read.df("/mnt/gwas_test/gwas_results.delta", source="delta")
-# MAGIC gwas_results <- select(gwas_df, c(cast(alias(gwas_df$contigName, "CHR"), "double"), alias(gwas_df$start, "BP"), alias(gwas_df$pValue, "P")))
+# MAGIC gwas_results <- select(gwas_df, c(cast(alias(gwas_df$contigName, "CHR"), "double"), alias(gwas_df$start, "BP"), alias(gwas_df$pValue, "P"), alias(element_at(gwas_df$names, 1L), "SNP")))
 # MAGIC gwas_results_rdf <- as.data.frame(gwas_results)
 
 # COMMAND ----------

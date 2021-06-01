@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC ##<img src="https://databricks.com/wp-content/themes/databricks/assets/images/databricks-logo.png" alt="logo" width="240"/> + <img src="https://www.regeneron.com/sites/all/themes/regeneron_corporate/images/science/logo-rgc-color.png" alt="logo" width="240"/>
+# MAGIC ##<img src="https://databricks.com/wp-content/themes/databricks/assets/images/databricks-logo.png" alt="logo" width="240"/> + <img src="https://www.regeneron.com/Content/images/science/regenron.png" alt="logo" width="240"/>
 # MAGIC 
 # MAGIC ### <img src="https://databricks-knowledge-repo-images.s3.us-east-2.amazonaws.com/HLS/glow/project_glow_logo.png" alt="logo" width="35"/> GloWGR: genome-wide association study
 # MAGIC 
@@ -79,7 +79,7 @@ contigs = ['21', '22']
 
 # COMMAND ----------
 
-for contig in contigs:
+for num, contig in enumerate(contigs):
   results = glow.gwas.logistic_regression(
     variant_df.where(fx.col('contigName') == contig),
     phenotype_df,
@@ -90,7 +90,8 @@ for contig in contigs:
     contigs=[contig])
   
   # Write the results to a Delta Lake table partitioned by contigName
-  results.write.format('delta').partitionBy('contigName').mode('append').save(gwas_results_path)
+  mode = 'overwrite' if num == 0 else 'append'
+  results.write.format('delta').partitionBy('contigName').mode(mode).save(gwas_results_path)
 
 # COMMAND ----------
 
