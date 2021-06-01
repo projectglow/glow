@@ -60,24 +60,19 @@ display(transformed_df.drop("genotypes"))
 # MAGIC Note: Cluster node [init scripts](https://docs.databricks.com/clusters/init-scripts.html#cluster-node-initialization-scripts) run during startup for each cluster node before the Spark driver or worker JVM starts
 # MAGIC 
 # MAGIC Or use [Docker](https://docs.databricks.com/clusters/custom-containers.html) to set up the environment
-
-# COMMAND ----------
-
-dbutils.fs.put("dbfs:/mnt/wbrandler/init/bedtools.sh" ,"""
-#!/bin/bash
-wget https://github.com/arq5x/bedtools2/releases/download/v2.29.2/bedtools-2.29.2.tar.gz
-tar -zxvf bedtools-2.29.2.tar.gz
-cd bedtools2
-make
-mkdir /mnt/dbnucleus/lib/bedtools2/
-cp -r * /mnt/dbnucleus/lib/bedtools2/
-""", True)
+# MAGIC 
+# MAGIC ```
+# MAGIC #!/bin/bash
+# MAGIC wget https://github.com/arq5x/bedtools2/releases/download/v2.30.0/bedtools.static.binary
+# MAGIC mv bedtools.static.binary /opt/bedtools
+# MAGIC chmod a+x /opt/bedtools
+# MAGIC ```
 
 # COMMAND ----------
 
 # DBTITLE 1,check bedtools was correctly installed across the cluster
 # MAGIC %sh
-# MAGIC /mnt/dbnucleus/lib/bedtools2/bin/bedtools
+# MAGIC /opt/bedtools
 
 # COMMAND ----------
 
@@ -86,7 +81,7 @@ bed = spark.createDataFrame([(22, 16050000, 16060000),
                              (22, 16080000, 16090000), 
                              (22, 16100000, 16110000)], 
                             ("#chrom", "start", "end"))
-bed.toPandas().to_csv("/dbfs/mnt/tmp/chr22.bed", sep="\t", index=False)
+bed.toPandas().to_csv("/dbfs/tmp/chr22.bed", sep="\t", index=False)
 
 # COMMAND ----------
 
@@ -101,7 +96,7 @@ scriptFile = r"""#!/bin/sh
 set -e
 #input bed is stdin, signified by '-'
 
-/mnt/dbnucleus/lib/bedtools2/bin/bedtools intersect -seed 42 -a - -b /dbfs/mnt/tmp/chr22.bed -header -wa
+/opt/bedtools intersect -seed 42 -a - -b /dbfs/tmp/chr22.bed -header -wa
 
 """
 
@@ -126,4 +121,4 @@ display(df_intersect)
 
 # COMMAND ----------
 
-dbutils.fs.rm("dbfs:/mnt/tmp/chr22.bed")
+dbutils.fs.rm("dbfs:/tmp/chr22.bed")
