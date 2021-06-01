@@ -7,15 +7,14 @@
 # MAGIC 
 # MAGIC ```
 # MAGIC #!/usr/bin/env bash
-# MAGIC set -ex
-# MAGIC set -o pipefail
+# MAGIC rm -r /opt/liftover
 # MAGIC mkdir /opt/liftover
 # MAGIC curl https://raw.githubusercontent.com/broadinstitute/gatk/master/scripts/funcotator/data_sources/gnomAD/b37ToHg38.over.chain --output /opt/liftover/b37ToHg38.over.chain
 # MAGIC ```
 # MAGIC In this demo, we perform coordinate and variant liftover from b37 to hg38.
 # MAGIC 
-# MAGIC To perform variant liftover, you must download a reference file to each node of the cluster. Here, we assume the reference genome is downloaded to 
-# MAGIC ```/mnt/dbnucleus/dbgenomics/grch38/data/GRCh38_full_analysis_set_plus_decoy_hla.fa```
+# MAGIC To perform variant liftover, you must download a reference file to each node of the cluster. Here, we use the FUSE mount to access the reference genome at
+# MAGIC ```/dbfs/databricks-datasets/genomics/grch38/data/GRCh38_full_analysis_set_plus_decoy_hla.fa```
 
 # COMMAND ----------
 
@@ -23,7 +22,7 @@
 import glow
 spark = glow.register(spark)
 chain_file = '/opt/liftover/b37ToHg38.over.chain'
-reference_file = '/mnt/dbnucleus/dbgenomics/grch38/data/GRCh38_full_analysis_set_plus_decoy_hla.fa'
+reference_file = '/dbfs/databricks-datasets/genomics/grch38/data/GRCh38_full_analysis_set_plus_decoy_hla.fa'
 vcf_file = 'dbfs:/databricks-datasets/genomics/1kg-vcfs/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz'
 
 # COMMAND ----------
@@ -31,6 +30,7 @@ vcf_file = 'dbfs:/databricks-datasets/genomics/1kg-vcfs/ALL.chr22.phase3_shapeit
 # DBTITLE 1,First, read in a VCF from a flat file or Delta Lake table.
 input_df = (spark.read.format("vcf")
   .load(vcf_file)
+  .limit(1)
   .cache())
 
 # COMMAND ----------
@@ -52,7 +52,7 @@ from pyspark.sql.functions import *
 
 # COMMAND ----------
 
-liftover_expr = "lift_over_coordinates(contigName, start, end, chain_file, .99)"
+liftover_expr = f"lift_over_coordinates(contigName, start, end, '{chain_file}', .99)"
 input_with_lifted_df = input_df.select('contigName', 'start', 'end').withColumn('lifted', expr(liftover_expr))
 
 # COMMAND ----------

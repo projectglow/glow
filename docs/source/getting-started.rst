@@ -4,7 +4,7 @@ Getting Started
 Running Locally
 ---------------
 
-Glow requires Apache Spark 2.4.3 or later.
+Glow requires Apache Spark 3.0.0.
 
 .. tabs::
 

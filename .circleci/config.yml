@@ -263,6 +263,31 @@ jobs:
       - store_test_results:
           path: ~/glow/core/target/scala-2.12/test-reports
 
+
+  notebook-tests:
+    <<: *setup_base
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - conda-deps-v1-{{ checksum "python/environment.yml" }}
+      - *install_conda
+      - *create_python_env
+      - save_cache:
+          paths:
+            - /home/circleci/conda
+          key: conda-deps-v1-{{ checksum "python/environment.yml" }}
+      - run:
+          name: Configure Databricks CLI
+          command: |
+            printf "[docs-ci]\nhost = https://westus2.azuredatabricks.net\ntoken = ${DATABRICKS_API_TOKEN}\n" > ~/.databrickscfg
+      - run:
+          name: Run notebook tests
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            python docs/dev/run-nb-test.py --cli-profile docs-ci
+
+
 workflows:
   version: 2
   test:
@@ -282,3 +307,4 @@ workflows:
     jobs:
       - check-docs
       - spark-3-tests
+      - notebook-tests

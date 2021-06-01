@@ -140,6 +140,7 @@ vcf.join(normalized_vcf, ["contigName", "start", "end", "referenceAllele", "alte
   normalized_vcf
   .write
   .format("delta")
+  .mode("overwrite")
   .save(delta_output_path)
 )
 
@@ -152,7 +153,7 @@ vcf.join(normalized_vcf, ["contigName", "start", "end", "referenceAllele", "alte
 
 # COMMAND ----------
 
-display(spark.sql("DESCRIBE HISTORY genomes"))
+display(spark.sql(f"DESCRIBE HISTORY delta.`{delta_output_path}`"))
 
 # COMMAND ----------
 
@@ -230,6 +231,7 @@ len(sample_filter.limit(1).select("genotypes.sampleId").collect()[0].sampleId)
   sample_filter
   .write
   .format("bigvcf")
+  .mode("overwrite")
   .save(vcf_output_path)
 )
 
