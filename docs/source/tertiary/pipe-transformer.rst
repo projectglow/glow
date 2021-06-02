@@ -171,5 +171,5 @@ cleanup until the pipe transformer results have been materialized, such as by be
 .. notebook:: .. tertiary/pipe-transformer.html
   :title: Pipe Transformer bedtools example notebook
 
-.. notebook:: .. tertiary/pipe-transformer.html
+.. notebook:: .. tertiary/pipe-transformer-vep.html
   :title: Pipe Transformer Variant Effect Predictor (VEP) example notebook
