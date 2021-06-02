@@ -18,6 +18,7 @@ import uuid
 
 SOURCE_DIR = 'docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE'
 JOBS_JSON = 'docs/dev/jobs-config.json'
+JOBS_HAIL_JSON = 'docs/dev/jobs-config-hail.json'
 INIT_SCRIPT_DIR = 'docs/dev/init-scripts'
 
 
@@ -38,6 +39,8 @@ def main(cli_profile, workspace_tmp_dir, dbfs_init_script_dir):
     work_dir = os.path.join(workspace_tmp_dir, identifier)
     with open(JOBS_JSON, 'r') as f:
         jobs_json = json.load(f)
+    with open(JOBS_HAIL_JSON, 'r') as f:
+        jobs_hail_json = json.load(f)
 
     nbs = [os.path.relpath(path, SOURCE_DIR).split('.')[0]
            for path in glob.glob(SOURCE_DIR + '/**', recursive=True)
@@ -54,9 +57,14 @@ def main(cli_profile, workspace_tmp_dir, dbfs_init_script_dir):
 
         print(f"Launching runs")
         for nb in nbs:
-            jobs_json['name'] = 'Glow notebook integration test - ' + nb
-            jobs_json['notebook_task'] = {'notebook_path': work_dir + '/' + nb}
-            run_submit = run_cli_cmd(cli_profile, 'runs', ['submit', '--json', json.dumps(jobs_json)])
+            if "hail" in nb:
+                jobs_hail_json['name'] = 'Glow notebook integration test - ' + nb
+                jobs_hail_json['notebook_task'] = {'notebook_path': work_dir + '/' + nb}
+                run_submit = run_cli_cmd(cli_profile, 'runs', ['submit', '--json', json.dumps(jobs_hail_json)])
+            else:
+                jobs_json['name'] = 'Glow notebook integration test - ' + nb
+                jobs_json['notebook_task'] = {'notebook_path': work_dir + '/' + nb}
+                run_submit = run_cli_cmd(cli_profile, 'runs', ['submit', '--json', json.dumps(jobs_json)])
             run_id = json.loads(run_submit)['run_id']
             nb_to_run_id[nb] = str(run_id)
     finally:
