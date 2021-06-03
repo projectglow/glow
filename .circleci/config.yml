@@ -280,7 +280,7 @@ jobs:
           command: |
             printf "[docs-ci]\nhost = https://westus2.azuredatabricks.net\ntoken = ${DATABRICKS_API_TOKEN}\n" > ~/.databrickscfg
       - run:
-          name: Run tests on notebooks that changed
+          name: Run all notebook tests
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             python docs/dev/run-nb-test.py --cli-profile docs-ci
@@ -303,7 +303,7 @@ jobs:
           command: |
             printf "[docs-ci]\nhost = https://westus2.azuredatabricks.net\ntoken = ${DATABRICKS_API_TOKEN}\n" > ~/.databrickscfg
       - run:
-          name: Run notebook tests
+          name: Run changed notebook tests
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             changed_nbs=$(git diff --name-only master | grep docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE | cut -c 51- | cut -f1 -d"." | sed -e 's/^/--nbs /')
