@@ -26,7 +26,7 @@ def run_linear_regression(genotype_df, phenotype_df, covariate_df, add_intercept
     pdf = pd.DataFrame({lr._VALUES_COLUMN_NAME: list(genotype_df.to_numpy('float64').T)})
 
     return lr._linear_regression_inner(pdf, Y_state, Y_mask.astype('float64'), Y_scale, Q, dof,
-                                       phenotype_names)
+                                       phenotype_names, None, None)
 
 
 def run_linear_regression_spark(spark,
