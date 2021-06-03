@@ -183,6 +183,7 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
 
     So, if a matrix's indices are `sg` (like the X matrix), it has one row per sample and one column per genotype.
     '''
+
     X = np.column_stack(genotype_pdf[_VALUES_COLUMN_NAME].array)
     del genotype_pdf[_VALUES_COLUMN_NAME]
     num_genotypes = genotype_pdf.shape[0]
@@ -192,6 +193,7 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
         out_df["sum_x"] = list(np.ravel(Y_mask.T @ X))
         out_df["y_transpose_x"] = list(np.ravel(Y_raw.T @ X))
     X = gwas_fx._residualize_in_place(X, Q)
+
     XdotY = Y_state.Y.T @ X
     XdotX_reciprocal = 1 / gwas_fx._einsum('sp,sg,sg->pg', Y_mask, X, X)
     betas = XdotY * XdotX_reciprocal
