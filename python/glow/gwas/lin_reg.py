@@ -80,7 +80,7 @@ def linear_regression(genotype_df: DataFrame,
                         expression is provided, the expression should return a numeric array type.
         dt : The numpy datatype to use in the linear regression test. Must be ``np.float32`` or ``np.float64``.
         verbose_output: Whether or not to generate additional test statistics (n, sum_x, y_transpose_x)
-                        to the output DataFrame (default = False)
+                        to the output DataFrame
 
     Returns:
         A Spark DataFrame that contains
@@ -113,7 +113,7 @@ def linear_regression(genotype_df: DataFrame,
     Y = phenotype_df.to_numpy(dt, copy=True)
     Y_mask = (~np.isnan(Y)).astype(dt)
     Y = np.nan_to_num(Y, copy=False)
-    Y_raw_nan_filled = np.nan_to_num(Y, copy=True) if verbose_output else None
+    Y_for_verbose_output = np.copy(Y) if verbose_output else None
     Y -= Y.mean(axis=0)  # Mean-center
     Y = gwas_fx._residualize_in_place(Y, Q) * Y_mask  # Residualize
     Y_scale = np.sqrt(np.sum(Y**2, axis=0) / (Y_mask.sum(axis=0) - Q.shape[1]))
@@ -124,7 +124,7 @@ def linear_regression(genotype_df: DataFrame,
     dof = C.shape[0] - C.shape[1] - 1
 
     return _generate_linreg_output(genotype_df, sql_type, Y_state, Y_mask, Y_scale, Q, dof,
-                            phenotype_df, Y_raw_nan_filled, verbose_output)
+                            phenotype_df, Y_for_verbose_output, verbose_output)
 
 
 
@@ -167,8 +167,8 @@ def _create_one_YState(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame
 def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
                              Y_mask: NDArray[(Any, Any), Float], Y_scale: NDArray[(Any, ), Float],
                              Q: NDArray[(Any, Any), Float], dof: int,
-                             phenotype_names: pd.Series, Y_raw: NDArray[(Any, Any), Float] = None,
-                             verbose_output: bool = False) -> pd.DataFrame:
+                             phenotype_names: pd.Series, Y_raw: Optional[NDArray[(Any, Any), Float]],
+                             verbose_output: Optional[bool]) -> pd.DataFrame:
     '''
     Applies a linear regression model to a block of genotypes. We first project the covariates out of the
     genotype block and then perform single variate linear regression for each site.
@@ -184,11 +184,14 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
     So, if a matrix's indices are `sg` (like the X matrix), it has one row per sample and one column per genotype.
     '''
     X = np.column_stack(genotype_pdf[_VALUES_COLUMN_NAME].array)
+    del genotype_pdf[_VALUES_COLUMN_NAME]
+    num_genotypes = genotype_pdf.shape[0]
+    out_df = pd.concat([genotype_pdf] * Y_state.Y.shape[1])
     if verbose_output:
-        sum_x = Y_mask.T @ X
-        y_transpose_x = Y_raw.T @ X
+        out_df["n"] = list(np.ravel(Y_mask.T @ np.ones(X.shape)))
+        out_df["sum_x"] = list(np.ravel(Y_mask.T @ X))
+        out_df["y_transpose_x"] = list(np.ravel(Y_raw.T @ X))
     X = gwas_fx._residualize_in_place(X, Q)
-
     XdotY = Y_state.Y.T @ X
     XdotX_reciprocal = 1 / gwas_fx._einsum('sp,sg,sg->pg', Y_mask, X, X)
     betas = XdotY * XdotX_reciprocal
@@ -196,20 +199,12 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
     T = betas / standard_error
     pvalues = 2 * stats.distributions.t.sf(np.abs(T), dof)
 
-    del genotype_pdf[_VALUES_COLUMN_NAME]
-
-    num_genotypes = genotype_pdf.shape[0]
-    out_df = pd.concat([genotype_pdf] * Y_state.Y.shape[1])
     Y_scale_mat = Y_scale[:, None]
     out_df['effect'] = list(np.ravel(betas * Y_scale_mat))
     out_df['stderror'] = list(np.ravel(standard_error * Y_scale_mat))
     out_df['tvalue'] = list(np.ravel(T))
     out_df['pvalue'] = list(np.ravel(pvalues))
     out_df['phenotype'] = phenotype_names.repeat(num_genotypes).tolist()
-    if verbose_output:
-        out_df["n"] = list(np.ravel(Y_mask.T @ np.ones(X.shape)))
-        out_df["sum_x"] = list(np.ravel(sum_x))
-        out_df["y_transpose_x"] = list(np.ravel(y_transpose_x))
 
     return out_df
 
