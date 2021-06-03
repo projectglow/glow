@@ -306,10 +306,9 @@ jobs:
           name: Run changed notebook tests
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            changed_nbs=$(git diff --name-only master | grep docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE | cut -c 51- | cut -f1 -d"." | sed -e 's/^/--nbs /')
-            if [[ -n $(changed_nbs) ]]; then
+            if [[ -n $(git diff --name-only master --relative docs/source/_static/) ]]; then
               echo "Testing changed notebooks!"
-              python docs/dev/run-nb-test.py --cli-profile docs-ci $changed_nbs
+              python docs/dev/run-nb-test.py --cli-profile docs-ci $(git diff --name-only master --relative docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE | cut -c 51- | cut -f1 -d"." | sed -e 's/^/--nbs /')
             else
               echo "No notebooks changed."
             fi
