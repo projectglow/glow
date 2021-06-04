@@ -4,7 +4,7 @@ Runs all Glow notebooks in Databricks as an integration test.
 Before running this, configure your Databricks CLI profile.
 
 Example usage:
-  python3 docs/dev/run-nb-test.py
+  python3 docs/dev/run-nb-test.py --cli-profile docs-ci --nbs etl/merge-vcf --nbs tertiary/pandas-lmm
 '''
 import click
 from datetime import datetime
@@ -16,7 +16,6 @@ import sys
 import time
 import uuid
 
-SOURCE_DIR = 'docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE'
 JOBS_JSON = 'docs/dev/jobs-config.json'
 JOBS_HAIL_JSON = 'docs/dev/jobs-config-hail.json'
 INIT_SCRIPT_DIR = 'docs/dev/init-scripts'
@@ -34,7 +33,11 @@ def run_cli_cmd(cli_profile, api, args):
 @click.option('--cli-profile', default='DEFAULT', help='Databricks CLI profile name.')
 @click.option('--workspace-tmp-dir', default='/tmp/glow-nb-test-ci', help='Base workspace dir for import and testing.')
 @click.option('--dbfs-init-script-dir', default='dbfs:/glow-init-scripts', help='DBFS directory for init scripts.')
-def main(cli_profile, workspace_tmp_dir, dbfs_init_script_dir):
+@click.option('--source-dir', default='docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE',
+              help='Source directory of notebooks to upload.')
+@click.option('--nbs', multiple=True, default=[],
+              help='Relative name of notebooks in the source directory to run. If not provided, runs all notebooks.')
+def main(cli_profile, workspace_tmp_dir, dbfs_init_script_dir, source_dir, nbs):
     identifier = str(uuid.uuid4())
     work_dir = os.path.join(workspace_tmp_dir, identifier)
     with open(JOBS_JSON, 'r') as f:
@@ -42,15 +45,16 @@ def main(cli_profile, workspace_tmp_dir, dbfs_init_script_dir):
     with open(JOBS_HAIL_JSON, 'r') as f:
         jobs_hail_json = json.load(f)
 
-    nbs = [os.path.relpath(path, SOURCE_DIR).split('.')[0]
-           for path in glob.glob(SOURCE_DIR + '/**', recursive=True)
-           if not os.path.isdir(path)]
+    if not nbs:
+        nbs = [os.path.relpath(path, source_dir).split('.')[0]
+               for path in glob.glob(source_dir + '/**', recursive=True)
+               if not os.path.isdir(path)]
     nb_to_run_id = {}
 
     try:
-        print(f"Importing source files from {SOURCE_DIR} to {work_dir}")
+        print(f"Importing source files from {source_dir} to {work_dir}")
         run_cli_cmd(cli_profile, 'workspace', ['mkdirs', work_dir])
-        run_cli_cmd(cli_profile, 'workspace', ['import_dir', SOURCE_DIR, work_dir])
+        run_cli_cmd(cli_profile, 'workspace', ['import_dir', source_dir, work_dir])
 
         print(f"Installing init scripts")
         run_cli_cmd(cli_profile, 'fs', ['cp', INIT_SCRIPT_DIR, dbfs_init_script_dir, '--recursive', '--overwrite'])
