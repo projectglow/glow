@@ -80,7 +80,9 @@ def linear_regression(genotype_df: DataFrame,
                         expression is provided, the expression should return a numeric array type.
         dt : The numpy datatype to use in the linear regression test. Must be ``np.float32`` or ``np.float64``.
         verbose_output: Whether or not to generate additional test statistics (n, sum_x, y_transpose_x)
-                        to the output DataFrame
+                        to the output DataFrame.  These values are derived directly from phenotype_df and genotype_df,
+                        and does not reflect any standardization performed as part of the implementation of
+                        linear_regression.
 
     Returns:
         A Spark DataFrame that contains
