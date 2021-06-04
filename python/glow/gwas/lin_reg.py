@@ -124,8 +124,7 @@ def linear_regression(genotype_df: DataFrame,
     dof = C.shape[0] - C.shape[1] - 1
 
     return _generate_linreg_output(genotype_df, sql_type, Y_state, Y_mask, Y_scale, Q, dof,
-                            phenotype_df, Y_for_verbose_output, verbose_output)
-
+                                   phenotype_df, Y_for_verbose_output, verbose_output)
 
 
 @dataclass
@@ -166,8 +165,8 @@ def _create_one_YState(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame
 # @typechecked -- typeguard does not support numpy array
 def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
                              Y_mask: NDArray[(Any, Any), Float], Y_scale: NDArray[(Any, ), Float],
-                             Q: NDArray[(Any, Any), Float], dof: int,
-                             phenotype_names: pd.Series, Y_raw: Optional[NDArray[(Any, Any), Float]],
+                             Q: NDArray[(Any, Any), Float], dof: int, phenotype_names: pd.Series,
+                             Y_raw: Optional[NDArray[(Any, Any), Float]],
                              verbose_output: Optional[bool]) -> pd.DataFrame:
     '''
     Applies a linear regression model to a block of genotypes. We first project the covariates out of the
@@ -223,17 +222,18 @@ def _generate_linreg_output(genotype_df, sql_type, Y_state, Y_mask, Y_scale, Q, 
     ]
 
     if verbose_output:
-        result_fields += ([StructField('n', IntegerType()),
-                              StructField('sum_x', sql_type),
-                              StructField('y_transpose_x', sql_type)])
+        result_fields += ([
+            StructField('n', IntegerType()),
+            StructField('sum_x', sql_type),
+            StructField('y_transpose_x', sql_type)
+        ])
 
     result_struct = gwas_fx._output_schema(genotype_df.schema.fields, result_fields)
 
     def map_func(pdf_iterator):
         for pdf in pdf_iterator:
-            yield gwas_fx._loco_dispatch(pdf, Y_state, _linear_regression_inner, Y_mask, Y_scale, Q,
-                                         dof,
-                                         phenotype_df.columns.to_series().astype('str'), Y_raw_nan_filled, verbose_output)
-
+            yield gwas_fx._loco_dispatch(
+                pdf, Y_state, _linear_regression_inner, Y_mask, Y_scale, Q, dof,
+                phenotype_df.columns.to_series().astype('str'), Y_raw_nan_filled, verbose_output)
 
     return genotype_df.mapInPandas(map_func, result_struct)
