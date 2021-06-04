@@ -14,6 +14,10 @@ glow.register(spark)
 # COMMAND ----------
 
 file_path = "dbfs:/tmp/genomics/reference/homo_sapiens/100/"
+results_path = "/dbfs/tmp/genomics"
+os.environ['results_path'] = results_path
+log_path = "/dbfs/tmp/genomics/logs"
+os.environ['log_path'] = log_path
 dbutils.fs.mkdirs(file_path)
 
 # COMMAND ----------
@@ -56,7 +60,7 @@ vcf_path = 'dbfs:/databricks-datasets/genomics/1kg-vcfs/ALL.chr22.phase3_shapeit
 vcf_test_path = "dbfs:/tmp/genomics/test_single_node.vcf"
 vcf_test_pipe_path = "dbfs:/tmp/genomics/test_pipe_annotated.vcf"
 df = spark.read.format("vcf").load(vcf_path).limit(1000)
-df.write.format("bigvcf").save(vcf_test_path)
+df.write.format("bigvcf").mode("overwrite").save(vcf_test_path)
 
 # COMMAND ----------
 
@@ -76,7 +80,24 @@ df.write.format("bigvcf").save(vcf_test_path)
 # COMMAND ----------
 
 # MAGIC %sh
-# MAGIC /opt/vep/src/ensembl-vep/vep -i /dbfs/tmp/genomics/test_single_node.vcf --dir_cache /dbfs/tmp/genomics/reference --fasta /dbfs/tmp/genomics/reference/homo_sapiens/100/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz --plugin AncestralAllele,/dbfs/tmp/genomics/reference/homo_sapiens/100/homo_sapiens_ancestor_GRCh38.fa.gz --assembly GRCh38 --format vcf --output_file /dbfs/tmp/genomics/test_single_node_annotated.vcf --no_stats --vcf --hgvs --cache --force_overwrite
+# MAGIC pid=$$
+# MAGIC hostname=`hostname`
+# MAGIC current_time=$(date +"%Y%m%d") 
+# MAGIC 
+# MAGIC /opt/vep/src/ensembl-vep/vep \
+# MAGIC -i $results_path/test_single_node.vcf \
+# MAGIC --dir_cache /dbfs/tmp/genomics/reference \
+# MAGIC --fasta /dbfs/tmp/genomics/reference/homo_sapiens/100/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz \
+# MAGIC --plugin AncestralAllele,/dbfs/tmp/genomics/reference/homo_sapiens/100/homo_sapiens_ancestor_GRCh38.fa.gz \
+# MAGIC --assembly GRCh38 \
+# MAGIC --format vcf \
+# MAGIC --no_stats \
+# MAGIC --vcf \
+# MAGIC --hgvs \
+# MAGIC --cache \
+# MAGIC --force_overwrite \
+# MAGIC --output_file $results_path/test_single_node_annotated.vcf \
+# MAGIC --warning_file $log_path/vep_stderr_warning_file_$current_time\_pid_$pid\_hostname_$hostname.txt
 
 # COMMAND ----------
 
@@ -100,23 +121,34 @@ df.write.format("bigvcf").save(vcf_test_path)
 
 # COMMAND ----------
 
-cmd = json.dumps([
-  "/opt/vep/src/ensembl-vep/vep",
-  "--dir_cache", '/dbfs/tmp/genomics/reference',
-  "--fasta", "/dbfs/tmp/genomics/reference/homo_sapiens/100/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz",
-  "--plugin", "AncestralAllele,/dbfs/tmp/genomics/reference/homo_sapiens/100/homo_sapiens_ancestor_GRCh38.fa.gz",
-  "--assembly", "GRCh38",
-  "--format", "vcf",
-  "--output_file", "STDOUT",
-  "--no_stats",
-  "--cache",
-  "--vcf",
-  "--hgvs"])
+df = spark.read.format("vcf").load(vcf_test_path)
+df.count()
 
 # COMMAND ----------
 
-df = spark.read.format("vcf").load(vcf_test_path)
-df.count()
+scriptFile = r"""#!/bin/sh
+set -e
+
+pid=$$
+hostname=`hostname`
+current_time=$(date +"%Y%m%d") 
+
+/opt/vep/src/ensembl-vep/vep \
+--dir_cache /dbfs/tmp/genomics/reference \
+--fasta /dbfs/tmp/genomics/reference/homo_sapiens/100/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz \
+--plugin AncestralAllele,/dbfs/tmp/genomics/reference/homo_sapiens/100/homo_sapiens_ancestor_GRCh38.fa.gz \
+--assembly GRCh38 \
+--format vcf \
+--no_stats \
+--vcf \
+--hgvs \
+--cache \
+--force_overwrite \
+--output_file STDOUT \
+--warning_file {0}/vep_stderr_warning_file_$current_time\_pid_$pid\_hostname_$hostname.txt
+""".format(log_path)
+
+cmd = json.dumps(["bash", "-c", scriptFile])
 
 # COMMAND ----------
 
@@ -171,7 +203,3 @@ if not filecmp.cmp(f1, f2):
 # COMMAND ----------
 
 dbutils.fs.rm("dbfs:/tmp/genomics/", recurse=True)
-
-# COMMAND ----------
-
-
