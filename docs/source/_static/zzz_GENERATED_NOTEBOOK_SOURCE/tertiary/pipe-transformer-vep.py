@@ -15,9 +15,13 @@ glow.register(spark)
 
 file_path = "dbfs:/tmp/genomics/reference/homo_sapiens/100/"
 results_path = "/dbfs/tmp/genomics"
+results_dbfs_path = "dbfs:/tmp/genomics"
 os.environ['results_path'] = results_path
 log_path = "/dbfs/tmp/genomics/logs"
 os.environ['log_path'] = log_path
+
+# COMMAND ----------
+
 dbutils.fs.mkdirs(file_path)
 
 # COMMAND ----------
@@ -42,8 +46,8 @@ dbutils.fs.mkdirs(file_path)
 # COMMAND ----------
 
 # MAGIC %sh
-# MAGIC cp Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz /dbfs/tmp/genomics/reference/homo_sapiens/100/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
-# MAGIC cp homo_sapiens_ancestor_GRCh38.fa.gz /dbfs/tmp/genomics/reference/homo_sapiens/100/homo_sapiens_ancestor_GRCh38.fa.gz
+# MAGIC cp Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz $results_path/reference/homo_sapiens/100/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
+# MAGIC cp homo_sapiens_ancestor_GRCh38.fa.gz $results_path/reference/homo_sapiens/100/homo_sapiens_ancestor_GRCh38.fa.gz
 
 # COMMAND ----------
 
@@ -57,8 +61,8 @@ display(dbutils.fs.ls(file_path))
 # COMMAND ----------
 
 vcf_path = 'dbfs:/databricks-datasets/genomics/1kg-vcfs/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz'
-vcf_test_path = "dbfs:/tmp/genomics/test_single_node.vcf"
-vcf_test_pipe_path = "dbfs:/tmp/genomics/test_pipe_annotated.vcf"
+vcf_test_path = results_dbfs_path + "/test_single_node.vcf"
+vcf_test_pipe_path = results_dbfs_path + "/test_pipe_annotated.vcf"
 df = spark.read.format("vcf").load(vcf_path).limit(1000)
 df.write.format("bigvcf").mode("overwrite").save(vcf_test_path)
 
@@ -107,12 +111,12 @@ df.write.format("bigvcf").mode("overwrite").save(vcf_test_path)
 # COMMAND ----------
 
 # MAGIC %sh
-# MAGIC cat /dbfs/tmp/genomics/test_single_node_annotated.vcf | sed '/#/d' | wc -l
+# MAGIC cat $results_path/test_single_node_annotated.vcf | sed '/#/d' | wc -l
 
 # COMMAND ----------
 
 # MAGIC %sh
-# MAGIC head -n 200  /dbfs/tmp/genomics/test_single_node_annotated.vcf
+# MAGIC head -n 200  $results_path/test_single_node_annotated.vcf
 
 # COMMAND ----------
 
@@ -173,7 +177,7 @@ output_df.count()
 # COMMAND ----------
 
 # MAGIC %sh
-# MAGIC cat /dbfs/tmp/genomics/test_pipe_annotated.vcf | sed '/#/d' | wc -l
+# MAGIC cat $results_path/test_pipe_annotated.vcf | sed '/#/d' | wc -l
 
 # COMMAND ----------
 
@@ -183,23 +187,51 @@ output_df.count()
 # COMMAND ----------
 
 # MAGIC %sh
-# MAGIC head -n 200 /dbfs/tmp/genomics/test_pipe_annotated.vcf
+# MAGIC head -n 200 $results_path/test_pipe_annotated.vcf
+
+# COMMAND ----------
+
+single_node_vcf = spark.read.format("vcf").load(results_dbfs_path + '/test_single_node_annotated.vcf')
+glow_vcf = spark.read.format("vcf").load(results_dbfs_path + '/test_pipe_annotated.vcf')
+
+# COMMAND ----------
+
+single_node_only_df = single_node_vcf.subtract(glow_vcf)
+single_node_only_count = single_node_only_df.count()
+
+# COMMAND ----------
+
+display(single_node_only_df)
+
+# COMMAND ----------
+
+try:
+  assert single_node_only_count == 0
+except:
+  raise ValueError("single node and glow VEP output do not match")
+
+# COMMAND ----------
+
+glow_only_df = glow_vcf.subtract(single_node_vcf)
+glow_only_count = glow_only_df.count()
+
+# COMMAND ----------
+
+display(glow_only_df)
+
+# COMMAND ----------
+
+try:
+  assert glow_only_count == 0
+except:
+  raise ValueError("single node and glow VEP output do not match")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ##### clean up
 
 # COMMAND ----------
 
 # MAGIC %sh
-# MAGIC grep -v "#" /dbfs/tmp/genomics/test_pipe_annotated.vcf | sort -k1,1 -k2,2n -k3 -k4 -k5 > /dbfs/tmp/genomics/test_pipe_annotated_minus_header.vcf
-# MAGIC grep -v "#" /dbfs/tmp/genomics/test_single_node_annotated.vcf | sort -k1,1 -k2,2n -k3 -k4 -k5 > /dbfs/tmp/genomics/test_single_node_annotated_minus_header.vcf
-
-# COMMAND ----------
-
-f1 = '/dbfs/tmp/genomics/test_single_node_annotated_minus_header.vcf'
-f2 = '/dbfs/tmp/genomics/test_pipe_annotated_minus_header.vcf'
-if not filecmp.cmp(f1, f2):
-                raise ValueError(
-                    "VCF: {f1} does not match VCF: {f2}.".format(f1=f1, f2=f2)
-                ) 
-
-# COMMAND ----------
-
-dbutils.fs.rm("dbfs:/tmp/genomics/", recurse=True)
+# MAGIC rm -r $results_path
