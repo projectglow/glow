@@ -3,10 +3,18 @@
     "spark_version": "7.6.x-scala2.12",
     "node_type_id": "Standard_DS3_v2",
     "num_workers": 2,
+    "docker_image": {
+        "url": "wbrandler/vep:latest" 
+    },
     "init_scripts": [
       {
         "dbfs": {
           "destination": "dbfs:/glow-init-scripts/bedtools.sh"
+        }
+      },
+      {
+        "dbfs": {
+          "destination": "dbfs:/glow-init-scripts/htslib_init.sh"
         }
       },
       {
@@ -24,7 +32,7 @@
     },
     {
       "pypi": {
-        "package": "glow.py"
+        "package": "glow.py==1.0.1"
       }
     },
     {
