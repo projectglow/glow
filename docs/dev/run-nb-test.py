@@ -17,7 +17,6 @@ import time
 import uuid
 
 JOBS_JSON = 'docs/dev/jobs-config.json'
-JOBS_HAIL_JSON = 'docs/dev/jobs-config-hail.json'
 JOBS_VEP_JSON = 'docs/dev/jobs-config-vep.json'
 INIT_SCRIPT_DIR = 'docs/dev/init-scripts'
 
@@ -43,8 +42,6 @@ def main(cli_profile, workspace_tmp_dir, dbfs_init_script_dir, source_dir, nbs):
     work_dir = os.path.join(workspace_tmp_dir, identifier)
     with open(JOBS_JSON, 'r') as f:
         jobs_json = json.load(f)
-    with open(JOBS_HAIL_JSON, 'r') as f:
-        jobs_hail_json = json.load(f)
     with open(JOBS_VEP_JSON, 'r') as f:
         jobs_vep_json = json.load(f)
 
@@ -64,11 +61,7 @@ def main(cli_profile, workspace_tmp_dir, dbfs_init_script_dir, source_dir, nbs):
 
         print(f"Launching runs")
         for nb in nbs:
-            if "hail" in nb:
-                jobs_hail_json['name'] = 'Glow notebook integration test - ' + nb
-                jobs_hail_json['notebook_task'] = {'notebook_path': work_dir + '/' + nb}
-                run_submit = run_cli_cmd(cli_profile, 'runs', ['submit', '--json', json.dumps(jobs_hail_json)])
-            elif "vep" in nb:
+            if "vep" in nb:
                 jobs_vep_json['name'] = 'Glow notebook integration test - ' + nb
                 jobs_vep_json['notebook_task'] = {'notebook_path': work_dir + '/' + nb}
                 run_submit = run_cli_cmd(cli_profile, 'runs', ['submit', '--json', json.dumps(jobs_vep_json)])
