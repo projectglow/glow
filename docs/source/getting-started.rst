@@ -85,7 +85,7 @@ Getting started on Databricks
 
 The following series of notebooks showcase how to get started with Glow on Databricks on Amazon Web Services and Microsoft Azure.
 
-**coming soon: Google Cloud Platform**
+*coming soon: Google Cloud Platform*
 
 .. notebook:: . readme/index.html
   :title: Databricks quickstart guide
@@ -94,4 +94,4 @@ The following series of notebooks showcase how to get started with Glow on Datab
 Getting started on other cloud services
 ---------------------------------------
 
-Please submit a pull request here to add a how-to guide for other cloud services.
+Please submit a pull request to add a how-to guide for other cloud services.
