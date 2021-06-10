@@ -83,10 +83,13 @@ Also note that the path to datasets used as example in these notebooks is usuall
 Getting started on Databricks
 -----------------------------
 
-The following series of notebooks showcase how to get started with Glow on Databricks.
+The following series of notebooks showcase how to get started with Glow on Databricks on Amazon Web Services and Microsoft Azure.
 
+**coming soon: Google Cloud Platform**
 
 .. notebook:: . readme/index.html
+  :title: Databricks quickstart guide
+
 
 Getting started on other cloud services
 ---------------------------------------
