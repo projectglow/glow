@@ -83,10 +83,12 @@ Also note that the path to datasets used as example in these notebooks is usuall
 Getting started on Databricks
 -----------------------------
 
-The following series of notebooks showcase how to get started with Glow on Databricks,
-.
-
-.. notebook:: . tertiary/gwas.html
+The following series of notebooks showcase how to get started with Glow on Databricks.
 
 
-.. notebook:: . readme/gwas.html
+.. notebook:: . readme/index.html
+
+Getting started on other cloud services
+---------------------------------------
+
+Please submit a pull request here to add a how-to guide for other cloud services.
