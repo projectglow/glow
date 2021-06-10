@@ -24,7 +24,7 @@
 
 # COMMAND ----------
 
-user=dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags ().apply('user')
+user=dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().apply('user')
 file_path = "dbfs:/mnt/home/" + user + "/init/"
 dbutils.fs.mkdirs(file_path)
 
@@ -60,4 +60,4 @@ chmod +x vep
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC <img src="https://databricks-knowledge-repo-images.s3.us-east-2.amazonaws.com/HLS/environment/install_init_script.png" alt="logo" width="400"/>
+# MAGIC <img src="https://docs.databricks.com/_images/init-scripts-aws.png" alt="logo" width="400"/>

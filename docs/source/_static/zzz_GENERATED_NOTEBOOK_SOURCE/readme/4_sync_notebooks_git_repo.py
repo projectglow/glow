@@ -8,13 +8,19 @@
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ###### Syncing Glow notebooks from github to your workspace using [repos](https://docs.databricks.com/repos.html) (preview)
+# MAGIC ###### Syncing Glow notebooks from github to your workspace using [repos](https://docs.databricks.com/repos.html)
+# MAGIC 
+# MAGIC Note: please fork glow first, 
+# MAGIC 
+# MAGIC and use the following git repo URL: 
+# MAGIC 
+# MAGIC `https://github.com/<insert_github_handle>/glow`
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC 
-# MAGIC <img src="https://databricks-knowledge-repo-images.s3.us-east-2.amazonaws.com/HLS/glow/add_glow_repo.png" alt="logo" width="500"/> 
+# MAGIC <img src="https://docs.databricks.com/_images/clone-from-repo.png" alt="logo" width="500"/> 
 
 # COMMAND ----------
 
@@ -36,12 +42,12 @@
 
 # MAGIC %md
 # MAGIC 
-# MAGIC <img src="https://databricks-knowledge-repo-images.s3.us-east-2.amazonaws.com/HLS/glow/glow_commit_code_repo.png" alt="logo" width="700"/> 
+# MAGIC <img src="https://databricks-knowledge-repo-images.s3.us-east-2.amazonaws.com/HLS/glow/glow_commit_code_repo.png" alt="logo" width="750"/> 
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ###### Syncing Glow notebooks from github to your workspace (legacy)
+# MAGIC ###### Syncing Glow notebooks from github to your workspace (deprecated)
 # MAGIC 
 # MAGIC 1. Clone Glow Github repository
 # MAGIC 2. Install Databricks CLI
@@ -49,10 +55,12 @@
 
 # COMMAND ----------
 
-# MAGIC %sh
+# MAGIC %md
+# MAGIC ```
 # MAGIC #!/bin/bash
 # MAGIC for file in /Users/williambrandler/Documents/databricks/git/glow/docs/source/_static/notebooks/*/*.html; do
 # MAGIC name=${file##*/}
 # MAGIC databricks workspace import $file /Users/william.brandler@databricks.com/glow/$name --overwrite --format HTML --language PYTHON --profile field-eng
 # MAGIC echo $name
 # MAGIC done
+# MAGIC ```
