@@ -76,14 +76,30 @@ Glow requires Apache Spark 3.0.0.
 Notebooks embedded in the docs
 ------------------------------
 
-To demonstrate example use cases of Glow functionalities, most doc pages are accompanied by embedded `Databricks Notebooks <https://docs.databricks.com/notebooks/index.html>`_. Most of the code in these notebooks can be run on Spark and Glow alone, but a few functions such as ``display()`` or ``dbutils()`` are only available on Databricks. See :ref:`dbnotebooks` for more info.
+To demonstrate example use cases of Glow functionalities, most doc pages are accompanied by embedded notebooks. Most of the code in these notebooks can be run on Spark and Glow alone, but a few functions such as ``display()`` or ``dbutils()`` are only available on Databricks. See :ref:`dbnotebooks` for more info.
 
 Also note that the path to datasets used as example in these notebooks is usually a folder in ``/databricks-datasets/genomics/`` and should be replaced with the appropriate path based on your own folder structure.
 
-Demo notebook
------------------
+Getting started on Databricks
+-----------------------------
 
-This notebook showcases some of the key functionality of Glow, like reading in a genomic dataset,
-saving it as a `Delta Lake <https://delta.io>`_, and performing a genome-wide association study.
+Please sync the Glow Github repository to your Databricks workspace using `repos <https://docs.databricks.com/repos.html>`_.
 
-.. notebook:: . tertiary/gwas.html
+The Glow repo contains a series of notebooks that show how to get started with Glow 
+on Databricks on Amazon Web Services (AWS), Microsoft Azure and Google Cloud Platform (GCP *coming soon!*). 
+These include,
+ 
+1. cluster recommendations
+2. how to install 
+	- `Glow <https://github.com/projectglow/glow>`_
+	- `Hail <https://github.com/hail-is/hail>`_
+	- `The Variant Effect Predictor <https://github.com/Ensembl/ensembl-vep>`_
+	- `Deep Variant <https://github.com/google/deepvariant>`_
+3. how to develop automated production jobs
+
+You can the find the notebook source code under, ``glow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/readme``.
+
+Getting started on other cloud services
+---------------------------------------
+
+Please submit a pull request to add a how-to guide for other cloud services.
