@@ -117,4 +117,4 @@ All of the other Glow DataFrame genotype fields are derived from the Hail Matrix
     - ``<ANY_FIELD>``
 
 .. notebook:: .. etl/hail-interoperation.html
-  :title: Variant normalization notebook
+  :title: Hail interoperation notebook
