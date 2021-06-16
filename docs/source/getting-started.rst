@@ -76,7 +76,7 @@ Glow requires Apache Spark 3.0.0.
 Notebooks embedded in the docs
 ------------------------------
 
-To demonstrate example use cases of Glow functionalities, most doc pages are accompanied by embedded notebooks. Most of the code in these notebooks can be run on Spark and Glow alone, but a few functions such as ``display()`` or ``dbutils()`` are only available on Databricks. See :ref:`dbnotebooks` for more info.
+To demonstrate use cases of Glow, documentation pages are accompanied by embedded notebooks. Most code in these notebooks can be run on Spark and Glow alone, but functions such as ``display()`` or ``dbutils()`` are only available on Databricks. See :ref:`dbnotebooks` for more info.
 
 Also note that the path to datasets used as example in these notebooks is usually a folder in ``/databricks-datasets/genomics/`` and should be replaced with the appropriate path based on your own folder structure.
 
@@ -85,7 +85,7 @@ Getting started on Databricks
 
 Please sync the Glow Github repository to your Databricks workspace using `repos <https://docs.databricks.com/repos.html>`_.
 
-The Glow repo contains a series of notebooks that show how to get started with Glow 
+The repository contains a series of notebooks that show how to get started with Glow 
 on Databricks on Amazon Web Services (AWS), Microsoft Azure and Google Cloud Platform (GCP *coming soon!*). 
 These include,
  
@@ -97,7 +97,7 @@ These include,
 	- `Deep Variant <https://github.com/google/deepvariant>`_
 3. how to develop automated production jobs
 
-You can the find the notebook source code under, ``glow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/readme``.
+You can the find the quickstart guide notebooks under, ``glow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/readme``.
 
 Getting started on other cloud services
 ---------------------------------------
