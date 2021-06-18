@@ -111,12 +111,11 @@ def linear_regression(genotype_df: DataFrame,
     gt_indices_to_drop = None
     if intersect_samples: #TODO intersect samples accross pdf,covs,and provided genotype_sample_ids
         gt_indices_to_drop = _get_indices_to_drop(phenotype_df, genotype_sample_ids)
-    if not offset_df.empty:
-        if offset_df.index.nlevels == 1:  # Indexed by sample id
-            offset_df = offset_df.reindex(phenotype_df.index)
-        elif offset_df.index.nlevels == 2:  # Indexed by sample id and contig
-            #TODO how do we reindex a multiindex dataframe using a single index that is non-unique?
-            pass
+        if not offset_df.empty:
+            if offset_df.index.nlevels == 1:  # Indexed by sample id
+                offset_df = offset_df.reindex(phenotype_df.index)
+            elif offset_df.index.nlevels == 2:  # Indexed by sample id and contig
+                offset_df = offset_df[offset_df.index.get_level_values(0).isin(phenotype_df.index)]
 
     C = covariate_df.to_numpy(dt, copy=True)
     if add_intercept:
@@ -198,7 +197,7 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
 
 
     genotype_values = genotype_pdf[_VALUES_COLUMN_NAME].array
-    if gt_indices_to_drop and gt_indices_to_drop.size:
+    if gt_indices_to_drop is not None and gt_indices_to_drop.size:
         genotype_values = list(map(lambda x: np.delete(x, gt_indices_to_drop), genotype_values))
     X = np.column_stack(genotype_values)
     #import pdb_clone.pdb;pdb_clone.pdb.set_trace_remote()
