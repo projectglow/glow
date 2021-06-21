@@ -250,12 +250,18 @@ def slice_label_rows(labeldf: pd.DataFrame, label: str, sample_list: List[str],
     Returns:
         Matrix of [number of samples in sample_block - number of samples masked] x [number of labels to slice]
     """
+    n_samples = len(sample_list)
+    #we want to attempt slicing of label df even if sample_list contains IDs that are not in labeldf
+    sample_list_idx = pd.Index(sample_list).intersection(labeldf.index)
+    if sample_list_idx.size < n_samples:
+        print(f"WARNING: not all samples in sample_list exist in labeldf.")
+        print(f"Processing the intersection of size: {sample_list_idx.size} for label {label}.")
     if row_mask.size == 0:
-        row_mask = np.full(len(sample_list), True)
+        row_mask = np.full(sample_list_idx.size, True)
     if label == 'all':
-        return labeldf.loc[sample_list, :].to_numpy()[row_mask, :]
+        return labeldf.loc[sample_list_idx, :].to_numpy()[row_mask, :]
     else:
-        return labeldf[label].loc[sample_list].to_numpy().reshape(-1, 1)[row_mask, :]
+        return labeldf[label].loc[sample_list_idx].to_numpy().reshape(-1, 1)[row_mask, :]
 
 
 @typechecked
