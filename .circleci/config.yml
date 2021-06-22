@@ -188,7 +188,7 @@ jobs:
             sbt docs/test exit
       - run:
           name: Run Python tests
-          no_output_timeout: 90m
+          no_output_timeout: 360m
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
