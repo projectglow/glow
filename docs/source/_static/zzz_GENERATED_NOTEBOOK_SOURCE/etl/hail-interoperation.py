@@ -1,15 +1,4 @@
 # Databricks notebook source
-
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC #### Hail interoperation
-# MAGIC 
-# MAGIC Tested on unannotated VCFs up to 4 million records
-
-# COMMAND ----------
-
 import hail as hl
 hl.init(sc, idempotent=True, quiet=True)
 
