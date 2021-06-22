@@ -20,8 +20,14 @@
 
 # COMMAND ----------
 
+user=dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().apply('user')
+file_path = "dbfs:/mnt/home/" + user + "/init/"
+dbutils.fs.mkdirs(file_path)
+
+# COMMAND ----------
+
 dbutils.fs.put(
-'dbfs:/tmp/databricks/scripts/install-hail.sh',
+file_path + 'install-hail.sh',
 '''
 #!/bin/bash
 set -ex
@@ -68,3 +74,7 @@ echo $?
 
 # MAGIC %md
 # MAGIC <img src="https://databricks-knowledge-repo-images.s3.us-east-2.amazonaws.com/HLS/environment/install_hail_env.png" alt="logo" width="600"/> 
+
+# COMMAND ----------
+
+dbutils.fs.rm(file_path, recurse=True)

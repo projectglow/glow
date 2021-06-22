@@ -61,3 +61,7 @@ chmod +x vep
 
 # MAGIC %md
 # MAGIC <img src="https://docs.databricks.com/_images/init-scripts-aws.png" alt="logo" width="500"/>
+
+# COMMAND ----------
+
+dbutils.fs.rm(file_path, recurse=True)
