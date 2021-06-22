@@ -56,31 +56,6 @@ def test_estimate_loco_offsets_ridge(spark):
     assert (np.allclose(y_hat_df, yhatdf))
 
 
-def test_estimate_loco_offsets_ridge_intersect_samples(spark):
-    labeldf = pd.read_csv(f'{ridge_data_root}/pts.csv', dtype={
-        'sample_id': 'str'
-    }).set_index('sample_id')
-    indexdf = spark.read.parquet(f'{ridge_data_root}/groupedIDs.snappy.parquet')
-    blockdf = spark.read.parquet(f'{ridge_data_root}/blockedGT.snappy.parquet').limit(10000)
-
-    group2ids = __get_sample_blocks(indexdf)
-    #import pdb_clone.pdb;pdb_clone.pdb.set_trace_remote()
-
-    y_hat_df = estimate_loco_offsets(blockdf,
-                                     labeldf.head(100),
-                                     group2ids,
-                                     add_intercept=False,
-                                     reduction_alphas=alphas,
-                                     regression_alphas=alphas)
-
-    stack0 = RidgeReduction(blockdf, labeldf, group2ids, add_intercept=False, alphas=alphas)
-    stack0.fit_transform()
-    regressor = RidgeRegression.from_ridge_reduction(stack0, alphas)
-    yhatdf = regressor.fit_transform_loco()
-
-    assert (np.allclose(y_hat_df, yhatdf))
-
-
 def test_estimate_loco_offsets_logistic_ridge_no_intercept_no_cov(spark):
     labeldf = pd.read_csv(f'{logistic_ridge_data_root}/binary_phenotypes.csv').set_index('sample_id')
     labeldf.index = labeldf.index.astype(str, copy=False)
