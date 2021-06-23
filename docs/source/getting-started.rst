@@ -85,7 +85,8 @@ Getting started on Databricks
 
 Please sync the Glow Github repository to your Databricks workspace using `repos <https://docs.databricks.com/repos.html>`_.
 
-The repository contains a series of notebooks that show how to get started with Glow 
+The repository contains a series of notebooks (`source code <https://github.com/projectglow/glow/tree/master/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE>`_, 
+`html <https://github.com/projectglow/glow/tree/master/docs/source/_static/notebooks>`_) that show how to get started with Glow 
 on Databricks on Amazon Web Services (AWS), Microsoft Azure and Google Cloud Platform (GCP *coming soon!*). 
 These include,
  
@@ -96,8 +97,6 @@ These include,
 	- `The Variant Effect Predictor <https://github.com/Ensembl/ensembl-vep>`_
 	- `DeepNull <https://github.com/Google-Health/genomics-research/tree/main/nonlinear-covariate-gwas>`_
 3. how to develop automated production jobs
-
-You can the find the quickstart notebooks in the glow repo, (`source code <https://github.com/projectglow/glow/tree/master/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE>`_, `html <https://github.com/projectglow/glow/tree/master/docs/source/_static/notebooks>`_).
 
 Getting started on other cloud services
 ---------------------------------------
