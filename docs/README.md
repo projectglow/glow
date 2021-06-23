@@ -1,20 +1,25 @@
-#The Glow documentation is published with [Read the Docs](https://readthedocs.org/).
+##### The Glow documentation is published with [Read the Docs](https://readthedocs.org/).
 
-#To build the docs locally,
-#First create the conda environment
-conda env create -f source/environment.yml
+To build the docs locally,
+first create the conda environment:
 
-#activate the dev conda environment in `source/environment.yml`
-conda activate glow-docs
+`conda env create -f source/environment.yml`
 
-#build the docs
-make livehtml
+activate the glow docs dev conda [environment](source/environment.yml):
 
-#connect to the local server via your browser at
-http://127.0.0.1:8000
+`conda activate glow-docs`
 
-#When a change is detected in docs/, 
-#the documentation is rebuilt and any open browser windows are reloaded automatically
+build the docs:
 
-#deactivate the environment after you are done
-conda deactivate
+`make livehtml`
+
+connect to the local server via your browser at:
+
+`http://127.0.0.1:8000`
+
+when a change is detected in the docs, 
+the documentation is rebuilt and any open browser windows are reloaded automatically.
+
+deactivate the environment after you are done:
+
+`conda deactivate`
