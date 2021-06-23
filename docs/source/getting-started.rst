@@ -94,10 +94,10 @@ These include,
 	- `Glow <https://github.com/projectglow/glow>`_
 	- `Hail <https://github.com/hail-is/hail>`_
 	- `The Variant Effect Predictor <https://github.com/Ensembl/ensembl-vep>`_
-	- `Deep Variant <https://github.com/google/deepvariant>`_
+	- `DeepNull <https://github.com/Google-Health/genomics-research/tree/main/nonlinear-covariate-gwas>`_
 3. how to develop automated production jobs
 
-You can the find the quickstart guide notebooks under, ``glow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/readme``.
+You can the find the quickstart notebooks in the glow repo, (`source code <https://github.com/projectglow/glow/tree/master/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE>`_, `html <https://github.com/projectglow/glow/tree/master/docs/source/_static/notebooks>`_).
 
 Getting started on other cloud services
 ---------------------------------------
