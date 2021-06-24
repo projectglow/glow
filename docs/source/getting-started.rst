@@ -83,17 +83,17 @@ Also note that the path to datasets used as example in these notebooks is usuall
 Getting started on Databricks
 -----------------------------
 
-The Databricks documentation shows how to get started with Glow on Amazon Web Services (AWS - `docs <https://docs.databricks.com/applications/genomics/genomics-libraries/index.html>`_), Microsoft Azure (`docs <https://docs.microsoft.com/en-us/azure/databricks/applications/genomics/genomics-libraries/>`_) and Google Cloud Platform (GCP - `docs <https://docs.gcp.databricks.com/applications/genomics/genomics-libraries/index.html>`_). 
+The Databricks documentation shows how to get started with Glow on **Amazon Web Services** (AWS - `docs <https://docs.databricks.com/applications/genomics/genomics-libraries/index.html>`_), **Microsoft Azure** (`docs <https://docs.microsoft.com/en-us/azure/databricks/applications/genomics/genomics-libraries/>`_) and **Google Cloud Platform** (GCP - `docs <https://docs.gcp.databricks.com/applications/genomics/genomics-libraries/index.html>`_). 
 This documentation includes,
  
-1. cluster recommendations
-2. how to install 
+1. **cluster recommendations**
+2. **how to install** 
 	- Glow (`github <https://github.com/projectglow/glow>`_)
 	- Hail (`github <https://github.com/hail-is/hail>`_)
 	- The Variant Effect Predictor (`github <https://github.com/Ensembl/ensembl-vep>`_)
 	- DeepNull (`github <https://github.com/Google-Health/genomics-research/tree/main/nonlinear-covariate-gwas>`_)
         - Deep Variant (`github <https://github.com/google/deepvariant>`_)
-3. how to develop automated production jobs
+3. **how to develop automated production jobs**
 
 Getting started on other cloud services
 ---------------------------------------
