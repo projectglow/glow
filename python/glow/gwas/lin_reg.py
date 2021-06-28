@@ -93,9 +93,9 @@ def linear_regression(genotype_df: DataFrame,
         - ``tvalue``: The T statistic
         - ``pvalue``: P value estimated from a two sided T-test
         - ``phenotype``: The phenotype name as determined by the column names of ``phenotype_df``
-        - ``n``: (verbose_output only) number of samples with non-null phenotype
-        - ``sum_x``: (verbose_output only) sum of genotype inputs
-        - ``y_transpose_x``: (verbose_output only) dot product of phenotype response (missing values encoded as zeros)
+        - ``n``(int): (verbose_output only) number of samples with non-null phenotype
+        - ``sum_x``(float): (verbose_output only) sum of genotype inputs
+        - ``y_transpose_x``(float): (verbose_output only) dot product of phenotype response (missing values encoded as zeros)
                              and genotype input, i.e. phenotype value * number of alternate alleles
     '''
 
