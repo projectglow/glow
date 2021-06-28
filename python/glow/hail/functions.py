@@ -57,8 +57,7 @@ def _get_genotypes_col(entry: StructExpression, sample_ids: Optional[List[str]])
     for entry_field in entry:
         if entry_field == 'GT' and entry.GT.dtype == tcall:
             # Flatten GT into calls and phased
-            base_struct_args.append(
-                "'calls', ifnull(e.GT.alleles, array(-1,-1)), 'phased', e.GT.phased")
+            base_struct_args.append("'calls', ifnull(e.GT.alleles, array(-1,-1)), 'phased', e.GT.phased")
         elif entry[entry_field].dtype == tcall:
             # Turn other call fields (eg. PGT) into a string
             base_struct_args.append(
