@@ -214,7 +214,7 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
 
 
 def _generate_linreg_output(genotype_df, sql_type, Y_state, Y_mask, Y_scale, Q, dof, phenotype_df,
-                            Y_raw_nan_filled, verbose_output) -> DataFrame:
+                            Y_for_verbose_output, verbose_output) -> DataFrame:
     # Construct output schema
     result_fields = [
         StructField('effect', sql_type),
@@ -235,8 +235,9 @@ def _generate_linreg_output(genotype_df, sql_type, Y_state, Y_mask, Y_scale, Q, 
 
     def map_func(pdf_iterator):
         for pdf in pdf_iterator:
-            yield gwas_fx._loco_dispatch(
-                pdf, Y_state, _linear_regression_inner, Y_mask, Y_scale, Q, dof,
-                phenotype_df.columns.to_series().astype('str'), Y_raw_nan_filled, verbose_output)
+            yield gwas_fx._loco_dispatch(pdf, Y_state, _linear_regression_inner, Y_mask, Y_scale, Q,
+                                         dof,
+                                         phenotype_df.columns.to_series().astype('str'),
+                                         Y_for_verbose_output, verbose_output)
 
     return genotype_df.mapInPandas(map_func, result_struct)
