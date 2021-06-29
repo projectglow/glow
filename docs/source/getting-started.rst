@@ -88,11 +88,11 @@ This documentation includes,
  
 1. **cluster recommendations**
 2. **how to install** 
-	- Glow (`github <https://github.com/projectglow/glow>`_)
-	- Hail (`github <https://github.com/hail-is/hail>`_)
-	- The Variant Effect Predictor (`github <https://github.com/Ensembl/ensembl-vep>`_)
-	- DeepNull (`github <https://github.com/Google-Health/genomics-research/tree/main/nonlinear-covariate-gwas>`_)
-        - Deep Variant (`github <https://github.com/google/deepvariant>`_)
+	- Glow
+	- Hail
+	- The Variant Effect Predictor
+	- DeepNull
+        - Deep Variant
 3. **how to develop automated production jobs**
 
 Getting started on other cloud services
