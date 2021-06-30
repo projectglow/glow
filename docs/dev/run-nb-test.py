@@ -28,8 +28,12 @@ def run_cli_cmd(cli_profile, api, args):
     return res.stdout
 
 def check_nb_in_dict(d, key):
+    """
+    :param d: dictionary with mapping of notebooks to databricks jobs configuration in NOTEBOOK_JOBS_JSON_MAPPING
+    :param key: notebook name
+    """
     try:
-        print("running notebook jobs config " + d[key])
+        print("running notebook " + key + " with the following jobs configuration json " + d[key])
     except KeyError:
         print(key + " notebook not in " + NOTEBOOK_JOBS_JSON_MAPPING)
 
