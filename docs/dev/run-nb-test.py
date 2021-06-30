@@ -29,8 +29,8 @@ def run_cli_cmd(cli_profile, api, args):
 
 def check_nb_in_dict(d, key):
     """
-    :param d: dictionary with mapping of notebooks to databricks jobs configuration in NOTEBOOK_JOBS_JSON_MAPPING
-    :param key: notebook name
+    :param d: dictionary with mapping of notebooks to databricks jobs configuration (from NOTEBOOK_JOBS_JSON_MAPPING)
+    :param key: notebook (nb) name
     """
     try:
         print("running notebook " + key + " with the following jobs configuration json " + d[key])
