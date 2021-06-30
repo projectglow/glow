@@ -6,12 +6,12 @@ from pyspark.sql import DataFrame, SparkSession
 import statsmodels.api as sm
 from dataclasses import dataclass
 from typeguard import typechecked
-from nptyping import Float, NDArray
+from nptyping import Float, NDArray, Int32
 from scipy import stats
 import opt_einsum as oe
 from . import functions as gwas_fx
 from . import approx_firth as af
-from .functions import _VALUES_COLUMN_NAME
+from .functions import _VALUES_COLUMN_NAME, _get_indices_to_drop
 from ..wgr.wgr_functions import reshape_for_gwas
 
 __all__ = ['logistic_regression']
@@ -30,7 +30,9 @@ def logistic_regression(genotype_df: DataFrame,
                         contigs: Optional[List[str]] = None,
                         add_intercept: bool = True,
                         values_column: str = 'values',
-                        dt: type = np.float64) -> DataFrame:
+                        dt: type = np.float64,
+                        intersect_samples: bool = False,
+                        genotype_sample_ids: Optional[List[str]] = None) -> DataFrame:
     '''
     Uses logistic regression to test for association between genotypes and one or more binary
     phenotypes. This is a distributed version of the method from regenie:
@@ -111,6 +113,17 @@ def logistic_regression(genotype_df: DataFrame,
         )
 
     result_struct = gwas_fx._output_schema(genotype_df.schema.fields, result_fields)
+
+    gt_indices_to_drop = None
+    if intersect_samples: #TODO intersect samples accross pdf,covs,and provided genotype_sample_ids
+        gt_indices_to_drop = _get_indices_to_drop(phenotype_df, genotype_sample_ids)
+        if not offset_df.empty:
+            if offset_df.index.nlevels == 1:  # Indexed by sample id
+                offset_df = offset_df.reindex(phenotype_df.index)
+            elif offset_df.index.nlevels == 2:  # Indexed by sample id and contig
+                offset_df = offset_df[offset_df.index.get_level_values(0).isin(phenotype_df.index)]
+
+
     C = covariate_df.to_numpy(dt, copy=True)
     if add_intercept:
         C = gwas_fx._add_intercept(C, phenotype_df.shape[0])
@@ -131,7 +144,7 @@ def logistic_regression(genotype_df: DataFrame,
     def map_func(pdf_iterator):
         for pdf in pdf_iterator:
             yield gwas_fx._loco_dispatch(pdf, state, _logistic_regression_inner, C, Y, Y_mask, Q,
-                                         correction, pvalue_threshold, phenotype_names)
+                                         correction, pvalue_threshold, phenotype_names, gt_indices_to_drop)
 
     return genotype_df.mapInPandas(map_func, result_struct)
 
@@ -278,7 +291,8 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
                                Y_mask: NDArray[(Any, Any),
                                                bool], Q: Optional[NDArray[(Any, Any),
                                                                           Float]], correction: str,
-                               pvalue_threshold: float, phenotype_names: pd.Series) -> pd.DataFrame:
+                               pvalue_threshold: float, phenotype_names: pd.Series,
+                               gt_indices_to_drop: Optional[NDArray[(Any, ), Int32]]) -> pd.DataFrame:
     '''
     Tests a block of genotypes for association with binary traits. We first residualize
     the genotypes based on the null model fit, then perform a fast score test to check for
@@ -290,7 +304,10 @@ def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogReg
     p: phenotype
     c, d: covariate
     '''
-    X = np.column_stack(genotype_pdf[_VALUES_COLUMN_NAME].array)
+    genotype_values = genotype_pdf[_VALUES_COLUMN_NAME].array
+    if gt_indices_to_drop is not None and gt_indices_to_drop.size:
+        genotype_values = list(map(lambda x: np.delete(x, gt_indices_to_drop), genotype_values))
+    X = np.column_stack(genotype_values)
 
     # For approximate Firth correction, we perform a linear residualization
     if correction == correction_approx_firth:
