@@ -31,6 +31,7 @@ def get_jobs_config(d, key, jobs_path="docs/dev/jobs-config.json"):
     """
     :param d: dictionary with mapping of notebooks to databricks jobs configuration (from NOTEBOOK_JOBS_JSON_MAPPING)
     :param key: notebook (nb) name
+    :jobs_path: path to default jobs configuration to test notebooks
     """
     if key in d:
          jobs_path = d[key] 
