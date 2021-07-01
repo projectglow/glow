@@ -27,15 +27,15 @@ def run_cli_cmd(cli_profile, api, args):
         raise ValueError(res)
     return res.stdout
 
-def check_nb_in_dict(d, key):
+def get_jobs_config(d, key, jobs_path="docs/dev/jobs-config.json"):
     """
     :param d: dictionary with mapping of notebooks to databricks jobs configuration (from NOTEBOOK_JOBS_JSON_MAPPING)
     :param key: notebook (nb) name
     """
-    try:
-        print("running notebook " + key + " with the following jobs configuration json " + d[key])
-    except KeyError:
-        print(key + " notebook not in " + NOTEBOOK_JOBS_JSON_MAPPING)
+    if key in d:
+         jobs_path = d[key] 
+    print("running notebook " + key + " with the following jobs configuration json " + jobs_path)
+    return jobs_path
 
 @click.command()
 @click.option('--cli-profile', default='DEFAULT', help='Databricks CLI profile name.')
@@ -67,8 +67,7 @@ def main(cli_profile, workspace_tmp_dir, dbfs_init_script_dir, source_dir, nbs):
 
         print(f"Launching runs")
         for nb in nbs:
-            check_nb_in_dict(notebook_jobs_json_mapping, nb)
-            jobs_json_path = notebook_jobs_json_mapping[nb]
+            jobs_json_path = get_jobs_config(notebook_jobs_json_mapping, nb)
             with open(jobs_json_path, 'r') as f:
                 jobs_json = json.load(f)
             jobs_json['name'] = 'Glow notebook integration test - ' + nb
