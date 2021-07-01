@@ -191,7 +191,7 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
     num_genotypes = genotype_pdf.shape[0]
     out_df = pd.concat([genotype_pdf] * Y_state.Y.shape[1])
     if verbose_output:
-        out_df["n"] = list(np.ravel(Y_mask.T @ np.ones(X.shape)))
+        out_df["n"] = list(Y_mask.sum(axis=0).repeat(num_genotypes))
         out_df["sum_x"] = list(np.ravel(Y_mask.T @ X))
         out_df["y_transpose_x"] = list(np.ravel(Y_raw.T @ X))
     X = gwas_fx._residualize_in_place(X, Q)
