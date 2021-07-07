@@ -201,7 +201,7 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
     if gt_indices_to_drop is not None and gt_indices_to_drop.size:
         genotype_values = list(map(lambda x: np.delete(x, gt_indices_to_drop), genotype_values))
     X = np.column_stack(genotype_values)
-    #import pdb_clone.pdb;pdb_clone.pdb.set_trace_remote()
+
     del genotype_pdf[_VALUES_COLUMN_NAME]
     num_genotypes = genotype_pdf.shape[0]
     out_df = pd.concat([genotype_pdf] * Y_state.Y.shape[1])
