@@ -223,12 +223,13 @@ def test_missing_and_intersect_samples_spark(spark, rg):
     phenotype_df = pd.DataFrame(rg.random((num_samples, 3)))[1:]
     phenotype_df.loc[[1, 3, 5], 1] = np.nan
     covariate_df = pd.DataFrame(rg.random((num_samples, 3)))[1:]
-    glow = run_linear_regression_spark(spark,
-                                      genotype_df,
-                                      phenotype_df,
-                                      covariate_df,
-                                      intersect_samples = True,
-                                       genotype_sample_ids = genotype_df.index.values.astype(str).tolist())
+    glow = run_linear_regression_spark(
+        spark,
+        genotype_df,
+        phenotype_df,
+        covariate_df,
+        intersect_samples=True,
+        genotype_sample_ids=genotype_df.index.values.astype(str).tolist())
     #drop sample from genotypes so that input samples are aligned
     baseline = statsmodels_baseline(genotype_df[1:], phenotype_df, covariate_df)
     assert regression_results_equal(glow, baseline)
@@ -373,6 +374,7 @@ def test_simple_offset_out_of_order(spark, rg):
     baseline = statsmodels_baseline(genotype_df, phenotype_df, covariate_df, [offset_df] * num_geno)
     assert regression_results_equal(results, baseline)
 
+
 @pytest.mark.min_spark('3')
 def test_simple_offset_out_of_order_with_intersect(spark, rg):
     num_samples = 25
@@ -392,7 +394,8 @@ def test_simple_offset_out_of_order_with_intersect(spark, rg):
                                           offset_df=offset_df.sample(frac=1),
                                           intersect_samples=True,
                                           genotype_sample_ids=samples)
-    baseline = statsmodels_baseline(genotype_df[0:-2], phenotype_df, covariate_df, [offset_df[0:-2]] * num_geno)
+    baseline = statsmodels_baseline(genotype_df[0:-2], phenotype_df, covariate_df,
+                                    [offset_df[0:-2]] * num_geno)
     assert regression_results_equal(results, baseline)
 
 

@@ -138,6 +138,7 @@ def _residualize_in_place(M: NDArray[(Any, Any), Float],
     M -= Q @ (Q.T @ M)
     return M
 
+
 def _get_indices_to_drop(phe_pdf, sample_ids):
     drop_indices = []
     phe_samples = set(phe_pdf.index.values.astype(str).tolist())
