@@ -193,6 +193,7 @@ def test_multiple_spark_missing(spark, rg):
     golden = statsmodels_baseline(genotype_df, phenotype_df, covariate_df)
     assert regression_results_equal(glow, golden)
 
+
 @pytest.mark.min_spark('3')
 def test_missing_and_intersect_samples_spark(spark, rg):
     n_sample = 50
@@ -203,16 +204,16 @@ def test_missing_and_intersect_samples_spark(spark, rg):
     phenotype_df = pd.DataFrame(random_phenotypes((n_sample, n_pheno), rg))[1:]
     phenotype_df.loc[[1, 3, 5], 1] = np.nan
     covariate_df = pd.DataFrame(rg.random((n_sample, n_cov)))[1:]
-    glow = run_logistic_regression_spark(spark,
-                                       genotype_df,
-                                       phenotype_df,
-                                       covariate_df,
-                                       intersect_samples=True,
-                                       genotype_sample_ids=genotype_df.index.values.astype(str).tolist())
+    glow = run_logistic_regression_spark(
+        spark,
+        genotype_df,
+        phenotype_df,
+        covariate_df,
+        intersect_samples=True,
+        genotype_sample_ids=genotype_df.index.values.astype(str).tolist())
     #drop sample from genotypes so that input samples are aligned
     baseline = statsmodels_baseline(genotype_df[1:], phenotype_df, covariate_df)
     assert regression_results_equal(glow, baseline)
-
 
 
 @pytest.mark.min_spark('3')
@@ -265,16 +266,19 @@ def test_missing_and_simple_offset_out_of_order_with_intersect(spark, rg):
     phenotype_df.loc[[1, 3, 5], 1] = np.nan
     covariate_df = pd.DataFrame(rg.random((n_sample, n_cov)))[0:-2]
     offset_df = pd.DataFrame(rg.random((n_sample, n_pheno)))
-    glow = run_logistic_regression_spark(spark,
-                                         genotype_df,
-                                         phenotype_df,
-                                         covariate_df,
-                                         offset_df=offset_df.sample(frac=1),
-                                         intersect_samples=True,
-                                         genotype_sample_ids=genotype_df.index.values.astype(str).tolist())
+    glow = run_logistic_regression_spark(
+        spark,
+        genotype_df,
+        phenotype_df,
+        covariate_df,
+        offset_df=offset_df.sample(frac=1),
+        intersect_samples=True,
+        genotype_sample_ids=genotype_df.index.values.astype(str).tolist())
     #drop samples from genotypes so that input samples are aligned
-    baseline = statsmodels_baseline(genotype_df[0:-2], phenotype_df, covariate_df, [offset_df[0:-2]] * num_geno)
+    baseline = statsmodels_baseline(genotype_df[0:-2], phenotype_df, covariate_df,
+                                    [offset_df[0:-2]] * num_geno)
     assert regression_results_equal(glow, baseline)
+
 
 @pytest.mark.min_spark('3')
 def test_multi_offset(spark, rg):
@@ -298,6 +302,7 @@ def test_multi_offset(spark, rg):
                                      offset_df.xs('chr2', level=1)] * 5)
     assert regression_results_equal(results, baseline)
 
+
 @pytest.mark.min_spark('3')
 def test_multi_offset_with_intersect(spark, rg):
     num_samples = 50
@@ -310,18 +315,21 @@ def test_multi_offset_with_intersect(spark, rg):
     offset_index = pd.MultiIndex.from_product([original_phenotype_df.index, ['chr1', 'chr2']])
     offset_df = pd.DataFrame(rg.random((num_samples * 2, num_pheno)), index=offset_index)
     extra_cols = pd.DataFrame({'contigName': ['chr1', 'chr2'] * 5})
-    results = run_logistic_regression_spark(spark,
-                                            genotype_df,
-                                            phenotype_df,
-                                            covariate_df,
-                                            offset_df=offset_df,
-                                            extra_cols=extra_cols,
-                                            intersect_samples=True,
-                                            genotype_sample_ids=genotype_df.index.values.astype(str).tolist())
-    baseline = statsmodels_baseline(genotype_df[0:-2], phenotype_df, covariate_df,
-                                    [offset_df.xs('chr1', level=1)[0:-2],
-                                     offset_df.xs('chr2', level=1)[0:-2]] * 5)
+    results = run_logistic_regression_spark(
+        spark,
+        genotype_df,
+        phenotype_df,
+        covariate_df,
+        offset_df=offset_df,
+        extra_cols=extra_cols,
+        intersect_samples=True,
+        genotype_sample_ids=genotype_df.index.values.astype(str).tolist())
+    baseline = statsmodels_baseline(
+        genotype_df[0:-2], phenotype_df, covariate_df,
+        [offset_df.xs('chr1', level=1)[0:-2],
+         offset_df.xs('chr2', level=1)[0:-2]] * 5)
     assert regression_results_equal(results, baseline)
+
 
 @pytest.mark.min_spark('3')
 def test_cast_genotypes_float32(spark, rg):

@@ -115,14 +115,13 @@ def logistic_regression(genotype_df: DataFrame,
     result_struct = gwas_fx._output_schema(genotype_df.schema.fields, result_fields)
 
     gt_indices_to_drop = None
-    if intersect_samples: #TODO intersect samples accross pdf,covs,and provided genotype_sample_ids
+    if intersect_samples:  #TODO intersect samples accross pdf,covs,and provided genotype_sample_ids
         gt_indices_to_drop = _get_indices_to_drop(phenotype_df, genotype_sample_ids)
         if not offset_df.empty:
             if offset_df.index.nlevels == 1:  # Indexed by sample id
                 offset_df = offset_df.reindex(phenotype_df.index)
             elif offset_df.index.nlevels == 2:  # Indexed by sample id and contig
                 offset_df = offset_df[offset_df.index.get_level_values(0).isin(phenotype_df.index)]
-
 
     C = covariate_df.to_numpy(dt, copy=True)
     if add_intercept:
@@ -144,7 +143,8 @@ def logistic_regression(genotype_df: DataFrame,
     def map_func(pdf_iterator):
         for pdf in pdf_iterator:
             yield gwas_fx._loco_dispatch(pdf, state, _logistic_regression_inner, C, Y, Y_mask, Q,
-                                         correction, pvalue_threshold, phenotype_names, gt_indices_to_drop)
+                                         correction, pvalue_threshold, phenotype_names,
+                                         gt_indices_to_drop)
 
     return genotype_df.mapInPandas(map_func, result_struct)
 
@@ -286,13 +286,12 @@ def _logistic_residualize(X: NDArray[(Any, Any), Float], C: NDArray[(Any, Any), 
     return X[:, :, None] - X_hat
 
 
-def _logistic_regression_inner(genotype_pdf: pd.DataFrame, log_reg_state: LogRegState,
-                               C: NDArray[(Any, Any), Float], Y: NDArray[(Any, Any), Float],
-                               Y_mask: NDArray[(Any, Any),
-                                               bool], Q: Optional[NDArray[(Any, Any),
-                                                                          Float]], correction: str,
-                               pvalue_threshold: float, phenotype_names: pd.Series,
-                               gt_indices_to_drop: Optional[NDArray[(Any, ), Int32]]) -> pd.DataFrame:
+def _logistic_regression_inner(
+        genotype_pdf: pd.DataFrame, log_reg_state: LogRegState, C: NDArray[(Any, Any), Float],
+        Y: NDArray[(Any, Any), Float], Y_mask: NDArray[(Any, Any), bool],
+        Q: Optional[NDArray[(Any, Any), Float]], correction: str, pvalue_threshold: float,
+        phenotype_names: pd.Series, gt_indices_to_drop: Optional[NDArray[(Any, ),
+                                                                         Int32]]) -> pd.DataFrame:
     '''
     Tests a block of genotypes for association with binary traits. We first residualize
     the genotypes based on the null model fit, then perform a fast score test to check for

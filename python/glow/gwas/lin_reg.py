@@ -110,7 +110,7 @@ def linear_regression(genotype_df: DataFrame,
     genotype_df = gwas_fx._prepare_genotype_df(genotype_df, values_column, sql_type)
 
     gt_indices_to_drop = None
-    if intersect_samples: #TODO intersect samples accross pdf,covs,and provided genotype_sample_ids
+    if intersect_samples:  #TODO intersect samples accross pdf,covs,and provided genotype_sample_ids
         gt_indices_to_drop = _get_indices_to_drop(phenotype_df, genotype_sample_ids)
         if not offset_df.empty:
             if offset_df.index.nlevels == 1:  # Indexed by sample id
@@ -137,7 +137,8 @@ def linear_regression(genotype_df: DataFrame,
     dof = C.shape[0] - C.shape[1] - 1
 
     return _generate_linreg_output(genotype_df, sql_type, Y_state, Y_mask, Y_scale, Q, dof,
-                                   phenotype_df, Y_for_verbose_output, verbose_output, gt_indices_to_drop)
+                                   phenotype_df, Y_for_verbose_output, verbose_output,
+                                   gt_indices_to_drop)
 
 
 @dataclass
@@ -179,8 +180,9 @@ def _create_one_YState(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame
 def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
                              Y_mask: NDArray[(Any, Any), Float], Y_scale: NDArray[(Any, ), Float],
                              Q: NDArray[(Any, Any), Float], dof: int, phenotype_names: pd.Series,
-                             Y_raw: Optional[NDArray[(Any, Any), Float]],
-                             verbose_output: Optional[bool], gt_indices_to_drop: Optional[NDArray[(Any, ), Int32]]) -> pd.DataFrame:
+                             Y_raw: Optional[NDArray[(Any, Any),
+                                                     Float]], verbose_output: Optional[bool],
+                             gt_indices_to_drop: Optional[NDArray[(Any, ), Int32]]) -> pd.DataFrame:
     '''
     Applies a linear regression model to a block of genotypes. We first project the covariates out of the
     genotype block and then perform single variate linear regression for each site.
@@ -195,7 +197,6 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
 
     So, if a matrix's indices are `sg` (like the X matrix), it has one row per sample and one column per genotype.
     '''
-
 
     genotype_values = genotype_pdf[_VALUES_COLUMN_NAME].array
     if gt_indices_to_drop is not None and gt_indices_to_drop.size:
@@ -256,4 +257,3 @@ def _generate_linreg_output(genotype_df, sql_type, Y_state, Y_mask, Y_scale, Q, 
                                          Y_for_verbose_output, verbose_output, gt_indices_to_drop)
 
     return genotype_df.mapInPandas(map_func, result_struct)
-
