@@ -16,17 +16,27 @@ import sys
 import time
 import uuid
 
-JOBS_JSON = 'docs/dev/jobs-config.json'
+NOTEBOOK_JOBS_JSON_MAPPING = 'docs/dev/notebook-jobs-config-mapping.json'
 INIT_SCRIPT_DIR = 'docs/dev/init-scripts'
 
 
 def run_cli_cmd(cli_profile, api, args):
     cmd = ['databricks', '--profile', cli_profile, api] + args
     res = subprocess.run(cmd, capture_output=True)
-    if res.returncode is not 0:
+    if res.returncode != 0:
         raise ValueError(res)
     return res.stdout
 
+def get_jobs_config(d, key, jobs_path="docs/dev/jobs-config.json"):
+    """
+    :param d: dictionary with mapping of notebooks to databricks jobs configuration (from NOTEBOOK_JOBS_JSON_MAPPING)
+    :param key: notebook (nb) name
+    :jobs_path: path to default jobs configuration to test notebooks
+    """
+    if key in d:
+         jobs_path = d[key] 
+    print("running notebook " + key + " with the following jobs configuration json " + jobs_path)
+    return jobs_path
 
 @click.command()
 @click.option('--cli-profile', default='DEFAULT', help='Databricks CLI profile name.')
@@ -39,8 +49,8 @@ def run_cli_cmd(cli_profile, api, args):
 def main(cli_profile, workspace_tmp_dir, dbfs_init_script_dir, source_dir, nbs):
     identifier = str(uuid.uuid4())
     work_dir = os.path.join(workspace_tmp_dir, identifier)
-    with open(JOBS_JSON, 'r') as f:
-        jobs_json = json.load(f)
+    with open(NOTEBOOK_JOBS_JSON_MAPPING, 'r') as f:
+        notebook_jobs_json_mapping = json.load(f)
 
     if not nbs:
         nbs = [os.path.relpath(path, source_dir).split('.')[0]
@@ -58,6 +68,9 @@ def main(cli_profile, workspace_tmp_dir, dbfs_init_script_dir, source_dir, nbs):
 
         print(f"Launching runs")
         for nb in nbs:
+            jobs_json_path = get_jobs_config(notebook_jobs_json_mapping, nb)
+            with open(jobs_json_path, 'r') as f:
+                jobs_json = json.load(f)
             jobs_json['name'] = 'Glow notebook integration test - ' + nb
             jobs_json['notebook_task'] = {'notebook_path': work_dir + '/' + nb}
             run_submit = run_cli_cmd(cli_profile, 'runs', ['submit', '--json', json.dumps(jobs_json)])
