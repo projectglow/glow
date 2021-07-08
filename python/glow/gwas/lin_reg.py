@@ -29,7 +29,7 @@ def linear_regression(genotype_df: DataFrame,
     '''
     Uses linear regression to test for association between genotypes and one or more phenotypes.
     The implementation is a distributed version of the method used in regenie: 
-    https://www.biorxiv.org/content/10.1101/2020.06.19.162354v2
+    https://www.nature.com/articles/s41588-021-00870-7
 
     Implementation details:
 

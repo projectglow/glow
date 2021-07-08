@@ -36,7 +36,7 @@ def logistic_regression(genotype_df: DataFrame,
     '''
     Uses logistic regression to test for association between genotypes and one or more binary
     phenotypes. This is a distributed version of the method from regenie:
-    https://www.biorxiv.org/content/10.1101/2020.06.19.162354v2
+    https://www.nature.com/articles/s41588-021-00870-7
 
     Implementation details:
 

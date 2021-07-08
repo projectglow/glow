@@ -60,7 +60,7 @@ def _fit_firth(beta_init: NDArray[(Any, ), Float],
                max_half_steps: int = 25) -> Optional[FirthFit]:
     '''
     Firth’s bias-reduced penalized-likelihood logistic regression, based on the regenie implementation:
-    https://www.biorxiv.org/content/10.1101/2020.06.19.162354v2
+    https://www.nature.com/articles/s41588-021-00870-7
 
     Args:
         beta_init : Initial beta values
