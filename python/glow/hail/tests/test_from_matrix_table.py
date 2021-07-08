@@ -151,7 +151,7 @@ def test_plink(spark):
     matching_glow_df = glow_df.withColumn(
         'genotypes',
         fx.expr(
-            "transform(genotypes, gt -> named_struct('sampleId', gt.sampleId, 'calls', nullif(gt.calls, array(-1, -1)), 'phased', if(gt.calls = array(-1, -1), null, false)))"
+            "transform(genotypes, gt -> named_struct('sampleId', gt.sampleId, 'calls', ifnull(gt.calls, array(-1,-1)), 'phased', if(gt.calls = array(-1, -1), null, false)))"
         ))
     matching_hail_df = hail_df.select(*glow_df.schema.names)
     assert matching_hail_df.subtract(matching_glow_df).count() == 0
