@@ -26,7 +26,7 @@ def run_linear_regression(genotype_df, phenotype_df, covariate_df, add_intercept
     pdf = pd.DataFrame({lr._VALUES_COLUMN_NAME: list(genotype_df.to_numpy('float64').T)})
 
     return lr._linear_regression_inner(pdf, Y_state, Y_mask.astype('float64'), Y_scale, Q, dof,
-                                       phenotype_names)
+                                       phenotype_names, None, None)
 
 
 def run_linear_regression_spark(spark,
@@ -212,6 +212,28 @@ def test_missing_spark(spark, rg):
     glow = run_linear_regression_spark(spark, genotype_df, phenotype_df, covariate_df)
     baseline = statsmodels_baseline(genotype_df, phenotype_df, covariate_df)
     assert regression_results_equal(glow, baseline)
+
+
+@pytest.mark.min_spark('3')
+def test_verbose_output(spark, rg):
+    num_samples = 10
+    genotype_df = pd.DataFrame(rg.random((num_samples, 1)))
+    phenotype_df = pd.DataFrame(rg.random((num_samples, 3)))
+    phenotype_df.loc[0, 0] = np.nan
+    phenotype_df.loc[[1, 3, 5], 1] = np.nan
+    covariate_df = pd.DataFrame(rg.random((num_samples, 3)))
+    glow = run_linear_regression_spark(spark,
+                                       genotype_df,
+                                       phenotype_df,
+                                       covariate_df,
+                                       verbose_output=True)
+    baseline = statsmodels_baseline(genotype_df, phenotype_df, covariate_df)
+    assert regression_results_equal(glow.drop(columns=["n", "sum_x", "y_transpose_x"]), baseline)
+    assert glow.n.to_list() == [9, 7, 10]
+    assert np.allclose(glow.y_transpose_x.to_numpy(),
+                       np.nan_to_num(phenotype_df.to_numpy().T) @ genotype_df[0].array)
+    assert np.allclose(glow.sum_x.to_numpy(),
+                       (~np.isnan(phenotype_df.to_numpy())).T @ genotype_df[0].array)
 
 
 @pytest.mark.min_spark('3')
