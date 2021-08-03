@@ -135,7 +135,7 @@ ThisBuild / sparkDependencies := Seq(
   "org.apache.spark" %% "spark-core" % sparkVersion.value,
   "org.apache.spark" %% "spark-mllib" % sparkVersion.value,
   "org.apache.spark" %% "spark-sql" % sparkVersion.value
-)
+).map(_.exclude("org.scalatest", "scalatest"))
 
 ThisBuild / providedSparkDependencies := sparkDependencies.value.map(_ % "provided")
 ThisBuild / testSparkDependencies := sparkDependencies.value.map(_ % "test")
