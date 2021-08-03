@@ -143,7 +143,7 @@ ThisBuild / testSparkDependencies := sparkDependencies.value.map(_ % "test")
 lazy val testCoreDependencies = settingKey[Seq[ModuleID]]("testCoreDependencies")
 ThisBuild / testCoreDependencies := Seq(
   "org.scalatest" %% "scalatest" % "3.2.3" % "test",
-  "org.mockito" % "mockito-all" % "3.4.6" % "test",
+  "org.mockito" % "mockito-all" % "1.9.5" % "test",
   "org.apache.spark" %% "spark-catalyst" % sparkVersion.value % "test" classifier "tests",
   "org.apache.spark" %% "spark-core" % sparkVersion.value % "test" classifier "tests",
   "org.apache.spark" %% "spark-mllib" % sparkVersion.value % "test" classifier "tests",
