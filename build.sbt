@@ -135,14 +135,20 @@ ThisBuild / sparkDependencies := Seq(
   "org.apache.spark" %% "spark-core" % sparkVersion.value,
   "org.apache.spark" %% "spark-mllib" % sparkVersion.value,
   "org.apache.spark" %% "spark-sql" % sparkVersion.value
-).map(_.exclude("org.scalatest", "scalatest"))
+)
 
 ThisBuild / providedSparkDependencies := sparkDependencies.value.map(_ % "provided")
 ThisBuild / testSparkDependencies := sparkDependencies.value.map(_ % "test")
 
 lazy val testCoreDependencies = settingKey[Seq[ModuleID]]("testCoreDependencies")
 ThisBuild / testCoreDependencies := Seq(
-  "org.scalatest" %% "scalatest" % "3.2.3" % "test",
+  (ThisBuild / sparkVersion).value match {
+    case `spark2` => "org.scalatest" %% "scalatest" % "3.0.3" % "test"
+    case `spark3` => "org.scalatest" %% "scalatest" % "3.2.3" % "test"
+    case _ =>
+      throw new IllegalArgumentException(
+        "Only supported Spark versions are: " + Seq(spark2, spark3))
+  },
   "org.mockito" % "mockito-all" % "1.9.5" % "test",
   "org.apache.spark" %% "spark-catalyst" % sparkVersion.value % "test" classifier "tests",
   "org.apache.spark" %% "spark-core" % sparkVersion.value % "test" classifier "tests",
