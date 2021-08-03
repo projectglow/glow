@@ -221,8 +221,10 @@ ThisBuild / installHail := {
     "source $(conda info --base)/etc/profile.d/conda.sh &&" +
     "conda create -y --name hail &&" +
     "conda activate hail --stack &&" +
-    s"make -C hail/hail install-on-cluster HAIL_COMPILE_NATIVES=1 SCALA_VERSION=${scalaVersion.value} SPARK_VERSION=${sparkVersion.value}" +
-    s"pip install --no-deps hail/hail/build/deploy/dist/hail-${hailVersion.value}-py3-none-any.whl"
+    "cd \"hail/hail\" &&" +
+    "sed " + "\""+ s"s/^pyspark.*/pyspark==${sparkVersion.value}/" + "\"" + " python/requirements.txt | grep -v '^#' | xargs pip3 install -U &&" +
+    s"make SCALA_VERSION=${scalaVersion.value} SPARK_VERSION=${sparkVersion.value} shadowJar wheel &&" +
+    s"pip3 install --no-deps build/deploy/dist/hail-${hailVersion.value}-py3-none-any.whl"
   ) !
 }
 
@@ -249,7 +251,7 @@ lazy val pythonSettings = Seq(
     val baseEnv = Seq(
       // Set so that Python tests can easily know the Spark version
       "SPARK_VERSION" -> sparkVersion.value,
-      // Tell PySPark to use the same jars that as our scala tests
+      // Tell PySpark to use the same jars as our scala tests
       "SPARK_CLASSPATH" -> sparkClasspath.value,
       "SPARK_HOME" -> sparkHome.value,
       "PYTHONPATH" -> pythonPath.value
