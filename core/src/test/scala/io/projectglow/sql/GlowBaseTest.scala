@@ -30,6 +30,7 @@ import io.projectglow.common.{GlowLogging, TestUtils}
 abstract class GlowBaseTest
     extends AnyFunSuite
     with SharedSparkSessionBase
+    with Eventually
     with GlowLogging
     with GlowTestData
     with TestUtils
