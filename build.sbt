@@ -10,14 +10,14 @@ import sbt.nio.Keys._
 lazy val scala212 = "2.12.8"
 lazy val scala211 = "2.11.12"
 
-lazy val spark3 = "3.0.0"
+lazy val spark3 = "3.1.2"
 lazy val spark2 = "2.4.5"
 
 lazy val sparkVersion = settingKey[String]("sparkVersion")
 ThisBuild / sparkVersion := sys.env.getOrElse("SPARK_VERSION", spark3)
 
 lazy val hailVersion = settingKey[String]("hailVersion")
-ThisBuild / hailVersion := sys.env.getOrElse("HAIL_VERSION", "0.2.58")
+ThisBuild / hailVersion := sys.env.getOrElse("HAIL_VERSION", "0.2.74")
 
 // Paths containing Hail tests
 lazy val hailTestPaths = Seq("python/glow/hail/", "docs/source/etl/hail.rst")
@@ -221,7 +221,7 @@ ThisBuild / installHail := {
     "source $(conda info --base)/etc/profile.d/conda.sh &&" +
     "conda create -y --name hail &&" +
     "conda activate hail --stack &&" +
-    s"make -C hail/hail SCALA_VERSION=${scalaVersion.value} SPARK_VERSION=${sparkVersion.value} install-deps shadowJar wheel &&" +
+    s"make -C hail/hail install-on-cluster HAIL_COMPILE_NATIVES=1 SCALA_VERSION=${scalaVersion.value} SPARK_VERSION=${sparkVersion.value}" +
     s"pip install --no-deps hail/hail/build/deploy/dist/hail-${hailVersion.value}-py3-none-any.whl"
   ) !
 }

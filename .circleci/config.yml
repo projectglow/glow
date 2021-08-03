@@ -224,7 +224,7 @@ jobs:
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="3.0.0"
+            export SPARK_VERSION="3.1.2"
             export SCALA_VERSION="2.12.8"
             sbt core/test exit
       - run:
@@ -233,7 +233,7 @@ jobs:
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="3.0.0"
+            export SPARK_VERSION="3.1.2"
             export SCALA_VERSION="2.12.8"
             sbt docs/test exit
       - run:
@@ -242,7 +242,7 @@ jobs:
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="3.0.0"
+            export SPARK_VERSION="3.1.2"
             export SCALA_VERSION="2.12.8"
             sbt python/test exit
       - run:
@@ -250,7 +250,7 @@ jobs:
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$HOME/conda/bin:$PATH
-            export SPARK_VERSION="3.0.0"
+            export SPARK_VERSION="3.1.2"
             export SCALA_VERSION="2.12.8"
             sudo apt-get update
             sudo apt-get -y install rsync
