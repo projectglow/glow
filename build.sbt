@@ -13,11 +13,14 @@ lazy val scala211 = "2.11.12"
 lazy val spark3 = "3.1.2"
 lazy val spark2 = "2.4.5"
 
+lazy val hailOnSpark3 = "0.2.74"
+lazy val hailOnSpark2 = "0.2.58"
+
 lazy val sparkVersion = settingKey[String]("sparkVersion")
 ThisBuild / sparkVersion := sys.env.getOrElse("SPARK_VERSION", spark3)
 
 lazy val hailVersion = settingKey[String]("hailVersion")
-ThisBuild / hailVersion := sys.env.getOrElse("HAIL_VERSION", "0.2.74")
+ThisBuild / hailVersion := sys.env.getOrElse("HAIL_VERSION", hailOnSpark3)
 
 // Paths containing Hail tests
 lazy val hailTestPaths = Seq("python/glow/hail/", "docs/source/etl/hail.rst")
@@ -425,12 +428,14 @@ def crossReleaseStep(step: ReleaseStep, requiresPySpark: Boolean, requiresHail: 
     updateCondaEnvStep,
     releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark3""""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
+    releaseStepCommandAndRemaining(s"""set ThisBuild / hailVersion := "$hailOnSpark3""""),
     installHailStep,
     step,
     uninstallHailStep,
     changePySparkVersionStep,
     releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark2""""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala211""""),
+    releaseStepCommandAndRemaining(s"""set ThisBuild / hailVersion := "$hailOnSpark2""""),
     installHailStep,
     step,
     uninstallHailStep,
