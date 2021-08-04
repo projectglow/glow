@@ -195,7 +195,6 @@ jobs:
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             export SPARK_VERSION="2.4.5"
             export SCALA_VERSION="2.12.8"
-            export HAIL_VERSION="0.2.58"
             sbt python/test exit
       - run:
           name: Run Hail tests
@@ -204,6 +203,7 @@ jobs:
             export PATH=$HOME/conda/envs/glow/bin:$HOME/conda/bin:$PATH
             export SPARK_VERSION="2.4.5"
             export SCALA_VERSION="2.12.8"
+            export HAIL_VERSION="0.2.58"
             sudo apt-get update
             sudo apt-get -y install rsync
             sbt installHail hail/test uninstallHail exit
