@@ -20,6 +20,9 @@
 # - is_optional: If true, the parameter can be omitted. Only the last argument in the args list can
 #                 be optional.
 #
+# Warning: Spark version changes can modify the expected output. Known changes:
+# - PYSPARK_ROW_FIELD_SORTING_ENABLED was introduced in Spark 3.0, changing the schema ordering
+#
 # For more details about how the definitions in this file are eventually turned into clients,
 # consult the generator script at project/render_template.py.
 complex_type_manipulation:
