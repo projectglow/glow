@@ -19,4 +19,5 @@ package io.projectglow
 // Spark APIs that are not inter-version compatible
 trait SparkTestShimBase {
   type SharedSparkSessionBase
+  type FunSuite
 }

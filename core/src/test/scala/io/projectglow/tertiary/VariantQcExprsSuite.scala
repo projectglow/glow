@@ -369,8 +369,7 @@ class VariantQcExprsSuite extends GlowBaseTest {
       .createDataFrame(Seq(Datum(null)))
       .selectExpr("mean_substitute(numbers, -1)")
       .collect()
-      .head
-      .getSeq[Double](0)
+      .head(0)
     assert(test == null)
   }
 
