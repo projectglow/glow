@@ -16,7 +16,7 @@
 
 package io.projectglow.transformers.util
 
-import org.scalatest.FunSuite
+import io.projectglow.SparkTestShim.FunSuite
 
 class StringUtilsSuite extends FunSuite {
   private def testSnakeConversion(name: String, input: String, expected: String): Unit = {
