@@ -21,14 +21,15 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.DebugFilesystem
 import org.scalatest.concurrent.{AbstractPatienceConfiguration, Eventually}
 import org.scalatest.time.{Milliseconds, Seconds, Span}
-import org.scalatest.{Args, FunSuite, Status, Tag}
+import org.scalatest.{Args, Status, Tag}
 import io.projectglow.Glow
-import io.projectglow.SparkTestShim.SharedSparkSessionBase
+import io.projectglow.SparkTestShim.{FunSuite, SharedSparkSessionBase}
 import io.projectglow.common.{GlowLogging, TestUtils}
 
 abstract class GlowBaseTest
     extends FunSuite
     with SharedSparkSessionBase
+    with Eventually
     with GlowLogging
     with GlowTestData
     with TestUtils

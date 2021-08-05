@@ -19,7 +19,7 @@ package io.projectglow
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.ExpressionInfo
 
-// Spark 3.0 APIs that are not inter-version compatible
+// Spark 3.1 APIs that are not inter-version compatible
 object SparkShim extends SparkShimBase {
   // [SPARK-25393][SQL] Adding new function from_csv()
   // Refactors classes from [[org.apache.spark.sql.execution.datasources.csv]] to [[org.apache.spark.sql.catalyst.csv]]

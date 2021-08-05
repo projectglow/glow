@@ -53,6 +53,8 @@ class GlowBase {
     // determines if an input file is gzipped or bgzipped, for all datasources since it confuses Spark's built in
     // datasources.
     sess.conf.set("io.compression.codecs", compressionCodecsWithBGZ(spark))
+    // Expressions that use ExpectsGenotypeFields do not support pruning
+    sess.conf.set("spark.sql.optimizer.nestedSchemaPruning.enabled", "false")
     sess
   }
 
