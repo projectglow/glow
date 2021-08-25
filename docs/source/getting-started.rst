@@ -176,6 +176,28 @@ or `init scripts <https://docs.databricks.com/en/init-scripts/index.html>`_.
 Notebooks embedded in the docs
 ------------------------------
 
+<<<<<<< HEAD
 Documentation pages are accompanied by embedded notebook examples. Most code in these notebooks can be run on Spark and Glow alone, but functions such as ``display()`` or ``dbutils()`` are only available on Databricks. See :ref:`dbnotebooks` for more info.
 
 These notebooks are located in the Glow github repository `here <https://github.com/projectglow/glow/blob/master/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/>`_ and are tested nightly end-to-end. They include notebooks to define constants such as the number of samples to simulate and the output paths for each step in the pipeline. Notebooks that define constants are ``%run`` at the start of each notebook in the documentation. Please see :ref:`data_simulation` to get started.
+=======
+To demonstrate example use cases of Glow functionalities, most doc pages are accompanied by embedded notebooks. Most of the code in these notebooks can be run on Spark and Glow alone, but a few functions such as ``display()`` or ``dbutils()`` are only available on Databricks. See :ref:`dbnotebooks` for more info.
+
+Also note that the path to datasets used as example in these notebooks is usually a folder in ``/databricks-datasets/genomics/`` and should be replaced with the appropriate path based on your own folder structure.
+
+Getting started on Databricks
+-----------------------------
+
+The following series of notebooks showcase how to get started with Glow on Databricks on Amazon Web Services and Microsoft Azure.
+
+*coming soon: Google Cloud Platform*
+
+.. notebook:: . readme/index.html
+  :title: Databricks quickstart guide
+
+
+Getting started on other cloud services
+---------------------------------------
+
+Please submit a pull request to add a how-to guide for other cloud services.
+>>>>>>> fc749e2 (update hail)
