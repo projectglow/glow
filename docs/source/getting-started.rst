@@ -76,14 +76,22 @@ Glow requires Apache Spark 3.0.0.
 Notebooks embedded in the docs
 ------------------------------
 
-To demonstrate example use cases of Glow functionalities, most doc pages are accompanied by embedded `Databricks Notebooks <https://docs.databricks.com/notebooks/index.html>`_. Most of the code in these notebooks can be run on Spark and Glow alone, but a few functions such as ``display()`` or ``dbutils()`` are only available on Databricks. See :ref:`dbnotebooks` for more info.
+To demonstrate example use cases of Glow functionalities, most doc pages are accompanied by embedded notebooks. Most of the code in these notebooks can be run on Spark and Glow alone, but a few functions such as ``display()`` or ``dbutils()`` are only available on Databricks. See :ref:`dbnotebooks` for more info.
 
 Also note that the path to datasets used as example in these notebooks is usually a folder in ``/databricks-datasets/genomics/`` and should be replaced with the appropriate path based on your own folder structure.
 
-Demo notebook
------------------
+Getting started on Databricks
+-----------------------------
 
-This notebook showcases some of the key functionality of Glow, like reading in a genomic dataset,
-saving it as a `Delta Lake <https://delta.io>`_, and performing a genome-wide association study.
+The following series of notebooks showcase how to get started with Glow on Databricks on Amazon Web Services and Microsoft Azure.
 
-.. notebook:: . tertiary/gwas.html
+*coming soon: Google Cloud Platform*
+
+.. notebook:: . readme/index.html
+  :title: Databricks quickstart guide
+
+
+Getting started on other cloud services
+---------------------------------------
+
+Please submit a pull request to add a how-to guide for other cloud services.
