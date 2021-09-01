@@ -258,15 +258,15 @@ class VCFSchemaInferrerSuite extends GlowBaseTest {
         StructField("BIOTYPE", StringType),
         StructField(
           "EXON",
-          StructType(Seq(StructField("rank", IntegerType), StructField("total", IntegerType)))),
+          StructType(Seq(StructField("rank", StringType), StructField("total", StringType)))),
         StructField(
           "INTRON",
-          StructType(Seq(StructField("rank", IntegerType), StructField("total", IntegerType)))),
+          StructType(Seq(StructField("rank", StringType), StructField("total", StringType)))),
         StructField("HGVSc", StringType),
         StructField("HGVSp", StringType),
-        StructField("cDNA_position", IntegerType),
-        StructField("CDS_position", IntegerType),
-        StructField("Protein_position", IntegerType),
+        StructField("cDNA_position", StringType),
+        StructField("CDS_position", StringType),
+        StructField("Protein_position", StringType),
         StructField(
           "Amino_acids",
           StructType(
@@ -276,8 +276,8 @@ class VCFSchemaInferrerSuite extends GlowBaseTest {
           StructType(
             Seq(StructField("reference", StringType), StructField("variant", StringType)))),
         StructField("Existing_variation", ArrayType(StringType)),
-        StructField("DISTANCE", IntegerType),
-        StructField("STRAND", IntegerType),
+        StructField("DISTANCE", StringType),
+        StructField("STRAND", StringType),
         StructField("FLAGS", ArrayType(StringType)),
         StructField("SYMBOL_SOURCE", StringType),
         StructField("HGNC_ID", StringType),
@@ -323,18 +323,18 @@ class VCFSchemaInferrerSuite extends GlowBaseTest {
         StructField("Transcript_BioType", StringType),
         StructField(
           "Rank",
-          StructType(Seq(StructField("rank", IntegerType), StructField("total", IntegerType)))),
+          StructType(Seq(StructField("rank", StringType), StructField("total", StringType)))),
         StructField("HGVS_c", StringType),
         StructField("HGVS_p", StringType),
         StructField(
           "cDNA_pos/cDNA_length",
-          StructType(Seq(StructField("pos", IntegerType), StructField("length", IntegerType)))),
+          StructType(Seq(StructField("pos", StringType), StructField("length", StringType)))),
         StructField(
           "CDS_pos/CDS_length",
-          StructType(Seq(StructField("pos", IntegerType), StructField("length", IntegerType)))),
+          StructType(Seq(StructField("pos", StringType), StructField("length", StringType)))),
         StructField(
           "AA_pos/AA_length",
-          StructType(Seq(StructField("pos", IntegerType), StructField("length", IntegerType)))),
+          StructType(Seq(StructField("pos", StringType), StructField("length", StringType)))),
         StructField("Distance", IntegerType),
         StructField("ERRORS/WARNINGS/INFO", StringType)
       ))))
