@@ -27,7 +27,10 @@ def _output_schema(input_fields: List[StructField], result_fields: List[StructFi
     return StructType(fields)
 
 
-def _validate_covariates_and_phenotypes(covariate_df, phenotype_df, is_binary, intersect_samples):
+def _validate_covariates_and_phenotypes(covariate_df,
+                                        phenotype_df,
+                                        is_binary,
+                                        intersect_samples=False):
     for col in covariate_df:
         _assert_all_present(covariate_df, col, 'covariate')
     if not covariate_df.empty:
