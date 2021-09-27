@@ -116,7 +116,9 @@ def linear_regression(genotype_df: DataFrame,
 
     gwas_fx._check_spark_version(genotype_df.sql_ctx.sparkSession)
 
-    gwas_fx._validate_covariates_and_phenotypes(covariate_df, phenotype_df, is_binary=False,
+    gwas_fx._validate_covariates_and_phenotypes(covariate_df,
+                                                phenotype_df,
+                                                is_binary=False,
                                                 intersect_samples=intersect_samples)
 
     sql_type = gwas_fx._regression_sql_type(dt)
@@ -199,8 +201,8 @@ def _create_one_YState(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame
 def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
                              Y_mask: NDArray[(Any, Any), Float], Y_scale: NDArray[(Any, ), Float],
                              Q: NDArray[(Any, Any), Float], dof: int, phenotype_names: pd.Series,
-                             Y_for_verbose_output: Optional[NDArray[(Any, Any),
-                                                     Float]], verbose_output: Optional[bool],
+                             Y_for_verbose_output: Optional[NDArray[(Any, Any), Float]],
+                             verbose_output: Optional[bool],
                              gt_indices_to_drop: Optional[NDArray[(Any, ), Int32]]) -> pd.DataFrame:
     '''
     Applies a linear regression model to a block of genotypes. We first project the covariates out of the
