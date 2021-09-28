@@ -1,28 +1,21 @@
 {
   "new_cluster": {
-    "spark_version": "8.2.x-scala2.12",
+    "spark_version": "9.0.x-scala2.12",
     "node_type_id": "Standard_DS3_v2",
     "num_workers": 2,
-    "spark_env_vars": {
-        "HAIL_VERSION": "0.2.65"
-    },
-    "init_scripts": [
-      {
-        "dbfs": {
-          "destination": "dbfs:/glow-init-scripts/install-hail.sh"
-        }
-      }
-    ]
+    "docker_image": {
+        "url": "projectglow/databricks-hail:0.2.76"
+    }
   },
   "libraries": [
     {
       "maven": {
-        "coordinates": "io.projectglow:glow-spark3_2.12:1.0.1"
+        "coordinates": "io.projectglow:glow-spark3_2.12:1.1.0"
       }
     },
     {
       "pypi": {
-        "package": "glow.py==1.0.1"
+        "package": "glow.py==1.1.0"
       }
     }
   ],
