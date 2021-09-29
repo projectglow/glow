@@ -18,7 +18,6 @@ import uuid
 
 NOTEBOOK_JOBS_JSON_MAPPING = 'docs/dev/notebook-jobs-config-mapping.json'
 
-
 def run_cli_cmd(cli_profile, api, args):
     cmd = ['databricks', '--profile', cli_profile, api] + args
     res = subprocess.run(cmd, capture_output=True)
@@ -102,7 +101,6 @@ def main(cli_profile, workspace_tmp_dir, source_dir, nbs):
             print("|    Some tasks failed.    |")
             print("============================")
             sys.exit(1)
-
 
 if __name__ == '__main__':
     main()
