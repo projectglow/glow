@@ -85,7 +85,7 @@ jobs:
       - run:
           name: Configure Databricks CLI
           command: |
-            printf "[docs-ci]\nhost = https://westus2.azuredatabricks.net\ntoken = ${DATABRICKS_API_TOKEN}\n" > ~/.databrickscfg
+            printf "[docs-ci]\nhost = https://adb-984752964297111.11.azuredatabricks.net\ntoken = ${DATABRICKS_API_TOKEN}\n" > ~/.databrickscfg
       - run:
           name: Generate notebook source files
           command: |
@@ -281,7 +281,7 @@ jobs:
       - run:
           name: Configure Databricks CLI
           command: |
-            printf "[docs-ci]\nhost = https://westus2.azuredatabricks.net\ntoken = ${DATABRICKS_API_TOKEN}\n" > ~/.databrickscfg
+            printf "[docs-ci]\nhost = https://adb-984752964297111.11.azuredatabricks.net\ntoken = ${DATABRICKS_API_TOKEN}\n" > ~/.databrickscfg
       - run:
           name: Run all notebook tests
           command: |
@@ -304,7 +304,7 @@ jobs:
       - run:
           name: Configure Databricks CLI
           command: |
-            printf "[docs-ci]\nhost = https://westus2.azuredatabricks.net\ntoken = ${DATABRICKS_API_TOKEN}\n" > ~/.databrickscfg
+            printf "[docs-ci]\nhost = https://adb-984752964297111.11.azuredatabricks.net\ntoken = ${DATABRICKS_API_TOKEN}\n" > ~/.databrickscfg
       - run:
           name: Run changed notebook tests
           command: |
