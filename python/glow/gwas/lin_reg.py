@@ -87,7 +87,7 @@ def linear_regression(genotype_df: DataFrame,
                         linear_regression.
         intersect_samples: The current implementation of linear regression is optimized for speed,
                            but is not robust to high levels missing phenotype values.  Without handling missingness
-                           approriately, pvalues may become inflated due to imputation.  When intersect_samples is
+                           appropriately, pvalues may become inflated due to imputation.  When intersect_samples is
                            enabled, samples that do no exist in the phenotype dataframe will be dropped from
                            genotypes, offsets, and covariates prior to regression analysis.  Note that if phenotypes in
                            phenotypes_df contain missing values, these samples will not be automatically dropped.
@@ -97,7 +97,7 @@ def linear_regression(genotype_df: DataFrame,
         genotype_sample_ids: Sample ids from genotype_df.
                              i.e. from applying glow.wgr.functions.get_sample_ids(genotype_df) or
                              if include_sample_ids=False was used during the generation genotype_df, then using an
-                             externally managed list of sample_ids that coorespond to the array of genotype calls.
+                             externally managed list of sample_ids that correspond to the array of genotype calls.
 
     Returns:
         A Spark DataFrame that contains
