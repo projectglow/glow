@@ -92,8 +92,9 @@ def linear_regression(genotype_df: DataFrame,
                            genotypes, offsets, and covariates prior to regression analysis.  Note that if phenotypes in
                            phenotypes_df contain missing values, these samples will not be automatically dropped.
                            The user is responsible for determining their desired levels of missingness and imputation.
-                           drop any row/sample from phenotype_df prior to linear_regression if the desired behavior to
-                           to use no imputation of missing values.
+                           Drop any rows with missing values from phenotype_df prior to linear_regression to prevent
+                           any imputation.  If covariates are provided, covariate and phenotype samples will
+                           automatically be intersected.
         genotype_sample_ids: Sample ids from genotype_df.
                              i.e. from applying glow.wgr.functions.get_sample_ids(genotype_df) or
                              if include_sample_ids=False was used during the generation genotype_df, then using an
