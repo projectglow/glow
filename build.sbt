@@ -10,14 +10,17 @@ import sbt.nio.Keys._
 lazy val scala212 = "2.12.8"
 lazy val scala211 = "2.11.12"
 
-lazy val spark3 = "3.0.0"
+lazy val spark3 = "3.1.2"
 lazy val spark2 = "2.4.5"
+
+lazy val hailOnSpark3 = "0.2.74"
+lazy val hailOnSpark2 = "0.2.58"
 
 lazy val sparkVersion = settingKey[String]("sparkVersion")
 ThisBuild / sparkVersion := sys.env.getOrElse("SPARK_VERSION", spark3)
 
 lazy val hailVersion = settingKey[String]("hailVersion")
-ThisBuild / hailVersion := sys.env.getOrElse("HAIL_VERSION", "0.2.58")
+ThisBuild / hailVersion := sys.env.getOrElse("HAIL_VERSION", hailOnSpark3)
 
 // Paths containing Hail tests
 lazy val hailTestPaths = Seq("python/glow/hail/", "docs/source/etl/hail.rst")
@@ -142,7 +145,13 @@ ThisBuild / testSparkDependencies := sparkDependencies.value.map(_ % "test")
 
 lazy val testCoreDependencies = settingKey[Seq[ModuleID]]("testCoreDependencies")
 ThisBuild / testCoreDependencies := Seq(
-  "org.scalatest" %% "scalatest" % "3.0.3" % "test",
+  (ThisBuild / sparkVersion).value match {
+    case `spark2` => "org.scalatest" %% "scalatest" % "3.0.3" % "test"
+    case `spark3` => "org.scalatest" %% "scalatest" % "3.2.3" % "test"
+    case _ =>
+      throw new IllegalArgumentException(
+        "Only supported Spark versions are: " + Seq(spark2, spark3))
+  },
   "org.mockito" % "mockito-all" % "1.9.5" % "test",
   "org.apache.spark" %% "spark-catalyst" % sparkVersion.value % "test" classifier "tests",
   "org.apache.spark" %% "spark-core" % sparkVersion.value % "test" classifier "tests",
@@ -221,8 +230,10 @@ ThisBuild / installHail := {
     "source $(conda info --base)/etc/profile.d/conda.sh &&" +
     "conda create -y --name hail &&" +
     "conda activate hail --stack &&" +
-    s"make -C hail/hail SCALA_VERSION=${scalaVersion.value} SPARK_VERSION=${sparkVersion.value} install-deps shadowJar wheel &&" +
-    s"pip install --no-deps hail/hail/build/deploy/dist/hail-${hailVersion.value}-py3-none-any.whl"
+    "cd \"hail/hail\" &&" +
+    "sed " + "\""+ s"s/^pyspark.*/pyspark==${sparkVersion.value}/" + "\"" + " python/requirements.txt | grep -v '^#' | xargs pip3 install -U &&" +
+    s"make SCALA_VERSION=${scalaVersion.value} SPARK_VERSION=${sparkVersion.value} shadowJar wheel &&" +
+    s"pip3 install --no-deps build/deploy/dist/hail-${hailVersion.value}-py3-none-any.whl"
   ) !
 }
 
@@ -249,7 +260,7 @@ lazy val pythonSettings = Seq(
     val baseEnv = Seq(
       // Set so that Python tests can easily know the Spark version
       "SPARK_VERSION" -> sparkVersion.value,
-      // Tell PySPark to use the same jars that as our scala tests
+      // Tell PySpark to use the same jars as our scala tests
       "SPARK_CLASSPATH" -> sparkClasspath.value,
       "SPARK_HOME" -> sparkHome.value,
       "PYTHONPATH" -> pythonPath.value
@@ -417,12 +428,14 @@ def crossReleaseStep(step: ReleaseStep, requiresPySpark: Boolean, requiresHail: 
     updateCondaEnvStep,
     releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark3""""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
+    releaseStepCommandAndRemaining(s"""set ThisBuild / hailVersion := "$hailOnSpark3""""),
     installHailStep,
     step,
     uninstallHailStep,
     changePySparkVersionStep,
     releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark2""""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala211""""),
+    releaseStepCommandAndRemaining(s"""set ThisBuild / hailVersion := "$hailOnSpark2""""),
     installHailStep,
     step,
     uninstallHailStep,

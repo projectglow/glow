@@ -4,7 +4,7 @@ Getting Started
 Running Locally
 ---------------
 
-Glow requires Apache Spark 3.0.0.
+Glow requires Apache Spark 3.1.2.
 
 .. tabs::
 
@@ -14,7 +14,7 @@ Glow requires Apache Spark 3.0.0.
 
         .. code-block:: sh
 
-          pip install pyspark==3.0.0
+          pip install pyspark==3.1.2
 
         or `download a specific distribution <https://spark.apache.org/downloads.html>`_.
 
@@ -76,14 +76,26 @@ Glow requires Apache Spark 3.0.0.
 Notebooks embedded in the docs
 ------------------------------
 
-To demonstrate example use cases of Glow functionalities, most doc pages are accompanied by embedded `Databricks Notebooks <https://docs.databricks.com/notebooks/index.html>`_. Most of the code in these notebooks can be run on Spark and Glow alone, but a few functions such as ``display()`` or ``dbutils()`` are only available on Databricks. See :ref:`dbnotebooks` for more info.
+To demonstrate use cases of Glow, documentation pages are accompanied by embedded notebooks. Most code in these notebooks can be run on Spark and Glow alone, but functions such as ``display()`` or ``dbutils()`` are only available on Databricks. See :ref:`dbnotebooks` for more info.
 
 Also note that the path to datasets used as example in these notebooks is usually a folder in ``/databricks-datasets/genomics/`` and should be replaced with the appropriate path based on your own folder structure.
 
-Demo notebook
------------------
+Getting started on Databricks
+-----------------------------
 
-This notebook showcases some of the key functionality of Glow, like reading in a genomic dataset,
-saving it as a `Delta Lake <https://delta.io>`_, and performing a genome-wide association study.
+The Databricks documentation shows how to get started with Glow on **Amazon Web Services** (AWS - `docs <https://docs.databricks.com/applications/genomics/genomics-libraries/index.html>`_), **Microsoft Azure** (`docs <https://docs.microsoft.com/en-us/azure/databricks/applications/genomics/genomics-libraries/>`_) and **Google Cloud Platform** (GCP - `docs <https://docs.gcp.databricks.com/applications/genomics/genomics-libraries/index.html>`_). 
+This documentation includes,
+ 
+1. **cluster recommendations**
+2. **how to install** 
+	- Glow
+	- Hail
+	- The Variant Effect Predictor
+	- DeepNull
+        - Deep Variant
+3. **how to develop automated production jobs**
 
-.. notebook:: . tertiary/gwas.html
+Getting started on other cloud services
+---------------------------------------
+
+Please submit a pull request to add a guide for other cloud services.

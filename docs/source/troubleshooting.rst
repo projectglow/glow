@@ -18,3 +18,9 @@ Troubleshooting
   * When saving to a VCF, the samples in the genotypes array must be in the same order for each row.
     This ordering is not guaranteed when using ``collect_list`` to join multiple VCFs. Try sorting
     the array using ``sort_array``.
+
+- Glow's behavior changed after a release
+
+  * See the Glow `release notes <https://github.com/projectglow/glow/releases>`_. If the Glow release
+    involved a Spark version change, see the
+    `Spark migration guide <https://spark.apache.org/docs/latest/migration-guide.html>`_.

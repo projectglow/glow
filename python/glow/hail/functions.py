@@ -57,7 +57,8 @@ def _get_genotypes_col(entry: StructExpression, sample_ids: Optional[List[str]])
     for entry_field in entry:
         if entry_field == 'GT' and entry.GT.dtype == tcall:
             # Flatten GT into calls and phased
-            base_struct_args.append("'calls', e.GT.alleles, 'phased', e.GT.phased")
+            base_struct_args.append(
+                "'calls', ifnull(e.GT.alleles, array(-1,-1)), 'phased', e.GT.phased")
         elif entry[entry_field].dtype == tcall:
             # Turn other call fields (eg. PGT) into a string
             base_struct_args.append(
@@ -177,6 +178,5 @@ def from_matrix_table(mt: MatrixTable, include_sample_ids: bool = True) -> DataF
     glow_compatible_df = mt.localize_entries('entries').to_spark().select(
         *_get_base_cols(mt.rows().row), *_get_other_cols(mt.rows().row),
         _get_genotypes_col(mt.entry, _get_sample_ids(mt.col_key, include_sample_ids)))
-
     assert check_return_type(glow_compatible_df)
     return glow_compatible_df

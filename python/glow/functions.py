@@ -490,10 +490,10 @@ def sample_call_summary_stats(genotypes: Union[Column, str], refAllele: Union[Co
 
     Examples:
         >>> sites = [
-        ... Row(refAllele='C', alternateAlleles=['G'], genotypes=[Row(sampleId='NA12878', calls=[0, 0])]),
-        ... Row(refAllele='A', alternateAlleles=['G'], genotypes=[Row(sampleId='NA12878', calls=[1, 1])]),
-        ... Row(refAllele='AG', alternateAlleles=['A'], genotypes=[Row(sampleId='NA12878', calls=[1, 0])])]
-        >>> df = spark.createDataFrame(sites, 'alternateAlleles: array<string>, genotypes: array<struct<sampleId: string, calls: array<int>>>, refAllele: string')
+        ... {'refAllele': 'C', 'alternateAlleles': ['G'], 'genotypes': [{'sampleId': 'NA12878', 'calls': [0, 0]}]},
+        ... {'refAllele': 'A', 'alternateAlleles': ['G'], 'genotypes': [{'sampleId': 'NA12878', 'calls': [1, 1]}]},
+        ... {'refAllele': 'AG', 'alternateAlleles': ['A'], 'genotypes': [{'sampleId': 'NA12878', 'calls': [1, 0]}]}]
+        >>> df = spark.createDataFrame(sites, 'refAllele: string, alternateAlleles: array<string>, genotypes: array<struct<sampleId: string, calls: array<int>>>')
         >>> df.select(glow.sample_call_summary_stats('genotypes', 'refAllele', 'alternateAlleles').alias('stats')).collect()
         [Row(stats=[Row(sampleId='NA12878', callRate=1.0, nCalled=3, nUncalled=0, nHomRef=1, nHet=1, nHomVar=1, nSnp=2, nInsertion=0, nDeletion=1, nTransition=2, nTransversion=0, nSpanningDeletion=0, rTiTv=inf, rInsertionDeletion=0.0, rHetHomVar=1.0)])]
 
@@ -520,9 +520,9 @@ def sample_dp_summary_stats(genotypes: Union[Column, str]) -> Column:
 
     Examples:
         >>> sites = [
-        ... Row(genotypes=[Row(sampleId='NA12878', depth=1)]),
-        ... Row(genotypes=[Row(sampleId='NA12878', depth=2)]),
-        ... Row(genotypes=[Row(sampleId='NA12878', depth=3)])]
+        ... {'genotypes': [{'sampleId': 'NA12878', 'depth': 1}]},
+        ... {'genotypes': [{'sampleId': 'NA12878', 'depth': 2}]},
+        ... {'genotypes': [{'sampleId': 'NA12878', 'depth': 3}]}]
         >>> df = spark.createDataFrame(sites, 'genotypes: array<struct<depth: int, sampleId: string>>')
         >>> df.select(glow.sample_dp_summary_stats('genotypes').alias('stats')).collect()
         [Row(stats=[Row(sampleId='NA12878', mean=2.0, stdDev=1.0, min=1.0, max=3.0)])]
@@ -551,7 +551,7 @@ def sample_gq_summary_stats(genotypes: Union[Column, str]) -> Column:
         ... Row(genotypes=[Row(sampleId='NA12878', conditionalQuality=1)]),
         ... Row(genotypes=[Row(sampleId='NA12878', conditionalQuality=2)]),
         ... Row(genotypes=[Row(sampleId='NA12878', conditionalQuality=3)])]
-        >>> df = spark.createDataFrame(sites, 'genotypes: array<struct<conditionalQuality: int, sampleId: string>>')
+        >>> df = spark.createDataFrame(sites, 'genotypes: array<struct<sampleId: string, conditionalQuality: int>>')
         >>> df.select(glow.sample_gq_summary_stats('genotypes').alias('stats')).collect()
         [Row(stats=[Row(sampleId='NA12878', mean=2.0, stdDev=1.0, min=1.0, max=3.0)])]
 
