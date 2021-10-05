@@ -1,0 +1,6 @@
+coverage:
+  status:
+    project:
+      default:
+        target: 93%    # the required coverage value
+        threshold: 2%  # the leniency in hitting the target
