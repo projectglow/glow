@@ -51,28 +51,13 @@ display(transformed_df.drop("genotypes"))
 # MAGIC %md
 # MAGIC #### Install bedtools across cluster
 # MAGIC 
-# MAGIC The init script downloads bedtools and installs it across the Spark cluster on Databricks
-# MAGIC 
-# MAGIC Upload the init script to dbfs with the Databricks file system [CLI](https://docs.databricks.com/dev-tools/databricks-cli.html#dbfs-cli), 
-# MAGIC 
-# MAGIC or run the command below on a different cluster
-# MAGIC 
-# MAGIC Note: Cluster node [init scripts](https://docs.databricks.com/clusters/init-scripts.html#cluster-node-initialization-scripts) run during startup for each cluster node before the Spark driver or worker JVM starts
-# MAGIC 
-# MAGIC Or use [Docker](https://docs.databricks.com/clusters/custom-containers.html) to set up the environment
-# MAGIC 
-# MAGIC ```
-# MAGIC #!/bin/bash
-# MAGIC wget https://github.com/arq5x/bedtools2/releases/download/v2.30.0/bedtools.static.binary
-# MAGIC mv bedtools.static.binary /opt/bedtools
-# MAGIC chmod a+x /opt/bedtools
-# MAGIC ```
+# MAGIC Tested using the [databricks-glow](https://hub.docker.com/r/projectglow/databricks-glow) docker container ([docs](https://docs.databricks.com/clusters/custom-containers.html))
 
 # COMMAND ----------
 
 # DBTITLE 1,check bedtools was correctly installed across the cluster
 # MAGIC %sh
-# MAGIC /opt/bedtools
+# MAGIC /opt/bedtools-2.30.0/bin/bedtools
 
 # COMMAND ----------
 
@@ -96,7 +81,7 @@ scriptFile = r"""#!/bin/sh
 set -e
 #input bed is stdin, signified by '-'
 
-/opt/bedtools intersect -seed 42 -a - -b /dbfs/tmp/chr22.bed -header -wa
+/opt/bedtools-2.30.0/bin/bedtools intersect -seed 42 -a - -b /dbfs/tmp/chr22.bed -header -wa
 
 """
 
