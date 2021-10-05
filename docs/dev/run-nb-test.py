@@ -17,8 +17,6 @@ import time
 import uuid
 
 JOBS_JSON = 'docs/dev/jobs-config.json'
-INIT_SCRIPT_DIR = 'docs/dev/init-scripts'
-
 NOTEBOOK_JOBS_JSON_MAPPING = 'docs/dev/notebook-jobs-config-mapping.json'
 
 def run_cli_cmd(cli_profile, api, args):
