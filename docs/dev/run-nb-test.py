@@ -67,23 +67,12 @@ def main(cli_profile, workspace_tmp_dir, source_dir, nbs):
 
         print(f"Launching runs")
         for nb in nbs:
-<<<<<<< HEAD
-            if "vep" in nb:
-                jobs_vep_json['name'] = 'Glow notebook integration test - ' + nb
-                jobs_vep_json['notebook_task'] = {'notebook_path': work_dir + '/' + nb}
-                run_submit = run_cli_cmd(cli_profile, 'runs', ['submit', '--json', json.dumps(jobs_vep_json)])
-            else:
-                jobs_json['name'] = 'Glow notebook integration test - ' + nb
-                jobs_json['notebook_task'] = {'notebook_path': work_dir + '/' + nb}
-                run_submit = run_cli_cmd(cli_profile, 'runs', ['submit', '--json', json.dumps(jobs_json)])
-=======
             jobs_json_path = get_jobs_config(notebook_jobs_json_mapping, nb)
             with open(jobs_json_path, 'r') as f:
                 jobs_json = json.load(f)
             jobs_json['name'] = 'Glow notebook integration test - ' + nb
             jobs_json['notebook_task'] = {'notebook_path': work_dir + '/' + nb}
             run_submit = run_cli_cmd(cli_profile, 'runs', ['submit', '--json', json.dumps(jobs_json)])
->>>>>>> master
             run_id = json.loads(run_submit)['run_id']
             nb_to_run_id[nb] = str(run_id)
     finally:
