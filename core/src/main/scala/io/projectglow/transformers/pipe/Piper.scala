@@ -60,10 +60,13 @@ private[projectglow] object Piper extends GlowLogging {
       outputformatter: OutputFormatter,
       cmd: Seq[String],
       env: Map[String, String],
-      df: DataFrame): DataFrame = {
-
+      df: DataFrame,
+      quarantineLocation: Option[String] = None): DataFrame = {
     logger.info(s"Beginning pipe with cmd $cmd")
 
+    val quarantineInfo = quarantineLocation.map(
+      PipeIterator.QuarantineInfo(df, _)
+    )
     val rawRdd = df.queryExecution.toRdd
     val inputRdd = if (rawRdd.getNumPartitions == 0) {
       logger.warn("Not piping any rows, as the input DataFrame has zero partitions.")
@@ -78,7 +81,8 @@ private[projectglow] object Piper extends GlowLogging {
       if (it.isEmpty) {
         Iterator.empty
       } else {
-        new PipeIterator(cmd, env, it, informatter, outputformatter)
+        new PipeIterator(cmd, env, it, informatter, outputformatter,
+          quarantineInfo)
       }
     }.persist(StorageLevel.DISK_ONLY)
 
@@ -115,7 +119,7 @@ private[projectglow] class ProcessHelper(
     context: TaskContext)
     extends GlowLogging {
 
-  private val childThreadException = new AtomicReference[Throwable](null)
+  private val _childThreadException = new AtomicReference[Throwable](null)
   private var process: Process = _
 
   def startProcess(): BufferedInputStream = {
@@ -132,7 +136,7 @@ private[projectglow] class ProcessHelper(
         try {
           inputFn(out)
         } catch {
-          case t: Throwable => childThreadException.set(t)
+          case t: Throwable => _childThreadException.set(t)
         } finally {
           out.close()
         }
@@ -151,7 +155,7 @@ private[projectglow] class ProcessHelper(
             // scalastyle:on println
           }
         } catch {
-          case t: Throwable => childThreadException.set(t)
+          case t: Throwable => _childThreadException.set(t)
         } finally {
           err.close()
         }
@@ -170,12 +174,14 @@ private[projectglow] class ProcessHelper(
   }
 
   def propagateChildException(): Unit = {
-    val t = childThreadException.get()
+    val t = _childThreadException.get()
     if (t != null) {
       Option(process).foreach(_.destroy())
       throw t
     }
   }
+
+  def childThreadException = Option(_childThreadException.get())
 }
 
 object ProcessHelper {
@@ -186,11 +192,13 @@ object ProcessHelper {
 class PipeIterator(
     cmd: Seq[String],
     environment: Map[String, String],
-    input: Iterator[InternalRow],
+    _input: Iterator[InternalRow],
     inputFormatter: InputFormatter,
-    outputFormatter: OutputFormatter)
+    outputFormatter: OutputFormatter,
+    quarantineInfo: Option[PipeIterator.QuarantineInfo])
     extends Iterator[Any] {
 
+  private val input = _input.toSeq
   private val processHelper = new ProcessHelper(cmd, environment, writeInput, TaskContext.get)
   private val inputStream = processHelper.startProcess()
   private val baseIterator = outputFormatter.makeIterator(inputStream)
@@ -208,6 +216,14 @@ class PipeIterator(
     } else {
       val exitStatus = processHelper.waitForProcess()
       if (exitStatus != 0) {
+        quarantineInfo.foreach{quarantineInfo =>
+          PipeIterator.quarantine(
+            exitStatus,
+            processHelper.childThreadException.getOrElse(
+              new Throwable("unknown")),
+            input,
+            quarantineInfo)
+        }
         throw new IllegalStateException(s"Subprocess exited with status $exitStatus")
       }
       false
@@ -217,4 +233,15 @@ class PipeIterator(
   }
 
   override def next(): Any = baseIterator.next()
+}
+
+object PipeIterator{
+  def quarantine(
+      status: Int, th: Throwable, data: Seq[InternalRow],
+      qi: QuarantineInfo): Unit =
+    SparkSession.getActiveSession.foreach{spark =>
+      qi.df.write.format("delta").mode("append").saveAsTable(qi.location)
+      0
+    }
+  final case class QuarantineInfo(df: DataFrame, location: String)
 }
