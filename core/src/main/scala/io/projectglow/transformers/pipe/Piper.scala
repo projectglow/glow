@@ -217,12 +217,10 @@ class PipeIterator(
       val exitStatus = processHelper.waitForProcess()
       if (exitStatus != 0) {
         quarantineInfo.foreach{quarantineInfo =>
+          val th = processHelper.childThreadException.getOrElse(
+            new Throwable("unknown"))
           PipeIterator.quarantine(
-            exitStatus,
-            processHelper.childThreadException.getOrElse(
-              new Throwable("unknown")),
-            input,
-            quarantineInfo)
+            exitStatus, th, input, quarantineInfo)
         }
         throw new IllegalStateException(s"Subprocess exited with status $exitStatus")
       }
@@ -241,7 +239,6 @@ object PipeIterator{
       qi: QuarantineInfo): Unit =
     SparkSession.getActiveSession.foreach{spark =>
       qi.df.write.format("delta").mode("append").saveAsTable(qi.location)
-      0
     }
   final case class QuarantineInfo(df: DataFrame, location: String)
 }
