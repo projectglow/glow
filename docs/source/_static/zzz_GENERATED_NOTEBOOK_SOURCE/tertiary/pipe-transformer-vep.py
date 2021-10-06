@@ -63,7 +63,7 @@ display(dbutils.fs.ls(file_path))
 vcf_path = 'dbfs:/databricks-datasets/genomics/1kg-vcfs/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz'
 vcf_test_path = results_dbfs_path + "/test_single_node.vcf"
 vcf_test_pipe_path = results_dbfs_path + "/test_pipe_annotated.vcf"
-df = spark.read.format("vcf").load(vcf_path).limit(1000)
+df = spark.read.format("vcf").load(vcf_path).limit(100000)
 df.write.format("bigvcf").mode("overwrite").save(vcf_test_path)
 
 # COMMAND ----------
