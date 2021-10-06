@@ -304,9 +304,9 @@ def _logistic_regression_inner(
     c, d: covariate
     '''
     genotype_values = genotype_pdf[_VALUES_COLUMN_NAME].array
-    if gt_indices_to_drop is not None and gt_indices_to_drop.size:
-        genotype_values = list(map(lambda x: np.delete(x, gt_indices_to_drop), genotype_values))
     X = np.column_stack(genotype_values)
+    if gt_indices_to_drop is not None and gt_indices_to_drop.size:
+        X = np.delete(X, gt_indices_to_drop, axis=0)
 
     # For approximate Firth correction, we perform a linear residualization
     if correction == correction_approx_firth:
