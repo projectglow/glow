@@ -81,8 +81,7 @@ private[projectglow] object Piper extends GlowLogging {
       if (it.isEmpty) {
         Iterator.empty
       } else {
-        new PipeIterator(cmd, env, it, informatter, outputformatter,
-          quarantineInfo)
+        new PipeIterator(cmd, env, it, informatter, outputformatter, quarantineInfo)
       }
     }.persist(StorageLevel.DISK_ONLY)
 
@@ -216,11 +215,9 @@ class PipeIterator(
     } else {
       val exitStatus = processHelper.waitForProcess()
       if (exitStatus != 0) {
-        quarantineInfo.foreach{quarantineInfo =>
-          val th = processHelper.childThreadException.getOrElse(
-            new Throwable("unknown"))
-          PipeIterator.quarantine(
-            exitStatus, th, input, quarantineInfo)
+        quarantineInfo.foreach { quarantineInfo =>
+          val th = processHelper.childThreadException.getOrElse(new Throwable("unknown"))
+          PipeIterator.quarantine(exitStatus, th, input, quarantineInfo)
         }
         throw new IllegalStateException(s"Subprocess exited with status $exitStatus")
       }
@@ -233,11 +230,9 @@ class PipeIterator(
   override def next(): Any = baseIterator.next()
 }
 
-object PipeIterator{
-  def quarantine(
-      status: Int, th: Throwable, data: Seq[InternalRow],
-      qi: QuarantineInfo): Unit =
-    SparkSession.getActiveSession.foreach{spark =>
+object PipeIterator {
+  def quarantine(status: Int, th: Throwable, data: Seq[InternalRow], qi: QuarantineInfo): Unit =
+    SparkSession.getActiveSession.foreach { spark =>
       qi.df.write.format("delta").mode("append").saveAsTable(qi.location)
     }
   final case class QuarantineInfo(df: DataFrame, location: String)
