@@ -1,4 +1,4 @@
-FROM projectglow/dbfsfuse:7.3
+FROM projectglow/dbfsfuse:9.1
 
 RUN apt-get update \
   && apt-get install -y openssh-server \
