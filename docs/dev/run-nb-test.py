@@ -16,6 +16,7 @@ import sys
 import time
 import uuid
 
+JOBS_JSON = 'docs/dev/jobs-config.json'
 NOTEBOOK_JOBS_JSON_MAPPING = 'docs/dev/notebook-jobs-config-mapping.json'
 
 def run_cli_cmd(cli_profile, api, args):
@@ -46,6 +47,8 @@ def get_jobs_config(d, key, jobs_path="docs/dev/jobs-config.json"):
 def main(cli_profile, workspace_tmp_dir, source_dir, nbs):
     identifier = str(uuid.uuid4())
     work_dir = os.path.join(workspace_tmp_dir, identifier)
+    with open(JOBS_JSON, 'r') as f:
+        jobs_json = json.load(f)
     with open(NOTEBOOK_JOBS_JSON_MAPPING, 'r') as f:
         notebook_jobs_json_mapping = json.load(f)
 
