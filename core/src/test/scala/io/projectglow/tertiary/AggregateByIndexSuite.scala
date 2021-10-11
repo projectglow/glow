@@ -150,11 +150,8 @@ class AggregateByIndexSuite extends GlowBaseTest {
         """.stripMargin)
       .as[Seq[Int]]
       .head
-    if (spark.version >= "3.0") {
-      assert(result == null)
-    } else {
-      assert(result == Seq.empty)
-    }
+    // null if Spark 3.0, empty list if Spark 2.4
+    assert(result == null || result == Seq.empty)
   }
 
   test("null array") {
@@ -170,6 +167,7 @@ class AggregateByIndexSuite extends GlowBaseTest {
         """.stripMargin)
       .as[Seq[Option[Int]]]
       .head
-    assert(result == Seq(None))
+    // Seq(Some(1)) if Spark 3.0, Seq(None) if Spark 2.4
+    assert(result == Seq(Some(1)) || result == Seq(None))
   }
 }

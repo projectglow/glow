@@ -27,14 +27,11 @@ def _output_schema(input_fields: List[StructField], result_fields: List[StructFi
     return StructType(fields)
 
 
-def _validate_covariates_and_phenotypes(covariate_df,
-                                        phenotype_df,
-                                        is_binary,
-                                        intersect_samples=False):
+def _validate_covariates_and_phenotypes(covariate_df, phenotype_df, is_binary):
     for col in covariate_df:
         _assert_all_present(covariate_df, col, 'covariate')
     if not covariate_df.empty:
-        if not intersect_samples and phenotype_df.shape[0] != covariate_df.shape[0]:
+        if phenotype_df.shape[0] != covariate_df.shape[0]:
             raise ValueError(
                 f'phenotype_df and covariate_df must have the same number of rows ({phenotype_df.shape[0]} != {covariate_df.shape[0]}'
             )
@@ -140,12 +137,3 @@ def _residualize_in_place(M: NDArray[(Any, Any), Float],
     '''
     M -= Q @ (Q.T @ M)
     return M
-
-
-def _get_indices_to_drop(phe_pdf, sample_ids):
-    drop_indices = []
-    phe_samples = set(phe_pdf.index.values.astype(str).tolist())
-    for i, s in enumerate(sample_ids):
-        if s not in phe_samples:
-            drop_indices.append(i)
-    return np.array(drop_indices)

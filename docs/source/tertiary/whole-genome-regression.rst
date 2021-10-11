@@ -14,7 +14,7 @@ GloWGR: Whole Genome Regression
     binary_phenotypes_csv = 'test-data/gwas/binary-phenotypes.csv.gz'
 
 
-Glow supports Whole Genome Regression (WGR) as GloWGR, a distributed version of the `regenie <https://rgcgithub.github.io/regenie/>`_ method (see the paper published in `Nature Genetics <https://www.nature.com/articles/s41588-021-00870-7>`_). GloWGR supports two types of phenotypes:
+Glow supports Whole Genome Regression (WGR) as GloWGR, a distributed version of the `regenie <https://rgcgithub.github.io/regenie/>`_ method (see the `preprint <https://www.biorxiv.org/content/10.1101/2020.06.19.162354v2>`_). GloWGR supports two types of phenotypes:
 
 - Quantitative 
 - Binary
