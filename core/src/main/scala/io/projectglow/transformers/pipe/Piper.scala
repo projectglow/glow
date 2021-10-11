@@ -216,8 +216,9 @@ class PipeIterator(
       val exitStatus = processHelper.waitForProcess()
       if (exitStatus != 0) {
         quarantineInfo.foreach { quarantineInfo =>
-          val th = processHelper.childThreadException.getOrElse(new Throwable("unknown"))
-          PipeIterator.quarantine(exitStatus, th, input, quarantineInfo)
+          val thrownFromProcess =
+            processHelper.childThreadException.getOrElse(new Throwable("unknown"))
+          PipeIterator.quarantine(exitStatus, thrownFromProcess, input, quarantineInfo)
         }
         throw new IllegalStateException(s"Subprocess exited with status $exitStatus")
       }
@@ -235,5 +236,12 @@ object PipeIterator {
     SparkSession.getActiveSession.foreach { spark =>
       qi.df.write.format("delta").mode("append").saveAsTable(qi.location)
     }
+
+  /* ~~~Scalastyle template evidently does not accept standard scaladoc comments~~~
+   * ~~~Scalastyle states "Insert a space after the start of the comment"       ~~~
+   * Data for Quarantining records which fail in process.
+   * @param df The [[DataFrame]] being processed.
+   * @param location The delta table to write to. Typically of the form `classifier.tableName`.
+   */
   final case class QuarantineInfo(df: DataFrame, location: String)
 }
