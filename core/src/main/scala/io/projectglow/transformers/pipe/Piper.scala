@@ -180,7 +180,7 @@ private[projectglow] class ProcessHelper(
     }
   }
 
-  def childThreadException = Option(_childThreadException.get())
+  def childThreadException: Option[Throwable] = Option(_childThreadException.get())
 }
 
 object ProcessHelper {
