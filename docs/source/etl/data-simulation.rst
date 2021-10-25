@@ -12,8 +12,8 @@ This gives a dataset that can be used for integration and scale-testing.
 Simulate Genotypes
 ==================
 
-This data simulation notebook downloads two chromosomes from the 1000 Genomes Project,
-and returns a Delta Lake table with a simulated set of genomtypes for `n_samples`,
+This data simulation notebook downloads chromosomes `21` and `22` from the 1000 Genomes Project,
+and returns a Delta Lake table with a simulated set of genotypes for `n_samples` and `n_variants`,
 maintaining hardy-weinberg equilibrium and allele frequency for each variant.
 
 .. notebook:: .. etl/simulate_delta_pvcf.html
