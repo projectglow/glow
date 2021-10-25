@@ -16,7 +16,7 @@ This data simulation notebook downloads two chromosomes from the 1000 Genomes Pr
 and returns a Delta Lake table with a simulated set of genomtypes for `n_samples`,
 maintaining hardy-weinberg equilibrium and allele frequency for each variant.
 
-.. notebook:: .. etl/variant-data.html
+.. notebook:: .. etl/simulate_delta_pvcf.html
 
 .. _covariates_phenotypes:
 
@@ -25,4 +25,4 @@ Simulate Covariates & Phenotypes
 
 This data simulation notebooks uses Pandas to simulate quantitative and binary phenotypes and covariates.
 
-.. notebook:: .. etl/variant-data.html
+.. notebook:: .. etl/simulate_covariates_phenotypes_offset.html
