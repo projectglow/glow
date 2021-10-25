@@ -85,9 +85,9 @@ Getting started on Databricks
 
 The Databricks documentation shows how to get started with Glow on, 
 
-  - **Amazon Web Services** (AWS - `docs <https://docs.databricks.com/applications/genomics/genomics-libraries/index.html>`_)
-  - **Microsoft Azure** (`docs <https://docs.microsoft.com/en-us/azure/databricks/applications/genomics/genomics-libraries/>`_) 
-  - **Google Cloud Platform** (GCP - `docs <https://docs.gcp.databricks.com/applications/genomics/genomics-libraries/index.html>`_)
+  - **Amazon Web Services** (AWS - `docs <https://docs.databricks.com/applications/genomics/index.html>`_)
+  - **Microsoft Azure** (`docs <https://docs.microsoft.com/en-us/azure/databricks/applications/genomics>`_) 
+  - **Google Cloud Platform** (GCP - `docs <https://docs.gcp.databricks.com/applications/genomics/index.html>`_)
  
 Getting started on other cloud services
 ---------------------------------------
