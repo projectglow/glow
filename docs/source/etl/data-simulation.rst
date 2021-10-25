@@ -24,6 +24,6 @@ Simulate Covariates & Phenotypes
 ================================
 
 This data simulation notebooks uses Pandas to simulate quantitative and binary phenotypes and covariates.
-Please ensure the **n_samples** is the same as the genotype simulation notebook above.
+Please ensure **n_samples** is the same as the genotype simulation notebook above.
 
 .. notebook:: .. etl/simulate_covariates_phenotypes_offset.html
