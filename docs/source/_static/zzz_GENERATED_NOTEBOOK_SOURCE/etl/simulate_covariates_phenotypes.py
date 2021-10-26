@@ -23,7 +23,7 @@ from pathlib import Path
 # COMMAND ----------
 
 #genotype matrix
-n_samples = 500000
+n_samples = 50000
 
 #phenotypes
 n_binary_phenotypes = 1
