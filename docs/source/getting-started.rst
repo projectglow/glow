@@ -83,18 +83,12 @@ Also note that the path to datasets used as example in these notebooks is usuall
 Getting started on Databricks
 -----------------------------
 
-The Databricks documentation shows how to get started with Glow on **Amazon Web Services** (AWS - `docs <https://docs.databricks.com/applications/genomics/genomics-libraries/index.html>`_), **Microsoft Azure** (`docs <https://docs.microsoft.com/en-us/azure/databricks/applications/genomics/genomics-libraries/>`_) and **Google Cloud Platform** (GCP - `docs <https://docs.gcp.databricks.com/applications/genomics/genomics-libraries/index.html>`_). 
-This documentation includes,
- 
-1. **cluster recommendations**
-2. **how to install** 
-	- Glow
-	- Hail
-	- The Variant Effect Predictor
-	- DeepNull
-        - Deep Variant
-3. **how to develop automated production jobs**
+The Databricks documentation shows how to get started with Glow on, 
 
+  - **Amazon Web Services** (AWS - `docs <https://docs.databricks.com/applications/genomics/index.html>`_)
+  - **Microsoft Azure** (`docs <https://docs.microsoft.com/en-us/azure/databricks/applications/genomics>`_) 
+  - **Google Cloud Platform** (GCP - `docs <https://docs.gcp.databricks.com/applications/genomics/index.html>`_)
+ 
 Getting started on other cloud services
 ---------------------------------------
 
