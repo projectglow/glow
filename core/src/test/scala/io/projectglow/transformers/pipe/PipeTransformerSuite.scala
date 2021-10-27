@@ -114,6 +114,24 @@ class PipeTransformerSuite extends GlowBaseTest {
     assert(output == "monkey!")
     Glow.transform("pipe_cleanup", inputDf, Map.empty[String, String])
   }
+
+  test("quarantine on failure") {
+    val sess = spark
+    import sess.implicits._
+    val inputDf = Seq("monkey", "dolphin").toDF
+    val testTable = "default.test_test_test"
+    val options = Map(
+      "inputFormatter" -> "text",
+      "outputFormatter" -> "text",
+      "quarantineTable" -> testTable,
+      "quarantineFlavor" -> "csv",
+      "cmd" -> Seq("python", "identity.py", "2"))
+    val exc = intercept[org.apache.spark.SparkException] {
+      Glow.transform("pipe", inputDf, options).as[String].head
+    }
+    assert(exc.getMessage.contains("Subprocess exited with status"))
+    Glow.transform("pipe_cleanup", inputDf, Map.empty[String, String])
+  }
 }
 
 class DummyInputFormatterFactory() extends InputFormatterFactory {

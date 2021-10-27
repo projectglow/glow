@@ -16,6 +16,7 @@
 
 package io.projectglow.transformers.pipe
 
+import java.lang.{IllegalStateException => ISE}
 import java.io._
 import java.util.concurrent.atomic.AtomicReference
 
@@ -61,12 +62,14 @@ private[projectglow] object Piper extends GlowLogging {
       cmd: Seq[String],
       env: Map[String, String],
       df: DataFrame,
-      quarantineLocation: Option[String] = None): DataFrame = {
+      quarantineLocation: Option[(String, String)] = None): DataFrame = {
     logger.info(s"Beginning pipe with cmd $cmd")
 
-    val quarantineInfo = quarantineLocation.map(
-      PipeIterator.QuarantineInfo(df, _)
-    )
+
+    val quarantineInfo = quarantineLocation.map { a =>
+      val (location, flavor) = a
+      PipeIterator.QuarantineInfo(df, location, PipeIterator.QuarantineWriter(flavor))
+    }
     val rawRdd = df.queryExecution.toRdd
     val inputRdd = if (rawRdd.getNumPartitions == 0) {
       logger.warn("Not piping any rows, as the input DataFrame has zero partitions.")
@@ -81,12 +84,27 @@ private[projectglow] object Piper extends GlowLogging {
       if (it.isEmpty) {
         Iterator.empty
       } else {
-        new PipeIterator(cmd, env, it, informatter, outputformatter, quarantineInfo)
+        new PipeIterator(cmd, env, it, informatter, outputformatter)
       }
     }.persist(StorageLevel.DISK_ONLY)
 
     cachedRdds.synchronized {
       cachedRdds.append(schemaInternalRowRDD)
+    }
+
+    // Quarantining is potentially very wasteful due to the throw-based control
+    // flow implemented at the level below.
+    quarantineInfo.foreach{quarantineInfo =>
+      try{
+        schemaInternalRowRDD.mapPartitions{ it =>
+          if(it.nonEmpty){
+            val result = if(it.asInstanceOf[PipeIterator].error){
+              Iterator(true)
+            }else Iterator.empty
+            result
+          } else Iterator.empty
+        }.filter(identity).take(1).nonEmpty
+      }catch{case _ => quarantineInfo.flavor.quarantine(quarantineInfo)}
     }
 
     val schemaSeq = schemaInternalRowRDD.mapPartitions { it =>
@@ -122,7 +140,6 @@ private[projectglow] class ProcessHelper(
   private var process: Process = _
 
   def startProcess(): BufferedInputStream = {
-
     val pb = new ProcessBuilder(cmd.asJava)
     val pbEnv = pb.environment()
     environment.foreach { case (k, v) => pbEnv.put(k, v) }
@@ -193,9 +210,9 @@ class PipeIterator(
     environment: Map[String, String],
     _input: Iterator[InternalRow],
     inputFormatter: InputFormatter,
-    outputFormatter: OutputFormatter,
-    quarantineInfo: Option[PipeIterator.QuarantineInfo])
+    outputFormatter: OutputFormatter)
     extends Iterator[Any] {
+  import PipeIterator.illegalStateException
 
   private val input = _input.toSeq
   private val processHelper = new ProcessHelper(cmd, environment, writeInput, TaskContext.get)
@@ -215,12 +232,7 @@ class PipeIterator(
     } else {
       val exitStatus = processHelper.waitForProcess()
       if (exitStatus != 0) {
-        quarantineInfo.foreach { quarantineInfo =>
-          val thrownFromProcess =
-            processHelper.childThreadException.getOrElse(new Throwable("unknown"))
-          PipeIterator.quarantine(exitStatus, thrownFromProcess, input, quarantineInfo)
-        }
-        throw new IllegalStateException(s"Subprocess exited with status $exitStatus")
+        throw illegalStateException(s"Subprocess exited with status $exitStatus")
       }
       false
     }
@@ -229,13 +241,35 @@ class PipeIterator(
   }
 
   override def next(): Any = baseIterator.next()
+
+  def error: Boolean = {
+    (0 == processHelper.waitForProcess())
+  }
 }
 
 object PipeIterator {
-  def quarantine(status: Int, th: Throwable, data: Seq[InternalRow], qi: QuarantineInfo): Unit =
-    SparkSession.getActiveSession.foreach { spark =>
+  // This would typically be a typeclass, but this code base appears to be
+  // subclass polymorphic rather than typeclass polymorphic
+  trait QuarantineWriter extends Product with Serializable {
+    def quarantine(qi: QuarantineInfo): Unit
+  }
+  final object QuarantineWriter {
+    def apply(flavor: String): QuarantineWriter = flavor match {
+      case "delta" => QuarantineWriterDelta
+      case "csv" => QuarantineWriterCsv
+      case _ => throw illegalStateException(s"unknown QuarantineWriter flavor: $flavor")
+    }
+  }
+  final case object QuarantineWriterDelta extends QuarantineWriter {
+    override def quarantine(qi: QuarantineInfo): Unit = {
       qi.df.write.format("delta").mode("append").saveAsTable(qi.location)
     }
+  }
+  final case object QuarantineWriterCsv extends QuarantineWriter {
+    override def quarantine(qi: QuarantineInfo): Unit = {
+      val df = qi.df.write.csv(qi.location)
+    }
+  }
 
   /* ~~~Scalastyle template evidently does not accept standard scaladoc comments~~~
    * ~~~Scalastyle states "Insert a space after the start of the comment"       ~~~
@@ -243,5 +277,8 @@ object PipeIterator {
    * @param df The [[DataFrame]] being processed.
    * @param location The delta table to write to. Typically of the form `classifier.tableName`.
    */
-  final case class QuarantineInfo(df: DataFrame, location: String)
+  final case class QuarantineInfo(df: DataFrame, location: String, flavor: QuarantineWriter)
+
+  def illegalStateException(message: String): IllegalStateException =
+    new ISE("[PipeIterator] " + message)
 }
