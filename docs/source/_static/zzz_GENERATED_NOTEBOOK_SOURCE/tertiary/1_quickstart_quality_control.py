@@ -173,7 +173,7 @@ variant_filter_df = summary_stats_df.where((fx.col("alleleFrequencies").getItem(
 
 # COMMAND ----------
 
-variant_filter_df.write.mode("overwrite").format("delta").save(output_delta_transformed)
+variant_filter_df.write.option("overwriteSchema", "true").mode("overwrite").format("delta").save(output_delta_transformed)
 
 # COMMAND ----------
 
