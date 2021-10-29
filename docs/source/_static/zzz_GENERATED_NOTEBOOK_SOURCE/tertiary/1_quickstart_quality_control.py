@@ -106,8 +106,15 @@ dbfs_fuse_home_path = Path("/dbfs/home/{}/".format(user))
 
 output_delta = str(dbfs_home_path / f"genomics/data/delta/simulate_{n_samples}_samples_{n_variants}_variants_pvcf.delta")
 output_delta_transformed = str(dbfs_home_path / f"genomics/data/delta/simulate_{n_samples}_samples_{n_variants}_variants_pvcf_transformed.delta")
+output_hwe_path = str(dbfs_home_path / f"genomics/data/results")
 output_hwe_plot = str(dbfs_fuse_home_path / f"genomics/data/results/simulate_{n_samples}_samples_{n_variants}_hwe.png")
 output_delta, output_delta_transformed, output_hwe_plot
+
+# COMMAND ----------
+
+#delta lake generates paths on the fly for objects in cloud storage, 
+#but for local files synced to cloud storage we need to create a path
+dbutils.fs.mkdirs(output_hwe_path) 
 
 # COMMAND ----------
 
