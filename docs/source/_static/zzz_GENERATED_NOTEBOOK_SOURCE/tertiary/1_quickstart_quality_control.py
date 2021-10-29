@@ -78,7 +78,7 @@ def calculate_pval_bonferroni_cutoff(df, cutoff=0.05):
 # COMMAND ----------
 
 #genotype matrix
-n_samples = 500000
+n_samples = 50000
 n_variants = 1000
 
 #allele frequency
