@@ -23,7 +23,7 @@ from pathlib import Path
 # COMMAND ----------
 
 #genotype matrix
-n_samples = 50000
+n_samples = 500000
 
 #phenotypes
 n_binary_phenotypes = 1
@@ -34,7 +34,7 @@ n_phenotypes = n_binary_phenotypes + n_quantitative_phenotypes
 n_quantitative_covariates = 8
 n_binary_covariates = 2
 n_covariates = n_quantitative_covariates + n_binary_covariates
-missingness = 0.7
+missingness = 0.3
 
 # COMMAND ----------
 
