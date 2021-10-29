@@ -44,7 +44,7 @@ n_variants = 1000
 # chromosomes for simulating pvcf
 random_seed = 42
 random.seed(random_seed)
-minor_allele_frequency_cutoff = 0.005
+minor_allele_frequency_cutoff = 0.05
 chromosomes = ["21", "22"] #glow whole genome regression leave one chromosome out (loco) method requires at least two chromosomes
 
 n_partitions = 5 #good heuristic is 20 variants per partition at 500k samples
