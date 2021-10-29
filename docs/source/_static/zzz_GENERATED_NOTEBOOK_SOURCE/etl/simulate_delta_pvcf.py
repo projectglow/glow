@@ -38,7 +38,7 @@ from collections import Counter
 # COMMAND ----------
 
 #genotype matrix
-n_samples = 500000
+n_samples = 50000
 n_variants = 1000
 
 # chromosomes for simulating pvcf
