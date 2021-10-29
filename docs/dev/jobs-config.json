@@ -1,8 +1,8 @@
 {
   "new_cluster": {
     "spark_version": "9.1.x-scala2.12",
-    "node_type_id": "Standard_DS3_v2",
-    "num_workers": 4,
+    "node_type_id": "Standard_DS4_v2",
+    "num_workers": 2,
     "docker_image": {
         "url": "projectglow/databricks-glow:9.1"
     }
