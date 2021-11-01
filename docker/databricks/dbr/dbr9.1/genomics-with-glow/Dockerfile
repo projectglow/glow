@@ -2,12 +2,11 @@
 
 FROM projectglow/genomics:9.1 AS builder
 
+ENV GLOW_VERSION=1.1.1
+
 # ===== Install python dependencies for Glow =======================================================
-# Upgrade to Glow 1.1.0 when available
-# ENV GLOW_VERSION=1.1.0
 # once available, we want specify that the earliest version is 1.1.0
 
-ENV GLOW_VERSION=1.1.0
 RUN /databricks/python3/bin/pip install glow.py==$GLOW_VERSION
 
 ENV BIOINFOKIT_VERSION=0.8.5
@@ -15,7 +14,6 @@ RUN /databricks/python3/bin/pip install bioinfokit==$BIOINFOKIT_VERSION
 
 # ===== Set up scala dependencies for Glow =========================================================
 
-ENV GLOW_VERSION=1.1.0
 ENV HADOOP_BAM_VERSION=7.9.1
 ENV HTSJDK_VERSION=2.21.2
 ENV PICARD_VERSION=2.23.3
