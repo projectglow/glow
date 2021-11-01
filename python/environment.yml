@@ -32,4 +32,4 @@ dependencies:
     - sphinx-autobuild
     - Sphinx-Substitution-Extensions # Substitutions in code blocks
     - sphinx-tabs # Code tabs (Python/Scala)
-    - sybil=3.0.0 # Automatic doctest
+    - sybil==3.0.0 # Automatic doctest
