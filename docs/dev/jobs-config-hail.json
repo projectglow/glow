@@ -4,18 +4,18 @@
     "node_type_id": "Standard_DS3_v2",
     "num_workers": 2,
     "docker_image": {
-        "url": "projectglow/databricks-hail:0.2.76"
+        "url": "projectglow/databricks-hail:0.2.78"
     }
   },
   "libraries": [
     {
       "maven": {
-        "coordinates": "io.projectglow:glow-spark3_2.12:1.1.0"
+        "coordinates": "io.projectglow:glow-spark3_2.12:1.1.1"
       }
     },
     {
       "pypi": {
-        "package": "glow.py==1.1.0"
+        "package": "glow.py==1.1.1"
       }
     }
   ],
