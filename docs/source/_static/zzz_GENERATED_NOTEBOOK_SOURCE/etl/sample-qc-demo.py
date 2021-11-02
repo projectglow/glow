@@ -37,17 +37,6 @@ display(filtered.selectExpr("size(filtered_genotypes)"))
 
 # COMMAND ----------
 
-# DBTITLE 1,Use aggregate_by_index to compute aggregation array
-stats_df = df.groupBy("INFO_SVTYPE")\
-  .agg(expr("""aggregate_by_index(
-    genotypes,
-    0,
-    (nonref, g) -> if(exists(g.calls, call -> call != -1 and call != 0), nonref + 1, nonref),
-    (nonref1, nonref2) -> nonref1 + nonref2) as count_non_ref"""))
-display(stats_df)
-
-# COMMAND ----------
-
 # DBTITLE 1,Explode genotype array and use built in Spark aggregations
 exploded_df = (df.withColumn("genotype", explode("genotypes"))
   .withColumn("hasNonRef", expr("exists(genotype.calls, call -> call != -1 and call != 0)")))

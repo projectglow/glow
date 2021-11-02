@@ -4,7 +4,7 @@
     "node_type_id": "Standard_DS4_v2",
     "num_workers": 2,
     "docker_image": {
-        "url": "projectglow/databricks-glow:9.1"
+        "url": "projectglow/databricks-glow:1.1.1"
     }
   },
   "libraries": [
