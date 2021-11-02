@@ -11,56 +11,11 @@
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC ##### import libraries
+# MAGIC %md ##### setup constants
 
 # COMMAND ----------
 
-import glow
-spark = glow.register(spark)
-import pyspark.sql.functions as fx
-from pyspark.sql.types import *
-
-import random
-import string
-import pandas as pd
-import numpy as np
-import os
-from pathlib import Path
-import itertools
-from collections import Counter
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ##### Data Generation Constants
-
-# COMMAND ----------
-
-#genotype matrix
-n_samples = 50000
-n_variants = 1000
-
-# chromosomes for simulating pvcf
-random_seed = 42
-random.seed(random_seed)
-minor_allele_frequency_cutoff = 0.05
-chromosomes = ["21", "22"] #glow whole genome regression leave one chromosome out (loco) method requires at least two chromosomes
-
-n_partitions = 5 #good heuristic is 20 variants per partition at 500k samples
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ##### Data Storage Path Constants
-
-# COMMAND ----------
-
-user=dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().apply('user')
-dbfs_home_path_str = "dbfs:/home/{}/".format(user)
-dbfs_fuse_home_path_str = "/dbfs/home/{}/".format(user)
-dbfs_home_path = Path("dbfs:/home/{}/".format(user))
-dbfs_fuse_home_path = Path("/dbfs/home/{}/".format(user))
+# MAGIC %run ../0_setup_constants
 
 # COMMAND ----------
 
@@ -148,21 +103,6 @@ simulate_genotypes_udf = udf(simulate_genotypes, ArrayType(StructType([
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ##### set paths
-
-# COMMAND ----------
-
-vcfs_path = str(dbfs_home_path / "genomics/data/1kg-vcfs-autosomes")
-vcfs_path_local = str(dbfs_fuse_home_path / "genomics/data/1kg-vcfs-autosomes")
-
-os.environ['vcfs_path_local'] = vcfs_path_local
-output_vcf_delta = str(dbfs_home_path / f'genomics/data/delta/1kg_variants_pvcf.delta')
-output_simulated_delta = str(dbfs_home_path / f'genomics/data/delta/simulate_{n_samples}_samples_{n_variants}_variants_pvcf.delta')
-vcfs_path, vcfs_path_local, output_vcf_delta, output_simulated_delta
-
-# COMMAND ----------
-
-# MAGIC %md
 # MAGIC ##### download 1000G data for chrom 21 and 22
 
 # COMMAND ----------
@@ -185,7 +125,7 @@ vcfs_path, vcfs_path_local, output_vcf_delta, output_simulated_delta
 
 vcf = spark.read.format("vcf").load(vcfs_path) \
                               .drop("genotypes") \
-                              .where(fx.col("INFO_AF")[0] >= minor_allele_frequency_cutoff)
+                              .where(fx.col("INFO_AF")[0] >= allele_freq_cutoff)
 total_variants = vcf.count()
 fraction = n_variants / total_variants
 

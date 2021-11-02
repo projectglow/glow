@@ -12,78 +12,19 @@
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ##### library imports
+# MAGIC ##### setup constants
 
 # COMMAND ----------
 
-import glow
-spark = glow.register(spark)
-import pyspark.sql.functions as fx
-
-import json
-import numpy as np
-import pandas as pd
-from pathlib import Path
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ##### Data Generation Constants
-
-# COMMAND ----------
-
-#genotype matrix
-n_samples = 50000
-n_variants = 1000
-
-#phenotypes
-n_quantitative_phenotypes = 1
-
-#covariates
-n_covariates = 10
-
-#wgr
-variants_per_block = 1000
-sample_block_count = 10
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ##### Data Storage Path Constants
-
-# COMMAND ----------
-
-user=dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().apply('user')
-dbfs_home_path_str = "dbfs:/home/{}/".format(user)
-dbfs_fuse_home_path_str = "/dbfs/home/{}/".format(user)
-dbfs_home_path = Path("dbfs:/home/{}/".format(user))
-dbfs_fuse_home_path = Path("/dbfs/home/{}/".format(user))
+# MAGIC %run ../0_setup_constants
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC 
 # MAGIC #### Prepare input paths.
-# MAGIC Glow can read variant data from common file formats like VCF, BGEN, and Plink.
 # MAGIC 
-# MAGIC Please checkpoint your data into Parquet or Delta Lake table before running GloWGR.
-# MAGIC 
-# MAGIC Note: The data in this problem is fabricated for demonstration purpose and is biologically meaningless.
-
-# COMMAND ----------
-
-delta_path = str(dbfs_home_path / 'genomics/data/delta/simulate_'.format(user))
-base_variants_path = output_delta = delta_path + str(n_samples) + '_samples_' + str(n_variants) + '_variants_pvcf.delta'
-variants_path = output_delta = delta_path + str(n_samples) + '_samples_' + str(n_variants) + '_variants_pvcf_transformed.delta'
-
-pandas_path = str(dbfs_fuse_home_path / ('genomics/data/pandas/simulate_'.format(user) + str(n_samples) + '_samples_'))
-covariates_path = pandas_path + str(n_covariates) + '_covariates.csv'
-quantitative_phenotypes_path = pandas_path + str(n_quantitative_phenotypes) + '_quantitative_phenotypes.csv'
-output_quantitative_offset = pandas_path + str(n_quantitative_phenotypes) + '_offset_quantitative_phenotypes.csv'
-
-sample_blocks_path = pandas_path + '_wgr_sample_blocks.json'
-block_matrix_path = delta_path + 'wgr_block_matrix.delta'
-y_hat_path = pandas_path + str(n_quantitative_phenotypes) + '_wgr_y_quantitative_hat.csv'
+# MAGIC Load data
 
 # COMMAND ----------
 

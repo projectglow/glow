@@ -4,79 +4,15 @@
 # MAGIC 
 # MAGIC ### <img src="https://databricks-knowledge-repo-images.s3.us-east-2.amazonaws.com/HLS/glow/project_glow_logo.png" alt="logo" width="35"/> Linear regression genetic association study
 # MAGIC 
-# MAGIC Uses a simulated project-level VCF from chromosome 22 of the 1000 genomes
+# MAGIC Uses a simulated project-level VCF from chromosomes 21 and 22 of the 1000 genomes
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC ##### import libraries
+# MAGIC %md ##### setup constants
 
 # COMMAND ----------
 
-import glow
-spark = glow.register(spark)
-
-import pyspark.sql.functions as fx
-from pyspark.sql.types import *
-
-import pandas as pd
-import time
-import pytz
-from datetime import datetime
-from pathlib import Path
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ##### Data Generation Constants
-
-# COMMAND ----------
-
-#genotype matrix
-n_samples = 50000
-n_variants = 1000
-
-#phenotypes
-n_quantitative_phenotypes = 1
-
-#covariates
-n_covariates = 10
-
-#chromosomes
-contigs = ['21', '22']
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ##### Data Storage Path Constants
-
-# COMMAND ----------
-
-user=dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().apply('user')
-dbfs_home_path_str = "dbfs:/home/{}/".format(user)
-dbfs_fuse_home_path_str = "/dbfs/home/{}/".format(user)
-dbfs_home_path = Path("dbfs:/home/{}/".format(user))
-dbfs_fuse_home_path = Path("/dbfs/home/{}/".format(user))
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ##### set up paths
-
-# COMMAND ----------
-
-delta_path = str(dbfs_home_path / 'genomics/data/delta/') + "/"
-input_delta = delta_path + 'simulate_' + str(n_samples) + '_samples_' + str(n_variants) + '_variants_pvcf_transformed.delta'
-gwas_results_path_confounded = delta_path + 'simulate_pvcf_linear_gwas_results_confounded.delta'
-gwas_results_path = delta_path + 'simulate_pvcf_linear_gwas_results.delta'
-
-pandas_path = str(dbfs_fuse_home_path / ('genomics/data/pandas/simulate_'.format(user) + str(n_samples) + '_samples_'))
-covariates_path = pandas_path + str(n_covariates) + '_covariates.csv'
-quantitative_phenotypes_path = pandas_path + str(n_quantitative_phenotypes) + '_quantitative_phenotypes.csv'
-y_hat_path = pandas_path + str(n_quantitative_phenotypes) + '_wgr_y_quantitative_hat.csv'
-
-qq_plot_path = str(dbfs_fuse_home_path / "genomics/results/plots/qq.png")
-manhattan_plot_path = str(dbfs_fuse_home_path / "genomics/results/plots/manh.png")
+# MAGIC %run ../0_setup_constants
 
 # COMMAND ----------
 

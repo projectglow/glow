@@ -24,17 +24,11 @@ spark.conf.set("spark.sql.codegen.wholeStage", False)
 
 # COMMAND ----------
 
-import pyspark.sql.functions as fx
-from pyspark.sql.types import *
-import glow
-spark = glow.register(spark)
+# MAGIC %md ##### setup constants
 
-import pandas as pd
-import numpy as np
-import os
-from pathlib import Path
+# COMMAND ----------
 
-import matplotlib.pyplot as plt
+# MAGIC %run ../0_setup_constants
 
 # COMMAND ----------
 
@@ -69,46 +63,6 @@ def plot_histogram(df, col, xlabel, xmin, xmax, nbins, plot_title, plot_style, c
 def calculate_pval_bonferroni_cutoff(df, cutoff=0.05):
   bonferroni_p =  cutoff / df.count()
   return bonferroni_p
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ##### Data Generation Constants
-
-# COMMAND ----------
-
-#genotype matrix
-n_samples = 50000
-n_variants = 1000
-
-#allele frequency
-allele_freq_cutoff = 0.05
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ##### Data Storage Path Constants
-
-# COMMAND ----------
-
-user=dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().apply('user')
-dbfs_home_path_str = "dbfs:/home/{}/".format(user)
-dbfs_fuse_home_path_str = "/dbfs/home/{}/".format(user)
-dbfs_home_path = Path("dbfs:/home/{}/".format(user))
-dbfs_fuse_home_path = Path("/dbfs/home/{}/".format(user))
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ##### set paths
-
-# COMMAND ----------
-
-output_delta = str(dbfs_home_path / f"genomics/data/delta/simulate_{n_samples}_samples_{n_variants}_variants_pvcf.delta")
-output_delta_transformed = str(dbfs_home_path / f"genomics/data/delta/simulate_{n_samples}_samples_{n_variants}_variants_pvcf_transformed.delta")
-output_hwe_path = str(dbfs_home_path / f"genomics/data/results")
-output_hwe_plot = str(dbfs_fuse_home_path / f"genomics/data/results/simulate_{n_samples}_samples_{n_variants}_hwe.png")
-output_delta, output_delta_transformed, output_hwe_plot
 
 # COMMAND ----------
 

@@ -5,49 +5,11 @@
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC ##### import libraries
+# MAGIC %md ##### setup constants
 
 # COMMAND ----------
 
-import random
-import pandas as pd
-import numpy as np
-from pathlib import Path
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ##### Data Generation Constants
-
-# COMMAND ----------
-
-#genotype matrix
-n_samples = 50000
-
-#phenotypes
-n_binary_phenotypes = 1
-n_quantitative_phenotypes = 1
-n_phenotypes = n_binary_phenotypes + n_quantitative_phenotypes
-
-#covariates
-n_quantitative_covariates = 8
-n_binary_covariates = 2
-n_covariates = n_quantitative_covariates + n_binary_covariates
-missingness = 0.3
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ##### Data Storage Path Constants
-
-# COMMAND ----------
-
-user=dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().apply('user')
-dbfs_home_path_str = "dbfs:/home/{}/".format(user)
-dbfs_fuse_home_path_str = "/dbfs/home/{}/".format(user)
-dbfs_home_path = Path("dbfs:/home/{}/".format(user))
-dbfs_fuse_home_path = Path("/dbfs/home/{}/".format(user))
+# MAGIC %run ../0_setup_constants
 
 # COMMAND ----------
 
@@ -65,25 +27,6 @@ def add_sample_index_pdf(pdf, sample="sample_id"):
   pdf.index.name = "sample_id"
   pdf.index = pdf.index.map(str)
   return pdf
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ##### set variables
-
-# COMMAND ----------
-
-dbfs_file_path = dbfs_home_path / "genomics/data/pandas/"
-dbutils.fs.mkdirs(str(dbfs_file_path))
-
-dbfs_file_fuse_path = dbfs_fuse_home_path / "genomics/data/pandas/"
-simulate_file_prefix = f"simulate_{n_samples}_samples_"
-
-output_covariates = str(dbfs_file_fuse_path / (simulate_file_prefix + f"{n_covariates}_covariates.csv"))
-output_quantitative_phenotypes = str(dbfs_file_fuse_path / (simulate_file_prefix + f"{n_quantitative_phenotypes}_quantitative_phenotypes.csv"))
-output_binary_phenotypes = str(dbfs_file_fuse_path / (simulate_file_prefix + f"{n_binary_phenotypes}_binary_phenotypes.csv"))
-
-output_covariates, output_quantitative_phenotypes, output_binary_phenotypes
 
 # COMMAND ----------
 
