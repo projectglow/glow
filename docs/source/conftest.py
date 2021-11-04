@@ -15,7 +15,7 @@
 
 import glow
 from sybil import Sybil
-from sybil.parsers.codeblock import CodeBlockParser
+from sybil.parsers.codeblock import PythonCodeBlockParser
 from pandas.testing import assert_series_equal
 import pytest
 import pandas as pd
@@ -37,7 +37,7 @@ def assert_rows_equal():
 
 pytest_collect_file = Sybil(
     parsers=[
-        CodeBlockParser(future_imports=['print_function']),
+        PythonCodeBlockParser(future_imports=['print_function']),
     ],
     pattern='*.rst',
     fixtures=['assert_rows_equal', 'spark', 'register_glow'],
