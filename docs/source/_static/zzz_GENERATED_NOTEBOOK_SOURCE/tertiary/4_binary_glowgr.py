@@ -1,10 +1,10 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC <img src="https://databricks.com/wp-content/themes/databricks/assets/images/databricks-logo.png" alt="logo" width="240"/> + <img src="https://www.regeneron.com/Content/images/science/regenron.png" alt="logo" width="240"/>
+# MAGIC ##<img src="https://databricks.com/wp-content/themes/databricks/assets/images/databricks-logo.png" alt="logo" width="240"/> + <img src="https://www.regeneron.com/Content/images/science/regenron.png" alt="logo" width="240"/>
 # MAGIC 
 # MAGIC ### <img src="https://databricks-knowledge-repo-images.s3.us-east-2.amazonaws.com/HLS/glow/project_glow_logo.png" alt="logo" width="35"/> GloWGR: whole genome regression
 # MAGIC 
-# MAGIC ### Quantitative phenotypes
+# MAGIC ### Binary phenotypes
 # MAGIC 
 # MAGIC Recommended cluster setup: 
 # MAGIC large memory optimized virtual machines
@@ -12,19 +12,11 @@
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ##### setup constants
+# MAGIC ##### run notebook(s) to set everything up
 
 # COMMAND ----------
 
-# MAGIC %run ../0_setup_constants
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC 
-# MAGIC #### Prepare input paths.
-# MAGIC 
-# MAGIC Load data
+# MAGIC %run ../0_setup_constants_glow
 
 # COMMAND ----------
 
@@ -40,6 +32,9 @@ variant_df = spark.read.format('delta').load(variants_path)
 # COMMAND ----------
 
 sample_ids = glow.wgr.get_sample_ids(base_variant_df)
+
+# COMMAND ----------
+
 len(sample_ids)
 
 # COMMAND ----------
@@ -60,9 +55,9 @@ block_df, sample_blocks = glow.wgr.block_variants_and_samples(variant_df,
 
 # COMMAND ----------
 
-with open(sample_blocks_path, 'w') as f:
+with open(binary_sample_blocks_path, 'w') as f:
   json.dump(sample_blocks, f)
-block_df.write.format('delta').mode('overwrite').save(block_matrix_path)
+block_df.write.format('delta').mode('overwrite').save(binary_block_matrix_path)
 
 # COMMAND ----------
 
@@ -72,13 +67,17 @@ block_df.write.format('delta').mode('overwrite').save(block_matrix_path)
 
 # COMMAND ----------
 
-block_df = spark.read.format('delta').load(block_matrix_path)
-with open(sample_blocks_path, 'r') as f:
+block_df = spark.read.format('delta').load(binary_block_matrix_path)
+with open(binary_sample_blocks_path, 'r') as f:
   sample_blocks = json.load(f)
 
 # COMMAND ----------
 
 display(block_df.limit(2))
+
+# COMMAND ----------
+
+sample_blocks
 
 # COMMAND ----------
 
@@ -88,9 +87,9 @@ display(block_df.limit(2))
 
 # COMMAND ----------
 
-label_df = pd.read_csv(quantitative_phenotypes_path, 
+label_df = pd.read_csv(binary_phenotypes_path, 
                        dtype={'sample_id': str}, 
-                       index_col='sample_id')[['QP1']]
+                       index_col='sample_id')[['BP1']]
 label_df.index = label_df.index.map(str) #the integer representation of sample_id was causing issues
 
 # COMMAND ----------
@@ -129,9 +128,9 @@ for label_df_chunk in chunk_columns(label_df, chunk_size):
 # COMMAND ----------
 
 all_traits_loco_df = pd.concat(loco_estimates, axis='columns')
-all_traits_loco_df.to_csv(y_hat_path)
+all_traits_loco_df.to_csv(binary_y_hat_path)
 
 # COMMAND ----------
 
-test = pd.read_csv(y_hat_path)
+test = pd.read_csv(binary_y_hat_path)
 test

@@ -28,7 +28,19 @@ spark.conf.set("spark.sql.codegen.wholeStage", False)
 
 # COMMAND ----------
 
-# MAGIC %run ../0_setup_constants
+# MAGIC %run ../0_setup_constants_glow
+
+# COMMAND ----------
+
+# MAGIC %run ../2_setup_metadata
+
+# COMMAND ----------
+
+method = 'quality_control'
+test = 'split_multiallelics-mean_substitute-genotype_states-filter'
+library = 'glow'
+datetime = datetime.now(pytz.timezone('US/Pacific'))
+start_time = time.time()
 
 # COMMAND ----------
 
@@ -132,3 +144,17 @@ variant_filter_df.write.option("overwriteSchema", "true").mode("overwrite").form
 # COMMAND ----------
 
 spark.read.format('delta').load(output_delta_transformed).count()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ##### log metadata
+
+# COMMAND ----------
+
+end_time = time.time()
+runtime = float("{:.2f}".format((end_time - start_time)))
+
+l = [(datetime, n_samples, n_variants, n_covariates, n_binary_phenotypes, method, test, library, spark_version, node_type_id, n_workers, runtime)]
+run_metadata_delta_df = spark.createDataFrame(l, schema=schema)
+run_metadata_delta_df.write.mode("append").format("delta").save(run_metadata_delta_path)
