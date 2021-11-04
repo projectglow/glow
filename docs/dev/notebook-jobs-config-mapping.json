@@ -1,3 +1,8 @@
 {
-  "etl/hail-interoperation": "docs/dev/jobs-config-hail.json"
+  "1_setup_hail": "docs/dev/jobs-config-hail.json",
+  "etl/hail-interoperation": "docs/dev/jobs-config-hail.json",
+  "etl/4_vcf_to_hail_mt": "docs/dev/jobs-config-hail.json",
+  "etl/5_hail_mt_to_glow": "docs/dev/jobs-config-hail.json",
+  "tertiary/6_simulate_hail_linreg_gwas": "docs/dev/jobs-config-hail.json",
+  "tertiary/7_simulate_hail_logistic_gwas": "docs/dev/jobs-config-hail.json"
 }
