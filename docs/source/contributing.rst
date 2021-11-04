@@ -7,7 +7,7 @@ Contributing
 Glow began as an industry collaboration between databricks and the Regeneron Genetics Center.
 The goal is to help scientists and engineers work together to solve genomics problems with data.
 
-We welcome contributions, and will collaborate with you to include them in the project.
+Contributing is easy, and we will collaborate with you to extend the project.
 
 The sections below detail how to contribute.
 
@@ -118,7 +118,7 @@ Only include libraries that are used directly upstream or downstream of glow, or
   - This file contains command line tools, Python and R packages.
 3. Build and push the container, use this `bash script <https://github.com/projectglow/glow/blob/master/docker/databricks/build.sh>`_ as a template.
 4. Test the container in your environment in a notebook.
-6. Once you are happy with the container and the test, open a pull request.
+5. Once you are happy with the container and the test, open a pull request.
   - We will build and push the container to the official projectglow `dockerhub project <https://hub.docker.com/u/projectglow>`_, 
   - Point to this container in the glow nightly continuous integration test `jobs definition <https://github.com/projectglow/glow/tree/master/docs/dev>`_.
   - Once the circle-ci continuous integration test passes, we will incorporate it into the project.
@@ -128,17 +128,15 @@ Only include libraries that are used directly upstream or downstream of glow, or
 4. Contribute new features / bug fixes
 ======================================
 
+Here are example pull requests for new features or bug fixes that touch different aspects of the codebase,
+
+- `Scala <https://github.com/projectglow/glow/pull/418>`_
+- `Python functions <https://github.com/projectglow/glow/pull/416>`_
+- `Python & R notebooks <https://github.com/projectglow/glow/pull/431>`_
+- `Data schemas <https://github.com/projectglow/glow/pull/402>`_
+- `Docker <https://github.com/projectglow/glow/pull/420>`_
+- `Benchmarks <https://github.com/projectglow/glow/pull/440>`_
+
 Much of the codebase is in Scala, however we are increasingly moving to Python.
 Near-term focus is around integrating with Delta streaming and sharing.
 In the future we will optimize code in C++.
-
-Here are example pull requests,
-
-- `Scala <https://github.com/projectglow/glow/pull/418>`_
-- `Python <https://github.com/projectglow/glow/pull/416>`_
-- `Data schemas <https://github.com/projectglow/glow/pull/402>`_
-- `Docker <https://github.com/projectglow/glow/pull/420>`_
-- `R <https://github.com/projectglow/glow/pull/431>`_
-- `Benchmarks <https://github.com/projectglow/glow/pull/440>`_
-- Delta Lake integration [*TODO*]
-
