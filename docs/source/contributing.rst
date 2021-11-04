@@ -51,8 +51,9 @@ It's easy to get started.
 1. Modify or add notebooks
 ==========================
 
-Modifying a notebook helps others understand the code.
-As you work through a notebook, please document problems.
+As you work through the example notebooks in the docs, please document issues.
+If you solve problems or improve code, please contribute changes back.
+That way others will benefit and become more productive.
 
 Export your notebook as `html` into the relevant directory under `docs/source/_static/notebooks`.
 
@@ -65,22 +66,26 @@ And run this python script (swapping the html file out for your own).
 .. _improve-documentation:
 
 2. Improve the documentation
-==========================
+============================
 
 If you add a notebook, please reference it in the documentation. 
 Either to an existing docs page, or create a new one.
-We welcome contributions that include, 
+Other contributions to the docs include, 
 
-- tips for glow
+- Tips for glow
+
    - Spark cluster configuration and tuning
    - glow use cases
-- troubleshooting guides and gotchas
-- fix typos, hyperlinks or paths
-- better explanations of
+
+- Troubleshooting guides and gotchas
+- Fix typos, hyperlinks or paths
+- Better explanations of
+
    - what code snippets in the docs mean?
    - what cells in notebooks mean?
-- unit tests for notebook code
-- new use cases for the library
+
+- Unit tests for notebook code
+- New use cases
 
 To build the docs locally, 
 
@@ -102,7 +107,7 @@ build the docs:
 
    make livehtml
 
-connect to the local server via your browser at: `http://127.0.0.1:8000 <http://127.0.0.1:8000>`_
+connect to the local server via your browser at: `http://127.0.0.1:8000`
 
 
 .. _docker-environment:
@@ -113,15 +118,21 @@ connect to the local server via your browser at: `http://127.0.0.1:8000 <http://
 Please edit glow `docker files <https://github.com/projectglow/glow/blob/master/docker/README.md>`_ to add libraries that integrate with glow.
 Only include libraries that are used directly upstream or downstream of glow, or used with the glow :ref:`pipe transformer <pipe-transformer>`.
 
-1. Setup a DockerHub account. 
-2. Edit the `genomics docker file <https://github.com/projectglow/glow/blob/master/docker/databricks/dbr/dbr9.1/genomics/Dockerfile>`_ on your fork. 
-  - This file contains command line tools, Python and R packages.
-3. Build and push the container, use this `bash script <https://github.com/projectglow/glow/blob/master/docker/databricks/build.sh>`_ as a template.
-4. Test the container in your environment in a notebook.
-5. Once you are happy with the container and the test, open a pull request.
-  - We will build and push the container to the official projectglow `dockerhub project <https://hub.docker.com/u/projectglow>`_, 
-  - Point to this container in the glow nightly continuous integration test `jobs definition <https://github.com/projectglow/glow/tree/master/docs/dev>`_.
-  - Once the circle-ci continuous integration test passes, we will incorporate it into the project.
+1. Setup a dockerhub account
+2. Edit the `genomics docker file <https://github.com/projectglow/glow/blob/master/docker/databricks/dbr/dbr9.1/genomics/Dockerfile>`_ on your fork 
+
+  - This file contains command line tools, Python and R packages
+
+3. Build and push the container
+
+  - Use this `bash script <https://github.com/projectglow/glow/blob/master/docker/databricks/build.sh>`_ as a template
+
+4. Test the container in your environment in a notebook
+5. Once you are happy with the container and the test, open a pull request
+
+  - We will build and push the container to the official projectglow `dockerhub <https://hub.docker.com/u/projectglow>`_
+  - Point to this container in the glow nightly continuous integration test `jobs definition <https://github.com/projectglow/glow/tree/master/docs/dev>`_
+  - Once the circle-ci continuous integration test passes, we will incorporate it into the project
 
 .. _features-bug-fixes:
 
