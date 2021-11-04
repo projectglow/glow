@@ -4,10 +4,10 @@
 Contributing
 ============
 
-Glow started as an industry collaboration between databricks and the Regeneron Genetics Center.
-The goal is to help scientists and engineers solve genomics problems with data.
+Glow began as an industry collaboration between databricks and the Regeneron Genetics Center.
+The goal is to help scientists and engineers work together to solve genomics problems with data.
 
-We welcome contributions, and will work with you to include them in the project.
+We welcome contributions, and will collaborate with you to include them in the project.
 
 The sections below detail how to contribute.
 
@@ -26,7 +26,7 @@ Even if you solve the problem, there's a good chance someone else will encounter
 Join the monthly office hours
 -----------------------------
 
-Once you are using glow, the monthly office hours provide an opportunity keep up to date with new developments.
+Monthly office hours provide an opportunity keep up to date with new developments with Glow.
 Please send an email to glow [dot] maintainers [at] gmail.com to join.
 
 --------------------------
@@ -54,19 +54,13 @@ It's easy to get started.
 Modifying a notebook helps others understand the code.
 As you work through a notebook, please document problems.
 
-Export your notebook as `html`.
+Export your notebook as `html` into the relevant directory under `docs/source/_static/notebooks`.
 
-And run this python script
+And run this python script (swapping the html file out for your own).
 
 .. code-block:: bash::
    
    python3 docs/dev/gen-nb-src.py --html docs/source/_static/notebooks/tertiary/pipe-transformer-vep.html
-
-changing the notebook path.
-
-.. tip::
-
-   notebooks run in linear order off of :ref:`simulated data <data_simulation>`
 
 .. _improve-documentation:
 
@@ -77,15 +71,16 @@ If you add a notebook, please reference it in the documentation.
 Either to an existing docs page, or create a new one.
 We welcome contributions that include, 
 
-- tips for glow,
+- tips for glow
    - Spark cluster configuration and tuning
    - glow use cases
 - troubleshooting guides and gotchas
 - fix typos, hyperlinks or paths
-- better explanations of,
-   - what code snippets in the docs mean
-   - what cells in notebooks mean
+- better explanations of
+   - what code snippets in the docs mean?
+   - what cells in notebooks mean?
 - unit tests for notebook code
+- new use cases for the library
 
 To build the docs locally, 
 
@@ -118,39 +113,32 @@ connect to the local server via your browser at: `http://127.0.0.1:8000 <http://
 Please edit glow `docker files <https://github.com/projectglow/glow/blob/master/docker/README.md>`_ to add libraries that integrate with glow.
 Only include libraries that are used directly upstream or downstream of glow, or used with the glow :ref:`pipe transformer <pipe-transformer>`.
 
-Please edit the `genomics docker file <https://github.com/projectglow/glow/blob/master/docker/databricks/dbr/dbr9.1/genomics/Dockerfile>`_, which contains command line tools, Python and R packages.
-Then we will build and test the container.
+1. Setup a DockerHub account. 
+2. Edit the `genomics docker file <https://github.com/projectglow/glow/blob/master/docker/databricks/dbr/dbr9.1/genomics/Dockerfile>`_ on your fork. 
+  - This file contains command line tools, Python and R packages.
+3. Build and push the container, use this `bash script <https://github.com/projectglow/glow/blob/master/docker/databricks/build.sh>`_ as a template.
+4. Test the container in your environment in a notebook.
+6. Once you are happy with the container and the test, open a pull request.
+  - We will build and push the container to the official projectglow `dockerhub project <https://hub.docker.com/u/projectglow>`_, 
+  - Point to this container in the glow nightly continuous integration test `jobs definition <https://github.com/projectglow/glow/tree/master/docs/dev>`_.
+  - Once the circle-ci continuous integration test passes, we will incorporate it into the project.
 
 .. _features-bug-fixes:
 
 4. Contribute new features / bug fixes
 ======================================
 
-A lot of the codebase is in Scala, however we are increasingly moving to Python.
-Glow includes,
-
-- Docker environments
-- Schemas
-- R vizualisations
-- SQL benchmarks 
-
+Much of the codebase is in Scala, however we are increasingly moving to Python.
 Near-term focus is around integrating with Delta streaming and sharing.
 In the future we will optimize code in C++.
 
-5. Example Contributions
-========================
+Here are example pull requests,
 
-Here are example pull requests from the past few months,
-
-- `Scala <>`
-- `Python <>`
-- `Data schemas <>`
-- `Docker <>`
-- `R <>`
-- SQL Benchmarks
-- Delta Lake integration
-
-
-
-
+- `Scala <https://github.com/projectglow/glow/pull/418>`_
+- `Python <https://github.com/projectglow/glow/pull/416>`_
+- `Data schemas <https://github.com/projectglow/glow/pull/402>`_
+- `Docker <https://github.com/projectglow/glow/pull/420>`_
+- `R <https://github.com/projectglow/glow/pull/431>`_
+- `Benchmarks <https://github.com/projectglow/glow/pull/440>`_
+- Delta Lake integration [*TODO*]
 
