@@ -83,13 +83,14 @@ def main(cli_profile, workspace_tmp_dir, source_dir, nbs):
                 for nb, run_info in nb_to_run_info.items():
                     base_msg = f"{nb} (Run ID {nb_to_run_id[nb]}) [{run_info['state']['life_cycle_state']}]"
                     if run_info['state']['life_cycle_state'] == 'INTERNAL_ERROR':
+                       print(base_msg, run_info['state']['result_state'], run_info['run_page_url'])
                        print("====================================")
                        print("|  Exiting due to internal error.  |")
                        print("====================================")
                        sys.exit(1)
                     if run_info['state']['life_cycle_state'] == 'TERMINATED':
+                        print(base_msg, run_info['state']['result_state'], run_info['run_page_url'])
                         if run_info['state']['result_state'] == 'FAILED':
-                            print(base_msg, run_info['state']['result_state'], run_info['run_page_url'])
                             print("===========================")
                             print("|    Some tasks failed.    |")
                             print("============================")
