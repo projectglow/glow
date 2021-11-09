@@ -39,8 +39,8 @@ import matplotlib.pyplot as plt
 # COMMAND ----------
 
 #genotype matrix
-n_samples = 50000
-n_variants = 1000
+n_samples = 500000
+n_variants = 250000
 
 #partitions
 n_partitions = 5 #good heuristic is 20 variants per partition at 500k samples
@@ -172,6 +172,7 @@ simulate_prefix = str(dbfs_home_path / f"genomics/data/delta/simulate_{n_samples
 simulate_prefix_local = str(dbfs_fuse_home_path / f"genomics/data/delta/simulate_{n_samples}_samples_{n_variants}") 
 
 output_delta = simulate_prefix + '_variants_pvcf.delta'
+output_delta_tmp = simulate_prefix + '_variants_pvcf_tmp.delta'
 output_vcf = simulate_prefix + '_variants_pvcf.vcf.bgz'
 output_vcf_small = simulate_prefix + '_variants_pvcf_test.vcf'
 
