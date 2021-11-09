@@ -39,8 +39,8 @@ import matplotlib.pyplot as plt
 # COMMAND ----------
 
 #genotype matrix
-n_samples = 500000
-n_variants = 250000
+n_samples = 50000
+n_variants = 1000
 
 #partitions
 n_partitions = 5 #good heuristic is 20 variants per partition at 500k samples
