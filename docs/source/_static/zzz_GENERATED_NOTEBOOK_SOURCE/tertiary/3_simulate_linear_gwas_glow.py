@@ -228,16 +228,6 @@ for num, contig in enumerate(contigs):
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ##### clean up
-
-# COMMAND ----------
-
-dbutils.fs.rm(linear_gwas_results_path_confounded, recurse=True)
-dbutils.fs.rm(linear_gwas_results_path, recurse=True)
-
-# COMMAND ----------
-
-# MAGIC %md
 # MAGIC 
 # MAGIC ##### Thank you for completing the tutorial!
 # MAGIC 
