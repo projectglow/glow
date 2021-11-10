@@ -172,6 +172,7 @@ simulate_prefix = str(dbfs_home_path / f"genomics/data/delta/simulate_{n_samples
 simulate_prefix_local = str(dbfs_fuse_home_path / f"genomics/data/delta/simulate_{n_samples}_samples_{n_variants}") 
 
 output_delta = simulate_prefix + '_variants_pvcf.delta'
+output_delta_tmp = simulate_prefix + '_variants_pvcf_tmp.delta'
 output_vcf = simulate_prefix + '_variants_pvcf.vcf.bgz'
 output_vcf_small = simulate_prefix + '_variants_pvcf_test.vcf'
 
