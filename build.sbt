@@ -231,7 +231,7 @@ ThisBuild / installHail := {
     "conda create -y --name hail &&" +
     "conda activate hail --stack &&" +
     "cd \"hail/hail\" &&" +
-    "sed " + "\""+ s"s/^pyspark.*/pyspark==${sparkVersion.value}/" + "\"" + " python/requirements.txt | grep -v '^#' | xargs pip3 install -U &&" +
+    "sed " + "\"" + s"s/^pyspark.*/pyspark==${sparkVersion.value}/" + "\"" + " python/requirements.txt | grep -v '^#' | xargs pip3 install -U &&" +
     s"make SCALA_VERSION=${scalaVersion.value} SPARK_VERSION=${sparkVersion.value} shadowJar wheel &&" +
     s"pip3 install --no-deps build/deploy/dist/hail-${hailVersion.value}-py3-none-any.whl"
   ) !
@@ -414,15 +414,16 @@ updateCondaEnv := {
   "conda env update -f python/environment.yml" !
 }
 
-def crossReleaseStep(step: ReleaseStep, requiresPySpark: Boolean, requiresHail: Boolean): Seq[ReleaseStep] = {
+def crossReleaseStep(
+    step: ReleaseStep,
+    requiresPySpark: Boolean,
+    requiresHail: Boolean): Seq[ReleaseStep] = {
   val updateCondaEnvStep = releaseStepCommandAndRemaining(
     if (requiresPySpark) "updateCondaEnv" else "")
   val changePySparkVersionStep = releaseStepCommandAndRemaining(
     if (requiresPySpark) "changePySparkVersion" else "")
-  val installHailStep = releaseStepCommandAndRemaining(
-    if (requiresHail) "installHail" else "")
-  val uninstallHailStep = releaseStepCommandAndRemaining(
-    if (requiresHail) "uninstallHail" else "")
+  val installHailStep = releaseStepCommandAndRemaining(if (requiresHail) "installHail" else "")
+  val uninstallHailStep = releaseStepCommandAndRemaining(if (requiresHail) "uninstallHail" else "")
 
   Seq(
     updateCondaEnvStep,
@@ -457,10 +458,22 @@ releaseProcess := Seq[ReleaseStep](
   inquireVersions,
   runClean
 ) ++
-crossReleaseStep(releaseStepCommandAndRemaining("core/test"), requiresPySpark = false, requiresHail = false) ++
-crossReleaseStep(releaseStepCommandAndRemaining("python/test"), requiresPySpark = true, requiresHail = false) ++
-crossReleaseStep(releaseStepCommandAndRemaining("docs/test"), requiresPySpark = true, requiresHail = false) ++
-crossReleaseStep(releaseStepCommandAndRemaining("hail/test"), requiresPySpark = true, requiresHail = true) ++
+crossReleaseStep(
+  releaseStepCommandAndRemaining("core/test"),
+  requiresPySpark = false,
+  requiresHail = false) ++
+crossReleaseStep(
+  releaseStepCommandAndRemaining("python/test"),
+  requiresPySpark = true,
+  requiresHail = false) ++
+crossReleaseStep(
+  releaseStepCommandAndRemaining("docs/test"),
+  requiresPySpark = true,
+  requiresHail = false) ++
+crossReleaseStep(
+  releaseStepCommandAndRemaining("hail/test"),
+  requiresPySpark = true,
+  requiresHail = true) ++
 Seq(
   setReleaseVersion,
   updateStableVersion,
@@ -468,9 +481,15 @@ Seq(
   commitStableVersion,
   tagRelease
 ) ++
-crossReleaseStep(releaseStepCommandAndRemaining("publishSigned"), requiresPySpark = false, requiresHail = false) ++
+crossReleaseStep(
+  releaseStepCommandAndRemaining("publishSigned"),
+  requiresPySpark = false,
+  requiresHail = false) ++
 sonatypeSteps ++
-crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test"), requiresPySpark = false, requiresHail = false) ++
+crossReleaseStep(
+  releaseStepCommandAndRemaining("stagedRelease/test"),
+  requiresPySpark = false,
+  requiresHail = false) ++
 Seq(
   setNextVersion,
   commitNextVersion

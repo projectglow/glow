@@ -65,7 +65,6 @@ private[projectglow] object Piper extends GlowLogging {
       quarantineLocation: Option[(String, String)] = None): DataFrame = {
     logger.info(s"Beginning pipe with cmd $cmd")
 
-
     val quarantineInfo = quarantineLocation.map { a =>
       val (location, flavor) = a
       PipeIterator.QuarantineInfo(df, location, PipeIterator.QuarantineWriter(flavor))
@@ -94,17 +93,17 @@ private[projectglow] object Piper extends GlowLogging {
 
     // Quarantining is potentially very wasteful due to the throw-based control
     // flow implemented at the level below.
-    quarantineInfo.foreach{quarantineInfo =>
-      try{
-        schemaInternalRowRDD.mapPartitions{ it =>
-          if(it.nonEmpty){
-            val result = if(it.asInstanceOf[PipeIterator].error){
+    quarantineInfo.foreach { quarantineInfo =>
+      try {
+        schemaInternalRowRDD.mapPartitions { it =>
+          if (it.nonEmpty) {
+            val result = if (it.asInstanceOf[PipeIterator].error) {
               Iterator(true)
-            }else Iterator.empty
+            } else Iterator.empty
             result
           } else Iterator.empty
         }.filter(identity).take(1).nonEmpty
-      }catch{case _ => quarantineInfo.flavor.quarantine(quarantineInfo)}
+      } catch { case _ => quarantineInfo.flavor.quarantine(quarantineInfo) }
     }
 
     val schemaSeq = schemaInternalRowRDD.mapPartitions { it =>
