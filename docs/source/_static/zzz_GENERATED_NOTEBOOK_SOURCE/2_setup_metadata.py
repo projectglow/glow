@@ -69,3 +69,14 @@ schema = StructType([StructField("datetime", DateType(), True),
                      StructField("worker_type", LongType(), True),
                      StructField("runtime", DoubleType(), True)
                     ])
+
+# COMMAND ----------
+
+def log_metadata(datetime, n_samples, n_variants, n_covariates, n_binary_phenotypes, method, test, library, spark_version, node_type_id, n_workers, start_time, end_time, run_metadata_delta_path):
+  """
+  log metadata about each step in the pipeline and append to delta lake table
+  """
+  runtime = float("{:.2f}".format((end_time - start_time)))
+  l = [(datetime, n_samples, n_variants, n_covariates, n_binary_phenotypes, method, test, library, spark_version, node_type_id, n_workers, runtime)]
+  run_metadata_delta_df = spark.createDataFrame(l, schema=schema)
+  run_metadata_delta_df.write.mode("append").format("delta").save(run_metadata_delta_path)

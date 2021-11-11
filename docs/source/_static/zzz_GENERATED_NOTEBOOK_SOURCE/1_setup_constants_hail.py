@@ -57,7 +57,6 @@ n_partitions_hail = 5 #match to glow, however this may not be optimal for hail s
 
 # COMMAND ----------
 
-user=dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().apply('user')
 dbfs_home_path_str = "dbfs:/home/{}/".format(user)
 dbfs_home_path = Path("dbfs:/home/{}/".format(user))
 

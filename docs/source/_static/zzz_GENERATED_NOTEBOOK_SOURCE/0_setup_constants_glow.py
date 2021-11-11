@@ -95,7 +95,7 @@ print("variables", json.dumps({
 
 # COMMAND ----------
 
-user=dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().apply('user')
+user = dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().apply('user')
 dbfs_home_path_str = "dbfs:/home/{}/".format(user)
 dbfs_fuse_home_path_str = "/dbfs/home/{}/".format(user)
 dbfs_home_path = Path("dbfs:/home/{}/".format(user))
@@ -194,12 +194,18 @@ print("delta to vcf paths", json.dumps({
 
 # COMMAND ----------
 
+output_delta_glow_qc_transformers = simulate_prefix + "_variants_pvcf_glow_qc_transformers.delta"
+output_delta_glow_qc_variants = simulate_prefix + "_variants_pvcf_glow_qc_variants.delta"
+output_delta_transformed = simulate_prefix + "_variants_pvcf_transformed.delta"
+
 output_delta_transformed = simulate_prefix + "_variants_pvcf_transformed.delta"
 output_hwe_path = str(dbfs_home_path / f"genomics/data/results")
 output_hwe_plot = str(dbfs_fuse_home_path / f"genomics/data/results/simulate_{n_samples}_samples_{n_variants}_hwe.png")
 
 print("quality control paths", json.dumps({
   "output_delta": output_delta,
+  "output_delta_glow_qc_transformers": output_delta_glow_qc_transformers,
+  "output_delta_glow_qc_variants": output_delta_glow_qc_variants,
   "output_delta_transformed": output_delta_transformed,
   "output_hwe_path": output_hwe_path,
   "output_hwe_plot": output_hwe_plot
@@ -216,7 +222,7 @@ print("quality control paths", json.dumps({
 delta_path = str(dbfs_home_path / 'genomics/data/delta/simulate_'.format(user))
 base_variants_path = delta_path + str(n_samples) + '_samples_' + str(n_variants) + '_variants_pvcf.delta'
 variants_path = delta_path + str(n_samples) + '_samples_' + str(n_variants) + '_variants_pvcf_transformed.delta'
-input_delta = delta_path + str(n_samples) + '_samples_' + str(n_variants) + '_variants_pvcf_transformed.delta'
+qc_samples_path = delta_path + str(n_samples) + '_samples_' + str(n_variants) + "_variants_pvcf_glow_qc_samples.delta"
 
 
 pandas_path = str(dbfs_fuse_home_path / ('genomics/data/pandas/simulate_'.format(user) + str(n_samples) + '_samples_'))
@@ -230,6 +236,7 @@ quantitative_y_hat_path = pandas_path + str(n_quantitative_phenotypes) + '_quant
 
 
 linear_gwas_results_path_confounded = delta_path + 'pvcf_linear_gwas_results_confounded.delta'
+
 linear_gwas_results_path = delta_path + 'pvcf_linear_gwas_results.delta'
 
 print("regression paths", json.dumps({
