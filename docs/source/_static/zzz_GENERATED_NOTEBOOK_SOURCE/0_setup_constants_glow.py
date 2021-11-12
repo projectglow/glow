@@ -43,7 +43,7 @@ n_samples = 50000
 n_variants = 1000
 
 #partitions
-n_partitions = 5 #good heuristic is 20 variants per partition at 500k samples
+n_partitions = int(n_variants / 20) #good heuristic is 20 variants per partition at 500k samples
 
 #allele frequency
 allele_freq_cutoff = 0.05
@@ -221,7 +221,7 @@ print("quality control paths", json.dumps({
 
 delta_path = str(dbfs_home_path / 'genomics/data/delta/simulate_'.format(user))
 base_variants_path = delta_path + str(n_samples) + '_samples_' + str(n_variants) + '_variants_pvcf.delta'
-variants_path = delta_path + str(n_samples) + '_samples_' + str(n_variants) + '_variants_pvcf_transformed.delta'
+variants_path = output_delta_glow_qc_transformers
 qc_samples_path = delta_path + str(n_samples) + '_samples_' + str(n_variants) + "_variants_pvcf_glow_qc_samples.delta"
 
 
