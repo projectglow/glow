@@ -99,11 +99,15 @@ private[projectglow] object Piper extends GlowLogging {
           if (it.nonEmpty) {
             val result = if (it.asInstanceOf[PipeIterator].error) {
               Iterator(true)
-            } else Iterator.empty
+            } else {
+              Iterator.empty
+            }
             result
-          } else Iterator.empty
+          } else {
+            Iterator.empty
+          }
         }.filter(identity).take(1).nonEmpty
-      } catch { case _ => quarantineInfo.flavor.quarantine(quarantineInfo) }
+      } catch { case _: Throwable => quarantineInfo.flavor.quarantine(quarantineInfo) }
     }
 
     val schemaSeq = schemaInternalRowRDD.mapPartitions { it =>
@@ -266,7 +270,7 @@ object PipeIterator {
   }
   final case object QuarantineWriterCsv extends QuarantineWriter {
     override def quarantine(qi: QuarantineInfo): Unit = {
-      val df = qi.df.write.csv(qi.location)
+      val df = qi.df.write.mode("append").csv(qi.location)
     }
   }
 
