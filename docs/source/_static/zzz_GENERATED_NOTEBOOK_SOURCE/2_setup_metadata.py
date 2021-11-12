@@ -10,6 +10,10 @@
 
 # COMMAND ----------
 
+# MAGIC %run ./0_setup_constants_glow
+
+# COMMAND ----------
+
 import pyspark.sql.functions as fx
 from pyspark.sql.types import *
 from databricks_cli.sdk.service import JobsService
