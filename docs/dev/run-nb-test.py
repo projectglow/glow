@@ -16,6 +16,7 @@ import sys
 import time
 import uuid
 
+JOBS_JSON = 'docs/dev/jobs-config.json'
 NOTEBOOK_JOBS_JSON_MAPPING = 'docs/dev/notebook-jobs-config-mapping.json'
 
 def run_cli_cmd(cli_profile, api, args):
@@ -46,6 +47,8 @@ def get_jobs_config(d, key, jobs_path="docs/dev/jobs-config.json"):
 def main(cli_profile, workspace_tmp_dir, source_dir, nbs):
     identifier = str(uuid.uuid4())
     work_dir = os.path.join(workspace_tmp_dir, identifier)
+    with open(JOBS_JSON, 'r') as f:
+        jobs_json = json.load(f)
     with open(NOTEBOOK_JOBS_JSON_MAPPING, 'r') as f:
         notebook_jobs_json_mapping = json.load(f)
 
@@ -61,6 +64,7 @@ def main(cli_profile, workspace_tmp_dir, source_dir, nbs):
         run_cli_cmd(cli_profile, 'workspace', ['import_dir', source_dir, work_dir])
 
         print(f"Launching runs")
+        nb_to_run_info = {}
         for nb in nbs:
             jobs_json_path = get_jobs_config(notebook_jobs_json_mapping, nb)
             with open(jobs_json_path, 'r') as f:
@@ -70,37 +74,41 @@ def main(cli_profile, workspace_tmp_dir, source_dir, nbs):
             run_submit = run_cli_cmd(cli_profile, 'runs', ['submit', '--json', json.dumps(jobs_json)])
             run_id = json.loads(run_submit)['run_id']
             nb_to_run_id[nb] = str(run_id)
-    finally:
-        nb_to_run_info = {}
-        while True:
-            print(f"=== Status check at {datetime.now().strftime('%H:%M:%S')} ===")
-            for nb, run_id in nb_to_run_id.items():
-                run_get = run_cli_cmd(cli_profile, 'runs', ['get', '--run-id', run_id])
-                run_info = json.loads(run_get)
-                nb_to_run_info[nb] = run_info
-            for nb, run_info in nb_to_run_info.items():
-                base_msg = f"{nb} (Run ID {nb_to_run_id[nb]}) [{run_info['state']['life_cycle_state']}]"
-                if run_info['state']['life_cycle_state'] == 'TERMINATED':
-                    if run_info['state']['result_state'] == 'FAILED':
+            while True:
+                print(f"=== Status check at {datetime.now().strftime('%H:%M:%S')} ===")
+                for nb, run_id in nb_to_run_id.items():
+                    run_get = run_cli_cmd(cli_profile, 'runs', ['get', '--run-id', run_id])
+                    run_info = json.loads(run_get)
+                    nb_to_run_info[nb] = run_info
+                for nb, run_info in nb_to_run_info.items():
+                    base_msg = f"{nb} (Run ID {nb_to_run_id[nb]}) [{run_info['state']['life_cycle_state']}]"
+                    if run_info['state']['life_cycle_state'] == 'INTERNAL_ERROR':
+                       print(base_msg, run_info['state']['result_state'], run_info['run_page_url'])
+                       print("====================================")
+                       print("|  Exiting due to internal error.  |")
+                       print("====================================")
+                       sys.exit(1)
+                    if run_info['state']['life_cycle_state'] == 'TERMINATED':
                         print(base_msg, run_info['state']['result_state'], run_info['run_page_url'])
+                        if run_info['state']['result_state'] == 'FAILED':
+                            print("===========================")
+                            print("|    Some tasks failed.    |")
+                            print("============================")
+                            sys.exit(1)
+                        else:
+                            print(base_msg, run_info['state']['result_state'])
                     else:
-                        print(base_msg, run_info['state']['result_state'])
-                else:
-                    print(base_msg, run_info['state']['state_message'])
-            if all([run_info['state']['life_cycle_state'] == 'TERMINATED' for run_info in nb_to_run_info.values()]):
-                break
-            time.sleep(60)
+                        print(base_msg, run_info['state']['state_message'])
+                if all([run_info['state']['life_cycle_state'] == 'TERMINATED' for run_info in nb_to_run_info.values()]):
+                    break
+                time.sleep(60)
+    finally:
         if all([run_info['state']['result_state'] == 'SUCCESS' for run_info in nb_to_run_info.values()]):
             print("===========================")
             print("|   All tasks succeeded!   |")
             print("============================")
             run_cli_cmd(cli_profile, 'workspace', ['rm', '-r', work_dir])
             sys.exit(0)
-        else:
-            print("===========================")
-            print("|    Some tasks failed.    |")
-            print("============================")
-            sys.exit(1)
 
 if __name__ == '__main__':
     main()

@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from nptyping import Float, NDArray
+from nptyping import Float, NDArray, Int32
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union
 from pyspark.sql import Column, DataFrame
@@ -8,7 +8,7 @@ from pyspark.sql.types import StringType, StructField, IntegerType
 from scipy import stats
 from typeguard import typechecked
 from . import functions as gwas_fx
-from .functions import _VALUES_COLUMN_NAME
+from .functions import _VALUES_COLUMN_NAME, _get_indices_to_drop
 from ..wgr.wgr_functions import _get_contigs_from_loco_df
 
 __all__ = ['linear_regression']
@@ -23,11 +23,13 @@ def linear_regression(genotype_df: DataFrame,
                       add_intercept: bool = True,
                       values_column: Union[str, Column] = 'values',
                       dt: type = np.float64,
-                      verbose_output: bool = False) -> DataFrame:
+                      verbose_output: bool = False,
+                      intersect_samples: bool = False,
+                      genotype_sample_ids: Optional[List[str]] = None) -> DataFrame:
     '''
     Uses linear regression to test for association between genotypes and one or more phenotypes.
     The implementation is a distributed version of the method used in regenie: 
-    https://www.nature.com/articles/s41588-021-00870-7
+    https://www.biorxiv.org/content/10.1101/2020.06.19.162354v2
 
     Implementation details:
 
@@ -83,6 +85,20 @@ def linear_regression(genotype_df: DataFrame,
                         to the output DataFrame.  These values are derived directly from phenotype_df and genotype_df,
                         and does not reflect any standardization performed as part of the implementation of
                         linear_regression.
+        intersect_samples: The current implementation of linear regression is optimized for speed,
+                           but is not robust to high levels missing phenotype values.  Without handling missingness
+                           appropriately, pvalues may become inflated due to imputation.  When intersect_samples is
+                           enabled, samples that do no exist in the phenotype dataframe will be dropped from
+                           genotypes, offsets, and covariates prior to regression analysis.  Note that if phenotypes in
+                           phenotypes_df contain missing values, these samples will not be automatically dropped.
+                           The user is responsible for determining their desired levels of missingness and imputation.
+                           Drop any rows with missing values from phenotype_df prior to linear_regression to prevent
+                           any imputation.  If covariates are provided, covariate and phenotype samples will
+                           automatically be intersected.
+        genotype_sample_ids: Sample ids from genotype_df.
+                             i.e. from applying glow.wgr.functions.get_sample_ids(genotype_df) or
+                             if include_sample_ids=False was used during the generation genotype_df, then using an
+                             externally managed list of sample_ids that correspond to the array of genotype calls.
 
     Returns:
         A Spark DataFrame that contains
@@ -101,13 +117,29 @@ def linear_regression(genotype_df: DataFrame,
 
     gwas_fx._check_spark_version(genotype_df.sql_ctx.sparkSession)
 
-    gwas_fx._validate_covariates_and_phenotypes(covariate_df, phenotype_df, is_binary=False)
+    gwas_fx._validate_covariates_and_phenotypes(covariate_df,
+                                                phenotype_df,
+                                                is_binary=False,
+                                                intersect_samples=intersect_samples)
 
     sql_type = gwas_fx._regression_sql_type(dt)
 
     genotype_df = gwas_fx._prepare_genotype_df(genotype_df, values_column, sql_type)
 
-    C = covariate_df.to_numpy(dt, copy=True)
+    gt_indices_to_drop = None
+    _covs = covariate_df
+    if intersect_samples:
+        if not genotype_sample_ids:
+            raise ValueError("genotype_sample_ids required when intersect_samples enabled")
+        _covs = covariate_df.loc[phenotype_df.index, :]
+        gt_indices_to_drop = _get_indices_to_drop(phenotype_df, genotype_sample_ids)
+        if not offset_df.empty:
+            if offset_df.index.nlevels == 1:  # Indexed by sample id
+                offset_df = offset_df.reindex(phenotype_df.index)
+            elif offset_df.index.nlevels == 2:  # Indexed by sample id and contig
+                offset_df = offset_df[offset_df.index.get_level_values(0).isin(phenotype_df.index)]
+
+    C = _covs.to_numpy(dt, copy=True)
     if add_intercept:
         C = gwas_fx._add_intercept(C, phenotype_df.shape[0])
 
@@ -127,7 +159,8 @@ def linear_regression(genotype_df: DataFrame,
     dof = C.shape[0] - C.shape[1] - 1
 
     return _generate_linreg_output(genotype_df, sql_type, Y_state, Y_mask, Y_scale, Q, dof,
-                                   phenotype_df, Y_for_verbose_output, verbose_output)
+                                   phenotype_df, Y_for_verbose_output, verbose_output,
+                                   gt_indices_to_drop)
 
 
 @dataclass
@@ -169,8 +202,9 @@ def _create_one_YState(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame
 def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
                              Y_mask: NDArray[(Any, Any), Float], Y_scale: NDArray[(Any, ), Float],
                              Q: NDArray[(Any, Any), Float], dof: int, phenotype_names: pd.Series,
-                             Y_raw: Optional[NDArray[(Any, Any), Float]],
-                             verbose_output: Optional[bool]) -> pd.DataFrame:
+                             Y_for_verbose_output: Optional[NDArray[(Any, Any), Float]],
+                             verbose_output: Optional[bool],
+                             gt_indices_to_drop: Optional[NDArray[(Any, ), Int32]]) -> pd.DataFrame:
     '''
     Applies a linear regression model to a block of genotypes. We first project the covariates out of the
     genotype block and then perform single variate linear regression for each site.
@@ -186,14 +220,18 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
     So, if a matrix's indices are `sg` (like the X matrix), it has one row per sample and one column per genotype.
     '''
 
-    X = np.column_stack(genotype_pdf[_VALUES_COLUMN_NAME].array)
+    genotype_values = genotype_pdf[_VALUES_COLUMN_NAME].array
+    X = np.column_stack(genotype_values)
+    if gt_indices_to_drop is not None and gt_indices_to_drop.size:
+        X = np.delete(X, gt_indices_to_drop, axis=0)
+
     del genotype_pdf[_VALUES_COLUMN_NAME]
     num_genotypes = genotype_pdf.shape[0]
     out_df = pd.concat([genotype_pdf] * Y_state.Y.shape[1])
     if verbose_output:
-        out_df["n"] = list(Y_mask.sum(axis=0).repeat(num_genotypes))
+        out_df["n"] = list(np.ravel(Y_mask.T @ np.ones(X.shape)))
         out_df["sum_x"] = list(np.ravel(Y_mask.T @ X))
-        out_df["y_transpose_x"] = list(np.ravel(Y_raw.T @ X))
+        out_df["y_transpose_x"] = list(np.ravel(Y_for_verbose_output.T @ X))
     X = gwas_fx._residualize_in_place(X, Q)
 
     XdotY = Y_state.Y.T @ X
@@ -214,7 +252,7 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
 
 
 def _generate_linreg_output(genotype_df, sql_type, Y_state, Y_mask, Y_scale, Q, dof, phenotype_df,
-                            Y_for_verbose_output, verbose_output) -> DataFrame:
+                            Y_for_verbose_output, verbose_output, gt_indices_to_drop) -> DataFrame:
     # Construct output schema
     result_fields = [
         StructField('effect', sql_type),
@@ -238,6 +276,6 @@ def _generate_linreg_output(genotype_df, sql_type, Y_state, Y_mask, Y_scale, Q, 
             yield gwas_fx._loco_dispatch(pdf, Y_state, _linear_regression_inner, Y_mask, Y_scale, Q,
                                          dof,
                                          phenotype_df.columns.to_series().astype('str'),
-                                         Y_for_verbose_output, verbose_output)
+                                         Y_for_verbose_output, verbose_output, gt_indices_to_drop)
 
     return genotype_df.mapInPandas(map_func, result_struct)

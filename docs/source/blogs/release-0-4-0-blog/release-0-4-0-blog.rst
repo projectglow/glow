@@ -24,7 +24,7 @@ Like any other Spark data source, reading GFF3 files using Glow's ``gff`` data s
 .. code-block::
 
   import glow
-  glow.register(spark)
+  spark = glow.register(spark)
 
   gff_path = '/databricks-datasets/genomics/gffs/GCF_000001405.39_GRCh38.p13_genomic.gff.bgz'
 

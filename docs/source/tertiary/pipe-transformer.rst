@@ -60,7 +60,8 @@ Integrating with bioinformatics tools
 
 To integrate with tools for genomic data, you can configure the Pipe Transformer to write each
 partition of the input DataFrame as VCF by choosing ``vcf`` as the input and output formatter.
-Here is an example using bedtools, note that the bioinformatics tool must be installed on each
+Here is an example using bedtools. For a more complex example using The Variant Effect Predictor (VEP)
+see the notebook example below. Note that the bioinformatics tool must be installed on each
 virtual machine of the Spark cluster.
 
 .. code-block:: python
@@ -169,3 +170,7 @@ cleanup until the pipe transformer results have been materialized, such as by be
             Glow.transform("pipe_cleanup", df)
 
 .. notebook:: .. tertiary/pipe-transformer.html
+  :title: Pipe Transformer bedtools example notebook
+
+.. notebook:: .. tertiary/pipe-transformer-vep.html
+  :title: Pipe Transformer Variant Effect Predictor (VEP) example notebook

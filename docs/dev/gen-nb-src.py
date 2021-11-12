@@ -21,7 +21,7 @@ SOURCE_EXTS = ['scala', 'py', 'r', 'sql']
 def run_cli_workspace_cmd(cli_profile, args):
     cmd = ['databricks', '--profile', cli_profile, 'workspace'] + args
     res = subprocess.run(cmd, capture_output=True)
-    if res.returncode is not 0:
+    if res.returncode != 0:
         raise ValueError(res)
 
 
