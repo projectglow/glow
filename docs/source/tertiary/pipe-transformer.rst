@@ -1,3 +1,5 @@
+.. _pipe-transformer:
+
 =========================================================================
 Parallelizing Command-Line Bioinformatics Tools With the Pipe Transformer
 =========================================================================

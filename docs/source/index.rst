@@ -14,6 +14,7 @@ big data processing and machine learning, enabling genomics workflows to scale t
    etl/index
    tertiary/index
    troubleshooting
+   contributing
    blogs/index
    additional-resources/index
    api-docs/index

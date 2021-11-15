@@ -470,6 +470,7 @@ The following values must all be lower than 132,152,839:
 - ``(# alphas) * (# variants / # variants per block) * (# samples / # sample blocks)``
 - ``(# alphas * # variants / # variants per block)^2``
 
+----------------
 Example notebook
 ----------------
 Two example notebooks are provided below, the first for quantitative phenotypes and the second for binary phenotypes.
