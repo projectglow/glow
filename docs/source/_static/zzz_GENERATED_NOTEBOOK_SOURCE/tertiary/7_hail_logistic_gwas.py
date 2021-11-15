@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC ### Run Hail linear regression
+# MAGIC ### Run Hail logistic regression
 
 # COMMAND ----------
 
@@ -17,8 +17,8 @@
 
 # COMMAND ----------
 
-method = 'linear'
-test = 'linear_regression'
+method = 'logistic'
+test = 'firth'
 library = 'hail'
 datetime = datetime.now(pytz.timezone('US/Pacific'))
 
@@ -35,7 +35,7 @@ covariate_df.columns[1:]
 
 # COMMAND ----------
 
-phenotype_df = spark.createDataFrame(pd.read_csv(quantitative_phenotypes_path).set_index("sample_id", drop=False)). \
+phenotype_df = spark.createDataFrame(pd.read_csv(binary_phenotypes_path).set_index("sample_id", drop=False)). \
                      withColumn("sample_id", fx.col("sample_id").cast(StringType()))
 
 # COMMAND ----------
@@ -60,7 +60,7 @@ mt.count()
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ##### run linear regression
+# MAGIC ##### run logistic regression
 
 # COMMAND ----------
 
@@ -69,24 +69,30 @@ phenotypes = phenotype_df.columns[1:]
 y = list(map(lambda p: hl.float64(mt[p]), phenotypes))
 covs = list(map(lambda cov: mt[cov], covariate_df.columns[1:]))
 x = mt.GT.n_alt_alleles()
-hl_res = hl.methods.linear_regression_rows(y,x,[1]+covs)
-hl_res.checkpoint(quantitative_gwas_results_chk, overwrite=True)
-end_time = time.time()
-runtime = float("{:.2f}".format((end_time - start_time)))
-
-# COMMAND ----------
-
-hl_res = hl.read_table(quantitative_gwas_results_chk)
-hl_res.describe()
+hl_res = hl.methods.logistic_regression_rows(test=test, y=y , x=x, covariates=[1]+covs)
+hl_res.checkpoint(binary_gwas_results_chk, overwrite=True)
 n_filtered_variants = hl_res.count()
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ##### log metadata, view at ../benchmarks/gwas_runs_comparison
+# MAGIC ##### log runtime
 
 # COMMAND ----------
 
-l = [(datetime, n_samples, n_filtered_variants, n_covariates, n_phenotypes, method, test, library, spark_version, node_type_id, n_workers, runtime)]
-run_metadata_delta_df = spark.createDataFrame(l, schema=schema)
-run_metadata_delta_df.write.mode("append").format("delta").save(run_metadata_delta_path)
+end_time = time.time()
+log_metadata(datetime, n_samples, n_filtered_variants, n_covariates, n_binary_phenotypes, method, test, library, spark_version, node_type_id, n_workers, start_time, end_time, run_metadata_delta_path)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ##### read results back in and count
+
+# COMMAND ----------
+
+hl_res = hl.read_table(binary_gwas_results_chk)
+hl_res.describe()
+
+# COMMAND ----------
+
+hl_res.count()

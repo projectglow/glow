@@ -32,11 +32,8 @@ datetime = datetime.now(pytz.timezone('US/Pacific'))
 
 # COMMAND ----------
 
-delta_vcf = spark.read.format("delta").load(input_delta)
-
-# COMMAND ----------
-
-delta_vcf.count()
+delta_vcf = spark.read.format("delta").load(variants_path)
+n_filtered_variants = delta_vcf.count()
 
 # COMMAND ----------
 
@@ -65,7 +62,7 @@ offsets.head(5)
 
 # COMMAND ----------
 
-start_time = time.time()
+start_time_linreg = time.time()
 
 for num, contig in enumerate(contigs):
   offsets_chr = offsets[offsets['contigName'] == contig].drop(['contigName'], axis=1) 
@@ -81,21 +78,27 @@ for num, contig in enumerate(contigs):
   results.write.format('delta'). \
                 mode('append'). \
                 save(linear_gwas_results_path_confounded)
-  
-end_time = time.time()
-runtime = float("{:.2f}".format((end_time - start_time)))
 
 # COMMAND ----------
 
-results_df = spark.read.format("delta").load(linear_gwas_results_path_confounded). \
-                                        withColumn("log_p", -fx.log10("pvalue")).cache()
-n_filtered_variants = results_df.count()
-display(results_df.orderBy("pvalue"))
+# MAGIC %md
+# MAGIC ##### log runtime
+
+# COMMAND ----------
+
+end_time_linreg = time.time()
+log_metadata(datetime, n_samples, n_filtered_variants, n_covariates, n_quantitative_phenotypes, method, test, library, spark_version, node_type_id, n_workers, start_time_linreg, end_time_linreg, run_metadata_delta_path)
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC #### Plot results using `R` package `qqman`
+
+# COMMAND ----------
+
+results_df = spark.read.format("delta").load(linear_gwas_results_path_confounded). \
+                                        withColumn("log_p", -fx.log10("pvalue")).cache()
+display(results_df.orderBy("pvalue"))
 
 # COMMAND ----------
 
@@ -166,15 +169,35 @@ def filter_genotypes(genotypes_df, list_sample_ids):
 
 # COMMAND ----------
 
-filtered_phenotypes_pdf = filter_phenotypes(phenotypes)
-sample_ids_to_keep = extract_sample_ids_without_missing_phenotypes(phenotypes, "QP1")
-len(sample_ids_to_keep)
+# MAGIC %md
+# MAGIC ##### filter genotypes
+# MAGIC 
+# MAGIC based on samples with missing phenotypes
 
 # COMMAND ----------
 
+filtered_phenotypes_pdf = filter_phenotypes(phenotypes)
+sample_ids_to_keep = extract_sample_ids_without_missing_phenotypes(phenotypes, "QP1")
+print("keeping " + str(len(sample_ids_to_keep)) + " samples after filtering those with missing phenotypic data")
+
+# COMMAND ----------
+
+start_time_filter = time.time()
 filtered_genotypes_df = filter_genotypes(delta_vcf, sample_ids_to_keep)
+filtered_genotypes_df.write.mode("overwrite").format("delta").save(qc_samples_path)
+end_time_filter = time.time()
+log_metadata(datetime, n_samples, n_variants, 0, 0, "quality_control", "sample_filter", library, spark_version, node_type_id, n_workers, start_time_filter, end_time_filter, run_metadata_delta_path)
+
+# COMMAND ----------
+
+filtered_genotypes_df = spark.read.format("delta").load(qc_samples_path)
 filtered_genotypes_df = filtered_genotypes_df.withColumn('values', glow.mean_substitute(glow.genotype_states('genotypes'))) #prepare for gwas
 filtered_genotypes_df.select(fx.size("values")).limit(5).show()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ##### rerun regression
 
 # COMMAND ----------
 
@@ -232,14 +255,3 @@ for num, contig in enumerate(contigs):
 # MAGIC ##### Thank you for completing the tutorial!
 # MAGIC 
 # MAGIC Please explore more in the [Glow Documentation](https://glow.readthedocs.io/en/latest/)
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ##### log metadata
-
-# COMMAND ----------
-
-l = [(datetime, n_samples, n_filtered_variants, n_covariates, n_phenotypes, method, test, library, spark_version, node_type_id, n_workers, runtime)]
-run_metadata_delta_df = spark.createDataFrame(l, schema=schema)
-run_metadata_delta_df.write.mode("append").format("delta").save(run_metadata_delta_path)

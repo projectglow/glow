@@ -20,6 +20,17 @@
 
 # COMMAND ----------
 
+# MAGIC %run ../2_setup_metadata
+
+# COMMAND ----------
+
+method = 'linear'
+test = 'glowgr'
+library = 'glow'
+datetime = datetime.now(pytz.timezone('US/Pacific'))
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC 
 # MAGIC #### Prepare input paths.
@@ -28,7 +39,7 @@
 
 # COMMAND ----------
 
-base_variant_df = spark.read.format('delta').load(base_variants_path)
+start_time_wgr = time.time()
 variant_df = spark.read.format('delta').load(variants_path)
 
 # COMMAND ----------
@@ -39,7 +50,7 @@ variant_df = spark.read.format('delta').load(variants_path)
 
 # COMMAND ----------
 
-sample_ids = glow.wgr.get_sample_ids(base_variant_df)
+sample_ids = glow.wgr.get_sample_ids(variant_df)
 len(sample_ids)
 
 # COMMAND ----------
@@ -131,7 +142,12 @@ for label_df_chunk in chunk_columns(label_df, chunk_size):
 all_traits_loco_df = pd.concat(loco_estimates, axis='columns')
 all_traits_loco_df.to_csv(quantitative_y_hat_path)
 
+end_time_wgr = time.time()
+log_metadata(datetime, n_samples, n_variants, n_covariates, n_quantitative_phenotypes, method, test, library, spark_version, node_type_id, n_workers, start_time_wgr, end_time_wgr, run_metadata_delta_path)
+
 # COMMAND ----------
 
-test = pd.read_csv(quantitative_y_hat_path)
+test = pd.read_csv(quantitative_y_hat_path, 
+                   dtype={'sample_id': str}, 
+                   index_col='sample_id')
 test

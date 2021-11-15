@@ -10,6 +10,10 @@
 
 # COMMAND ----------
 
+# MAGIC %run ./0_setup_constants_glow
+
+# COMMAND ----------
+
 import pyspark.sql.functions as fx
 from pyspark.sql.types import *
 from databricks_cli.sdk.service import JobsService
@@ -21,7 +25,6 @@ from pathlib import Path
 
 # COMMAND ----------
 
-user=dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().apply('user')
 dbfs_home_path = Path("dbfs:/home/{}/".format(user))
 run_metadata_delta_path = str(dbfs_home_path / "genomics/data/delta/gwas_runs_info_hail_glow.delta")
 
@@ -69,3 +72,14 @@ schema = StructType([StructField("datetime", DateType(), True),
                      StructField("worker_type", LongType(), True),
                      StructField("runtime", DoubleType(), True)
                     ])
+
+# COMMAND ----------
+
+def log_metadata(datetime, n_samples, n_variants, n_covariates, n_binary_phenotypes, method, test, library, spark_version, node_type_id, n_workers, start_time, end_time, run_metadata_delta_path):
+  """
+  log metadata about each step in the pipeline and append to delta lake table
+  """
+  runtime = float("{:.2f}".format((end_time - start_time)))
+  l = [(datetime, n_samples, n_variants, n_covariates, n_binary_phenotypes, method, test, library, spark_version, node_type_id, n_workers, runtime)]
+  run_metadata_delta_df = spark.createDataFrame(l, schema=schema)
+  run_metadata_delta_df.write.mode("append").format("delta").save(run_metadata_delta_path)

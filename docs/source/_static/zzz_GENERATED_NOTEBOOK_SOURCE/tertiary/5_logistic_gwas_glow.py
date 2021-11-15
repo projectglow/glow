@@ -32,7 +32,8 @@ datetime = datetime.now(pytz.timezone('US/Pacific'))
 
 # COMMAND ----------
 
-delta_vcf = spark.read.format("delta").load(input_delta)
+delta_vcf = spark.read.format("delta").load(variants_path)
+n_filtered_variants = delta_vcf.count()
 
 # COMMAND ----------
 
@@ -69,8 +70,7 @@ contigs = ['21', '22']
 
 # COMMAND ----------
 
-start_time = time.time()
-
+start_time_logreg = time.time()
 
 for num, contig in enumerate(contigs):
   offsets_chr = offsets[offsets['contigName'] == contig].drop(['contigName'], axis=1) 
@@ -89,24 +89,24 @@ for num, contig in enumerate(contigs):
   results.write.format('delta'). \
                 mode(mode). \
                 save(binary_gwas_results_path)
-  
-end_time = time.time()
-runtime = float("{:.2f}".format((end_time - start_time)))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ##### log runtime
+
+# COMMAND ----------
+
+end_time_logreg = time.time()
+log_metadata(datetime, n_samples, n_filtered_variants, n_covariates, n_binary_phenotypes, method, test, library, spark_version, node_type_id, n_workers, start_time_logreg, end_time_logreg, run_metadata_delta_path)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ##### view results
 
 # COMMAND ----------
 
 results_df = spark.read.format("delta").load(binary_gwas_results_path). \
                                         withColumn("log_p", -fx.log10("pvalue")).cache()
-n_filtered_variants = results_df.count()
 display(results_df.orderBy("pvalue"))
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ##### log metadata
-
-# COMMAND ----------
-
-l = [(datetime, n_samples, n_filtered_variants, n_covariates, n_binary_phenotypes, method, test, library, spark_version, node_type_id, n_workers, runtime)]
-run_metadata_delta_df = spark.createDataFrame(l, schema=schema)
-run_metadata_delta_df.write.mode("append").format("delta").save(run_metadata_delta_path)

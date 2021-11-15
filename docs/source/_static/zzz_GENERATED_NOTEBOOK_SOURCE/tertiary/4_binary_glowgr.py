@@ -20,7 +20,18 @@
 
 # COMMAND ----------
 
-base_variant_df = spark.read.format('delta').load(base_variants_path)
+# MAGIC %run ../2_setup_metadata
+
+# COMMAND ----------
+
+method = 'logistic'
+test = 'glowgr'
+library = 'glow'
+datetime = datetime.now(pytz.timezone('US/Pacific'))
+
+# COMMAND ----------
+
+start_time_wgr = time.time()
 variant_df = spark.read.format('delta').load(variants_path)
 
 # COMMAND ----------
@@ -31,7 +42,7 @@ variant_df = spark.read.format('delta').load(variants_path)
 
 # COMMAND ----------
 
-sample_ids = glow.wgr.get_sample_ids(base_variant_df)
+sample_ids = glow.wgr.get_sample_ids(variant_df)
 
 # COMMAND ----------
 
@@ -91,6 +102,7 @@ label_df = pd.read_csv(binary_phenotypes_path,
                        dtype={'sample_id': str}, 
                        index_col='sample_id')[['BP1']]
 label_df.index = label_df.index.map(str) #the integer representation of sample_id was causing issues
+label_df["BP1"] = label_df["BP1"].fillna(0).astype(int) #It is assumed that there are no missing phenotype values. For now convert to 0.
 
 # COMMAND ----------
 
@@ -130,7 +142,12 @@ for label_df_chunk in chunk_columns(label_df, chunk_size):
 all_traits_loco_df = pd.concat(loco_estimates, axis='columns')
 all_traits_loco_df.to_csv(binary_y_hat_path)
 
+end_time_wgr = time.time()
+log_metadata(datetime, n_samples, n_variants, n_covariates, n_binary_phenotypes, method, test, library, spark_version, node_type_id, n_workers, start_time_wgr, end_time_wgr, run_metadata_delta_path)
+
 # COMMAND ----------
 
-test = pd.read_csv(binary_y_hat_path)
+test = pd.read_csv(binary_y_hat_path, 
+                   dtype={'sample_id': str}, 
+                   index_col='sample_id')
 test
