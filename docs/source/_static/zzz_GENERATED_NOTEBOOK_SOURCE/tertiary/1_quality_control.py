@@ -28,7 +28,21 @@ spark.conf.set("spark.sql.codegen.wholeStage", False)
 
 # COMMAND ----------
 
-# MAGIC %run ../0_setup_constants
+# MAGIC %run ../0_setup_constants_glow
+
+# COMMAND ----------
+
+# MAGIC %run ../2_setup_metadata
+
+# COMMAND ----------
+
+method = 'quality_control'
+step1 = 'glow_qc_transformers'
+step2 = 'call_summary_stats'
+step3 = 'variant_filter'
+step4 = 'sample_filter'
+library = 'glow'
+datetime = datetime.now(pytz.timezone('US/Pacific'))
 
 # COMMAND ----------
 
@@ -73,22 +87,29 @@ dbutils.fs.mkdirs(output_hwe_path)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ##### prepare simulated delta table for GWAS
+# MAGIC ##### prepare simulated delta table for GWAS using glow transformers
 
 # COMMAND ----------
 
+start_time_step1 = time.time()
 delta_vcf = spark.read.format("delta").load(output_delta)
 delta_gwas_vcf = (glow.transform('split_multiallelics', delta_vcf). \
                   withColumn('values', glow.mean_substitute(glow.genotype_states('genotypes'))). \
                   filter(fx.size(fx.array_distinct('values')) > 1)
                  )
+delta_gwas_vcf.write.mode("overwrite").format("delta").save(output_delta_glow_qc_transformers)
+end_time_step1 = time.time()
+log_metadata(datetime, n_samples, n_variants, 0, 0, 'etl', step1, library, spark_version, node_type_id, n_workers, start_time_step1, end_time_step1, run_metadata_delta_path)
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ##### perform quality control using glow helper functions
+# MAGIC ##### perform variant-level quality control using glow helper functions
 
 # COMMAND ----------
+
+start_time_step2 = time.time()
+delta_gwas_vcf = spark.read.format("delta").load(output_delta_glow_qc_transformers)
 
 summary_stats_df = delta_gwas_vcf.select(
     fx.expr("*"),
@@ -96,6 +117,10 @@ summary_stats_df = delta_gwas_vcf.select(
     glow.expand_struct(glow.hardy_weinberg(fx.col("genotypes")))
   ). \
     withColumn("log10pValueHwe", fx.when(fx.col("pValueHwe") == 0, 26).otherwise(-fx.log10(fx.col("pValueHwe"))))
+summary_stats_df.drop("genotypes").write.mode("overwrite").format("delta").save(output_delta_glow_qc_variants)
+
+end_time_step2 = time.time()
+log_metadata(datetime, n_samples, n_variants, 0, 0, method, step2, library, spark_version, node_type_id, n_workers, start_time_step2, end_time_step2, run_metadata_delta_path)
 
 # COMMAND ----------
 
@@ -120,14 +145,18 @@ display(plot_histogram(df=summary_stats_df.select("log10pValueHwe"),
 
 # COMMAND ----------
 
+start_time_step3 = time.time()
+variant_filter_df = spark.read.format("delta").load(output_delta_glow_qc_variants)
+
 variant_filter_df = summary_stats_df.where((fx.col("alleleFrequencies").getItem(0) >= allele_freq_cutoff) & 
                                            (fx.col("alleleFrequencies").getItem(0) <= (1.0 - allele_freq_cutoff)) &
                                            (fx.col("pValueHwe") >= hwe_cutoff)
                                           )
 
-# COMMAND ----------
-
 variant_filter_df.write.option("overwriteSchema", "true").mode("overwrite").format("delta").save(output_delta_transformed)
+
+end_time_step3 = time.time()
+log_metadata(datetime, n_samples, n_variants, 0, 0, method, step3, library, spark_version, node_type_id, n_workers, start_time_step3, end_time_step3, run_metadata_delta_path)
 
 # COMMAND ----------
 

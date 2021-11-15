@@ -12,7 +12,18 @@
 
 # COMMAND ----------
 
-# MAGIC %run ../0_setup_constants
+# MAGIC %run ../0_setup_constants_glow
+
+# COMMAND ----------
+
+# MAGIC %run ../2_setup_metadata
+
+# COMMAND ----------
+
+method = 'linear'
+test = 'linear_regression'
+library = 'glow'
+datetime = datetime.now(pytz.timezone('US/Pacific'))
 
 # COMMAND ----------
 
@@ -21,11 +32,8 @@
 
 # COMMAND ----------
 
-delta_vcf = spark.read.format("delta").load(input_delta)
-
-# COMMAND ----------
-
-delta_vcf.count()
+delta_vcf = spark.read.format("delta").load(variants_path)
+n_filtered_variants = delta_vcf.count()
 
 # COMMAND ----------
 
@@ -44,7 +52,7 @@ phenotypes.head(5)
 
 # COMMAND ----------
 
-offsets = pd.read_csv(y_hat_path, dtype={'sample_id': str}).set_index(['sample_id'])
+offsets = pd.read_csv(quantitative_y_hat_path, dtype={'sample_id': str}).set_index(['sample_id'])
 offsets.head(5)
 
 # COMMAND ----------
@@ -53,6 +61,8 @@ offsets.head(5)
 # MAGIC #### run linear regression gwas
 
 # COMMAND ----------
+
+start_time_linreg = time.time()
 
 for num, contig in enumerate(contigs):
   offsets_chr = offsets[offsets['contigName'] == contig].drop(['contigName'], axis=1) 
@@ -67,19 +77,28 @@ for num, contig in enumerate(contigs):
   
   results.write.format('delta'). \
                 mode('append'). \
-                save(gwas_results_path_confounded)
+                save(linear_gwas_results_path_confounded)
 
 # COMMAND ----------
 
-results_df = spark.read.format("delta").load(gwas_results_path_confounded). \
-                                        withColumn("log_p", -fx.log10("pvalue")).cache()
-n_filtered_variants = results_df.count()
-display(results_df.orderBy("pvalue"))
+# MAGIC %md
+# MAGIC ##### log runtime
+
+# COMMAND ----------
+
+end_time_linreg = time.time()
+log_metadata(datetime, n_samples, n_filtered_variants, n_covariates, n_quantitative_phenotypes, method, test, library, spark_version, node_type_id, n_workers, start_time_linreg, end_time_linreg, run_metadata_delta_path)
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC #### Plot results using `R` package `qqman`
+
+# COMMAND ----------
+
+results_df = spark.read.format("delta").load(linear_gwas_results_path_confounded). \
+                                        withColumn("log_p", -fx.log10("pvalue")).cache()
+display(results_df.orderBy("pvalue"))
 
 # COMMAND ----------
 
@@ -150,19 +169,40 @@ def filter_genotypes(genotypes_df, list_sample_ids):
 
 # COMMAND ----------
 
-filtered_phenotypes_pdf = filter_phenotypes(phenotypes)
-sample_ids_to_keep = extract_sample_ids_without_missing_phenotypes(phenotypes, "QP1")
-len(sample_ids_to_keep)
+# MAGIC %md
+# MAGIC ##### filter genotypes
+# MAGIC 
+# MAGIC based on samples with missing phenotypes
 
 # COMMAND ----------
 
+filtered_phenotypes_pdf = filter_phenotypes(phenotypes)
+sample_ids_to_keep = extract_sample_ids_without_missing_phenotypes(phenotypes, "QP1")
+print("keeping " + str(len(sample_ids_to_keep)) + " samples after filtering those with missing phenotypic data")
+
+# COMMAND ----------
+
+start_time_filter = time.time()
 filtered_genotypes_df = filter_genotypes(delta_vcf, sample_ids_to_keep)
+filtered_genotypes_df.write.mode("overwrite").format("delta").save(qc_samples_path)
+end_time_filter = time.time()
+log_metadata(datetime, n_samples, n_variants, 0, 0, "quality_control", "sample_filter", library, spark_version, node_type_id, n_workers, start_time_filter, end_time_filter, run_metadata_delta_path)
+
+# COMMAND ----------
+
+filtered_genotypes_df = spark.read.format("delta").load(qc_samples_path)
 filtered_genotypes_df = filtered_genotypes_df.withColumn('values', glow.mean_substitute(glow.genotype_states('genotypes'))) #prepare for gwas
 filtered_genotypes_df.select(fx.size("values")).limit(5).show()
 
 # COMMAND ----------
 
-dbutils.fs.rm(gwas_results_path, recurse=True)
+# MAGIC %md
+# MAGIC ##### rerun regression
+
+# COMMAND ----------
+
+dbutils.fs.rm(linear_gwas_results_path, recurse=True)
+
 for num, contig in enumerate(contigs):
   offsets_chr = offsets[offsets['contigName'] == contig].drop(['contigName'], axis=1) 
   results = glow.gwas.linear_regression(
@@ -178,7 +218,7 @@ for num, contig in enumerate(contigs):
   
   results.write.format('delta'). \
                 mode('append'). \
-                save(gwas_results_path)
+                save(linear_gwas_results_path)
 
 # COMMAND ----------
 
@@ -207,16 +247,6 @@ for num, contig in enumerate(contigs):
 # MAGIC           logp = TRUE, 
 # MAGIC           annotatePval = NULL, 
 # MAGIC           ylim=c(0,9))
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ##### clean up
-
-# COMMAND ----------
-
-dbutils.fs.rm(gwas_results_path, recurse=True)
-dbutils.fs.rm(gwas_results_path_confounded, recurse=True)
 
 # COMMAND ----------
 

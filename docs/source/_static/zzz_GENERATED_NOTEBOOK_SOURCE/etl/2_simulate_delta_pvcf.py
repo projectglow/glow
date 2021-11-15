@@ -15,7 +15,7 @@
 
 # COMMAND ----------
 
-# MAGIC %run ../0_setup_constants
+# MAGIC %run ../0_setup_constants_glow
 
 # COMMAND ----------
 
