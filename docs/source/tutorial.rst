@@ -33,19 +33,19 @@ and the `Regenie Github <https://github.com/rgcgithub/regenie>`_ repo before imp
 
 The GloWGR notebook calculated offsets that are used in the genetic association study below to control for population structure and relatedness.
 
-.. notebook:: .. tertiary/1_quality_control.html
+.. notebook:: . tertiary/1_quality_control.html
   :title: Quality control
 
-.. notebook:: .. tertiary/2_quantitative_glowgr.html
+.. notebook:: . tertiary/2_quantitative_glowgr.html
   :title: Quantitative glow whole genome regression
 
-.. notebook:: .. tertiary/3_linear_gwas_glow.html
+.. notebook:: . tertiary/3_linear_gwas_glow.html
   :title: Linear regression
 
-.. notebook:: .. tertiary/4_binary_glowgr.html
+.. notebook:: . tertiary/4_binary_glowgr.html
   :title: Binary glow whole genome regression
 
-.. notebook:: .. tertiary/5_logistic_gwas_glow.html
+.. notebook:: . tertiary/5_logistic_gwas_glow.html
   :title: Logistic regression
 
 
