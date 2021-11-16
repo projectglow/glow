@@ -5,7 +5,7 @@ Contributing
 ============
 
 Glow began as an industry collaboration between databricks and the Regeneron Genetics Center.
-The goal is to help scientists and engineers work together to solve genomics problems with data.
+Glow enables scientists and engineers work together to solve genomics problems with data.
 
 Contributing is easy, and we will collaborate with you to extend the project.
 
@@ -27,7 +27,7 @@ Join the monthly office hours
 -----------------------------
 
 Monthly office hours provide an opportunity keep up to date with new developments with Glow.
-Please send an email to glow [dot] maintainers [at] gmail.com to join.
+Please send an email to glow [dot] contributors [at] gmail.com to join.
 
 --------------------------
 Contribute to the codebase
@@ -52,7 +52,7 @@ It's easy to get started.
 ==========================
 
 As you work through the example notebooks in the docs, please document issues.
-If you solve problems or improve code, please contribute changes back.
+If you solve problems or improve code, please help contribute changes back.
 That way others will benefit and become more productive.
 
 Export your notebook as `html` into the relevant directory under `docs/source/_static/notebooks`.
