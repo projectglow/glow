@@ -11,6 +11,7 @@ big data processing and machine learning, enabling genomics workflows to scale t
    introduction
    getting-started
    tutorial
+   benchmarks
    etl/index
    tertiary/index
    troubleshooting
