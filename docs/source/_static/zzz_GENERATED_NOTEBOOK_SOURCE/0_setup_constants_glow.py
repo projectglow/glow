@@ -39,8 +39,8 @@ import matplotlib.pyplot as plt
 # COMMAND ----------
 
 #genotype matrix
-n_samples = 500000
-n_variants = 250000
+n_samples = 50000
+n_variants = 1000
 
 #partitions
 n_partitions = int(n_variants / 20) #good heuristic is 20 variants per partition at 500k samples
@@ -100,7 +100,6 @@ print("variables", json.dumps({
 # COMMAND ----------
 
 user = dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().apply('user')
-user = "william.brandler@databricks.com"
 dbfs_home_path_str = "dbfs:/home/{}/".format(user)
 dbfs_fuse_home_path_str = "/dbfs/home/{}/".format(user)
 dbfs_home_path = Path("dbfs:/home/{}/".format(user))
