@@ -33,14 +33,23 @@ datetime = datetime.now(pytz.timezone('US/Pacific'))
 
 # MAGIC %md
 # MAGIC 
-# MAGIC #### Prepare input paths.
+# MAGIC #### Load data
 # MAGIC 
-# MAGIC Load data
+# MAGIC for whole genome regression only 500k independent variants that are not in linkage disequilibrium with each other are required.
+# MAGIC 
+# MAGIC (~1/40th of the total variants tested for association)
+
+# COMMAND ----------
+
+spark.read.format('delta').load(variants_path). \
+                           sample(withReplacement=False, fraction=wgr_fraction, seed=3). \
+                           write.mode("overwrite").format("delta"). \
+                           save(variants_fraction_path)
 
 # COMMAND ----------
 
 start_time_wgr = time.time()
-variant_df = spark.read.format('delta').load(variants_path)
+variant_df = spark.read.format('delta').load(variants_fraction_path)
 
 # COMMAND ----------
 
@@ -147,7 +156,7 @@ log_metadata(datetime, n_samples, n_variants, n_covariates, n_quantitative_pheno
 
 # COMMAND ----------
 
-test = pd.read_csv(quantitative_y_hat_path, 
-                   dtype={'sample_id': str}, 
-                   index_col='sample_id')
-test
+adjusted_phenotypes = pd.read_csv(quantitative_y_hat_path, 
+                                  dtype={'sample_id': str}, 
+                                  index_col='sample_id')
+adjusted_phenotypes

@@ -32,7 +32,7 @@ datetime = datetime.now(pytz.timezone('US/Pacific'))
 # COMMAND ----------
 
 start_time_wgr = time.time()
-variant_df = spark.read.format('delta').load(variants_path)
+variant_df = spark.read.format('delta').load(variants_fraction_path)
 
 # COMMAND ----------
 
@@ -147,7 +147,7 @@ log_metadata(datetime, n_samples, n_variants, n_covariates, n_binary_phenotypes,
 
 # COMMAND ----------
 
-test = pd.read_csv(binary_y_hat_path, 
-                   dtype={'sample_id': str}, 
-                   index_col='sample_id')
-test
+adjusted_phenotypes = pd.read_csv(binary_y_hat_path, 
+                                  dtype={'sample_id': str}, 
+                                  index_col='sample_id')
+adjusted_phenotypes

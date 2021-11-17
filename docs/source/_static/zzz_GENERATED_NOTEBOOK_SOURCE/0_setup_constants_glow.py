@@ -39,8 +39,8 @@ import matplotlib.pyplot as plt
 # COMMAND ----------
 
 #genotype matrix
-n_samples = 50000
-n_variants = 1000
+n_samples = 500000
+n_variants = 250000
 
 #partitions
 n_partitions = int(n_variants / 20) #good heuristic is 20 variants per partition at 500k samples
@@ -66,6 +66,10 @@ missingness = 0.3
 #wgr
 variants_per_block = 1000
 sample_block_count = 10
+#for whole genome regression only 500k variants are required 
+#(~1/40th of the total variants tested for association)
+wgr_fraction = 0.025
+
 
 #chromosomes
 contigs = ['21', '22']
@@ -96,6 +100,7 @@ print("variables", json.dumps({
 # COMMAND ----------
 
 user = dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().apply('user')
+user = "william.brandler@databricks.com"
 dbfs_home_path_str = "dbfs:/home/{}/".format(user)
 dbfs_fuse_home_path_str = "/dbfs/home/{}/".format(user)
 dbfs_home_path = Path("dbfs:/home/{}/".format(user))
@@ -222,8 +227,8 @@ print("quality control paths", json.dumps({
 delta_path = str(dbfs_home_path / 'genomics/data/delta/simulate_'.format(user))
 base_variants_path = delta_path + str(n_samples) + '_samples_' + str(n_variants) + '_variants_pvcf.delta'
 variants_path = output_delta_glow_qc_transformers
+variants_fraction_path = simulate_prefix + "_variants_pvcf_glow_qc_transformers_sampled.delta"
 qc_samples_path = delta_path + str(n_samples) + '_samples_' + str(n_variants) + "_variants_pvcf_glow_qc_samples.delta"
-
 
 pandas_path = str(dbfs_fuse_home_path / ('genomics/data/pandas/simulate_'.format(user) + str(n_samples) + '_samples_'))
 covariates_path = pandas_path + str(n_covariates) + '_covariates.csv'
@@ -234,7 +239,6 @@ quantitative_sample_blocks_path = pandas_path + 'quantitative_wgr_sample_blocks.
 quantitative_block_matrix_path = delta_path + 'quantitative_wgr_block_matrix.delta'
 quantitative_y_hat_path = pandas_path + str(n_quantitative_phenotypes) + '_quantitative_wgr_y_hat.csv'
 
-
 linear_gwas_results_path_confounded = delta_path + 'pvcf_linear_gwas_results_confounded.delta'
 
 linear_gwas_results_path = delta_path + 'pvcf_linear_gwas_results.delta'
@@ -243,6 +247,7 @@ print("regression paths", json.dumps({
   "delta_path": delta_path,
   "base_variants_path": base_variants_path,
   "variants_path": variants_path,
+  "variants_fraction_path": variants_fraction_path,
   "pandas_path": pandas_path,
   "covariates_path": covariates_path
   }

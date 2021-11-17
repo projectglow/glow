@@ -26,7 +26,7 @@ from pathlib import Path
 # COMMAND ----------
 
 dbfs_home_path = Path("dbfs:/home/{}/".format(user))
-run_metadata_delta_path = str(dbfs_home_path / "genomics/data/delta/gwas_runs_info_hail_glow.delta")
+run_metadata_delta_path = str(dbfs_home_path / "genomics/data/delta/pipeline_runs_info_hail_glow.delta")
 
 # COMMAND ----------
 
@@ -69,17 +69,36 @@ schema = StructType([StructField("datetime", DateType(), True),
                      StructField("library", StringType(), True),
                      StructField("spark_version", StringType(), True),
                      StructField("node_type_id", StringType(), True),
-                     StructField("worker_type", LongType(), True),
+                     StructField("n_workers", LongType(), True),
+                     StructField("n_cores", LongType(), True),
                      StructField("runtime", DoubleType(), True)
                     ])
 
 # COMMAND ----------
+
+#TODO add GCP
+node_to_core_mapping = {"r5d.2xlarge": 8,
+                        "r5d.4xlarge": 16, 
+                        "c5d.2xlarge": 8, 
+                        "Standard_DS4_v2": 4,
+                        "Standard_E8s_v3": 8,
+                        "Standard_L8s_v2": 8,
+                        "Standard_L64s_v2": 64
+                       } 
+
+# COMMAND ----------
+
+def lookup_cores(node_type_id, n_workers, node_to_core_mapping=node_to_core_mapping):
+  cores_per_node = node_to_core_mapping[node_type_id]
+  total_cores = cores_per_node * n_workers
+  return total_cores
 
 def log_metadata(datetime, n_samples, n_variants, n_covariates, n_binary_phenotypes, method, test, library, spark_version, node_type_id, n_workers, start_time, end_time, run_metadata_delta_path):
   """
   log metadata about each step in the pipeline and append to delta lake table
   """
   runtime = float("{:.2f}".format((end_time - start_time)))
-  l = [(datetime, n_samples, n_variants, n_covariates, n_binary_phenotypes, method, test, library, spark_version, node_type_id, n_workers, runtime)]
+  n_cores = lookup_cores(node_type_id, n_workers, node_to_core_mapping=node_to_core_mapping)
+  l = [(datetime, n_samples, n_variants, n_covariates, n_binary_phenotypes, method, test, library, spark_version, node_type_id, n_workers, n_cores, runtime)]
   run_metadata_delta_df = spark.createDataFrame(l, schema=schema)
   run_metadata_delta_df.write.mode("append").format("delta").save(run_metadata_delta_path)
