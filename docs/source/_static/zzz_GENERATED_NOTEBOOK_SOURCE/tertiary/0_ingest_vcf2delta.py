@@ -44,8 +44,13 @@ spark.read.format("vcf").load(output_vcf) \
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ##### log runtime
+
+# COMMAND ----------
+
 end_time = time.time()
-runtime = float("{:.2f}".format((end_time - start_time)))
+log_metadata(datetime, n_samples, n_variants, 0, 0, method, test, library, spark_version, node_type_id, n_workers, start_time, end_time, run_metadata_delta_path)
 
 # COMMAND ----------
 
@@ -55,14 +60,3 @@ runtime = float("{:.2f}".format((end_time - start_time)))
 # COMMAND ----------
 
 spark.read.format("delta").load(output_delta_tmp).count()
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ##### log metadata
-
-# COMMAND ----------
-
-l = [(datetime, n_samples, n_variants, n_covariates, n_phenotypes, method, test, library, spark_version, node_type_id, n_workers, runtime)]
-run_metadata_delta_df = spark.createDataFrame(l, schema=schema)
-run_metadata_delta_df.write.mode("append").format("delta").save(run_metadata_delta_path)

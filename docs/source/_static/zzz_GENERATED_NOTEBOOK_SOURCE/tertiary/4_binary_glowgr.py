@@ -11,6 +11,10 @@
 
 # COMMAND ----------
 
+spark.conf.set("spark.sql.execution.arrow.maxRecordsPerBatch", 100)
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC ##### run notebook(s) to set everything up
 

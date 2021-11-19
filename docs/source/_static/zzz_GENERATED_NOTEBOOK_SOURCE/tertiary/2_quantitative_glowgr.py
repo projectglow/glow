@@ -11,6 +11,10 @@
 
 # COMMAND ----------
 
+spark.conf.set("spark.sql.execution.arrow.maxRecordsPerBatch", 100)
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC ##### setup constants
 

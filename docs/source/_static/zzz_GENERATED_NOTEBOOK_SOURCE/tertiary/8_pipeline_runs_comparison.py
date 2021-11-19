@@ -64,10 +64,6 @@ display(benchmark_results.where((fx.col("test") == ("linear_regression")) |
 
 # MAGIC %md
 # MAGIC ##### Glow pipeline steps breakdown
-# MAGIC 
-# MAGIC The majority of compute is spent on `ingest`, `etl`, and `quality control`, but these steps are only run one or a few times at scale.
-# MAGIC 
-# MAGIC `Regressions` (or other analytics, such as emprically deriving P values from simulations) are typically run many times.
 
 # COMMAND ----------
 
