@@ -193,14 +193,14 @@ private[projectglow] class ProcessHelper(
   }
 
   def propagateChildException(): Unit = {
-    val t = _childThreadException.get()
-    if (t != null) {
-      Option(process).foreach(_.destroy())
+    childThreadExceptionO.foreach { t =>
+      processO.foreach(_.destroy())
       throw t
     }
   }
 
-  def childThreadException: Option[Throwable] = Option(_childThreadException.get())
+  def childThreadExceptionO: Option[Throwable] = Option(_childThreadException.get())
+  def processO: Option[Process] = Option(process)
 }
 
 object ProcessHelper {

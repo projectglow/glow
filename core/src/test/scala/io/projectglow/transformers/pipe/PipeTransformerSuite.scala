@@ -116,6 +116,20 @@ class PipeTransformerSuite extends GlowBaseTest {
   }
 
   test("quarantine on failure") {
+    {// coverage
+      PipeIterator.QuarantineWriter("delta")
+      PipeIterator.QuarantineWriter("csv")
+      intercept[IllegalStateException] {
+        PipeIterator.QuarantineWriter("will fail")
+      }
+      intercept[NullPointerException]{
+        PipeIterator.QuarantineWriterDelta.quarantine(null)
+      }
+      intercept[NullPointerException]{
+        PipeIterator.QuarantineWriterCsv.quarantine(null)
+      }
+    }
+
     val sess = spark
     import sess.implicits._
     val inputDf = Seq("monkey", "dolphin").toDF
