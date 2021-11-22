@@ -119,7 +119,7 @@ class PipeTransformerSuite extends GlowBaseTest {
     val sess = spark
     import sess.implicits._
     val inputDf = Seq("monkey", "dolphin").toDF
-    val testTable = "default.test_test_test"
+    val testTable = s"default.test_test_test"
     val options = Map(
       "inputFormatter" -> "text",
       "outputFormatter" -> "text",
@@ -131,6 +131,14 @@ class PipeTransformerSuite extends GlowBaseTest {
     }
     assert(exc.getMessage.contains("Subprocess exited with status"))
     Glow.transform("pipe_cleanup", inputDf, Map.empty[String, String])
+
+    // delete temp files
+    // Yes, there is a shiny new and fancy nio way of doing temp files but it
+    // blows super hard; this "old school" way is far simpler and more readable
+    import scala.reflect.io.Directory
+    import java.io.File
+    val directory = new Directory(new File(testTable))
+    directory.deleteRecursively()
   }
 }
 
