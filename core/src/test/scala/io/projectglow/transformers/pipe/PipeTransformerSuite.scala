@@ -116,16 +116,16 @@ class PipeTransformerSuite extends GlowBaseTest {
   }
 
   test("quarantine on failure") {
-    {// coverage
+    { // coverage
       PipeIterator.QuarantineWriter("delta")
       PipeIterator.QuarantineWriter("csv")
       intercept[IllegalStateException] {
         PipeIterator.QuarantineWriter("will fail")
       }
-      intercept[NullPointerException]{
+      intercept[NullPointerException] {
         PipeIterator.QuarantineWriterDelta.quarantine(null)
       }
-      intercept[NullPointerException]{
+      intercept[NullPointerException] {
         PipeIterator.QuarantineWriterCsv.quarantine(null)
       }
     }
