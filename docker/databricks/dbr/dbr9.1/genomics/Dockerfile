@@ -38,7 +38,7 @@ RUN apt-get update && apt-get install -y \
     gnupg2 \
     software-properties-common \
     jq \
-    libjemalloc1 \
+    libjemalloc2 \
     libjemalloc-dev \
     libdbi-perl \
     libdbd-mysql-perl \
