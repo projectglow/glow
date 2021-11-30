@@ -33,8 +33,8 @@ import org.apache.spark.sql.types._
 case class ExpandStruct(struct: Expression) extends Expression with Unevaluable {
   override def children: Seq[Expression] = Seq(struct)
   override lazy val resolved: Boolean = false
-  override def dataType: DataType = throw new UnresolvedException(this, "dataType")
-  override def nullable: Boolean = throw new UnresolvedException(this, "nullable")
+  override def dataType: DataType = throw new UnresolvedException("dataType")
+  override def nullable: Boolean = throw new UnresolvedException("nullable")
   def expand(): Seq[NamedExpression] = {
     if (!struct.dataType.isInstanceOf[StructType]) {
       throw SQLUtils.newAnalysisException("Only structs can be expanded.")
