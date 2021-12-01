@@ -76,6 +76,11 @@ class PipeTransformer extends DataFrameTransformer {
       }.makeOutputFormatter(new SnakeCaseMap(outputFormatterOptions))
     }
 
+    private def getQuarantineLocation: Option[String] =
+      options.get(QUARANTINE_TABLE_KEY)
+    private def getQuarantineFlavor: Option[String] =
+      options.get(QUARANTINE_FLAVOR_KEY)
+
     private def getCmd: Seq[String] = {
       val mapper = new ObjectMapper()
       mapper.registerModule(DefaultScalaModule)
@@ -118,13 +123,19 @@ class PipeTransformer extends DataFrameTransformer {
 
       val inputFormatter = getInputFormatter
       val outputFormatter = getOutputFormatter
+      val quarantineLocation = getQuarantineLocation
+      val quarantineFlavor = getQuarantineFlavor
+      val quarantine = quarantineLocation.flatMap { a =>
+        quarantineFlavor.map { b =>
+          (a, b)
+        }
+      }
       val env = options.collect {
         case (k, v) if k.startsWith(ENV_PREFIX) =>
           (k.stripPrefix(ENV_PREFIX), v)
       }
 
-      Piper.pipe(inputFormatter, outputFormatter, cmd, env, df)
-
+      Piper.pipe(inputFormatter, outputFormatter, cmd, env, df, quarantine)
     }
   }
 
@@ -137,6 +148,9 @@ object PipeTransformer {
   private val ENV_PREFIX = "env_"
   private val INPUT_FORMATTER_PREFIX = "in_"
   private val OUTPUT_FORMATTER_PREFIX = "out_"
+  private val QUARANTINE_TABLE_KEY = "quarantineTable"
+  private val QUARANTINE_FLAVOR_KEY = "quarantineFlavor"
+
   val LOGGING_BLOB_KEY = "pipeCmdTool"
 
   private def lookupInputFormatterFactory(name: String): Option[InputFormatterFactory] =
