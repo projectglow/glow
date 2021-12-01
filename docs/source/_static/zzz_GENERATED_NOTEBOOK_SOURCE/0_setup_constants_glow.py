@@ -198,6 +198,10 @@ print("delta to vcf paths", json.dumps({
 
 # COMMAND ----------
 
+reference_genome_path = '/dbfs/databricks-datasets/genomics/grch38/data/GRCh38_full_analysis_set_plus_decoy_hla.fa'
+output_delta_split_multiallelics = simulate_prefix + "_variants_pvcf_glow_qc_split_multiallelics.delta"
+output_delta_split_multiallelics_normalize = simulate_prefix + "_variants_pvcf_glow_qc_normalize_indels.delta"
+
 output_delta_glow_qc_transformers = simulate_prefix + "_variants_pvcf_glow_qc_transformers.delta"
 output_delta_glow_qc_variants = simulate_prefix + "_variants_pvcf_glow_qc_variants.delta"
 output_delta_transformed = simulate_prefix + "_variants_pvcf_transformed.delta"
