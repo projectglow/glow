@@ -160,7 +160,7 @@ case class UnwrappedAggregateByIndex(
   }
   
   override protected def withNewChildInternal(newChildren: IndexedSeq[org.apache.spark.sql.catalyst.expressions.Expression]): org.apache.spark.sql.catalyst.expressions.Expression =    
-    copy(children = newChildren)
+    copy(children = newChild)
 
   override def prettyName: String = "unwrapped_aggregate_by_index"
 
