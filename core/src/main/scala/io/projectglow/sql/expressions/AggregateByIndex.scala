@@ -158,7 +158,7 @@ case class UnwrappedAggregateByIndex(
     this(arr, initialValue, update, merge, LambdaFunction.identity)
   }
 
-  override protected def withNewChildInternal(
+  override protected def withNewChildrenInternal(
       newChildren: IndexedSeq[org.apache.spark.sql.catalyst.expressions.Expression])
       : org.apache.spark.sql.catalyst.expressions.Expression =
     copy(children = newChild)
