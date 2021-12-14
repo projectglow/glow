@@ -45,7 +45,7 @@ n_samples = 50000
 n_variants = 1000
 
 #partitions
-n_partitions = 5 #good heuristic is 20 variants per partition at 500k samples
+n_partitions = int(n_variants / 20) #good heuristic is 20 variants per partition at 500k samples
 
 #allele frequency
 allele_freq_cutoff = 0.05
@@ -68,6 +68,10 @@ missingness = 0.3
 #wgr
 variants_per_block = 1000
 sample_block_count = 10
+#for whole genome regression only 500k variants are required 
+#(~1/40th of the total variants tested for association)
+wgr_fraction = 0.025
+
 
 #chromosomes
 contigs = ['21', '22']
@@ -196,12 +200,22 @@ print("delta to vcf paths", json.dumps({
 
 # COMMAND ----------
 
+reference_genome_path = '/dbfs/databricks-datasets/genomics/grch38/data/GRCh38_full_analysis_set_plus_decoy_hla.fa'
+output_delta_split_multiallelics = simulate_prefix + "_variants_pvcf_glow_qc_split_multiallelics.delta"
+output_delta_split_multiallelics_normalize = simulate_prefix + "_variants_pvcf_glow_qc_normalize_indels.delta"
+
+output_delta_glow_qc_transformers = simulate_prefix + "_variants_pvcf_glow_qc_transformers.delta"
+output_delta_glow_qc_variants = simulate_prefix + "_variants_pvcf_glow_qc_variants.delta"
+output_delta_transformed = simulate_prefix + "_variants_pvcf_transformed.delta"
+
 output_delta_transformed = simulate_prefix + "_variants_pvcf_transformed.delta"
 output_hwe_path = str(dbfs_home_path / f"genomics/data/results")
 output_hwe_plot = str(dbfs_fuse_home_path / f"genomics/data/results/simulate_{n_samples}_samples_{n_variants}_hwe.png")
 
 print("quality control paths", json.dumps({
   "output_delta": output_delta,
+  "output_delta_glow_qc_transformers": output_delta_glow_qc_transformers,
+  "output_delta_glow_qc_variants": output_delta_glow_qc_variants,
   "output_delta_transformed": output_delta_transformed,
   "output_hwe_path": output_hwe_path,
   "output_hwe_plot": output_hwe_plot
@@ -217,9 +231,9 @@ print("quality control paths", json.dumps({
 
 delta_path = str(dbfs_home_path / 'genomics/data/delta/simulate_'.format(user))
 base_variants_path = delta_path + str(n_samples) + '_samples_' + str(n_variants) + '_variants_pvcf.delta'
-variants_path = delta_path + str(n_samples) + '_samples_' + str(n_variants) + '_variants_pvcf_transformed.delta'
-input_delta = delta_path + str(n_samples) + '_samples_' + str(n_variants) + '_variants_pvcf_transformed.delta'
-
+variants_path = output_delta_glow_qc_transformers
+variants_fraction_path = simulate_prefix + "_variants_pvcf_glow_qc_transformers_sampled.delta"
+qc_samples_path = delta_path + str(n_samples) + '_samples_' + str(n_variants) + "_variants_pvcf_glow_qc_samples.delta"
 
 pandas_path = str(dbfs_fuse_home_path / ('genomics/data/pandas/simulate_'.format(user) + str(n_samples) + '_samples_'))
 covariates_path = pandas_path + str(n_covariates) + '_covariates.csv'
@@ -230,7 +244,6 @@ quantitative_sample_blocks_path = pandas_path + 'quantitative_wgr_sample_blocks.
 quantitative_block_matrix_path = delta_path + 'quantitative_wgr_block_matrix.delta'
 quantitative_y_hat_path = pandas_path + str(n_quantitative_phenotypes) + '_quantitative_wgr_y_hat.csv'
 
-
 linear_gwas_results_path_confounded = delta_path + 'pvcf_linear_gwas_results_confounded.delta'
 linear_gwas_results_path = delta_path + 'pvcf_linear_gwas_results.delta'
 
@@ -238,6 +251,7 @@ print("regression paths", json.dumps({
   "delta_path": delta_path,
   "base_variants_path": base_variants_path,
   "variants_path": variants_path,
+  "variants_fraction_path": variants_fraction_path,
   "pandas_path": pandas_path,
   "covariates_path": covariates_path
   }
