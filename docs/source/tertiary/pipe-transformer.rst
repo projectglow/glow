@@ -11,11 +11,11 @@ Parallelizing Command-Line Bioinformatics Tools With the Pipe Transformer
     path = 'test-data/NA12878_21_10002403.vcf'
     bed = 'test-data/bedtools/intersect_21.bed'
 
-To accelerate single-node tools that take a long time to run, Glow includes a
+Some single-node tools take a long time to run. To accelerate them, Glow includes a
 utility called the Pipe Transformer to process Spark DataFrames with command-line tools.
 
 The tool supports ``vcf`` and ``txt`` / ``csv`` formatted Spark DataFrames as inputs. And it returns a Spark DataFrame. 
-You can specify a quarantine location for partitions of the DataFrame that fail to be processed by the bioinformatics tool. 
+You can specify a quarantine location for partitions of the DataFrame that error when processed by the bioinformatics tool. 
 This is analagous to how `liftOver <https://genome.ucsc.edu/cgi-bin/hgLiftOver>`_ handles failures caused by edge cases.
 
 Usage
