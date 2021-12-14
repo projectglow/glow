@@ -19,7 +19,7 @@ docker build -t "${DOCKER_REPOSITORY}/databricks-glow:9.1" genomics-with-glow/
 popd
 
 docker push "${DOCKER_REPOSITORY}/databricks-hail:0.2.78"
-docker push "${DOCKER_REPOSITORY}/databricks-glow:1.1.1"
+docker push "${DOCKER_REPOSITORY}/databricks-glow:1.1.2"
 docker push "${DOCKER_REPOSITORY}/databricks-glow:9.1"
 
 
