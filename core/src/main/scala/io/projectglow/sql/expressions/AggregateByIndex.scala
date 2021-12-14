@@ -145,6 +145,11 @@ trait UnwrappedAggregateFunction extends AggregateFunction {
   def asWrapped: AggregateFunction
 }
 
+override protected def withNewChildrenInternal(
+    newChildren: IndexedSeq[org.apache.spark.sql.catalyst.expressions.Expression])
+    : org.apache.spark.sql.catalyst.expressions.Expression =
+  copy(children = newChildren)
+
 case class UnwrappedAggregateByIndex(
     arr: Expression,
     initialValue: Expression,
@@ -157,11 +162,6 @@ case class UnwrappedAggregateByIndex(
   def this(arr: Expression, initialValue: Expression, update: Expression, merge: Expression) = {
     this(arr, initialValue, update, merge, LambdaFunction.identity)
   }
-
-  override protected def withNewChildrenInternal(
-      newChildren: IndexedSeq[org.apache.spark.sql.catalyst.expressions.Expression])
-      : org.apache.spark.sql.catalyst.expressions.Expression =
-    copy(children = newChildren)
 
   override def prettyName: String = "unwrapped_aggregate_by_index"
 
