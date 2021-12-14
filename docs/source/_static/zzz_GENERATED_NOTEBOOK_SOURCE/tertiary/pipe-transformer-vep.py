@@ -216,27 +216,12 @@ except:
 
 # COMMAND ----------
 
-'''
-Disabling this property will allow for the VCF rows in a small dataframe to be evenly repartitioned
-'''
-spark.conf.set("spark.sql.adaptive.enabled", "false")
-
-# COMMAND ----------
-
 corrupted_df = df.withColumn("contigName", fx.regexp_replace('contigName', '21', "21xyz"))
 display(corrupted_df)
 
 # COMMAND ----------
 
 display(corrupted_df.groupBy("contigName").count())
-
-# COMMAND ----------
-
-corrupted_df = corrupted_df.repartition(corrupted_df.count())
-
-# COMMAND ----------
-
-corrupted_df.rdd.getNumPartitions()
 
 # COMMAND ----------
 
