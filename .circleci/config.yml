@@ -33,7 +33,7 @@ create_docs_env: &create_docs_env
       fi
 
 install_pyspark2: &install_pyspark2
-  run: # Evict PySpark 3.1.2 in favor of PySpark 2.4.5
+  run: # Evict PySpark 3.2.0 in favor of PySpark 2.4.5
     name: Install PySpark 2.4.5
     command: |
       export PATH=$HOME/conda/bin:$PATH
@@ -226,7 +226,7 @@ jobs:
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="3.1.2"
+            export SPARK_VERSION="3.2.0"
             export SCALA_VERSION="2.12.8"
             sbt core/test exit
       - run:
@@ -235,7 +235,7 @@ jobs:
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="3.1.2"
+            export SPARK_VERSION="3.2.0"
             export SCALA_VERSION="2.12.8"
             sbt docs/test exit
       - run:
@@ -244,7 +244,7 @@ jobs:
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="3.1.2"
+            export SPARK_VERSION="3.2.0"
             export SCALA_VERSION="2.12.8"
             sbt python/test exit
       - run:
@@ -252,7 +252,7 @@ jobs:
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$HOME/conda/bin:$PATH
-            export SPARK_VERSION="3.1.2"
+            export SPARK_VERSION="3.2.0"
             export SCALA_VERSION="2.12.8"
             export HAIL_VERSION="0.2.74"
             sudo apt-get update
