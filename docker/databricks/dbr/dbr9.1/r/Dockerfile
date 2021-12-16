@@ -14,6 +14,7 @@ ENV DATABRICKS_RUNTIME_VERSION=9.1
 # https://cran.rstudio.com/bin/linux/ubuntu/#secure-apt
 RUN apt update -qq \
   && apt-get install --yes \
+    apt-utils \
     software-properties-common \
     apt-transport-https \
     dirmngr \
@@ -49,7 +50,7 @@ RUN apt-get update \
     wget \
  # Download rstudio server for ubuntu 20 and install it.
  # https://www.rstudio.com/products/rstudio/download-server/debian-ubuntu/
- #&& wget https://github.com/rstudio/rstudio/tarball/v2021.09.1+372/rstudio-rstudio-v2021.09.1-372-0-g8b9ced1.tar.gz
  && wget https://download2.rstudio.org/server/bionic/amd64/rstudio-server-2021.09.1-372-amd64.deb -O rstudio-server.deb \
  && gdebi rstudio-server.deb \
- && rm rstudio-server.deb
+ && rm rstudio-server.deb \
+ && rstudio-server restart || true
