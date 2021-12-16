@@ -1,42 +1,39 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC ##### Download VEP prerequisite files
+# MAGIC 
+# MAGIC #### Run VEP with the glow pipe transformer
 
 # COMMAND ----------
 
-import json
-import filecmp
-import os
-import pyspark.sql.functions as fx
-import glow
-glow.register(spark)
+# MAGIC %md
+# MAGIC #### setup constants
 
 # COMMAND ----------
 
-file_path = "dbfs:/tmp/genomics/reference/homo_sapiens/100/"
-results_path = "/dbfs/tmp/genomics"
-results_dbfs_path = "dbfs:/tmp/genomics"
-os.environ['results_path'] = results_path
-log_path = "/dbfs/tmp/genomics/logs"
-os.environ['log_path'] = log_path
+# MAGIC %run ../0_setup_constants_glow
 
 # COMMAND ----------
 
-dbutils.fs.mkdirs(file_path)
+# MAGIC %md
+# MAGIC #### download VEP prerequisite files
 
 # COMMAND ----------
 
 # MAGIC %sh
 # MAGIC wget ftp://ftp.ensembl.org/pub/release-100/fasta/homo_sapiens/dna/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
 # MAGIC wget ftp://ftp.ensembl.org/pub/current_fasta/ancestral_alleles/homo_sapiens_ancestor_GRCh38.tar.gz
+# MAGIC wget ftp://ftp.ensembl.org/pub/release-100/variation/indexed_vep_cache/homo_sapiens_vep_100_GRCh38.tar.gz
 
 # COMMAND ----------
 
 # MAGIC %sh
 # MAGIC gzip -d Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
 # MAGIC bgzip Homo_sapiens.GRCh38.dna.primary_assembly.fa
+# MAGIC 
 # MAGIC tar xfz homo_sapiens_ancestor_GRCh38.tar.gz
 # MAGIC cat homo_sapiens_ancestor_GRCh38/*.fa | bgzip -c > homo_sapiens_ancestor_GRCh38.fa.gz
+# MAGIC 
+# MAGIC tar xzf homo_sapiens_vep_100_GRCh38.tar.gz
 
 # COMMAND ----------
 
@@ -46,25 +43,47 @@ dbutils.fs.mkdirs(file_path)
 # COMMAND ----------
 
 # MAGIC %sh
-# MAGIC cp Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz $results_path/reference/homo_sapiens/100/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
-# MAGIC cp homo_sapiens_ancestor_GRCh38.fa.gz $results_path/reference/homo_sapiens/100/homo_sapiens_ancestor_GRCh38.fa.gz
-
-# COMMAND ----------
-
-display(dbutils.fs.ls(file_path))
+# MAGIC sleep 10
+# MAGIC cp Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz $dircache_file_path_local/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
+# MAGIC cp homo_sapiens_ancestor_GRCh38.fa.gz $dircache_file_path_local/homo_sapiens_ancestor_GRCh38.fa.gz
+# MAGIC cp -R ./homo_sapiens $dircache_file_path_local
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ##### prepare test vcf
+# MAGIC #### prepare test data
+# MAGIC 
+# MAGIC Select only the first sample so the full genotypes array is not piped through VEP
 
 # COMMAND ----------
 
-vcf_path = 'dbfs:/databricks-datasets/genomics/1kg-vcfs/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz'
-vcf_test_path = results_dbfs_path + "/test_single_node.vcf"
-vcf_test_pipe_path = results_dbfs_path + "/test_pipe_annotated.vcf"
-df = spark.read.format("vcf").load(vcf_path).limit(100000)
-df.write.format("bigvcf").mode("overwrite").save(vcf_test_path)
+df = spark.read.format("delta").load(input_delta_vep) \
+                               .withColumn("genotypes", fx.array(fx.col("genotypes")[0])) \
+                               .write \
+                               .mode("overwrite") \
+                               .format("delta") \
+                               .save(input_delta_vep_tmp)
+
+# COMMAND ----------
+
+df = spark.read.format("delta").load(input_delta_vep_tmp)
+
+# COMMAND ----------
+
+display(df)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ##### write to vcf to test single node implementation
+
+# COMMAND ----------
+
+df.sort("contigName", "start", "end", "referenceAllele") \
+  .write \
+  .format("bigvcf") \
+  .mode("overwrite") \
+  .save(output_vcf)
 
 # COMMAND ----------
 
@@ -79,54 +98,23 @@ df.write.format("bigvcf").mode("overwrite").save(vcf_test_path)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ##### run VEP on single node from driver
+# MAGIC ##### test VEP on single node
 
 # COMMAND ----------
 
 # MAGIC %sh
-# MAGIC pid=$$
-# MAGIC hostname=`hostname`
-# MAGIC current_time=$(date +"%Y%m%d") 
+# MAGIC /opt/vep/src/ensembl-vep/vep -i $output_vcf_local --dir_cache $dircache_file_path_local --fasta $dircache_file_path_local/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz --plugin AncestralAllele,$dircache_file_path_local/homo_sapiens_ancestor_GRCh38.fa.gz --assembly GRCh38 --format vcf --output_file $annotated_vcf_local --no_stats --vcf --hgvs --cache --offline --force_overwrite
+
+# COMMAND ----------
+
+# MAGIC %sh
+# MAGIC head -n 200 $annotated_vcf_local
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC 
-# MAGIC /opt/vep/src/ensembl-vep/vep \
-# MAGIC -i $results_path/test_single_node.vcf \
-# MAGIC --dir_cache /dbfs/tmp/genomics/reference \
-# MAGIC --fasta /dbfs/tmp/genomics/reference/homo_sapiens/100/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz \
-# MAGIC --plugin AncestralAllele,/dbfs/tmp/genomics/reference/homo_sapiens/100/homo_sapiens_ancestor_GRCh38.fa.gz \
-# MAGIC --assembly GRCh38 \
-# MAGIC --format vcf \
-# MAGIC --no_stats \
-# MAGIC --vcf \
-# MAGIC --hgvs \
-# MAGIC --cache \
-# MAGIC --force_overwrite \
-# MAGIC --output_file $results_path/test_single_node_annotated.vcf \
-# MAGIC --warning_file $log_path/vep_stderr_warning_file_$current_time\_pid_$pid\_hostname_$hostname.txt
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ##### check 1000 annotated variants outputted
-
-# COMMAND ----------
-
-# MAGIC %sh
-# MAGIC cat $results_path/test_single_node_annotated.vcf | sed '/#/d' | wc -l
-
-# COMMAND ----------
-
-# MAGIC %sh
-# MAGIC head -n 200  $results_path/test_single_node_annotated.vcf
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC parallelize with glow pipe transformer
-
-# COMMAND ----------
-
-df = spark.read.format("vcf").load(vcf_test_path)
-df.count()
+# MAGIC #### parallelize with glow pipe transformer
 
 # COMMAND ----------
 
@@ -138,9 +126,9 @@ hostname=`hostname`
 current_time=$(date +"%Y%m%d") 
 
 /opt/vep/src/ensembl-vep/vep \
---dir_cache /dbfs/tmp/genomics/reference \
---fasta /dbfs/tmp/genomics/reference/homo_sapiens/100/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz \
---plugin AncestralAllele,/dbfs/tmp/genomics/reference/homo_sapiens/100/homo_sapiens_ancestor_GRCh38.fa.gz \
+--dir_cache {0} \
+--fasta {0}/Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz \
+--plugin AncestralAllele,{0}/homo_sapiens_ancestor_GRCh38.fa.gz \
 --assembly GRCh38 \
 --format vcf \
 --no_stats \
@@ -149,14 +137,15 @@ current_time=$(date +"%Y%m%d")
 --cache \
 --force_overwrite \
 --output_file STDOUT \
---warning_file {0}/vep_stderr_warning_file_$current_time\_pid_$pid\_hostname_$hostname.txt
-""".format(log_path)
+--warning_file {1}/vep_stderr_warning_file_$current_time\_pid_$pid\_hostname_$hostname.txt
+""".format(dircache_file_path_local, log_path)
 
 cmd = json.dumps(["bash", "-c", scriptFile])
 
 # COMMAND ----------
 
-output_df = glow.transform("pipe", df, 
+output_df = glow.transform("pipe", 
+                           df, 
                            cmd=cmd, 
                            input_formatter='vcf', 
                            in_vcf_header='infer', 
@@ -168,40 +157,36 @@ output_df = glow.transform("pipe", df,
 output_df.write. \
           format("bigvcf"). \
           mode("overwrite"). \
-          save(vcf_test_pipe_path)
-
-# COMMAND ----------
-
-output_df.count()
-
-# COMMAND ----------
-
-# MAGIC %sh
-# MAGIC cat $results_path/test_pipe_annotated.vcf | sed '/#/d' | wc -l
+          save(output_pipe_vcf)
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ##### check single node output same as pipe transformer output
+# MAGIC 
+# MAGIC ##### check results
 
 # COMMAND ----------
 
-# MAGIC %sh
-# MAGIC head -n 200 $results_path/test_pipe_annotated.vcf
+annotated_vcf_pipe = spark.read \
+                          .format("vcf") \
+                          .load(output_pipe_vcf)
 
 # COMMAND ----------
 
-single_node_vcf = spark.read.format("vcf").load(results_dbfs_path + '/test_single_node_annotated.vcf')
-glow_vcf = spark.read.format("vcf").load(results_dbfs_path + '/test_pipe_annotated.vcf')
+display(annotated_vcf_pipe.select("contigName", "start", "end", "referenceAllele", "alternateAlleles", "INFO_CSQ"))
 
 # COMMAND ----------
 
-single_node_only_df = single_node_vcf.subtract(glow_vcf)
+single_node_vcf = spark.read.format("vcf").load(annotated_vcf)
+
+# COMMAND ----------
+
+display(single_node_vcf)
+
+# COMMAND ----------
+
+single_node_only_df = single_node_vcf.subtract(annotated_vcf_pipe)
 single_node_only_count = single_node_only_df.count()
-
-# COMMAND ----------
-
-display(single_node_only_df)
 
 # COMMAND ----------
 
@@ -212,12 +197,8 @@ except:
 
 # COMMAND ----------
 
-glow_only_df = glow_vcf.subtract(single_node_vcf)
+glow_only_df = annotated_vcf_pipe.subtract(single_node_vcf)
 glow_only_count = glow_only_df.count()
-
-# COMMAND ----------
-
-display(glow_only_df)
 
 # COMMAND ----------
 
@@ -229,9 +210,74 @@ except:
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ##### clean up
+# MAGIC #### Let's corrupt the input!
+# MAGIC 
+# MAGIC To test the quarantine functionality, replace `21` contigName with `21xyz`
 
 # COMMAND ----------
 
-# MAGIC %sh
-# MAGIC rm -r $results_path
+corrupted_df = df.withColumn("contigName", fx.regexp_replace('contigName', '21', "21xyz"))
+display(corrupted_df)
+
+# COMMAND ----------
+
+display(corrupted_df.groupBy("contigName").count())
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC 
+# MAGIC ##### create quarantine table in variant database
+
+# COMMAND ----------
+
+spark.sql("create database if not exists {}".format(variant_db_name))
+
+# COMMAND ----------
+
+deltaTable = (DeltaTable.createOrReplace(). \
+  tableName(variant_db_quarantine_table). \
+  location(output_pipe_quarantine). \
+  addColumns(corrupted_df.schema). \
+  execute())
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ##### run pipe transformer with quarantine
+
+# COMMAND ----------
+
+output_df = glow.transform("pipe", 
+                           corrupted_df, 
+                           cmd=cmd, 
+                           input_formatter='vcf', 
+                           in_vcf_header='infer', 
+                           output_formatter='vcf',
+                           quarantine_table=variant_db_quarantine_table,
+                           quarantine_flavor='delta'
+                          )
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ##### the output dataframe is missing variants
+
+# COMMAND ----------
+
+output_df.count()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ##### investigate the quarantine dataframe
+
+# COMMAND ----------
+
+quarantine_df = spark.table(variant_db_quarantine_table)
+quarantine_df = quarantine_df.join(output_df, ['contigName', 'start', 'end', 'referenceAllele', 'alternateAlleles'], "left_anti")
+display(quarantine_df)
+
+# COMMAND ----------
+
+display(quarantine_df.groupBy("contigName").count())

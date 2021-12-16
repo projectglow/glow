@@ -13,6 +13,8 @@
 import glow
 spark = glow.register(spark)
 
+from delta import DeltaTable
+
 import pyspark.sql.functions as fx
 from pyspark.sql.types import *
 
@@ -99,7 +101,7 @@ print("variables", json.dumps({
 
 # COMMAND ----------
 
-user = dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().apply('user')
+user=dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().apply('user')
 dbfs_home_path_str = "dbfs:/home/{}/".format(user)
 dbfs_fuse_home_path_str = "/dbfs/home/{}/".format(user)
 dbfs_home_path = Path("dbfs:/home/{}/".format(user))
@@ -243,7 +245,6 @@ quantitative_block_matrix_path = delta_path + 'quantitative_wgr_block_matrix.del
 quantitative_y_hat_path = pandas_path + str(n_quantitative_phenotypes) + '_quantitative_wgr_y_hat.csv'
 
 linear_gwas_results_path_confounded = delta_path + 'pvcf_linear_gwas_results_confounded.delta'
-
 linear_gwas_results_path = delta_path + 'pvcf_linear_gwas_results.delta'
 
 print("regression paths", json.dumps({
@@ -290,5 +291,57 @@ print("binary phenotype paths", json.dumps({
   "binary_sample_blocks_path": binary_sample_blocks_path,
   "binary_block_matrix_path": binary_block_matrix_path,
   "binary_gwas_results_path": binary_gwas_results_path
+}
+, indent=4))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ##### VEP annotation
+
+# COMMAND ----------
+
+input_delta_vep = simulate_prefix + '_variants_pvcf.delta'
+input_delta_vep_tmp = simulate_prefix + '_variants_pvcf_tmp.delta'
+
+output_vcf = simulate_prefix + '_variants_test.vcf'
+output_vcf_local = simulate_prefix_local + '_variants_test.vcf'
+os.environ['output_vcf_local'] = output_vcf_local
+
+annotated_vcf = simulate_prefix + '_variants_test_annotated.vcf'
+annotated_vcf_local = simulate_prefix_local + '_variants_test_annotated.vcf'
+os.environ['annotated_vcf_local'] = annotated_vcf_local
+
+
+variant_db_name = "variant_db"
+variant_db_quarantine_table = "variant_db.quarantine"
+
+output_vcf_corrupted = simulate_prefix + '_variants_test_corrupted.vcf'
+output_vcf_corrupted_local = simulate_prefix_local + '_variants_test_corrupted.vcf'
+os.environ['output_vcf_corrupted_local'] = output_vcf_corrupted_local
+
+output_pipe_vcf = simulate_prefix + '_variants_pvcf_annotated.vcf'
+output_pipe_quarantine = simulate_prefix + '_variants_pvcf_annotated_quarantined.delta'
+
+dircache_file_path = str(dbfs_home_path / ("genomics/reference"))
+dircache_file_path_local = str(dbfs_fuse_home_path / "genomics/reference")
+os.environ['dircache_file_path_local'] = dircache_file_path_local
+
+log_path = str(dbfs_fuse_home_path / 'genomics/data/logs/')
+os.environ['log_path'] = log_path
+
+print("VEP paths", json.dumps({
+  "output_vcf": output_vcf,
+  "output_vcf_local": output_vcf_local,
+  "annotated_vcf": annotated_vcf,
+  "annotated_vcf_local": annotated_vcf_local,
+  "output_vcf_corrupted": output_vcf_corrupted,
+  "variant_db name": variant_db_name,
+  "variant_db quarantine table": variant_db_quarantine_table,
+  "output_pipe_vcf": output_pipe_vcf,
+  "output_pipe_quarantine": output_pipe_quarantine,
+  "dircache_file_path": dircache_file_path,
+  "dircache_file_path_local": dircache_file_path_local,
+  "log_path": log_path
 }
 , indent=4))
