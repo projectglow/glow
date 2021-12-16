@@ -95,6 +95,10 @@ ENV PATH=${DEST_DIR}/samtools-{$SAMTOOLS_VERSION}:$PATH
 
 
 # ===== Set up htslib ==============================================================================
+# access htslib tools from the shell, for example,
+# %sh 
+# /opt/htslib-1.9/tabix
+# /opt/htslib-1.9/bgzip
 
 WORKDIR /opt
 RUN wget https://github.com/samtools/htslib/releases/download/${SAMTOOLS_VERSION}/htslib-${SAMTOOLS_VERSION}.tar.bz2 && \
@@ -103,6 +107,22 @@ WORKDIR htslib-1.9
 RUN ./configure && \
     make && \
     make install
+
+# ===== bgenix ==============================================================================
+#access begenix from the shell from,
+#/opt/bgen/build/apps/bgenix
+
+WORKDIR /opt
+RUN wget http://code.enkre.net/bgen/tarball/release/bgen.tgz && \
+    tar zxvf bgen.tgz && \
+    mv bgen.tgz bgen
+WORKDIR bgen
+RUN CXX=/usr/bin/g++ && \
+    CC=/usr/bin/gcc && \
+    ./waf configure && \
+    ./waf && \
+    ./build/test/unit/test_bgen && \
+    ./build/apps/bgenix -g example/example.16bits.bgen -list
 
 # ===== Set up MLR dependencies ====================================================================
 
