@@ -112,6 +112,11 @@ RUN ./configure && \
 #access begenix from the shell from,
 #/opt/bgen/build/apps/bgenix
 
+RUN apt-get update && apt-get install -y \
+    npm
+
+RUN npm install --save sqlite3
+
 WORKDIR /opt
 RUN wget http://code.enkre.net/bgen/tarball/release/bgen.tgz && \
     tar zxvf bgen.tgz && \
@@ -122,7 +127,7 @@ RUN CXX=/usr/bin/g++ && \
     ./waf configure && \
     ./waf && \
     ./build/test/unit/test_bgen && \
-    ./build/apps/bgenix -g example/example.16bits.bgen -list
+    ./build/apps/bgenix -g ./example/example.16bits.bgen -list
 
 # ===== Set up MLR dependencies ====================================================================
 
