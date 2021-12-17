@@ -2,7 +2,7 @@
 
 As of this time the following are supported: 
 
-* Glow 1.1.02 + Databricks Runtime (DBR) 9.1 (Spark 3.1)
+* Glow 1.1.2 + Databricks Runtime (DBR) 9.1 (Spark 3.1)
 * Hail 0.2.78 + DBR 9.1 (Spark 3.1)
 
 These Dockerfiles are built to run on Databricks, 
