@@ -2,11 +2,14 @@
 
 As of this time the following are supported: 
 
-* Glow 1.1.0 + Databricks Runtime (DBR) 9.1 (Spark 3.1)
-* Hail 0.2.76 + DBR 9.1 (Spark 3.1)
+* Glow 1.1.02 + Databricks Runtime (DBR) 9.1 (Spark 3.1)
+* Hail 0.2.78 + DBR 9.1 (Spark 3.1)
 
 These Dockerfiles are built to run on Databricks, 
 but can be adapted to run Glow & Hail in the open source,
+
+Note: Docker builds may run out of memory, please increase
+Docker's default memorry setting, which is 2.0 GB, via Preferences -> Resources -> Advanced.
 
 ### Build the docker images as follows:
 

@@ -9,6 +9,12 @@ RUN apt-get update \
     python3.8 \
     virtualenv \
     git-all \
+    make \
+    automake \
+    gcc \
+    g++ \
+    subversion \
+    python3-dev \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
