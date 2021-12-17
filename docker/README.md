@@ -9,7 +9,7 @@ These Dockerfiles are built to run on Databricks,
 but can be adapted to run Glow & Hail in the open source,
 
 Note: Docker builds may run out of memory, please increase
-the default from 2.0 GB via Preferences -> Resources -> Advanced.
+Docker's default memorry setting, which is 2.0 GB, via Preferences -> Resources -> Advanced.
 
 ### Build the docker images as follows:
 
