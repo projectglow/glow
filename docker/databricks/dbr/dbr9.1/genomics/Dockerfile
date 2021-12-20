@@ -112,6 +112,11 @@ RUN ./configure && \
 #access begenix from the shell from,
 #/opt/bgen/build/apps/bgenix
 
+RUN apt-get update && apt-get install -y \
+    npm
+
+RUN npm install --save sqlite3
+
 WORKDIR /opt
 RUN wget http://code.enkre.net/bgen/tarball/release/bgen.tgz && \
     tar zxvf bgen.tgz && \

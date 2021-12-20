@@ -10,12 +10,12 @@
   "libraries": [
     {
       "maven": {
-        "coordinates": "io.projectglow:glow-spark3_2.12:1.1.1"
+        "coordinates": "io.projectglow:glow-spark3_2.12:1.1.2"
       }
     },
     {
       "pypi": {
-        "package": "glow.py==1.1.1"
+        "package": "glow.py==1.1.2"
       }
     }
   ],
