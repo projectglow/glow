@@ -11,6 +11,10 @@
 
 # COMMAND ----------
 
+spark.conf.set("spark.sql.execution.arrow.maxRecordsPerBatch", 100)
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC ##### setup constants
 
@@ -20,16 +24,36 @@
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC 
-# MAGIC #### Prepare input paths.
-# MAGIC 
-# MAGIC Load data
+# MAGIC %run ../2_setup_metadata
 
 # COMMAND ----------
 
-base_variant_df = spark.read.format('delta').load(base_variants_path)
-variant_df = spark.read.format('delta').load(variants_path)
+method = 'linear'
+test = 'glowgr'
+library = 'glow'
+datetime = datetime.now(pytz.timezone('US/Pacific'))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC 
+# MAGIC #### Load data
+# MAGIC 
+# MAGIC for whole genome regression only 500k independent variants that are not in linkage disequilibrium with each other are required.
+# MAGIC 
+# MAGIC (~1/40th of the total variants tested for association)
+
+# COMMAND ----------
+
+spark.read.format('delta').load(variants_path). \
+                           sample(withReplacement=False, fraction=wgr_fraction, seed=3). \
+                           write.mode("overwrite").format("delta"). \
+                           save(variants_fraction_path)
+
+# COMMAND ----------
+
+start_time_wgr = time.time()
+variant_df = spark.read.format('delta').load(variants_fraction_path)
 
 # COMMAND ----------
 
@@ -39,7 +63,7 @@ variant_df = spark.read.format('delta').load(variants_path)
 
 # COMMAND ----------
 
-sample_ids = glow.wgr.get_sample_ids(base_variant_df)
+sample_ids = glow.wgr.get_sample_ids(variant_df)
 len(sample_ids)
 
 # COMMAND ----------
@@ -131,7 +155,12 @@ for label_df_chunk in chunk_columns(label_df, chunk_size):
 all_traits_loco_df = pd.concat(loco_estimates, axis='columns')
 all_traits_loco_df.to_csv(quantitative_y_hat_path)
 
+end_time_wgr = time.time()
+log_metadata(datetime, n_samples, n_variants, n_covariates, n_quantitative_phenotypes, method, test, library, spark_version, node_type_id, n_workers, start_time_wgr, end_time_wgr, run_metadata_delta_path)
+
 # COMMAND ----------
 
-test = pd.read_csv(quantitative_y_hat_path)
-test
+adjusted_phenotypes = pd.read_csv(quantitative_y_hat_path, 
+                                  dtype={'sample_id': str}, 
+                                  index_col='sample_id')
+adjusted_phenotypes

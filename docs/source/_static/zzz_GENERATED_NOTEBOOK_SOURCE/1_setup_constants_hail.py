@@ -38,12 +38,8 @@ from datetime import datetime
 
 # COMMAND ----------
 
-#genotype matrix
-n_samples = 50000
-n_variants = 1000
-
 #partitions
-n_partitions_hail = 5 #match to glow, however this may not be optimal for hail so can be configured
+n_partitions_hail = n_partitions #match to glow, however this may not be optimal for hail so can be configured
 
 # COMMAND ----------
 
@@ -57,7 +53,6 @@ n_partitions_hail = 5 #match to glow, however this may not be optimal for hail s
 
 # COMMAND ----------
 
-user=dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().apply('user')
 dbfs_home_path_str = "dbfs:/home/{}/".format(user)
 dbfs_home_path = Path("dbfs:/home/{}/".format(user))
 

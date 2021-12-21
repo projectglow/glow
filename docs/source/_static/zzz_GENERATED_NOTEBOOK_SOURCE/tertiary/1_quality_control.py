@@ -5,22 +5,13 @@
 # MAGIC 
 # MAGIC By running glow transform functions `split_multiallelics`, `mean_substitute`, and `genotype_states`
 # MAGIC 
+# MAGIC Important: please checkpoint to parquet/delta after each step in this process
+# MAGIC 
 # MAGIC Then filter,
 # MAGIC 
 # MAGIC 1. monomorphic variants using `array_distinct`
 # MAGIC 2. allele frequency
 # MAGIC 3. hardy weinberg equilibrium
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ##### adjust spark confs
-# MAGIC 
-# MAGIC see [split-multiallelics](https://glow.readthedocs.io/en/latest/etl/variant-splitter.html#split-multiallelics) docs
-
-# COMMAND ----------
-
-spark.conf.set("spark.sql.codegen.wholeStage", False)
 
 # COMMAND ----------
 
@@ -36,11 +27,30 @@ spark.conf.set("spark.sql.codegen.wholeStage", False)
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ##### adjust spark confs
+# MAGIC 
+# MAGIC see [split-multiallelics](https://glow.readthedocs.io/en/latest/etl/variant-splitter.html#split-multiallelics) docs
+
+# COMMAND ----------
+
+spark.conf.set("spark.sql.codegen.wholeStage", False)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ##### Define QC steps
+
+# COMMAND ----------
+
 method = 'quality_control'
-test = 'split_multiallelics-mean_substitute-genotype_states-filter'
+step1 = 'split_multiallelics'
+step2 = 'left_normalize_indels'
+step3 = 'mean_substitute'
+step4 = 'call_summary_stats'
+step5 = 'variant_filter'
 library = 'glow'
 datetime = datetime.now(pytz.timezone('US/Pacific'))
-start_time = time.time()
 
 # COMMAND ----------
 
@@ -85,22 +95,95 @@ dbutils.fs.mkdirs(output_hwe_path)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ##### prepare simulated delta table for GWAS
+# MAGIC ##### split simulated data
+# MAGIC 
+# MAGIC 1. biallelic SNPs
+# MAGIC 2. multiallelic variants
+# MAGIC 3. indels
 
 # COMMAND ----------
 
 delta_vcf = spark.read.format("delta").load(output_delta)
-delta_gwas_vcf = (glow.transform('split_multiallelics', delta_vcf). \
-                  withColumn('values', glow.mean_substitute(glow.genotype_states('genotypes'))). \
-                  filter(fx.size(fx.array_distinct('values')) > 1)
-                 )
+
+# COMMAND ----------
+
+display(delta_vcf.drop("genotypes"))
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ##### perform quality control using glow helper functions
+# MAGIC ##### split multiallelics
+# MAGIC 
+# MAGIC write out biallelics and split multiallelics
 
 # COMMAND ----------
+
+start_time = time.time()
+multiallelic_df = delta_vcf.where(fx.size(fx.col("alternateAlleles")) > 1)
+multiallelic_df = glow.transform('split_multiallelics', multiallelic_df)
+bialleleic_df = delta_vcf.where(fx.size(fx.col("alternateAlleles")) == 1)
+
+multiallelic_df.write.mode("overwrite").format("delta").save(output_delta_split_multiallelics)
+bialleleic_df.write.mode("append").format("delta").save(output_delta_split_multiallelics)
+
+end_time = time.time()
+log_metadata(datetime, n_samples, n_variants, 0, 0, 'etl', step1, library, spark_version, node_type_id, n_workers, start_time, end_time, run_metadata_delta_path)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ##### extract indels and left-normalize
+
+# COMMAND ----------
+
+start_time = time.time()
+split_multiallelic_df = spark.read.format("delta").load(output_delta_split_multiallelics)
+indels_df = split_multiallelic_df.where((fx.length("referenceAllele") > 1) | (fx.length(fx.col("alternateAlleles")[0]) > 1))
+snps_df = split_multiallelic_df.where((fx.length("referenceAllele") == 1) & (fx.length(fx.col("alternateAlleles")[0]) == 1))
+
+normalized_variants_df = glow.transform(
+  "normalize_variants",
+  indels_df,
+  reference_genome_path=reference_genome_path
+)
+
+num_variants_changed = normalized_variants_df.where(fx.col("normalizationStatus.changed") == True).count()
+
+print("number of variants left normalized = " + str(num_variants_changed))
+
+snps_df.write.mode("overwrite").format("delta").save(output_delta_split_multiallelics_normalize)
+normalized_variants_df.drop("normalizationStatus"). \
+                       write.mode("append").format("delta"). \
+                       save(output_delta_split_multiallelics_normalize)
+
+end_time = time.time()
+log_metadata(datetime, n_samples, n_variants, 0, 0, 'etl', step2, library, spark_version, node_type_id, n_workers, start_time, end_time, run_metadata_delta_path)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ##### prepare simulated delta table for GWAS using glow transformers
+
+# COMMAND ----------
+
+start_time = time.time()
+delta_vcf = spark.read.format("delta").load(output_delta_split_multiallelics_normalize)
+delta_gwas_vcf = (delta_vcf.withColumn('values', glow.mean_substitute(glow.genotype_states('genotypes'))). \
+                  filter(fx.size(fx.array_distinct('values')) > 1)
+                 )
+delta_gwas_vcf.write.mode("overwrite").format("delta").save(output_delta_glow_qc_transformers)
+end_time = time.time()
+log_metadata(datetime, n_samples, n_variants, 0, 0, 'etl', step3, library, spark_version, node_type_id, n_workers, start_time, end_time, run_metadata_delta_path)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ##### perform variant-level quality control using glow helper functions
+
+# COMMAND ----------
+
+start_time = time.time()
+delta_gwas_vcf = spark.read.format("delta").load(output_delta_glow_qc_transformers)
 
 summary_stats_df = delta_gwas_vcf.select(
     fx.expr("*"),
@@ -108,6 +191,10 @@ summary_stats_df = delta_gwas_vcf.select(
     glow.expand_struct(glow.hardy_weinberg(fx.col("genotypes")))
   ). \
     withColumn("log10pValueHwe", fx.when(fx.col("pValueHwe") == 0, 26).otherwise(-fx.log10(fx.col("pValueHwe"))))
+summary_stats_df.drop("genotypes").write.mode("overwrite").format("delta").save(output_delta_glow_qc_variants)
+
+end_time = time.time()
+log_metadata(datetime, n_samples, n_variants, 0, 0, method, step4, library, spark_version, node_type_id, n_workers, start_time, end_time, run_metadata_delta_path)
 
 # COMMAND ----------
 
@@ -132,29 +219,19 @@ display(plot_histogram(df=summary_stats_df.select("log10pValueHwe"),
 
 # COMMAND ----------
 
+start_time = time.time()
+variant_filter_df = spark.read.format("delta").load(output_delta_glow_qc_variants)
+
 variant_filter_df = summary_stats_df.where((fx.col("alleleFrequencies").getItem(0) >= allele_freq_cutoff) & 
                                            (fx.col("alleleFrequencies").getItem(0) <= (1.0 - allele_freq_cutoff)) &
                                            (fx.col("pValueHwe") >= hwe_cutoff)
                                           )
 
-# COMMAND ----------
-
 variant_filter_df.write.option("overwriteSchema", "true").mode("overwrite").format("delta").save(output_delta_transformed)
+
+end_time = time.time()
+log_metadata(datetime, n_samples, n_variants, 0, 0, method, step5, library, spark_version, node_type_id, n_workers, start_time, end_time, run_metadata_delta_path)
 
 # COMMAND ----------
 
 spark.read.format('delta').load(output_delta_transformed).count()
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ##### log metadata
-
-# COMMAND ----------
-
-end_time = time.time()
-runtime = float("{:.2f}".format((end_time - start_time)))
-
-l = [(datetime, n_samples, n_variants, n_covariates, n_binary_phenotypes, method, test, library, spark_version, node_type_id, n_workers, runtime)]
-run_metadata_delta_df = spark.createDataFrame(l, schema=schema)
-run_metadata_delta_df.write.mode("append").format("delta").save(run_metadata_delta_path)

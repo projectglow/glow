@@ -2,7 +2,7 @@
 
 FROM projectglow/genomics:9.1 AS builder
 
-ENV GLOW_VERSION=1.1.1
+ENV GLOW_VERSION=1.1.2
 
 # ===== Install python dependencies for Glow =======================================================
 # once available, we want specify that the earliest version is 1.1.0

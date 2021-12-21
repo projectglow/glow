@@ -16,6 +16,22 @@
 
 # COMMAND ----------
 
+# MAGIC %run ../2_setup_metadata
+
+# COMMAND ----------
+
+method = 'etl'
+test = 'hail_to_glow'
+library = 'glow'
+datetime = datetime.now(pytz.timezone('US/Pacific'))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ##### read in matrix table
+
+# COMMAND ----------
+
 mt = hl.read_matrix_table(hail_matrix_table_outpath)
 mt.show(5)
 
@@ -30,6 +46,7 @@ mt.count()
 
 # COMMAND ----------
 
+start_time = time.time()
 df = functions.from_matrix_table(mt, include_sample_ids=True)
 
 # COMMAND ----------
@@ -45,14 +62,21 @@ df.write.format("delta") \
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ##### log runtime
+
+# COMMAND ----------
+
+end_time = time.time()
+log_metadata(datetime, n_samples, n_variants, 0, 0, method, test, library, spark_version, node_type_id, n_workers, start_time, end_time, run_metadata_delta_path)
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ##### read back in, view and count dataframe
 
 # COMMAND ----------
 
 df2 = spark.read.format("delta").load(delta_table_outpath)
-
-# COMMAND ----------
-
 display(df2.drop("genotypes"))
 
 # COMMAND ----------

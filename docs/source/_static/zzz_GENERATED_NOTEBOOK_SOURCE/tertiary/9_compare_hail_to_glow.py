@@ -112,7 +112,7 @@ def explode_ht_to_df_logistic(result_table, phenotypes):
 # COMMAND ----------
 
 quantitative_phenotype_df = spark.createDataFrame(pd.read_csv(quantitative_phenotypes_path).set_index("sample_id", drop=False)). \
-                     withColumn("sample_id", fx.col("sample_id").cast(StringType()))
+                                  withColumn("sample_id", fx.col("sample_id").cast(StringType()))
 quantitative_phenotypes = quantitative_phenotype_df.columns[1:]
 
 # COMMAND ----------

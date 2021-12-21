@@ -2,7 +2,7 @@
   "new_cluster": {
     "spark_version": "9.1.x-scala2.12",
     "node_type_id": "Standard_DS3_v2",
-    "num_workers": 2,
+    "num_workers": 4,
     "docker_image": {
         "url": "projectglow/databricks-hail:0.2.78"
     }
@@ -10,12 +10,12 @@
   "libraries": [
     {
       "maven": {
-        "coordinates": "io.projectglow:glow-spark3_2.12:1.1.1"
+        "coordinates": "io.projectglow:glow-spark3_2.12:1.1.2"
       }
     },
     {
       "pypi": {
-        "package": "glow.py==1.1.1"
+        "package": "glow.py==1.1.2"
       }
     }
   ],
