@@ -48,12 +48,6 @@ RUN apt-get update && apt-get install -y \
     libxml2 \
     libxml2-dev 
 
-# ===== Set up R genomics packages =================================================================
-
-RUN R -e "install.packages('sim1000G',dependencies=TRUE,repos='https://cran.rstudio.com')"\
- && R -e "install.packages('ukbtools',dependencies=TRUE,repos='https://cran.rstudio.com')"\
- && R -e "install.packages('qqman',dependencies=TRUE,repos='http://cran.us.r-project.org')"\
- && R -e "install.packages('bigsnpr',dependencies=TRUE,repos='http://cran.us.r-project.org')"
 
 # ===== Set up VEP environment =====================================================================
 
@@ -133,6 +127,13 @@ RUN CXX=/usr/bin/g++ && \
 
 ENV QQMAN_VERSION=1.0.6
 RUN /databricks/python3/bin/pip install qqman==$QQMAN_VERSION
+
+# ===== Set up R genomics packages =================================================================
+
+RUN R -e "install.packages('sim1000G',dependencies=TRUE,repos='https://cran.rstudio.com')"\
+ && R -e "install.packages('bigsnpr',dependencies=TRUE,repos='http://cran.us.r-project.org')"\
+ && R -e "install.packages('ukbtools',dependencies=TRUE,repos='https://cran.rstudio.com')"\
+ && R -e "install.packages('qqman',dependencies=TRUE,repos='http://cran.us.r-project.org')"
 
 # ===== Reset current directory ====================================================================
 
