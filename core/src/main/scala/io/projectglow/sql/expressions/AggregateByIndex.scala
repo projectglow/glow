@@ -145,6 +145,9 @@ trait UnwrappedAggregateFunction extends AggregateFunction {
   def asWrapped: AggregateFunction
 }
 
+override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): Expression =
+  super.legacyWithNewChildren(newChildren)
+
 case class UnwrappedAggregateByIndex(
     arr: Expression,
     initialValue: Expression,
@@ -157,9 +160,6 @@ case class UnwrappedAggregateByIndex(
   def this(arr: Expression, initialValue: Expression, update: Expression, merge: Expression) = {
     this(arr, initialValue, update, merge, LambdaFunction.identity)
   }
-
-  override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): Expression =
-    super.legacyWithNewChildren(newChildren)
 
   override def prettyName: String = "unwrapped_aggregate_by_index"
 
