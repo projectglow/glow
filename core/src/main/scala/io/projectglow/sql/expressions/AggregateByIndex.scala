@@ -143,10 +143,9 @@ trait AggregateByIndex extends DeclarativeAggregate with HigherOrderFunction {
  */
 trait UnwrappedAggregateFunction extends AggregateFunction {
   def asWrapped: AggregateFunction
+  override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): Expression =
+    super.legacyWithNewChildren(newChildren)
 }
-
-override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): Expression =
-  super.legacyWithNewChildren(newChildren)
 
 case class UnwrappedAggregateByIndex(
     arr: Expression,
