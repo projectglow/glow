@@ -169,7 +169,7 @@ ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDepe
   "org.jdbi" % "jdbi" % "2.63.1",
   "com.github.broadinstitute" % "picard" % "2.21.9",
   // Fix versions of libraries that are depended on multiple times
-  "org.apache.hadoop" % "hadoop-client" % "2.7.3",
+  "org.apache.hadoop" % "hadoop-client" % "3.3.1",
   "io.netty" % "netty" % "3.9.9.Final",
   "io.netty" % "netty-all" % "4.1.17.Final",
   "com.github.samtools" % "htsjdk" % "2.21.2",
