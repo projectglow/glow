@@ -9,11 +9,10 @@ However, building robust data engineering pipelines requires the use of database
 And for computational biology / bioinformatics use cases it also requires support for not only SQL, but also Python, R, and command-line bioinformatics tools.
 
 The example below shows how to ingest a VCF into a genomics `Delta Lake table <https://delta.io>`_ using Glow.
-Delta Lake supports Scala, Python, R and SQL, and with the :ref:`Glow Pipe Transformer <pipe-transformer>`, 
-bioinformatics tools can also be integrated into your data pipeline.
+Delta Lake supports Scala, Python, R and SQL. Bioinformatics tools can also be integrated into your data pipeline with the :ref:`Glow Pipe Transformer <pipe-transformer>`.
 
 The example explodes a project-level VCF (pVCF) with many genotypes per row (represented as an array of structs),
-into a form with one genotype and one variant per row. In this representation Delta Lake can efficiently query at the genotype or gene level.
+into a form with one genotype and one variant per row. In this representation Delta Lake can be efficiently queried at the genotype or gene level.
 
 Then we will register the Delta Lake as a Spark SQL table, perform point queries, and then gene-level queries using annotation data from the :ref:`gff <gff>` demo.
 
