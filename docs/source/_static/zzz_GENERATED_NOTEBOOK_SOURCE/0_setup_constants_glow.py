@@ -157,8 +157,12 @@ vcfs_path = str(dbfs_home_path / "genomics/data/1kg-vcfs-autosomes")
 vcfs_path_local = str(dbfs_fuse_home_path / "genomics/data/1kg-vcfs-autosomes")
 
 os.environ['vcfs_path_local'] = vcfs_path_local
+
+simulate_prefix = str(dbfs_home_path / f"genomics/data/delta/simulate_{n_samples}_samples_{n_variants}")
+simulate_prefix_local = str(dbfs_fuse_home_path / f"genomics/data/delta/simulate_{n_samples}_samples_{n_variants}") 
+
 output_vcf_delta = str(dbfs_home_path / f'genomics/data/delta/1kg_variants_pvcf.delta')
-output_simulated_delta = str(dbfs_home_path / f'genomics/data/delta/simulate_{n_samples}_samples_{n_variants}_variants_pvcf.delta')
+output_simulated_delta = simulate_prefix + '_variants_pvcf.delta'
 
 print("genotype simulation paths", json.dumps({
   "output_vcf_delta": output_vcf_delta,
@@ -173,11 +177,6 @@ print("genotype simulation paths", json.dumps({
 
 # COMMAND ----------
 
-simulate_prefix = str(dbfs_home_path / f"genomics/data/delta/simulate_{n_samples}_samples_{n_variants}")
-
-simulate_prefix_local = str(dbfs_fuse_home_path / f"genomics/data/delta/simulate_{n_samples}_samples_{n_variants}") 
-
-output_delta = simulate_prefix + '_variants_pvcf.delta'
 output_delta_tmp = simulate_prefix + '_variants_pvcf_tmp.delta'
 output_vcf = simulate_prefix + '_variants_pvcf.vcf.bgz'
 output_vcf_small = simulate_prefix + '_variants_pvcf_test.vcf'
@@ -186,7 +185,7 @@ output_vcf_local = simulate_prefix_local + '_variants_pvcf_test.vcf'
 os.environ["output_vcf"] = output_vcf_local
 
 print("delta to vcf paths", json.dumps({
-  "output_delta": output_delta,
+  "output_delta_tmp": output_delta_tmp,
   "output_vcf": output_vcf,
   "output_vcf_small": output_vcf_small,
   "output_vcf_local": output_vcf_local
@@ -213,7 +212,6 @@ output_hwe_path = str(dbfs_home_path / f"genomics/data/results")
 output_hwe_plot = str(dbfs_fuse_home_path / f"genomics/data/results/simulate_{n_samples}_samples_{n_variants}_hwe.png")
 
 print("quality control paths", json.dumps({
-  "output_delta": output_delta,
   "output_delta_glow_qc_transformers": output_delta_glow_qc_transformers,
   "output_delta_glow_qc_variants": output_delta_glow_qc_variants,
   "output_delta_transformed": output_delta_transformed,
@@ -286,8 +284,8 @@ binary_gwas_results_path = delta_path + 'simulate_pvcf_firth_gwas_results.delta'
 
 
 print("binary phenotype paths", json.dumps({
-  "quantitative_phenotypes_path": quantitative_phenotypes_path,
-  "output_quantitative_offset": output_quantitative_offset,
+  "binary_phenotypes_path": quantitative_phenotypes_path,
+  "output_binary_offset": output_quantitative_offset,
   "binary_sample_blocks_path": binary_sample_blocks_path,
   "binary_block_matrix_path": binary_block_matrix_path,
   "binary_gwas_results_path": binary_gwas_results_path
@@ -304,9 +302,9 @@ print("binary phenotype paths", json.dumps({
 input_delta_vep = simulate_prefix + '_variants_pvcf.delta'
 input_delta_vep_tmp = simulate_prefix + '_variants_pvcf_tmp.delta'
 
-output_vcf = simulate_prefix + '_variants_test.vcf'
-output_vcf_local = simulate_prefix_local + '_variants_test.vcf'
-os.environ['output_vcf_local'] = output_vcf_local
+output_vcf_vep = simulate_prefix + '_variants_test.vcf'
+output_vcf_vep_local = simulate_prefix_local + '_variants_test.vcf'
+os.environ['output_vcf_vep_local'] = output_vcf_vep_local
 
 annotated_vcf = simulate_prefix + '_variants_test_annotated.vcf'
 annotated_vcf_local = simulate_prefix_local + '_variants_test_annotated.vcf'
@@ -324,6 +322,7 @@ output_pipe_vcf = simulate_prefix + '_variants_pvcf_annotated.vcf'
 output_pipe_quarantine = simulate_prefix + '_variants_pvcf_annotated_quarantined.delta'
 
 dircache_file_path = str(dbfs_home_path / ("genomics/reference"))
+dbutils.fs.mkdirs(dircache_file_path)
 dircache_file_path_local = str(dbfs_fuse_home_path / "genomics/reference")
 os.environ['dircache_file_path_local'] = dircache_file_path_local
 
@@ -343,5 +342,21 @@ print("VEP paths", json.dumps({
   "dircache_file_path": dircache_file_path,
   "dircache_file_path_local": dircache_file_path_local,
   "log_path": log_path
+}
+, indent=4))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ##### exploded variant dataframe
+
+# COMMAND ----------
+
+output_exploded_delta = str(dbfs_home_path / f'genomics/data/delta/explode_{n_samples}_samples_{n_variants}_variants_pvcf.delta')
+gff_annotations = str(dbfs_home_path / f'genomics/data/delta/gff_annotations.delta')
+
+print("exploded genotype paths", json.dumps({
+  "output_exploded_delta": output_exploded_delta,
+  "gff_annotations": gff_annotations
 }
 , indent=4))
