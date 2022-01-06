@@ -23,6 +23,7 @@ import java.util.concurrent.atomic.AtomicReference
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.io.Source
+import scala.util.{Failure, Success, Try}
 
 import org.apache.spark.TaskContext
 import org.apache.spark.rdd.RDD
@@ -30,6 +31,7 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, Row, SQLUtils, SparkSession}
 import org.apache.spark.storage.StorageLevel
+import org.apache.spark.util.CollectionAccumulator
 
 import io.projectglow.common.{GlowLogging, WithUtils}
 
@@ -57,7 +59,7 @@ private[projectglow] object Piper extends GlowLogging {
 
   // Pipes a single row of the input DataFrame to get the output schema before piping all of it.
   def pipe(
-      informatter: InputFormatter,
+      informatter: InputFormatter[_],
       outputformatter: OutputFormatter,
       cmd: Seq[String],
       env: Map[String, String],
@@ -77,13 +79,24 @@ private[projectglow] object Piper extends GlowLogging {
       rawRdd
     }
 
+    val errorPartitionData: Option[CollectionAccumulator[Any]] = Try {
+      val ctx = inputRdd.context
+      val acc = ctx.collectionAccumulator[Any]("errorPartitionData")
+      acc
+    } match {
+      case Success(ful) => Some(ful)
+      case Failure(t) =>
+        t.printStackTrace()
+        None
+    }
+
     // Each partition consists of an iterator with the schema, followed by [[InternalRow]]s with the
     // schema
     val schemaInternalRowRDD = inputRdd.mapPartitions { it =>
       if (it.isEmpty) {
         Iterator.empty
       } else {
-        new PipeIterator(cmd, env, it, informatter, outputformatter)
+        new PipeIterator(cmd, env, it, informatter, outputformatter, errorPartitionData)
       }
     }.persist(StorageLevel.DISK_ONLY)
 
@@ -93,22 +106,22 @@ private[projectglow] object Piper extends GlowLogging {
 
     // Quarantining is potentially very wasteful due to the throw-based control
     // flow implemented at the level below.
-    quarantineInfo.foreach { quarantineInfo =>
-      try {
-        schemaInternalRowRDD.mapPartitions { it =>
-          if (it.nonEmpty) {
-            val result = if (it.asInstanceOf[PipeIterator].error) {
-              Iterator(true)
-            } else {
-              Iterator.empty
-            }
-            result
-          } else {
-            Iterator.empty
-          }
-        }.filter(identity).take(1).nonEmpty
-      } catch { case _: Throwable => quarantineInfo.flavor.quarantine(quarantineInfo) }
-    }
+//    quarantineInfo.foreach { quarantineInfo =>
+//      try {
+//        schemaInternalRowRDD.mapPartitions { it =>
+//          if (it.nonEmpty) {
+//            val result = if (it.asInstanceOf[PipeIterator].error) {
+//              Iterator(true)
+//            } else {
+//              Iterator.empty
+//            }
+//            result
+//          } else {
+//            Iterator.empty
+//          }
+//        }.filter(identity).take(1).nonEmpty
+//      } catch { case _: Throwable => quarantineInfo.flavor.quarantine(quarantineInfo) }
+//    }
 
     val schemaSeq = schemaInternalRowRDD.mapPartitions { it =>
       if (it.hasNext) {
@@ -118,17 +131,53 @@ private[projectglow] object Piper extends GlowLogging {
       }
     }.collect.distinct
 
-    if (schemaSeq.length != 1) {
-      throw new IllegalStateException(
-        s"Cannot infer schema: saw ${schemaSeq.length} distinct schemas.")
-    }
+    errorPartitionData.flatMap { errorPartitionData =>
+      import collection.JavaConverters._
+      val data = errorPartitionData.value.asScala
+      if (data.nonEmpty) {
+        Some(data)
+      } else {
+        None
+      }
+    } match {
+      case None => // OK
+        if (schemaSeq.length != 1) {
+          throw new IllegalStateException(
+            s"Cannot infer schema: saw ${schemaSeq.length} distinct schemas.")
+        }
 
-    val schema = schemaSeq.head
-    val internalRowRDD = schemaInternalRowRDD.mapPartitions { it =>
-      it.drop(1).asInstanceOf[Iterator[InternalRow]]
-    }
+        val schema = schemaSeq.head
+        val internalRowRDD = schemaInternalRowRDD.mapPartitions { it =>
+          it.drop(1).asInstanceOf[Iterator[InternalRow]]
+        }
 
-    SQLUtils.internalCreateDataFrame(df.sparkSession, internalRowRDD, schema, isStreaming = false)
+        SQLUtils.internalCreateDataFrame(
+          df.sparkSession,
+          internalRowRDD,
+          schema,
+          isStreaming = false)
+      case Some(errorPartitionData) =>
+        val (data, exception) = errorPartitionData.partition {
+          case a: InternalRow =>
+            true
+          case _ =>
+            false
+        }
+        quarantineInfo.foreach { quarantineInfo =>
+          val failedPartitions = data.map(_.asInstanceOf[InternalRow])
+          val failedRDD = schemaInternalRowRDD.context.parallelize(failedPartitions)
+          val failedDataframe =
+            SQLUtils.internalCreateDataFrame(
+              df.sparkSession,
+              failedRDD,
+              df.schema,
+              isStreaming = false)
+          quarantineInfo.flavor.quarantine(quarantineInfo.copy(df = failedDataframe))
+        }
+
+        val ex = exception.head.asInstanceOf[Throwable]
+        throw new org.apache.spark.SparkException("Could not process data. " + ex.getMessage(), ex)
+    }
   }
 }
 
@@ -212,8 +261,9 @@ class PipeIterator(
     cmd: Seq[String],
     environment: Map[String, String],
     _input: Iterator[InternalRow],
-    inputFormatter: InputFormatter,
-    outputFormatter: OutputFormatter)
+    inputFormatter: InputFormatter[_],
+    outputFormatter: OutputFormatter,
+    errorPartitionData: Option[CollectionAccumulator[Any]] = None)
     extends Iterator[Any] {
   import PipeIterator.illegalStateException
 
@@ -235,7 +285,11 @@ class PipeIterator(
     } else {
       val exitStatus = processHelper.waitForProcess()
       if (exitStatus != 0) {
-        throw illegalStateException(s"Subprocess exited with status $exitStatus")
+        errorPartitionData.foreach { errorPartitionData =>
+          input.foreach(errorPartitionData.add)
+          errorPartitionData.add(
+            illegalStateException(s"Subprocess exited with status $exitStatus"))
+        }
       }
       false
     }
@@ -270,7 +324,7 @@ object PipeIterator {
   }
   final case object QuarantineWriterCsv extends QuarantineWriter {
     override def quarantine(qi: QuarantineInfo): Unit = {
-      val df = qi.df.write.mode("append").csv(qi.location)
+      qi.df.write.mode("append").csv(qi.location)
     }
   }
 

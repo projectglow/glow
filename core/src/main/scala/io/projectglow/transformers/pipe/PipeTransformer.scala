@@ -44,7 +44,7 @@ class PipeTransformer extends DataFrameTransformer {
 
     import PipeTransformer._
 
-    private def getInputFormatter: InputFormatter = {
+    private def getInputFormatter: InputFormatter[_] = {
       val inputFormatterStr = options.getOrElse(
         INPUT_FORMATTER_KEY,
         throw new IllegalArgumentException("Missing pipe input formatter."))
@@ -169,7 +169,7 @@ object PipeTransformer {
   private lazy val outputFormatterLoader = ServiceLoader.load(classOf[OutputFormatterFactory])
 }
 
-trait InputFormatter extends Serializable with Closeable {
+trait InputFormatter[A] extends Serializable with Closeable {
 
   /**
    * Initialize the input formatter based on the outstream (i.e., the subprocess's stdout).
@@ -185,11 +185,17 @@ trait InputFormatter extends Serializable with Closeable {
    */
   def write(record: InternalRow): Unit
 
+  /**
+   * Converts DataFrame record into something writable.
+   * @param record
+   */
+  def value(record: InternalRow): A
+
   def close(): Unit
 }
 
 trait InputFormatterFactory extends Named {
-  def makeInputFormatter(df: DataFrame, options: Map[String, String]): InputFormatter
+  def makeInputFormatter(df: DataFrame, options: Map[String, String]): InputFormatter[_]
 }
 
 trait OutputFormatter extends Serializable {

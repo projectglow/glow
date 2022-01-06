@@ -132,14 +132,14 @@ class PipeTransformerSuite extends GlowBaseTest {
 
     val sess = spark
     import sess.implicits._
-    val inputDf = Seq("monkey", "dolphin").toDF
+    val inputDf = Seq("monkey", "dolphin", "unicorn", "narwhal").toDF
     val testTable = s"default.test_test_test"
     val options = Map(
       "inputFormatter" -> "text",
       "outputFormatter" -> "text",
       "quarantineTable" -> testTable,
       "quarantineFlavor" -> "csv",
-      "cmd" -> Seq("python", "identity.py", "2"))
+      "cmd" -> Seq("python", "identity.py", "1"))
     val exc = intercept[org.apache.spark.SparkException] {
       Glow.transform("pipe", inputDf, options).as[String].head
     }
@@ -159,15 +159,19 @@ class PipeTransformerSuite extends GlowBaseTest {
 class DummyInputFormatterFactory() extends InputFormatterFactory {
   def name: String = "dummy_in"
 
-  override def makeInputFormatter(df: DataFrame, options: Map[String, String]): InputFormatter = {
+  override def makeInputFormatter(
+      df: DataFrame,
+      options: Map[String, String]): InputFormatter[_] = {
     new DummyInputFormatter()
   }
 }
 
-class DummyInputFormatter() extends InputFormatter {
+class DummyInputFormatter() extends InputFormatter[Unit] {
   override def close(): Unit = ()
 
   override def write(record: InternalRow): Unit = ()
+
+  override def value(record: InternalRow): Unit = ()
 
   override def init(stream: OutputStream): Unit = ()
 }

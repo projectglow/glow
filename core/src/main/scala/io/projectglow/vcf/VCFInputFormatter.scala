@@ -16,6 +16,8 @@
 
 package io.projectglow.vcf
 
+import htsjdk.variant.variantcontext.VariantContext
+
 import java.io.OutputStream
 
 import scala.collection.JavaConverters._
@@ -30,7 +32,7 @@ import io.projectglow.transformers.pipe.{InputFormatter, InputFormatterFactory}
  * An input formatter that writes rows as VCF records.
  */
 class VCFInputFormatter(converter: InternalRowToVariantContextConverter, sampleIdInfo: SampleIdInfo)
-    extends InputFormatter
+    extends InputFormatter[Option[VariantContext]]
     with GlowLogging {
 
   private var writer: VCFStreamWriter = _
@@ -46,7 +48,11 @@ class VCFInputFormatter(converter: InternalRowToVariantContextConverter, sampleI
   }
 
   override def write(record: InternalRow): Unit = {
-    converter.convert(record).foreach(writer.write)
+    value(record).foreach(writer.write)
+  }
+
+  override def value(record: InternalRow): Option[VariantContext] = {
+    converter.convert(record)
   }
 
   override def close(): Unit = {
@@ -58,7 +64,9 @@ class VCFInputFormatter(converter: InternalRowToVariantContextConverter, sampleI
 class VCFInputFormatterFactory extends InputFormatterFactory {
   override def name: String = "vcf"
 
-  override def makeInputFormatter(df: DataFrame, options: Map[String, String]): InputFormatter = {
+  override def makeInputFormatter(
+      df: DataFrame,
+      options: Map[String, String]): InputFormatter[Option[VariantContext]] = {
     val (headerLineSet, sampleIdInfo) =
       VCFHeaderUtils.parseHeaderLinesAndSamples(
         options,
