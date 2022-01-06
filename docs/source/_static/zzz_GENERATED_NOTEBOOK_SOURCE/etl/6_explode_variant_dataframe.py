@@ -42,7 +42,7 @@ vcf_df.count()
 
 # COMMAND ----------
 
-display(vcf_df)
+display(vcf_df.drop("genotypes"))
 
 # COMMAND ----------
 

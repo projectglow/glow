@@ -101,7 +101,7 @@ print("variables", json.dumps({
 
 # COMMAND ----------
 
-user=dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().apply('user')
+user = dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().apply('user')
 dbfs_home_path_str = "dbfs:/home/{}/".format(user)
 dbfs_fuse_home_path_str = "/dbfs/home/{}/".format(user)
 dbfs_home_path = Path("dbfs:/home/{}/".format(user))
@@ -199,7 +199,7 @@ print("delta to vcf paths", json.dumps({
 
 # COMMAND ----------
 
-reference_genome_path = '/dbfs/databricks-datasets/genomics/grch38/data/GRCh38_full_analysis_set_plus_decoy_hla.fa'
+reference_genome_path = "/dbfs/databricks-datasets/genomics/grch37/data/human_g1k_v37.fa"
 output_delta_split_multiallelics = simulate_prefix + "_variants_pvcf_glow_qc_split_multiallelics.delta"
 output_delta_split_multiallelics_normalize = simulate_prefix + "_variants_pvcf_glow_qc_normalize_indels.delta"
 

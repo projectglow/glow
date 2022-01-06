@@ -25,6 +25,20 @@ datetime = datetime.now(pytz.timezone('US/Pacific'))
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ##### set spark configurations
+# MAGIC 
+# MAGIC to avoid `multi part upload` failure sometimes observed with Hail
+
+# COMMAND ----------
+
+spark.conf.set("spark.hadoop.fs.s3a.multipart.threshold", 2097152000)
+spark.conf.set("spark.hadoop.fs.s3a.multipart.size", 104857600)
+spark.conf.set("spark.hadoop.fs.s3a.connection.maximum", 500)
+spark.conf.set("spark.hadoop.fs.s3a.connection.timeout", 600000)
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ##### prepare hail matrix table
 
 # COMMAND ----------

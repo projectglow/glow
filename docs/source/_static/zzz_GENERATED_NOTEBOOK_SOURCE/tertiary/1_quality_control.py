@@ -103,7 +103,7 @@ dbutils.fs.mkdirs(output_hwe_path)
 
 # COMMAND ----------
 
-delta_vcf = spark.read.format("delta").load(output_delta)
+delta_vcf = spark.read.format("delta").load(output_simulated_delta)
 
 # COMMAND ----------
 
@@ -203,6 +203,9 @@ display(summary_stats_df.drop("genotypes", "values"))
 # COMMAND ----------
 
 hwe_cutoff = calculate_pval_bonferroni_cutoff(summary_stats_df)
+
+# COMMAND ----------
+
 display(plot_histogram(df=summary_stats_df.select("log10pValueHwe"), 
                        col="log10pValueHwe",
                        xlabel='-log_{10}(P)',
