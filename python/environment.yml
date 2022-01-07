@@ -27,7 +27,7 @@ dependencies:
   - typeguard=2.9.1
   - yapf=0.30.0
   - pip:
-    - setuptools==41.2.0 # Python packaging
+    - setuptools==52.0.0 # Python packaging
     - twine==2.0.0 # Pypi publishing
     - sphinx-autobuild
     - Sphinx-Substitution-Extensions # Substitutions in code blocks

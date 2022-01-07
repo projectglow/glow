@@ -39,7 +39,7 @@ from datetime import datetime
 # COMMAND ----------
 
 #partitions
-n_partitions_hail = n_partitions #match to glow, however this may not be optimal for hail so can be configured
+n_partitions_hail = 5 #match to glow, however this may not be optimal for hail so can be configured
 
 # COMMAND ----------
 

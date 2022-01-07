@@ -57,6 +57,7 @@ def main(cli_profile, workspace_tmp_dir, source_dir, nbs):
                for path in glob.glob(source_dir + '/**', recursive=True)
                if not os.path.isdir(path)]
     nb_to_run_id = {}
+    nb_to_run_info = {}
 
     try:
         print(f"Importing source files from {source_dir} to {work_dir}")
@@ -64,7 +65,6 @@ def main(cli_profile, workspace_tmp_dir, source_dir, nbs):
         run_cli_cmd(cli_profile, 'workspace', ['import_dir', source_dir, work_dir])
 
         print(f"Launching runs")
-        nb_to_run_info = {}
         for nb in nbs:
             jobs_json_path = get_jobs_config(notebook_jobs_json_mapping, nb)
             with open(jobs_json_path, 'r') as f:
