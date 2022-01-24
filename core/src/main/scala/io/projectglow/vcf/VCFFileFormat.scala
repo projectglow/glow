@@ -16,6 +16,7 @@
 
 package io.projectglow.vcf
 
+import java.net.URI
 import java.io.BufferedInputStream
 
 import scala.collection.JavaConverters._
