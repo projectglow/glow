@@ -14,7 +14,7 @@ The notebooks are written in Python, with some visualization in R.
 
 .. important::
 
-  Please make sure phenotypes and covariates are sorted by sample ID in the same order as genotypes.
+  Please sort phenotypes and covariates by sample ID in the same order as genotypes.
 
 1. Quality Control
 ------------------
