@@ -14,7 +14,7 @@ The notebooks are written in Python, with some visualization in R.
 
 .. important::
 
-  Notebooks in the Glow documentation are tested nightly.
+  Please sort phenotypes and covariates by sample ID in the same order as genotypes.
 
 1. Quality Control
 ------------------
