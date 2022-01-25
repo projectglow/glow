@@ -7,7 +7,7 @@ Data Simulation
 These data simulation notebooks generate phenotypes, covariates and genotypes at a user-defined scale.
 This dataset can be used for integration and scale-testing.
 
-The variables **n_samples** and **n_variants** for defining this scale are in the notebook `0_setup_constants_glow`. This notebook is `%run` from the notebooks below using its relative path. The notebook is located in the Glow github repository `here <https://github.com/projectglow/glow/blob/master/docs/source/_static/notebooks/0_setup_constants_glow.html>`_.
+The variables **n_samples** and **n_variants** for defining this scale are in the notebook ``0_setup_constants_glow``. This notebook is ``%run`` from the notebooks below using its relative path. The notebook is located in the Glow github repository `here <https://github.com/projectglow/glow/blob/master/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/0_setup_constants_glow.py>`_.
 
 .. _covariates_phenotypes:
 
