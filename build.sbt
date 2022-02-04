@@ -10,10 +10,10 @@ import sbt.nio.Keys._
 lazy val scala212 = "2.12.8"
 lazy val scala211 = "2.11.12"
 
-lazy val spark3 = "3.1.2"
+lazy val spark3 = "3.2.0"
 lazy val spark2 = "2.4.5"
 
-lazy val hailOnSpark3 = "0.2.74"
+lazy val hailOnSpark3 = "0.2.78"
 lazy val hailOnSpark2 = "0.2.58"
 
 lazy val sparkVersion = settingKey[String]("sparkVersion")
@@ -198,12 +198,12 @@ lazy val core = (project in file("core"))
     // Adds the Git hash to the MANIFEST file. We set it here instead of relying on sbt-release to
     // do so.
     packageOptions in (Compile, packageBin) +=
-    Package.ManifestAttributes("Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
+      Package.ManifestAttributes("Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
     libraryDependencies ++= coreDependencies.value :+ scalaLoggingDependency.value,
     Compile / unmanagedSourceDirectories +=
-    baseDirectory.value / "src" / "main" / "shim" / majorMinorVersion(sparkVersion.value),
+      baseDirectory.value / "src" / "main" / "shim" / majorMinorVersion(sparkVersion.value),
     Test / unmanagedSourceDirectories +=
-    baseDirectory.value / "src" / "test" / "shim" / majorMinorVersion(sparkVersion.value),
+      baseDirectory.value / "src" / "test" / "shim" / majorMinorVersion(sparkVersion.value),
     functionsTemplate := baseDirectory.value / "functions.scala.TEMPLATE",
     generatedFunctionsOutput := (Compile / scalaSource).value / "io" / "projectglow" / "functions.scala",
     sourceGenerators in Compile += generateFunctions
@@ -227,13 +227,13 @@ ThisBuild / installHail := {
     "/bin/bash",
     "-c",
     s"git clone -b ${hailVersion.value} https://github.com/hail-is/hail.git;" +
-    "source $(conda info --base)/etc/profile.d/conda.sh &&" +
-    "conda create -y --name hail &&" +
-    "conda activate hail --stack &&" +
-    "cd \"hail/hail\" &&" +
-    "sed " + "\"" + s"s/^pyspark.*/pyspark==${sparkVersion.value}/" + "\"" + " python/requirements.txt | grep -v '^#' | xargs pip3 install -U &&" +
-    s"make SCALA_VERSION=${scalaVersion.value} SPARK_VERSION=${sparkVersion.value} shadowJar wheel &&" +
-    s"pip3 install --no-deps build/deploy/dist/hail-${hailVersion.value}-py3-none-any.whl"
+      "source $(conda info --base)/etc/profile.d/conda.sh &&" +
+      "conda create -y --name hail &&" +
+      "conda activate hail --stack &&" +
+      "cd \"hail/hail\" &&" +
+      "sed " + "\"" + s"s/^pyspark.*/pyspark==${sparkVersion.value}/" + "\"" + " python/requirements.txt | grep -v '^#' | xargs pip3 install -U &&" +
+      s"make SCALA_VERSION=${scalaVersion.value} SPARK_VERSION=${sparkVersion.value} shadowJar wheel &&" +
+      s"pip3 install --no-deps build/deploy/dist/hail-${hailVersion.value}-py3-none-any.whl"
   ) !
 }
 
@@ -283,7 +283,7 @@ lazy val pythonSettings = Seq(
         "/bin/bash",
         "-c",
         "source $(conda info --base)/etc/profile.d/conda.sh &&" +
-        "conda activate hail --stack &&" + "pytest " + args.mkString(" ")),
+          "conda activate hail --stack &&" + "pytest " + args.mkString(" ")),
       None,
       (env.value): _*
     ).!
@@ -389,7 +389,7 @@ lazy val stagedRelease = (project in file("core/src/test"))
     unmanagedSourceDirectories in Test += baseDirectory.value / "shim" / majorMinorVersion(
       sparkVersion.value),
     libraryDependencies ++= testSparkDependencies.value ++ testCoreDependencies.value :+
-    "io.projectglow" %% s"glow-spark${majorVersion(sparkVersion.value)}" % stableVersion.value % "test",
+      "io.projectglow" %% s"glow-spark${majorVersion(sparkVersion.value)}" % stableVersion.value % "test",
     resolvers := Seq(MavenCache("local-sonatype-staging", sonatypeBundleDirectory.value)),
     org
       .jetbrains
@@ -415,9 +415,9 @@ updateCondaEnv := {
 }
 
 def crossReleaseStep(
-    step: ReleaseStep,
-    requiresPySpark: Boolean,
-    requiresHail: Boolean): Seq[ReleaseStep] = {
+                      step: ReleaseStep,
+                      requiresPySpark: Boolean,
+                      requiresHail: Boolean): Seq[ReleaseStep] = {
   val updateCondaEnvStep = releaseStepCommandAndRemaining(
     if (requiresPySpark) "updateCondaEnv" else "")
   val changePySparkVersionStep = releaseStepCommandAndRemaining(
@@ -458,39 +458,39 @@ releaseProcess := Seq[ReleaseStep](
   inquireVersions,
   runClean
 ) ++
-crossReleaseStep(
-  releaseStepCommandAndRemaining("core/test"),
-  requiresPySpark = false,
-  requiresHail = false) ++
-crossReleaseStep(
-  releaseStepCommandAndRemaining("python/test"),
-  requiresPySpark = true,
-  requiresHail = false) ++
-crossReleaseStep(
-  releaseStepCommandAndRemaining("docs/test"),
-  requiresPySpark = true,
-  requiresHail = false) ++
-crossReleaseStep(
-  releaseStepCommandAndRemaining("hail/test"),
-  requiresPySpark = true,
-  requiresHail = true) ++
-Seq(
-  setReleaseVersion,
-  updateStableVersion,
-  commitReleaseVersion,
-  commitStableVersion,
-  tagRelease
-) ++
-crossReleaseStep(
-  releaseStepCommandAndRemaining("publishSigned"),
-  requiresPySpark = false,
-  requiresHail = false) ++
-sonatypeSteps ++
-crossReleaseStep(
-  releaseStepCommandAndRemaining("stagedRelease/test"),
-  requiresPySpark = false,
-  requiresHail = false) ++
-Seq(
-  setNextVersion,
-  commitNextVersion
-)
+  crossReleaseStep(
+    releaseStepCommandAndRemaining("core/test"),
+    requiresPySpark = false,
+    requiresHail = false) ++
+  crossReleaseStep(
+    releaseStepCommandAndRemaining("python/test"),
+    requiresPySpark = true,
+    requiresHail = false) ++
+  crossReleaseStep(
+    releaseStepCommandAndRemaining("docs/test"),
+    requiresPySpark = true,
+    requiresHail = false) ++
+  crossReleaseStep(
+    releaseStepCommandAndRemaining("hail/test"),
+    requiresPySpark = true,
+    requiresHail = true) ++
+  Seq(
+    setReleaseVersion,
+    updateStableVersion,
+    commitReleaseVersion,
+    commitStableVersion,
+    tagRelease
+  ) ++
+  crossReleaseStep(
+    releaseStepCommandAndRemaining("publishSigned"),
+    requiresPySpark = false,
+    requiresHail = false) ++
+  sonatypeSteps ++
+  crossReleaseStep(
+    releaseStepCommandAndRemaining("stagedRelease/test"),
+    requiresPySpark = false,
+    requiresHail = false) ++
+  Seq(
+    setNextVersion,
+    commitNextVersion
+  )

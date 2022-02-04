@@ -89,7 +89,8 @@ object BigVCFDatasource extends HlsEventRecorder {
         val conf = serializableConf.value
         val codec = new CompressionCodecFactory(conf)
         val baos = new ByteArrayOutputStream()
-        val outputStream = Option(codec.getCodec(new Path(BigFileDatasource.checkPath(options))))
+        val path = new Path(BigFileDatasource.checkPath(options))
+        val outputStream = Option(codec.getCodec(path))
           .map(_.createOutputStream(baos))
           .getOrElse(baos)
 
@@ -101,6 +102,7 @@ object BigVCFDatasource extends HlsEventRecorder {
 
         val writer =
           new VCFFileWriter(
+            path.toString,
             headerLineSet,
             sampleIdInfo,
             validationStringency,

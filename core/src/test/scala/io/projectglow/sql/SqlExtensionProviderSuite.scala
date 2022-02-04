@@ -94,12 +94,22 @@ trait TestExpr extends Expression with CodegenFallback {
   override def eval(input: InternalRow): Any = 1
 }
 
-case class OneArgExpr(child: Expression) extends UnaryExpression with TestExpr
-case class TwoArgExpr(left: Expression, right: Expression) extends BinaryExpression with TestExpr
+case class OneArgExpr(child: Expression) extends UnaryExpression with TestExpr {
+  override def withNewChildInternal(newChild: Expression): OneArgExpr =
+    copy(child = newChild)
+}
+case class TwoArgExpr(left: Expression, right: Expression) extends BinaryExpression with TestExpr {
+  override def withNewChildrenInternal(newLeft: Expression, newRight: Expression): TwoArgExpr =
+    copy(left = newLeft, right = newRight)
+}
 case class VarArgsExpr(arg: Expression, varArgs: Seq[Expression]) extends TestExpr {
   override def children: Seq[Expression] = arg +: varArgs
+  override def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): VarArgsExpr =
+    copy(arg = newChildren.head, varArgs = newChildren.drop(1))
 }
 case class OptionalArgExpr(required: Expression, optional: Expression) extends TestExpr {
   def this(required: Expression) = this(required, Literal(1))
   override def children: Seq[Expression] = Seq(required, optional)
+  override def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): OptionalArgExpr =
+    copy(required = newChildren.head, optional = newChildren.last)
 }

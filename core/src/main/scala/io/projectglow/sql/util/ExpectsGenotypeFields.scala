@@ -126,8 +126,8 @@ trait ExpectsGenotypeFields extends Expression {
 trait Rewrite extends Expression with Unevaluable {
   def rewrite: Expression
 
-  override def dataType: DataType = throw new UnresolvedException(this, "dataType")
-  override def nullable: Boolean = throw new UnresolvedException(this, "nullable")
+  override def dataType: DataType = throw new UnresolvedException("dataType")
+  override def nullable: Boolean = throw new UnresolvedException("nullable")
 }
 
 /**

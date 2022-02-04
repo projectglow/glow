@@ -54,6 +54,10 @@ case class LinearRegressionExpr(
 
   private val matrixUDT = SQLUtils.newMatrixUDT()
 
+  override def first: Expression = genotypes
+  override def second: Expression = phenotypes
+  override def third: Expression = covariates
+
   override def dataType: DataType =
     StructType(
       Seq(
@@ -63,8 +67,6 @@ case class LinearRegressionExpr(
 
   override def inputTypes: Seq[DataType] =
     Seq(ArrayType(DoubleType), ArrayType(DoubleType), matrixUDT)
-
-  override def children: Seq[Expression] = Seq(genotypes, phenotypes, covariates)
 
   override protected def nullSafeEval(genotypes: Any, phenotypes: Any, covariates: Any): Any = {
     LinearRegressionExpr.doLinearRegression(genotypes, phenotypes, covariates)
@@ -81,4 +83,8 @@ case class LinearRegressionExpr(
       }
     )
   }
+
+  override protected def withNewChildrenInternal(
+                                                  newFirst: Expression, newSecond: Expression, newThird: Expression): LinearRegressionExpr =
+    copy(genotypes = newFirst, phenotypes = newSecond, covariates = newThird)
 }

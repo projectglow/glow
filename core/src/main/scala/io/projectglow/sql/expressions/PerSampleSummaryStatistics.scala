@@ -195,6 +195,9 @@ case class PerSampleSummaryStatistics(
   override def deserialize(storageFormat: Array[Byte]): ArrayBuffer[SampleSummaryStatsState] = {
     SparkEnv.get.serializer.newInstance().deserialize(ByteBuffer.wrap(storageFormat))
   }
+
+  override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): PerSampleSummaryStatistics =
+    copy(genotypes = newChildren.head)
 }
 
 case class SampleDpSummaryStatistics(child: Expression) extends Rewrite {
@@ -203,6 +206,9 @@ case class SampleDpSummaryStatistics(child: Expression) extends Rewrite {
     PerSampleSummaryStatistics(child, Literal(VariantSchemas.depthField.name))
       .toAggregateExpression()
   }
+
+  override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): SampleDpSummaryStatistics =
+    copy(child = newChildren.head)
 }
 
 case class SampleGqSummaryStatistics(child: Expression) extends Rewrite {
@@ -211,4 +217,6 @@ case class SampleGqSummaryStatistics(child: Expression) extends Rewrite {
     PerSampleSummaryStatistics(child, Literal(VariantSchemas.conditionalQualityField.name))
       .toAggregateExpression()
   }
+  override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): SampleGqSummaryStatistics =
+    copy(child = newChildren.head)
 }

@@ -33,8 +33,8 @@ import org.apache.spark.sql.types._
 case class ExpandStruct(struct: Expression) extends Expression with Unevaluable {
   override def children: Seq[Expression] = Seq(struct)
   override lazy val resolved: Boolean = false
-  override def dataType: DataType = throw new UnresolvedException(this, "dataType")
-  override def nullable: Boolean = throw new UnresolvedException(this, "nullable")
+  override def dataType: DataType = throw new UnresolvedException("dataType")
+  override def nullable: Boolean = throw new UnresolvedException("nullable")
   def expand(): Seq[NamedExpression] = {
     if (!struct.dataType.isInstanceOf[StructType]) {
       throw SQLUtils.newAnalysisException("Only structs can be expanded.")
@@ -45,6 +45,10 @@ case class ExpandStruct(struct: Expression) extends Expression with Unevaluable 
         Alias(GetStructField(struct, i), f.name)()
     }
   }
+
+  override protected def withNewChildrenInternal(children: IndexedSeq[Expression]): ExpandStruct = {
+    copy(struct = children.head)
+  }
 }
 
 case class SubsetStruct(struct: Expression, fields: Seq[Expression]) extends Rewrite {
@@ -54,6 +58,9 @@ case class SubsetStruct(struct: Expression, fields: Seq[Expression]) extends Rew
     CreateNamedStruct(fields.flatMap(f => Seq(f, UnresolvedExtractValue(struct, f))))
   }
 
+  override protected def withNewChildrenInternal(children: IndexedSeq[Expression]): SubsetStruct = {
+    copy(struct = children.head)
+  }
 }
 
 /**
@@ -73,6 +80,9 @@ case class AddStructFields(struct: Expression, newFields: Seq[Expression])
     }
     CreateNamedStruct(baseFields ++ newFields)
   }
+
+  override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): AddStructFields =
+    copy(struct = newChildren(0), newFields = newChildren.drop(1))
 }
 
 /**
@@ -118,6 +128,9 @@ case class ExplodeMatrix(matrixExpr: Expression)
       }
     }
   }
+
+  override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): ExplodeMatrix =
+    copy(matrixExpr = newChildren.head)
 }
 
 case class ArrayToSparseVector(child: Expression)
@@ -139,6 +152,10 @@ case class ArrayToSparseVector(child: Expression)
        """.stripMargin
       }
     )
+  }
+
+  override protected def withNewChildInternal(newChild: Expression): ArrayToSparseVector = {
+    copy(child = newChild)
   }
 }
 
@@ -171,6 +188,10 @@ case class ArrayToDenseVector(child: Expression)
       }
     )
   }
+
+  override protected def withNewChildInternal(newChild: Expression): ArrayToDenseVector = {
+    copy(child = newChild)
+  }
 }
 
 object ArrayToDenseVector {
@@ -189,10 +210,14 @@ case class VectorToArray(child: Expression) extends UnaryExpression with Implici
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
     nullSafeCodeGen(ctx, ev, c => {
       s"""
-         |${ev.value} = 
+         |${ev.value} =
          |io.projectglow.sql.expressions.VectorToArray.toDoubleArray($c);
        """.stripMargin
     })
+  }
+
+  override protected def withNewChildInternal(newChild: Expression): VectorToArray = {
+    copy(child = newChild)
   }
 }
 
