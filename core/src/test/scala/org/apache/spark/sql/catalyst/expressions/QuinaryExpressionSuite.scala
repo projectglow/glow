@@ -47,7 +47,12 @@ case class testQuinaryExpr(
     )
   }
   override def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): testQuinaryExpr =
-    copy(child1 = newChildren.head, child2 = newChildren(1), child3 = newChildren(2), child4 = newChildren(4), child5 = Option(newChildren(5)))
+    copy(
+      child1 = newChildren.head,
+      child2 = newChildren(1),
+      child3 = newChildren(2),
+      child4 = newChildren(4),
+      child5 = Option(newChildren(5)))
 }
 
 class QuinaryExpressionSuite extends GlowBaseTest {

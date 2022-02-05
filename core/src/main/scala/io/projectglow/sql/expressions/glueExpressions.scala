@@ -81,7 +81,8 @@ case class AddStructFields(struct: Expression, newFields: Seq[Expression])
     CreateNamedStruct(baseFields ++ newFields)
   }
 
-  override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): AddStructFields =
+  override protected def withNewChildrenInternal(
+      newChildren: IndexedSeq[Expression]): AddStructFields =
     copy(struct = newChildren(0), newFields = newChildren.drop(1))
 }
 
@@ -129,7 +130,8 @@ case class ExplodeMatrix(matrixExpr: Expression)
     }
   }
 
-  override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): ExplodeMatrix =
+  override protected def withNewChildrenInternal(
+      newChildren: IndexedSeq[Expression]): ExplodeMatrix =
     copy(matrixExpr = newChildren.head)
 }
 

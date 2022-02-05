@@ -214,8 +214,9 @@ case class LogisticRegressionExpr(
     )
   }
 
-  override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): LogisticRegressionExpr = {
-    if ( newChildren.size == 5 ) {
+  override protected def withNewChildrenInternal(
+      newChildren: IndexedSeq[Expression]): LogisticRegressionExpr = {
+    if (newChildren.size == 5) {
       copy(
         genotypes = newChildren(0),
         phenotypes = newChildren(1),
@@ -223,8 +224,7 @@ case class LogisticRegressionExpr(
         test = newChildren(3),
         offsetOption = Option(newChildren(4))
       )
-    }
-    else {
+    } else {
       copy(
         genotypes = newChildren(0),
         phenotypes = newChildren(1),

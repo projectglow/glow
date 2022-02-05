@@ -174,8 +174,13 @@ case class UnwrappedAggregateByIndex(
     WrappedAggregateByIndex(arr, initialValue, update, merge, evaluate)
   }
 
-  override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): UnwrappedAggregateByIndex =
-    copy(arr = newChildren(0), update = newChildren(1), merge = newChildren(2), evaluate = newChildren(3))
+  override protected def withNewChildrenInternal(
+      newChildren: IndexedSeq[Expression]): UnwrappedAggregateByIndex =
+    copy(
+      arr = newChildren(0),
+      update = newChildren(1),
+      merge = newChildren(2),
+      evaluate = newChildren(3))
 }
 
 case class WrappedAggregateByIndex(
@@ -198,6 +203,11 @@ case class WrappedAggregateByIndex(
     copy(update = newUpdate, merge = newMerge, evaluate = newEvaluate)
   }
 
-  override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): WrappedAggregateByIndex =
-    copy(arr = newChildren(0), update = newChildren(1), merge = newChildren(2), evaluate = newChildren(3))
+  override protected def withNewChildrenInternal(
+      newChildren: IndexedSeq[Expression]): WrappedAggregateByIndex =
+    copy(
+      arr = newChildren(0),
+      update = newChildren(1),
+      merge = newChildren(2),
+      evaluate = newChildren(3))
 }

@@ -107,6 +107,7 @@ case class MeanSubstitute(array: Expression, missingValue: Expression)
     )
   }
 
-  override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): MeanSubstitute =
+  override protected def withNewChildrenInternal(
+      newChildren: IndexedSeq[Expression]): MeanSubstitute =
     copy(array = newChildren.head, missingValue = newChildren.last)
 }

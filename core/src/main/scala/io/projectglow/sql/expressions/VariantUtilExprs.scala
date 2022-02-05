@@ -287,7 +287,11 @@ case class HardCalls(
   }
 
   override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): HardCalls =
-    copy(probabilities = newChildren(0), numAlts = newChildren(1), phased = newChildren(2), threshold = newChildren(3))
+    copy(
+      probabilities = newChildren(0),
+      numAlts = newChildren(1),
+      phased = newChildren(2),
+      threshold = newChildren(3))
 }
 
 object HardCalls {

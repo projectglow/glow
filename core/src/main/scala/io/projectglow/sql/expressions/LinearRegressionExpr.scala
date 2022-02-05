@@ -85,6 +85,8 @@ case class LinearRegressionExpr(
   }
 
   override protected def withNewChildrenInternal(
-                                                  newFirst: Expression, newSecond: Expression, newThird: Expression): LinearRegressionExpr =
+      newFirst: Expression,
+      newSecond: Expression,
+      newThird: Expression): LinearRegressionExpr =
     copy(genotypes = newFirst, phenotypes = newSecond, covariates = newThird)
 }
