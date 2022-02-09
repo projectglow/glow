@@ -14,7 +14,8 @@ RUN /databricks/python3/bin/pip install awscli databricks-cli --no-cache-dir
 RUN apt-get install -y \
     curl \
     lsb-release \
-    gnupg
+    gnupg \
+    tzdata
 
 RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash
 
@@ -131,6 +132,7 @@ RUN /databricks/python3/bin/pip install qqman==$QQMAN_VERSION
 # ===== Set up R genomics packages =================================================================
 
 RUN R -e "install.packages('sim1000G',dependencies=TRUE,repos='https://cran.rstudio.com')"\
+ && R -e "install.packages('gplots',dependencies=TRUE,repos='http://cran.us.r-project.org')"\
  && R -e "install.packages('bigsnpr',dependencies=TRUE,repos='http://cran.us.r-project.org')"\
  && R -e "install.packages('ukbtools',dependencies=TRUE,repos='https://cran.rstudio.com')"\
  && R -e "install.packages('qqman',dependencies=TRUE,repos='http://cran.us.r-project.org')"
