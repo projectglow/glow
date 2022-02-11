@@ -15,22 +15,38 @@ ENV DATABRICKS_RUNTIME_VERSION=9.1
 RUN apt update -qq \
   && apt-get install --yes \
 <<<<<<< HEAD
+<<<<<<< HEAD
     apt-utils \
     software-properties-common \
     apt-transport-https \
 =======
     software-properties-common \
 >>>>>>> 6908c68 (Add 9.1 LTS Dockerfiles to Databricks tree)
+=======
+    software-properties-common \
+=======
+    apt-utils \
+    software-properties-common \
+    apt-transport-https \
+>>>>>>> f6791fc (Fetch upstream)
+>>>>>>> 41ae0b9 (Fetch upstream)
     dirmngr \
     libssl-dev \
     r-base \
     r-base-dev \
   && wget -qO- https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | sudo tee -a /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc \
 <<<<<<< HEAD
+<<<<<<< HEAD
   && add-apt-repository "deb [arch=amd64,i386] https://cloud.r-project.org/bin/linux/ubuntu focal-cran40/" \
 =======
   && add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu focal-cran40/" \
 >>>>>>> 6908c68 (Add 9.1 LTS Dockerfiles to Databricks tree)
+=======
+  && add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu focal-cran40/" \
+=======
+  && add-apt-repository "deb [arch=amd64,i386] https://cloud.r-project.org/bin/linux/ubuntu focal-cran40/" \
+>>>>>>> f6791fc (Fetch upstream)
+>>>>>>> 41ae0b9 (Fetch upstream)
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -51,6 +67,7 @@ COPY Rprofile.site /usr/lib/R/etc/Rprofile.site
 # Rstudio installation.
 RUN apt-get update \
 <<<<<<< HEAD
+<<<<<<< HEAD
  # Installation of rstudio in databricks needs /usr/bin/python and gdebi-core.
  && apt-get install -y \
     python \
@@ -64,6 +81,8 @@ RUN apt-get update \
  && rm rstudio-server.deb \
  && rstudio-server restart || true
 =======
+=======
+>>>>>>> 41ae0b9 (Fetch upstream)
  # Installation of rstudio in databricks needs /usr/bin/python.
  && apt-get install -y python \
  # Install gdebi-core.
@@ -73,4 +92,21 @@ RUN apt-get update \
  && wget https://download2.rstudio.org/server/bionic/amd64/rstudio-server-1.2.5042-amd64.deb -O rstudio-server.deb \
  && gdebi -n rstudio-server.deb \
  && rm rstudio-server.deb
+<<<<<<< HEAD
 >>>>>>> 6908c68 (Add 9.1 LTS Dockerfiles to Databricks tree)
+=======
+=======
+ # Installation of rstudio in databricks needs /usr/bin/python and gdebi-core.
+ && apt-get install -y \
+    python \
+    gdebi-core \
+    psmisc \
+    wget \
+ # Download rstudio server for ubuntu 20 and install it.
+ # https://www.rstudio.com/products/rstudio/download-server/debian-ubuntu/
+ && wget https://download2.rstudio.org/server/bionic/amd64/rstudio-server-2021.09.1-372-amd64.deb -O rstudio-server.deb \
+ && gdebi rstudio-server.deb \
+ && rm rstudio-server.deb \
+ && rstudio-server restart || true
+>>>>>>> f6791fc (Fetch upstream)
+>>>>>>> 41ae0b9 (Fetch upstream)

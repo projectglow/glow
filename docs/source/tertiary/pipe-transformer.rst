@@ -243,5 +243,14 @@ The two examples below show how to parallelize Bedtools and VEP.
 .. notebook:: .. tertiary/pipe-transformer.html
   :title: Pipe Transformer bedtools example notebook
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+.. notebook:: .. tertiary/pipe-transformer-plink.html
+  :title: Pipe Transformer Plink example notebook
+
+=======
+>>>>>>> f6791fc (Fetch upstream)
+>>>>>>> 41ae0b9 (Fetch upstream)
 .. notebook:: .. tertiary/pipe-transformer-vep.html
   :title: Pipe Transformer Variant Effect Predictor (VEP) example notebook

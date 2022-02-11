@@ -38,6 +38,7 @@ dbutils.fs.mkdirs(dbfs_home_path_str)
 # MAGIC %sh
 <<<<<<< HEAD
 # MAGIC declare -a chroms=("21" "22")
+<<<<<<< HEAD
 # MAGIC
 # MAGIC for i in "${chroms[@]}"; do wget ftp://hgdownload.cse.ucsc.edu/gbdb/hg19/1000Genomes/phase3/ALL.chr$i.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz; done
 # MAGIC
@@ -45,6 +46,11 @@ dbutils.fs.mkdirs(dbfs_home_path_str)
 # MAGIC
 =======
 # MAGIC declare -a chroms=("1" "2" "3" "4" "5" "6" "7" "8" "9" "10" "11" "12" "13" "14" "15" "16" "17" "18" "19" "21" "22")
+=======
+=======
+# MAGIC declare -a chroms=("1" "2" "3" "4" "5" "6" "7" "8" "9" "10" "11" "12" "13" "14" "15" "16" "17" "18" "19" "21" "22")
+>>>>>>> f6791fc (Fetch upstream)
+>>>>>>> 41ae0b9 (Fetch upstream)
 # MAGIC 
 # MAGIC for i in "${chroms[@]}"; do wget ftp://hgdownload.cse.ucsc.edu/gbdb/hg19/1000Genomes/phase3/ALL.chr$i.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz; done
 # MAGIC 

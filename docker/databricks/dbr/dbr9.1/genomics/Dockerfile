@@ -15,11 +15,19 @@ RUN apt-get install -y \
     curl \
     lsb-release \
 <<<<<<< HEAD
+<<<<<<< HEAD
     gnupg \
     tzdata
 =======
     gnupg
 >>>>>>> 6908c68 (Add 9.1 LTS Dockerfiles to Databricks tree)
+=======
+    gnupg
+=======
+    gnupg \
+    tzdata
+>>>>>>> f6791fc (Fetch upstream)
+>>>>>>> 41ae0b9 (Fetch upstream)
 
 RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash
 
@@ -54,14 +62,22 @@ RUN apt-get update && apt-get install -y \
     libxml2-dev 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> 41ae0b9 (Fetch upstream)
 # ===== Set up R genomics packages =================================================================
 
 RUN R -e "install.packages('sim1000G',dependencies=TRUE,repos='https://cran.rstudio.com')"\
  && R -e "install.packages('ukbtools',dependencies=TRUE,repos='https://cran.rstudio.com')"\
  && R -e "install.packages('qqman',dependencies=TRUE,repos='http://cran.us.r-project.org')"\
  && R -e "install.packages('bigsnpr',dependencies=TRUE,repos='http://cran.us.r-project.org')"
+<<<<<<< HEAD
 >>>>>>> 6908c68 (Add 9.1 LTS Dockerfiles to Databricks tree)
+=======
+=======
+>>>>>>> f6791fc (Fetch upstream)
+>>>>>>> 41ae0b9 (Fetch upstream)
 
 # ===== Set up VEP environment =====================================================================
 
@@ -104,12 +120,20 @@ ENV PATH=${DEST_DIR}/samtools-{$SAMTOOLS_VERSION}:$PATH
 
 # ===== Set up htslib ==============================================================================
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+=======
+>>>>>>> 41ae0b9 (Fetch upstream)
 # access htslib tools from the shell, for example,
 # %sh 
 # /opt/htslib-1.9/tabix
 # /opt/htslib-1.9/bgzip
+<<<<<<< HEAD
 =======
 >>>>>>> 6908c68 (Add 9.1 LTS Dockerfiles to Databricks tree)
+=======
+>>>>>>> f6791fc (Fetch upstream)
+>>>>>>> 41ae0b9 (Fetch upstream)
 
 WORKDIR /opt
 RUN wget https://github.com/samtools/htslib/releases/download/${SAMTOOLS_VERSION}/htslib-${SAMTOOLS_VERSION}.tar.bz2 && \
@@ -120,6 +144,10 @@ RUN ./configure && \
     make install
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+=======
+>>>>>>> 41ae0b9 (Fetch upstream)
 # ===== bgenix ==============================================================================
 #access begenix from the shell from,
 #/opt/bgen/build/apps/bgenix
@@ -141,14 +169,22 @@ RUN CXX=/usr/bin/g++ && \
     ./build/test/unit/test_bgen && \
     ./build/apps/bgenix -g example/example.16bits.bgen -list
 
+<<<<<<< HEAD
 =======
 >>>>>>> 6908c68 (Add 9.1 LTS Dockerfiles to Databricks tree)
+=======
+>>>>>>> f6791fc (Fetch upstream)
+>>>>>>> 41ae0b9 (Fetch upstream)
 # ===== Set up MLR dependencies ====================================================================
 
 ENV QQMAN_VERSION=1.0.6
 RUN /databricks/python3/bin/pip install qqman==$QQMAN_VERSION
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+=======
+>>>>>>> 41ae0b9 (Fetch upstream)
 # ===== Set up R genomics packages =================================================================
 
 RUN R -e "install.packages('sim1000G',dependencies=TRUE,repos='https://cran.rstudio.com')"\
@@ -157,8 +193,12 @@ RUN R -e "install.packages('sim1000G',dependencies=TRUE,repos='https://cran.rstu
  && R -e "install.packages('ukbtools',dependencies=TRUE,repos='https://cran.rstudio.com')"\
  && R -e "install.packages('qqman',dependencies=TRUE,repos='http://cran.us.r-project.org')"
 
+<<<<<<< HEAD
 =======
 >>>>>>> 6908c68 (Add 9.1 LTS Dockerfiles to Databricks tree)
+=======
+>>>>>>> f6791fc (Fetch upstream)
+>>>>>>> 41ae0b9 (Fetch upstream)
 # ===== Reset current directory ====================================================================
 
 WORKDIR /root 
