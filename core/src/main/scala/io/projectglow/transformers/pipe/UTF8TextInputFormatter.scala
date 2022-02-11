@@ -26,7 +26,8 @@ import org.apache.spark.sql.types.StringType
 /**
  * A simple input formatter that writes each row as a string.
  */
-class UTF8TextInputFormatter() extends InputFormatter {
+class UTF8TextInputFormatter()
+    extends InputFormatter[Option[org.apache.spark.unsafe.types.UTF8String]] {
 
   private var writer: PrintWriter = _
 
@@ -35,8 +36,14 @@ class UTF8TextInputFormatter() extends InputFormatter {
   }
 
   override def write(record: InternalRow): Unit = {
+    value(record).foreach(writer.println) //scalastyle:ignore
+  }
+
+  override def value(record: InternalRow): Option[org.apache.spark.unsafe.types.UTF8String] = {
     if (!record.isNullAt(0)) {
-      writer.println(record.getUTF8String(0)) // scalastyle:ignore
+      Some(record.getUTF8String(0))
+    } else {
+      None
     }
   }
 
@@ -48,7 +55,8 @@ class UTF8TextInputFormatter() extends InputFormatter {
 class UTF8TextInputFormatterFactory extends InputFormatterFactory {
   override def name: String = "text"
 
-  override def makeInputFormatter(df: DataFrame, options: Map[String, String]): InputFormatter = {
+  override def makeInputFormatter(df: DataFrame, options: Map[String, String])
+      : InputFormatter[Option[org.apache.spark.unsafe.types.UTF8String]] = {
     require(df.schema.length == 1, "Input dataframe must have one column,")
     require(
       dataTypesEqualExceptNullability(df.schema.head.dataType, StringType),

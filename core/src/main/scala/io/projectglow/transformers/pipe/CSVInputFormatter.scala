@@ -25,7 +25,8 @@ import org.apache.spark.sql.types.StructType
 
 import io.projectglow.SparkShim.CSVOptions
 
-class CSVInputFormatter(schema: StructType, parsedOptions: CSVOptions) extends InputFormatter {
+class CSVInputFormatter(schema: StructType, parsedOptions: CSVOptions)
+    extends InputFormatter[InternalRow] {
 
   private var writer: PrintWriter = _
   private var univocityGenerator: SGUnivocityGenerator = _
@@ -39,8 +40,10 @@ class CSVInputFormatter(schema: StructType, parsedOptions: CSVOptions) extends I
   }
 
   override def write(record: InternalRow): Unit = {
-    univocityGenerator.write(record)
+    univocityGenerator.write(value(record))
   }
+
+  override def value(record: InternalRow): InternalRow = record
 
   override def close(): Unit = {
     writer.close()
@@ -54,7 +57,7 @@ class CSVInputFormatterFactory extends InputFormatterFactory {
   override def makeInputFormatter(
       df: DataFrame,
       options: Map[String, String]
-  ): InputFormatter = {
+  ): InputFormatter[InternalRow] = {
     val sqlConf = df.sparkSession.sessionState.conf
     val parsedOptions =
       new CSVOptions(

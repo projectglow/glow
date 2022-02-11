@@ -17,14 +17,14 @@ Glow 0.4 adds the new and flexible ``gff`` Spark SQL data source to address this
 
 Ingesting GFF3 Annotation Data
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-Like any other Spark data source, reading GFF3 files using Glow's ``gff`` data source can be done in a single line of code. As an example, we can ingest the annotations of the Homo Sapiens genome assembly GRCh38.p13 from a GFF3 file (obtained from `RefSeq ftp site <https://ftp.ncbi.nlm.nih.gov/genomes/refseq/vertebrate_mammalian/Homo_sapiens/reference/GCF_000001405.39_GRCh38.p13/>`_) as shown below. Here, we have also filtered the annotations to chromosome 22 in order to use the resulting ``annotations_df`` DataFrame (:numref:`fig_annotations_df`) in continuation of our example. The ``annotations_df`` alias is for the same purpose as well.
+Like any other Spark data source, reading GFF3 files using Glow's ``gff`` data source can be done in a single line of code. As an example, we can ingest the annotations of the Homo Sapiens genome assembly GRCh38.p13 from a GFF3 file. Here, we have also filtered the annotations to chromosome 22 in order to use the resulting ``annotations_df`` DataFrame (:numref:`fig_annotations_df`) in continuation of our example. The ``annotations_df`` alias is for the same purpose as well.
 
 .. _annotations_df:
 
 .. code-block::
 
   import glow
-  glow.register(spark)
+  spark = glow.register(spark)
 
   gff_path = '/databricks-datasets/genomics/gffs/GCF_000001405.39_GRCh38.p13_genomic.gff.bgz'
 

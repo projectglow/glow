@@ -20,7 +20,7 @@ Create a Hail cluster
 
 To use the Hail interoperation functions, you need Hail to be installed on the cluster.
 On a Databricks cluster,
-`install Hail with an environment variable <https://docs.databricks.com/applications/genomics/tertiary/hail.html#create-a-hail-cluster>`_.
+`install Hail with an environment variable <https://docs.databricks.com/applications/genomics/tertiary-analytics/hail.html#create-a-cluster>`_.
 See the `Hail installation documentation <https://hail.is/docs/0.2/getting_started.html>`_ to install Hail in other setups.
 
 Convert to a Glow DataFrame
@@ -115,3 +115,6 @@ All of the other Glow DataFrame genotype fields are derived from the Hail Matrix
     - ``AD``
   * - ``<ANY_FIELD>``
     - ``<ANY_FIELD>``
+
+.. notebook:: .. etl/hail-interoperation.html
+  :title: Hail interoperation notebook

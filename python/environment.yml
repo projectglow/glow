@@ -16,7 +16,7 @@ dependencies:
   - pandas=1.0.1
   - pip
   - pyarrow=1.0.1
-  - pyspark=3.0.0
+  - pyspark=3.1.2
   - pytest
   - pyyaml
   - scipy=1.4.1
@@ -27,9 +27,9 @@ dependencies:
   - typeguard=2.9.1
   - yapf=0.30.0
   - pip:
-    - setuptools==41.2.0 # Python packaging
+    - setuptools==52.0.0 # Python packaging
     - twine==2.0.0 # Pypi publishing
     - sphinx-autobuild
     - Sphinx-Substitution-Extensions # Substitutions in code blocks
     - sphinx-tabs # Code tabs (Python/Scala)
-    - sybil # Automatic doctest
+    - sybil==3.0.0 # Automatic doctest

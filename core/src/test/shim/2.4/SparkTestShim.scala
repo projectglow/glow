@@ -18,6 +18,8 @@ package io.projectglow
 
 // Spark 2.4 APIs that are not inter-version compatible
 object SparkTestShim extends SparkTestShimBase {
-  // Spark  renames SharedSparkSession to SharedSparkSessionBase
+  // Spark renames SharedSparkSession to SharedSparkSessionBase
   override type SharedSparkSessionBase = org.apache.spark.sql.test.SharedSparkSession
+  // Scalatest renames FunSuite to AnyFunSuite
+  override type FunSuite = org.scalatest.FunSuite
 }

@@ -44,7 +44,7 @@ class PipeTransformer extends DataFrameTransformer {
 
     import PipeTransformer._
 
-    private def getInputFormatter: InputFormatter = {
+    private def getInputFormatter: InputFormatter[_] = {
       val inputFormatterStr = options.getOrElse(
         INPUT_FORMATTER_KEY,
         throw new IllegalArgumentException("Missing pipe input formatter."))
@@ -75,6 +75,11 @@ class PipeTransformer extends DataFrameTransformer {
           s"Could not find an output formatter for $outputFormatterStr")
       }.makeOutputFormatter(new SnakeCaseMap(outputFormatterOptions))
     }
+
+    private def getQuarantineLocation: Option[String] =
+      options.get(QUARANTINE_TABLE_KEY)
+    private def getQuarantineFlavor: Option[String] =
+      options.get(QUARANTINE_FLAVOR_KEY)
 
     private def getCmd: Seq[String] = {
       val mapper = new ObjectMapper()
@@ -118,13 +123,19 @@ class PipeTransformer extends DataFrameTransformer {
 
       val inputFormatter = getInputFormatter
       val outputFormatter = getOutputFormatter
+      val quarantineLocation = getQuarantineLocation
+      val quarantineFlavor = getQuarantineFlavor
+      val quarantine = quarantineLocation.flatMap { a =>
+        quarantineFlavor.map { b =>
+          (a, b)
+        }
+      }
       val env = options.collect {
         case (k, v) if k.startsWith(ENV_PREFIX) =>
           (k.stripPrefix(ENV_PREFIX), v)
       }
 
-      Piper.pipe(inputFormatter, outputFormatter, cmd, env, df)
-
+      Piper.pipe(inputFormatter, outputFormatter, cmd, env, df, quarantine)
     }
   }
 
@@ -137,6 +148,9 @@ object PipeTransformer {
   private val ENV_PREFIX = "env_"
   private val INPUT_FORMATTER_PREFIX = "in_"
   private val OUTPUT_FORMATTER_PREFIX = "out_"
+  private val QUARANTINE_TABLE_KEY = "quarantineTable"
+  private val QUARANTINE_FLAVOR_KEY = "quarantineFlavor"
+
   val LOGGING_BLOB_KEY = "pipeCmdTool"
 
   private def lookupInputFormatterFactory(name: String): Option[InputFormatterFactory] =
@@ -155,7 +169,7 @@ object PipeTransformer {
   private lazy val outputFormatterLoader = ServiceLoader.load(classOf[OutputFormatterFactory])
 }
 
-trait InputFormatter extends Serializable with Closeable {
+trait InputFormatter[A] extends Serializable with Closeable {
 
   /**
    * Initialize the input formatter based on the outstream (i.e., the subprocess's stdout).
@@ -171,11 +185,17 @@ trait InputFormatter extends Serializable with Closeable {
    */
   def write(record: InternalRow): Unit
 
+  /**
+   * Converts DataFrame record into something writable.
+   * @param record
+   */
+  def value(record: InternalRow): A
+
   def close(): Unit
 }
 
 trait InputFormatterFactory extends Named {
-  def makeInputFormatter(df: DataFrame, options: Map[String, String]): InputFormatter
+  def makeInputFormatter(df: DataFrame, options: Map[String, String]): InputFormatter[_]
 }
 
 trait OutputFormatter extends Serializable {

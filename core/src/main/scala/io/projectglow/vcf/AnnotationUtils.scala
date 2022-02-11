@@ -34,9 +34,9 @@ object AnnotationUtils {
 
   // Struct subfield schemas
   private val rankTotalStruct = StructType(
-    Seq(StructField("rank", IntegerType), StructField("total", IntegerType)))
+    Seq(StructField("rank", StringType), StructField("total", StringType)))
   private val posLengthStruct = StructType(
-    Seq(StructField("pos", IntegerType), StructField("length", IntegerType)))
+    Seq(StructField("pos", StringType), StructField("length", StringType)))
   private val referenceVariantStruct = StructType(
     Seq(StructField("reference", StringType), StructField("variant", StringType)))
 
@@ -55,14 +55,14 @@ object AnnotationUtils {
     "Consequence" -> ArrayType(StringType),
     "EXON" -> rankTotalStruct,
     "INTRON" -> rankTotalStruct,
-    "cDNA_position" -> IntegerType,
-    "CDS_position" -> IntegerType,
-    "Protein_position" -> IntegerType,
+    "cDNA_position" -> StringType,
+    "CDS_position" -> StringType,
+    "Protein_position" -> StringType,
     "Amino_acids" -> referenceVariantStruct,
     "Codons" -> referenceVariantStruct,
     "Existing_variation" -> ArrayType(StringType),
-    "DISTANCE" -> IntegerType,
-    "STRAND" -> IntegerType,
+    "DISTANCE" -> StringType,
+    "STRAND" -> StringType,
     "FLAGS" -> ArrayType(StringType)
   )
 

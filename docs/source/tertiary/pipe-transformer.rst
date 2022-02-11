@@ -1,3 +1,5 @@
+.. _pipe-transformer:
+
 =========================================================================
 Parallelizing Command-Line Bioinformatics Tools With the Pipe Transformer
 =========================================================================
@@ -9,8 +11,12 @@ Parallelizing Command-Line Bioinformatics Tools With the Pipe Transformer
     path = 'test-data/NA12878_21_10002403.vcf'
     bed = 'test-data/bedtools/intersect_21.bed'
 
-To use single-node tools on massive data sets, Glow includes a
+Some single-node tools take a long time to run. To accelerate them, Glow includes a
 utility called the Pipe Transformer to process Spark DataFrames with command-line tools.
+
+The tool supports ``vcf`` and ``txt`` / ``csv`` formatted Spark DataFrames as inputs. And it returns a Spark DataFrame. 
+You can specify a quarantine location for partitions of the DataFrame that error when processed by the bioinformatics tool. 
+This is analagous to how `liftOver <https://genome.ucsc.edu/cgi-bin/hgLiftOver>`_ handles failures caused by edge cases.
 
 Usage
 =====
@@ -60,7 +66,8 @@ Integrating with bioinformatics tools
 
 To integrate with tools for genomic data, you can configure the Pipe Transformer to write each
 partition of the input DataFrame as VCF by choosing ``vcf`` as the input and output formatter.
-Here is an example using bedtools, note that the bioinformatics tool must be installed on each
+Here is an example using bedtools. For a more complex example using The Variant Effect Predictor (VEP)
+see the notebook example below. Note that the bioinformatics tool must be installed on each
 virtual machine of the Spark cluster.
 
 .. code-block:: python
@@ -112,6 +119,10 @@ Option keys and values are always strings. You can specify option names in snake
   * - ``output_formatter``
     - Converts the output of the piped program back into a DataFrame. Built-in output
       formatters are ``text``, ``csv``, and ``vcf``.
+  * - ``quarantine_table``
+    - Spark SQL table to write partitions in the dataframe that throw an error.
+  * - ``quarantine_flavor``
+    - File type for quarantined output. Built-in output formatters are ``csv`` and ``delta``.
   * - ``env_*``
     - Options beginning with ``env_`` are interpreted as environment variables. Like other options,
       the environment variable name is converted to lower snake case. For example,
@@ -168,4 +179,19 @@ cleanup until the pipe transformer results have been materialized, such as by be
 
             Glow.transform("pipe_cleanup", df)
 
+Examples
+========
+
+The two examples below show how to parallelize Bedtools and VEP.
+
+.. tip:: 
+  bedtools ``shuffle`` and ``intersect`` are two bedtools commands suited to the pipe transformer.
+
+.. tip:: 
+  The VEP example shows how to quarantine corrupted records. This functionality was introduced from Glow ``v1.1.2``.
+
 .. notebook:: .. tertiary/pipe-transformer.html
+  :title: Pipe Transformer bedtools example notebook
+
+.. notebook:: .. tertiary/pipe-transformer-vep.html
+  :title: Pipe Transformer Variant Effect Predictor (VEP) example notebook

@@ -114,20 +114,64 @@ class PipeTransformerSuite extends GlowBaseTest {
     assert(output == "monkey!")
     Glow.transform("pipe_cleanup", inputDf, Map.empty[String, String])
   }
+
+  test("quarantine on failure") {
+    { // coverage
+      PipeIterator.QuarantineWriter("delta")
+      PipeIterator.QuarantineWriter("csv")
+      intercept[IllegalStateException] {
+        PipeIterator.QuarantineWriter("will fail")
+      }
+      intercept[NullPointerException] {
+        PipeIterator.QuarantineWriterDelta.quarantine(null)
+      }
+      intercept[NullPointerException] {
+        PipeIterator.QuarantineWriterCsv.quarantine(null)
+      }
+    }
+
+    val sess = spark
+    import sess.implicits._
+    val inputDf = Seq("monkey", "dolphin", "unicorn", "narwhal").toDF
+    val testTable = s"default.test_test_test"
+    val options = Map(
+      "inputFormatter" -> "text",
+      "outputFormatter" -> "text",
+      "quarantineTable" -> testTable,
+      "quarantineFlavor" -> "csv",
+      "cmd" -> Seq("python", "identity.py", "1"))
+    val exc = intercept[org.apache.spark.SparkException] {
+      Glow.transform("pipe", inputDf, options).as[String].head
+    }
+    assert(exc.getMessage.contains("Subprocess exited with status"))
+    Glow.transform("pipe_cleanup", inputDf, Map.empty[String, String])
+
+    // delete temp files
+    // Yes, there is a shiny new and fancy nio way of doing temp files but it
+    // blows super hard; this "old school" way is far simpler and more readable
+    import scala.reflect.io.Directory
+    import java.io.File
+    val directory = new Directory(new File(testTable))
+    directory.deleteRecursively()
+  }
 }
 
 class DummyInputFormatterFactory() extends InputFormatterFactory {
   def name: String = "dummy_in"
 
-  override def makeInputFormatter(df: DataFrame, options: Map[String, String]): InputFormatter = {
+  override def makeInputFormatter(
+      df: DataFrame,
+      options: Map[String, String]): InputFormatter[_] = {
     new DummyInputFormatter()
   }
 }
 
-class DummyInputFormatter() extends InputFormatter {
+class DummyInputFormatter() extends InputFormatter[Unit] {
   override def close(): Unit = ()
 
   override def write(record: InternalRow): Unit = ()
+
+  override def value(record: InternalRow): Unit = ()
 
   override def init(stream: OutputStream): Unit = ()
 }

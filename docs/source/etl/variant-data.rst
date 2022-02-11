@@ -72,7 +72,7 @@ You can control the behavior of the VCF reader with a few parameters. All parame
 
    Glow includes a VCF reader that uses `htsjdk <https://github.com/samtools/htsjdk>`_ for initial parsing as well as a reader that parses VCF lines to Spark rows directly.
 
-   As of release 0.7.0, the direct reader is enabled by default. To use the htsjdk based reader, set the Spark config ``io.projectglow.vcf.fastReaderEnabled`` to ``false``.
+   As of release 1.0.0, the direct reader is enabled by default. To use the htsjdk based reader, set the Spark config ``io.projectglow.vcf.fastReaderEnabled`` to ``false``.
 
 
 .. important:: The VCF reader uses the 0-start, half-open (zero-based) coordinate system. This means

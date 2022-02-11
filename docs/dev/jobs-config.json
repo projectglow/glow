@@ -1,32 +1,13 @@
 {
   "new_cluster": {
-    "spark_version": "7.6.x-scala2.12",
-    "node_type_id": "Standard_DS3_v2",
-    "num_workers": 2,
-    "init_scripts": [
-      {
-        "dbfs": {
-          "destination": "dbfs:/glow-init-scripts/bedtools.sh"
-        }
-      },
-      {
-        "dbfs": {
-          "destination": "dbfs:/glow-init-scripts/chain.sh"
-        }
-      }
-    ]
+    "spark_version": "9.1.x-scala2.12",
+    "node_type_id": "Standard_DS4_v2",
+    "num_workers": 4,
+    "docker_image": {
+        "url": "projectglow/databricks-glow:1.1.2"
+    }
   },
   "libraries": [
-    {
-      "maven": {
-        "coordinates": "io.projectglow:glow-spark3_2.12:1.0.1"
-      }
-    },
-    {
-      "pypi": {
-        "package": "glow.py"
-      }
-    },
     {
       "pypi": {
         "package": "mlflow"

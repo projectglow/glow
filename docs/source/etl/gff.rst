@@ -125,4 +125,4 @@ As with any Spark data source, the ``gff`` data source is also able to accept a 
   - The user can also include the original ``attributes`` column of the GFF3 file as a string field by including ``StructField('attributes', StringType())`` in the schema.
 
 
-.. notebook:: .. etl/gff.html
+.. notebook:: .. etl/7_etl_gff_annotations.html
