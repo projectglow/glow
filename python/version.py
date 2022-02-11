@@ -12,4 +12,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+<<<<<<< HEAD
 VERSION = '2.1.0-SNAPSHOT'
+=======
+<<<<<<< HEAD
+VERSION = '2.0.0'
+=======
+VERSION = '1.1.2'
+>>>>>>> f6791fc (Fetch upstream)
+>>>>>>> 343e8c7 (Fetch upstream)

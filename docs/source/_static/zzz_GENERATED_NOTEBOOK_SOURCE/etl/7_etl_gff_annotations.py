@@ -39,7 +39,11 @@ display(etl_original_gff_df)
 
 # MAGIC %md
 # MAGIC ##### annotate chromosome (contigName) to gff dataframe
+<<<<<<< HEAD
 # MAGIC
+=======
+# MAGIC 
+>>>>>>> f6791fc (Fetch upstream)
 # MAGIC by selecting regions and joining back to original dataframe
 
 # COMMAND ----------

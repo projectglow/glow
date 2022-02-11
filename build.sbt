@@ -11,15 +11,38 @@ import sbt.nio.Keys._
 lazy val scala212 = "2.12.15"
 lazy val scala213 = "2.13.12"
 
+<<<<<<< HEAD
 lazy val spark3 = "3.5.1"
+=======
+<<<<<<< HEAD
+lazy val spark3 = "3.5.0"
+>>>>>>> 343e8c7 (Fetch upstream)
 lazy val spark4 = "4.0.0-SNAPSHOT"
+=======
+lazy val spark3 = "3.1.2"
+lazy val spark2 = "2.4.5"
+>>>>>>> f6791fc (Fetch upstream)
+
+lazy val hailOnSpark3 = "0.2.74"
+lazy val hailOnSpark2 = "0.2.58"
 
 lazy val sparkVersion = settingKey[String]("sparkVersion")
 ThisBuild / sparkVersion := sys.env.getOrElse("SPARK_VERSION", spark3)
 
+<<<<<<< HEAD
 // Add to the Python path to test against a custom version of pyspark
 lazy val extraPythonPath = settingKey[String]("extraPythonPath")
 ThisBuild / extraPythonPath := sys.env.getOrElse("EXTRA_PYTHON_PATH", "")
+=======
+lazy val hailVersion = settingKey[String]("hailVersion")
+ThisBuild / hailVersion := sys.env.getOrElse("HAIL_VERSION", hailOnSpark3)
+
+// Paths containing Hail tests
+lazy val hailTestPaths = Seq("python/glow/hail/", "docs/source/etl/hail.rst")
+lazy val ignoreHailTestPathsOption = hailTestPaths.map { p =>
+  s"--ignore $p"
+}.mkString(" ")
+>>>>>>> f6791fc (Fetch upstream)
 
 def majorVersion(version: String): String = {
   StringUtils.ordinalIndexOf(version, ".", 1) match {
@@ -161,10 +184,19 @@ ThisBuild / testSparkDependencies := sparkDependencies.value.map(_ % "test")
 
 lazy val testCoreDependencies = settingKey[Seq[ModuleID]]("testCoreDependencies")
 ThisBuild / testCoreDependencies := Seq(
+<<<<<<< HEAD
   majorVersion((ThisBuild / sparkVersion).value) match {
     case "3" => "org.scalatest" %% "scalatest" % "3.2.18" % "test"
     case "4" => "org.scalatest" %% "scalatest" % "3.2.17" % "test"
     case _ => throw new IllegalArgumentException("Only Spark 3 is supported")
+=======
+  (ThisBuild / sparkVersion).value match {
+    case `spark2` => "org.scalatest" %% "scalatest" % "3.0.3" % "test"
+    case `spark3` => "org.scalatest" %% "scalatest" % "3.2.3" % "test"
+    case _ =>
+      throw new IllegalArgumentException(
+        "Only supported Spark versions are: " + Seq(spark2, spark3))
+>>>>>>> f6791fc (Fetch upstream)
   },
   "org.mockito" % "mockito-all" % "1.10.19" % "test",
   "org.apache.spark" %% "spark-catalyst" % sparkVersion.value % "test" classifier "tests",
@@ -245,6 +277,34 @@ def currentGitHash(dir: File): String = {
   ).!!.trim
 }
 
+<<<<<<< HEAD
+=======
+lazy val installHail = taskKey[Unit]("Install Hail")
+ThisBuild / installHail := {
+  Seq(
+    "/bin/bash",
+    "-c",
+    s"git clone -b ${hailVersion.value} https://github.com/hail-is/hail.git;" +
+    "source $(conda info --base)/etc/profile.d/conda.sh &&" +
+    "conda create -y --name hail &&" +
+    "conda activate hail --stack &&" +
+    "cd \"hail/hail\" &&" +
+    "sed " + "\"" + s"s/^pyspark.*/pyspark==${sparkVersion.value}/" + "\"" + " python/requirements.txt | grep -v '^#' | xargs pip3 install -U &&" +
+    s"make SCALA_VERSION=${scalaVersion.value} SPARK_VERSION=${sparkVersion.value} shadowJar wheel &&" +
+    s"pip3 install --no-deps build/deploy/dist/hail-${hailVersion.value}-py3-none-any.whl"
+  ) !
+}
+
+lazy val uninstallHail = taskKey[Unit]("Uninstall Hail")
+ThisBuild / uninstallHail := {
+  Seq(
+    "/bin/bash",
+    "-c",
+    "conda env remove --name hail;" + "rm -rf hail"
+  ) !
+}
+
+>>>>>>> f6791fc (Fetch upstream)
 lazy val sparkClasspath = taskKey[String]("sparkClasspath")
 lazy val sparkHome = taskKey[String]("sparkHome")
 lazy val pythonPath = taskKey[String]("pythonPath")
@@ -370,3 +430,116 @@ lazy val stagedRelease = (project in file("core/src/test"))
     resolvers := Seq(MavenCache("local-sonatype-staging", sonatypeBundleDirectory.value))
   )
 
+<<<<<<< HEAD
+=======
+import ReleaseTransformations._
+
+// Don't use sbt-release's cross facility
+releaseCrossBuild := false
+
+lazy val updateCondaEnv = taskKey[Unit]("Update Glow Env To Latest Version")
+updateCondaEnv := {
+  "conda env update -f python/environment.yml" !
+}
+
+<<<<<<< HEAD
+def crossReleaseStep(step: ReleaseStep, requiresPySpark: Boolean): Seq[ReleaseStep] = {
+  val updateCondaEnvStep = releaseStepCommandAndRemaining(
+    if (requiresPySpark) "updateCondaEnv" else "")
+=======
+def crossReleaseStep(
+    step: ReleaseStep,
+    requiresPySpark: Boolean,
+    requiresHail: Boolean): Seq[ReleaseStep] = {
+  val updateCondaEnvStep = releaseStepCommandAndRemaining(
+    if (requiresPySpark) "updateCondaEnv" else "")
+  val changePySparkVersionStep = releaseStepCommandAndRemaining(
+    if (requiresPySpark) "changePySparkVersion" else "")
+  val installHailStep = releaseStepCommandAndRemaining(if (requiresHail) "installHail" else "")
+  val uninstallHailStep = releaseStepCommandAndRemaining(if (requiresHail) "uninstallHail" else "")
+>>>>>>> f6791fc (Fetch upstream)
+
+  Seq(
+    updateCondaEnvStep,
+    releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark3""""),
+    releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
+<<<<<<< HEAD
+    step,
+=======
+    releaseStepCommandAndRemaining(s"""set ThisBuild / hailVersion := "$hailOnSpark3""""),
+    installHailStep,
+    step,
+    uninstallHailStep,
+    changePySparkVersionStep,
+    releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark2""""),
+    releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala211""""),
+    releaseStepCommandAndRemaining(s"""set ThisBuild / hailVersion := "$hailOnSpark2""""),
+    installHailStep,
+    step,
+    uninstallHailStep,
+    releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
+    installHailStep,
+    step,
+    uninstallHailStep,
+>>>>>>> f6791fc (Fetch upstream)
+    updateCondaEnvStep
+  )
+}
+
+def sonatypeSteps(): Seq[ReleaseStep] = Seq(
+  releaseStepCommandAndRemaining("sonatypePrepare"),
+  releaseStepCommandAndRemaining("sonatypeBundleUpload")
+)
+
+releaseProcess := Seq[ReleaseStep](
+  checkSnapshotDependencies,
+  inquireVersions,
+  runClean
+<<<<<<< HEAD
+) ++ crossReleaseStep(releaseStepCommandAndRemaining("core/test"), requiresPySpark = false) ++
+=======
+) ++
+crossReleaseStep(
+  releaseStepCommandAndRemaining("core/test"),
+  requiresPySpark = false,
+  requiresHail = false) ++
+crossReleaseStep(
+  releaseStepCommandAndRemaining("python/test"),
+  requiresPySpark = true,
+  requiresHail = false) ++
+crossReleaseStep(
+  releaseStepCommandAndRemaining("docs/test"),
+  requiresPySpark = true,
+  requiresHail = false) ++
+crossReleaseStep(
+  releaseStepCommandAndRemaining("hail/test"),
+  requiresPySpark = true,
+  requiresHail = true) ++
+>>>>>>> f6791fc (Fetch upstream)
+Seq(
+  setReleaseVersion,
+  updateStableVersion,
+  commitReleaseVersion,
+  commitStableVersion,
+  tagRelease
+) ++
+<<<<<<< HEAD
+crossReleaseStep(releaseStepCommandAndRemaining("publishSigned"), requiresPySpark = false) ++
+sonatypeSteps ++
+crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test"), requiresPySpark = false) ++
+=======
+crossReleaseStep(
+  releaseStepCommandAndRemaining("publishSigned"),
+  requiresPySpark = false,
+  requiresHail = false) ++
+sonatypeSteps ++
+crossReleaseStep(
+  releaseStepCommandAndRemaining("stagedRelease/test"),
+  requiresPySpark = false,
+  requiresHail = false) ++
+>>>>>>> f6791fc (Fetch upstream)
+Seq(
+  setNextVersion,
+  commitNextVersion
+)
+>>>>>>> 343e8c7 (Fetch upstream)

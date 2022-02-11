@@ -1,8 +1,14 @@
 # Databricks notebook source
 # MAGIC %md
+<<<<<<< HEAD
 # MAGIC
 # MAGIC #### Simulate firth regression genetic association study
 # MAGIC
+=======
+# MAGIC 
+# MAGIC #### Simulate firth regression genetic association study
+# MAGIC 
+>>>>>>> f6791fc (Fetch upstream)
 # MAGIC Uses a simulated project-level VCF from chromosome 22 of the 1000 genomes
 
 # COMMAND ----------

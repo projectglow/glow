@@ -1,0 +1,9 @@
+{
+  "1_setup_constants_hail": "docs/dev/jobs-config-hail.json",
+  "etl/hail-interoperation": "docs/dev/jobs-config-hail.json",
+  "etl/4_vcf_to_hail_mt": "docs/dev/jobs-config-hail.json",
+  "etl/5_hail_mt_to_glow": "docs/dev/jobs-config-hail.json",
+  "tertiary/6_hail_linreg_gwas": "docs/dev/jobs-config-hail.json",
+  "tertiary/7_hail_logistic_gwas": "docs/dev/jobs-config-hail.json",
+  "tertiary/9_compare_hail_to_glow": "docs/dev/jobs-config-hail.json"
+}

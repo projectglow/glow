@@ -1,5 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
+<<<<<<< HEAD
 # MAGIC
 # MAGIC #### Quality control to prepare delta table for GWAS
 # MAGIC
@@ -9,6 +10,17 @@
 # MAGIC
 # MAGIC Then filter,
 # MAGIC
+=======
+# MAGIC 
+# MAGIC #### Quality control to prepare delta table for GWAS
+# MAGIC 
+# MAGIC By running glow transform functions `split_multiallelics`, `mean_substitute`, and `genotype_states`
+# MAGIC 
+# MAGIC Important: please checkpoint to parquet/delta after each step in this process
+# MAGIC 
+# MAGIC Then filter,
+# MAGIC 
+>>>>>>> f6791fc (Fetch upstream)
 # MAGIC 1. monomorphic variants using `array_distinct`
 # MAGIC 2. allele frequency
 # MAGIC 3. hardy weinberg equilibrium
@@ -29,7 +41,11 @@
 
 # MAGIC %md
 # MAGIC ##### adjust spark confs
+<<<<<<< HEAD
 # MAGIC
+=======
+# MAGIC 
+>>>>>>> f6791fc (Fetch upstream)
 # MAGIC see [split-multiallelics](https://glow.readthedocs.io/en/latest/etl/variant-splitter.html#split-multiallelics) docs
 
 # COMMAND ----------
@@ -55,7 +71,11 @@ datetime = datetime.now(pytz.timezone('US/Pacific'))
 # COMMAND ----------
 
 # MAGIC %md
+<<<<<<< HEAD
 # MAGIC
+=======
+# MAGIC 
+>>>>>>> f6791fc (Fetch upstream)
 # MAGIC ##### Helper functions
 
 # COMMAND ----------
@@ -96,7 +116,11 @@ dbutils.fs.mkdirs(output_hwe_path)
 
 # MAGIC %md
 # MAGIC ##### split simulated data
+<<<<<<< HEAD
 # MAGIC
+=======
+# MAGIC 
+>>>>>>> f6791fc (Fetch upstream)
 # MAGIC 1. biallelic SNPs
 # MAGIC 2. multiallelic variants
 # MAGIC 3. indels
@@ -113,7 +137,11 @@ display(delta_vcf.drop("genotypes"))
 
 # MAGIC %md
 # MAGIC ##### split multiallelics
+<<<<<<< HEAD
 # MAGIC
+=======
+# MAGIC 
+>>>>>>> f6791fc (Fetch upstream)
 # MAGIC write out biallelics and split multiallelics
 
 # COMMAND ----------

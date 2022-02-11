@@ -1,8 +1,14 @@
 .. _pipe-transformer:
 
+<<<<<<< HEAD
 ========================================================================
 The Pipe Transformer for Parallelizing Command-Line Bioinformatics Tools
 ========================================================================
+=======
+=========================================================================
+Parallelizing Command-Line Bioinformatics Tools With the Pipe Transformer
+=========================================================================
+>>>>>>> f6791fc (Fetch upstream)
 
 .. invisible-code-block: python
 
@@ -14,7 +20,11 @@ The Pipe Transformer for Parallelizing Command-Line Bioinformatics Tools
 Some single-node tools take a long time to run. To accelerate them, Glow includes a
 utility called the Pipe Transformer to process Spark DataFrames with command-line tools.
 
+<<<<<<< HEAD
 The tool supports ``vcf`` and ``txt`` formatted Spark DataFrames as inputs. And it returns a Spark DataFrame. 
+=======
+The tool supports ``vcf`` and ``txt`` / ``csv`` formatted Spark DataFrames as inputs. And it returns a Spark DataFrame. 
+>>>>>>> f6791fc (Fetch upstream)
 You can specify a quarantine location for partitions of the DataFrame that error when processed by the bioinformatics tool. 
 This is analagous to how `liftOver <https://genome.ucsc.edu/cgi-bin/hgLiftOver>`_ handles failures caused by edge cases.
 
@@ -66,10 +76,16 @@ Integrating with bioinformatics tools
 
 To integrate with tools for genomic data, you can configure the Pipe Transformer to write each
 partition of the input DataFrame as VCF by choosing ``vcf`` as the input and output formatter.
+<<<<<<< HEAD
 Here is an example using bedtools. 
 
 .. important:: 
    The bioinformatics tool must be installed on each virtual machine of the Spark cluster.
+=======
+Here is an example using bedtools. For a more complex example using The Variant Effect Predictor (VEP)
+see the notebook example below. Note that the bioinformatics tool must be installed on each
+virtual machine of the Spark cluster.
+>>>>>>> f6791fc (Fetch upstream)
 
 .. code-block:: python
 
@@ -120,11 +136,19 @@ Option keys and values are always strings. You can specify option names in snake
       input formatters are ``text`` and ``vcf``.
   * - ``output_formatter``
     - Converts the output of the piped program back into a DataFrame. Built-in output
+<<<<<<< HEAD
       formatters are ``text`` and ``vcf``.
   * - ``quarantine_table``
     - Spark SQL table to write partitions in the dataframe that throw an error.
   * - ``quarantine_flavor``
     - File type for quarantined output. Built-in output formatters are ``delta``.
+=======
+      formatters are ``text``, ``csv``, and ``vcf``.
+  * - ``quarantine_table``
+    - Spark SQL table to write partitions in the dataframe that throw an error.
+  * - ``quarantine_flavor``
+    - File type for quarantined output. Built-in output formatters are ``csv`` and ``delta``.
+>>>>>>> f6791fc (Fetch upstream)
   * - ``env_*``
     - Options beginning with ``env_`` are interpreted as environment variables. Like other options,
       the environment variable name is converted to lower snake case. For example,
@@ -195,6 +219,7 @@ cleanup until the pipe transformer results have been materialized, such as by be
 Examples
 ========
 
+<<<<<<< HEAD
 The examples below show how to parallelize Bedtools, Plink and VEP.
 
 .. important:: 
@@ -205,6 +230,14 @@ The examples below show how to parallelize Bedtools, Plink and VEP.
   Bedtools ``shuffle`` and ``intersect`` are two bedtools commands suited to the pipe transformer.
   
 .. tip::
+=======
+The two examples below show how to parallelize Bedtools and VEP.
+
+.. tip:: 
+  bedtools ``shuffle`` and ``intersect`` are two bedtools commands suited to the pipe transformer.
+
+.. tip:: 
+>>>>>>> f6791fc (Fetch upstream)
   The VEP example shows how to quarantine corrupted records. This functionality was introduced from Glow ``v1.1.2``.
 
 .. notebook:: .. tertiary/pipe-transformer.html

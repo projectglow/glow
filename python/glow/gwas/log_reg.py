@@ -6,7 +6,11 @@ from pyspark.sql import DataFrame, SparkSession
 import statsmodels.api as sm
 from dataclasses import dataclass
 from typeguard import typechecked
+<<<<<<< HEAD
 from nptyping import Bool, Float, NDArray, Int32, Shape
+=======
+from nptyping import Float, NDArray, Int32
+>>>>>>> f6791fc (Fetch upstream)
 from scipy import stats
 import opt_einsum as oe
 from . import functions as gwas_fx
@@ -33,7 +37,11 @@ def logistic_regression(genotype_df: DataFrame,
                         dt: type = np.float64,
                         intersect_samples: bool = False,
                         genotype_sample_ids: Optional[List[str]] = None) -> DataFrame:
+<<<<<<< HEAD
     r'''
+=======
+    '''
+>>>>>>> f6791fc (Fetch upstream)
     Uses logistic regression to test for association between genotypes and one or more binary
     phenotypes. This is a distributed version of the method from regenie:
     https://www.nature.com/articles/s41588-021-00870-7
@@ -288,10 +296,17 @@ def _logistic_residualize(
 
 
 def _logistic_regression_inner(
+<<<<<<< HEAD
         genotype_pdf: pd.DataFrame, log_reg_state: LogRegState, C: NDArray[Shape['*, *'], Float],
         Y: NDArray[Shape['*, *'], Float], Y_mask: NDArray[Shape['*, *'], Bool],
         Q: Optional[NDArray[Shape['*, *'], Float]], correction: str, pvalue_threshold: float,
         phenotype_names: pd.Series, gt_indices_to_drop: Optional[NDArray[Shape['*'],
+=======
+        genotype_pdf: pd.DataFrame, log_reg_state: LogRegState, C: NDArray[(Any, Any), Float],
+        Y: NDArray[(Any, Any), Float], Y_mask: NDArray[(Any, Any), bool],
+        Q: Optional[NDArray[(Any, Any), Float]], correction: str, pvalue_threshold: float,
+        phenotype_names: pd.Series, gt_indices_to_drop: Optional[NDArray[(Any, ),
+>>>>>>> f6791fc (Fetch upstream)
                                                                          Int32]]) -> pd.DataFrame:
     '''
     Tests a block of genotypes for association with binary traits. We first residualize
