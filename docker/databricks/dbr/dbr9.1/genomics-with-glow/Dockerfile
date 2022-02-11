@@ -3,10 +3,17 @@
 FROM projectglow/genomics:9.1 AS builder
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 ENV GLOW_VERSION=1.1.2
 =======
 ENV GLOW_VERSION=1.1.1
 >>>>>>> 6908c68 (Add 9.1 LTS Dockerfiles to Databricks tree)
+=======
+ENV GLOW_VERSION=1.1.1
+=======
+ENV GLOW_VERSION=1.1.2
+>>>>>>> f6791fc (Fetch upstream)
+>>>>>>> 41ae0b9 (Fetch upstream)
 
 # ===== Install python dependencies for Glow =======================================================
 # once available, we want specify that the earliest version is 1.1.0
