@@ -11,10 +11,18 @@ dependencies:
   - nptyping
   - numpy=1.23.5
   - opt_einsum>=3.2.0
+<<<<<<< HEAD
   - pandas=1.5.3
   - pip=22.3.1
   - pyarrow=8.0.1 # DBR 14.2 uses 8.0.0, but this version is not compatible with Python 3.10 in Conda
   - pytest=7.4.4
+=======
+  - pandas=1.0.1
+  - pip
+  - pyarrow=1.0.1
+  - pyspark=3.1.2
+  - pytest
+>>>>>>> f6791fc (Fetch upstream)
   - pyyaml
   - scipy=1.10.0
   - scikit-learn=1.1.1
@@ -22,6 +30,7 @@ dependencies:
   - typeguard
   - yapf=0.40.1
   - pip:
+<<<<<<< HEAD
     - pyspark==3.5.0
     - databricks-cli==0.18 # Docs notebook source generation
     - setuptools==65.6.3 # Python packaging
@@ -29,8 +38,12 @@ dependencies:
     - pygments
     - sphinx
     - sphinx_rtd_theme
+=======
+    - setuptools==52.0.0 # Python packaging
+    - twine==2.0.0 # Pypi publishing
+>>>>>>> f6791fc (Fetch upstream)
     - sphinx-autobuild
     - sphinx-prompt
     - Sphinx-Substitution-Extensions # Substitutions in code blocks
     - sphinx-tabs # Code tabs (Python/Scala)
-    - sybil # Automatic doctest
+    - sybil==3.0.0 # Automatic doctest

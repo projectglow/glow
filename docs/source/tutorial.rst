@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 .. _gwas_tutorial:
 
 GWAS Tutorial
@@ -12,6 +13,12 @@ Therefore it is suited for working with population-scale biobank exome or genome
 .. tip::
    
    Other bioinformatics libraries for GWAS can be distributed using the :ref:`Glow Pipe Transformer <pipe-transformer>`.
+=======
+GWAS Tutorial
+=============
+
+This is a quickstart tutorial for performing genome-wide association studies using Glow. 
+>>>>>>> f6791fc (Fetch upstream)
 
 You can view html versions of the notebooks and download them from the bottom of this page.
 

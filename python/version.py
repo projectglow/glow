@@ -12,4 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+<<<<<<< HEAD
 VERSION = '2.0.0'
+=======
+VERSION = '1.1.2'
+>>>>>>> f6791fc (Fetch upstream)

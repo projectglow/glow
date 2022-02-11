@@ -11,6 +11,10 @@ big data processing and machine learning, enabling genomics workflows to scale t
    introduction
    getting-started
    tutorial
+<<<<<<< HEAD
+=======
+   benchmarks
+>>>>>>> f6791fc (Fetch upstream)
    etl/index
    tertiary/index
    troubleshooting
