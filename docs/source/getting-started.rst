@@ -5,7 +5,11 @@ Running Locally
 ---------------
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 Glow requires Apache Spark 3.4 or 3.5.
+=======
+Glow requires Apache Spark 3.2.1.
+>>>>>>> 41ae0b9 (Fetch upstream)
 =======
 Glow requires Apache Spark 3.1.2.
 >>>>>>> f6791fc (Fetch upstream)
@@ -19,7 +23,11 @@ Glow requires Apache Spark 3.1.2.
         .. code-block:: sh
 
 <<<<<<< HEAD
+<<<<<<< HEAD
           pip install pyspark==3.5.0
+=======
+          pip install pyspark==3.2.1
+>>>>>>> 41ae0b9 (Fetch upstream)
 =======
           pip install pyspark==3.1.2
 >>>>>>> f6791fc (Fetch upstream)
@@ -187,13 +195,17 @@ Notebooks embedded in the docs
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> 5dd84bd (update hail)
+=======
+>>>>>>> 41ae0b9 (Fetch upstream)
 Documentation pages are accompanied by embedded notebook examples. Most code in these notebooks can be run on Spark and Glow alone, but functions such as ``display()`` or ``dbutils()`` are only available on Databricks. See :ref:`dbnotebooks` for more info.
 
 These notebooks are located in the Glow github repository `here <https://github.com/projectglow/glow/blob/master/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/>`_ and are tested nightly end-to-end. They include notebooks to define constants such as the number of samples to simulate and the output paths for each step in the pipeline. Notebooks that define constants are ``%run`` at the start of each notebook in the documentation. Please see :ref:`data_simulation` to get started.
 =======
 To demonstrate example use cases of Glow functionalities, most doc pages are accompanied by embedded notebooks. Most of the code in these notebooks can be run on Spark and Glow alone, but a few functions such as ``display()`` or ``dbutils()`` are only available on Databricks. See :ref:`dbnotebooks` for more info.
+<<<<<<< HEAD
 <<<<<<< HEAD
 =======
 Documentation pages are accompanied by embedded notebook examples. Most code in these notebooks can be run on Spark and Glow alone, but functions such as ``display()`` or ``dbutils()`` are only available on Databricks. See :ref:`dbnotebooks` for more info.
@@ -204,10 +216,18 @@ These notebooks are located in the Glow github repository `here <https://github.
 
 Also note that the path to datasets used as example in these notebooks is usually a folder in ``/databricks-datasets/genomics/`` and should be replaced with the appropriate path based on your own folder structure.
 >>>>>>> 5dd84bd (update hail)
+=======
+=======
+Documentation pages are accompanied by embedded notebook examples. Most code in these notebooks can be run on Spark and Glow alone, but functions such as ``display()`` or ``dbutils()`` are only available on Databricks. See :ref:`dbnotebooks` for more info.
+>>>>>>> f6791fc (Fetch upstream)
+
+These notebooks are located in the Glow github repository `here <https://github.com/projectglow/glow/blob/master/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/>`_ and are tested nightly end-to-end.  They include notebooks to define constants such as the number of samples to simulate and the output paths for each step in the pipeline. Notebooks that define constants are ``%run`` at the start of each notebook in the documentation. Please see :ref:`data_simulation` to get started.
+>>>>>>> 41ae0b9 (Fetch upstream)
 
 Getting started on Databricks
 -----------------------------
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 The Databricks documentation shows how to get started with Glow on, 
 
@@ -232,11 +252,25 @@ The following series of notebooks showcase how to get started with Glow on Datab
 
 .. notebook:: . readme/index.html
   :title: Databricks quickstart guide
+=======
+The Databricks documentation shows how to get started with Glow on, 
+>>>>>>> 41ae0b9 (Fetch upstream)
 
+  - **Amazon Web Services** (AWS - `docs <https://docs.databricks.com/applications/genomics/tertiary-analytics/glow.html>`_)
+  - **Microsoft Azure** (`docs <https://docs.microsoft.com/en-us/azure/databricks/applications/genomics/tertiary-analytics/glow>`_) 
+  - **Google Cloud Platform** (GCP - `docs <https://docs.gcp.databricks.com/applications/genomics/tertiary-analytics/glow.html>`_)
 
+ 
 Getting started on other cloud services
 ---------------------------------------
 
+<<<<<<< HEAD
 Please submit a pull request to add a how-to guide for other cloud services.
 >>>>>>> fc749e2 (update hail)
+<<<<<<< HEAD
 >>>>>>> 5dd84bd (update hail)
+=======
+=======
+Please submit a pull request to add a guide for other cloud services.
+>>>>>>> f6791fc (Fetch upstream)
+>>>>>>> 41ae0b9 (Fetch upstream)

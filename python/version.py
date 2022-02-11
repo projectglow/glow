@@ -13,7 +13,11 @@
 # limitations under the License.
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 VERSION = '2.0.0'
+=======
+VERSION = '1.2.1'
+>>>>>>> 41ae0b9 (Fetch upstream)
 =======
 VERSION = '1.1.2'
 >>>>>>> f6791fc (Fetch upstream)

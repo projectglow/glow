@@ -10,14 +10,22 @@ RUN apt-get update \
     virtualenv \
     git-all \
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+=======
+>>>>>>> 41ae0b9 (Fetch upstream)
     make \
     automake \
     gcc \
     g++ \
     subversion \
     python3-dev \
+<<<<<<< HEAD
 =======
 >>>>>>> 6908c68 (Add 9.1 LTS Dockerfiles to Databricks tree)
+=======
+>>>>>>> f6791fc (Fetch upstream)
+>>>>>>> 41ae0b9 (Fetch upstream)
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 

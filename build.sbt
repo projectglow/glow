@@ -12,6 +12,7 @@ lazy val scala212 = "2.12.18"
 lazy val scala213 = "2.13.12"
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 lazy val spark3 = "3.5.0"
 lazy val spark4 = "4.0.0-SNAPSHOT"
 =======
@@ -19,6 +20,16 @@ lazy val spark3 = "3.1.2"
 lazy val spark2 = "2.4.5"
 >>>>>>> f6791fc (Fetch upstream)
 
+=======
+lazy val spark3 = "3.3.1"
+
+lazy val hailOnSpark3 = "0.2.89"
+=======
+lazy val spark3 = "3.1.2"
+lazy val spark2 = "2.4.5"
+>>>>>>> f6791fc (Fetch upstream)
+
+>>>>>>> 41ae0b9 (Fetch upstream)
 lazy val hailOnSpark3 = "0.2.74"
 lazy val hailOnSpark2 = "0.2.58"
 
@@ -271,6 +282,14 @@ ThisBuild / installHail := {
   Seq(
     "/bin/bash",
     "-c",
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+    s"git clone -b ${hailVersion.value} https://github.com/hail-is/hail.git;" + "source $(conda info --base)/etc/profile.d/conda.sh &&" + "conda create -y --name hail &&" + "conda activate hail --stack &&" + "cd \"hail/hail\" &&" + "sed " + "\"" + s"s/^pyspark.*/pyspark==${sparkVersion.value}/" + "\"" + " python/requirements.txt | grep -v '^#' | xargs pip3 install -U &&" +
+      s"make SCALA_VERSION=${scalaVersion.value} SPARK_VERSION=${sparkVersion.value} shadowJar wheel &&" +
+      s"pip3 install build/deploy/dist/hail-${hailVersion.value}-py3-none-any.whl"
+=======
+>>>>>>> 41ae0b9 (Fetch upstream)
     s"git clone -b ${hailVersion.value} https://github.com/hail-is/hail.git;" +
     "source $(conda info --base)/etc/profile.d/conda.sh &&" +
     "conda create -y --name hail &&" +
@@ -279,6 +298,10 @@ ThisBuild / installHail := {
     "sed " + "\"" + s"s/^pyspark.*/pyspark==${sparkVersion.value}/" + "\"" + " python/requirements.txt | grep -v '^#' | xargs pip3 install -U &&" +
     s"make SCALA_VERSION=${scalaVersion.value} SPARK_VERSION=${sparkVersion.value} shadowJar wheel &&" +
     s"pip3 install --no-deps build/deploy/dist/hail-${hailVersion.value}-py3-none-any.whl"
+<<<<<<< HEAD
+=======
+>>>>>>> f6791fc (Fetch upstream)
+>>>>>>> 41ae0b9 (Fetch upstream)
   ) !
 }
 
@@ -428,6 +451,7 @@ updateCondaEnv := {
 }
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 def crossReleaseStep(step: ReleaseStep, requiresPySpark: Boolean): Seq[ReleaseStep] = {
   val updateCondaEnvStep = releaseStepCommandAndRemaining(
     if (requiresPySpark) "updateCondaEnv" else "")
@@ -440,6 +464,19 @@ def crossReleaseStep(
     if (requiresPySpark) "updateCondaEnv" else "")
   val changePySparkVersionStep = releaseStepCommandAndRemaining(
     if (requiresPySpark) "changePySparkVersion" else "")
+=======
+def crossReleaseStep(
+    step: ReleaseStep,
+    requiresPySpark: Boolean,
+    requiresHail: Boolean): Seq[ReleaseStep] = {
+  val updateCondaEnvStep = releaseStepCommandAndRemaining(
+    if (requiresPySpark) "updateCondaEnv" else "")
+<<<<<<< HEAD
+=======
+  val changePySparkVersionStep = releaseStepCommandAndRemaining(
+    if (requiresPySpark) "changePySparkVersion" else "")
+>>>>>>> f6791fc (Fetch upstream)
+>>>>>>> 41ae0b9 (Fetch upstream)
   val installHailStep = releaseStepCommandAndRemaining(if (requiresHail) "installHail" else "")
   val uninstallHailStep = releaseStepCommandAndRemaining(if (requiresHail) "uninstallHail" else "")
 >>>>>>> f6791fc (Fetch upstream)
@@ -452,6 +489,20 @@ def crossReleaseStep(
     step,
 =======
     releaseStepCommandAndRemaining(s"""set ThisBuild / hailVersion := "$hailOnSpark3""""),
+<<<<<<< HEAD
+=======
+    installHailStep,
+    step,
+    uninstallHailStep,
+    changePySparkVersionStep,
+    releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark2""""),
+    releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala211""""),
+    releaseStepCommandAndRemaining(s"""set ThisBuild / hailVersion := "$hailOnSpark2""""),
+    installHailStep,
+    step,
+    uninstallHailStep,
+    releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
+>>>>>>> f6791fc (Fetch upstream)
     installHailStep,
     step,
     uninstallHailStep,
@@ -481,7 +532,41 @@ releaseProcess := Seq[ReleaseStep](
   inquireVersions,
   runClean
 <<<<<<< HEAD
+<<<<<<< HEAD
 ) ++ crossReleaseStep(releaseStepCommandAndRemaining("core/test"), requiresPySpark = false) ++
+=======
+ ) ++ crossReleaseStep(releaseStepCommandAndRemaining("core/test"), requiresPySpark = false, requiresHail = false) ++
+// commenting out for Spark 3.2 release until hail is on spark 3.2
+//  crossReleaseStep(releaseStepCommandAndRemaining("python/test"), requiresPySpark = true, requiresHail = false) ++
+//  crossReleaseStep(
+//    releaseStepCommandAndRemaining("docs/test"),
+//    requiresPySpark = true,
+//    requiresHail = false) ++
+//  crossReleaseStep(
+//    releaseStepCommandAndRemaining("hail/test"),
+//    requiresPySpark = true,
+//    requiresHail = true) ++
+  Seq(
+    setReleaseVersion,
+    updateStableVersion,
+    commitReleaseVersion,
+    commitStableVersion,
+    tagRelease
+  ) ++
+  crossReleaseStep(
+    releaseStepCommandAndRemaining("publishSigned"),
+    requiresPySpark = false,
+    requiresHail = false) ++
+  sonatypeSteps ++
+  crossReleaseStep(
+    releaseStepCommandAndRemaining("stagedRelease/test"),
+    requiresPySpark = false,
+    requiresHail = false) ++
+  Seq(
+    setNextVersion,
+    commitNextVersion
+  )
+>>>>>>> 41ae0b9 (Fetch upstream)
 =======
 ) ++
 crossReleaseStep(
@@ -500,7 +585,10 @@ crossReleaseStep(
   releaseStepCommandAndRemaining("hail/test"),
   requiresPySpark = true,
   requiresHail = true) ++
+<<<<<<< HEAD
 >>>>>>> f6791fc (Fetch upstream)
+=======
+>>>>>>> 41ae0b9 (Fetch upstream)
 Seq(
   setReleaseVersion,
   updateStableVersion,
@@ -509,10 +597,13 @@ Seq(
   tagRelease
 ) ++
 <<<<<<< HEAD
+<<<<<<< HEAD
 crossReleaseStep(releaseStepCommandAndRemaining("publishSigned"), requiresPySpark = false) ++
 sonatypeSteps ++
 crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test"), requiresPySpark = false) ++
 =======
+=======
+>>>>>>> 41ae0b9 (Fetch upstream)
 crossReleaseStep(
   releaseStepCommandAndRemaining("publishSigned"),
   requiresPySpark = false,
@@ -522,8 +613,15 @@ crossReleaseStep(
   releaseStepCommandAndRemaining("stagedRelease/test"),
   requiresPySpark = false,
   requiresHail = false) ++
+<<<<<<< HEAD
 >>>>>>> f6791fc (Fetch upstream)
+=======
+>>>>>>> 41ae0b9 (Fetch upstream)
 Seq(
   setNextVersion,
   commitNextVersion
 )
+<<<<<<< HEAD
+=======
+>>>>>>> f6791fc (Fetch upstream)
+>>>>>>> 41ae0b9 (Fetch upstream)

@@ -12,15 +12,25 @@ dependencies:
   - numpy=1.23.5
   - opt_einsum>=3.2.0
 <<<<<<< HEAD
+<<<<<<< HEAD
   - pandas=1.5.3
   - pip=22.3.1
   - pyarrow=8.0.1 # DBR 14.2 uses 8.0.0, but this version is not compatible with Python 3.10 in Conda
   - pytest=7.4.4
 =======
+  - pandas=1.2.4
+  - pip=21.0.1
+  - pyarrow=4.0.0
+>>>>>>> 41ae0b9 (Fetch upstream)
+=======
   - pandas=1.0.1
   - pip
   - pyarrow=1.0.1
   - pyspark=3.1.2
+<<<<<<< HEAD
+=======
+>>>>>>> f6791fc (Fetch upstream)
+>>>>>>> 41ae0b9 (Fetch upstream)
   - pytest
 >>>>>>> f6791fc (Fetch upstream)
   - pyyaml
@@ -31,6 +41,7 @@ dependencies:
   - yapf=0.40.1
   - pip:
 <<<<<<< HEAD
+<<<<<<< HEAD
     - pyspark==3.5.0
     - databricks-cli==0.18 # Docs notebook source generation
     - setuptools==65.6.3 # Python packaging
@@ -39,6 +50,12 @@ dependencies:
     - sphinx
     - sphinx_rtd_theme
 =======
+=======
+    - pyspark==3.2.1
+    - databricks-cli==0.16.4 # Docs notebook source generation
+=======
+>>>>>>> f6791fc (Fetch upstream)
+>>>>>>> 41ae0b9 (Fetch upstream)
     - setuptools==52.0.0 # Python packaging
     - twine==2.0.0 # Pypi publishing
 >>>>>>> f6791fc (Fetch upstream)

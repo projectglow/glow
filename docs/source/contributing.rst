@@ -71,14 +71,18 @@ And run this python script (swapping the html file out for your own).
    
    python3 docs/dev/gen-nb-src.py --html docs/source/_static/notebooks/tertiary/pipe-transformer-vep.html
 
+<<<<<<< HEAD
 The Glow workflow is tested in a nightly integration test in Databricks.
 If you add notebooks or rename them, please also edit the workflow definition json located in `docs/dev/ <https://github.com/projectglow/glow/blob/main/docs/dev>`_.
 
 =======
+<<<<<<< HEAD
 .. code-block:: bash::
    
    python3 docs/dev/gen-nb-src.py --html docs/source/_static/notebooks/tertiary/pipe-transformer-vep.html
 
+=======
+>>>>>>> 41ae0b9 (Fetch upstream)
 >>>>>>> f6791fc (Fetch upstream)
 .. _improve-documentation:
 
@@ -111,10 +115,14 @@ first create the conda environment:
 <<<<<<< HEAD
 .. code-block:: sh
 
+<<<<<<< HEAD
    cd docs
 =======
+<<<<<<< HEAD
 .. code-block:: bash 
 
+=======
+>>>>>>> 41ae0b9 (Fetch upstream)
 >>>>>>> f6791fc (Fetch upstream)
    conda env create -f source/environment.yml
 
@@ -140,10 +148,17 @@ build the docs:
 
 connect to the local server via your browser at: `http://127.0.0.1:8000`
 
+<<<<<<< HEAD
 
 <<<<<<< HEAD
 3. Contribute new features / bug fixes
 =======
+=======
+<<<<<<< HEAD
+=======
+
+>>>>>>> f6791fc (Fetch upstream)
+>>>>>>> 41ae0b9 (Fetch upstream)
 .. _docker-environment:
 
 3. Add libraries to the glow docker environment
@@ -153,7 +168,15 @@ Please edit glow `docker files <https://github.com/projectglow/glow/blob/master/
 Only include libraries that are used directly upstream or downstream of glow, or used with the glow :ref:`pipe transformer <pipe-transformer>`.
 
 1. Setup a dockerhub account
+<<<<<<< HEAD
 2. Edit the `genomics docker file <https://github.com/projectglow/glow/blob/master/docker/databricks/dbr/dbr9.1/genomics/Dockerfile>`_ on your fork 
+=======
+<<<<<<< HEAD
+2. Edit the `genomics docker file <https://github.com/projectglow/glow/blob/master/docker/databricks/dbr/dbr10.4/genomics/Dockerfile>`_ on your fork 
+=======
+2. Edit the `genomics docker file <https://github.com/projectglow/glow/blob/master/docker/databricks/dbr/dbr9.1/genomics/Dockerfile>`_ on your fork 
+>>>>>>> f6791fc (Fetch upstream)
+>>>>>>> 41ae0b9 (Fetch upstream)
 
   - This file contains command line tools, Python and R packages
 
