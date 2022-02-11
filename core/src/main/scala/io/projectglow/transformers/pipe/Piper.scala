@@ -162,7 +162,11 @@ private[projectglow] object Piper extends GlowLogging {
             false
         }
         quarantineInfo.foreach { quarantineInfo =>
+<<<<<<< HEAD
           val failedPartitions = data.map(_.asInstanceOf[InternalRow]).toSeq
+=======
+          val failedPartitions = data.map(_.asInstanceOf[InternalRow])
+>>>>>>> f6791fc (Fetch upstream)
           val failedRDD = schemaInternalRowRDD.context.parallelize(failedPartitions)
           val failedDataframe =
             SQLUtils.internalCreateDataFrame(
@@ -258,13 +262,18 @@ object ProcessHelper {
 class PipeIterator(
     cmd: Seq[String],
     environment: Map[String, String],
+<<<<<<< HEAD
     input: Iterator[InternalRow],
+=======
+    _input: Iterator[InternalRow],
+>>>>>>> f6791fc (Fetch upstream)
     inputFormatter: InputFormatter[_],
     outputFormatter: OutputFormatter,
     errorPartitionData: Option[CollectionAccumulator[Any]] = None)
     extends Iterator[Any] {
   import PipeIterator.illegalStateException
 
+  private val input = _input.toSeq
   private val processHelper = new ProcessHelper(cmd, environment, writeInput, TaskContext.get)
   private val inputStream = processHelper.startProcess()
   private val baseIterator = outputFormatter.makeIterator(inputStream)

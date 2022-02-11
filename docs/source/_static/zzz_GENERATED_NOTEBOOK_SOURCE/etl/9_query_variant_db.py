@@ -1,7 +1,11 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC ### Query variant database
+<<<<<<< HEAD
 # MAGIC
+=======
+# MAGIC 
+>>>>>>> f6791fc (Fetch upstream)
 # MAGIC 1. point query of specific variants
 # MAGIC 2. range query of specific gene
 
@@ -54,7 +58,11 @@ spark.sql("select `calls` from variant_db.exploded where contigName = '{0}' and 
 # COMMAND ----------
 
 # MAGIC %md
+<<<<<<< HEAD
 # MAGIC
+=======
+# MAGIC 
+>>>>>>> f6791fc (Fetch upstream)
 # MAGIC ##### Gene based queries
 
 # COMMAND ----------

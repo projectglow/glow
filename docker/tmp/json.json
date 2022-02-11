@@ -1,0 +1,189 @@
+{
+    "job_id": 69289,
+    "settings": {
+        "name": "ldpred2",
+        "email_notifications": {
+            "no_alert_for_skipped_runs": false
+        },
+        "timeout_seconds": 0,
+        "max_concurrent_runs": 5,
+        "tasks": [
+            {
+                "task_key": "generate_indexed_bgen",
+                "notebook_task": {
+                    "notebook_path": "/Repos/william.brandler@databricks.com/hls-solution-accelerators/rnd-lakehouse/glow_solution_accelerator/ld_pred2/ld-pred2-workflow/0_generate_indexed_bgen_for_testing"
+                },
+                "new_cluster": {
+                    "cluster_name": "",
+                    "spark_version": "9.1.x-scala2.12",
+                    "aws_attributes": {
+                        "zone_id": "us-west-2b",
+                        "first_on_demand": 1,
+                        "availability": "SPOT_WITH_FALLBACK",
+                        "spot_bid_price_percent": 100,
+                        "ebs_volume_count": 0
+                    },
+                    "node_type_id": "i3.xlarge",
+                    "enable_elastic_disk": false,
+                    "docker_image": {
+                        "url": "projectglow/databricks-glow:1.1.2",
+                        "basic_auth": {
+                            "username": "projectglow",
+                            "password": "e^S6BK5w6rdj"
+                        }
+                    },
+                    "num_workers": 120
+                },
+                "timeout_seconds": 0,
+                "email_notifications": {},
+                "description": ""
+            },
+            {
+                "task_key": "ETL_GWAS_results",
+                "depends_on": [
+                    {
+                        "task_key": "generate_indexed_bgen"
+                    }
+                ],
+                "notebook_task": {
+                    "notebook_path": "/Repos/william.brandler@databricks.com/hls-solution-accelerators/rnd-lakehouse/glow_solution_accelerator/ld_pred2/ld-pred2-workflow/2_ETL_GWAS_results"
+                },
+                "new_cluster": {
+                    "cluster_name": "",
+                    "spark_version": "9.1.x-scala2.12",
+                    "aws_attributes": {
+                        "zone_id": "us-west-2b",
+                        "first_on_demand": 1,
+                        "availability": "SPOT_WITH_FALLBACK",
+                        "spot_bid_price_percent": 100,
+                        "ebs_volume_count": 0
+                    },
+                    "node_type_id": "i3.2xlarge",
+                    "enable_elastic_disk": false,
+                    "docker_image": {
+                        "url": "projectglow/databricks-glow:1.1.2",
+                        "basic_auth": {
+                            "username": "projectglow",
+                            "password": "e^S6BK5w6rdj"
+                        }
+                    },
+                    "autoscale": {
+                        "min_workers": 2,
+                        "max_workers": 16
+                    }
+                },
+                "timeout_seconds": 0,
+                "email_notifications": {}
+            },
+            {
+                "task_key": "ldpred2_corr_matrix_generation",
+                "depends_on": [
+                    {
+                        "task_key": "ETL_GWAS_results"
+                    },
+                    {
+                        "task_key": "generate_per_chromosome_bins"
+                    }
+                ],
+                "notebook_task": {
+                    "notebook_path": "/Repos/william.brandler@databricks.com/hls-solution-accelerators/rnd-lakehouse/glow_solution_accelerator/ld_pred2/ld-pred2-workflow/4_ldpred2_corr_matrix_generation"
+                },
+                "new_cluster": {
+                    "cluster_name": "",
+                    "spark_version": "9.1.x-scala2.12",
+                    "aws_attributes": {
+                        "zone_id": "us-west-2b",
+                        "first_on_demand": 1,
+                        "availability": "SPOT_WITH_FALLBACK",
+                        "spot_bid_price_percent": 100,
+                        "ebs_volume_count": 0
+                    },
+                    "node_type_id": "i3.16xlarge",
+                    "enable_elastic_disk": false,
+                    "docker_image": {
+                        "url": "projectglow/databricks-glow:1.1.2",
+                        "basic_auth": {
+                            "username": "projectglow",
+                            "password": "e^S6BK5w6rdj"
+                        }
+                    },
+                    "num_workers": 4
+                },
+                "timeout_seconds": 0,
+                "email_notifications": {}
+            },
+            {
+                "task_key": "generate_per_chromosome_bins",
+                "depends_on": [
+                    {
+                        "task_key": "generate_indexed_bgen"
+                    }
+                ],
+                "notebook_task": {
+                    "notebook_path": "/Repos/william.brandler@databricks.com/hls-solution-accelerators/rnd-lakehouse/glow_solution_accelerator/ld_pred2/ld-pred2-workflow/1_generate_per_chromosome_bins"
+                },
+                "new_cluster": {
+                    "cluster_name": "",
+                    "spark_version": "9.1.x-scala2.12",
+                    "aws_attributes": {
+                        "zone_id": "us-west-2b",
+                        "first_on_demand": 1,
+                        "availability": "SPOT_WITH_FALLBACK",
+                        "spot_bid_price_percent": 100,
+                        "ebs_volume_count": 0
+                    },
+                    "node_type_id": "i3.xlarge",
+                    "enable_elastic_disk": false,
+                    "docker_image": {
+                        "url": "projectglow/databricks-glow:1.1.2",
+                        "basic_auth": {
+                            "username": "projectglow",
+                            "password": "e^S6BK5w6rdj"
+                        }
+                    },
+                    "num_workers": 16
+                },
+                "timeout_seconds": 0,
+                "email_notifications": {}
+            },
+            {
+                "task_key": "ldpred2_adjust_betas",
+                "depends_on": [
+                    {
+                        "task_key": "ldpred2_corr_matrix_generation"
+                    }
+                ],
+                "notebook_task": {
+                    "notebook_path": "/Repos/william.brandler@databricks.com/hls-solution-accelerators/rnd-lakehouse/glow_solution_accelerator/ld_pred2/ld-pred2-workflow/5_ldpred2_adjust_beta"
+                },
+                "new_cluster": {
+                    "cluster_name": "",
+                    "spark_version": "9.1.x-scala2.12",
+                    "aws_attributes": {
+                        "zone_id": "us-west-2b",
+                        "first_on_demand": 1,
+                        "availability": "SPOT_WITH_FALLBACK",
+                        "spot_bid_price_percent": 100,
+                        "ebs_volume_count": 0
+                    },
+                    "node_type_id": "i3.16xlarge",
+                    "enable_elastic_disk": false,
+                    "docker_image": {
+                        "url": "projectglow/databricks-glow:1.1.2",
+                        "basic_auth": {
+                            "username": "projectglow",
+                            "password": "e^S6BK5w6rdj"
+                        }
+                    },
+                    "num_workers": 4
+                },
+                "timeout_seconds": 0,
+                "email_notifications": {}
+            }
+        ],
+        "format": "MULTI_TASK"
+    },
+    "created_time": 1642557434711,
+    "creator_user_name": "william.brandler@databricks.com",
+    "run_as_user_name": "william.brandler@databricks.com"
+}

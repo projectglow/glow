@@ -50,7 +50,11 @@ display(transformed_df.drop("genotypes"))
 
 # MAGIC %md
 # MAGIC #### Install bedtools across cluster
+<<<<<<< HEAD
 # MAGIC
+=======
+# MAGIC 
+>>>>>>> f6791fc (Fetch upstream)
 # MAGIC Tested using the [databricks-glow](https://hub.docker.com/r/projectglow/databricks-glow) docker container ([docs](https://docs.databricks.com/clusters/custom-containers.html))
 
 # COMMAND ----------
@@ -82,7 +86,11 @@ scriptFile = r"""#!/bin/sh
 set -e
 #input bed is stdin, signified by '-'
 
+<<<<<<< HEAD
 /opt/bedtools-2.30.0/bin/bedtools intersect -seed 42 -a - -b %(bed_path)s -header -wa
+=======
+/opt/bedtools-2.30.0/bin/bedtools intersect -seed 42 -a - -b /dbfs/tmp/chr22.bed -header -wa
+>>>>>>> f6791fc (Fetch upstream)
 
 """ % {"bed_path": bed_path}
 
