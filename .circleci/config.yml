@@ -309,9 +309,9 @@ jobs:
           name: Run changed notebook tests
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            if [[ -n $(git diff --name-only master --relative docs/source/_static/) ]]; then
-              echo "Testing changed notebooks!"
-              python docs/dev/run-nb-test.py --cli-profile docs-ci $(git diff --name-only master --relative docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE | cut -c 51- | cut -f1 -d"." | sed -e 's/^/--nbs /')
+            if [[ -n $(git diff --name-status master --relative docs/source/_static/ | sed '/^D/d') ]]; then
+              echo "Testing changed notebooks! (except for deleted ones)"
+              python docs/dev/run-nb-test.py --cli-profile docs-ci $(git diff --name-status master --relative docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE | sed '/^D/d' | awk '{print $NF}' | cut -c 51- | cut -f1 -d"." | sed -e 's/^/--nbs /')
             else
               echo "No notebooks changed."
             fi
