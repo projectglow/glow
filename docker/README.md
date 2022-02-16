@@ -110,7 +110,7 @@ The Python version used *must* be compatible with the Databricks Runtime (DBR) v
 
 ##### Scala dependencies
 
-Jars are best installed using ```curl``` or ```wget```. These *must* be deployed to ```/databricks/jars```.
+Jars are *best installed using ```curl``` or ```wget```. These *must* be deployed to ```/databricks/jars```.
 As tempting as it may be, installation using maven is not recommended.     
 
 ##### Spark configurations 
@@ -120,16 +120,13 @@ e.g. ```/databricks/driver/conf/00-hail-spark-driver-defaults.conf```
 
 ##### Databricks cluster init scripts
 
-Any Databricks cluster init scripts need to be written to ```/databricks/scripts/```. Use predication
-to manage any required order of initialisation.
+Any Databricks cluster init scripts need to be written to ```/databricks/scripts/```. Use predication to manage any required order of initialisation where multiple init scripts are deployed.
 
 ##### Ganglia enablement on Databricks Container Services
 
-Review the Dockerfile and configurations in the ```ganglia``` directory to see how to deploy ganglia 
-in a way that enables metrics collection on Databricks clusters using Container Services. 
+Review the Dockerfile and configurations in the ```ganglia``` directory to see how to deploy ganglia in a way that enables metrics collection on Databricks clusters using Container Services. 
 
-Note that as of 2022-Feb-15, ganglia is not officially support on Databricks Container Services. The
-```ganglia``` docker image is supported by the community on a best efforts basis, only. 
+NOTE: that as of this time, ganglia is *not* officially supported on Databricks Container Services by Databricks. The ```ganglia``` docker image here is supported by the community on a *best efforts* basis, only. 
 
 
 
