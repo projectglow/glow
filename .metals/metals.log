@@ -1,0 +1,72 @@
+2022.02.16 10:42:57 INFO  tracing is disabled for protocol LSP, to enable tracing of incoming and outgoing JSON messages create an empty file at /Users/axbo/Development/fastdata/glow/.metals/lsp.trace.json or /Users/axbo/Library/Caches/org.scalameta.metals/lsp.trace.json[0m
+2022.02.16 10:42:57 INFO  logging to file /Users/axbo/Development/fastdata/glow/.metals/metals.log[0m
+2022.02.16 10:42:57 INFO  Started: Metals version 0.11.1 in workspace '/Users/axbo/Development/fastdata/glow' for client Visual Studio Code 1.63.2.[0m
+2022.02.16 10:42:57 INFO  Parse release: 1.8.0_311[0m
+2022.02.16 10:42:57 WARN  Can't instantiate JavaInteractiveSemanticdb (version: Some(JdkVersion(1,8)), jdkHome: /Library/Internet Plug-Ins/JavaAppletPlugin.plugin/Contents/Home, javac exists: false)[0m
+2022.02.16 10:42:58 INFO  time: initialize in 0.4s[0m
+2022.02.16 10:42:58 WARN  Build server is not auto-connectable.[0m
+Feb 16, 2022 11:00:32 AM org.eclipse.lsp4j.jsonrpc.RemoteEndpoint handleNotification
+WARNING: Notification threw an exception: {
+  "jsonrpc": "2.0",
+  "method": "workspace/didChangeWatchedFiles",
+  "params": {
+    "changes": [
+      {
+        "uri": "file:///Users/axbo/Development/fastdata/glow/build.sbt",
+        "type": 3
+      },
+      {
+        "uri": "file:///Users/axbo/Development/fastdata/glow/version.sbt",
+        "type": 3
+      },
+      {
+        "uri": "file:///Users/axbo/Development/fastdata/glow/sonatype.sbt",
+        "type": 3
+      }
+    ]
+  }
+}
+java.lang.RuntimeException: java.lang.reflect.InvocationTargetException
+	at org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint.lambda$null$0(GenericEndpoint.java:67)
+	at org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint.notify(GenericEndpoint.java:152)
+	at org.eclipse.lsp4j.jsonrpc.RemoteEndpoint.handleNotification(RemoteEndpoint.java:220)
+	at org.eclipse.lsp4j.jsonrpc.RemoteEndpoint.consume(RemoteEndpoint.java:187)
+	at org.eclipse.lsp4j.jsonrpc.json.StreamMessageProducer.handleMessage(StreamMessageProducer.java:194)
+	at org.eclipse.lsp4j.jsonrpc.json.StreamMessageProducer.listen(StreamMessageProducer.java:94)
+	at org.eclipse.lsp4j.jsonrpc.json.ConcurrentMessageProcessor.run(ConcurrentMessageProcessor.java:113)
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:511)
+	at java.util.concurrent.FutureTask.run(FutureTask.java:266)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1149)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:624)
+	at java.lang.Thread.run(Thread.java:748)
+Caused by: java.lang.reflect.InvocationTargetException
+	at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at sun.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.lang.reflect.Method.invoke(Method.java:498)
+	at org.eclipse.lsp4j.jsonrpc.services.GenericEndpoint.lambda$null$0(GenericEndpoint.java:65)
+	... 11 more
+Caused by: java.nio.file.NoSuchFileException: /Users/axbo/Development/fastdata/glow/build.sbt
+	at sun.nio.fs.UnixException.translateToIOException(UnixException.java:86)
+	at sun.nio.fs.UnixException.rethrowAsIOException(UnixException.java:102)
+	at sun.nio.fs.UnixException.rethrowAsIOException(UnixException.java:107)
+	at sun.nio.fs.UnixFileSystemProvider.newByteChannel(UnixFileSystemProvider.java:214)
+	at java.nio.file.Files.newByteChannel(Files.java:361)
+	at java.nio.file.Files.newByteChannel(Files.java:407)
+	at java.nio.file.Files.readAllBytes(Files.java:3152)
+	at scala.meta.internal.io.PlatformFileIO$.slurp(PlatformFileIO.scala:45)
+	at scala.meta.internal.io.FileIO$.slurp(FileIO.scala:24)
+	at scala.meta.internal.metals.MetalsLanguageServer.$anonfun$onChange$1(MetalsLanguageServer.scala:1366)
+	at scala.meta.internal.metals.MetalsLanguageServer.$anonfun$onChange$1$adapted(MetalsLanguageServer.scala:1365)
+	at scala.collection.immutable.Stream.foreach(Stream.scala:533)
+	at scala.meta.internal.metals.MetalsLanguageServer.onChange(MetalsLanguageServer.scala:1365)
+	at scala.meta.internal.metals.MetalsLanguageServer.didChangeWatchedFiles(MetalsLanguageServer.scala:1309)
+	... 16 more
+
+2022.02.16 11:00:54 WARN  no build target for: /Users/axbo/Development/fastdata/glow/build.sbt[0m
+2022.02.16 11:00:54 WARN  no build target for: /Users/axbo/Development/fastdata/glow/sonatype.sbt[0m
+2022.02.16 11:00:54 WARN  no build target for: /Users/axbo/Development/fastdata/glow/version.sbt[0m
+2022.02.16 11:00:54 WARN  no build target for: /Users/axbo/Development/fastdata/glow/project/Dependencies.scala[0m
+2022.02.16 11:00:54 WARN  no build target for: /Users/axbo/Development/fastdata/glow/project/StableVersionPlugin.scala[0m
+2022.02.16 11:00:54 WARN  no build target for: /Users/axbo/Development/fastdata/glow/project/plugins.sbt[0m
+2022.02.16 11:00:57 INFO  no build target found for /Users/axbo/Development/fastdata/glow/sonatype.sbt. Using presentation compiler with project's scala-library version: 3.1.0[0m

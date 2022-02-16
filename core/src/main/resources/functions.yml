@@ -1,1 +1,507 @@
-../../../../functions.yml
+# This file contains the manifest of SparkSQL functions provided by Glow. The definitions in this
+# file are used to generate Scala and Python APIs.
+#
+# The top level names are groups of functions. These groups primarily matter for documentation. Each
+# group contains an ordered list of functions. Most of the parameters are self-evident. 
+#
+# Potentially confusing function options are:
+# - expr_class: The class name of the expression in Glow that implements the function. This value is
+#               *not* user-visible. It's used only for client generation.
+# - exclude_python: If true, the function is not exposed via the Python API
+# - exclude_scala: If true, the function is not exposed via the Scala API.
+# 
+# Potentially confusing argument options are:
+# - type: The argument's type. This can currently be one of [str, double, lambda1, lambda2]. These
+#         types do not correspond to any real programming language; they are just placeholders used for
+#         client generation. More types can be added as needed. If an argument does not have an explicit
+#         type, it is assumed to be of Spark SQL Column type.
+# - is_var_args: If true, the parameters can be repeated. Only the last argument in the args list
+#                can be var args.
+# - is_optional: If true, the parameter can be omitted. Only the last argument in the args list can
+#                 be optional.
+#
+# Warning: Spark version changes can modify the expected output. Known changes:
+# - PYSPARK_ROW_FIELD_SORTING_ENABLED was introduced in Spark 3.0, changing the schema ordering
+#
+# For more details about how the definitions in this file are eventually turned into clients,
+# consult the generator script at project/render_template.py.
+complex_type_manipulation:
+  functions:
+    - name: add_struct_fields
+      doc: Adds fields to a struct.
+      since: 0.3.0
+      examples:
+        python: |
+          >>> df = spark.createDataFrame([Row(struct=Row(a=1))])
+          >>> df.select(glow.add_struct_fields('struct', lit('b'), lit(2)).alias('struct')).collect()
+          [Row(struct=Row(a=1, b=2))]
+      expr_class: io.projectglow.sql.expressions.AddStructFields
+      args:
+        - name: struct
+          doc: The struct to which fields will be added
+        - name: fields
+          doc: The new fields to add. The arguments must alternate between string-typed literal field names and field values.
+          is_var_args: true
+      returns: A struct consisting of the input struct and the added fields
+    - name: array_summary_stats
+      doc: Computes the minimum, maximum, mean, standard deviation for an array of numerics.
+      since: 0.3.0
+      examples:
+        python: |
+          >>> df = spark.createDataFrame([Row(arr=[1, 2, 3])])
+          >>> df.select(glow.expand_struct(glow.array_summary_stats('arr'))).collect()
+          [Row(mean=2.0, stdDev=1.0, min=1.0, max=3.0)]
+      expr_class: io.projectglow.sql.expressions.ArrayStatsSummary
+      args:
+        - name: arr
+          doc: An array of any numeric type
+      returns: A struct containing double ``mean``, ``stdDev``, ``min``, and ``max`` fields
+    - name: array_to_dense_vector
+      doc: Converts an array of numerics into a ``spark.ml`` ``DenseVector``.
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.ArrayToDenseVector
+      examples:
+        python: |
+          >>> from pyspark.ml.linalg import DenseVector
+          >>> df = spark.createDataFrame([Row(arr=[1, 2, 3])])
+          >>> df.select(glow.array_to_dense_vector('arr').alias('v')).collect()
+          [Row(v=DenseVector([1.0, 2.0, 3.0]))]
+      args:
+        - name: arr
+          doc: The array of numerics
+      returns: A ``spark.ml`` ``DenseVector``
+    - name: array_to_sparse_vector
+      doc: Converts an array of numerics into a ``spark.ml`` ``SparseVector``.
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.ArrayToSparseVector
+      examples:
+        python: |
+          >>> from pyspark.ml.linalg import SparseVector
+          >>> df = spark.createDataFrame([Row(arr=[1, 0, 2, 0, 3, 0])])
+          >>> df.select(glow.array_to_sparse_vector('arr').alias('v')).collect()
+          [Row(v=SparseVector(6, {0: 1.0, 2: 2.0, 4: 3.0}))]
+      args:
+        - name: arr
+          doc: The array of numerics
+      returns: A ``spark.ml`` ``SparseVector``
+    - name: expand_struct
+      doc: Promotes fields of a nested struct to top-level columns similar to using ``struct.*`` from SQL, but can be used in more contexts.
+      since: 0.3.0
+      examples:
+        python: |
+          >>> df = spark.createDataFrame([Row(struct=Row(a=1, b=2))])
+          >>> df.select(glow.expand_struct(col('struct'))).collect()
+          [Row(a=1, b=2)]
+      expr_class: io.projectglow.sql.expressions.ExpandStruct
+      args:
+        - name: struct
+          doc: The struct to expand
+      returns: Columns corresponding to fields of the input struct
+    - name: explode_matrix
+      doc: Explodes a ``spark.ml`` ``Matrix`` (sparse or dense) into multiple arrays, one per row of the matrix.
+      since: 0.3.0
+      examples:
+        python: |
+          >>> from pyspark.ml.linalg import DenseMatrix
+          >>> m = DenseMatrix(numRows=3, numCols=2, values=[1, 2, 3, 4, 5, 6])
+          >>> df = spark.createDataFrame([Row(matrix=m)])
+          >>> df.select(glow.explode_matrix('matrix').alias('row')).collect()
+          [Row(row=[1.0, 4.0]), Row(row=[2.0, 5.0]), Row(row=[3.0, 6.0])]
+      expr_class: io.projectglow.sql.expressions.ExplodeMatrix
+      args:
+        - name: matrix
+          doc: The ``sparl.ml`` ``Matrix`` to explode
+      returns: An array column in which each row is a row of the input matrix
+    - name: subset_struct
+      doc: Selects fields from a struct.
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.SubsetStruct
+      examples:
+        python: |
+          >>> df = spark.createDataFrame([Row(struct=Row(a=1, b=2, c=3))])
+          >>> df.select(glow.subset_struct('struct', 'a', 'c').alias('struct')).collect()
+          [Row(struct=Row(a=1, c=3))]
+      args:
+        - name: struct
+          doc: Struct from which to select fields
+        - name: fields
+          doc: Fields to select
+          type: str
+          is_var_args: true
+      returns: A struct containing only the indicated fields
+    - name: vector_to_array
+      doc: Converts a ``spark.ml`` ``Vector`` (sparse or dense) to an array of doubles.
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.VectorToArray
+      examples:
+        python: |
+          >>> from pyspark.ml.linalg import DenseVector, SparseVector
+          >>> df = spark.createDataFrame([Row(v=SparseVector(3, {0: 1.0, 2: 2.0})), Row(v=DenseVector([3.0, 4.0]))])
+          >>> df.select(glow.vector_to_array('v').alias('arr')).collect()
+          [Row(arr=[1.0, 0.0, 2.0]), Row(arr=[3.0, 4.0])]
+      args:
+        - name: vector
+          doc: Vector to convert
+      returns: An array of doubles
+
+etl:
+  functions:
+    - name: hard_calls
+      doc: Converts an array of probabilities to hard calls. The probabilities are assumed to be diploid. See :ref:`variant-data-transformations`
+        for more details.
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.HardCalls
+      examples:
+        python: |
+          >>> df = spark.createDataFrame([Row(probs=[0.95, 0.05, 0.0])])
+          >>> df.select(glow.hard_calls('probs', numAlts=lit(1), phased=lit(False)).alias('calls')).collect()
+          [Row(calls=[0, 0])]
+          >>> df = spark.createDataFrame([Row(probs=[0.05, 0.95, 0.0])])
+          >>> df.select(glow.hard_calls('probs', numAlts=lit(1), phased=lit(False)).alias('calls')).collect()
+          [Row(calls=[0, 1])]
+          >>> # Use the threshold parameter to change the minimum probability required for a call
+          >>> df = spark.createDataFrame([Row(probs=[0.05, 0.95, 0.0])])
+          >>> df.select(glow.hard_calls('probs', numAlts=lit(1), phased=lit(False), threshold=0.99).alias('calls')).collect()
+          [Row(calls=[-1, -1])]
+      args:
+        - name: probabilities
+          doc: The array of probabilities to convert
+        - name: numAlts
+          doc: The number of alternate alleles
+        - name: phased
+          doc: Whether the probabilities are phased. If phased, we expect one ``2 * numAlts`` values
+            in the probabilities array. If unphased, we expect one probability per possible genotype.
+        - name: threshold
+          doc: The minimum probability to make a call. If no probability falls into the range
+            of ``[0, 1 - threshold]`` or ``[threshold, 1]``, a no-call (represented by ``-1`` s) will be emitted.
+            If not provided, this parameter defaults to ``0.9``.
+          type: double
+          is_optional: true
+      returns: An array of hard calls
+    - name: lift_over_coordinates
+      doc: Performs liftover for the coordinates of a variant. To perform liftover of alleles and add additional metadata, see :ref:`liftover`.
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.LiftOverCoordinatesExpr
+      examples:
+        python: |
+          >>> df = spark.read.format('vcf').load('test-data/liftover/unlifted.test.vcf').where('start = 18210071')
+          >>> chain_file = 'test-data/liftover/hg38ToHg19.over.chain.gz'
+          >>> reference_file = 'test-data/liftover/hg19.chr20.fa.gz'
+          >>> df.select('contigName', 'start', 'end').head()
+          Row(contigName='chr20', start=18210071, end=18210072)
+          >>> lifted_df = df.select(glow.expand_struct(glow.lift_over_coordinates('contigName', 'start', 'end', chain_file)))
+          >>> lifted_df.head()
+          Row(contigName='chr20', start=18190715, end=18190716)
+      args:
+        - name: contigName
+          doc: The current contig name
+        - name: start
+          doc: The current start
+        - name: end
+          doc: The current end
+        - name: chainFile
+          doc: Location of the chain file on each node in the cluster
+          type: str
+        - name: minMatchRatio
+          doc: Minimum fraction of bases that must remap to do liftover successfully. If not provided, defaults to ``0.95``.
+          type: double
+          is_optional: true
+      returns: A struct containing ``contigName``, ``start``, and ``end`` fields after liftover
+    - name: normalize_variant
+      doc: |
+             Normalizes the variant with a behavior similar to vt normalize or bcftools norm.
+             Creates a StructType column including the normalized ``start``, ``end``, ``referenceAllele`` and
+             ``alternateAlleles`` fields (whether they are changed or unchanged as the result of
+             normalization) as well as a StructType field called ``normalizationStatus`` that
+             contains the following fields:
+
+                ``changed``: A boolean field indicating whether the variant data was changed as a result of normalization
+
+                ``errorMessage``: An error message in case the attempt at normalizing the row hit an error. In this case, the ``changed`` field will be set to ``false``. If no errors occur, this field will be ``null``.
+
+             In case of an error, the ``start``, ``end``, ``referenceAllele`` and ``alternateAlleles`` fields in the generated struct will be ``null``.
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.NormalizeVariantExpr
+      examples:
+        python: |
+          >>> df = spark.read.format('vcf').load('test-data/variantsplitternormalizer-test/test_left_align_hg38_altered.vcf')
+          >>> ref_genome = 'test-data/variantsplitternormalizer-test/Homo_sapiens_assembly38.20.21_altered.fasta'
+          >>> df.select('contigName', 'start', 'end', 'referenceAllele', 'alternateAlleles').head()
+          Row(contigName='chr20', start=400, end=401, referenceAllele='G', alternateAlleles=['GATCTTCCCTCTTTTCTAATATAAACACATAAAGCTCTGTTTCCTTCTAGGTAACTGGTTTGAG'])
+          >>> normalized_df = df.select('contigName', glow.expand_struct(glow.normalize_variant('contigName', 'start', 'end', 'referenceAllele', 'alternateAlleles', ref_genome)))
+          >>> normalized_df.head()
+          Row(contigName='chr20', start=268, end=269, referenceAllele='A', alternateAlleles=['ATTTGAGATCTTCCCTCTTTTCTAATATAAACACATAAAGCTCTGTTTCCTTCTAGGTAACTGG'], normalizationStatus=Row(changed=True, errorMessage=None))
+      args:
+        - name: contigName
+          doc: The current contig name
+        - name: start
+          doc: The current start
+        - name: end
+          doc: The current end
+        - name: refAllele
+          doc: The current reference allele
+        - name: altAlleles
+          doc: The current array of alternate alleles
+        - name: refGenomePathString
+          doc: |
+            A path to the reference genome ``.fasta`` file. The ``.fasta`` file must be accompanied with a ``.fai`` index file in the same folder.
+          type: str
+      returns: A struct as explained above
+    - name: mean_substitute
+      doc: Substitutes the missing values of a numeric array using the mean of the non-missing values. Any values that
+        are NaN, null or equal to the missing value parameter are considered missing. See
+        :ref:`variant-data-transformations` for more details.
+      since: 0.4.0
+      expr_class: io.projectglow.sql.expressions.MeanSubstitute
+      examples:
+        python: |
+          >>> df = spark.createDataFrame([Row(unsubstituted_values=[float('nan'), None, 0.0, 1.0, 2.0, 3.0, 4.0])])
+          >>> df.select(glow.mean_substitute('unsubstituted_values', lit(0.0)).alias('substituted_values')).collect()
+          [Row(substituted_values=[2.5, 2.5, 2.5, 1.0, 2.0, 3.0, 4.0])]
+          >>> df = spark.createDataFrame([Row(unsubstituted_values=[0, 1, 2, 3, -1, None])])
+          >>> df.select(glow.mean_substitute('unsubstituted_values').alias('substituted_values')).collect()
+          [Row(substituted_values=[0.0, 1.0, 2.0, 3.0, 1.5, 1.5])]
+      args:
+        - name: array
+          doc: A numeric array that may contain missing values
+        - name: missingValue
+          doc: A value that should be considered missing. If not provided, this parameter defaults to ``-1``.
+          is_optional: true
+      returns: A numeric array with substituted missing values
+
+quality_control:
+  functions:
+    - name: aggregate_by_index
+      doc: Computes custom per-sample aggregates.
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.UnwrappedAggregateByIndex
+      exclude_python: true
+      args:
+        - name: arr
+          doc: array of values.
+        - name: initialValue
+          doc: the initial value
+        - name: update
+          doc: update function
+          type: lambda2
+        - name: merge
+          doc: merge function
+          type: lambda2
+        - name: evaluate
+          doc: evaluate function
+          type: lambda1
+          is_optional: true
+      returns: An array of aggregated values. The number of elements in the array is equal to the number of samples.
+    - name: call_summary_stats
+      doc: Computes call summary statistics for an array of genotype structs. See :ref:`variant-qc` for more details.
+      since: 0.3.0
+      examples:
+        python: |
+          >>> schema = 'genotypes: array<struct<calls: array<int>>>'
+          >>> df = spark.createDataFrame([Row(genotypes=[Row(calls=[0, 0]), Row(calls=[1, 0]), Row(calls=[1, 1])])], schema)
+          >>> df.select(glow.expand_struct(glow.call_summary_stats('genotypes'))).collect()
+          [Row(callRate=1.0, nCalled=3, nUncalled=0, nHet=1, nHomozygous=[1, 1], nNonRef=2, nAllelesCalled=6, alleleCounts=[3, 3], alleleFrequencies=[0.5, 0.5])]
+      expr_class: io.projectglow.sql.expressions.CallStats
+      args:
+        - name: genotypes
+          doc: The array of genotype structs with ``calls`` field
+      returns: A struct containing ``callRate``, ``nCalled``, ``nUncalled``, ``nHet``, ``nHomozygous``, ``nNonRef``, ``nAllelesCalled``, ``alleleCounts``, ``alleleFrequencies`` fields. See :ref:`variant-qc`.
+    - name: dp_summary_stats
+      doc: Computes summary statistics for the depth field from an array of genotype structs. See :ref:`variant-qc`.
+      examples:
+        python: |
+          >>> df = spark.createDataFrame([Row(genotypes=[Row(depth=1), Row(depth=2), Row(depth=3)])], 'genotypes: array<struct<depth: int>>')
+          >>> df.select(glow.expand_struct(glow.dp_summary_stats('genotypes'))).collect()
+          [Row(mean=2.0, stdDev=1.0, min=1.0, max=3.0)]
+      expr_class: io.projectglow.sql.expressions.DpSummaryStats
+      since: 0.3.0
+      args:
+        - name: genotypes
+          doc: An array of genotype structs with ``depth`` field
+      returns: A struct containing ``mean``, ``stdDev``, ``min``, and ``max`` of genotype depths
+    - name: hardy_weinberg
+      doc: Computes statistics relating to the Hardy Weinberg equilibrium. See :ref:`variant-qc` for more details.
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.HardyWeinberg
+      examples:
+        python: |
+          >>> genotypes = [
+          ... Row(calls=[1, 1]),
+          ... Row(calls=[1, 0]),
+          ... Row(calls=[0, 0])]
+          >>> df = spark.createDataFrame([Row(genotypes=genotypes)], 'genotypes: array<struct<calls: array<int>>>')
+          >>> df.select(glow.expand_struct(glow.hardy_weinberg('genotypes'))).collect()
+          [Row(hetFreqHwe=0.6, pValueHwe=0.7)]
+      args:
+        - name: genotypes
+          doc: The array of genotype structs with ``calls`` field
+      returns: A struct containing two fields, ``hetFreqHwe`` (the expected heterozygous frequency according to Hardy-Weinberg equilibrium) and ``pValueHwe`` (the associated p-value)
+    - name: gq_summary_stats
+      doc: Computes summary statistics about the genotype quality field for an array of genotype structs. See :ref:`variant-qc`.
+      since: 0.3.0
+      examples:
+        python: |
+          >>> genotypes = [
+          ... Row(conditionalQuality=1), 
+          ... Row(conditionalQuality=2), 
+          ... Row(conditionalQuality=3)] 
+          >>> df = spark.createDataFrame([Row(genotypes=genotypes)], 'genotypes: array<struct<conditionalQuality: int>>')
+          >>> df.select(glow.expand_struct(glow.gq_summary_stats('genotypes'))).collect()
+          [Row(mean=2.0, stdDev=1.0, min=1.0, max=3.0)]
+      expr_class: io.projectglow.sql.expressions.GqSummaryStats
+      args:
+        - name: genotypes
+          doc: The array of genotype structs with ``conditionalQuality`` field
+      returns: A struct containing ``mean``, ``stdDev``, ``min``, and ``max`` of genotype qualities
+    - name: sample_call_summary_stats
+      doc: Computes per-sample call summary statistics. See :ref:`sample-qc` for more details.
+      since: 0.3.0
+      examples:
+        python: |
+          >>> sites = [
+          ... {'refAllele': 'C', 'alternateAlleles': ['G'], 'genotypes': [{'sampleId': 'NA12878', 'calls': [0, 0]}]},
+          ... {'refAllele': 'A', 'alternateAlleles': ['G'], 'genotypes': [{'sampleId': 'NA12878', 'calls': [1, 1]}]},
+          ... {'refAllele': 'AG', 'alternateAlleles': ['A'], 'genotypes': [{'sampleId': 'NA12878', 'calls': [1, 0]}]}]
+          >>> df = spark.createDataFrame(sites, 'refAllele: string, alternateAlleles: array<string>, genotypes: array<struct<sampleId: string, calls: array<int>>>')
+          >>> df.select(glow.sample_call_summary_stats('genotypes', 'refAllele', 'alternateAlleles').alias('stats')).collect()
+          [Row(stats=[Row(sampleId='NA12878', callRate=1.0, nCalled=3, nUncalled=0, nHomRef=1, nHet=1, nHomVar=1, nSnp=2, nInsertion=0, nDeletion=1, nTransition=2, nTransversion=0, nSpanningDeletion=0, rTiTv=inf, rInsertionDeletion=0.0, rHetHomVar=1.0)])]
+      expr_class: io.projectglow.sql.expressions.CallSummaryStats
+      args:
+        - name: genotypes
+          doc: An array of genotype structs with ``calls`` field
+        - name: refAllele
+          doc: The reference allele
+        - name: alternateAlleles
+          doc: An array of alternate alleles
+      returns: A struct containing ``sampleId``, ``callRate``, ``nCalled``, ``nUncalled``, ``nHomRef``, ``nHet``, ``nHomVar``, ``nSnp``, ``nInsertion``, ``nDeletion``, ``nTransition``, ``nTransversion``, ``nSpanningDeletion``, ``rTiTv``, ``rInsertionDeletion``, ``rHetHomVar`` fields. See :ref:`sample-qc`.
+    - name: sample_dp_summary_stats
+      doc: Computes per-sample summary statistics about the depth field in an array of genotype structs.
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.SampleDpSummaryStatistics
+      examples:
+        python: |
+          >>> sites = [
+          ... {'genotypes': [{'sampleId': 'NA12878', 'depth': 1}]},
+          ... {'genotypes': [{'sampleId': 'NA12878', 'depth': 2}]},
+          ... {'genotypes': [{'sampleId': 'NA12878', 'depth': 3}]}]
+          >>> df = spark.createDataFrame(sites, 'genotypes: array<struct<depth: int, sampleId: string>>')
+          >>> df.select(glow.sample_dp_summary_stats('genotypes').alias('stats')).collect()
+          [Row(stats=[Row(sampleId='NA12878', mean=2.0, stdDev=1.0, min=1.0, max=3.0)])]
+      args:
+        - name: genotypes
+          doc: An array of genotype structs with ``depth`` field
+      returns: An array of structs where each struct contains ``mean``, ``stDev``, ``min``, and ``max`` of the genotype depths for a sample. If ``sampleId`` is present in a genotype, it will be propagated to the resulting struct as an extra field.
+    - name: sample_gq_summary_stats
+      doc: Computes per-sample summary statistics about the genotype quality field in an array of genotype structs.
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.SampleGqSummaryStatistics
+      examples:
+        python: |
+          >>> sites = [
+          ... Row(genotypes=[Row(sampleId='NA12878', conditionalQuality=1)]),
+          ... Row(genotypes=[Row(sampleId='NA12878', conditionalQuality=2)]),
+          ... Row(genotypes=[Row(sampleId='NA12878', conditionalQuality=3)])]
+          >>> df = spark.createDataFrame(sites, 'genotypes: array<struct<sampleId: string, conditionalQuality: int>>')
+          >>> df.select(glow.sample_gq_summary_stats('genotypes').alias('stats')).collect()
+          [Row(stats=[Row(sampleId='NA12878', mean=2.0, stdDev=1.0, min=1.0, max=3.0)])]
+      args:
+        - name: genotypes
+          doc: An array of genotype structs with ``conditionalQuality`` field
+      returns: An array of structs where each struct contains ``mean``, ``stDev``, ``min``, and ``max`` of the genotype qualities for a sample. If ``sampleId`` is present in a genotype, it will be propagated to the resulting struct as an extra field.
+    - name: assert_true_or_error
+      doc: Asserts a boolean condition is true.
+      since: 0.5.0
+      expr_class: io.projectglow.sql.expressions.AssertTrueOrError
+      exclude_python: true
+      exclude_scala: true
+      examples:
+        python: |
+          >>> df = spark.createDataFrame([Row(v=1), Row(v=1)])
+          >>> df.select(glow.assert_true_or_error(df.v == 1, 'the value is not one!').alias('is_one')).collect()
+          [Row(is_one=None), Row(is_one=None)]
+      args:
+        - name: condition
+          doc: Boolean condition to check
+        - name: errMsg
+          doc: Error message if condition fails
+          type: str
+      returns: Null if true, or throws an exception if not true
+
+
+gwas_functions:
+  functions:
+    - name: linear_regression_gwas
+      doc: Performs a linear regression association test optimized for performance in a GWAS setting.
+        See :ref:`linear-regression` for details.
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.LinearRegressionExpr
+      examples:
+        python: |
+          >>> from pyspark.ml.linalg import DenseMatrix
+          >>> phenotypes = [2, 3, 4]
+          >>> genotypes = [0, 1, 2]
+          >>> covariates = DenseMatrix(numRows=3, numCols=1, values=[1, 1, 1])
+          >>> df = spark.createDataFrame([Row(genotypes=genotypes, phenotypes=phenotypes, covariates=covariates)])
+          >>> df.select(glow.expand_struct(glow.linear_regression_gwas('genotypes', 'phenotypes', 'covariates'))).collect()
+          [Row(beta=0.9999999999999998, standardError=1.4901161193847656e-08, pValue=9.486373847239922e-09)]
+      args:
+        - name: genotypes
+          doc: A numeric array of genotypes
+        - name: phenotypes
+          doc: A numeric array of phenotypes
+        - name: covariates
+          doc: A ``spark.ml`` ``Matrix`` of covariates
+      returns: A struct containing ``beta``, ``standardError``, and ``pValue`` fields. See :ref:`linear-regression`.
+    - name: logistic_regression_gwas
+      doc: Performs a logistic regression association test optimized for performance in a GWAS setting.
+        See :ref:`logistic-regression` for more details.
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.LogisticRegressionExpr
+      examples:
+        python: |
+          >>> from pyspark.ml.linalg import DenseMatrix
+          >>> phenotypes = [1, 0, 0, 1, 1]
+          >>> genotypes = [0, 0, 1, 2, 2]
+          >>> covariates = DenseMatrix(numRows=5, numCols=1, values=[1, 1, 1, 1, 1])
+          >>> offset = [1, 0, 1, 0, 1]
+          >>> df = spark.createDataFrame([Row(genotypes=genotypes, phenotypes=phenotypes, covariates=covariates, offset=offset)])
+          >>> df.select(glow.expand_struct(glow.logistic_regression_gwas('genotypes', 'phenotypes', 'covariates', 'Firth'))).collect()
+          [Row(beta=0.7418937644793101, oddsRatio=2.09990848346903, waldConfidenceInterval=[0.2509874689201784, 17.569066925598555], pValue=0.3952193664793294)]
+          >>> df.select(glow.expand_struct(glow.logistic_regression_gwas('genotypes', 'phenotypes', 'covariates', 'LRT'))).collect()
+          [Row(beta=1.1658962684583645, oddsRatio=3.208797538802116, waldConfidenceInterval=[0.29709600522888285, 34.65674887513274], pValue=0.2943946848756769)]
+          >>> df.select(glow.expand_struct(glow.logistic_regression_gwas('genotypes', 'phenotypes', 'covariates', 'Firth', 'offset'))).collect()
+          [Row(beta=0.8024832156793392, oddsRatio=2.231074294047771, waldConfidenceInterval=[0.2540891981649045, 19.590334974925725], pValue=0.3754070658316332)]
+          >>> df.select(glow.expand_struct(glow.logistic_regression_gwas('genotypes', 'phenotypes', 'covariates', 'LRT', 'offset'))).collect()
+          [Row(beta=1.1996041727573317, oddsRatio=3.3188029900720117, waldConfidenceInterval=[0.3071189078535928, 35.863807161497334], pValue=0.2857137988674153)]
+      args:
+        - name: genotypes
+          doc: An numeric array of genotypes
+        - name: phenotypes
+          doc: A double array of phenotype values
+        - name: covariates
+          doc: A ``spark.ml`` ``Matrix`` of covariates
+        - name: test
+          doc: Which logistic regression test to use. Can be ``LRT`` or ``Firth``
+          type: str
+        - name: offset
+          doc: An optional double array of offset values. The offset vector is added with coefficient 1 to the linear predictor term X*b.
+          is_optional: true
+      returns: A struct containing ``beta``, ``oddsRatio``, ``waldConfidenceInterval``, and ``pValue`` fields. See :ref:`logistic-regression`.
+    - name: genotype_states
+      doc: Gets the number of alternate alleles for an array of genotype structs. Returns ``-1`` if there are any ``-1`` s (no-calls) in the calls array.
+      since: 0.3.0
+      expr_class: io.projectglow.sql.expressions.GenotypeStates
+      examples:
+        python: |
+          >>> genotypes = [
+          ... Row(calls=[1, 1]),
+          ... Row(calls=[1, 0]),
+          ... Row(calls=[0, 0]),
+          ... Row(calls=[-1, -1])]
+          >>> df = spark.createDataFrame([Row(genotypes=genotypes)], 'genotypes: array<struct<calls: array<int>>>')
+          >>> df.select(glow.genotype_states('genotypes').alias('states')).collect()
+          [Row(states=[2, 1, 0, -1])]
+      args:
+        - name: genotypes
+          doc: An array of genotype structs with ``calls`` field
+      returns: An array of integers containing the number of alternate alleles in each call array
