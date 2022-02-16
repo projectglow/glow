@@ -76,10 +76,6 @@ Docker's default memorry setting, which is 2.0 GB, via Preferences -> Resources 
 ```cd dbr/dbr9.1```
 ```docker build genomics-with-glow/ -t projectglow/databricks-glow:<dbr_version>```
 
-##### Glow-with-Ganglia
-```cd dbr/dbr9.1```
-```docker build ganglia/ -t projectglow/databricks-glow-ganglia:<dbr_version>```
-
 #### Hail image (requires Spark 3.1 / DBR 9.x) 
 ```cd dbr/dbr9.1```
 ```docker build genomics-with-hail/ -t projectglow/databricks-hail:<hail_version>```
@@ -104,6 +100,7 @@ docker
         └── dbr10.4
             ├── dbfsfuse
             │   └── Dockerfile
+<<<<<<< HEAD
             ├── ganglia
                 │   ├── Dockerfile
                 │   ├── ganglia
@@ -155,7 +152,12 @@ docker
                 │   ├── spark-slave-not-active
                 │   └── start_spark_slave.sh
 >>>>>>> 6665a52 (Rebase to upstream 2022-Feb-15)
+<<<<<<< HEAD
 >>>>>>> c31a33f (Rebase to upstream 2022-Feb-15)
+=======
+=======
+>>>>>>> 656916d (Rebase to projectglow/glow:master)
+>>>>>>> f3a4d2a (Rebase to projectglow/glow:master)
             ├── genomics
             │   └── Dockerfile
             ├── genomics-with-glow
@@ -219,9 +221,12 @@ e.g. ```/databricks/driver/conf/00-hail-spark-driver-defaults.conf```
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 =======
 >>>>>>> c31a33f (Rebase to upstream 2022-Feb-15)
+=======
+>>>>>>> f3a4d2a (Rebase to projectglow/glow:master)
 <<<<<<< HEAD
 ##### Databricks cluster init scripts
 >>>>>>> 41ae0b9 (Fetch upstream)
@@ -249,6 +254,8 @@ Note that as of 2022-Feb-15, ganglia is not officially support on Databricks Con
 ```ganglia``` docker image is supported by the community on a best efforts basis, only. 
 
 >>>>>>> 6665a52 (Rebase to upstream 2022-Feb-15)
+=======
+>>>>>>> 656916d (Rebase to projectglow/glow:master)
 
 
 
