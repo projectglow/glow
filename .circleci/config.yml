@@ -2,6 +2,8 @@ setup_base: &setup_base
   working_directory: ~/glow
   docker:
     - image: circleci/openjdk:8
+  resource_class: xlarge
+  parallelism: 3
 
 install_conda: &install_conda
   run:
