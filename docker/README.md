@@ -76,6 +76,10 @@ Docker's default memorry setting, which is 2.0 GB, via Preferences -> Resources 
 ```cd dbr/dbr9.1```
 ```docker build genomics-with-glow/ -t projectglow/databricks-glow:<dbr_version>```
 
+##### Glow-with-Ganglia
+```cd dbr/dbr9.1```
+```docker build ganglia/ -t projectglow/databricks-glow-ganglia:<dbr_version>```
+
 #### Hail image (requires Spark 3.1 / DBR 9.x) 
 ```cd dbr/dbr9.1```
 ```docker build genomics-with-hail/ -t projectglow/databricks-hail:<hail_version>```
@@ -124,8 +128,34 @@ docker
         └── dbr9.1
             ├── dbfsfuse
             │   └── Dockerfile
+<<<<<<< HEAD
 >>>>>>> f6791fc (Fetch upstream)
+<<<<<<< HEAD
 >>>>>>> 41ae0b9 (Fetch upstream)
+=======
+=======
+            ├── ganglia
+                │   ├── Dockerfile
+                │   ├── ganglia
+                │   │   ├── remove_old_ganglia_rrds.sh
+                │   │   ├── save_snapshot.js
+                │   │   ├── save_snapshot.sh
+                │   │   ├── start_ganglia
+                │   │   └── start_ganglia.sh
+                │   ├── ganglia-monitor-not-active
+                │   ├── ganglia.conf
+                │   ├── gconf
+                │   │   ├── conf.d
+                │   │   │   └── modpython.conf
+                │   │   ├── databricks-gmond.conf
+                │   │   ├── gmetad.conf
+                │   │   └── gmond.conf
+                │   ├── gmetad-not-active
+                │   ├── monit
+                │   ├── spark-slave-not-active
+                │   └── start_spark_slave.sh
+>>>>>>> 6665a52 (Rebase to upstream 2022-Feb-15)
+>>>>>>> c31a33f (Rebase to upstream 2022-Feb-15)
             ├── genomics
             │   └── Dockerfile
             ├── genomics-with-glow
@@ -188,7 +218,10 @@ Configs need to be written to ```/databricks/driver/conf``` and predicated to lo
 e.g. ```/databricks/driver/conf/00-hail-spark-driver-defaults.conf```
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
+=======
+>>>>>>> c31a33f (Rebase to upstream 2022-Feb-15)
 <<<<<<< HEAD
 ##### Databricks cluster init scripts
 >>>>>>> 41ae0b9 (Fetch upstream)
@@ -201,6 +234,21 @@ e.g. ```/databricks/driver/conf/00-hail-spark-driver-defaults.conf```
 =======
 NOTE: ganglia is *not* officially supported on Databricks Container Services by Databricks. The ```ganglia``` docker image here is supported by the community on a *best efforts* basis, only.
 =======
+=======
+##### Databricks cluster init scripts
+
+Any Databricks cluster init scripts need to be written to ```/databricks/scripts/```. Use predication
+to manage any required order of initialisation.
+
+##### Ganglia enablement on Databricks Container Services
+
+Review the Dockerfile and configurations in the ```ganglia``` directory to see how to deploy ganglia 
+in a way that enables metrics collection on Databricks clusters using Container Services. 
+
+Note that as of 2022-Feb-15, ganglia is not officially support on Databricks Container Services. The
+```ganglia``` docker image is supported by the community on a best efforts basis, only. 
+
+>>>>>>> 6665a52 (Rebase to upstream 2022-Feb-15)
 
 
 
