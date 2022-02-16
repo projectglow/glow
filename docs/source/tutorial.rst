@@ -5,7 +5,7 @@ This quickstart tutorial shows how to perform genome-wide association studies us
 
 Glow implements a distributed version of the `Regenie <https://rgcgithub.github.io/regenie/>`_ method.
 Regenie's domain of applicability falls in analyzing data with extreme case/control imbalances, rare variants and/or diverse populations. 
-Therefore it is best suited when working with population-scale biobank exome or genome sequencing data.
+Therefore it is suited for working with population-scale biobank exome or genome sequencing data.
 
 .. tip::
    
