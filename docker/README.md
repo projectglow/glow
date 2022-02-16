@@ -41,11 +41,11 @@ Docker's default memorry setting, which is 2.0 GB, via Preferences -> Resources 
 
 ##### Glow (requires Spark 3.1 / DBR 9.x)
 ```cd dbr/dbr9.1```
-```docker build genomics-with-glow/ -t projectglow/databricks-glow:<dbr_version>```
+```docker build genomics-with-glow/ -t projectglow/databricks-glow-minus-ganglia:<dbr_version>```
 
 ##### Glow-with-Ganglia
 ```cd dbr/dbr9.1```
-```docker build ganglia/ -t projectglow/databricks-glow-ganglia:<dbr_version>```
+```docker build ganglia/ -t projectglow/databricks-glow:<dbr_version>```
 
 #### Hail image (requires Spark 3.1 / DBR 9.x) 
 ```cd dbr/dbr9.1```
@@ -110,7 +110,7 @@ The Python version used *must* be compatible with the Databricks Runtime (DBR) v
 
 ##### Scala dependencies
 
-Jars are *best installed using ```curl``` or ```wget```. These *must* be deployed to ```/databricks/jars```.
+Jars are *best* installed using ```curl``` or ```wget```. These *must* be deployed to ```/databricks/jars```.
 As tempting as it may be, installation using maven is not recommended.     
 
 ##### Spark configurations 
@@ -120,13 +120,13 @@ e.g. ```/databricks/driver/conf/00-hail-spark-driver-defaults.conf```
 
 ##### Databricks cluster init scripts
 
-Any Databricks cluster init scripts need to be written to ```/databricks/scripts/```. Use predication to manage any required order of initialisation where multiple init scripts are deployed.
+Write Databricks cluster init scripts to ```/databricks/scripts/```. When multiple init scripts are deployed, use predication to manage the order of initialisation where multiple init scripts are deployed.
 
 ##### Ganglia enablement on Databricks Container Services
 
 Review the Dockerfile and configurations in the ```ganglia``` directory to see how to deploy ganglia in a way that enables metrics collection on Databricks clusters using Container Services. 
 
-NOTE: that as of this time, ganglia is *not* officially supported on Databricks Container Services by Databricks. The ```ganglia``` docker image here is supported by the community on a *best efforts* basis, only. 
+NOTE: ganglia is *not* officially supported on Databricks Container Services by Databricks. The ```ganglia``` docker image here is supported by the community on a *best efforts* basis, only. 
 
 
 
