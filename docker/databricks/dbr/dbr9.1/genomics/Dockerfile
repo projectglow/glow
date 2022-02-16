@@ -17,6 +17,7 @@ RUN apt-get install -y \
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     gnupg \
     tzdata
 =======
@@ -25,6 +26,8 @@ RUN apt-get install -y \
 =======
 =======
 >>>>>>> c31a33f (Rebase to upstream 2022-Feb-15)
+=======
+>>>>>>> f3a4d2a (Rebase to projectglow/glow:master)
     gnupg
 =======
     gnupg \
@@ -36,7 +39,14 @@ RUN apt-get install -y \
 =======
     gnupg
 >>>>>>> 6665a52 (Rebase to upstream 2022-Feb-15)
+<<<<<<< HEAD
 >>>>>>> c31a33f (Rebase to upstream 2022-Feb-15)
+=======
+=======
+    gnupg \
+    tzdata
+>>>>>>> 656916d (Rebase to projectglow/glow:master)
+>>>>>>> f3a4d2a (Rebase to projectglow/glow:master)
 
 RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash
 
@@ -72,6 +82,7 @@ RUN apt-get update && apt-get install -y \
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 <<<<<<< HEAD
 =======
@@ -97,7 +108,12 @@ RUN R -e "install.packages('sim1000G',dependencies=TRUE,repos='https://cran.rstu
 >>>>>>> f6791fc (Fetch upstream)
 =======
 >>>>>>> 6665a52 (Rebase to upstream 2022-Feb-15)
+<<<<<<< HEAD
 >>>>>>> c31a33f (Rebase to upstream 2022-Feb-15)
+=======
+=======
+>>>>>>> 656916d (Rebase to projectglow/glow:master)
+>>>>>>> f3a4d2a (Rebase to projectglow/glow:master)
 
 # ===== Set up VEP environment =====================================================================
 
@@ -202,9 +218,14 @@ RUN /databricks/python3/bin/pip install qqman==$QQMAN_VERSION
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 =======
+<<<<<<< HEAD
 >>>>>>> 41ae0b9 (Fetch upstream)
+=======
+>>>>>>> 656916d (Rebase to projectglow/glow:master)
+>>>>>>> f3a4d2a (Rebase to projectglow/glow:master)
 # ===== Set up R genomics packages =================================================================
 
 RUN R -e "install.packages('sim1000G',dependencies=TRUE,repos='https://cran.rstudio.com')"\
@@ -214,16 +235,24 @@ RUN R -e "install.packages('sim1000G',dependencies=TRUE,repos='https://cran.rstu
  && R -e "install.packages('qqman',dependencies=TRUE,repos='http://cran.us.r-project.org')"
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> 6908c68 (Add 9.1 LTS Dockerfiles to Databricks tree)
 =======
+=======
+>>>>>>> f3a4d2a (Rebase to projectglow/glow:master)
 >>>>>>> f6791fc (Fetch upstream)
 <<<<<<< HEAD
 >>>>>>> 41ae0b9 (Fetch upstream)
 =======
 =======
 >>>>>>> 6665a52 (Rebase to upstream 2022-Feb-15)
+<<<<<<< HEAD
 >>>>>>> c31a33f (Rebase to upstream 2022-Feb-15)
+=======
+=======
+>>>>>>> 656916d (Rebase to projectglow/glow:master)
+>>>>>>> f3a4d2a (Rebase to projectglow/glow:master)
 # ===== Reset current directory ====================================================================
 
 WORKDIR /root 
