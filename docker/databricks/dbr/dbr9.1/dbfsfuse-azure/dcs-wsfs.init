@@ -1,0 +1,32 @@
+#!/bin/bash
+
+set -o xtrace
+
+source /databricks/spark/conf/spark-env.sh
+
+export WSFS_ENABLE_DEBUG_LOG
+
+mkdir -p /Workspace
+mkdir -p /databricks/data/logs/
+
+nohup /databricks/spark/scripts/fuse/wsfs /Workspace > /databricks/data/logs/wsfs.log 2>&1 &
+
+WAIT_TIMEOUT=5
+CHECK_INTERVAL=0.1
+WAIT_UNTIL=$(($(date +%s) + $WAIT_TIMEOUT))
+
+until mountpoint -q /Workspace || [[ $(date +%s) -ge $WAIT_UNTIL ]]; do
+  sleep $CHECK_INTERVAL
+done
+
+mkdir -p /dbfs
+nohup /databricks/spark/scripts/fuse/goofys-dbr -f -o allow_other \
+              --file-mode=0777 --dir-mode=0777 -o bg --http-timeout 120s \
+              /: /dbfs > /databricks/data/logs/dbfs_fuse_stderr 2>&1 &
+
+WAIT_UNTIL=$(($(date +%s) + $WAIT_TIMEOUT))
+
+until mountpoint -q /dbfs || [[ $(date +%s) -ge $WAIT_UNTIL ]]; do
+  sleep $CHECK_INTERVAL
+done
+
