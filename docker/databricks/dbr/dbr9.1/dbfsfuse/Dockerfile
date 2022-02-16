@@ -9,3 +9,7 @@ RUN apt-get update \
 # by dbfs-fuse will be owned by this user.
 # Within the container, the USER is always root.
 ENV USER root
+
+# For Azure Databricks, we need to install the init script dcs-wsfs.init
+RUN mkdir -p /databricks/scripts/
+COPY dcs-wsfs.init /databricks/scripts/
