@@ -177,6 +177,7 @@ print("genotype simulation paths", json.dumps({
 
 # COMMAND ----------
 
+output_delta = simulate_prefix + '_variants_pvcf.delta'
 output_delta_tmp = simulate_prefix + '_variants_pvcf_tmp.delta'
 output_vcf = simulate_prefix + '_variants_pvcf.vcf.bgz'
 output_vcf_small = simulate_prefix + '_variants_pvcf_test.vcf'
@@ -185,6 +186,7 @@ output_vcf_local = simulate_prefix_local + '_variants_pvcf_test.vcf'
 os.environ["output_vcf"] = output_vcf_local
 
 print("delta to vcf paths", json.dumps({
+  "output_delta": output_delta,
   "output_delta_tmp": output_delta_tmp,
   "output_vcf": output_vcf,
   "output_vcf_small": output_vcf_small,
