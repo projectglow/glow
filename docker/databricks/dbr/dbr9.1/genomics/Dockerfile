@@ -16,18 +16,27 @@ RUN apt-get install -y \
     lsb-release \
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     gnupg \
     tzdata
 =======
     gnupg
 >>>>>>> 6908c68 (Add 9.1 LTS Dockerfiles to Databricks tree)
 =======
+=======
+>>>>>>> c31a33f (Rebase to upstream 2022-Feb-15)
     gnupg
 =======
     gnupg \
     tzdata
 >>>>>>> f6791fc (Fetch upstream)
+<<<<<<< HEAD
 >>>>>>> 41ae0b9 (Fetch upstream)
+=======
+=======
+    gnupg
+>>>>>>> 6665a52 (Rebase to upstream 2022-Feb-15)
+>>>>>>> c31a33f (Rebase to upstream 2022-Feb-15)
 
 RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash
 
@@ -64,8 +73,12 @@ RUN apt-get update && apt-get install -y \
 <<<<<<< HEAD
 <<<<<<< HEAD
 =======
+<<<<<<< HEAD
 =======
 >>>>>>> 41ae0b9 (Fetch upstream)
+=======
+>>>>>>> 6665a52 (Rebase to upstream 2022-Feb-15)
+>>>>>>> c31a33f (Rebase to upstream 2022-Feb-15)
 # ===== Set up R genomics packages =================================================================
 
 RUN R -e "install.packages('sim1000G',dependencies=TRUE,repos='https://cran.rstudio.com')"\
@@ -73,11 +86,18 @@ RUN R -e "install.packages('sim1000G',dependencies=TRUE,repos='https://cran.rstu
  && R -e "install.packages('qqman',dependencies=TRUE,repos='http://cran.us.r-project.org')"\
  && R -e "install.packages('bigsnpr',dependencies=TRUE,repos='http://cran.us.r-project.org')"
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> 6908c68 (Add 9.1 LTS Dockerfiles to Databricks tree)
 =======
 =======
 >>>>>>> f6791fc (Fetch upstream)
 >>>>>>> 41ae0b9 (Fetch upstream)
+=======
+=======
+>>>>>>> f6791fc (Fetch upstream)
+=======
+>>>>>>> 6665a52 (Rebase to upstream 2022-Feb-15)
+>>>>>>> c31a33f (Rebase to upstream 2022-Feb-15)
 
 # ===== Set up VEP environment =====================================================================
 
@@ -198,7 +218,12 @@ RUN R -e "install.packages('sim1000G',dependencies=TRUE,repos='https://cran.rstu
 >>>>>>> 6908c68 (Add 9.1 LTS Dockerfiles to Databricks tree)
 =======
 >>>>>>> f6791fc (Fetch upstream)
+<<<<<<< HEAD
 >>>>>>> 41ae0b9 (Fetch upstream)
+=======
+=======
+>>>>>>> 6665a52 (Rebase to upstream 2022-Feb-15)
+>>>>>>> c31a33f (Rebase to upstream 2022-Feb-15)
 # ===== Reset current directory ====================================================================
 
 WORKDIR /root 
