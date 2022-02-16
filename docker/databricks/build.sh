@@ -80,7 +80,9 @@ docker build -t "${DOCKER_REPOSITORY}/with-r:9.1" r/
 docker build -t "${DOCKER_REPOSITORY}/genomics:9.1" genomics/
 docker build -t "${DOCKER_REPOSITORY}/databricks-hail:0.2.78" genomics-with-hail/
 docker build -t "${DOCKER_REPOSITORY}/databricks-glow:1.1.2" genomics-with-glow/
+docker build -t "${DOCKER_REPOSITORY}/databricks-glow-ganglia:1.1.2" ganglia/
 docker build -t "${DOCKER_REPOSITORY}/databricks-glow:9.1" genomics-with-glow/
+docker build -t "${DOCKER_REPOSITORY}/databricks-glow-ganglia:9.1" ganglia/
 popd
 
 docker push "${DOCKER_REPOSITORY}/databricks-hail:0.2.78"
