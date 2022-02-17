@@ -34,7 +34,7 @@ RUN cd /tmp \
   && export PHANTOM_JS="phantomjs-2.1.1-linux-x86_64" \
   && wget https://s3-us-west-2.amazonaws.com/databricks-build-files/$PHANTOM_JS.tar.bz2 \
   && tar xvjf $PHANTOM_JS.tar.bz2 \
-  && mv $PHANTOM_JS /usr/local/share \
+  && cp -rf $PHANTOM_JS /usr/local/share \
   && ln -sf /usr/local/share/$PHANTOM_JS/bin/phantomjs /usr/local/bin
 # Apache2 config. The `sites-enabled` config files are loaded into the container
 # later.
