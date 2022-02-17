@@ -1,7 +1,15 @@
 GWAS Tutorial
 =============
 
-This is a quickstart tutorial for performing genome-wide association studies using Glow. 
+This quickstart tutorial shows how to perform genome-wide association studies using Glow. 
+
+Glow implements a distributed version of the `Regenie <https://rgcgithub.github.io/regenie/>`_ method.
+Regenie's domain of applicability falls in analyzing data with extreme case/control imbalances, rare variants and/or diverse populations. 
+Therefore it is suited for working with population-scale biobank exome or genome sequencing data.
+
+.. tip::
+   
+   Other bioinformatics libraries for GWAS can be distributed using the :ref:`Glow Pipe Transformer <pipe-transformer>`.
 
 You can view html versions of the notebooks and download them from the bottom of this page.
 
