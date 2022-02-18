@@ -78,7 +78,6 @@ Here is an example using bedtools.
     import json
 
     #create minimal bed
-    bed_path = "/dbfs/tmp/chr22.bed"
     bed_df = spark.createDataFrame([(22, 16050000, 16060000), 
                              (22, 16080000, 16090000), 
                              (22, 16100000, 16110000)], 
@@ -86,7 +85,6 @@ Here is an example using bedtools.
     bed_df.toPandas().to_csv(bed_path, sep="\t", index=False)
 
     #load vcfs and take 1000 rows for testing
-    vcf_path = "/databricks-datasets/genomics/1kg-vcfs/*.vcf.gz"
     df = spark.read.format("vcf").option("flattenInfoFields", False).load(vcf_path)
     df = sqlContext.createDataFrame(sc.parallelize(df.take(1000)), df.schema).cache() 
     
