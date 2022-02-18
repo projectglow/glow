@@ -73,20 +73,8 @@ Here is an example using bedtools.
 
 .. code-block:: python
 
-    import glow
-    spark = glow.register(spark)
     import json
-
-    #create minimal bed
-    bed_df = spark.createDataFrame([(22, 16050000, 16060000), 
-                             (22, 16080000, 16090000), 
-                             (22, 16100000, 16110000)], 
-                            ("#chrom", "start", "end"))
-    bed_df.toPandas().to_csv(bed_path, sep="\t", index=False)
-
-    #load vcfs and take 1000 rows for testing
-    df = spark.read.format("vcf").option("flattenInfoFields", False).load(vcf_path)
-    df = sqlContext.createDataFrame(sc.parallelize(df.take(1000)), df.schema).cache() 
+    df = spark.read.format("vcf").load(path)
     
     #create bash script, supplying parameters as json
     scriptFile = r"""#!/bin/sh
@@ -95,7 +83,7 @@ Here is an example using bedtools.
 
     /opt/bedtools-2.30.0/bin/bedtools intersect -a - -b %(bed)s -header -wa
 
-    """ % {"bed": bed_path}
+    """ % {"bed": bed}
 
     cmd = json.dumps(["bash", "-c", scriptFile])
 
