@@ -81,7 +81,7 @@ Here is an example using bedtools.
     set -e
     #input bed is stdin, signified by '-'
 
-    /opt/bedtools-2.30.0/bin/bedtools intersect -a - -b %(bed)s -header -wa
+    bedtools intersect -a - -b %(bed)s -header -wa
 
     """ % {"bed": bed}
 
