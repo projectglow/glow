@@ -73,25 +73,12 @@ Here is an example using bedtools.
 
 .. code-block:: python
 
-    import json
     df = spark.read.format("vcf").load(path)
     
-    #create bash script, supplying parameters as json
-    scriptFile = r"""#!/bin/sh
-    set -e
-    #input bed is stdin, signified by '-'
-
-    bedtools intersect -a - -b %(bed)s -header -wa
-
-    """ % {"bed": bed}
-
-    cmd = json.dumps(["bash", "-c", scriptFile])
-
-    #run pipe transformer!
     intersection_df = glow.transform(
         'pipe',
         df,
-        cmd=cmd,
+        cmd=['bedtools', 'intersect', '-a', 'stdin', '-b', bed, '-header', '-wa'],
         input_formatter='vcf',
         in_vcf_header='infer',
         output_formatter='vcf'
