@@ -41,7 +41,11 @@ Docker's default memorry setting, which is 2.0 GB, via Preferences -> Resources 
 
 ##### Glow (requires Spark 3.1 / DBR 9.x)
 ```cd dbr/dbr9.1```
-```docker build genomics-with-glow/ -t projectglow/databricks-glow:<dbr_version>```
+```docker build genomics-with-glow/ -t projectglow/databricks-glow-minus-ganglia:<dbr_version>```
+
+##### Glow-with-Ganglia
+```cd dbr/dbr9.1```
+```docker build ganglia/ -t projectglow/databricks-glow:<dbr_version>```
 
 #### Hail image (requires Spark 3.1 / DBR 9.x) 
 ```cd dbr/dbr9.1```
@@ -57,6 +61,26 @@ docker
         └── dbr9.1
             ├── dbfsfuse
             │   └── Dockerfile
+            ├── ganglia
+                │   ├── Dockerfile
+                │   ├── ganglia
+                │   │   ├── remove_old_ganglia_rrds.sh
+                │   │   ├── save_snapshot.js
+                │   │   ├── save_snapshot.sh
+                │   │   ├── start_ganglia
+                │   │   └── start_ganglia.sh
+                │   ├── ganglia-monitor-not-active
+                │   ├── ganglia.conf
+                │   ├── gconf
+                │   │   ├── conf.d
+                │   │   │   └── modpython.conf
+                │   │   ├── databricks-gmond.conf
+                │   │   ├── gmetad.conf
+                │   │   └── gmond.conf
+                │   ├── gmetad-not-active
+                │   ├── monit
+                │   ├── spark-slave-not-active
+                │   └── start_spark_slave.sh
             ├── genomics
             │   └── Dockerfile
             ├── genomics-with-glow
@@ -86,13 +110,23 @@ The Python version used *must* be compatible with the Databricks Runtime (DBR) v
 
 ##### Scala dependencies
 
-Jars are best installed using ```curl``` or ```wget```. These *must* be deployed to ```/databricks/jars```.
+Jars are *best* installed using ```curl``` or ```wget```. These *must* be deployed to ```/databricks/jars```.
 As tempting as it may be, installation using maven is not recommended.     
 
 ##### Spark configurations 
 
 Configs need to be written to ```/databricks/driver/conf``` and predicated to load first upon cluster start; 
 e.g. ```/databricks/driver/conf/00-hail-spark-driver-defaults.conf```
+
+##### Databricks cluster init scripts
+
+Write Databricks cluster init scripts to ```/databricks/scripts/```. When multiple init scripts are deployed, use predication to manage the order of initialisation where multiple init scripts are deployed.
+
+##### Ganglia enablement on Databricks Container Services
+
+Review the Dockerfile and configurations in the ```ganglia``` directory to see how to deploy ganglia in a way that enables metrics collection on Databricks clusters using Container Services. 
+
+NOTE: ganglia is *not* officially supported on Databricks Container Services by Databricks. The ```ganglia``` docker image here is supported by the community on a *best efforts* basis, only. 
 
 
 
