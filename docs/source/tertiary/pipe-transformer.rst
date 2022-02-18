@@ -67,17 +67,46 @@ Integrating with bioinformatics tools
 To integrate with tools for genomic data, you can configure the Pipe Transformer to write each
 partition of the input DataFrame as VCF by choosing ``vcf`` as the input and output formatter.
 Here is an example using bedtools. For a more complex example using The Variant Effect Predictor (VEP)
-see the notebook example below. Note that the bioinformatics tool must be installed on each
-virtual machine of the Spark cluster.
+see the notebook example below. 
+
+.. important:: 
+   The bioinformatics tool must be installed on each virtual machine of the Spark cluster.
 
 .. code-block:: python
 
-    df = spark.read.format("vcf").load(path)
+    import glow
+    spark = glow.register(spark)
+    import json
 
+    #create minimal bed
+    bed_path = "/dbfs/tmp/chr22.bed"
+    bed_df = spark.createDataFrame([(22, 16050000, 16060000), 
+                             (22, 16080000, 16090000), 
+                             (22, 16100000, 16110000)], 
+                            ("#chrom", "start", "end"))
+    bed_df.toPandas().to_csv(bed_path, sep="\t", index=False)
+
+    #load vcfs and take 1000 rows for testing
+    vcf_path = "/databricks-datasets/genomics/1kg-vcfs/*.vcf.gz"
+    df = spark.read.format("vcf").option("flattenInfoFields", False).load(vcf_path)
+    df = sqlContext.createDataFrame(sc.parallelize(df.take(1000)), df.schema).cache() 
+    
+    #create bash script, supplying parameters as json
+    scriptFile = r"""#!/bin/sh
+    set -e
+    #input bed is stdin, signified by '-'
+
+    /opt/bedtools-2.30.0/bin/bedtools intersect -a - -b %(bed)s -header -wa
+
+    """ % {"bed": bed_path}
+
+    cmd = json.dumps(["bash", "-c", scriptFile])
+
+    #run pipe transformer!
     intersection_df = glow.transform(
         'pipe',
         df,
-        cmd=['bedtools', 'intersect', '-a', 'stdin', '-b', bed, '-header', '-wa'],
+        cmd=cmd,
         input_formatter='vcf',
         in_vcf_header='infer',
         output_formatter='vcf'

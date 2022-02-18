@@ -62,11 +62,12 @@ display(transformed_df.drop("genotypes"))
 # COMMAND ----------
 
 # DBTITLE 1,Create bed file
+bed_path = "/dbfs/tmp/chr22.bed"
 bed = spark.createDataFrame([(22, 16050000, 16060000), 
                              (22, 16080000, 16090000), 
                              (22, 16100000, 16110000)], 
                             ("#chrom", "start", "end"))
-bed.toPandas().to_csv("/dbfs/tmp/chr22.bed", sep="\t", index=False)
+bed.toPandas().to_csv(bed_path, sep="\t", index=False)
 
 # COMMAND ----------
 
@@ -81,9 +82,9 @@ scriptFile = r"""#!/bin/sh
 set -e
 #input bed is stdin, signified by '-'
 
-/opt/bedtools-2.30.0/bin/bedtools intersect -seed 42 -a - -b /dbfs/tmp/chr22.bed -header -wa
+/opt/bedtools-2.30.0/bin/bedtools intersect -seed 42 -a - -b %(bed_path)s -header -wa
 
-"""
+""" % {"bed_path": bed_path}
 
 cmd = ["bash", "-c", scriptFile]
 

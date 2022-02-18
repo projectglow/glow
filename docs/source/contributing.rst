@@ -93,7 +93,7 @@ first create the conda environment:
 
 .. code-block:: bash 
 
-   conda env create -f source/environment.yml
+   conda env create -f docs/source/environment.yml
 
 activate the glow docs conda environment:
 
