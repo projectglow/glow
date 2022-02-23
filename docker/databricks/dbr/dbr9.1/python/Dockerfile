@@ -34,7 +34,7 @@ RUN /databricks/python3/bin/pip install \
   pandas==1.2.4 \
   pyarrow==4.0.0 \
   matplotlib==3.4.2 \
-  jinja2==2.11.3 \
+  jinja2==3.0.3 \
   mlflow==1.19.0
 
 ENV MLFLOW_TRACKING_URI=databricks
