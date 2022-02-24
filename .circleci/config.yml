@@ -287,7 +287,7 @@ jobs:
           name: Run all notebook tests
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            python docs/dev/run-nb-test.py --cli-profile docs-ci
+            python docs/dev/run-nb-test.py --cli-profile docs-ci --dockerhub_password ${PROJECTGLOW_DOCKERHUB_PASSWORD}
 
 workflows:
   version: 2
