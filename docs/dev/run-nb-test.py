@@ -33,25 +33,14 @@ def run_cli_cmd(cli_profile, api, args):
 @click.command()
 @click.option('--cli-profile', default='DEFAULT', help='Databricks CLI profile name.')
 @click.option('--repos-path', default='/Repos/staging/', help='Path in Databricks workspace for running integration test')
-@click.option('--workspace-tmp-dir', default='/tmp/glow-nb-test-ci', help='Base workspace dir for import and testing.')
 @click.option('--source-dir', default='docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE',
               help='Source directory of notebooks to upload.')
 @click.option('--nbs', multiple=True, default=[],
               help='Relative name of notebooks in the source directory to run. If not provided, runs all notebooks.')
-def main(cli_profile,repos_path, workspace_tmp_dir, source_dir, nbs):
+def main(cli_profile, repos_path, source_dir, nbs):
     identifier = str(uuid.uuid4())
-    work_dir = os.path.join(workspace_tmp_dir, identifier)
     with open(JOBS_JSON, 'r') as f:
         jobs_json = json.load(f)
-    with open(NOTEBOOK_JOBS_JSON_MAPPING, 'r') as f:
-        notebook_jobs_json_mapping = json.load(f)
-
-    if not nbs:
-        nbs = [os.path.relpath(path, source_dir).split('.')[0]
-               for path in glob.glob(source_dir + '/**', recursive=True)
-               if not os.path.isdir(path)]
-    nb_to_run_id = {}
-    nb_to_run_info = {}
 
     try:
         print(f"Importing source files from Glow repo")
@@ -59,9 +48,6 @@ def main(cli_profile,repos_path, workspace_tmp_dir, source_dir, nbs):
         run_cli_cmd(cli_profile, 'repos', ['create', '--url', 'https://github.com/projectglow/glow', '--provider', 'gitHub', '--path', repos_path + "glow"])
 
         print(f"Launching runs")
-        jobs_json_path = get_jobs_config(notebook_jobs_json_mapping, nb)
-        with open(jobs_json_path, 'r') as f:
-            jobs_json = json.load(f)
         job_create = run_cli_cmd(cli_profile, 'jobs', ['create', '--json-file', json.dumps(jobs_json)])
         job_id = json.loads(job_create)['job_id']
         job_run = run_cli_cmd(cli_profile, 'jobs', ['run-now', '--job-id', job_id)
