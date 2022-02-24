@@ -47,7 +47,7 @@ def main(cli_profile, repos_path, source_dir, nbs):
     run_cli_cmd(cli_profile, 'repos', ['create', '--url', 'https://github.com/projectglow/glow', '--provider', 'gitHub', '--path', repos_path + "glow"])
 
     print(f"Create job")
-    job_create = run_cli_cmd(cli_profile, 'jobs', ['create', '--json-file', json.dumps(jobs_json)])
+    job_create = run_cli_cmd(cli_profile, 'jobs', ['create', '--json', json.dumps(jobs_json)])
     job_id = json.loads(job_create)['job_id']
     print(f"Run JOB")
     job_run = run_cli_cmd(cli_profile, 'jobs', ['run-now', '--job-id', job_id])
