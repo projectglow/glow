@@ -1,4 +1,4 @@
-FROM projectglow/databricks-glow:1.1.2
+FROM projectglow/databricks-glow-minus-ganglia:1.1.2
 
 RUN apt-get update \
   && apt-get install -y openssh-server \

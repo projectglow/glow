@@ -5,7 +5,7 @@ FROM projectglow/genomics:9.1 AS builder
 # ===== Set up Hail ================================================================================
 
 # earliest Hail version supported by Spark3 is 0.2.67
-ENV HAIL_VERSION=0.2.85
+ENV HAIL_VERSION=0.2.78
  
 RUN apt-get update && apt-get install -y \
      openjdk-8-jre-headless \
