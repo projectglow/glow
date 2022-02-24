@@ -57,6 +57,7 @@ def main(cli_profile, repos_path, source_dir, nbs):
     run_get = run_cli_cmd(cli_profile, 'runs', ['get', '--run-id', run_id])
     run_info = json.loads(run_get)
     while True:
+        run_get = run_cli_cmd(cli_profile, 'runs', ['get', '--run-id', run_id])
         run_info = json.loads(run_get)
         print(f"=== Status check at {datetime.now().strftime('%H:%M:%S')} ===")
         base_msg = f"(Run ID [{run_info['state']['life_cycle_state']}]"
