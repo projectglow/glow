@@ -307,15 +307,10 @@ jobs:
           command: |
             printf "[docs-ci]\nhost = https://adb-984752964297111.11.azuredatabricks.net\ntoken = ${DATABRICKS_API_TOKEN}\njobs-api-version = 2.1\n" > ~/.databrickscfg
       - run:
-          name: Run changed notebook tests
+          name: Run notebook tests
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            if [[ -n $(git diff --name-status master --relative docs/source/_static/ | sed '/^D/d') ]]; then
-              echo "Testing changed notebooks! (except for deleted ones)"
-              python docs/dev/run-nb-test.py --cli-profile docs-ci $(git diff --name-status master --relative docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE | sed '/^D/d' | awk '{print $NF}' | cut -c 51- | cut -f1 -d"." | sed -e 's/^/--nbs /')
-            else
-              echo "No notebooks changed."
-            fi
+            python docs/dev/run-nb-test.py --cli-profile docs-ci
 
 workflows:
   version: 2
