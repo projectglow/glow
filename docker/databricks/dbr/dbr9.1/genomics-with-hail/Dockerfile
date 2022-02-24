@@ -15,7 +15,6 @@ RUN apt-get update && apt-get install -y \
      rsync python-setuptools
 
 RUN /databricks/python3/bin/pip install \
-  numpy==1.19.2 \
   hail==$HAIL_VERSION
 
 RUN HAIL_JAR_PATH=$(find /databricks/python3 -name 'hail-all-spark.jar') && \
