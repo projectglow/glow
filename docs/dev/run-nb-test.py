@@ -73,17 +73,15 @@ def main(cli_profile, repos_path, source_dir, nbs):
                     print("============================")
                     sys.exit(1)
                 else:
-                    print(base_msg, run_info['state']['result_state'])
+                    if run_info['state']['result_state'] == 'SUCCESS':
+                        print("===========================")
+                        print("|   All tasks succeeded!   |")
+                        print("============================")
+                        run_cli_cmd(cli_profile, 'repos', ['delete', '--path', repos_path + "glow"])
+                        sys.exit(0)
             else:
                 print(base_msg, run_info['state']['state_message'])
             time.sleep(60)
-    finally:
-        if run_info['state']['result_state'] == 'SUCCESS':
-            print("===========================")
-            print("|   All tasks succeeded!   |")
-            print("============================")
-            run_cli_cmd(cli_profile, 'repos', ['delete', '--path', repos_path + "glow"])
-            sys.exit(0)
 
 if __name__ == '__main__':
     main()
