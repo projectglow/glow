@@ -1,5 +1,4 @@
 {
-    "settings": {
         "timeout_seconds": 0,
         "email_notifications": {},
         "name": "glow_integration_test",
@@ -502,5 +501,4 @@
                 }
             }
         ]
-    }
 }
