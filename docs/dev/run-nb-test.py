@@ -42,46 +42,45 @@ def main(cli_profile, repos_path, source_dir, nbs):
     with open(JOBS_JSON, 'r') as f:
         jobs_json = json.load(f)
 
-    try:
-        print(f"Importing source files from Glow repo")
-        run_cli_cmd(cli_profile, 'workspace', ['mkdirs', repos_path])
-        run_cli_cmd(cli_profile, 'repos', ['create', '--url', 'https://github.com/projectglow/glow', '--provider', 'gitHub', '--path', repos_path + "glow"])
+    print(f"Importing source files from Glow repo")
+    run_cli_cmd(cli_profile, 'workspace', ['mkdirs', repos_path])
+    run_cli_cmd(cli_profile, 'repos', ['create', '--url', 'https://github.com/projectglow/glow', '--provider', 'gitHub', '--path', repos_path + "glow"])
 
-        print(f"Create job")
-        job_create = run_cli_cmd(cli_profile, 'jobs', ['create', '--json-file', json.dumps(jobs_json)])
-        job_id = json.loads(job_create)['job_id']
-        print(f"Run JOB")
-        job_run = run_cli_cmd(cli_profile, 'jobs', ['run-now', '--job-id', job_id])
-        run_id = json.loads(job_run)['run_id']
-        print(f"Ckeck job status")
-        run_get = run_cli_cmd(cli_profile, 'runs', ['get', '--run-id', run_id])
-        run_info = json.loads(run_get)
-        while True:
-            print(f"=== Status check at {datetime.now().strftime('%H:%M:%S')} ===")
-            base_msg = f"{nb} (Run ID {nb_to_run_id[nb]}) [{run_info['state']['life_cycle_state']}]"
-            if run_info['state']['life_cycle_state'] == 'INTERNAL_ERROR':
-               print(base_msg, run_info['state']['result_state'], run_info['run_page_url'])
-               print("====================================")
-               print("|  Exiting due to internal error.  |")
-               print("====================================")
-               sys.exit(1)
-            if run_info['state']['life_cycle_state'] == 'TERMINATED':
-                print(base_msg, run_info['state']['result_state'], run_info['run_page_url'])
-                if run_info['state']['result_state'] == 'FAILED':
-                    print("===========================")
-                    print("|    Some tasks failed.    |")
-                    print("============================")
-                    sys.exit(1)
-                else:
-                    if run_info['state']['result_state'] == 'SUCCESS':
-                        print("===========================")
-                        print("|   All tasks succeeded!   |")
-                        print("============================")
-                        run_cli_cmd(cli_profile, 'repos', ['delete', '--path', repos_path + "glow"])
-                        sys.exit(0)
+    print(f"Create job")
+    job_create = run_cli_cmd(cli_profile, 'jobs', ['create', '--json-file', json.dumps(jobs_json)])
+    job_id = json.loads(job_create)['job_id']
+    print(f"Run JOB")
+    job_run = run_cli_cmd(cli_profile, 'jobs', ['run-now', '--job-id', job_id])
+    run_id = json.loads(job_run)['run_id']
+    print(f"Ckeck job status")
+    run_get = run_cli_cmd(cli_profile, 'runs', ['get', '--run-id', run_id])
+    run_info = json.loads(run_get)
+    while True:
+        print(f"=== Status check at {datetime.now().strftime('%H:%M:%S')} ===")
+        base_msg = f"{nb} (Run ID {nb_to_run_id[nb]}) [{run_info['state']['life_cycle_state']}]"
+        if run_info['state']['life_cycle_state'] == 'INTERNAL_ERROR':
+           print(base_msg, run_info['state']['result_state'], run_info['run_page_url'])
+           print("====================================")
+           print("|  Exiting due to internal error.  |")
+           print("====================================")
+           sys.exit(1)
+        if run_info['state']['life_cycle_state'] == 'TERMINATED':
+            print(base_msg, run_info['state']['result_state'], run_info['run_page_url'])
+            if run_info['state']['result_state'] == 'FAILED':
+                print("===========================")
+                print("|    Some tasks failed.    |")
+                print("============================")
+                sys.exit(1)
             else:
-                print(base_msg, run_info['state']['state_message'])
-            time.sleep(60)
+                if run_info['state']['result_state'] == 'SUCCESS':
+                    print("===========================")
+                    print("|   All tasks succeeded!   |")
+                    print("============================")
+                    run_cli_cmd(cli_profile, 'repos', ['delete', '--path', repos_path + "glow"])
+                    sys.exit(0)
+        else:
+            print(base_msg, run_info['state']['state_message'])
+        time.sleep(60)
 
 if __name__ == '__main__':
     main()
