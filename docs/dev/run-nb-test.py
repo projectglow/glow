@@ -36,10 +36,10 @@ def run_cli_cmd(cli_profile, api, args):
 @click.option('--source-dir', default='docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE',
               help='Source directory of notebooks to upload.')
 @click.option('--dockerhub_password', default='DEFAULT', help='Password for projectglow dockerhub account')
-def main(cli_profile, repos_path, source_dir, dockerhub_pw):
+def main(cli_profile, repos_path, source_dir, dockerhub_password):
     identifier = str(uuid.uuid4())
     with open(JOBS_JSON, 'r') as f:
-        jobs_json = json.load(f.read() % {"dockerhub_pw": dockerhub_pw})
+        jobs_json = json.load(f.read() % {"dockerhub_password": dockerhub_password})
 
     print(f"Importing source files from Glow repo")
     run_cli_cmd(cli_profile, 'workspace', ['mkdirs', repos_path])
