@@ -50,7 +50,7 @@ def main(cli_profile, repos_path, source_dir, nbs):
         print(f"Launching runs")
         job_create = run_cli_cmd(cli_profile, 'jobs', ['create', '--json-file', json.dumps(jobs_json)])
         job_id = json.loads(job_create)['job_id']
-        job_run = run_cli_cmd(cli_profile, 'jobs', ['run-now', '--job-id', job_id)
+        job_run = run_cli_cmd(cli_profile, 'jobs', ['run-now', '--job-id', job_id])
         run_id = json.loads(job_run)['run_id']
         while True:
             print(f"=== Status check at {datetime.now().strftime('%H:%M:%S')} ===")
