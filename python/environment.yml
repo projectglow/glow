@@ -26,7 +26,7 @@ dependencies:
   - typeguard=2.9.1
   - yapf=0.30.0
   - pip:
-    - databricks-cli=0.16.4 # Docs notebook source generation
+    - databricks-cli==0.16.4 # Docs notebook source generation
     - setuptools==52.0.0 # Python packaging
     - twine==2.0.0 # Pypi publishing
     - sphinx-autobuild
