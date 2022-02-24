@@ -19,7 +19,7 @@
 # COMMAND ----------
 
 # MAGIC %sh
-# MAGIC declare -a chroms=("1" "2" "3" "4" "5" "6" "7" "8" "9" "10" "11" "12" "13" "14" "15" "16" "17" "18" "19" "21" "22")
+# MAGIC declare -a chroms=("21" "22")
 # MAGIC 
 # MAGIC for i in "${chroms[@]}"; do wget ftp://hgdownload.cse.ucsc.edu/gbdb/hg19/1000Genomes/phase3/ALL.chr$i.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz; done
 # MAGIC 

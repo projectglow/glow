@@ -82,6 +82,7 @@ node_to_core_mapping = {"r5d.2xlarge": 8,
                         "c5d.2xlarge": 8, 
                         "Standard_DS3_v2": 4,
                         "Standard_DS4_v2": 8,
+                        "Standard_E4d_v4": 4,
                         "Standard_E8s_v3": 8,
                         "Standard_L8s_v2": 8,
                         "Standard_L64s_v2": 64
