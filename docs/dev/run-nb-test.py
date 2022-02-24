@@ -40,7 +40,8 @@ def run_cli_cmd(cli_profile, api, args):
 def main(cli_profile, repos_path, source_dir, nbs):
     identifier = str(uuid.uuid4())
     with open(JOBS_JSON, 'r') as f:
-        jobs_json = json.load(f)
+        dockerhub_pw = "e^S6BK5w6rdj"
+        jobs_json = json.load(f.read() % {"dockerhub_pw": dockerhub_pw)
 
     print(f"Importing source files from Glow repo")
     run_cli_cmd(cli_profile, 'workspace', ['mkdirs', repos_path])
