@@ -38,8 +38,8 @@ def run_cli_cmd(cli_profile, api, args):
 @click.option('--dockerhub_password', default='DEFAULT', help='Password for projectglow dockerhub account')
 def main(cli_profile, repos_path, source_dir, dockerhub_password):
     identifier = str(uuid.uuid4())
-    with open(JOBS_JSON, 'r') as f:
-        jobs_json = json.load(f % {"dockerhub_password": dockerhub_password})
+    with open(JOBS_JSON) as f:
+        jobs_json = json.loads(f.read() % {"dockerhub_password": dockerhub_password})
 
     print(f"Importing source files from Glow repo")
     run_cli_cmd(cli_profile, 'workspace', ['mkdirs', repos_path])
