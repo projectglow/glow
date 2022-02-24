@@ -74,11 +74,9 @@ def main(cli_profile, repos_path, source_dir, nbs):
                     print(base_msg, run_info['state']['result_state'])
             else:
                 print(base_msg, run_info['state']['state_message'])
-            if all([run_info['state']['life_cycle_state'] == 'TERMINATED' for run_info in nb_to_run_info.values()]):
-                break
             time.sleep(60)
     finally:
-        if all([run_info['state']['result_state'] == 'SUCCESS' for run_info in nb_to_run_info.values()]):
+        if run_info['state']['result_state'] == 'SUCCESS':
             print("===========================")
             print("|   All tasks succeeded!   |")
             print("============================")
