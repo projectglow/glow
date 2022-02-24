@@ -49,10 +49,10 @@ def main(cli_profile, repos_path, source_dir, nbs):
 
     print(f"Create job")
     job_create = run_cli_cmd(cli_profile, 'jobs', ['create', '--json', json.dumps(jobs_json)])
-    job_id = json.loads(job_create)['job_id']
+    job_id = str(json.loads(job_create)['job_id'])
     print(f"Run JOB")
     job_run = run_cli_cmd(cli_profile, 'jobs', ['run-now', '--job-id', job_id])
-    run_id = json.loads(job_run)['run_id']
+    run_id = str(json.loads(job_run)['run_id'])
     print(f"Ckeck job status")
     run_get = run_cli_cmd(cli_profile, 'runs', ['get', '--run-id', run_id])
     run_info = json.loads(run_get)
