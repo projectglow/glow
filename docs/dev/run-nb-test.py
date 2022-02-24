@@ -58,7 +58,7 @@ def main(cli_profile, repos_path, source_dir, nbs):
     run_info = json.loads(run_get)
     while True:
         print(f"=== Status check at {datetime.now().strftime('%H:%M:%S')} ===")
-        base_msg = f"{nb} (Run ID {nb_to_run_id[nb]}) [{run_info['state']['life_cycle_state']}]"
+        base_msg = f"(Run ID [{run_info['state']['life_cycle_state']}]"
         if run_info['state']['life_cycle_state'] == 'INTERNAL_ERROR':
            print(base_msg, run_info['state']['result_state'], run_info['run_page_url'])
            print("====================================")
