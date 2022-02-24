@@ -44,6 +44,7 @@ def main(cli_profile, repos_path, source_dir, nbs):
 
     print(f"Importing source files from Glow repo")
     run_cli_cmd(cli_profile, 'workspace', ['mkdirs', repos_path])
+    run_cli_cmd(cli_profile, 'repos', ['delete', '--path', repos_path + "glow"])
     run_cli_cmd(cli_profile, 'repos', ['create', '--url', 'https://github.com/projectglow/glow', '--provider', 'gitHub', '--path', repos_path + "glow"])
 
     print(f"Create job")
