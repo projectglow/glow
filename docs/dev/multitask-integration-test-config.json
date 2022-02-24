@@ -389,7 +389,7 @@
                         "url": "projectglow/databricks-glow:1.1.2",
                         "basic_auth": {
                             "username": "projectglow",
-                            "password": %(dockerhub_pw)s
+                            "password": %(dockerhub_password)s
                         }
                     },
                     "data_security_mode": "NONE",
@@ -415,7 +415,7 @@
                         "url": "projectglow/databricks-glow:1.1.2",
                         "basic_auth": {
                             "username": "projectglow",
-                            "password": %(dockerhub_pw)s
+                            "password": %(dockerhub_password)s
                         }
                     },
                     "data_security_mode": "NONE",
@@ -441,7 +441,7 @@
                         "url": "projectglow/databricks-hail:0.2.78",
                         "basic_auth": {
                             "username": "projectglow",
-                            "password": %(dockerhub_pw)s
+                            "password": %(dockerhub_password)s
                         }
                     },
                     "data_security_mode": "NONE",
@@ -467,7 +467,7 @@
                         "url": "projectglow/databricks-hail:0.2.78",
                         "basic_auth": {
                             "username": "projectglow",
-                            "password": %(dockerhub_pw)s
+                            "password": %(dockerhub_password)s
                         }
                     },
                     "data_security_mode": "NONE",
