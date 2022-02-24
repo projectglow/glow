@@ -289,29 +289,6 @@ jobs:
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             python docs/dev/run-nb-test.py --cli-profile docs-ci
 
-  changed-notebook-tests:
-    <<: *setup_base
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - conda-deps-v1-{{ checksum "python/environment.yml" }}
-      - *install_conda
-      - *create_python_env
-      - save_cache:
-          paths:
-            - /home/circleci/conda
-          key: conda-deps-v1-{{ checksum "python/environment.yml" }}
-      - run:
-          name: Configure Databricks CLI
-          command: |
-            printf "[docs-ci]\nhost = https://adb-984752964297111.11.azuredatabricks.net\ntoken = ${DATABRICKS_API_TOKEN}\njobs-api-version = 2.1\n" > ~/.databrickscfg
-      - run:
-          name: Run notebook tests
-          command: |
-            export PATH=$HOME/conda/envs/glow/bin:$PATH
-            python docs/dev/run-nb-test.py --cli-profile docs-ci
-
 workflows:
   version: 2
   test:
@@ -320,7 +297,7 @@ workflows:
       - scala-2_11-tests
       - scala-2_12-tests
       - spark-3-tests
-      - changed-notebook-tests
+      - all-notebook-tests
   nightly:
     triggers:
       - schedule:
