@@ -52,7 +52,7 @@ def main(cli_profile, repos_path, source_dir, dockerhub_password):
     print(f"Run JOB")
     job_run = run_cli_cmd(cli_profile, 'jobs', ['run-now', '--job-id', job_id])
     run_id = str(json.loads(job_run)['run_id'])
-    print(f"Ckeck job status")
+    print(f"Check job status")
     run_get = run_cli_cmd(cli_profile, 'runs', ['get', '--run-id', run_id])
     run_info = json.loads(run_get)
     while True:
