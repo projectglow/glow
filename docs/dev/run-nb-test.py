@@ -33,10 +33,10 @@ def run_cli_cmd(cli_profile, api, args):
 @click.command()
 @click.option('--cli-profile', default='DEFAULT', help='Databricks CLI profile name.')
 @click.option('--repos-path', default='/Repos/staging/', help='Path in Databricks workspace for running integration test')
-@click.option('--source-dir', default='docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE',
-              help='Source directory of notebooks to upload.')
+@click.option('--repos-url', default='https://github.com/projectglow/glow', help='URL for your fork of glow')
+@click.option('--branch', default='master', help='Update to your branch that you are testing on')
 @click.option('--dockerhub_password', default='DEFAULT', help='Password for projectglow dockerhub account')
-def main(cli_profile, repos_path, source_dir, dockerhub_password):
+def main(cli_profile, repos_path, repos_url, branch, dockerhub_password):
     identifier = str(uuid.uuid4())
     with open(JOBS_JSON, 'r') as f:
         jobs_json = json.loads(f.read() % {"repos_path": repos_path, "dockerhub_password": dockerhub_password})
@@ -45,7 +45,8 @@ def main(cli_profile, repos_path, source_dir, dockerhub_password):
     run_cli_cmd(cli_profile, 'workspace', ['mkdirs', repos_path])
     run_cli_cmd(cli_profile, 'repos', ['delete', '--path', repos_path + "glow"])
     run_cli_cmd(cli_profile, 'repos', ['create', '--url', 'https://github.com/projectglow/glow', '--provider', 'gitHub', '--path', repos_path + "glow"])
-
+    run_cli_cmd(cli_profile, 'repos', ['update', '--branch', branch, '--path', repos_path + "glow"])
+    
     print(f"Create job")
     job_create = run_cli_cmd(cli_profile, 'jobs', ['create', '--json', json.dumps(jobs_json)])
     job_id = str(json.loads(job_create)['job_id'])
