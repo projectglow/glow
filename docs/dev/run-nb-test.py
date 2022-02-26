@@ -43,7 +43,6 @@ def main(cli_profile, repos_path, repos_url, branch, dockerhub_password):
 
     print(f"Importing source files from Glow repo")
     run_cli_cmd(cli_profile, 'workspace', ['mkdirs', repos_path])
-    run_cli_cmd(cli_profile, 'repos', ['delete', '--path', repos_path + "glow"])
     run_cli_cmd(cli_profile, 'repos', ['create', '--url', 'https://github.com/projectglow/glow', '--provider', 'gitHub', '--path', repos_path + "glow"])
     run_cli_cmd(cli_profile, 'repos', ['update', '--branch', branch, '--path', repos_path + "glow"])
     
@@ -66,6 +65,7 @@ def main(cli_profile, repos_path, repos_url, branch, dockerhub_password):
            print("====================================")
            print("|  Exiting due to internal error.  |")
            print("====================================")
+           run_cli_cmd(cli_profile, 'repos', ['delete', '--path', repos_path + "glow"])
            sys.exit(1)
         if run_info['state']['life_cycle_state'] == 'TERMINATED':
             print(base_msg, run_info['state']['result_state'], run_info['run_page_url'])
@@ -73,6 +73,7 @@ def main(cli_profile, repos_path, repos_url, branch, dockerhub_password):
                 print("===========================")
                 print("|    Some tasks failed.    |")
                 print("============================")
+                run_cli_cmd(cli_profile, 'repos', ['delete', '--path', repos_path + "glow"])
                 sys.exit(1)
             else:
                 if run_info['state']['result_state'] == 'SUCCESS':
