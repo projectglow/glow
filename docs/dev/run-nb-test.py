@@ -52,14 +52,14 @@ def run_cli_cmd(cli_profile, api, args):
 @click.command()
 @click.option('--cli-profile', default='DEFAULT', help='Databricks CLI profile name.')
 @click.option('--workflow-definition', default='docs/dev/multitask-integration-test-config.json', help='path to json configuration')
-@click.option('--repos-path', default='/Repos/staging/', help='Path in Databricks workspace for running integration test')
+@click.option('--repos-path', default='/Repos/staging', help='Path in Databricks workspace for running integration test')
 @click.option('--repos-url', default='https://github.com/projectglow/glow', help='URL for your fork of glow')
 @click.option('--branch', default='master', help='Update to your branch that you are testing on')
 @click.option('--dockerhub_password', default='DEFAULT', help='Password for projectglow dockerhub account')
 def main(cli_profile, workflow_definition, repos_path, repos_url, branch, dockerhub_password):
     click.echo("cli_profile = " + cli_profile)
     click.echo("workflow_definition = " + workflow_definition)
-    repos_path = f'{repos_path}{str(datetime.now().microsecond)}/'
+    repos_path = f'{repos_path}_{str(datetime.now().microsecond)}/'
     click.echo("repos_path = " + repos_path)
     click.echo("repos_url = " + repos_url)
     click.echo("branch = " + branch)
