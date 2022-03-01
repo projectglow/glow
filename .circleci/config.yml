@@ -60,7 +60,7 @@ check_clean_repo: &check_clean_repo
 version: 2.1
 orbs:
   codecov: codecov/codecov@1.0.5
-  jq: circleci/jq@x.y.z
+  jq: circleci/jq@1.6.0
 jobs:
 
   check-docs:
