@@ -77,7 +77,7 @@ Please run the notebook workflow on a Databricks workspace, pointing to your for
                                   --branch <git branch> \ 
                                   --dockerhub_password <Password for projectglow dockerhub account>
 
-The workflow definition is located in `docs/dev/multitask-integration-test-config.json <https://github.com/projectglow/glow/blob/master/docs/dev/multitask-integration-test-config.json>`_.
+The workflow definition json is located in `docs/dev/ <https://github.com/projectglow/glow/blob/master/docs/dev>`_.
 
 
 .. tip::
