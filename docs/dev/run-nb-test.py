@@ -59,7 +59,7 @@ def run_cli_cmd(cli_profile, api, args):
 def main(cli_profile, workflow_definition, repos_path, repos_url, branch, dockerhub_password):
     click.echo("cli_profile = " + cli_profile)
     click.echo("workflow_definition = " + workflow_definition)
-    repos_path = f'{repos_path}{str(datetime.now().microsecond)}'
+    repos_path = f'{repos_path}{str(datetime.now().microsecond)}/'
     click.echo("repos_path = " + repos_path)
     click.echo("repos_url = " + repos_url)
     click.echo("branch = " + branch)
