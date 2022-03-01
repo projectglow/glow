@@ -289,8 +289,8 @@ jobs:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             if [[ ! -z $CIRCLE_PULL_REQUEST ]]; then
-              echo 'export repo_url = \`curl -s https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls/${CIRCLE_PR_NUMBER} | jq -r '.head.repo.html_url'\`'>> $BASH_ENV
-              echo 'export pr_branch = \`curl -s https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls/${CIRCLE_PR_NUMBER} | jq -r '.head.ref'\`' >> $BASH_ENV
+              echo 'export repo_url=$(curl -s https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls/${CIRCLE_PR_NUMBER} | jq -r '.head.repo.html_url')'>> $BASH_ENV
+              echo 'export pr_branch=$(curl -s https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls/${CIRCLE_PR_NUMBER} | jq -r '.head.ref')' >> $BASH_ENV
               source $BASH_ENV
               python docs/dev/run-nb-test.py --cli-profile docs-ci \
                                              --repos-url $repo_url \
