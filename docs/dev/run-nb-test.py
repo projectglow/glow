@@ -34,6 +34,11 @@ def run_cli_cmd(cli_profile, api, args):
 @click.option('--branch', default='master', help='Update to your branch that you are testing on')
 @click.option('--dockerhub_password', default='DEFAULT', help='Password for projectglow dockerhub account')
 def main(cli_profile, workflow_definition, repos_path, repos_url, branch, dockerhub_password):
+    click.echo(cli_profile)
+    click.echo(workflow_definition)
+    click.echo(repos_path)
+    click.echo(repos_url)
+    click.echo(branch)
     identifier = str(uuid.uuid4())
     with open(workflow_definition, 'r') as f:
         jobs_json = json.loads(f.read() % {"repos_path": repos_path, "dockerhub_password": dockerhub_password})
