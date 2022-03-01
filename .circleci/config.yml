@@ -60,6 +60,7 @@ check_clean_repo: &check_clean_repo
 version: 2.1
 orbs:
   codecov: codecov/codecov@1.0.5
+  jq: circleci/jq@1.6.0
 jobs:
 
   check-docs:
@@ -86,7 +87,7 @@ jobs:
       - run:
           name: Configure Databricks CLI
           command: |
-            printf "[docs-ci]\nhost = https://adb-984752964297111.11.azuredatabricks.net\ntoken = ${DATABRICKS_API_TOKEN}\n" > ~/.databrickscfg
+            printf "[docs-ci]\nhost = https://adb-984752964297111.11.azuredatabricks.net\ntoken = ${DATABRICKS_API_TOKEN}\njobs-api-version = 2.1\n" > ~/.databrickscfg
       - run:
           name: Generate notebook source files
           command: |
@@ -282,39 +283,22 @@ jobs:
       - run:
           name: Configure Databricks CLI
           command: |
-            printf "[docs-ci]\nhost = https://adb-984752964297111.11.azuredatabricks.net\ntoken = ${DATABRICKS_API_TOKEN}\n" > ~/.databrickscfg
+            printf "[docs-ci]\nhost = https://adb-984752964297111.11.azuredatabricks.net\ntoken = ${DATABRICKS_API_TOKEN}\njobs-api-version = 2.1\n" > ~/.databrickscfg
       - run:
           name: Run all notebook tests
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            python docs/dev/run-nb-test.py --cli-profile docs-ci
-
-  changed-notebook-tests:
-    <<: *setup_base
-    steps:
-      - checkout
-      - restore_cache:
-          keys:
-            - conda-deps-v1-{{ checksum "python/environment.yml" }}
-      - *install_conda
-      - *create_python_env
-      - save_cache:
-          paths:
-            - /home/circleci/conda
-          key: conda-deps-v1-{{ checksum "python/environment.yml" }}
-      - run:
-          name: Configure Databricks CLI
-          command: |
-            printf "[docs-ci]\nhost = https://adb-984752964297111.11.azuredatabricks.net\ntoken = ${DATABRICKS_API_TOKEN}\n" > ~/.databrickscfg
-      - run:
-          name: Run changed notebook tests
-          command: |
-            export PATH=$HOME/conda/envs/glow/bin:$PATH
-            if [[ -n $(git diff --name-status master --relative docs/source/_static/ | sed '/^D/d') ]]; then
-              echo "Testing changed notebooks! (except for deleted ones)"
-              python docs/dev/run-nb-test.py --cli-profile docs-ci $(git diff --name-status master --relative docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE | sed '/^D/d' | awk '{print $NF}' | cut -c 51- | cut -f1 -d"." | sed -e 's/^/--nbs /')
+            if [[ ! -z $CIRCLE_PULL_REQUEST ]]; then
+              echo 'export repo_url=$(curl -s https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls/${CIRCLE_PR_NUMBER} | jq -r '.head.repo.html_url')'>> $BASH_ENV
+              echo 'export pr_branch=$(curl -s https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls/${CIRCLE_PR_NUMBER} | jq -r '.head.ref')' >> $BASH_ENV
+              source $BASH_ENV
+              python docs/dev/run-nb-test.py --cli-profile docs-ci \
+                                             --repos-url $repo_url \
+                                             --branch $pr_branch \
+                                             --dockerhub_password ${PROJECTGLOW_DOCKERHUB_PASSWORD}
             else
-              echo "No notebooks changed."
+              python docs/dev/run-nb-test.py --cli-profile docs-ci \
+                                             --dockerhub_password ${PROJECTGLOW_DOCKERHUB_PASSWORD}
             fi
 
 workflows:
@@ -325,7 +309,7 @@ workflows:
       - scala-2_11-tests
       - scala-2_12-tests
       - spark-3-tests
-      - changed-notebook-tests
+      - all-notebook-tests
   nightly:
     triggers:
       - schedule:

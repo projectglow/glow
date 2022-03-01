@@ -63,6 +63,9 @@ And run this python script (swapping the html file out for your own).
    
    python3 docs/dev/gen-nb-src.py --html docs/source/_static/notebooks/tertiary/pipe-transformer-vep.html
 
+The Glow workflow is tested in a nightly integration test in Databricks.
+If you add notebooks or rename them, please also edit the workflow definition json located in `docs/dev/ <https://github.com/projectglow/glow/blob/master/docs/dev>`_.
+
 .. _improve-documentation:
 
 2. Improve the documentation
@@ -93,7 +96,8 @@ first create the conda environment:
 
 .. code-block:: bash 
 
-   conda env create -f docs/source/environment.yml
+   cd docs
+   conda env create -f source/environment.yml
 
 activate the glow docs conda environment:
 
@@ -108,7 +112,6 @@ build the docs:
    make livehtml
 
 connect to the local server via your browser at: `http://127.0.0.1:8000`
-
 
 .. _docker-environment:
 
