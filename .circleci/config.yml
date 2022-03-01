@@ -288,7 +288,7 @@ jobs:
           name: Run all notebook tests
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            if [[ -z $CIRCLE_PULL_REQUEST ]]; then
+            if [[ ! -z $CIRCLE_PULL_REQUEST ]]; then
               repo_url = `curl -s https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls/${CIRCLE_PR_NUMBER} | jq -r '.head.repo.html_url'`
               pr_branch = `curl -s https://api.github.com/repos/${CIRCLE_PROJECT_USERNAME}/${CIRCLE_PROJECT_REPONAME}/pulls/${CIRCLE_PR_NUMBER} | jq -r '.head.ref'`
               python docs/dev/run-nb-test.py --cli-profile docs-ci --repos-url $repo_url --branch $pr_branch --dockerhub_password ${PROJECTGLOW_DOCKERHUB_PASSWORD}
