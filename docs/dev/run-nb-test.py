@@ -4,9 +4,32 @@ Runs all Glow notebooks as an integration test in Databricks using
   - Repos to sync notebooks from the Glow repository to your workspace https://docs.databricks.com/dev-tools/cli/repos-cli.html#repos-cli
   - Multitask workflows to define the pipeline and run using Databricks Jobs API 2.1
 
-Please see the Contributing guide to learn how to run this script:
+The Glow workflow including all the notebooks is tested in a nightly integration test in Databricks.
+This test requires the `Databricks CLI <https://docs.databricks.com/dev-tools/cli/index.html#set-up-authentication>`_ be configured with `Jobs API 2.1 <https://docs.databricks.com/dev-tools/cli/jobs-cli.html#requirements-to-call-the-jobs-rest-api-21>`_.
 
-https://glow.readthedocs.io/en/latest/contributing.html#modify-or-add-notebooks
+Example usage
+
+  python3 docs/dev/run-nb-test.py --cli-profile <databricks cli profile> \
+                                  --workflow-definition <configuration json> \
+                                  --repos-path <path on databricks workspace> \
+                                  --repos-url <git repo url> \
+                                  --branch <git branch> \
+                                  --dockerhub_password <Password for projectglow dockerhub account>
+
+If you add notebooks or rename them, please also edit the workflow definition json located in this directory
+
+The integration test uses the `Glow Docker Container <https://hub.docker.com/r/projectglow/databricks-glow>`_ to manage the environment. This container is authenticated with a password but can also be run with Default authentication by removing `basic_auth` from the workflow definition.
+
+Once the notebook test run is kicked off, the output will look like this:
+
+  Importing source files from Glow repo
+  Create job
+  Run job
+  Check job status
+  === Status check at XX:XX:XX ===
+  (Run ID [RUNNING])
+  ...
+  ...
 
 '''
 import click
@@ -34,11 +57,11 @@ def run_cli_cmd(cli_profile, api, args):
 @click.option('--branch', default='master', help='Update to your branch that you are testing on')
 @click.option('--dockerhub_password', default='DEFAULT', help='Password for projectglow dockerhub account')
 def main(cli_profile, workflow_definition, repos_path, repos_url, branch, dockerhub_password):
-    click.echo(cli_profile)
-    click.echo(workflow_definition)
-    click.echo(repos_path)
-    click.echo(repos_url)
-    click.echo(branch)
+    click.echo("cli_profile = " + cli_profile)
+    click.echo("workflow_definition = " + workflow_definition)
+    click.echo("repos_path = " + repos_path)
+    click.echo("repos_url = " + repos_url)
+    click.echo("branch = " + branch)
     identifier = str(uuid.uuid4())
     with open(workflow_definition, 'r') as f:
         jobs_json = json.loads(f.read() % {"repos_path": repos_path, "dockerhub_password": dockerhub_password})

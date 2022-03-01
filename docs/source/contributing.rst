@@ -64,39 +64,7 @@ And run this python script (swapping the html file out for your own).
    python3 docs/dev/gen-nb-src.py --html docs/source/_static/notebooks/tertiary/pipe-transformer-vep.html
 
 The Glow workflow including all the notebooks is tested in a nightly integration test in Databricks.
-This test requires the `Databricks CLI <https://docs.databricks.com/dev-tools/cli/index.html#set-up-authentication>`_ be configured with `Jobs API 2.1 <https://docs.databricks.com/dev-tools/cli/jobs-cli.html#requirements-to-call-the-jobs-rest-api-21>`_.
-
-Please run the notebook workflow on a Databricks workspace, pointing to your fork and branch of glow:
-
-.. code-block:: bash::
-  
-  python3 docs/dev/run-nb-test.py --cli-profile <databricks cli profile> \ 
-                                  --workflow-definition <configuration json> \ 
-                                  --repos-path <path on databricks workspace> \ 
-                                  --repos-url <git repo url> \ 
-                                  --branch <git branch> \ 
-                                  --dockerhub_password <Password for projectglow dockerhub account>
-
-The workflow definition json is located in `docs/dev/ <https://github.com/projectglow/glow/blob/master/docs/dev>`_.
-
-
-.. tip::
-  
-  The integration test uses the `Glow Docker Container <https://hub.docker.com/r/projectglow/databricks-glow>`_ to manage the environment. This container is authenticated with a password but can also be run with Default authentication by removing `basic_auth` from the workflow definition.
-
-Once the notebook test run is kicked off, the output will look like this:
-
-.. code-block:: bash::
-
-  Importing source files from Glow repo
-  Create job
-  Run job
-  Check job status
-  === Status check at XX:XX:XX ===
-  (Run ID [RUNNING])
-  ...
-  ...
-
+If you add notebooks or rename them, please also edit the workflow definition json is located in `docs/dev/ <https://github.com/projectglow/glow/blob/master/docs/dev>`_.
 
 .. _improve-documentation:
 
