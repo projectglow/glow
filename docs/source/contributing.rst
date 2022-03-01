@@ -63,7 +63,7 @@ And run this python script (swapping the html file out for your own).
    
    python3 docs/dev/gen-nb-src.py --html docs/source/_static/notebooks/tertiary/pipe-transformer-vep.html
 
-The Glow workflow including all the notebooks is tested in a nightly integration test in Databricks.
+The Glow workflow is tested in a nightly integration test in Databricks.
 If you add notebooks or rename them, please also edit the workflow definition json is located in `docs/dev/ <https://github.com/projectglow/glow/blob/master/docs/dev>`_.
 
 .. _improve-documentation:
