@@ -20,12 +20,12 @@ Glow is an open-source toolkit to enable bioinformatics at biobank-scale and bey
 [![CircleCI](https://circleci.com/gh/projectglow/glow.svg?style=svg&circle-token=7511f70b2c810a18e88b5c537b0410e82db8617d)](https://circleci.com/gh/projectglow/glow)
 [![Documentation
 Status](https://readthedocs.org/projects/glow/badge/?version=latest)](https://glow.readthedocs.io/en/latest/?badge=latest)
+[![Docker Hub Pulls](https://img.shields.io/docker/pulls/projectglow/databricks-glow.svg)](https://hub.docker.com/r/projectglow/databricks-glow)
 [![PyPi](https://img.shields.io/pypi/v/glow.py.svg)](https://pypi.org/project/glow.py/)
-[![Conda Version](https://img.shields.io/conda/vn/conda-forge/glow.svg)](https://anaconda.org/conda-forge/glow)
 [![Maven Central](https://img.shields.io/maven-central/v/io.projectglow/glow-spark3_2.12.svg)](https://mvnrepository.com/artifact/io.projectglow)
 [![Coverage Status](https://codecov.io/gh/projectglow/glow/branch/master/graph/badge.svg)](https://codecov.io/gh/projectglow/glow)
+[![Conda Version](https://img.shields.io/conda/vn/conda-forge/glow.svg)](https://anaconda.org/conda-forge/glow)
 [![DOI](https://zenodo.org/badge/212904926.svg)](https://zenodo.org/badge/latestdoi/212904926)
-[![Docker Hub Pulls](https://img.shields.io/docker/pulls/projectglow/databricks-glow.svg)](https://hub.docker.com/r/projectglow/databricks-glow)
 
 # Easy to get started
 The toolkit includes building blocks to perform common analyses right away:
