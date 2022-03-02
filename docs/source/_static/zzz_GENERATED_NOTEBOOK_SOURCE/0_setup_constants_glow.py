@@ -197,6 +197,20 @@ print("delta to vcf paths", json.dumps({
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ##### liftOver
+
+# COMMAND ----------
+
+output_liftOver_delta = simulate_prefix + '_variants_pvcf_liftOver_hg38.delta'
+
+print("delta to vcf paths", json.dumps({
+  "output_liftOver_delta": output_liftOver_delta
+}
+, indent=4))
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ##### quality control
 
 # COMMAND ----------
