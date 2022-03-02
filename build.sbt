@@ -163,7 +163,7 @@ ThisBuild / testCoreDependencies := Seq(
 lazy val coreDependencies = settingKey[Seq[ModuleID]]("coreDependencies")
 ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDependencies.value ++ Seq(
   "org.seqdoop" % "hadoop-bam" % "7.9.2",
-  "log4j" % "log4j" % "1.2.17",
+  "log4j" % "log4j" % "2.17.2",
   "org.slf4j" % "slf4j-api" % "1.7.25",
   "org.slf4j" % "slf4j-log4j12" % "1.7.25",
   "org.jdbi" % "jdbi" % "2.63.1",
