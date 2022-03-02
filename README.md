@@ -20,14 +20,15 @@ Glow is an open-source toolkit to enable bioinformatics at biobank-scale and bey
 [![CircleCI](https://circleci.com/gh/projectglow/glow.svg?style=svg&circle-token=7511f70b2c810a18e88b5c537b0410e82db8617d)](https://circleci.com/gh/projectglow/glow)
 [![Documentation
 Status](https://readthedocs.org/projects/glow/badge/?version=latest)](https://glow.readthedocs.io/en/latest/?badge=latest)
+[![Docker Hub Pulls](https://img.shields.io/docker/pulls/projectglow/databricks-glow.svg)](https://hub.docker.com/r/projectglow/databricks-glow)
 [![PyPi](https://img.shields.io/pypi/v/glow.py.svg)](https://pypi.org/project/glow.py/)
-[![Conda Version](https://img.shields.io/conda/vn/conda-forge/glow.svg)](https://anaconda.org/conda-forge/glow)
 [![Maven Central](https://img.shields.io/maven-central/v/io.projectglow/glow-spark3_2.12.svg)](https://mvnrepository.com/artifact/io.projectglow)
 [![Coverage Status](https://codecov.io/gh/projectglow/glow/branch/master/graph/badge.svg)](https://codecov.io/gh/projectglow/glow)
+[![Conda Version](https://img.shields.io/conda/vn/conda-forge/glow.svg)](https://anaconda.org/conda-forge/glow)
 [![DOI](https://zenodo.org/badge/212904926.svg)](https://zenodo.org/badge/latestdoi/212904926)
 
 # Easy to get started
-The toolkit includes the building blocks that you need to perform the most common analyses right away:
+The toolkit includes building blocks to perform common analyses right away:
 
 - Load VCF, BGEN, and Plink files into distributed DataFrames
 - Perform quality control and data manipulation with built-in functions
@@ -39,7 +40,7 @@ The toolkit includes the building blocks that you need to perform the most commo
 # Built to scale
 Glow makes genomic data work with Spark, the leading engine for working with large structured
 datasets. It fits natively into the ecosystem of tools that have enabled thousands of organizations
-to scale their workflows to petabytes of data. Glow bridges the gap between bioinformatics and the
+to scale their workflows. Glow bridges the gap between bioinformatics and the
 Spark ecosystem.
 
 # Flexible
@@ -117,7 +118,7 @@ stagedRelease/test
 
 ## Testing code on a Databricks cluster
 
-To test your changes on a Databricks cluster, you'll need to build and install the Python and Scala artifacts.
+To test your changes on a Databricks cluster, build and install Python and Scala artifacts.
 
 To build an uber jar (Glow + dependencies) with your changes:
 
@@ -134,7 +135,6 @@ To build a wheel with the Python code:
 The wheel file will be at a path like `python/dist/glow.py-${version}-py3-none-any.whl`.
 
 You can then [install these libraries on a Databricks cluster](https://docs.databricks.com/libraries/index.html).
-
 
 ## IntelliJ Tips
 
