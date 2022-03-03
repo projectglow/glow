@@ -54,6 +54,20 @@
             {
                 "job_cluster_key": "glow_integration_test",
                 "notebook_task": {
+                    "notebook_path": "%(repos_path)sglow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/etl/10_liftOver"
+                },
+                "timeout_seconds": 0,
+                "email_notifications": {},
+                "task_key": "liftOver",
+                "depends_on": [
+                    {
+                        "task_key": "delta_to_vcf"
+                    }
+                ]
+            },
+            {
+                "job_cluster_key": "glow_integration_test",
+                "notebook_task": {
                     "notebook_path": "%(repos_path)sglow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/tertiary/0_ingest_vcf2delta"
                 },
                 "timeout_seconds": 0,
