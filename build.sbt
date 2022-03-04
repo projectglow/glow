@@ -171,7 +171,7 @@ ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDepe
   // Fix versions of libraries that are depended on multiple times
   "org.apache.hadoop" % "hadoop-client" % "2.7.3",
   "io.netty" % "netty" % "3.9.9.Final",
-  "io.netty" % "netty-all" % "4.1.17.Final",
+  "io.netty" % "netty-all" % "4.1.68.Final",
   "com.github.samtools" % "htsjdk" % "2.21.2",
   "org.yaml" % "snakeyaml" % "1.16"
 )).map(_.exclude("com.google.code.findbugs", "jsr305"))
