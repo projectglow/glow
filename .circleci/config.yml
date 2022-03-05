@@ -142,7 +142,7 @@ jobs:
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$HOME/conda/bin:$PATH
-            export SPARK_VERSION="2.4.5"
+            export HAIL_SPARK_VERSION="2.4.5"
             export SCALA_VERSION="2.11.12"
             export HAIL_VERSION="0.2.58"
             sudo apt-get update
@@ -202,7 +202,7 @@ jobs:
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$HOME/conda/bin:$PATH
-            export SPARK_VERSION="2.4.5"
+            export HAIL_SPARK_VERSION="2.4.5"
             export SCALA_VERSION="2.12.8"
             export HAIL_VERSION="0.2.58"
             sudo apt-get update
@@ -252,10 +252,9 @@ jobs:
           name: Run Hail tests
           environment:
           command: |
-            export PATH=$HOME/conda/envs/glow/bin:$HOME/conda/bin:$PATH
-            export SPARK_VERSION="3.1.2"
+            export HAIL_SPARK_VERSION="3.1.2"
             export SCALA_VERSION="2.12.8"
-            export HAIL_VERSION="0.2.74"
+            export HAIL_VERSION="0.2.88"
             sudo apt-get update
             sudo apt-get -y install rsync
             sbt installHail hail/test uninstallHail exit
