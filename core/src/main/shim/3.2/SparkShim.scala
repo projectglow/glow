@@ -195,14 +195,4 @@ object SparkShim extends SparkShimBase {
   val path = new Path(BigFileDatasource.checkPath(options))
   val outputStream = Option(codec.getCodec(path))
 
-  override def VCFFileWriter(
-            path,
-            headerLineSet,
-            sampleIdInfo,
-            validationStringency,
-            schema,
-            conf,
-            outputStream,
-            idx == partitionWithHeader)
-
 }
