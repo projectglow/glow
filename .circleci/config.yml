@@ -253,6 +253,9 @@ jobs:
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$HOME/conda/bin:$PATH
+            source activate glow
+            conda remove -y pyspark
+            pip install pyspark==3.1.2
             export SPARK_VERSION="3.1.2"
             export SCALA_VERSION="2.12.8"
             export HAIL_VERSION="0.2.74"
