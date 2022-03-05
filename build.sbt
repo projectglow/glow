@@ -10,10 +10,10 @@ import sbt.nio.Keys._
 lazy val scala212 = "2.12.8"
 lazy val scala211 = "2.11.12"
 
-lazy val spark3 = "3.1.2"
+lazy val spark3 = "3.2.0"
 lazy val spark2 = "2.4.5"
 
-lazy val hailOnSpark3 = "0.2.74"
+lazy val hailOnSpark3 = "0.2.88"
 lazy val hailOnSpark2 = "0.2.58"
 
 lazy val sparkVersion = settingKey[String]("sparkVersion")
@@ -171,7 +171,9 @@ ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDepe
   // Fix versions of libraries that are depended on multiple times
   "org.apache.hadoop" % "hadoop-client" % "2.7.3",
   "io.netty" % "netty" % "3.9.9.Final",
-  "io.netty" % "netty-all" % "4.1.17.Final",
+  "io.netty" % "netty-all" % "4.1.68.Final",
+  "io.netty" % "netty-handler" % "4.1.68.Final",
+  "io.netty" % "netty-transport-native-epoll" % "4.1.68.Final",
   "com.github.samtools" % "htsjdk" % "2.21.2",
   "org.yaml" % "snakeyaml" % "1.16"
 )).map(_.exclude("com.google.code.findbugs", "jsr305"))
