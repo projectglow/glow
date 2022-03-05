@@ -196,7 +196,7 @@ object SparkShim extends SparkShimBase {
   val outputStream = Option(codec.getCodec(path))
 
   override def VCFFileWriter(
-            path.toString,
+            path,
             headerLineSet,
             sampleIdInfo,
             validationStringency,
