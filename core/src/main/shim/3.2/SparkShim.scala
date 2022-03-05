@@ -30,7 +30,6 @@ object SparkShim extends SparkShimBase {
   override def second: Expression = phenotypes
   override def third: Expression = covariates
 
-
   override protected def withNewChildrenInternal(
       newChildren: IndexedSeq[Expression]): WrappedAggregateByIndex =
     copy(
@@ -142,7 +141,6 @@ object SparkShim extends SparkShimBase {
       phased = newChildren(2),
       threshold = newChildren(3))
 
-
   override protected def withNewChildrenInternal(children: IndexedSeq[Expression]): ExpandStruct = {
     copy(struct = children.head)
   }
@@ -190,7 +188,6 @@ object SparkShim extends SparkShimBase {
       child3 = newChildren(2),
       child4 = newChildren(4),
       child5 = Option(newChildren(5)))
-
 
   val path = new Path(BigFileDatasource.checkPath(options))
   val outputStream = Option(codec.getCodec(path))
