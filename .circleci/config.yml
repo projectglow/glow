@@ -249,7 +249,7 @@ jobs:
             export SCALA_VERSION="2.12.8"
             sbt python/test exit
       - run:
-          name: Run Hail tests
+          name: Run Hail on Spark3 tests
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$HOME/conda/bin:$PATH
