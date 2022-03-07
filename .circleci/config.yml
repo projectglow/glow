@@ -254,7 +254,7 @@ jobs:
           command: |
             export HAIL_SPARK_VERSION="3.1.2"
             export SCALA_VERSION="2.12.8"
-            export HAIL_VERSION="0.2.88"
+            export HAIL_VERSION="0.2.89"
             sudo apt-get update
             sudo apt-get -y install rsync
             sbt installHail hail/test uninstallHail exit

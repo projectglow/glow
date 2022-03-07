@@ -15,7 +15,7 @@ lazy val hailSpark3 = "3.1.2"
 lazy val spark2 = "2.4.5"
 lazy val hailSpark2 = "2.4.5"
 
-lazy val hailOnSpark3 = "0.2.88"
+lazy val hailOnSpark3 = "0.2.89"
 lazy val hailOnSpark2 = "0.2.58"
 
 lazy val sparkVersion = settingKey[String]("sparkVersion")
