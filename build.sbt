@@ -204,13 +204,10 @@ lazy val core = (project in file("core"))
     publish / skip := false,
     // Adds the Git hash to the MANIFEST file. We set it here instead of relying on sbt-release to
     // do so.
-    packageOptions in (Compile, packageBin) +=
-      Package.ManifestAttributes("Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
+    packageOptions in (Compile, packageBin) += Package.ManifestAttributes("Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
     libraryDependencies ++= coreDependencies.value :+ scalaLoggingDependency.value,
-    Compile / unmanagedSourceDirectories +=
-      baseDirectory.value / "src" / "main" / "shim" / majorMinorVersion(sparkVersion.value),
-    Test / unmanagedSourceDirectories +=
-      baseDirectory.value / "src" / "test" / "shim" / majorMinorVersion(sparkVersion.value),
+    Compile / unmanagedSourceDirectories += baseDirectory.value / "src" / "main" / "shim" / majorMinorVersion(sparkVersion.value),
+    Test / unmanagedSourceDirectories += baseDirectory.value / "src" / "test" / "shim" / majorMinorVersion(sparkVersion.value),
     functionsTemplate := baseDirectory.value / "functions.scala.TEMPLATE",
     generatedFunctionsOutput := (Compile / scalaSource).value / "io" / "projectglow" / "functions.scala",
     sourceGenerators in Compile += generateFunctions
@@ -233,12 +230,7 @@ ThisBuild / installHail := {
   Seq(
     "/bin/bash",
     "-c",
-    s"git clone -b ${hailVersion.value} https://github.com/hail-is/hail.git;" +
-      "source $(conda info --base)/etc/profile.d/conda.sh &&" +
-      "conda create -y --name hail &&" +
-      "conda activate hail --stack &&" +
-      "cd \"hail/hail\" &&" +
-      "sed " + "\"" + s"s/^pyspark.*/pyspark==${sparkVersion.value}/" + "\"" + " python/requirements.txt | grep -v '^#' | xargs pip3 install -U &&" +
+    s"git clone -b ${hailVersion.value} https://github.com/hail-is/hail.git;" + "source $(conda info --base)/etc/profile.d/conda.sh &&" + "conda create -y --name hail &&" + "conda activate hail --stack &&" + "cd \"hail/hail\" &&" + "sed " + "\"" + s"s/^pyspark.*/pyspark==${hailSparkVersion.value}/" + "\"" + " python/requirements.txt | grep -v '^#' | xargs pip3 install -U &&" +
       s"make SCALA_VERSION=${scalaVersion.value} SPARK_VERSION=${hailSparkVersion.value} shadowJar wheel &&" +
       s"pip3 install --no-deps build/deploy/dist/hail-${hailVersion.value}-py3-none-any.whl"
   ) !
@@ -289,8 +281,7 @@ lazy val pythonSettings = Seq(
       Seq(
         "/bin/bash",
         "-c",
-        "source $(conda info --base)/etc/profile.d/conda.sh &&" +
-          "conda activate hail --stack &&" + "pytest " + args.mkString(" ")),
+        "source $(conda info --base)/etc/profile.d/conda.sh &&" + "conda activate hail --stack &&" + "pytest " + args.mkString(" ")),
       None,
       (env.value): _*
     ).!
@@ -395,8 +386,7 @@ lazy val stagedRelease = (project in file("core/src/test"))
     scalaSource in Test := baseDirectory.value / "scala",
     unmanagedSourceDirectories in Test += baseDirectory.value / "shim" / majorMinorVersion(
       sparkVersion.value),
-    libraryDependencies ++= testSparkDependencies.value ++ testCoreDependencies.value :+
-      "io.projectglow" %% s"glow-spark${majorVersion(sparkVersion.value)}" % stableVersion.value % "test",
+    libraryDependencies ++= testSparkDependencies.value ++ testCoreDependencies.value :+ "io.projectglow" %% s"glow-spark${majorVersion(sparkVersion.value)}" % stableVersion.value % "test",
     resolvers := Seq(MavenCache("local-sonatype-staging", sonatypeBundleDirectory.value)),
     org
       .jetbrains
@@ -421,10 +411,7 @@ updateCondaEnv := {
   "conda env update -f python/environment.yml" !
 }
 
-def crossReleaseStep(
-                      step: ReleaseStep,
-                      requiresPySpark: Boolean,
-                      requiresHail: Boolean): Seq[ReleaseStep] = {
+def crossReleaseStep(step: ReleaseStep, requiresPySpark: Boolean, requiresHail: Boolean): Seq[ReleaseStep] = {
   val updateCondaEnvStep = releaseStepCommandAndRemaining(
     if (requiresPySpark) "updateCondaEnv" else "")
   val changePySparkVersionStep = releaseStepCommandAndRemaining(
@@ -466,15 +453,8 @@ releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,
   inquireVersions,
   runClean
-) ++
-  crossReleaseStep(
-    releaseStepCommandAndRemaining("core/test"),
-    requiresPySpark = false,
-    requiresHail = false) ++
-  crossReleaseStep(
-    releaseStepCommandAndRemaining("python/test"),
-    requiresPySpark = true,
-    requiresHail = false) ++
+) ++ crossReleaseStep(releaseStepCommandAndRemaining("core/test"), requiresPySpark = false, requiresHail = false) ++
+  crossReleaseStep(releaseStepCommandAndRemaining("python/test"), requiresPySpark = true, requiresHail = false) ++
   crossReleaseStep(
     releaseStepCommandAndRemaining("docs/test"),
     requiresPySpark = true,
