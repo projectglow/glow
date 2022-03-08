@@ -33,6 +33,8 @@ import org.apache.spark.unsafe.types.UTF8String
 import io.projectglow.common.{GlowLogging, VariantSchemas}
 import io.projectglow.sql.util.{ExpectsGenotypeFields, GenotypeInfo, Rewrite}
 
+import io.projectglow.SparkShim._
+
 case class SampleSummaryStatsState(var sampleId: String, var momentAggState: MomentAggState) {
   def this() = this(null, null) // need 0-arg constructor for serialization
 }
