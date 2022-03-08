@@ -27,14 +27,14 @@ import org.apache.spark.sql.catalyst.expressions.{Alias, CreateNamedStruct, Expe
 import org.apache.spark.sql.catalyst.util.{ArrayData, GenericArrayData}
 import org.apache.spark.sql.types._
 
+import io.projectglow.SparkShim._
+
 /**
  * Expands all the fields of a potentially unnamed struct.
  */
 case class ExpandStruct(struct: Expression) extends Expression with Unevaluable {
   override def children: Seq[Expression] = Seq(struct)
   override lazy val resolved: Boolean = false
-  override def dataType: DataType = throw new UnresolvedException("dataType")
-  override def nullable: Boolean = throw new UnresolvedException("nullable")
   def expand(): Seq[NamedExpression] = {
     if (!struct.dataType.isInstanceOf[StructType]) {
       throw SQLUtils.newAnalysisException("Only structs can be expanded.")

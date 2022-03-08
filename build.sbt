@@ -2,6 +2,7 @@ import scala.sys.process._
 
 import complete.DefaultParsers._
 import org.apache.commons.lang3.StringUtils
+import sbt.project
 import sbt.Tests._
 import sbt.Keys._
 import sbt.librarymanagement.ModuleID

@@ -19,9 +19,6 @@ package io.projectglow
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.ExpressionInfo
 
-import org.apache.spark.sql.types.{DataType}
-import org.apache.spark.sql.catalyst.analysis.{UnresolvedException}
-
 // Spark 3.1 APIs that are not inter-version compatible
 object SparkShim extends SparkShimBase {
   // [SPARK-25393][SQL] Adding new function from_csv()
@@ -53,9 +50,6 @@ object SparkShim extends SparkShimBase {
       arguments
     )
   }
-
-  override def dataType: DataType = throw new UnresolvedException("dataType")
-  override def nullable: Boolean = throw new UnresolvedException("nullable")
 
   // [SPARK-28077][SQL] Support ANSI SQL OVERLAY function.
   // Adds QuaternaryExpression

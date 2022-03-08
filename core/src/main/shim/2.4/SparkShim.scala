@@ -21,6 +21,10 @@ import org.apache.spark.sql.catalyst.expressions.codegen.Block._
 import org.apache.spark.sql.catalyst.expressions.codegen._
 import org.apache.spark.sql.catalyst.expressions.{Expression, ExpressionInfo}
 
+import org.apache.spark.sql.types.{DataType}
+import org.apache.spark.sql.catalyst.analysis.{UnresolvedException}
+
+
 // Spark 2.4 APIs that are not inter-version compatible
 object SparkShim extends SparkShimBase {
   override type CSVOptions = org.apache.spark.sql.execution.datasources.csv.CSVOptions
@@ -50,6 +54,9 @@ object SparkShim extends SparkShimBase {
       since
     )
   }
+
+  override def dataType: DataType = throw new UnresolvedException(this, "dataType")
+  override def nullable: Boolean = throw new UnresolvedException(this, "nullable")
 
   /**
    * An expression with four inputs and one output. The output is by default evaluated to null
