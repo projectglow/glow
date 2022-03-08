@@ -16,6 +16,7 @@
 
 package io.projectglow
 
+import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions._
 
 // Spark 3.2 APIs that are not inter-version compatible
