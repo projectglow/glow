@@ -19,7 +19,7 @@ package io.projectglow
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.codegen.Block._
 import org.apache.spark.sql.catalyst.expressions.codegen._
-import org.apache.spark.sql.catalyst.expressions.{Expression, ExpressionInfo}
+import org.apache.spark.sql.catalyst.expressions.{ExpressionInfo, Expression, Unevaluable}
 import org.apache.spark.sql.types.{DataType}
 import org.apache.spark.sql.catalyst.analysis.{UnresolvedException}
 
@@ -53,8 +53,12 @@ object SparkShim extends SparkShimBase {
     )
   }
 
+trait Rewrite extends Expression with Unevaluable {
+  def rewrite: Expression
+
   override def dataType: DataType = throw new UnresolvedException(this, "dataType")
   override def nullable: Boolean = throw new UnresolvedException(this, "nullable")
+}
 
   /**
    * An expression with four inputs and one output. The output is by default evaluated to null

@@ -17,8 +17,7 @@
 package io.projectglow
 
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.ExpressionInfo
-
+import org.apache.spark.sql.catalyst.expressions.{Expression, ExpressionInfo, Unevaluable}
 import org.apache.spark.sql.types.{DataType}
 import org.apache.spark.sql.catalyst.analysis.{UnresolvedException}
 
@@ -54,8 +53,12 @@ object SparkShim extends SparkShimBase {
     )
   }
 
-  override def dataType: DataType = throw new UnresolvedException("dataType")
-  override def nullable: Boolean = throw new UnresolvedException("nullable")
+  trait Rewrite extends Expression with Unevaluable {
+    def rewrite: Expression
+
+    override def dataType: DataType = throw new UnresolvedException("dataType")
+    override def nullable: Boolean = throw new UnresolvedException("nullable")
+  }
 
   // [SPARK-28077][SQL] Support ANSI SQL OVERLAY function.
   // Adds QuaternaryExpression

@@ -125,12 +125,6 @@ trait ExpectsGenotypeFields extends Expression {
  * In general, rewrite expressions should extend this trait unless they have a compelling reason
  * to inspect their children.
  */
-trait Rewrite extends Expression with Unevaluable {
-  def rewrite: Expression
-
-  def dataType: DataType
-  def nullable: Boolean
-}
 
 /**
  * Rewrites that depend on child expressions.
