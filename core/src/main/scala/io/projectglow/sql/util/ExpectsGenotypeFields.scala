@@ -128,6 +128,8 @@ trait ExpectsGenotypeFields extends Expression {
 trait Rewrite extends Expression with Unevaluable {
   def rewrite: Expression
 
+  def dataType: DataType
+  def nullable: Boolean
 }
 
 /**
