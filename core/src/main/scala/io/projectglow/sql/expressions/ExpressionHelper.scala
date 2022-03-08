@@ -21,6 +21,8 @@ import org.apache.spark.sql.catalyst.expressions.aggregate.AggregateFunction
 
 import io.projectglow.sql.util.Rewrite
 
+import io.projectglow.SparkShim._
+
 private[projectglow] object ExpressionHelper {
 
   /**
