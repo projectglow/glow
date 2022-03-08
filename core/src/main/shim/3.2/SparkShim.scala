@@ -55,7 +55,6 @@ object SparkShim extends SparkShimBase {
   abstract class QuaternaryExpression
       extends org.apache.spark.sql.catalyst.expressions.QuaternaryExpression
 
-
   override def children: Seq[Expression] = arguments ++ functions
 
   override def dataType: DataType = throw new UnresolvedException("dataType")
