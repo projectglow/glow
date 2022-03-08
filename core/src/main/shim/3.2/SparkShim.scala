@@ -19,6 +19,9 @@ package io.projectglow
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions._
 
+import org.apache.spark.sql.types.{DataType}
+import org.apache.spark.sql.catalyst.analysis.{UnresolvedException}
+
 // Spark 3.2 APIs that are not inter-version compatible
 object SparkShim extends SparkShimBase {
   // [SPARK-25393][SQL] Adding new function from_csv()
