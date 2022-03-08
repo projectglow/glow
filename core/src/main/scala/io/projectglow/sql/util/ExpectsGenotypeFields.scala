@@ -125,7 +125,6 @@ trait ExpectsGenotypeFields extends Expression {
  * In general, rewrite expressions should extend this trait unless they have a compelling reason
  * to inspect their children.
  */
-
 /**
  * Rewrites that depend on child expressions.
  */
