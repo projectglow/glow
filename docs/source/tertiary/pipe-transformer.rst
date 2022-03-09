@@ -186,10 +186,14 @@ Examples
 
 The examples below show how to parallelize Bedtools, Plink and VEP.
 
-.. tip:: 
-  bedtools ``shuffle`` and ``intersect`` are two bedtools commands suited to the pipe transformer.
+.. important:: 
+  Please troubleshoot pipe transformer errors by inspecting the stderr logs for failed tasks via:
+  ``Spark UI -> Stages -> Failed Stages -> Description -> Logs -> stderr`` 
 
 .. tip:: 
+  Bedtools ``shuffle`` and ``intersect`` are two bedtools commands suited to the pipe transformer.
+  
+.. tip::
   The VEP example shows how to quarantine corrupted records. This functionality was introduced from Glow ``v1.1.2``.
 
 .. notebook:: .. tertiary/pipe-transformer.html
