@@ -184,7 +184,7 @@ cleanup until the pipe transformer results have been materialized, such as by be
 Examples
 ========
 
-The two examples below show how to parallelize Bedtools and VEP.
+The examples below show how to parallelize Bedtools, Plink and VEP.
 
 .. tip:: 
   bedtools ``shuffle`` and ``intersect`` are two bedtools commands suited to the pipe transformer.
@@ -194,6 +194,9 @@ The two examples below show how to parallelize Bedtools and VEP.
 
 .. notebook:: .. tertiary/pipe-transformer.html
   :title: Pipe Transformer bedtools example notebook
+
+.. notebook:: .. tertiary/pipe-transformer-plink.html
+  :title: Pipe Transformer Plink example notebook
 
 .. notebook:: .. tertiary/pipe-transformer-vep.html
   :title: Pipe Transformer Variant Effect Predictor (VEP) example notebook
