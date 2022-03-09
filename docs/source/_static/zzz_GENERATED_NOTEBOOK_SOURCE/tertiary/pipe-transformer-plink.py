@@ -1,18 +1,17 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC ##<img src="https://databricks.com/wp-content/themes/databricks/assets/images/databricks-logo.png" alt="logo" width="240"/> 
-# MAGIC 
 # MAGIC ### Run plink using the <img src="https://databricks-knowledge-repo-images.s3.us-east-2.amazonaws.com/HLS/glow/project_glow_logo.png" alt="logo" width="35"/> [Pipe Transformer](https://glow.readthedocs.io/en/latest/tertiary/pipe-transformer.html)
 # MAGIC 
 # MAGIC Plink and Glow are installed via the [Glow Docker Container](https://hub.docker.com/u/projectglow)
 
 # COMMAND ----------
 
-import glow
-glow.register(spark)
-import json
-import os
-import pyspark.sql.functions as fx
+# MAGIC %md
+# MAGIC ##### run notebook(s) to set everything up
+
+# COMMAND ----------
+
+# MAGIC %run ../0_setup_constants_glow
 
 # COMMAND ----------
 
@@ -27,25 +26,24 @@ import pyspark.sql.functions as fx
 # COMMAND ----------
 
 # MAGIC %sh
-# MAGIC /opt/plink --noweb
+# MAGIC /opt/plink
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC #### load 1000 Genomes VCF and select first 1000 records
+# MAGIC #### load 1000 Genomes VCF
 
 # COMMAND ----------
 
-vcf_path = "dbfs:/databricks-datasets/genomics/1kg-vcfs/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz"
+vcf_df = spark.read.format("vcf").load(output_vcf_small)
 
 # COMMAND ----------
 
-vcf_df = spark.read.format("vcf").load(vcf_path)
-vcf_df = sqlContext.createDataFrame(sc.parallelize(vcf_df.take(1000)), vcf_df.schema).cache()
+vcf_df.rdd.getNumPartitions()
 
 # COMMAND ----------
 
-display(vcf_df)
+display(vcf_df.drop("genotypes"))
 
 # COMMAND ----------
 
@@ -99,30 +97,13 @@ plink_freq_df.count()
 
 # COMMAND ----------
 
-user = dbutils.notebook.entry_point.getDbutils().notebook().getContext().tags().apply('user')
-plink_out_path = "dbfs:/tmp/" + user + "/plink"
-plink_out_path_local = "/dbfs/tmp/" + user + "/plink"
-os.environ['plink_out_path_local'] = plink_out_path_local
-
-dbutils.fs.rm(plink_out_path, True)
-dbutils.fs.mkdirs(plink_out_path)
-
-# COMMAND ----------
-
 # MAGIC %md
 # MAGIC ##### generate a plink binary ped file from VCF for testing
 
 # COMMAND ----------
 
 # MAGIC %sh
-# MAGIC cp /dbfs/databricks-datasets/genomics/1kg-vcfs/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz $plink_out_path_local/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz
-# MAGIC 
-# MAGIC gunzip $plink_out_path_local/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz
-# MAGIC 
-# MAGIC #only run 10k variants for this example:
-# MAGIC head -n 10000  $plink_out_path_local/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf > $plink_out_path_local/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.10000.vcf
-# MAGIC 
-# MAGIC /opt/plink --vcf $plink_out_path_local/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.10000.vcf --keep-allele-order --make-bed --out $plink_out_path_local/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes --noweb
+# MAGIC /opt/plink --vcf $output_vcf --keep-allele-order --make-bed --out $output_vcf.genotypes --noweb
 
 # COMMAND ----------
 
@@ -131,7 +112,7 @@ dbutils.fs.mkdirs(plink_out_path)
 
 # COMMAND ----------
 
-df_bed = spark.read.format("plink").load(plink_out_path + "/ALL.chr22.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.bed")
+df_bed = spark.read.format("plink").load(output_vcf_small + ".genotypes.bed")
 
 # COMMAND ----------
 
