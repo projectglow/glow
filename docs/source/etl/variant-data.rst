@@ -228,7 +228,7 @@ PLINK
 =====
 
 Glow provides the ability to read binary PLINK binary PED (BED) files with accompanying BIM and FAM files. 
-An example of using parallelizing PLINK can be found on the :ref:`Glow Pipe Transformer <pipe-transformer>` documentation page.
+An example of using parallelizing analysis across a PLINK BED file can be found on the :ref:`Glow Pipe Transformer <pipe-transformer>` documentation page.
 
 The provided path can be a file or glob pattern.
 
