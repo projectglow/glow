@@ -64,7 +64,7 @@ def generate_multiallelic_frequencies(minor_allele_frequency, n_samples):
   genotype_list = random.choices(genotype_calls, k=n_samples, weights=allele_freq_combos)
   return genotype_list
 
-sample_id_list = [str(i) for i in range (0, n_samples)]
+sample_id_list = ["id_" + str(i) for i in range (1, n_samples + 1)]
 
 def simulate_genotypes(minor_allele_frequency, n_samples, sample_list=sample_id_list):
   """

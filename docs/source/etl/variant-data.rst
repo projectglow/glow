@@ -227,8 +227,10 @@ To control the behavior of the BGEN writer, you can provide the following option
 PLINK
 =====
 
-Glow provides the ability to read binary PLINK binary PED (BED) files with accompanying BIM and FAM files. The provided path can be a
-file or glob pattern.
+Glow can read binary PLINK binary PED (BED) files with accompanying BIM and FAM files. 
+You can then run PLINK on Spark Datasets of BED files using the :ref:`Glow Pipe Transformer <pipe-transformer>`.
+
+The provided path can be a file or glob pattern.
 
 .. invisible-code-block: python
 
