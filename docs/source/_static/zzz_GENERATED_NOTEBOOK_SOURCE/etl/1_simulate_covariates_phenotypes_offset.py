@@ -24,9 +24,9 @@ def np_array_to_pandas_with_missing(np_array, missingness, n_cols, col_prefix='Q
   return pdf
  
 def add_sample_index_pdf(pdf, sample="sample_id"):
-  pdf.index += 1 
-  pdf.index = ["id_" + str(index) for index in pdf.index]
+  pdf.index = ["id_" + str(index + 1) for index in pdf.index]
   pdf.index.name = "sample_id"
+  pdf.index = pdf.index.map(str)
   return pdf
 
 # COMMAND ----------
