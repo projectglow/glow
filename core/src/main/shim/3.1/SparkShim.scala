@@ -59,7 +59,9 @@ object SparkShim extends SparkShimBase {
   abstract class QuaternaryExpression
       extends org.apache.spark.sql.catalyst.expressions.QuaternaryExpression
 
-  def newUnresolvedException[TreeType <: TreeNode[_]](tree: TreeType, function: String): Exception = {
+  def newUnresolvedException[TreeType <: TreeNode[_]](
+      tree: TreeType,
+      function: String): Exception = {
     new UnresolvedException(tree, function)
   }
 }
