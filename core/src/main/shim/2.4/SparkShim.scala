@@ -164,6 +164,6 @@ object SparkShim extends SparkShimBase {
   def newUnresolvedException[TreeType <: TreeNode[_]](
       tree: TreeType,
       function: String): Exception = {
-    new UnresolvedException(function)
+    new UnresolvedException(tree, function)
   }
 }
