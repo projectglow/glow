@@ -18,6 +18,7 @@ package io.projectglow
 
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.ExpressionInfo
+import org.apache.spark.sql.catalyst.trees.TreeNode
 
 // Spark 3.2 APIs that are not inter-version compatible
 object SparkShim extends SparkShimBase {

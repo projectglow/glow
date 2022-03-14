@@ -20,6 +20,7 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.codegen.Block._
 import org.apache.spark.sql.catalyst.expressions.codegen._
 import org.apache.spark.sql.catalyst.expressions.{Expression, ExpressionInfo}
+import org.apache.spark.sql.catalyst.trees.TreeNode
 
 // Spark 2.4 APIs that are not inter-version compatible
 object SparkShim extends SparkShimBase {
@@ -157,5 +158,11 @@ object SparkShim extends SparkShimBase {
         )
       }
     }
+  }
+
+  override type UnresolvedException = org.apache.spark.sql.catalyst.analysis.UnresolvedException
+
+  def newUnresolvedException(tree: TreeNode[_], function: String): UnresolvedException = {
+    new UnresolvedException(function)
   }
 }
