@@ -21,6 +21,7 @@ import org.apache.spark.sql.catalyst.expressions.ExpressionInfo
 
 // Spark 3.2 APIs that are not inter-version compatible
 object SparkShim extends SparkShimBase {
+
   // [SPARK-25393][SQL] Adding new function from_csv()
   // Refactors classes from [[org.apache.spark.sql.execution.datasources.csv]] to [[org.apache.spark.sql.catalyst.csv]]
   override type CSVOptions = org.apache.spark.sql.catalyst.csv.CSVOptions
@@ -59,6 +60,6 @@ object SparkShim extends SparkShimBase {
   override type UnresolvedException = org.apache.spark.sql.catalyst.analysis.UnresolvedException
 
   def newUnresolvedException(tree: TreeNode[_], function: String): UnresolvedException = {
-    new UnresolvedException(function)
+    new UnresolvedException(tree, function)
   }
 }
