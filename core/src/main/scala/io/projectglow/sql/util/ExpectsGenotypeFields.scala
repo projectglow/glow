@@ -21,7 +21,7 @@ import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
 import org.apache.spark.sql.catalyst.expressions.{Expression, Unevaluable}
 import org.apache.spark.sql.types.{ArrayType, DataType, StructField, StructType}
 
-import io.projectglow.SparkShim.{newUnresolvedException, UnresolvedException}
+import io.projectglow.SparkShim.newUnresolvedException
 
 /**
  * Stores the indices of required and optional fields within the genotype element struct after
