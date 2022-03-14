@@ -27,8 +27,7 @@ import org.apache.spark.sql.catalyst.expressions.{Alias, CreateNamedStruct, Expe
 import org.apache.spark.sql.catalyst.util.{ArrayData, GenericArrayData}
 import org.apache.spark.sql.types._
 
-import io.projectglow.SparkShim.{UnresolvedException, newUnresolvedException}
-
+import io.projectglow.SparkShim.{newUnresolvedException, UnresolvedException}
 
 /**
  * Expands all the fields of a potentially unnamed struct.
