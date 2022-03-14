@@ -17,6 +17,7 @@
 package io.projectglow
 
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.analysis.UnresolvedException
 import org.apache.spark.sql.catalyst.expressions.ExpressionInfo
 import org.apache.spark.sql.catalyst.trees.TreeNode
 
@@ -58,9 +59,7 @@ object SparkShim extends SparkShimBase {
   abstract class QuaternaryExpression
       extends org.apache.spark.sql.catalyst.expressions.QuaternaryExpression
 
-  override type UnresolvedException = org.apache.spark.sql.catalyst.analysis.UnresolvedException
-
-  def newUnresolvedException(tree: TreeNode[_], function: String): UnresolvedException = {
+  def newUnresolvedException[TreeType <: TreeNode[_]](tree: TreeType, function: String): Exception = {
     new UnresolvedException(tree, function)
   }
 }

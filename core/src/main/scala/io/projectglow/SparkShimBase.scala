@@ -39,6 +39,5 @@ trait SparkShimBase {
 
   abstract class QuaternaryExpression
 
-  type UnresolvedException
-  def newUnresolvedException(tree: TreeNode[_], function: String): UnresolvedException
+  def newUnresolvedException[TreeType <: TreeNode[_]](tree: TreeType, function: String): Exception
 }

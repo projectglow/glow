@@ -17,6 +17,7 @@
 package io.projectglow
 
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.analysis.UnresolvedException
 import org.apache.spark.sql.catalyst.expressions.codegen.Block._
 import org.apache.spark.sql.catalyst.expressions.codegen._
 import org.apache.spark.sql.catalyst.expressions.{Expression, ExpressionInfo}
@@ -160,9 +161,7 @@ object SparkShim extends SparkShimBase {
     }
   }
 
-  override type UnresolvedException = org.apache.spark.sql.catalyst.analysis.UnresolvedException
-
-  def newUnresolvedException(tree: TreeNode[_], function: String): UnresolvedException = {
+  def newUnresolvedException[TreeType <: TreeNode[_]](tree: TreeType, function: String): Exception = {
     new UnresolvedException(function)
   }
 }
