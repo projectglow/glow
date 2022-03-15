@@ -64,5 +64,5 @@ object SparkShim extends SparkShimBase {
     new UnresolvedException(function)
   }
 
-  trait HasWithNewChildrenInternal[BaseType] {}
+  trait HasWithNewChildrenInternal[BaseType <: HasWithNewChildrenInternal[_]] {}
 }

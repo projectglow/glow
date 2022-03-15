@@ -41,5 +41,5 @@ trait SparkShimBase {
 
   def newUnresolvedException[TreeType <: TreeNode[_]](tree: TreeType, function: String): Exception
 
-  trait HasWithNewChildrenInternal[BaseType]
+  trait HasWithNewChildrenInternal[BaseType <: HasWithNewChildrenInternal[_]]
 }

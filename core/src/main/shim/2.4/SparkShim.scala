@@ -167,7 +167,7 @@ object SparkShim extends SparkShimBase {
     new UnresolvedException(tree, function)
   }
 
-  trait HasWithNewChildrenInternal[BaseType] {
+  trait HasWithNewChildrenInternal[BaseType <: HasWithNewChildrenInternal[_]] {
     protected def withNewChildrenInternal(newChildren: IndexedSeq[BaseType]): BaseType
   }
 }
