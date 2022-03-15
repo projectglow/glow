@@ -25,6 +25,8 @@ import org.apache.spark.sql.catalyst.expressions.{Expression, ImplicitCastInputT
 import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.sql.types._
 
+import io.projectglow.SparkShim.HasWithNewChildrenInternal
+
 object LinearRegressionExpr {
   private val matrixUDT = SQLUtils.newMatrixUDT()
   private val state = new ThreadLocal[CovariateQRContext]
