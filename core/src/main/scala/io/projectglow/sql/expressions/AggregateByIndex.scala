@@ -178,7 +178,7 @@ case class UnwrappedAggregateByIndex(
   }
 
   override protected def withNewChildrenInternal(
-      newChildren: IndexedSeq[Expression]): UnwrappedAggregateByIndex =
+      newChildren: IndexedSeq[UnwrappedAggregateByIndex]): UnwrappedAggregateByIndex =
     copy(
       arr = newChildren(0),
       update = newChildren(1),
