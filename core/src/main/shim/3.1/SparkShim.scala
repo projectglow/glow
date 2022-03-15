@@ -64,4 +64,8 @@ object SparkShim extends SparkShimBase {
       function: String): Exception = {
     new UnresolvedException(tree, function)
   }
+
+  trait HasWithNewChildrenInternal[BaseType] {
+    protected def withNewChildrenInternal(newChildren: IndexedSeq[BaseType]): BaseType
+  }
 }

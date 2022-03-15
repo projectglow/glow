@@ -50,7 +50,8 @@ case class LinearRegressionExpr(
     phenotypes: Expression,
     covariates: Expression)
     extends TernaryExpression
-    with ImplicitCastInputTypes {
+    with ImplicitCastInputTypes
+    with HasWithNewChildrenInternal {
 
   private val matrixUDT = SQLUtils.newMatrixUDT()
 
