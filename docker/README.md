@@ -88,7 +88,7 @@ docker
                 └── Dockerfile
 ```
 
-#### DCS FAQ for this Docker project
+#### Databrick Container Services (DCS) FAQ for this Docker project
 
 ##### Python dependencies
 
