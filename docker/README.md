@@ -53,6 +53,9 @@ Docker's default memorry setting, which is 2.0 GB, via Preferences -> Resources 
 
 #### Glow Docker layer architecture
 
+The foundation layers are specific to setting the environment up in Databricks.
+Ganglia is an optional layer for monitoring cluster metrics such as CPU load.
+
 ![Docker layer architecture](../static/glow_genomics_docker_image_architecture.png?raw=true "Glow Docker layer architecture")
 
 #### Directory structure
