@@ -11,6 +11,15 @@ but can be adapted to run Glow & Hail in the open source,
 Note: Docker builds may run out of memory, please increase
 Docker's default memorry setting, which is 2.0 GB, via Preferences -> Resources -> Advanced.
 
+To learn more about contributing to these images, please review the Glow [contributing guide](https://glow.readthedocs.io/en/latest/contributing.html#add-libraries-to-the-glow-docker-environment)
+
+### Glow Docker layer architecture
+
+The foundation layers are specific to setting the environment up in Databricks.
+Ganglia is an optional layer for monitoring cluster metrics such as CPU load.
+
+![Docker layer architecture](../static/glow_genomics_docker_image_architecture.png?raw=true "Glow Docker layer architecture")
+
 ### Build the docker images as follows:
 
 #### Base images for Glow & Hail
@@ -50,13 +59,6 @@ Docker's default memorry setting, which is 2.0 GB, via Preferences -> Resources 
 #### Hail image (requires Spark 3.1 / DBR 9.x) 
 ```cd dbr/dbr9.1```
 ```docker build genomics-with-hail/ -t projectglow/databricks-hail:<hail_version>```
-
-#### Glow Docker layer architecture
-
-The foundation layers are specific to setting the environment up in Databricks.
-Ganglia is an optional layer for monitoring cluster metrics such as CPU load.
-
-![Docker layer architecture](../static/glow_genomics_docker_image_architecture.png?raw=true "Glow Docker layer architecture")
 
 #### Directory structure
 ```
