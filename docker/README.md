@@ -51,6 +51,12 @@ Docker's default memorry setting, which is 2.0 GB, via Preferences -> Resources 
 ```cd dbr/dbr9.1```
 ```docker build genomics-with-hail/ -t projectglow/databricks-hail:<hail_version>```
 
+#### Glow architecture
+
+<p align="center">
+  <img src="static/glow_genomics_docker_image_architecture.png" width="300px"/>
+</p>
+
 #### Directory structure
 ```
 docker
