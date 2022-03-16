@@ -36,7 +36,9 @@ For example, to build and push the first foundational layer run,
 
 ##### ProjetGlow minimal 
 ```cd dbr/dbr9.1```
+
 ```docker build minimal/ -t projectglow/minimal:9.1```
+
 ```docker push projectglow/minimal:9.1```
 
 #### Directory structure
