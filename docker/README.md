@@ -53,9 +53,7 @@ Docker's default memorry setting, which is 2.0 GB, via Preferences -> Resources 
 
 #### Glow architecture
 
-<p align="left">
-  <img src="static/glow_genomics_docker_image_architecture.png" width="500px"/>
-</p>
+![Docker layer architecture](static/glow_genomics_docker_image_architecture.png?raw=true "Glow Docker layer architecture")
 
 #### Directory structure
 ```
