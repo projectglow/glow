@@ -22,6 +22,8 @@ import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.expressions.aggregate.{AggregateFunction, DeclarativeAggregate}
 import org.apache.spark.sql.types._
 
+import io.projectglow.SparkShim.HasWithNewChildrenInternal
+
 /**
  * An expression that allows users to aggregate over all array elements at a specific index in an
  * array column. For example, this expression can be used to compute per-sample summary statistics
@@ -152,7 +154,8 @@ case class UnwrappedAggregateByIndex(
     merge: Expression,
     evaluate: Expression)
     extends AggregateByIndex
-    with UnwrappedAggregateFunction {
+    with UnwrappedAggregateFunction
+    with HasWithNewChildrenInternal[UnwrappedAggregateByIndex] {
 
   def this(arr: Expression, initialValue: Expression, update: Expression, merge: Expression) = {
     this(arr, initialValue, update, merge, LambdaFunction.identity)
@@ -175,7 +178,7 @@ case class UnwrappedAggregateByIndex(
   }
 
   override protected def withNewChildrenInternal(
-      newChildren: IndexedSeq[Expression]): UnwrappedAggregateByIndex =
+      newChildren: IndexedSeq[UnwrappedAggregateByIndex]): UnwrappedAggregateByIndex =
     copy(
       arr = newChildren(0),
       update = newChildren(1),
