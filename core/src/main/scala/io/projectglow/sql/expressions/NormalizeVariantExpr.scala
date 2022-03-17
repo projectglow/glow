@@ -129,8 +129,7 @@ case class NormalizeVariantExpr(
     )
   }
 
-  protected def withNewChildrenInternal(
-      newChildren: IndexedSeq[Expression]): NormalizeVariantExpr =
+  protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): NormalizeVariantExpr =
     copy(
       contigName = newChildren(0),
       start = newChildren(1),

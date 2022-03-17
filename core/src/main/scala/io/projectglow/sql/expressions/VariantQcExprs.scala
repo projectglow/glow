@@ -382,8 +382,7 @@ case class DpSummaryStats(child: Expression) extends Rewrite {
     ArrayStatsSummary(UnresolvedExtractValue(child, Literal(VariantSchemas.depthField.name)))
   }
 
-  protected def withNewChildrenInternal(
-      children: IndexedSeq[Expression]): DpSummaryStats = {
+  protected def withNewChildrenInternal(children: IndexedSeq[Expression]): DpSummaryStats = {
     copy(child = children.head)
   }
 }
@@ -395,8 +394,7 @@ case class GqSummaryStats(child: Expression) extends Rewrite {
       UnresolvedExtractValue(child, Literal(VariantSchemas.conditionalQualityField.name)))
   }
 
-  protected def withNewChildrenInternal(
-      children: IndexedSeq[Expression]): GqSummaryStats = {
+  protected def withNewChildrenInternal(children: IndexedSeq[Expression]): GqSummaryStats = {
     copy(child = children.head)
   }
 }
