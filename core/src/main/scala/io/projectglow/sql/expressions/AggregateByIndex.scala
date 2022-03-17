@@ -152,8 +152,7 @@ case class UnwrappedAggregateByIndex(
     merge: Expression,
     evaluate: Expression)
     extends AggregateByIndex
-    with UnwrappedAggregateFunction
-    with HasWithNewChildrenInternal[UnwrappedAggregateByIndex] {
+    with UnwrappedAggregateFunction {
 
   def this(arr: Expression, initialValue: Expression, update: Expression, merge: Expression) = {
     this(arr, initialValue, update, merge, LambdaFunction.identity)
