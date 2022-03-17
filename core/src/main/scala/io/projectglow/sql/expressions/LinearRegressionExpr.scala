@@ -45,7 +45,7 @@ object LinearRegressionExpr {
   }
 }
 
-abstract case class LinearRegressionExpr(
+case class LinearRegressionExpr(
     genotypes: Expression,
     phenotypes: Expression,
     covariates: Expression)
