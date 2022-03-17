@@ -40,6 +40,4 @@ trait SparkShimBase {
   abstract class QuaternaryExpression
 
   def newUnresolvedException[TreeType <: TreeNode[_]](tree: TreeType, function: String): Exception
-
-  trait HasWithNewChildrenInternal[BaseType <: HasWithNewChildrenInternal[_]]
 }

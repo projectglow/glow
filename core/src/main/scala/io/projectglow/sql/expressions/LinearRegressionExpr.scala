@@ -25,8 +25,6 @@ import org.apache.spark.sql.catalyst.expressions.{Expression, ImplicitCastInputT
 import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.sql.types._
 
-import io.projectglow.SparkShim.HasWithNewChildrenInternal
-
 object LinearRegressionExpr {
   private val matrixUDT = SQLUtils.newMatrixUDT()
   private val state = new ThreadLocal[CovariateQRContext]
@@ -52,8 +50,7 @@ case class LinearRegressionExpr(
     phenotypes: Expression,
     covariates: Expression)
     extends TernaryExpression
-    with ImplicitCastInputTypes
-    with HasWithNewChildrenInternal[LinearRegressionExpr] {
+    with ImplicitCastInputTypes {
 
   private val matrixUDT = SQLUtils.newMatrixUDT()
 
@@ -87,7 +84,7 @@ case class LinearRegressionExpr(
     )
   }
 
-  override protected def withNewChildrenInternal(
+  protected def withNewChildrenInternal(
       newFirst: Expression,
       newSecond: Expression,
       newThird: Expression): LinearRegressionExpr =
