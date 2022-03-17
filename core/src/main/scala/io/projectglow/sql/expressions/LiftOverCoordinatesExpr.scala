@@ -119,7 +119,7 @@ case class LiftOverCoordinatesExpr(
     )
   }
 
-  override protected def withNewChildrenInternal(
+  protected def withNewChildrenInternal(
       newChildren: IndexedSeq[Expression]): LiftOverCoordinatesExpr =
     copy(
       contigName = newChildren(0),

@@ -54,9 +54,9 @@ case class LinearRegressionExpr(
 
   private val matrixUDT = SQLUtils.newMatrixUDT()
 
-  override def first: Expression = genotypes
-  override def second: Expression = phenotypes
-  override def third: Expression = covariates
+  def first: Expression = genotypes
+  def second: Expression = phenotypes
+  def third: Expression = covariates
 
   override def dataType: DataType =
     StructType(

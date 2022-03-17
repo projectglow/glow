@@ -286,7 +286,7 @@ case class HardCalls(
       probArr.getDouble)
   }
 
-  override protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): HardCalls =
+  protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): HardCalls =
     copy(
       probabilities = newChildren(0),
       numAlts = newChildren(1),

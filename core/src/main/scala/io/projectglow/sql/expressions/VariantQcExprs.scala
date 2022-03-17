@@ -279,7 +279,7 @@ case class HardyWeinberg(genotypes: Expression, genotypeInfo: Option[GenotypeInf
     )
   }
 
-  override def withNewChildInternal(newChild: Expression): HardyWeinberg = {
+  def withNewChildInternal(newChild: Expression): HardyWeinberg = {
     copy(genotypes = newChild)
   }
 }
@@ -330,7 +330,7 @@ case class CallStats(genotypes: Expression, genotypeInfo: Option[GenotypeInfo])
     )
   }
 
-  override protected def withNewChildInternal(newChild: Expression): CallStats =
+  protected def withNewChildInternal(newChild: Expression): CallStats =
     copy(genotypes = newChild)
 }
 
@@ -372,7 +372,7 @@ case class ArrayStatsSummary(array: Expression)
     VariantQcExprs.arraySummaryStats(input.asInstanceOf[ArrayData])
   }
 
-  override protected def withNewChildInternal(newChild: Expression): ArrayStatsSummary =
+  protected def withNewChildInternal(newChild: Expression): ArrayStatsSummary =
     copy(array = newChild)
 }
 
@@ -382,7 +382,7 @@ case class DpSummaryStats(child: Expression) extends Rewrite {
     ArrayStatsSummary(UnresolvedExtractValue(child, Literal(VariantSchemas.depthField.name)))
   }
 
-  override protected def withNewChildrenInternal(
+  protected def withNewChildrenInternal(
       children: IndexedSeq[Expression]): DpSummaryStats = {
     copy(child = children.head)
   }
@@ -395,7 +395,7 @@ case class GqSummaryStats(child: Expression) extends Rewrite {
       UnresolvedExtractValue(child, Literal(VariantSchemas.conditionalQualityField.name)))
   }
 
-  override protected def withNewChildrenInternal(
+  protected def withNewChildrenInternal(
       children: IndexedSeq[Expression]): GqSummaryStats = {
     copy(child = children.head)
   }
@@ -447,7 +447,7 @@ case class AssertTrueOrError(child: Expression, errMsg: Expression)
     )
   }
 
-  override protected def withNewChildrenInternal(
+  protected def withNewChildrenInternal(
       newLeft: Expression,
       newRight: Expression): AssertTrueOrError = {
     copy(child = newLeft, errMsg = newRight)

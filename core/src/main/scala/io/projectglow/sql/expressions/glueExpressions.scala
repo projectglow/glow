@@ -48,7 +48,7 @@ case class ExpandStruct(struct: Expression) extends Expression with Unevaluable 
     }
   }
 
-  override protected def withNewChildrenInternal(children: IndexedSeq[Expression]): ExpandStruct = {
+  protected def withNewChildrenInternal(children: IndexedSeq[Expression]): ExpandStruct = {
     copy(struct = children.head)
   }
 }
@@ -60,7 +60,7 @@ case class SubsetStruct(struct: Expression, fields: Seq[Expression]) extends Rew
     CreateNamedStruct(fields.flatMap(f => Seq(f, UnresolvedExtractValue(struct, f))))
   }
 
-  override protected def withNewChildrenInternal(children: IndexedSeq[Expression]): SubsetStruct = {
+  protected def withNewChildrenInternal(children: IndexedSeq[Expression]): SubsetStruct = {
     copy(struct = children.head)
   }
 }
@@ -83,7 +83,7 @@ case class AddStructFields(struct: Expression, newFields: Seq[Expression])
     CreateNamedStruct(baseFields ++ newFields)
   }
 
-  override protected def withNewChildrenInternal(
+  protected def withNewChildrenInternal(
       newChildren: IndexedSeq[Expression]): AddStructFields =
     copy(struct = newChildren(0), newFields = newChildren.drop(1))
 }
@@ -132,7 +132,7 @@ case class ExplodeMatrix(matrixExpr: Expression)
     }
   }
 
-  override protected def withNewChildrenInternal(
+  protected def withNewChildrenInternal(
       newChildren: IndexedSeq[Expression]): ExplodeMatrix =
     copy(matrixExpr = newChildren.head)
 }
@@ -158,7 +158,7 @@ case class ArrayToSparseVector(child: Expression)
     )
   }
 
-  override protected def withNewChildInternal(newChild: Expression): ArrayToSparseVector = {
+  protected def withNewChildInternal(newChild: Expression): ArrayToSparseVector = {
     copy(child = newChild)
   }
 }
@@ -193,7 +193,7 @@ case class ArrayToDenseVector(child: Expression)
     )
   }
 
-  override protected def withNewChildInternal(newChild: Expression): ArrayToDenseVector = {
+  protected def withNewChildInternal(newChild: Expression): ArrayToDenseVector = {
     copy(child = newChild)
   }
 }
@@ -220,7 +220,7 @@ case class VectorToArray(child: Expression) extends UnaryExpression with Implici
     })
   }
 
-  override protected def withNewChildInternal(newChild: Expression): VectorToArray = {
+  protected def withNewChildInternal(newChild: Expression): VectorToArray = {
     copy(child = newChild)
   }
 }
