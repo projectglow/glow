@@ -28,45 +28,35 @@ Please see this [stack overflow post](https://stackoverflow.com/questions/642218
 Note: Docker builds may run out of memory, please increase
 Docker's default memorry setting, which is 2.0 GB, via Preferences -> Resources -> Advanced.
 
+To learn more about contributing to these images, please review the Glow [contributing guide](https://glow.readthedocs.io/en/latest/contributing.html#add-libraries-to-the-glow-docker-environment)
+
+### Glow Docker layer architecture
+
+The foundation layers are specific to setting the environment up in Databricks.
+Ganglia is an optional layer for monitoring cluster metrics such as CPU load.
+
+![Docker layer architecture](../static/glow_genomics_docker_image_architecture.png?raw=true "Glow Docker layer architecture")
+
 ### Build the docker images as follows:
 
-#### Base images for Glow & Hail
+run ```docker/databricks/build.sh``` to build all of the layers. 
+
+To build any layer individually, change directory into the layer and run: 
+
+```docker build <layer> -t <docker_repository>/<layer>:<tag>```
+
+to publish a layer, please push it to your docker repository:
+
+```docker push <docker_repository>/<layer>:<tag>```
+
+For example, to build and push the first foundational layer run,
 
 ##### ProjetGlow minimal 
 ```cd dbr/dbr9.1```
+
 ```docker build minimal/ -t projectglow/minimal:9.1```
 
-##### ProjectGlow python 
-```cd dbr/dbr9.1```
-```docker build python/ -t projectglow/python:9.1```
-
-##### ProjectGlow dbfsfuse 
-```cd dbr/dbr9.1```
-```docker build dbfsfuse/ -t projectglow/dbfsfuse:9.1```
-
-##### ProjectGlow standard 
-```cd dbr/dbr9.1```
-```docker build python/ -t projectglow/standard:9.1```
-
-##### ProjectGlow r 
-```cd dbr/dbr9.1```
-```docker build r/ -t projectglow/with-r:9.1```
-
-##### ProjectGlow genomics base 
-```cd dbr/dbr9.1```
-```docker build genomics/ -t projectglow/genomics:9.1```
-
-##### Glow (requires Spark 3.1 / DBR 9.x)
-```cd dbr/dbr9.1```
-```docker build genomics-with-glow/ -t projectglow/databricks-glow-minus-ganglia:<dbr_version>```
-
-##### Glow-with-Ganglia
-```cd dbr/dbr9.1```
-```docker build ganglia/ -t projectglow/databricks-glow:<dbr_version>```
-
-#### Hail image (requires Spark 3.1 / DBR 9.x) 
-```cd dbr/dbr9.1```
-```docker build genomics-with-hail/ -t projectglow/databricks-hail:<hail_version>```
+```docker push projectglow/minimal:9.1```
 
 #### Directory structure
 ```
@@ -115,7 +105,7 @@ docker
                 └── Dockerfile
 ```
 
-#### DCS FAQ for this Docker project
+#### Databricks Container Services (DCS) FAQ for this Docker project
 
 ##### Python dependencies
 
