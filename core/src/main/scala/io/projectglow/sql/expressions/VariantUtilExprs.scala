@@ -205,7 +205,7 @@ case class GenotypeStates(genotypes: Expression, genotypeInfo: Option[GenotypeIn
     )
   }
 
-  override protected def withNewChildInternal(newChild: Expression): GenotypeStates = {
+  protected def withNewChildInternal(newChild: Expression): GenotypeStates = {
     copy(genotypes = newChild)
   }
 }
