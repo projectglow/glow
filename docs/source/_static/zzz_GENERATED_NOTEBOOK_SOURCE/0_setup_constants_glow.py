@@ -311,6 +311,20 @@ print("binary phenotype paths", json.dumps({
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ##### Plink with pipe transformer
+
+# COMMAND ----------
+
+plink_out_path = simulate_prefix + "/plink"
+plink_out_path_local = simulate_prefix_local + "/plink"
+os.environ['plink_out_path_local'] = plink_out_path_local
+
+dbutils.fs.rm(plink_out_path, True)
+dbutils.fs.mkdirs(plink_out_path)
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ##### VEP annotation
 
 # COMMAND ----------

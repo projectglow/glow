@@ -137,7 +137,20 @@ RUN R -e "install.packages('sim1000G',dependencies=TRUE,repos='https://cran.rstu
  && R -e "install.packages('ukbtools',dependencies=TRUE,repos='https://cran.rstudio.com')"\
  && R -e "install.packages('qqman',dependencies=TRUE,repos='http://cran.us.r-project.org')"
 
+# ===== plink ==============================================================================
+#install both plink 1.07 and 1.9
+#access plink from the shell from,
+#v1.07
+#/opt/plink-1.07-x86_64/plink --noweb
+#v1.90
+#/opt/plink --noweb
+
+WORKDIR /opt
+RUN wget http://zzz.bwh.harvard.edu/plink/dist/plink-1.07-x86_64.zip && \
+    unzip plink-1.07-x86_64.zip
+RUN wget http://s3.amazonaws.com/plink1-assets/plink_linux_x86_64_20200616.zip && \
+    unzip plink_linux_x86_64_20200616.zip
+
 # ===== Reset current directory ====================================================================
 
-WORKDIR /root 
-
+WORKDIR /root

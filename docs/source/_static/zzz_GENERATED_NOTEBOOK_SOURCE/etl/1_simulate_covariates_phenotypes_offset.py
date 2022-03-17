@@ -24,6 +24,7 @@ def np_array_to_pandas_with_missing(np_array, missingness, n_cols, col_prefix='Q
   return pdf
  
 def add_sample_index_pdf(pdf, sample="sample_id"):
+  pdf.index = ["id_" + str(index + 1) for index in pdf.index]
   pdf.index.name = "sample_id"
   pdf.index = pdf.index.map(str)
   return pdf
@@ -40,14 +41,14 @@ covariates_quantitative_pdf = np_array_to_pandas_with_missing(covariates_quantit
 
 # COMMAND ----------
 
-covariates_quantitative_pdf
+covariates_quantitative_pdf.head(5)
 
 # COMMAND ----------
 
 covariates_binary = np.random.randint(0, 2, (n_samples, n_binary_covariates))
 covariates_binary_pdf = np_array_to_pandas_with_missing(covariates_binary, 0, n_binary_covariates, col_prefix='B')
 covariates_binary_pdf = covariates_binary_pdf.astype(pd.Int64Dtype())
-covariates_binary_pdf
+covariates_binary_pdf.head(5)
 
 # COMMAND ----------
 

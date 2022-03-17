@@ -8,6 +8,23 @@ As of this time the following are supported:
 These Dockerfiles are built to run on Databricks, 
 but can be adapted to run Glow & Hail in the open source,
 
+##### Troubleshooting
+
+If you get the following error:
+
+```
+failed to solve with frontend dockerfile.v0: failed to create LLB definition: docker.io/projectglow/minimal:9.1: not found
+```
+
+please run this from the shell and try again:
+
+```
+export DOCKER_BUILDKIT=0
+export COMPOSE_DOCKER_CLI_BUILD=0
+```
+
+Please see this [stack overflow post](https://stackoverflow.com/questions/64221861/an-error-failed-to-solve-with-frontend-dockerfile-v0) for explanation.
+
 Note: Docker builds may run out of memory, please increase
 Docker's default memorry setting, which is 2.0 GB, via Preferences -> Resources -> Advanced.
 
@@ -117,7 +134,6 @@ Write Databricks cluster init scripts to ```/databricks/scripts/```. When multip
 Review the Dockerfile and configurations in the ```ganglia``` directory to see how to deploy ganglia in a way that enables metrics collection on Databricks clusters using Container Services. 
 
 NOTE: ganglia is *not* officially supported on Databricks Container Services by Databricks. The ```ganglia``` docker image here is supported by the community on a *best efforts* basis, only. 
-
 
 
 
