@@ -68,6 +68,8 @@ case class LinearRegressionExpr(
   override def inputTypes: Seq[DataType] =
     Seq(ArrayType(DoubleType), ArrayType(DoubleType), matrixUDT)
 
+  override def children: Seq[Expression] = Seq(genotypes, phenotypes, covariates)
+
   override protected def nullSafeEval(genotypes: Any, phenotypes: Any, covariates: Any): Any = {
     LinearRegressionExpr.doLinearRegression(genotypes, phenotypes, covariates)
   }
