@@ -46,7 +46,7 @@ case class testQuinaryExpr(
       }
     )
   }
-  override def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): testQuinaryExpr =
+  def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): testQuinaryExpr =
     copy(
       child1 = newChildren.head,
       child2 = newChildren(1),
