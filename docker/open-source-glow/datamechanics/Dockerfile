@@ -22,6 +22,7 @@ ENV PYSPARK_MAJOR_PYTHON_VERSION=3
 #Install some glow.py dependencies in the base conda env
 RUN conda update conda \
 && conda update --all \
+-&& conda config --set channel_priority false \
 && conda install -c bioconda -c conda-forge \
 nptyping=1.3.0 \
 numpy>=1.18.1 \
