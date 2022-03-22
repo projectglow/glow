@@ -19,7 +19,7 @@ lazy val hailOnSpark3 = "0.2.89"
 lazy val hailOnSpark2 = "0.2.58"
 
 lazy val sparkVersion = settingKey[String]("sparkVersion")
-ThisBuild / sparkVersion := sys.env.getOrElse("SPARK_VERSION", spark3)
+ThisBuild / sparkVersion := sys.env.getOrElse("SPARK_VERSION", spark2)
 
 lazy val hailVersion = settingKey[String]("hailVersion")
 ThisBuild / hailVersion := sys.env.getOrElse("HAIL_VERSION", hailOnSpark3)
