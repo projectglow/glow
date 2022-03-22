@@ -20,18 +20,16 @@ LABEL description="Spark with Glow support and glow.py"
 ENV PYSPARK_MAJOR_PYTHON_VERSION=3
 
 #Install some glow.py dependencies in the base conda env
-RUN conda remove chardet asn1crypto \
-&& conda update conda \
-&& conda config --set channel_priority false \
+RUN conda update conda \
 && conda update --all \
 && conda install -c bioconda -c conda-forge \
 nptyping=1.3.0 \
-numpy=1.18.1 \
-opt_einsum=3.2.0 \
-pandas=1.0.1 \
-statsmodels=0.10.0 \
+numpy>=1.18.1 \
+opt_einsum>=3.2.0 \
+pandas>=1.0.1 \
+statsmodels>=0.10.0 \
 typeguard=2.9.1 \
-pyarrow=1.0.1 
+pyarrow>=1.0.1 
 
 USER root
 WORKDIR /opt
