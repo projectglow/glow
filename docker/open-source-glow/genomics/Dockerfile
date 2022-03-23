@@ -110,7 +110,7 @@ RUN CXX=/usr/bin/g++ && \
 # ===== Set up MLR dependencies ====================================================================
 
 ENV QQMAN_VERSION=1.0.6
-RUN /databricks/python3/bin/pip install qqman==$QQMAN_VERSION
+RUN pip3 install qqman==$QQMAN_VERSION
 
 # ===== Set up R genomics packages =================================================================
 
