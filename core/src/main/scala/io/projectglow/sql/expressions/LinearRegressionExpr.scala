@@ -21,9 +21,11 @@ import org.apache.spark.TaskContext
 import org.apache.spark.sql.SQLUtils
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCode}
-import org.apache.spark.sql.catalyst.expressions.{Expression, ImplicitCastInputTypes, TernaryExpression}
+import org.apache.spark.sql.catalyst.expressions.{Expression, ImplicitCastInputTypes}
 import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.sql.types._
+
+import io.projectglow.SparkShim.TernaryExpression
 
 object LinearRegressionExpr {
   private val matrixUDT = SQLUtils.newMatrixUDT()
@@ -67,8 +69,6 @@ case class LinearRegressionExpr(
 
   override def inputTypes: Seq[DataType] =
     Seq(ArrayType(DoubleType), ArrayType(DoubleType), matrixUDT)
-
-  override def children: Seq[Expression] = Seq(genotypes, phenotypes, covariates)
 
   override protected def nullSafeEval(genotypes: Any, phenotypes: Any, covariates: Any): Any = {
     LinearRegressionExpr.doLinearRegression(genotypes, phenotypes, covariates)
