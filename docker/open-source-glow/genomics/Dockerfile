@@ -10,6 +10,7 @@ RUN apt-get update && apt-get install -y \
     apt-transport-https \
     ca-certificates \
     cpanminus \
+    libncurses-dev \
     libpng-dev \
     zlib1g-dev \
     libbz2-dev \
