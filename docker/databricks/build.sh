@@ -26,5 +26,3 @@ popd
 docker push "${DOCKER_HUB}/databricks-hail:${HAIL_VERSION}"
 docker push "${DOCKER_HUB}/databricks-glow:${GLOW_VERSION}"
 docker push "${DOCKER_HUB}/databricks-glow:${DATABRICKS_RUNTIME_VERSION}"
-docker push "${DOCKER_HUB}/databricks-glow-minus-ganglia:${GLOW_VERSION}"
-docker push "${DOCKER_HUB}/databricks-glow-minus-ganglia:${DATABRICKS_RUNTIME_VERSION}"
