@@ -7,7 +7,9 @@ As of this time the following are supported:
 * Hail 0.2.78 + DBR 9.1 (Spark 3.1)
 
 The containers are hosted on the [projectglow dockerhub](https://hub.docker.com/u/projectglow), 
-Please see the Glow [Getting Started](https://glow.readthedocs.io/en/latest/getting-started.html) guide for documentation.
+Please see the Glow [Getting Started](https://glow.readthedocs.io/en/latest/getting-started.html) guide for documentation on how to use the containers.
+
+## Building the containers
 
 ##### Troubleshooting
 
