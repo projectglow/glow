@@ -1,4 +1,5 @@
 FROM projectglow/open-source-base:1.1.2 AS base
+USER root
 
 # ===== Set up base required libraries =============================================================
 
