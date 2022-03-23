@@ -30,8 +30,13 @@ RUN apt-get update && apt-get install -y \
     zlib1g \
     zlib1g-dev \
     libxml2 \
-    libxml2-dev 
-
+    libxml2-dev \
+    r-base \
+    r-base-dev \
+&& wget -qO- https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | tee -a /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc \
+&& add-apt-repository "deb [arch=amd64,i386] https://cloud.r-project.org/bin/linux/ubuntu focal-cran40/" \
+&& apt-get clean \
+&& rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 # ===== Set up VEP environment =====================================================================
 
