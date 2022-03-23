@@ -2,11 +2,12 @@
 
 As of this time the following are supported: 
 
-* Glow 1.1.2 + Databricks Runtime (DBR) 9.1 (Spark 3.1)
+* Glow 1.1.2 + connectors to Azure Data Lake, Google Cloud Storage, Amazon Web Services (S3), Snowflake and Delta Lake (via data mechanics' Spark Image) 
+* Glow 1.1.2 + Databricks Runtime (DBR) 9.1 (Spark 3.1) + Ganglia
 * Hail 0.2.78 + DBR 9.1 (Spark 3.1)
 
-These Dockerfiles are built to run on Databricks, 
-but can be adapted to run Glow & Hail in the open source,
+The containers are hosted on the [projectglow dockerhub](https://hub.docker.com/u/projectglow), 
+Please see the Glow [Getting Started](https://glow.readthedocs.io/en/latest/getting-started.html) guide for documentation.
 
 ##### Troubleshooting
 
@@ -26,7 +27,7 @@ export COMPOSE_DOCKER_CLI_BUILD=0
 Please see this [stack overflow post](https://stackoverflow.com/questions/64221861/an-error-failed-to-solve-with-frontend-dockerfile-v0) for explanation.
 
 Note: Docker builds may run out of memory, please increase
-Docker's default memorry setting, which is 2.0 GB, via Preferences -> Resources -> Advanced.
+Docker's default memory setting, which is 2.0 GB, via Docker Desktop -> Preferences -> Resources -> Advanced.
 
 ### Build the docker images as follows:
 
