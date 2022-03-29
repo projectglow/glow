@@ -63,4 +63,7 @@ object SparkShim extends SparkShimBase {
       function: String): Exception = {
     new UnresolvedException(function)
   }
+
+  abstract class TernaryExpression
+      extends org.apache.spark.sql.catalyst.expressions.TernaryExpression
 }

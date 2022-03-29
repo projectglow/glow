@@ -166,4 +166,13 @@ object SparkShim extends SparkShimBase {
       function: String): Exception = {
     new UnresolvedException(tree, function)
   }
+
+  abstract class TernaryExpression
+      extends org.apache.spark.sql.catalyst.expressions.TernaryExpression {
+
+    def first: Expression
+    def second: Expression
+    def third: Expression
+    override def children: Seq[Expression] = Seq(first, second, third)
+  }
 }
