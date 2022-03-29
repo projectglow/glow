@@ -15,6 +15,7 @@ dependencies:
   - opt_einsum>=3.2.0
   - pandas=1.0.1
   - pip
+  - py4j=0.10.9.3
   - pyarrow=1.0.1
   - pyspark=3.2.0
   - pytest
