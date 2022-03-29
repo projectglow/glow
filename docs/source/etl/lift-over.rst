@@ -123,5 +123,5 @@ If liftOver fails, the output row contains the original input row, the additiona
    expected_variant = Row(contigName='chr20', start=18190714, end=18190715, INFO_SwappedAlleles=False, INFO_ReverseComplementedAlleles=False, liftOverStatus=Row(errorMessage=None, success=True))
    assert_rows_equal(lifted_variant, expected_variant)
 
-.. notebook:: .. etl/lift-over.html
+.. notebook:: .. etl/10_liftOver.html
   :title: Liftover notebook
