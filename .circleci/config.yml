@@ -240,15 +240,6 @@ jobs:
             export SCALA_VERSION="2.12.8"
             sbt docs/test exit
       - run:
-          name: Run Python tests
-          no_output_timeout: 90m
-          environment:
-          command: |
-            export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="3.2.0"
-            export SCALA_VERSION="2.12.8"
-            sbt python/test exit
-      - run:
           name: Run Hail on Spark3 tests
           environment:
           command: |
@@ -259,6 +250,15 @@ jobs:
             sudo apt-get update
             sudo apt-get -y install rsync
             sbt installHail hail/test uninstallHail exit
+      - run:
+          name: Run Python tests
+          no_output_timeout: 90m
+          environment:
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            export SPARK_VERSION="3.2.0"
+            export SCALA_VERSION="2.12.8"
+            sbt python/test exit
       - *check_clean_repo
       - store_artifacts:
           path: ~/glow/unit-tests.log
