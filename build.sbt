@@ -232,7 +232,7 @@ ThisBuild / installHail := {
     "-c",
     s"git clone -b ${hailVersion.value} https://github.com/hail-is/hail.git;" + "source $(conda info --base)/etc/profile.d/conda.sh &&" + "conda create -y --name hail &&" + "conda activate hail --stack &&" + "cd \"hail/hail\" &&" + "sed " + "\"" + s"s/^pyspark.*/pyspark==${hailSparkVersion.value}/" + "\"" + " python/requirements.txt | grep -v '^#' | xargs pip3 install -U &&" +
       s"make SCALA_VERSION=${scalaVersion.value} SPARK_VERSION=${hailSparkVersion.value} shadowJar wheel &&" +
-      s"pip3 install --no-deps build/deploy/dist/hail-${hailVersion.value}-py3-none-any.whl"
+      s"pip3 install build/deploy/dist/hail-${hailVersion.value}-py3-none-any.whl"
   ) !
 }
 
