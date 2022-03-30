@@ -1,0 +1,518 @@
+{
+        "timeout_seconds": 0,
+        "email_notifications": {},
+        "name": "glow_integration_test",
+        "max_concurrent_runs": 1,
+        "tasks": [
+            {
+                "job_cluster_key": "glow_integration_test",
+                "notebook_task": {
+                    "notebook_path": "%(repos_path)sglow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/etl/data/download_1000G"
+                },
+                "timeout_seconds": 0,
+                "email_notifications": {},
+                "task_key": "download_1000G",
+                "description": ""
+            },
+            {
+                "job_cluster_key": "single_node",
+                "notebook_task": {
+                    "notebook_path": "%(repos_path)sglow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/etl/1_simulate_covariates_phenotypes_offset"
+                },
+                "timeout_seconds": 0,
+                "email_notifications": {},
+                "task_key": "simulate_covariates_phenotypes_offset"
+            },
+            {
+                "job_cluster_key": "glow_integration_test",
+                "notebook_task": {
+                    "notebook_path": "%(repos_path)sglow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/etl/2_simulate_delta_pvcf"
+                },
+                "timeout_seconds": 0,
+                "email_notifications": {},
+                "task_key": "simulate_delta_pvcf",
+                "depends_on": [
+                    {
+                        "task_key": "download_1000G"
+                    }
+                ]
+            },
+            {
+                "job_cluster_key": "glow_integration_test",
+                "notebook_task": {
+                    "notebook_path": "%(repos_path)sglow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/etl/3_delta_to_vcf"
+                },
+                "timeout_seconds": 0,
+                "email_notifications": {},
+                "task_key": "delta_to_vcf",
+                "depends_on": [
+                    {
+                        "task_key": "simulate_delta_pvcf"
+                    }
+                ]
+            },
+            {
+                "job_cluster_key": "glow_integration_test",
+                "notebook_task": {
+                    "notebook_path": "%(repos_path)sglow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/tertiary/pipe-transformer-plink"
+                },
+                "timeout_seconds": 0,
+                "email_notifications": {},
+                "task_key": "pipe_transformer_plink",
+                "depends_on": [
+                    {
+                        "task_key": "delta_to_vcf"
+                    }
+                ]
+            },
+            {
+                "job_cluster_key": "glow_integration_test",
+                "notebook_task": {
+                    "notebook_path": "%(repos_path)sglow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/etl/10_liftOver"
+                },
+                "timeout_seconds": 0,
+                "email_notifications": {},
+                "task_key": "liftOver",
+                "depends_on": [
+                    {
+                        "task_key": "delta_to_vcf"
+                    }
+                ]
+            },
+            {
+                "job_cluster_key": "glow_integration_test",
+                "notebook_task": {
+                    "notebook_path": "%(repos_path)sglow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/tertiary/0_ingest_vcf2delta"
+                },
+                "timeout_seconds": 0,
+                "email_notifications": {},
+                "task_key": "ingest_vcf2delta",
+                "depends_on": [
+                    {
+                        "task_key": "delta_to_vcf"
+                    }
+                ]
+            },
+            {
+                "job_cluster_key": "hail",
+                "libraries": [
+                    {
+                        "pypi": {
+                            "package": "glow.py==1.1.2"
+                        }
+                    },
+                    {
+                        "maven": {
+                            "coordinates": "io.projectglow:glow-spark3_2.12:1.1.2"
+                        }
+                    }
+                ],
+                "notebook_task": {
+                    "notebook_path": "%(repos_path)sglow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/etl/4_vcf_to_hail_mt"
+                },
+                "timeout_seconds": 0,
+                "email_notifications": {},
+                "task_key": "ingest_to_hail",
+                "depends_on": [
+                    {
+                        "task_key": "delta_to_vcf"
+                    }
+                ]
+            },
+            {
+                "job_cluster_key": "hail_to_glow",
+                "libraries": [
+                    {
+                        "pypi": {
+                            "package": "glow.py==1.1.2"
+                        }
+                    },
+                    {
+                        "maven": {
+                            "coordinates": "io.projectglow:glow-spark3_2.12:1.1.2"
+                        }
+                    }
+                ],
+                "notebook_task": {
+                    "notebook_path": "%(repos_path)sglow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/etl/5_hail_mt_to_glow"
+                },
+                "timeout_seconds": 0,
+                "email_notifications": {},
+                "task_key": "export_hail_to_glow",
+                "depends_on": [
+                    {
+                        "task_key": "ingest_to_hail"
+                    }
+                ]
+            },
+            {
+                "job_cluster_key": "glow_integration_test",
+                "notebook_task": {
+                    "notebook_path": "%(repos_path)sglow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/tertiary/1_quality_control"
+                },
+                "timeout_seconds": 0,
+                "email_notifications": {},
+                "task_key": "quality_control",
+                "depends_on": [
+                    {
+                        "task_key": "ingest_vcf2delta"
+                    }
+                ]
+            },
+            {
+                "job_cluster_key": "glow_integration_test",
+                "notebook_task": {
+                    "notebook_path": "%(repos_path)sglow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/etl/6_explode_variant_dataframe"
+                },
+                "timeout_seconds": 0,
+                "email_notifications": {},
+                "task_key": "explode_variants_for_querying",
+                "depends_on": [
+                    {
+                        "task_key": "quality_control"
+                    }
+                ]
+            },
+            {
+                "job_cluster_key": "glow_integration_test",
+                "notebook_task": {
+                    "notebook_path": "%(repos_path)sglow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/etl/7_etl_gff_annotations"
+                },
+                "timeout_seconds": 0,
+                "email_notifications": {},
+                "task_key": "generate_gff3_annotations"
+            },
+            {
+                "job_cluster_key": "glow_integration_test",
+                "notebook_task": {
+                    "notebook_path": "%(repos_path)sglow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/etl/8_create_database_for_querying"
+                },
+                "timeout_seconds": 0,
+                "email_notifications": {},
+                "task_key": "create_database_for_querying",
+                "depends_on": [
+                    {
+                        "task_key": "generate_gff3_annotations"
+                    },
+                    {
+                        "task_key": "explode_variants_for_querying"
+                    }
+                ]
+            },
+            {
+                "job_cluster_key": "glow_integration_test",
+                "notebook_task": {
+                    "notebook_path": "%(repos_path)sglow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/etl/9_query_variant_db"
+                },
+                "timeout_seconds": 0,
+                "email_notifications": {},
+                "task_key": "query_variant_database",
+                "depends_on": [
+                    {
+                        "task_key": "create_database_for_querying"
+                    }
+                ]
+            },
+            {
+                "job_cluster_key": "glow_integration_test",
+                "notebook_task": {
+                    "notebook_path": "%(repos_path)sglow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/tertiary/2_quantitative_glowgr"
+                },
+                "timeout_seconds": 0,
+                "email_notifications": {},
+                "task_key": "glowgr_quantitative",
+                "depends_on": [
+                    {
+                        "task_key": "simulate_covariates_phenotypes_offset"
+                    },
+                    {
+                        "task_key": "quality_control"
+                    }
+                ]
+            },
+            {
+                "job_cluster_key": "glow_integration_test",
+                "notebook_task": {
+                    "notebook_path": "%(repos_path)sglow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/tertiary/3_linear_gwas_glow"
+                },
+                "timeout_seconds": 0,
+                "email_notifications": {},
+                "task_key": "glow_linear_gwas",
+                "depends_on": [
+                    {
+                        "task_key": "glowgr_quantitative"
+                    }
+                ]
+            },
+            {
+                "job_cluster_key": "glow_integration_test",
+                "notebook_task": {
+                    "notebook_path": "%(repos_path)sglow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/tertiary/4_binary_glowgr"
+                },
+                "timeout_seconds": 0,
+                "email_notifications": {},
+                "task_key": "glowgr_binary",
+                "depends_on": [
+                    {
+                        "task_key": "simulate_covariates_phenotypes_offset"
+                    },
+                    {
+                        "task_key": "quality_control"
+                    }
+                ]
+            },
+            {
+                "job_cluster_key": "glow_integration_test",
+                "notebook_task": {
+                    "notebook_path": "%(repos_path)sglow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/tertiary/5_logistic_gwas_glow"
+                },
+                "timeout_seconds": 0,
+                "email_notifications": {},
+                "task_key": "glow_logistic_gwas",
+                "depends_on": [
+                    {
+                        "task_key": "glowgr_binary"
+                    }
+                ]
+            },
+            {
+                "job_cluster_key": "hail",
+                "libraries": [
+                    {
+                        "pypi": {
+                            "package": "glow.py==1.1.2"
+                        }
+                    },
+                    {
+                        "maven": {
+                            "coordinates": "io.projectglow:glow-spark3_2.12:1.1.2"
+                        }
+                    }
+                ],
+                "notebook_task": {
+                    "notebook_path": "%(repos_path)sglow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/tertiary/6_hail_linreg_gwas"
+                },
+                "timeout_seconds": 0,
+                "email_notifications": {},
+                "task_key": "hail_linear_gwas",
+                "depends_on": [
+                    {
+                        "task_key": "simulate_covariates_phenotypes_offset"
+                    },
+                    {
+                        "task_key": "ingest_to_hail"
+                    }
+                ]
+            },
+            {
+                "job_cluster_key": "hail",
+                "libraries": [
+                    {
+                        "maven": {
+                            "coordinates": "io.projectglow:glow-spark3_2.12:1.1.2"
+                        }
+                    },
+                    {
+                        "pypi": {
+                            "package": "glow.py==1.1.2"
+                        }
+                    }
+                ],
+                "notebook_task": {
+                    "notebook_path": "%(repos_path)sglow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/tertiary/7_hail_logistic_gwas"
+                },
+                "timeout_seconds": 0,
+                "email_notifications": {},
+                "task_key": "hail_logistic_gwas",
+                "depends_on": [
+                    {
+                        "task_key": "simulate_covariates_phenotypes_offset"
+                    },
+                    {
+                        "task_key": "ingest_to_hail"
+                    }
+                ]
+            },
+            {
+                "job_cluster_key": "hail",
+                "libraries": [
+                    {
+                        "pypi": {
+                            "package": "glow.py==1.1.2"
+                        }
+                    },
+                    {
+                        "maven": {
+                            "coordinates": "io.projectglow:glow-spark3_2.12:1.1.2"
+                        }
+                    }
+                ],
+                "notebook_task": {
+                    "notebook_path": "%(repos_path)sglow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/tertiary/9_compare_hail_to_glow"
+                },
+                "timeout_seconds": 0,
+                "email_notifications": {},
+                "task_key": "compare_hail_to_glow",
+                "depends_on": [
+                    {
+                        "task_key": "glow_logistic_gwas"
+                    },
+                    {
+                        "task_key": "glow_linear_gwas"
+                    },
+                    {
+                        "task_key": "hail_linear_gwas"
+                    },
+                    {
+                        "task_key": "hail_logistic_gwas"
+                    }
+                ]
+            },
+            {
+                "job_cluster_key": "glow_integration_test",
+                "notebook_task": {
+                    "notebook_path": "%(repos_path)sglow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/tertiary/8_pipeline_runs_comparison"
+                },
+                "timeout_seconds": 0,
+                "email_notifications": {},
+                "task_key": "pipeline_benchmarks",
+                "depends_on": [
+                    {
+                        "task_key": "compare_hail_to_glow"
+                    }
+                ]
+            }
+        ],
+        "job_clusters": [
+            {
+                "job_cluster_key": "glow_integration_test",
+                "new_cluster": {
+                    "cluster_name": "",
+                    "spark_version": "9.1.x-scala2.12",
+                    "spark_conf": {
+                        "spark.databricks.delta.preview.enabled": "true"
+                    },
+                    "azure_attributes": {
+                        "availability": "SPOT_WITH_FALLBACK_AZURE",
+                        "first_on_demand": 1,
+                        "spot_bid_max_price": -1
+                    },
+                    "node_type_id": "Standard_E4d_v4",
+                    "enable_elastic_disk": true,
+                    "docker_image": {
+                        "url": "projectglow/databricks-glow:1.1.2",
+                        "basic_auth": {
+                            "username": "projectglow",
+                            "password": "%(dockerhub_password)s"
+                        }
+                    },
+                    "data_security_mode": "NONE",
+                    "num_workers": 2
+                }
+            },
+            {
+                "job_cluster_key": "single_node",
+                "new_cluster": {
+                    "cluster_name": "",
+                    "spark_version": "9.1.x-scala2.12",
+                    "spark_conf": {
+                        "spark.databricks.delta.preview.enabled": "true"
+                    },
+                    "azure_attributes": {
+                        "availability": "SPOT_WITH_FALLBACK_AZURE",
+                        "first_on_demand": 1,
+                        "spot_bid_max_price": -1
+                    },
+                    "node_type_id": "Standard_DS3_v2",
+                    "enable_elastic_disk": true,
+                    "docker_image": {
+                        "url": "projectglow/databricks-glow:1.1.2",
+                        "basic_auth": {
+                            "username": "projectglow",
+                            "password": "%(dockerhub_password)s"
+                        }
+                    },
+                    "data_security_mode": "NONE",
+                    "num_workers": 0
+                }
+            },
+            {
+                "job_cluster_key": "hail",
+                "new_cluster": {
+                    "cluster_name": "",
+                    "spark_version": "9.1.x-scala2.12",
+                    "spark_conf": {
+                        "spark.databricks.delta.preview.enabled": "true"
+                    },
+                    "azure_attributes": {
+                        "availability": "SPOT_WITH_FALLBACK_AZURE",
+                        "first_on_demand": 1,
+                        "spot_bid_max_price": -1
+                    },
+                    "node_type_id": "Standard_E4d_v4",
+                    "enable_elastic_disk": true,
+                    "docker_image": {
+                        "url": "projectglow/databricks-hail:0.2.85",
+                        "basic_auth": {
+                            "username": "projectglow",
+                            "password": "%(dockerhub_password)s"
+                        }
+                    },
+                    "data_security_mode": "NONE",
+                    "num_workers": 2
+                }
+            },
+            {
+                "job_cluster_key": "export_hail_to_glow_cluster",
+                "new_cluster": {
+                    "cluster_name": "",
+                    "spark_version": "9.1.x-scala2.12",
+                    "spark_conf": {
+                        "spark.databricks.delta.preview.enabled": "true"
+                    },
+                    "azure_attributes": {
+                        "availability": "SPOT_WITH_FALLBACK_AZURE",
+                        "first_on_demand": 1,
+                        "spot_bid_max_price": -1
+                    },
+                    "node_type_id": "Standard_E4d_v4",
+                    "enable_elastic_disk": true,
+                    "docker_image": {
+                        "url": "projectglow/databricks-hail:0.2.78",
+                        "basic_auth": {
+                            "username": "projectglow",
+                            "password": "%(dockerhub_password)s"
+                        }
+                    },
+                    "data_security_mode": "NONE",
+                    "num_workers": 2
+                }
+            },
+            {
+                "job_cluster_key": "hail_to_glow",
+                "new_cluster": {
+                    "cluster_name": "",
+                    "spark_version": "9.1.x-scala2.12",
+                    "spark_conf": {
+                        "spark.databricks.delta.preview.enabled": "true"
+                    },
+                    "azure_attributes": {
+                        "availability": "SPOT_WITH_FALLBACK_AZURE",
+                        "first_on_demand": 1,
+                        "spot_bid_max_price": -1
+                    },
+                    "node_type_id": "Standard_E4d_v4",
+                    "enable_elastic_disk": true,
+                    "docker_image": {
+                        "url": "projectglow/databricks-hail:0.2.85",
+                        "basic_auth": {
+                            "username": "projectglow",
+                            "password": "%(dockerhub_password)s"
+                        }
+                    },
+                    "data_security_mode": "NONE",
+                    "num_workers": 2
+                }
+            }
+        ]
+}

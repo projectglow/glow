@@ -66,14 +66,15 @@ Integrating with bioinformatics tools
 
 To integrate with tools for genomic data, you can configure the Pipe Transformer to write each
 partition of the input DataFrame as VCF by choosing ``vcf`` as the input and output formatter.
-Here is an example using bedtools. For a more complex example using The Variant Effect Predictor (VEP)
-see the notebook example below. Note that the bioinformatics tool must be installed on each
-virtual machine of the Spark cluster.
+Here is an example using bedtools. 
+
+.. important:: 
+   The bioinformatics tool must be installed on each virtual machine of the Spark cluster.
 
 .. code-block:: python
 
     df = spark.read.format("vcf").load(path)
-
+    
     intersection_df = glow.transform(
         'pipe',
         df,
@@ -94,7 +95,8 @@ virtual machine of the Spark cluster.
 You must specify a method to determine the VCF header when using the `VCF input formatter`_.
 The option ``infer`` instructs the Pipe Transformer to derive a VCF header from the DataFrame schema.
 Alternately, you can provide the header as a blob, or you can point to the filesystem path for an existing VCF file with
-the correct header.
+the correct header. For a more complex example using The Variant Effect Predictor (VEP) see the notebook example below.
+
 
 .. _transformer-options:
 
@@ -182,16 +184,23 @@ cleanup until the pipe transformer results have been materialized, such as by be
 Examples
 ========
 
-The two examples below show how to parallelize Bedtools and VEP.
+The examples below show how to parallelize Bedtools, Plink and VEP.
+
+.. important:: 
+  Please troubleshoot pipe transformer errors by inspecting the stderr logs for failed tasks via:
+  ``Spark UI -> Stages -> Failed Stages -> Description -> Logs -> stderr`` 
 
 .. tip:: 
-  bedtools ``shuffle`` and ``intersect`` are two bedtools commands suited to the pipe transformer.
-
-.. tip:: 
+  Bedtools ``shuffle`` and ``intersect`` are two bedtools commands suited to the pipe transformer.
+  
+.. tip::
   The VEP example shows how to quarantine corrupted records. This functionality was introduced from Glow ``v1.1.2``.
 
 .. notebook:: .. tertiary/pipe-transformer.html
   :title: Pipe Transformer bedtools example notebook
+
+.. notebook:: .. tertiary/pipe-transformer-plink.html
+  :title: Pipe Transformer Plink example notebook
 
 .. notebook:: .. tertiary/pipe-transformer-vep.html
   :title: Pipe Transformer Variant Effect Predictor (VEP) example notebook

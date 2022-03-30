@@ -24,15 +24,17 @@ RUN virtualenv -p python3.8 --system-site-packages /databricks/python3
 # These python libraries are used by Databricks notebooks and the Python REPL
 # You do not need to install pyspark - it is injected when the cluster is launched
 # Versions are intended to reflect DBR 9.1
+# except: 
+# downgrade ipython to maintain backwards compatibility with 7.x and 8.x runtimes
+# downgrade numpy to avoid issue here: https://stackoverflow.com/questions/63761366/numpy-linalg-linalgerror-svd-did-not-converge-in-linear-least-squares-on-first
 RUN /databricks/python3/bin/pip install \
   six==1.15.0 \
-  # downgrade ipython to maintain backwards compatibility with 7.x and 8.x runtimes
   ipython==7.22.0 \
-  numpy==1.19.2 \
+  numpy==1.18.5 \
   pandas==1.2.4 \
   pyarrow==4.0.0 \
   matplotlib==3.4.2 \
-  jinja2==2.11.3 \
+  jinja2==3.0.3 \
   mlflow==1.19.0
 
 ENV MLFLOW_TRACKING_URI=databricks

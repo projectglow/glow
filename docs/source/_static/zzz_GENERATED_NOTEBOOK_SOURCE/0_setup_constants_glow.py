@@ -177,6 +177,7 @@ print("genotype simulation paths", json.dumps({
 
 # COMMAND ----------
 
+output_delta = simulate_prefix + '_variants_pvcf.delta'
 output_delta_tmp = simulate_prefix + '_variants_pvcf_tmp.delta'
 output_vcf = simulate_prefix + '_variants_pvcf.vcf.bgz'
 output_vcf_small = simulate_prefix + '_variants_pvcf_test.vcf'
@@ -185,10 +186,25 @@ output_vcf_local = simulate_prefix_local + '_variants_pvcf_test.vcf'
 os.environ["output_vcf"] = output_vcf_local
 
 print("delta to vcf paths", json.dumps({
+  "output_delta": output_delta,
   "output_delta_tmp": output_delta_tmp,
   "output_vcf": output_vcf,
   "output_vcf_small": output_vcf_small,
   "output_vcf_local": output_vcf_local
+}
+, indent=4))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ##### liftOver
+
+# COMMAND ----------
+
+output_liftOver_delta = simulate_prefix + '_variants_pvcf_liftOver_hg38.delta'
+
+print("delta to vcf paths", json.dumps({
+  "output_liftOver_delta": output_liftOver_delta
 }
 , indent=4))
 
@@ -291,6 +307,20 @@ print("binary phenotype paths", json.dumps({
   "binary_gwas_results_path": binary_gwas_results_path
 }
 , indent=4))
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ##### Plink with pipe transformer
+
+# COMMAND ----------
+
+plink_out_path = simulate_prefix + "/plink"
+plink_out_path_local = simulate_prefix_local + "/plink"
+os.environ['plink_out_path_local'] = plink_out_path_local
+
+dbutils.fs.rm(plink_out_path, True)
+dbutils.fs.mkdirs(plink_out_path)
 
 # COMMAND ----------
 

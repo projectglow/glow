@@ -13,13 +13,15 @@ docker build -t "${DOCKER_REPOSITORY}/dbfsfuse:9.1" dbfsfuse/
 docker build -t "${DOCKER_REPOSITORY}/standard:9.1" standard/
 docker build -t "${DOCKER_REPOSITORY}/with-r:9.1" r/
 docker build -t "${DOCKER_REPOSITORY}/genomics:9.1" genomics/
-docker build -t "${DOCKER_REPOSITORY}/databricks-hail:0.2.78" genomics-with-hail/
-docker build -t "${DOCKER_REPOSITORY}/databricks-glow:1.1.2" genomics-with-glow/
-docker build -t "${DOCKER_REPOSITORY}/databricks-glow:9.1" genomics-with-glow/
+docker build -t "${DOCKER_REPOSITORY}/databricks-hail:0.2.85" genomics-with-hail/
+docker build -t "${DOCKER_REPOSITORY}/databricks-glow-minus-ganglia:1.1.2" genomics-with-glow/
+docker build -t "${DOCKER_REPOSITORY}/databricks-glow:1.1.2" ganglia/
+docker build -t "${DOCKER_REPOSITORY}/databricks-glow-minus-ganglia:9.1" genomics-with-glow/
+docker build -t "${DOCKER_REPOSITORY}/databricks-glow:9.1" ganglia/
 popd
 
-docker push "${DOCKER_REPOSITORY}/databricks-hail:0.2.78"
+docker push "${DOCKER_REPOSITORY}/databricks-hail:0.2.85"
 docker push "${DOCKER_REPOSITORY}/databricks-glow:1.1.2"
 docker push "${DOCKER_REPOSITORY}/databricks-glow:9.1"
-
-
+docker push "${DOCKER_REPOSITORY}/databricks-glow-minus-ganglia:1.1.2"
+docker push "${DOCKER_REPOSITORY}/databricks-glow-minus-ganglia:9.1"
