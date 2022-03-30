@@ -11,7 +11,6 @@ lazy val scala212 = "2.12.8"
 lazy val scala211 = "2.11.12"
 
 lazy val spark3 = "3.2.0"
-lazy val hailSpark3 = "3.1.2"
 lazy val spark2 = "2.4.5"
 lazy val hailSpark2 = "2.4.5"
 
@@ -23,9 +22,6 @@ ThisBuild / sparkVersion := sys.env.getOrElse("SPARK_VERSION", spark2)
 
 lazy val hailVersion = settingKey[String]("hailVersion")
 ThisBuild / hailVersion := sys.env.getOrElse("HAIL_VERSION", hailOnSpark3)
-
-lazy val hailSparkVersion = settingKey[String]("hailVersion")
-ThisBuild / hailSparkVersion := sys.env.getOrElse("HAIL_SPARK_VERSION", hailSpark3)
 
 // Paths containing Hail tests
 lazy val hailTestPaths = Seq("python/glow/hail/", "docs/source/etl/hail.rst")
@@ -230,8 +226,8 @@ ThisBuild / installHail := {
   Seq(
     "/bin/bash",
     "-c",
-    s"git clone -b ${hailVersion.value} https://github.com/hail-is/hail.git;" + "source $(conda info --base)/etc/profile.d/conda.sh &&" + "conda create -y --name hail &&" + "conda activate hail --stack &&" + "cd \"hail/hail\" &&" + "sed " + "\"" + s"s/^pyspark.*/pyspark==${hailSparkVersion.value}/" + "\"" + " python/requirements.txt | grep -v '^#' | xargs pip3 install -U &&" +
-      s"make SCALA_VERSION=${scalaVersion.value} SPARK_VERSION=${hailSparkVersion.value} shadowJar wheel &&" +
+    s"git clone -b ${hailVersion.value} https://github.com/hail-is/hail.git;" + "source $(conda info --base)/etc/profile.d/conda.sh &&" + "conda create -y --name hail &&" + "conda activate hail --stack &&" + "cd \"hail/hail\" &&" + "sed " + "\"" + s"s/^pyspark.*/pyspark==${sparkVersion.value}/" + "\"" + " python/requirements.txt | grep -v '^#' | xargs pip3 install -U &&" +
+      s"make SCALA_VERSION=${scalaVersion.value} SPARK_VERSION=${sparkVersion.value} shadowJar wheel &&" +
       s"pip3 install build/deploy/dist/hail-${hailVersion.value}-py3-none-any.whl"
   ) !
 }
@@ -424,7 +420,6 @@ def crossReleaseStep(step: ReleaseStep, requiresPySpark: Boolean, requiresHail: 
     releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark3""""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / hailVersion := "$hailOnSpark3""""),
-    releaseStepCommandAndRemaining(s"""set ThisBuild / hailSparkVersion := "$hailSpark3""""),
     installHailStep,
     step,
     uninstallHailStep,
@@ -432,7 +427,6 @@ def crossReleaseStep(step: ReleaseStep, requiresPySpark: Boolean, requiresHail: 
     releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark2""""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala211""""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / hailVersion := "$hailOnSpark2""""),
-    releaseStepCommandAndRemaining(s"""set ThisBuild / hailSparkVersion := "$hailSpark2""""),
     installHailStep,
     step,
     uninstallHailStep,
