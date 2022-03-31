@@ -38,6 +38,20 @@ you can use to download the required file for liftOver from the b37 to the hg38 
     mkdir /opt/liftover
     curl https://raw.githubusercontent.com/broadinstitute/gatk/master/scripts/funcotator/data_sources/gnomAD/b37ToHg38.over.chain --output /opt/liftover/b37ToHg38.over.chain
 
+.. tip::
+   
+   Chain files may represent chromosomes with the "chr" prefix or not, e.g. "chr1" or "1".
+   Use the Spark SQL function ``regexp_replace`` to transform your variant dataset to match the chain file.
+   For example:
+
+.. code-block:: python
+
+   import pyspark.sql.functions as fx
+   #add 'chr' prefix
+   vcf_df = vcf_df.withColumn("contigName", fx.regexp_replace(fx.col('contigName'), '^', 'chr'))
+   #remove prefix
+   vcf_df = vcf_df.withColumn("contigName", fx.regexp_replace(fx.col('contigName'), 'chr', ''))
+
 Coordinate liftOver
 ====================
 
