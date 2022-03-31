@@ -44,13 +44,17 @@ you can use to download the required file for liftOver from the b37 to the hg38 
    Use the Spark SQL function ``regexp_replace`` to transform your variant dataset to match the chain file.
    For example:
 
+.. invisible-code-block: python
+    import glow
+    vcf_df = spark.read.format('vcf').load('test-data/combined.chr20_18210071_18210093.g.vcf')
+
 .. code-block:: python
 
-   import pyspark.sql.functions as fx
-   #add 'chr' prefix
-   vcf_df = vcf_df.withColumn("contigName", fx.regexp_replace(fx.col('contigName'), '^', 'chr'))
-   #remove prefix
-   vcf_df = vcf_df.withColumn("contigName", fx.regexp_replace(fx.col('contigName'), 'chr', ''))
+    import pyspark.sql.functions as fx
+    #add 'chr' prefix
+    vcf_df = vcf_df.withColumn("contigName", fx.regexp_replace(fx.col('contigName'), '^', 'chr'))
+    #remove prefix
+    vcf_df = vcf_df.withColumn("contigName", fx.regexp_replace(fx.col('contigName'), 'chr', ''))
 
 Coordinate liftOver
 ====================
