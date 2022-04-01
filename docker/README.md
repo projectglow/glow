@@ -2,11 +2,14 @@
 
 As of this time the following are supported: 
 
-* Glow 1.1.2 + Databricks Runtime (DBR) 9.1 (Spark 3.1)
+* Glow 1.1.2 + connectors to Azure Data Lake, Google Cloud Storage, Amazon Web Services (S3), Snowflake and Delta Lake (via data mechanics' Spark Image) 
+* Glow 1.1.2 + Databricks Runtime (DBR) 9.1 (Spark 3.1) + Ganglia
 * Hail 0.2.78 + DBR 9.1 (Spark 3.1)
 
-These Dockerfiles are built to run on Databricks, 
-but can be adapted to run Glow & Hail in the open source,
+The containers are hosted on the [projectglow dockerhub](https://hub.docker.com/u/projectglow), 
+Please see the Glow [Getting Started](https://glow.readthedocs.io/en/latest/getting-started.html) guide for documentation on how to use the containers.
+
+## Building the containers
 
 ##### Troubleshooting
 
@@ -25,8 +28,8 @@ export COMPOSE_DOCKER_CLI_BUILD=0
 
 Please see this [stack overflow post](https://stackoverflow.com/questions/64221861/an-error-failed-to-solve-with-frontend-dockerfile-v0) for explanation.
 
-Note: Docker builds may run out of memory, please increase
-Docker's default memorry setting, which is 2.0 GB, via Preferences -> Resources -> Advanced.
+Important: Docker builds may run out of memory, please increase
+Docker's default memory setting, which is 2.0 GB, via Docker Desktop -> Preferences -> Resources -> Advanced.
 
 To learn more about contributing to these images, please review the Glow [contributing guide](https://glow.readthedocs.io/en/latest/contributing.html#add-libraries-to-the-glow-docker-environment)
 
@@ -37,9 +40,12 @@ Ganglia is an optional layer for monitoring cluster metrics such as CPU load.
 
 ![Docker layer architecture](../static/glow_genomics_docker_image_architecture.png?raw=true "Glow Docker layer architecture")
 
+The open source version of this architecture to run outside of Databricks is simpler, 
+with a base layer that pulls from data mechanics' Spark Image, followed by the ```genomics``` and ```genomics-with-glow``` layers.
+
 ### Build the docker images as follows:
 
-run ```docker/databricks/build.sh``` to build all of the layers. 
+run ```docker/databricks/build.sh``` or ```docker/open-source-glow/build.sh``` to build all of the layers. 
 
 To build any layer individually, change directory into the layer and run: 
 

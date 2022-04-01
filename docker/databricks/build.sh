@@ -3,25 +3,26 @@
 #
 # Usage: ./build.sh
 
-DOCKER_REPOSITORY="projectglow"
+DOCKER_HUB="projectglow"
+DATABRICKS_RUNTIME_VERSION="9.1"
+GLOW_VERSION="1.1.2"
+HAIL_VERSION="0.2.85"
 
-# Add commands to build DBR 9.1 images below
-pushd dbr/dbr9.1/
-docker build -t "${DOCKER_REPOSITORY}/minimal:9.1" minimal/
-docker build -t "${DOCKER_REPOSITORY}/python:9.1" python/
-docker build -t "${DOCKER_REPOSITORY}/dbfsfuse:9.1" dbfsfuse/
-docker build -t "${DOCKER_REPOSITORY}/standard:9.1" standard/
-docker build -t "${DOCKER_REPOSITORY}/with-r:9.1" r/
-docker build -t "${DOCKER_REPOSITORY}/genomics:9.1" genomics/
-docker build -t "${DOCKER_REPOSITORY}/databricks-hail:0.2.85" genomics-with-hail/
-docker build -t "${DOCKER_REPOSITORY}/databricks-glow-minus-ganglia:1.1.2" genomics-with-glow/
-docker build -t "${DOCKER_REPOSITORY}/databricks-glow:1.1.2" ganglia/
-docker build -t "${DOCKER_REPOSITORY}/databricks-glow-minus-ganglia:9.1" genomics-with-glow/
-docker build -t "${DOCKER_REPOSITORY}/databricks-glow:9.1" ganglia/
+# Add commands to build images below
+pushd dbr/dbr$DATABRICKS_RUNTIME_VERSION/
+docker build -t "${DOCKER_HUB}/minimal:${DATABRICKS_RUNTIME_VERSION}" minimal/
+docker build -t "${DOCKER_HUB}/python:${DATABRICKS_RUNTIME_VERSION}" python/
+docker build -t "${DOCKER_HUB}/dbfsfuse:${DATABRICKS_RUNTIME_VERSION}" dbfsfuse/
+docker build -t "${DOCKER_HUB}/standard:${DATABRICKS_RUNTIME_VERSION}" standard/
+docker build -t "${DOCKER_HUB}/with-r:${DATABRICKS_RUNTIME_VERSION}" r/
+docker build -t "${DOCKER_HUB}/genomics:${DATABRICKS_RUNTIME_VERSION}" genomics/
+docker build -t "${DOCKER_HUB}/databricks-hail:${HAIL_VERSION}" genomics-with-hail/
+docker build -t "${DOCKER_HUB}/databricks-glow-minus-ganglia:${GLOW_VERSION}" genomics-with-glow/
+docker build -t "${DOCKER_HUB}/databricks-glow:${GLOW_VERSION}" ganglia/
+docker build -t "${DOCKER_HUB}/databricks-glow-minus-ganglia:${DATABRICKS_RUNTIME_VERSION}" genomics-with-glow/
+docker build -t "${DOCKER_HUB}/databricks-glow:${DATABRICKS_RUNTIME_VERSION}" ganglia/
 popd
 
-docker push "${DOCKER_REPOSITORY}/databricks-hail:0.2.85"
-docker push "${DOCKER_REPOSITORY}/databricks-glow:1.1.2"
-docker push "${DOCKER_REPOSITORY}/databricks-glow:9.1"
-docker push "${DOCKER_REPOSITORY}/databricks-glow-minus-ganglia:1.1.2"
-docker push "${DOCKER_REPOSITORY}/databricks-glow-minus-ganglia:9.1"
+docker push "${DOCKER_HUB}/databricks-hail:${HAIL_VERSION}"
+docker push "${DOCKER_HUB}/databricks-glow:${GLOW_VERSION}"
+docker push "${DOCKER_HUB}/databricks-glow:${DATABRICKS_RUNTIME_VERSION}"

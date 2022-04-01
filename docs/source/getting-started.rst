@@ -73,12 +73,6 @@ Glow requires Apache Spark 3.2.0.
           val sess = Glow.register(spark)
           val df = sess.read.format("vcf").load(path)
 
-Notebooks embedded in the docs
-------------------------------
-
-Documentation pages are accompanied by embedded notebook examples. Most code in these notebooks can be run on Spark and Glow alone, but functions such as ``display()`` or ``dbutils()`` are only available on Databricks. See :ref:`dbnotebooks` for more info.
-
-These notebooks are located in the Glow github repository `here <https://github.com/projectglow/glow/blob/master/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/>`_ and are tested nightly end-to-end.  They include notebooks to define constants such as the number of samples to simulate and the output paths for each step in the pipeline. Notebooks that define constants are ``%run`` at the start of each notebook in the documentation. Please see :ref:`data_simulation` to get started.
 
 Getting started on Databricks
 -----------------------------
@@ -89,8 +83,23 @@ The Databricks documentation shows how to get started with Glow on,
   - **Microsoft Azure** (`docs <https://docs.microsoft.com/en-us/azure/databricks/applications/genomics/tertiary-analytics/glow>`_) 
   - **Google Cloud Platform** (GCP - `docs <https://docs.gcp.databricks.com/applications/genomics/tertiary-analytics/glow.html>`_)
 
- 
+We recommend using the `Databricks Glow docker container <https://hub.docker.com/r/projectglow/databricks-glow>`_ to manage the environment, 
+which includes `genomics libraries <https://github.com/projectglow/glow/blob/master/docker/databricks/dbr/dbr9.1/genomics/Dockerfile>`_ that complement Glow. 
+This container can be installed via Databricks container services using the ``projectglow/databricks-glow:<tag>`` Docker Image URL, replacing <tag> with the latest version of Glow. 
+
 Getting started on other cloud services
 ---------------------------------------
 
-Please submit a pull request to add a guide for other cloud services.
+Glow is packaged into a Docker container based on an image from `data mechanics <https://hub.docker.com/r/datamechanics/spark>`_ that can be run locally and that also includes connectors to Azure Data Lake, Google Cloud Storage, Amazon Web Services S3, Snowflake, and `Delta Lake <https://docs.delta.io/latest/index.html>`_. This container can be installed using the ``projectglow/open-source-glow:<tag>`` Docker Image URL, replacing <tag> with the latest version of Glow.
+
+This container can be used or adapted to run Glow outside of Databricks (`source code <https://github.com/projectglow/glow/tree/master/docker>`_).
+And was contributed by Edoardo Giacopuzzi (``edoardo.giacopuzzi at fht.org``) from Human Technopole.
+
+Please submit a pull request to add guides for specific cloud services.
+
+Notebooks embedded in the docs
+------------------------------
+
+Documentation pages are accompanied by embedded notebook examples. Most code in these notebooks can be run on Spark and Glow alone, but functions such as ``display()`` or ``dbutils()`` are only available on Databricks. See :ref:`dbnotebooks` for more info.
+
+These notebooks are located in the Glow github repository `here <https://github.com/projectglow/glow/blob/master/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/>`_ and are tested nightly end-to-end.  They include notebooks to define constants such as the number of samples to simulate and the output paths for each step in the pipeline. Notebooks that define constants are ``%run`` at the start of each notebook in the documentation. Please see :ref:`data_simulation` to get started.
