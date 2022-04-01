@@ -106,4 +106,7 @@ case class MeanSubstitute(array: Expression, missingValue: Expression)
       acc => array.arrayTransform(el => substituteWithMean(el, calculateMean(acc)))
     )
   }
+
+  protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): MeanSubstitute =
+    copy(array = newChildren.head, missingValue = newChildren.last)
 }

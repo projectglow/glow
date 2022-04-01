@@ -213,4 +213,24 @@ case class LogisticRegressionExpr(
       }
     )
   }
+
+  protected def withNewChildrenInternal(
+      newChildren: IndexedSeq[Expression]): LogisticRegressionExpr = {
+    if (newChildren.size == 5) {
+      copy(
+        genotypes = newChildren(0),
+        phenotypes = newChildren(1),
+        covariates = newChildren(2),
+        test = newChildren(3),
+        offsetOption = Option(newChildren(4))
+      )
+    } else {
+      copy(
+        genotypes = newChildren(0),
+        phenotypes = newChildren(1),
+        covariates = newChildren(2),
+        test = newChildren(3)
+      )
+    }
+  }
 }

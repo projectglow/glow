@@ -223,6 +223,9 @@ case class CallSummaryStats(
   override def deserialize(storageFormat: Array[Byte]): ArrayBuffer[SampleCallStats] = {
     SparkEnv.get.serializer.newInstance().deserialize(ByteBuffer.wrap(storageFormat))
   }
+
+  protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): CallSummaryStats =
+    copy(genotypes = newChildren(0), refAllele = newChildren(1), altAlleles = newChildren(2))
 }
 
 case class SampleCallStats(

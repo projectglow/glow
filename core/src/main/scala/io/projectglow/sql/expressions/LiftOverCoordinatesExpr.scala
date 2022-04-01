@@ -118,4 +118,13 @@ case class LiftOverCoordinatesExpr(
       )
     )
   }
+
+  protected def withNewChildrenInternal(
+      newChildren: IndexedSeq[Expression]): LiftOverCoordinatesExpr =
+    copy(
+      contigName = newChildren(0),
+      start = newChildren(1),
+      end = newChildren(2),
+      chainFile = newChildren(3),
+      minMatchRatio = newChildren(4))
 }

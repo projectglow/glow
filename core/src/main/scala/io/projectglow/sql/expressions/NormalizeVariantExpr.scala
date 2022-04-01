@@ -128,4 +128,14 @@ case class NormalizeVariantExpr(
       }
     )
   }
+
+  protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): NormalizeVariantExpr =
+    copy(
+      contigName = newChildren(0),
+      start = newChildren(1),
+      end = newChildren(2),
+      refAllele = newChildren(3),
+      altAlleles = newChildren(4),
+      refGenomePathString = newChildren(5)
+    )
 }

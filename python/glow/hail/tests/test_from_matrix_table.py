@@ -84,7 +84,7 @@ def test_gvcfs(spark, tmp_path):
                     includes_end=True)
     ]
     hail_df = functions.from_matrix_table(
-        hl.import_gvcfs([input_vcf], partitions, force_bgz=True, reference_genome='GRCh38')[0])
+        hl.import_gvcfs([input_vcf], partitions, reference_genome='GRCh38')[0])
     _assert_lossless_adapter(spark, tmp_path, hail_df, input_vcf, 'vcf', 'bigvcf')
 
 

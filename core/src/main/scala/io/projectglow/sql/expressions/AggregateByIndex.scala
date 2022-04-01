@@ -158,6 +158,8 @@ case class UnwrappedAggregateByIndex(
     this(arr, initialValue, update, merge, LambdaFunction.identity)
   }
 
+  override def children: Seq[Expression] = arguments ++ functions
+
   override def prettyName: String = "unwrapped_aggregate_by_index"
 
   override def withBoundExprs(
@@ -171,6 +173,14 @@ case class UnwrappedAggregateByIndex(
   override def asWrapped: AggregateFunction = {
     WrappedAggregateByIndex(arr, initialValue, update, merge, evaluate)
   }
+
+  protected def withNewChildrenInternal(
+      newChildren: IndexedSeq[Expression]): UnwrappedAggregateByIndex =
+    copy(
+      arr = newChildren(0),
+      update = newChildren(1),
+      merge = newChildren(2),
+      evaluate = newChildren(3))
 }
 
 case class WrappedAggregateByIndex(
@@ -181,6 +191,8 @@ case class WrappedAggregateByIndex(
     evaluate: Expression = LambdaFunction.identity)
     extends AggregateByIndex {
 
+  override def children: Seq[Expression] = arguments ++ functions
+
   override def prettyName: String = "wrapped_agg_by"
 
   override def withBoundExprs(
@@ -190,4 +202,12 @@ case class WrappedAggregateByIndex(
 
     copy(update = newUpdate, merge = newMerge, evaluate = newEvaluate)
   }
+
+  protected def withNewChildrenInternal(
+      newChildren: IndexedSeq[Expression]): WrappedAggregateByIndex =
+    copy(
+      arr = newChildren(0),
+      update = newChildren(1),
+      merge = newChildren(2),
+      evaluate = newChildren(3))
 }

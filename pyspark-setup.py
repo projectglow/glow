@@ -38,4 +38,4 @@ setup(name='pyspark',
                 'pyspark.sql.avro',
                 'pyspark.sql.pandas',
                 'pyspark.streaming'],
-      install_requires=['py4j==0.10.9'])
+      install_requires=['py4j==0.10.9.2'])

@@ -17,9 +17,11 @@
 package io.projectglow.sql.util
 
 import org.apache.spark.sql.SQLUtils
-import org.apache.spark.sql.catalyst.analysis.{TypeCheckResult, UnresolvedException}
+import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
 import org.apache.spark.sql.catalyst.expressions.{Expression, Unevaluable}
 import org.apache.spark.sql.types.{ArrayType, DataType, StructField, StructType}
+
+import io.projectglow.SparkShim.newUnresolvedException
 
 /**
  * Stores the indices of required and optional fields within the genotype element struct after
@@ -126,8 +128,8 @@ trait ExpectsGenotypeFields extends Expression {
 trait Rewrite extends Expression with Unevaluable {
   def rewrite: Expression
 
-  override def dataType: DataType = throw new UnresolvedException(this, "dataType")
-  override def nullable: Boolean = throw new UnresolvedException(this, "nullable")
+  override def dataType: DataType = throw newUnresolvedException(this, "datatype")
+  override def nullable: Boolean = throw newUnresolvedException(this, "nullable")
 }
 
 /**

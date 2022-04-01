@@ -28,6 +28,7 @@ import org.apache.spark.sql.types.StructType
 import io.projectglow.common.GlowLogging
 
 class VCFFileWriter(
+    val path: String,
     headerLineSet: Set[VCFHeaderLine],
     sampleIdInfo: SampleIdInfo,
     stringency: ValidationStringency,

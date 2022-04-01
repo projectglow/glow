@@ -204,6 +204,10 @@ case class GenotypeStates(genotypes: Expression, genotypeInfo: Option[GenotypeIn
       getGenotypeInfo.requiredFieldIndices.head
     )
   }
+
+  protected def withNewChildInternal(newChild: Expression): GenotypeStates = {
+    copy(genotypes = newChild)
+  }
 }
 
 /**
@@ -281,6 +285,13 @@ case class HardCalls(
       probArr.numElements(),
       probArr.getDouble)
   }
+
+  protected def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): HardCalls =
+    copy(
+      probabilities = newChildren(0),
+      numAlts = newChildren(1),
+      phased = newChildren(2),
+      threshold = newChildren(3))
 }
 
 object HardCalls {

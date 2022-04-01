@@ -18,6 +18,7 @@ package io.projectglow
 
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.ExpressionInfo
+import org.apache.spark.sql.catalyst.trees.TreeNode
 
 // Spark APIs that are not inter-version compatible
 trait SparkShimBase {
@@ -37,4 +38,8 @@ trait SparkShimBase {
       since: String): ExpressionInfo
 
   abstract class QuaternaryExpression
+
+  def newUnresolvedException[TreeType <: TreeNode[_]](tree: TreeType, function: String): Exception
+
+  abstract class TernaryExpression
 }
