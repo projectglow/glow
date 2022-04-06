@@ -6,12 +6,16 @@ import pandas as pd
 from nptyping import Float, NDArray
 from typeguard import typechecked
 import opt_einsum as oe
+import random
+import string
 
 from glow.wgr.model_functions import _assert_all_present, _check_binary
 from glow.wgr.wgr_functions import _get_contigs_from_loco_df
 from enum import Enum
 
-_VALUES_COLUMN_NAME = 'values'
+random_string = ''.join(random.choice(string.ascii_lowercase) for i in range(10))
+
+_VALUES_COLUMN_NAME = '_glow_regression_values_' + random_string
 _GENOTYPES_COLUMN_NAME = 'genotypes'
 
 
