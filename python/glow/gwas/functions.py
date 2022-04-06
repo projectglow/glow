@@ -11,7 +11,7 @@ from glow.wgr.model_functions import _assert_all_present, _check_binary
 from glow.wgr.wgr_functions import _get_contigs_from_loco_df
 from enum import Enum
 
-_VALUES_COLUMN_NAME = '_glow_regression_values'
+_VALUES_COLUMN_NAME = 'values'
 _GENOTYPES_COLUMN_NAME = 'genotypes'
 
 
