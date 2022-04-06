@@ -303,7 +303,7 @@ def _logistic_regression_inner(
     p: phenotype
     c, d: covariate
     '''
-    genotype_values = genotype_pdf[_VALUES_COLUMN_NAME].array
+    genotype_values = genotype_pdf[_VALUES_COLUMN_NAME].values
     X = np.column_stack(genotype_values)
     if gt_indices_to_drop is not None and gt_indices_to_drop.size:
         X = np.delete(X, gt_indices_to_drop, axis=0)

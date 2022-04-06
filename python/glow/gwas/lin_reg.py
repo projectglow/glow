@@ -220,7 +220,7 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
     So, if a matrix's indices are `sg` (like the X matrix), it has one row per sample and one column per genotype.
     '''
 
-    genotype_values = genotype_pdf[_VALUES_COLUMN_NAME].array
+    genotype_values = genotype_pdf[_VALUES_COLUMN_NAME].values
     X = np.column_stack(genotype_values)
     if gt_indices_to_drop is not None and gt_indices_to_drop.size:
         X = np.delete(X, gt_indices_to_drop, axis=0)
