@@ -447,8 +447,8 @@ releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,
   inquireVersions,
   runClean
-) ++ crossReleaseStep(releaseStepCommandAndRemaining("core/test"), requiresPySpark = false, requiresHail = false) ++
-  crossReleaseStep(releaseStepCommandAndRemaining("python/test"), requiresPySpark = true, requiresHail = false) ++
+ ) ++ crossReleaseStep(releaseStepCommandAndRemaining("python/test"), requiresPySpark = true, requiresHail = false) ++
+  crossReleaseStep(releaseStepCommandAndRemaining("core/test"), requiresPySpark = false, requiresHail = false) ++
   crossReleaseStep(
     releaseStepCommandAndRemaining("docs/test"),
     requiresPySpark = true,
