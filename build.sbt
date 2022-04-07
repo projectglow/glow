@@ -447,16 +447,17 @@ releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,
   inquireVersions,
   runClean
- ) ++ crossReleaseStep(releaseStepCommandAndRemaining("python/test"), requiresPySpark = true, requiresHail = false) ++
-  crossReleaseStep(releaseStepCommandAndRemaining("core/test"), requiresPySpark = false, requiresHail = false) ++
-  crossReleaseStep(
-    releaseStepCommandAndRemaining("docs/test"),
-    requiresPySpark = true,
-    requiresHail = false) ++
-  crossReleaseStep(
-    releaseStepCommandAndRemaining("hail/test"),
-    requiresPySpark = true,
-    requiresHail = true) ++
+ ) ++ crossReleaseStep(releaseStepCommandAndRemaining("core/test"), requiresPySpark = true, requiresHail = false) ++
+// commenting out for Spark 3.2 release
+//  crossReleaseStep(releaseStepCommandAndRemaining("core/test"), requiresPySpark = false, requiresHail = false) ++
+//  crossReleaseStep(
+//    releaseStepCommandAndRemaining("docs/test"),
+//    requiresPySpark = true,
+//    requiresHail = false) ++
+//  crossReleaseStep(
+//    releaseStepCommandAndRemaining("hail/test"),
+//    requiresPySpark = true,
+//    requiresHail = true) ++
   Seq(
     setReleaseVersion,
     updateStableVersion,
