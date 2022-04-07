@@ -505,7 +505,6 @@ private[projectglow] class VCFOutputWriterFactory(options: Map[String, String])
 
     val stringency = VCFOptionParser.getValidationStringency(options)
     new VCFFileWriter(
-      path,
       headerLineSet,
       sampleIdInfo,
       stringency,

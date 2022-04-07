@@ -278,10 +278,6 @@ case class HardyWeinberg(genotypes: Expression, genotypeInfo: Option[GenotypeInf
       getGenotypeInfo.requiredFieldIndices.head
     )
   }
-
-  def withNewChildInternal(newChild: Expression): HardyWeinberg = {
-    copy(genotypes = newChild)
-  }
 }
 
 object HardyWeinberg {
@@ -329,9 +325,6 @@ case class CallStats(genotypes: Expression, genotypeInfo: Option[GenotypeInfo])
       getGenotypeInfo.requiredFieldIndices.head
     )
   }
-
-  protected def withNewChildInternal(newChild: Expression): CallStats =
-    copy(genotypes = newChild)
 }
 
 case class CallStatsStruct(
@@ -371,19 +364,12 @@ case class ArrayStatsSummary(array: Expression)
   override def nullSafeEval(input: Any): Any = {
     VariantQcExprs.arraySummaryStats(input.asInstanceOf[ArrayData])
   }
-
-  protected def withNewChildInternal(newChild: Expression): ArrayStatsSummary =
-    copy(array = newChild)
 }
 
 case class DpSummaryStats(child: Expression) extends Rewrite {
   override def children: Seq[Expression] = Seq(child)
   override def rewrite: Expression = {
     ArrayStatsSummary(UnresolvedExtractValue(child, Literal(VariantSchemas.depthField.name)))
-  }
-
-  protected def withNewChildrenInternal(children: IndexedSeq[Expression]): DpSummaryStats = {
-    copy(child = children.head)
   }
 }
 
@@ -392,10 +378,6 @@ case class GqSummaryStats(child: Expression) extends Rewrite {
   override def rewrite: Expression = {
     ArrayStatsSummary(
       UnresolvedExtractValue(child, Literal(VariantSchemas.conditionalQualityField.name)))
-  }
-
-  protected def withNewChildrenInternal(children: IndexedSeq[Expression]): GqSummaryStats = {
-    copy(child = children.head)
   }
 }
 
@@ -443,11 +425,5 @@ case class AssertTrueOrError(child: Expression, errMsg: Expression)
       isNull = TrueLiteral,
       value = JavaCode.defaultLiteral(dataType)
     )
-  }
-
-  protected def withNewChildrenInternal(
-      newLeft: Expression,
-      newRight: Expression): AssertTrueOrError = {
-    copy(child = newLeft, errMsg = newRight)
   }
 }

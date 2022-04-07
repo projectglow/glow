@@ -4,7 +4,7 @@ Getting Started
 Running Locally
 ---------------
 
-Glow requires Apache Spark 3.2.0.
+Glow requires Apache Spark 3.1.2.
 
 .. tabs::
 
@@ -14,7 +14,7 @@ Glow requires Apache Spark 3.2.0.
 
         .. code-block:: sh
 
-          pip install pyspark==3.2.0
+          pip install pyspark==3.1.2
 
         or `download a specific distribution <https://spark.apache.org/downloads.html>`_.
 
