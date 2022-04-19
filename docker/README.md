@@ -2,8 +2,8 @@
 
 As of this time the following are supported: 
 
-* Glow 1.1.2 + connectors to Azure Data Lake, Google Cloud Storage, Amazon Web Services (S3), Snowflake and Delta Lake (via data mechanics' Spark Image) 
-* Glow 1.1.2 + Databricks Runtime (DBR) 9.1 (Spark 3.1) + Ganglia
+* Glow 1.2.1 + connectors to Azure Data Lake, Google Cloud Storage, Amazon Web Services (S3), Snowflake and Delta Lake (via data mechanics' Spark Image) 
+* Glow 1.2.1 + Databricks Runtime (DBR) 9.1 (Spark 3.1) + Ganglia
 * Hail 0.2.78 + DBR 9.1 (Spark 3.1)
 
 The containers are hosted on the [projectglow dockerhub](https://hub.docker.com/u/projectglow), 

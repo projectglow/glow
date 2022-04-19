@@ -5,8 +5,8 @@
 
 DOCKER_HUB="projectglow"
 DATABRICKS_RUNTIME_VERSION="9.1"
-GLOW_VERSION="1.1.2"
-HAIL_VERSION="0.2.85"
+GLOW_VERSION="1.2.1"
+HAIL_VERSION="0.2.93"
 
 # Add commands to build images below
 pushd dbr/dbr$DATABRICKS_RUNTIME_VERSION/

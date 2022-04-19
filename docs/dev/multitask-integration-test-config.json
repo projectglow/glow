@@ -98,12 +98,12 @@
                 "libraries": [
                     {
                         "pypi": {
-                            "package": "glow.py==1.1.2"
+                            "package": "glow.py==1.2.1"
                         }
                     },
                     {
                         "maven": {
-                            "coordinates": "io.projectglow:glow-spark3_2.12:1.1.2"
+                            "coordinates": "io.projectglow:glow-spark3_2.12:1.2.1"
                         }
                     }
                 ],
@@ -124,12 +124,12 @@
                 "libraries": [
                     {
                         "pypi": {
-                            "package": "glow.py==1.1.2"
+                            "package": "glow.py==1.2.1"
                         }
                     },
                     {
                         "maven": {
-                            "coordinates": "io.projectglow:glow-spark3_2.12:1.1.2"
+                            "coordinates": "io.projectglow:glow-spark3_2.12:1.2.1"
                         }
                     }
                 ],
@@ -280,12 +280,12 @@
                 "libraries": [
                     {
                         "pypi": {
-                            "package": "glow.py==1.1.2"
+                            "package": "glow.py==1.2.1"
                         }
                     },
                     {
                         "maven": {
-                            "coordinates": "io.projectglow:glow-spark3_2.12:1.1.2"
+                            "coordinates": "io.projectglow:glow-spark3_2.12:1.2.1"
                         }
                     }
                 ],
@@ -309,12 +309,12 @@
                 "libraries": [
                     {
                         "maven": {
-                            "coordinates": "io.projectglow:glow-spark3_2.12:1.1.2"
+                            "coordinates": "io.projectglow:glow-spark3_2.12:1.2.1"
                         }
                     },
                     {
                         "pypi": {
-                            "package": "glow.py==1.1.2"
+                            "package": "glow.py==1.2.1"
                         }
                     }
                 ],
@@ -338,12 +338,12 @@
                 "libraries": [
                     {
                         "pypi": {
-                            "package": "glow.py==1.1.2"
+                            "package": "glow.py==1.2.1"
                         }
                     },
                     {
                         "maven": {
-                            "coordinates": "io.projectglow:glow-spark3_2.12:1.1.2"
+                            "coordinates": "io.projectglow:glow-spark3_2.12:1.2.1"
                         }
                     }
                 ],
@@ -400,7 +400,7 @@
                     "node_type_id": "Standard_E4d_v4",
                     "enable_elastic_disk": true,
                     "docker_image": {
-                        "url": "projectglow/databricks-glow:1.1.2",
+                        "url": "projectglow/databricks-glow:1.2.1",
                         "basic_auth": {
                             "username": "projectglow",
                             "password": "%(dockerhub_password)s"
@@ -426,7 +426,7 @@
                     "node_type_id": "Standard_DS3_v2",
                     "enable_elastic_disk": true,
                     "docker_image": {
-                        "url": "projectglow/databricks-glow:1.1.2",
+                        "url": "projectglow/databricks-glow:1.2.1",
                         "basic_auth": {
                             "username": "projectglow",
                             "password": "%(dockerhub_password)s"
@@ -452,7 +452,7 @@
                     "node_type_id": "Standard_E4d_v4",
                     "enable_elastic_disk": true,
                     "docker_image": {
-                        "url": "projectglow/databricks-hail:0.2.85",
+                        "url": "projectglow/databricks-hail:0.2.93",
                         "basic_auth": {
                             "username": "projectglow",
                             "password": "%(dockerhub_password)s"
@@ -504,7 +504,7 @@
                     "node_type_id": "Standard_E4d_v4",
                     "enable_elastic_disk": true,
                     "docker_image": {
-                        "url": "projectglow/databricks-hail:0.2.85",
+                        "url": "projectglow/databricks-hail:0.2.93",
                         "basic_auth": {
                             "username": "projectglow",
                             "password": "%(dockerhub_password)s"
