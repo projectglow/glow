@@ -10,7 +10,7 @@ import sbt.nio.Keys._
 lazy val scala212 = "2.12.8"
 lazy val scala211 = "2.11.12"
 
-lazy val spark3 = "3.2.0"
+lazy val spark3 = "3.2.1"
 lazy val spark2 = "2.4.5"
 lazy val hailSpark2 = "2.4.5"
 
