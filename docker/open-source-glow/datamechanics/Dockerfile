@@ -6,21 +6,22 @@
 # - Snowflake
 # - deltalake
 #to learn more, see https://hub.docker.com/r/datamechanics/spark
-FROM gcr.io/datamechanics/spark:3.1.2-hadoop-3.2.0-java-11-scala-2.12-python-3.8-dm16
+FROM gcr.io/datamechanics/spark:3.2.1-hadoop-3.3.1-java-11-scala-2.12-python-3.8-dm17
 LABEL author="Edoardo Giacopuzzi"
 LABEL contact="edoardo.giacopuzzi@fht.org"
-LABEL spark_version="3.1.2"
-LABEL hadoop_version="3.2.0"
+LABEL spark_version="3.2.1"
+LABEL hadoop_version="3.3.1"
 LABEL java_version="11"
 LABEL scala_version="2.12"
 LABEL deltalake_version="1.0.0"
-LABEL glowgr_version="spark3-1.1.2"
+LABEL glowgr_version="spark3-1.2.1"
 LABEL description="Spark with Glow support and glow.py"
 
 ENV PYSPARK_MAJOR_PYTHON_VERSION=3
 
 #Install some glow.py dependencies in the base conda env
 RUN conda update conda \
+&& conda install anaconda \
 && conda update --all \
 && conda config --set channel_priority false \
 && conda install -c bioconda -c conda-forge \

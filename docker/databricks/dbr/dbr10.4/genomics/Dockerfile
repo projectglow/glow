@@ -1,4 +1,4 @@
-FROM projectglow/with-r:9.1 AS r
+FROM projectglow/with-r:10.4 AS r
 
 # ===== Build off Databricks Runtime ===============================================================
 

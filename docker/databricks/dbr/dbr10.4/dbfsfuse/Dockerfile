@@ -1,4 +1,4 @@
-FROM projectglow/python:9.1
+FROM projectglow/python:10.4
 
 RUN apt-get update \
   && apt-get install -y fuse \
