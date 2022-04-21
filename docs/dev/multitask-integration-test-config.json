@@ -355,9 +355,6 @@
                         "task_key": "glow_logistic_gwas"
                     },
                     {
-                        "task_key": "glow_linear_gwas"
-                    },
-                    {
                         "task_key": "hail_linear_gwas"
                     },
                     {
