@@ -462,36 +462,10 @@
                 }
             },
             {
-                "job_cluster_key": "export_hail_to_glow_cluster",
-                "new_cluster": {
-                    "cluster_name": "",
-                    "spark_version": "10.4.x-scala2.12",
-                    "spark_conf": {
-                        "spark.databricks.delta.preview.enabled": "true"
-                    },
-                    "azure_attributes": {
-                        "availability": "SPOT_WITH_FALLBACK_AZURE",
-                        "first_on_demand": 1,
-                        "spot_bid_max_price": -1
-                    },
-                    "node_type_id": "Standard_E4d_v4",
-                    "enable_elastic_disk": true,
-                    "docker_image": {
-                        "url": "projectglow/databricks-hail:0.2.93",
-                        "basic_auth": {
-                            "username": "projectglow",
-                            "password": "%(dockerhub_password)s"
-                        }
-                    },
-                    "data_security_mode": "NONE",
-                    "num_workers": 2
-                }
-            },
-            {
                 "job_cluster_key": "hail_to_glow",
                 "new_cluster": {
                     "cluster_name": "",
-                    "spark_version": "10.4.x-scala2.12",
+                    "spark_version": "9.1.x-scala2.12",
                     "spark_conf": {
                         "spark.databricks.delta.preview.enabled": "true"
                     },
@@ -503,7 +477,7 @@
                     "node_type_id": "Standard_E4d_v4",
                     "enable_elastic_disk": true,
                     "docker_image": {
-                        "url": "projectglow/databricks-hail:0.2.93",
+                        "url": "projectglow/databricks-hail:0.2.85",
                         "basic_auth": {
                             "username": "projectglow",
                             "password": "%(dockerhub_password)s"
