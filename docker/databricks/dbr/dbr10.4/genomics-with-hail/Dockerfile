@@ -5,6 +5,7 @@ FROM projectglow/genomics:10.4 AS builder
 # ===== Set up Hail ================================================================================
 
 # earliest Hail version supported by Spark3 is 0.2.67
+# note: this does not yet work with Spark 3.2.1, if you have trouble drop back to 0.2.85
 ENV HAIL_VERSION=0.2.93
  
 RUN apt-get update && apt-get install -y \

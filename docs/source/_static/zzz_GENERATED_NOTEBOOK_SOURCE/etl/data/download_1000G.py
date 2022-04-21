@@ -14,6 +14,16 @@
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ##### create clean directory to run integration test
+
+# COMMAND ----------
+
+dbutils.fs.rm(dbfs_home_path_str, recurse=True)
+dbutils.fs.mkdirs(dbfs_home_path_str)
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ##### download 1000G data for chrom 21 and 22
 
 # COMMAND ----------

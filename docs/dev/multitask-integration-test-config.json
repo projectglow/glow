@@ -254,10 +254,7 @@
                 "task_key": "glowgr_binary",
                 "depends_on": [
                     {
-                        "task_key": "simulate_covariates_phenotypes_offset"
-                    },
-                    {
-                        "task_key": "quality_control"
+                        "task_key": "glow_linear_gwas"
                     }
                 ]
             },
@@ -440,7 +437,7 @@
                 "job_cluster_key": "hail",
                 "new_cluster": {
                     "cluster_name": "",
-                    "spark_version": "10.4.x-scala2.12",
+                    "spark_version": "9.1.x-scala2.12",
                     "spark_conf": {
                         "spark.databricks.delta.preview.enabled": "true"
                     },
@@ -452,7 +449,7 @@
                     "node_type_id": "Standard_E4d_v4",
                     "enable_elastic_disk": true,
                     "docker_image": {
-                        "url": "projectglow/databricks-hail:0.2.93",
+                        "url": "projectglow/databricks-hail:0.2.85",
                         "basic_auth": {
                             "username": "projectglow",
                             "password": "%(dockerhub_password)s"
