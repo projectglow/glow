@@ -388,7 +388,7 @@
                 "job_cluster_key": "glow_integration_test",
                 "new_cluster": {
                     "cluster_name": "",
-                    "spark_version": "9.1.x-scala2.12",
+                    "spark_version": "10.4.x-scala2.12",
                     "spark_conf": {
                         "spark.databricks.delta.preview.enabled": "true"
                     },
@@ -414,7 +414,7 @@
                 "job_cluster_key": "single_node",
                 "new_cluster": {
                     "cluster_name": "",
-                    "spark_version": "9.1.x-scala2.12",
+                    "spark_version": "10.4.x-scala2.12",
                     "spark_conf": {
                         "spark.databricks.delta.preview.enabled": "true"
                     },
@@ -440,7 +440,7 @@
                 "job_cluster_key": "hail",
                 "new_cluster": {
                     "cluster_name": "",
-                    "spark_version": "9.1.x-scala2.12",
+                    "spark_version": "10.4.x-scala2.12",
                     "spark_conf": {
                         "spark.databricks.delta.preview.enabled": "true"
                     },
@@ -466,7 +466,7 @@
                 "job_cluster_key": "export_hail_to_glow_cluster",
                 "new_cluster": {
                     "cluster_name": "",
-                    "spark_version": "9.1.x-scala2.12",
+                    "spark_version": "10.4.x-scala2.12",
                     "spark_conf": {
                         "spark.databricks.delta.preview.enabled": "true"
                     },
@@ -478,7 +478,7 @@
                     "node_type_id": "Standard_E4d_v4",
                     "enable_elastic_disk": true,
                     "docker_image": {
-                        "url": "projectglow/databricks-hail:0.2.78",
+                        "url": "projectglow/databricks-hail:0.2.93",
                         "basic_auth": {
                             "username": "projectglow",
                             "password": "%(dockerhub_password)s"
@@ -492,7 +492,7 @@
                 "job_cluster_key": "hail_to_glow",
                 "new_cluster": {
                     "cluster_name": "",
-                    "spark_version": "9.1.x-scala2.12",
+                    "spark_version": "10.4.x-scala2.12",
                     "spark_conf": {
                         "spark.databricks.delta.preview.enabled": "true"
                     },
