@@ -21,7 +21,12 @@
                 },
                 "timeout_seconds": 0,
                 "email_notifications": {},
-                "task_key": "simulate_covariates_phenotypes_offset"
+                "task_key": "simulate_covariates_phenotypes_offset",
+                "depends_on": [
+                    {
+                        "task_key": "download_1000G"
+                    }
+                ]
             },
             {
                 "job_cluster_key": "glow_integration_test",
