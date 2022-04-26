@@ -1,8 +1,14 @@
-setup_base: &setup_base
+setup_xl_base: &setup_xl_base
   working_directory: ~/glow
   docker:
     - image: cimg/openjdk:8.0.322
   resource_class: xlarge
+
+setup_m_base: &setup_m_base
+  working_directory: ~/glow
+  docker:
+    - image: cimg/openjdk:8.0.322
+  resource_class: medium+
 
 install_conda: &install_conda
   run:
@@ -59,12 +65,12 @@ check_clean_repo: &check_clean_repo
 
 version: 2.1
 orbs:
-  codecov: codecov/codecov@1.0.5
-  jq: circleci/jq@1.6.0
+  codecov: codecov/codecov@3.2.2
+  jq: circleci/jq@2.2.0
 jobs:
 
   check-docs:
-    <<: *setup_base
+    <<: *setup_m_base
     steps:
       - checkout
       - restore_cache:
@@ -98,7 +104,7 @@ jobs:
       - *check_clean_repo
 
   scala-2_11-tests:
-    <<: *setup_base
+    <<: *setup_xl_base
     steps:
       - checkout
       - restore_cache:
@@ -159,7 +165,7 @@ jobs:
           file: "core/target/scala-2.11/scoverage-report/scoverage.xml"
 
   scala-2_12-tests:
-    <<: *setup_base
+    <<: *setup_xl_base
     steps:
       - checkout
       - restore_cache:
@@ -211,7 +217,7 @@ jobs:
             sbt installHail hail/test uninstallHail exit
 
   spark-3-tests:
-    <<: *setup_base
+    <<: *setup_xl_base
     steps:
       - checkout
       - restore_cache:
@@ -268,7 +274,7 @@ jobs:
           path: ~/glow/core/target/scala-2.12/test-reports
 
   all-notebook-tests:
-    <<: *setup_base
+    <<: *setup_m_base
     steps:
       - checkout
       - restore_cache:
