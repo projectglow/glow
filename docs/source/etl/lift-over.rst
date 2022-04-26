@@ -38,6 +38,24 @@ you can use to download the required file for liftOver from the b37 to the hg38 
     mkdir /opt/liftover
     curl https://raw.githubusercontent.com/broadinstitute/gatk/master/scripts/funcotator/data_sources/gnomAD/b37ToHg38.over.chain --output /opt/liftover/b37ToHg38.over.chain
 
+.. tip::
+   
+   Chain files may represent chromosomes with the "chr" prefix or not, e.g. "chr1" or "1".
+   Use the Spark SQL function ``regexp_replace`` to transform your variant dataset to match the chain file.
+   For example:
+
+.. invisible-code-block: python
+    import glow
+    vcf_df = spark.read.format('vcf').load('test-data/combined.chr20_18210071_18210093.g.vcf')
+
+.. code-block:: python
+
+    import pyspark.sql.functions as fx
+    #add 'chr' prefix
+    vcf_df = vcf_df.withColumn("contigName", fx.regexp_replace(fx.col('contigName'), '^', 'chr'))
+    #remove prefix
+    vcf_df = vcf_df.withColumn("contigName", fx.regexp_replace(fx.col('contigName'), 'chr', ''))
+
 Coordinate liftOver
 ====================
 
@@ -123,5 +141,5 @@ If liftOver fails, the output row contains the original input row, the additiona
    expected_variant = Row(contigName='chr20', start=18190714, end=18190715, INFO_SwappedAlleles=False, INFO_ReverseComplementedAlleles=False, liftOverStatus=Row(errorMessage=None, success=True))
    assert_rows_equal(lifted_variant, expected_variant)
 
-.. notebook:: .. etl/lift-over.html
+.. notebook:: .. etl/10_liftOver.html
   :title: Liftover notebook
