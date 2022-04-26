@@ -1,3 +1,5 @@
+.. _gwas_tutorial:
+
 GWAS Tutorial
 =============
 

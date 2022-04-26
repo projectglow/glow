@@ -77,15 +77,93 @@ Glow requires Apache Spark 3.2.0.
 Getting started on Databricks
 -----------------------------
 
-The Databricks documentation shows how to get started with Glow on, 
+Databricks makes it simple to run Glow on Amazon Web Services (AWS), Microsoft Azure, and Google Cloud Platform (GCP). 
 
-  - **Amazon Web Services** (AWS - `docs <https://docs.databricks.com/applications/genomics/tertiary-analytics/glow.html>`_)
-  - **Microsoft Azure** (`docs <https://docs.microsoft.com/en-us/azure/databricks/applications/genomics/tertiary-analytics/glow>`_) 
-  - **Google Cloud Platform** (GCP - `docs <https://docs.gcp.databricks.com/applications/genomics/tertiary-analytics/glow.html>`_)
+To spin up a cluster with Glow, please use the `Databricks Glow docker container <https://hub.docker.com/r/projectglow/databricks-glow>`_ to manage the environment. 
+This container includes `genomics libraries <https://github.com/projectglow/glow/blob/master/docker/databricks/dbr/dbr9.1/genomics/Dockerfile>`_ that complement Glow.
+This container can be installed via Databricks container services. 
 
-We recommend using the `Databricks Glow docker container <https://hub.docker.com/r/projectglow/databricks-glow>`_ to manage the environment, 
-which includes `genomics libraries <https://github.com/projectglow/glow/blob/master/docker/databricks/dbr/dbr9.1/genomics/Dockerfile>`_ that complement Glow. 
-This container can be installed via Databricks container services using the ``projectglow/databricks-glow:<tag>`` Docker Image URL, replacing <tag> with the latest version of Glow. 
+Here is how to set it up on the Databricks web application,
+
+1. Have your Databricks administrator enable container services via ``Settings -> Admin Console``
+
+.. image:: _static/images/databricks_container_services_admin_console.png 
+
+2. Go to ``Compute -> Create Cluster`` and configure the cluster as follows,
+
+.. image:: _static/images/glow_databricks_container_services_cluster_config.png 
+
+.. important:: Please use the ``projectglow/databricks-glow:<tag>`` Docker Image URL, replacing <tag> with the latest version of Glow on the Project Glow `Dockerhub page <https://hub.docker.com/r/projectglow/databricks-glow/tags>`_. Then match the version of Glow to a version of the Databricks Runtime that includes the same version of Spark. For example, Glow `v1.2.1 <https://github.com/projectglow/glow/releases/tag/v1.2.1>`_ and Databricks Runtime `10.4 Long Term Support (LTS) <https://docs.databricks.com/release-notes/runtime/releases.html>`_ are both built on ``Spark 3.2.1``. Use LTS runtimes where available, ``10.4 LTS`` will be supported until Mar 18, 2024.
+
+3. Sync the Glow notebooks via Repos
+
+   #. Fork the `Glow github repo <https://github.com/projectglow/glow>`_.
+   #. Clone your fork to your Databricks workspace using Repos (step-by-step `guide <https://docs.databricks.com/repos/index.html#clone-a-remote-git-repository>`_).
+   #. The notebooks are located under ``docs/source/_static``.
+
+.. image:: _static/images/glow-repo-notebooks.png
+
+4. Create automated jobs
+
+To build an automated Glow workflow in your Databricks workspace, please follow these steps, which :ref:`simulate data <data_simulation>` and then run the Glow :ref:`GWAS tutorial <gwas_tutorial>`
+
+1. Configure the Databricks CLI, authenticating via Databricks personal access token (`docs <https://docs.databricks.com/dev-tools/cli/index.html>`_).
+2. Create a directory in your Databricks workspace,
+
+.. code-block:: sh
+
+   databricks workspace mkdirs /Repos/test
+
+3. Import source files from your fork of the Glow Github repository to this directory using repos,
+
+.. code-block:: sh
+
+   databricks repos create --url https://github.com/<github_profile>/glow --provider gitHub --path /Repos/test/glow
+
+4. Switch to the branch of Glow that you are working on using repos,
+
+.. code-block:: sh
+   
+   databricks repos update --branch master --path /Repos/test/glow
+
+5. Create a workflow using jobs,
+  - Azure GWAS tutorial
+  .. code-block:: sh
+  
+     databricks jobs create --json-file docs/dev/glow-gwas-tutorial-azure.json
+
+  - AWS GWAS tutorial
+  .. code-block:: sh
+  
+     databricks jobs create --json-file docs/dev/glow-gwas-tutorial-aws.json
+
+6. Take the job id that is returned, and run the job,
+
+.. code-block:: sh
+   
+   databricks jobs run-now --job-id <job id>
+
+7. Go to the Databricks web application and view the output of the job,
+
+.. image:: _static/images/glow_gwas_tutorial_run.png
+
+8. Epilogue
+
+The full set of notebooks in Glow undergo nightly integration testing orchestrated by CircleCI (`example output <https://app.circleci.com/pipelines/github/projectglow/glow/3050/workflows/c8a47149-2dae-406e-8e0c-cbaf21de715c/jobs/9424>`_) using the latest version of the Glow Docker container on Databricks. CircleCI kicks off these notebooks from the Databricks command line interface (CLI) via a python `script <https://github.com/projectglow/glow/blob/master/docs/dev/run-nb-test.py>`_, which contains the above steps. The workflow is defined in this configuration `json <https://github.com/projectglow/glow/blob/master/docs/dev/multitask-integration-test-config.json>`_ template. You can adapt these for your own production jobs.
+
+As you build out your pipelines please consider the following points,
+
+.. important::
+
+   - Start small. Experiment on individual variants, samples or chromosomes.
+   - Steps in your pipeline might require different cluster configurations.
+
+.. tip::
+
+   - Use compute-optimized virtual machines to read variant data from cloud object stores.
+   - Use Delta Cache accelerated virtual machines to query variant data.
+   - Use memory-optimized virtual machines for genetic association studies.
+   - The Glow Pipe Transformer supports parallelization of deep learning tools that run on GPUs.
 
 Getting started on other cloud services
 ---------------------------------------
@@ -102,4 +180,4 @@ Notebooks embedded in the docs
 
 Documentation pages are accompanied by embedded notebook examples. Most code in these notebooks can be run on Spark and Glow alone, but functions such as ``display()`` or ``dbutils()`` are only available on Databricks. See :ref:`dbnotebooks` for more info.
 
-These notebooks are located in the Glow github repository `here <https://github.com/projectglow/glow/blob/master/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/>`_ and are tested nightly end-to-end.  They include notebooks to define constants such as the number of samples to simulate and the output paths for each step in the pipeline. Notebooks that define constants are ``%run`` at the start of each notebook in the documentation. Please see :ref:`data_simulation` to get started.
+These notebooks are located in the Glow github repository `here <https://github.com/projectglow/glow/blob/master/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/>`_ and are tested nightly end-to-end. They include notebooks to define constants such as the number of samples to simulate and the output paths for each step in the pipeline. Notebooks that define constants are ``%run`` at the start of each notebook in the documentation. Please see :ref:`data_simulation` to get started.
