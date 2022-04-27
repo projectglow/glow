@@ -25,7 +25,7 @@ Troubleshooting
     involved a Spark version change, see the
     `Spark migration guide <https://spark.apache.org/docs/latest/migration-guide.html>`_.
 
-- `com.databricks.sql.io.FileReadException: Error while reading file`
+- ``com.databricks.sql.io.FileReadException: Error while reading file``
 
-  * Glow overrides the Spark Context, this can interfere with the checkpointing functionality in Delta Lake in a Databricks environment.
-    To resolve please reset the runtime configurations via ``spark.sql("RESET")`` and try again.
+  * When Glow is registered to access transform functions this also overrides the Spark Context. This can interfere with the checkpointing functionality in Delta Lake in a Databricks environment.
+    To resolve please reset the runtime configurations via ``spark.sql("RESET")`` after running Glow transform functions and before checkpointing to Delta Lake, then try again.
