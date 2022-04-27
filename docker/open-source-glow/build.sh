@@ -4,7 +4,7 @@
 # Usage: ./build.sh
 
 DOCKER_HUB="projectglow"
-GLOW_VERSION="1.1.2"
+GLOW_VERSION="1.2.1"
 
 # Add commands to build DBR 9.1 images below
 docker build -t "${DOCKER_HUB}/open-source-base:${GLOW_VERSION}" datamechanics/

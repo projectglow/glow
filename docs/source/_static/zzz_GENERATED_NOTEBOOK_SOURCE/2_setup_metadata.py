@@ -100,6 +100,7 @@ def log_metadata(datetime, n_samples, n_variants, n_covariates, n_binary_phenoty
   """
   log metadata about each step in the pipeline and append to delta lake table
   """
+  spark.sql("RESET") # resetting the runtime configurations specific to the current session is necessary to avoid `com.databricks.sql.io.FileReadException: Error while reading file`
   runtime = float("{:.2f}".format((end_time - start_time)))
   n_cores = lookup_cores(node_type_id, n_workers, node_to_core_mapping=node_to_core_mapping)
   l = [(datetime, n_samples, n_variants, n_covariates, n_binary_phenotypes, method, test, library, spark_version, node_type_id, n_workers, n_cores, runtime)]

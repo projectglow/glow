@@ -1,18 +1,18 @@
-FROM projectglow/open-source-genomics:1.1.2 AS genomics
+FROM projectglow/open-source-genomics:1.2.1 AS genomics
 LABEL author="Edoardo Giacopuzzi"
 LABEL contact="edoardo.giacopuzzi@fht.org"
-LABEL spark_version="3.1.2"
-LABEL hadoop_version="3.2.0"
+LABEL spark_version="3.2.1"
+LABEL hadoop_version="3.3.1"
 LABEL java_version="11"
 LABEL scala_version="2.12"
 LABEL deltalake_version="1.0.0"
-LABEL glowgr_version="spark3-1.1.2"
+LABEL glowgr_version="spark3-1.2.1"
 LABEL description="Spark with Glow support and glow.py"
 
 USER root
 WORKDIR /opt
 
-ENV GLOW_VERSION=1.1.2
+ENV GLOW_VERSION=1.2.1
 ENV SCALA_LOGGING_VERSION=3.7.2
 ENV PICARD_VERSION=2.23.3
 ENV HTSJDK_VERSION=2.21.2

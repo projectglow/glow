@@ -225,7 +225,7 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
     if gt_indices_to_drop is not None and gt_indices_to_drop.size:
         X = np.delete(X, gt_indices_to_drop, axis=0)
 
-    del genotype_pdf[_VALUES_COLUMN_NAME]
+    genotype_pdf.drop(_VALUES_COLUMN_NAME, axis=1, inplace=True)
     num_genotypes = genotype_pdf.shape[0]
     out_df = pd.concat([genotype_pdf] * Y_state.Y.shape[1])
     if verbose_output:

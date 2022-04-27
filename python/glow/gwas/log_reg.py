@@ -319,7 +319,7 @@ def _logistic_regression_inner(
     chisq = np.ravel(num / denom)
     p_values = stats.chi2.sf(chisq, 1)
 
-    del genotype_pdf[_VALUES_COLUMN_NAME]
+    genotype_pdf.drop(_VALUES_COLUMN_NAME, axis=1, inplace=True)
     out_df = pd.concat([genotype_pdf] * log_reg_state.Y_res.shape[1])
     out_df['chisq'] = list(np.ravel(chisq))
     out_df['pvalue'] = list(np.ravel(p_values))

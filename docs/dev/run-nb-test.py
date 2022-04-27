@@ -92,6 +92,7 @@ def main(cli_profile, workflow_definition, repos_path, repos_url, branch, docker
            print("|  Exiting due to internal error.  |")
            print("====================================")
            run_cli_cmd(cli_profile, 'repos', ['delete', '--path', repos_path + "glow"])
+           run_cli_cmd(cli_profile, 'workspace', ['delete', repos_path])
            sys.exit(1)
         if run_info['state']['life_cycle_state'] == 'TERMINATED':
             print(base_msg, run_info['state']['result_state'], run_info['run_page_url'], ")")
@@ -100,6 +101,7 @@ def main(cli_profile, workflow_definition, repos_path, repos_url, branch, docker
                 print("|    Some tasks failed.    |")
                 print("============================")
                 run_cli_cmd(cli_profile, 'repos', ['delete', '--path', repos_path + "glow"])
+                run_cli_cmd(cli_profile, 'workspace', ['delete', repos_path])
                 sys.exit(1)
             else:
                 if run_info['state']['result_state'] == 'SUCCESS':
@@ -107,6 +109,7 @@ def main(cli_profile, workflow_definition, repos_path, repos_url, branch, docker
                     print("|   All tasks succeeded!   |")
                     print("============================")
                     run_cli_cmd(cli_profile, 'repos', ['delete', '--path', repos_path + "glow"])
+                    run_cli_cmd(cli_profile, 'workspace', ['delete', repos_path])
                     sys.exit(0)
         else:
             print(base_msg, run_info['state']['state_message'], ")")

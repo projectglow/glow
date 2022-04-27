@@ -3,30 +3,29 @@ channels:
   - bioconda
   - conda-forge
 dependencies:
-  - python=3.7
+  - python=3.8.10
   - bedtools
   - click=7.1.1 # Docs notebook source generation
-  - jinja2=3.0.0
+  - jinja2=2.11.3
   - jupyterlab
   - nomkl # Skip MKL for local development
   - nptyping=1.3.0
-  - numpy=1.18.1
+  - numpy=1.20.1
   - opt_einsum>=3.2.0
-  - pandas=1.0.1
-  - pip
-  - py4j=0.10.9.2
-  - pyarrow=1.0.1
-  - pyspark=3.2.0
+  - pandas=1.2.4
+  - pip=21.0.1
+  - pyarrow=4.0.0
   - pytest
   - pyyaml
-  - scipy=1.4.1
-  - scikit-learn=0.22.1
+  - scipy=1.6.2
+  - scikit-learn=0.24.1
   - sphinx
   - sphinx_rtd_theme
-  - statsmodels
+  - statsmodels=0.12.2
   - typeguard=2.9.1
   - yapf=0.30.0
   - pip:
+    - pyspark==3.2.1
     - databricks-cli==0.16.4 # Docs notebook source generation
     - setuptools==52.0.0 # Python packaging
     - twine==2.0.0 # Pypi publishing

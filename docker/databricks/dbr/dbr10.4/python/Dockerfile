@@ -1,4 +1,4 @@
-FROM projectglow/minimal:9.1
+FROM projectglow/minimal:10.4
 
 # Suppress interactive configuration prompts
 ENV DEBIAN_FRONTEND=noninteractive

@@ -1,11 +1,11 @@
 # Images using this R layer also need Databricks' Python environment
-FROM projectglow/standard:9.1
+FROM projectglow/standard:10.4
 
 # Suppress interactive configuration prompts
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Set Databricks Run Time Version, This variable used to perform a runtime version check to see whether we can use notebook-scoped libraries in R.
-ENV DATABRICKS_RUNTIME_VERSION=9.1
+ENV DATABRICKS_RUNTIME_VERSION=10.4
 
 # update indices
 # add the signing key (by Michael Rutter) for these repos

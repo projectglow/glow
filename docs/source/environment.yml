@@ -14,7 +14,7 @@ dependencies:
   - statsmodels
   - typeguard=2.9.1
   - pip:
-      - hail==0.2.58
+      - hail==0.2.93
       - sphinx>=3.0.4
       - sphinx_rtd_theme
       - sphinx-autobuild

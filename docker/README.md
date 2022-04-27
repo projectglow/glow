@@ -2,9 +2,9 @@
 
 As of this time the following are supported: 
 
-* Glow 1.1.2 + connectors to Azure Data Lake, Google Cloud Storage, Amazon Web Services (S3), Snowflake and Delta Lake (via data mechanics' Spark Image) 
-* Glow 1.1.2 + Databricks Runtime (DBR) 9.1 (Spark 3.1) + Ganglia
-* Hail 0.2.78 + DBR 9.1 (Spark 3.1)
+* Glow 1.2.1 + connectors to Azure Data Lake, Google Cloud Storage, Amazon Web Services (S3), Snowflake and Delta Lake (via data mechanics' Spark 3.2 Image) 
+* Glow 1.2.1 + Databricks Runtime (DBR) 10.4 (Spark 3.2) + Ganglia
+* Hail 0.2.93 + DBR 10.4 (Spark 3.2)
 
 The containers are hosted on the [projectglow dockerhub](https://hub.docker.com/u/projectglow), 
 Please see the Glow [Getting Started](https://glow.readthedocs.io/en/latest/getting-started.html) guide for documentation on how to use the containers.
@@ -16,7 +16,7 @@ Please see the Glow [Getting Started](https://glow.readthedocs.io/en/latest/gett
 If you get the following error:
 
 ```
-failed to solve with frontend dockerfile.v0: failed to create LLB definition: docker.io/projectglow/minimal:9.1: not found
+failed to solve with frontend dockerfile.v0: failed to create LLB definition: docker.io/projectglow/minimal:10.4: not found
 ```
 
 please run this from the shell and try again:
@@ -30,6 +30,7 @@ Please see this [stack overflow post](https://stackoverflow.com/questions/642218
 
 Important: Docker builds may run out of memory, please increase
 Docker's default memory setting, which is 2.0 GB, via Docker Desktop -> Preferences -> Resources -> Advanced.
+Also, the build can take many hours, the limiting step is the installation of R packages.
 
 To learn more about contributing to these images, please review the Glow [contributing guide](https://glow.readthedocs.io/en/latest/contributing.html#add-libraries-to-the-glow-docker-environment)
 
@@ -58,11 +59,11 @@ to publish a layer, please push it to your docker repository:
 For example, to build and push the first foundational layer run,
 
 ##### ProjetGlow minimal 
-```cd dbr/dbr9.1```
+```cd dbr/dbr10.4```
 
-```docker build minimal/ -t projectglow/minimal:9.1```
+```docker build minimal/ -t projectglow/minimal:10.4```
 
-```docker push projectglow/minimal:9.1```
+```docker push projectglow/minimal:10.4```
 
 #### Directory structure
 ```
@@ -71,7 +72,7 @@ docker
 └── databricks
     ├── build.sh
     └── dbr
-        └── dbr9.1
+        └── dbr10.4
             ├── dbfsfuse
             │   └── Dockerfile
             ├── ganglia
@@ -119,7 +120,7 @@ For sanity's sake, we've written our own Dockerfiles for Python for Databricks. 
 
 One *must* predicate the runtime path for any images based on these Dockerfile as ```PATH=/databricks/python3/bin:$PATH```. This is required for any builds requiring Python. 
 
-The Python version used *must* be compatible with the Databricks Runtime (DBR) version. Python 3.7 is compatible with DBR 7.3 LTS; Python 3.8 is compatible with DBR 9.1; and so on. Please check the (https://docs.databricks.com/release-notes/runtime/releases.html)[Databricks Runtime Release Notes] for details on compatibility. 
+The Python version used *must* be compatible with the Databricks Runtime (DBR) version. Python 3.7 is compatible with DBR 7.3 LTS; Python 3.8 is compatible with DBR 10.4; and so on. Please check the (https://docs.databricks.com/release-notes/runtime/releases.html)[Databricks Runtime Release Notes] for details on compatibility. 
 
 ##### Scala dependencies
 
@@ -139,9 +140,4 @@ Write Databricks cluster init scripts to ```/databricks/scripts/```. When multip
 
 Review the Dockerfile and configurations in the ```ganglia``` directory to see how to deploy ganglia in a way that enables metrics collection on Databricks clusters using Container Services. 
 
-NOTE: ganglia is *not* officially supported on Databricks Container Services by Databricks. The ```ganglia``` docker image here is supported by the community on a *best efforts* basis, only. 
-
-
-
-
-
+NOTE: ganglia is *not* officially supported on Databricks Container Services by Databricks. The ```ganglia``` docker image here is supported by the community on a *best efforts* basis, only.

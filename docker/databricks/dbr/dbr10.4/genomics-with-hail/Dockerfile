@@ -1,11 +1,12 @@
 # ===== For the runtime environment for this image we need the databricks azure setup ==============
 
-FROM projectglow/genomics:9.1 AS builder
+FROM projectglow/genomics:10.4 AS builder
 
 # ===== Set up Hail ================================================================================
 
 # earliest Hail version supported by Spark3 is 0.2.67
-ENV HAIL_VERSION=0.2.85
+# note: this does not yet work with Spark 3.2.1, if you have trouble drop back to 0.2.85
+ENV HAIL_VERSION=0.2.93
  
 RUN apt-get update && apt-get install -y \
      openjdk-8-jre-headless \

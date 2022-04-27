@@ -10,15 +10,12 @@ import sbt.nio.Keys._
 lazy val scala212 = "2.12.8"
 lazy val scala211 = "2.11.12"
 
-lazy val spark3 = "3.2.0"
-lazy val spark2 = "2.4.5"
-lazy val hailSpark2 = "2.4.5"
+lazy val spark3 = "3.2.1"
 
 lazy val hailOnSpark3 = "0.2.89"
-lazy val hailOnSpark2 = "0.2.58"
 
 lazy val sparkVersion = settingKey[String]("sparkVersion")
-ThisBuild / sparkVersion := sys.env.getOrElse("SPARK_VERSION", spark2)
+ThisBuild / sparkVersion := sys.env.getOrElse("SPARK_VERSION", spark3)
 
 lazy val hailVersion = settingKey[String]("hailVersion")
 ThisBuild / hailVersion := sys.env.getOrElse("HAIL_VERSION", hailOnSpark3)
@@ -147,11 +144,10 @@ ThisBuild / testSparkDependencies := sparkDependencies.value.map(_ % "test")
 lazy val testCoreDependencies = settingKey[Seq[ModuleID]]("testCoreDependencies")
 ThisBuild / testCoreDependencies := Seq(
   (ThisBuild / sparkVersion).value match {
-    case `spark2` => "org.scalatest" %% "scalatest" % "3.0.3" % "test"
     case `spark3` => "org.scalatest" %% "scalatest" % "3.2.3" % "test"
     case _ =>
       throw new IllegalArgumentException(
-        "Only supported Spark versions are: " + Seq(spark2, spark3))
+        "Only supported Spark versions are: " + Seq(spark3))
   },
   "org.mockito" % "mockito-all" % "1.9.5" % "test",
   "org.apache.spark" %% "spark-catalyst" % sparkVersion.value % "test" classifier "tests",
@@ -170,7 +166,7 @@ ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDepe
   "org.jdbi" % "jdbi" % "2.63.1",
   "com.github.broadinstitute" % "picard" % "2.21.9",
   // Fix versions of libraries that are depended on multiple times
-  "org.apache.hadoop" % "hadoop-client" % "2.7.3",
+  "org.apache.hadoop" % "hadoop-client" % "3.3.1",
   "io.netty" % "netty" % "3.9.9.Final",
   "io.netty" % "netty-all" % "4.1.68.Final",
   "io.netty" % "netty-handler" % "4.1.68.Final",
@@ -397,11 +393,6 @@ import ReleaseTransformations._
 // Don't use sbt-release's cross facility
 releaseCrossBuild := false
 
-lazy val changePySparkVersion = taskKey[Unit]("changePySparkVersion ")
-changePySparkVersion := {
-  "conda remove -n glow pyspark" !; s"conda install -n glow pyspark=$spark2" !
-}
-
 lazy val updateCondaEnv = taskKey[Unit]("Update Glow Env To Latest Version")
 updateCondaEnv := {
   "conda env update -f python/environment.yml" !
@@ -410,8 +401,6 @@ updateCondaEnv := {
 def crossReleaseStep(step: ReleaseStep, requiresPySpark: Boolean, requiresHail: Boolean): Seq[ReleaseStep] = {
   val updateCondaEnvStep = releaseStepCommandAndRemaining(
     if (requiresPySpark) "updateCondaEnv" else "")
-  val changePySparkVersionStep = releaseStepCommandAndRemaining(
-    if (requiresPySpark) "changePySparkVersion" else "")
   val installHailStep = releaseStepCommandAndRemaining(if (requiresHail) "installHail" else "")
   val uninstallHailStep = releaseStepCommandAndRemaining(if (requiresHail) "uninstallHail" else "")
 
@@ -420,17 +409,6 @@ def crossReleaseStep(step: ReleaseStep, requiresPySpark: Boolean, requiresHail: 
     releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark3""""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / hailVersion := "$hailOnSpark3""""),
-    installHailStep,
-    step,
-    uninstallHailStep,
-    changePySparkVersionStep,
-    releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark2""""),
-    releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala211""""),
-    releaseStepCommandAndRemaining(s"""set ThisBuild / hailVersion := "$hailOnSpark2""""),
-    installHailStep,
-    step,
-    uninstallHailStep,
-    releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
     installHailStep,
     step,
     uninstallHailStep,
@@ -447,16 +425,17 @@ releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,
   inquireVersions,
   runClean
-) ++ crossReleaseStep(releaseStepCommandAndRemaining("core/test"), requiresPySpark = false, requiresHail = false) ++
-  crossReleaseStep(releaseStepCommandAndRemaining("python/test"), requiresPySpark = true, requiresHail = false) ++
-  crossReleaseStep(
-    releaseStepCommandAndRemaining("docs/test"),
-    requiresPySpark = true,
-    requiresHail = false) ++
-  crossReleaseStep(
-    releaseStepCommandAndRemaining("hail/test"),
-    requiresPySpark = true,
-    requiresHail = true) ++
+ ) ++ crossReleaseStep(releaseStepCommandAndRemaining("core/test"), requiresPySpark = false, requiresHail = false) ++
+// commenting out for Spark 3.2 release until hail is on spark 3.2
+//  crossReleaseStep(releaseStepCommandAndRemaining("python/test"), requiresPySpark = true, requiresHail = false) ++
+//  crossReleaseStep(
+//    releaseStepCommandAndRemaining("docs/test"),
+//    requiresPySpark = true,
+//    requiresHail = false) ++
+//  crossReleaseStep(
+//    releaseStepCommandAndRemaining("hail/test"),
+//    requiresPySpark = true,
+//    requiresHail = true) ++
   Seq(
     setReleaseVersion,
     updateStableVersion,
