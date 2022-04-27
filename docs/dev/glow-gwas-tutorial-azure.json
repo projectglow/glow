@@ -1,0 +1,115 @@
+{
+        "name": "glow_gwas_tutorial",
+        "email_notifications": {
+            "no_alert_for_skipped_runs": false
+        },
+        "timeout_seconds": 0,
+        "max_concurrent_runs": 1,
+        "tasks": [
+            {
+                "task_key": "simulate_covariates_phenotypes",
+                "depends_on": [
+                    {
+                        "task_key": "download_1000G"
+                    }
+                ],
+                "notebook_task": {
+                    "notebook_path": "/Repos/test/glow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/etl/1_simulate_covariates_phenotypes_offset"
+                },
+                "job_cluster_key": "glow_gwas_tutorial_cluster",
+                "timeout_seconds": 0,
+                "email_notifications": {},
+                "description": ""
+            },
+            {
+                "task_key": "simulate_genotypes",
+                "depends_on": [
+                    {
+                        "task_key": "simulate_covariates_phenotypes"
+                    }
+                ],
+                "notebook_task": {
+                    "notebook_path": "/Repos/test/glow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/etl/2_simulate_delta_pvcf"
+                },
+                "job_cluster_key": "glow_gwas_tutorial_cluster",
+                "timeout_seconds": 0,
+                "email_notifications": {}
+            },
+            {
+                "task_key": "quality_control",
+                "depends_on": [
+                    {
+                        "task_key": "simulate_genotypes"
+                    }
+                ],
+                "notebook_task": {
+                    "notebook_path": "/Repos/test/glow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/tertiary/1_quality_control"
+                },
+                "job_cluster_key": "glow_gwas_tutorial_cluster",
+                "timeout_seconds": 0,
+                "email_notifications": {}
+            },
+            {
+                "task_key": "quantitative_glowgr",
+                "depends_on": [
+                    {
+                        "task_key": "quality_control"
+                    }
+                ],
+                "notebook_task": {
+                    "notebook_path": "/Repos/test/glow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/tertiary/2_quantitative_glowgr"
+                },
+                "job_cluster_key": "glow_gwas_tutorial_cluster",
+                "timeout_seconds": 0,
+                "email_notifications": {}
+            },
+            {
+                "task_key": "linear_gwas_glow",
+                "depends_on": [
+                    {
+                        "task_key": "quantitative_glowgr"
+                    }
+                ],
+                "notebook_task": {
+                    "notebook_path": "/Repos/test/glow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/tertiary/3_linear_gwas_glow"
+                },
+                "job_cluster_key": "glow_gwas_tutorial_cluster",
+                "timeout_seconds": 0,
+                "email_notifications": {}
+            },
+            {
+                "task_key": "download_1000G",
+                "notebook_task": {
+                    "notebook_path": "/Repos/test/glow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/etl/data/download_1000G"
+                },
+                "job_cluster_key": "glow_gwas_tutorial_cluster",
+                "timeout_seconds": 0,
+                "email_notifications": {}
+            }
+        ],
+        "job_clusters": [
+            {
+                "job_cluster_key": "glow_gwas_tutorial_cluster",
+                "new_cluster": {
+                    "cluster_name": "",
+                    "spark_version": "10.4.x-scala2.12",
+                    "spark_conf": {
+                        "spark.databricks.delta.preview.enabled": "true"
+                    },
+                    "node_type_id": "Standard_DS3_v2",
+                    "enable_elastic_disk": true,
+                    "docker_image": {
+                        "url": "projectglow/databricks-glow:1.2.1"
+                    },
+                    "azure_attributes": {
+                        "first_on_demand": 1,
+                        "availability": "SPOT_WITH_FALLBACK_AZURE",
+                        "spot_bid_max_price": -1
+                    },
+                    "data_security_mode": "NONE",
+                    "num_workers": 2
+                }
+            }
+        ],
+        "format": "MULTI_TASK"
+}
