@@ -9,11 +9,7 @@
 # MAGIC %md
 # MAGIC ### Environment setup
 # MAGIC 
-# MAGIC The [Glow Docker Container](https://hub.docker.com/r/projectglow/databricks-glow) contains bcftools preinstalled
-# MAGIC 
-# MAGIC Please use [Databricks Container Services](https://docs.databricks.com/clusters/custom-containers.html) with `projectglow/databricks-glow:<tag>`, 
-# MAGIC 
-# MAGIC replacing the `<tag>` with either `latest` or the specific version of the glow container you require
+# MAGIC The [Glow Docker Container](https://github.com/projectglow/glow/blob/master/docker/databricks/dbr/dbr10.4/genomics/Dockerfile) contains bcftools preinstalled
 
 # COMMAND ----------
 
