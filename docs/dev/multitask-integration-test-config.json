@@ -73,20 +73,6 @@
             {
                 "job_cluster_key": "glow_integration_test",
                 "notebook_task": {
-                    "notebook_path": "%(repos_path)sglow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/tertiary/parallel_bcftools_filter"
-                },
-                "timeout_seconds": 0,
-                "email_notifications": {},
-                "task_key": "parallel_bcftools_filter",
-                "depends_on": [
-                    {
-                        "task_key": "pipe_transformer_plink"
-                    }
-                ]
-            },
-            {
-                "job_cluster_key": "glow_integration_test",
-                "notebook_task": {
                     "notebook_path": "%(repos_path)sglow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/etl/10_liftOver"
                 },
                 "timeout_seconds": 0,
@@ -95,6 +81,20 @@
                 "depends_on": [
                     {
                         "task_key": "delta_to_vcf"
+                    }
+                ]
+            },
+            {
+                "job_cluster_key": "glow_integration_test",
+                "notebook_task": {
+                    "notebook_path": "%(repos_path)sglow/docs/source/_static/zzz_GENERATED_NOTEBOOK_SOURCE/tertiary/parallel_bcftools_filter"
+                },
+                "timeout_seconds": 0,
+                "email_notifications": {},
+                "task_key": "parallel_bcftools_filter",
+                "depends_on": [
+                    {
+                        "task_key": "liftOver"
                     }
                 ]
             },

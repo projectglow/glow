@@ -80,7 +80,7 @@ Getting started on Databricks
 Databricks makes it simple to run Glow on Amazon Web Services (AWS), Microsoft Azure, and Google Cloud Platform (GCP). 
 
 To spin up a cluster with Glow, please use the `Databricks Glow docker container <https://hub.docker.com/r/projectglow/databricks-glow>`_ to manage the environment. 
-This container includes `genomics libraries <https://github.com/projectglow/glow/blob/master/docker/databricks/dbr/dbr9.1/genomics/Dockerfile>`_ that complement Glow.
+This container includes `genomics libraries <https://github.com/projectglow/glow/blob/master/docker/databricks/dbr/dbr10.4/genomics/Dockerfile>`_ that complement Glow.
 This container can be installed via Databricks container services. 
 
 Here is how to set it up on the Databricks web application,
