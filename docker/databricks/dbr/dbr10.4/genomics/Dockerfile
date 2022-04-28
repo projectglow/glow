@@ -76,12 +76,12 @@ RUN git checkout 10932fab1e9c113e8e5d317e1f668413390344ac && \
 
 # ===== Set up samtools ============================================================================
 
-ENV SAMTOOLS_VERSION=1.9
+ENV SAMTOOLS_VERSION=1.15.1
 
 WORKDIR /opt
 RUN wget https://github.com/samtools/samtools/releases/download/${SAMTOOLS_VERSION}/samtools-${SAMTOOLS_VERSION}.tar.bz2 && \
-    tar -xjf samtools-1.9.tar.bz2
-WORKDIR samtools-1.9
+    tar -xjf samtools-${SAMTOOLS_VERSION}.tar.bz2
+WORKDIR samtools-${SAMTOOLS_VERSION}
 RUN ./configure && \
     make && \
     make install
@@ -92,13 +92,26 @@ ENV PATH=${DEST_DIR}/samtools-{$SAMTOOLS_VERSION}:$PATH
 # ===== Set up htslib ==============================================================================
 # access htslib tools from the shell, for example,
 # %sh 
-# /opt/htslib-1.9/tabix
-# /opt/htslib-1.9/bgzip
+# /opt/htslib-${SAMTOOLS_VERSION}/tabix
+# /opt/htslib-${SAMTOOLS_VERSION}/bgzip
 
 WORKDIR /opt
 RUN wget https://github.com/samtools/htslib/releases/download/${SAMTOOLS_VERSION}/htslib-${SAMTOOLS_VERSION}.tar.bz2 && \
-    tar -xjvf htslib-1.9.tar.bz2
-WORKDIR htslib-1.9
+    tar -xjvf htslib-${SAMTOOLS_VERSION}.tar.bz2
+WORKDIR htslib-${SAMTOOLS_VERSION}
+RUN ./configure && \
+    make && \
+    make install
+
+# ===== Set up bcftools ==============================================================================
+# to access bcftools from the shell
+# %sh
+# /opt/bcftools-${SAMTOOLS_VERSION}/bcftools
+
+WORKDIR /opt
+RUN wget https://github.com/samtools/bcftools/releases/download/${SAMTOOLS_VERSION}/bcftools-${SAMTOOLS_VERSION}.tar.bz2 && \
+    tar -xjvf bcftools-${SAMTOOLS_VERSION}.tar.bz2
+WORKDIR bcftools-${SAMTOOLS_VERSION}
 RUN ./configure && \
     make && \
     make install

@@ -1,8 +1,8 @@
 .. _pipe-transformer:
 
-=========================================================================
-Parallelizing Command-Line Bioinformatics Tools With the Pipe Transformer
-=========================================================================
+========================================================================
+The Pipe Transformer for Parallelizing Command-Line Bioinformatics Tools
+========================================================================
 
 .. invisible-code-block: python
 
