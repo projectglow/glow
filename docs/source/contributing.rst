@@ -122,7 +122,7 @@ Please edit glow `docker files <https://github.com/projectglow/glow/blob/master/
 Only include libraries that are used directly upstream or downstream of glow, or used with the glow :ref:`pipe transformer <pipe-transformer>`.
 
 1. Setup a dockerhub account
-2. Edit the `genomics docker file <https://github.com/projectglow/glow/blob/master/docker/databricks/dbr/dbr9.1/genomics/Dockerfile>`_ on your fork 
+2. Edit the `genomics docker file <https://github.com/projectglow/glow/blob/master/docker/databricks/dbr/dbr10.4/genomics/Dockerfile>`_ on your fork 
 
   - This file contains command line tools, Python and R packages
 
