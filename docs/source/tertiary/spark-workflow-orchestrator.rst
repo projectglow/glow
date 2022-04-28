@@ -10,6 +10,15 @@ These rows will then be sent out to available cores of the cluster and the tasks
 
 This is similar to submitting jobs to an high performance compute (HPC) cluster. Or applying multithreading across a single node.
 
+When to use workflow orchestrator vs pipe transformer architecture
+==================================================================
+
+The pipe transformer is designed for embarrassingly parallel processing of individual large datasets, where each row of the dataset is processed in an identical way.
+The pipe transformer supports ``VCF`` and ``txt``, and ``csv`` formats, but does not support bioinformatics tools that depend on ``Plink``, ``BGEN`` or other specialized file formats.
+Furthermore, the pipe transformer is not designed for parallel processing of distinct samples or regions of the genome. Nor does it offer the flexibility to apply different parameters to those samples or regions.
+
+In these circumstances we recommend using Spark as a workflow orchestrator. This approach is efficient and flexible at parallelizing HPC and multithreaded workloads.
+
 .. tip::
    Spark offers these advantages over multithreading / multiprocessing,
    
@@ -29,19 +38,9 @@ This is similar to submitting jobs to an high performance compute (HPC) cluster.
    - bioinformatics tools must be installed on each node of the cluster
       - The best practice is to manage the environment using `Glow Docker Containers <https://github.com/projectglow/glow/tree/master/docker>`_
 
-When to use workflow orchestrator vs pipe transformer architecture
-==================================================================
 
-The pipe transformer is designed for embarrassingly parallel processing of individual large datasets, where each row of the dataset is processed in an identical way.
-The pipe transformer supports ``VCF`` and ``txt``, and ``csv`` formats, but does not support bioinformatics tools that depend on ``Plink``, ``BGEN`` or other specialized file formats.
-Furthermore, the pipe transformer is not designed for parallel processing of distinct samples or regions of the genome. Nor does it offer the flexibility to apply different parameters to those samples or regions.
-
-In these circumstances we recommend using Spark as a workflow orchestrator. This approach is efficient and flexible at parallelizing. It can be a drop-in replacement for HPC or multithreaded workloads.
-
-Examples
-========
-
-The following notebooks showcase how to use Spark to parallelize across samples and regions, using bcftools (vcf filtering) and ldpred2 (polygenic risk scoring) as examples
+Example
+=======
 
 .. notebook:: .. tertiary/parallel_bcftools_filter.html
   :title: Use Spark as a workflow orchestrator to parallelize across samples
