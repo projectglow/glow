@@ -9,12 +9,15 @@ RUN apt-get update \
     python3.8 \
     virtualenv \
     git-all \
+<<<<<<< HEAD
     make \
     automake \
     gcc \
     g++ \
     subversion \
     python3-dev \
+=======
+>>>>>>> 6908c68 (Add 9.1 LTS Dockerfiles to Databricks tree)
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
