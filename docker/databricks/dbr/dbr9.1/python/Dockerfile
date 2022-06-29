@@ -25,7 +25,12 @@ RUN apt-get update \
 >>>>>>> 6908c68 (Add 9.1 LTS Dockerfiles to Databricks tree)
 =======
 >>>>>>> f6791fc (Fetch upstream)
+<<<<<<< HEAD
 >>>>>>> 41ae0b9 (Fetch upstream)
+=======
+=======
+>>>>>>> 6908c68 (Add 9.1 LTS Dockerfiles to Databricks tree)
+>>>>>>> da1067b (Add 9.1 LTS Dockerfiles to Databricks tree)
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
