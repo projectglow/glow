@@ -181,6 +181,7 @@ jobs:
             sbt docs/test exit
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
       # - run:
       #     name: Run Hail on Spark3 tests
@@ -195,6 +196,8 @@ jobs:
       #       sbt installHail hail/test uninstallHail exit
 >>>>>>> b6c79ff (Increase timeout for docs tests)
 =======
+=======
+>>>>>>> 917882d (Increase timeout for docs tests)
       - run:
           name: Run Hail on Spark3 tests
           environment:
@@ -206,7 +209,23 @@ jobs:
             sudo apt-get update
             sudo apt-get -y install rsync
             sbt installHail uninstallHail exit
+<<<<<<< HEAD
 >>>>>>> b0b5f14 (Temporarily disable Hail tests on Spark 3.2.1)
+=======
+=======
+      # - run:
+      #     name: Run Hail on Spark3 tests
+      #     environment:
+      #     command: |
+      #       export PATH=$HOME/conda/envs/glow/bin:$HOME/conda/bin:$PATH
+      #       export SPARK_VERSION="3.2.1"
+      #       export SCALA_VERSION="2.12.8"
+      #       export HAIL_VERSION="0.2.89"
+      #       sudo apt-get update
+      #       sudo apt-get -y install rsync
+      #       sbt installHail hail/test uninstallHail exit
+>>>>>>> b6c79ff (Increase timeout for docs tests)
+>>>>>>> 917882d (Increase timeout for docs tests)
       - run:
           name: Run Python tests
           no_output_timeout: 90m
