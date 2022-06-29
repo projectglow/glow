@@ -5,10 +5,15 @@
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 DOCKER_REPOSITORY="projectglow"
 =======
 =======
 >>>>>>> 41ae0b9 (Fetch upstream)
+=======
+=======
+>>>>>>> c92fa4e (Update build.sh to build 9.1 LTS and 10.4 LTS containers)
+>>>>>>> 2e2be37 (Update build.sh to build 9.1 LTS and 10.4 LTS containers)
 DATABRICKS_RUNTIME_VERSION="9.1"
 GLOW_VERSION="1.1.2"
 HAIL_VERSION="0.2.85"
@@ -65,8 +70,11 @@ docker push "${DOCKER_HUB}/databricks-glow:${DATABRICKS_RUNTIME_VERSION}"
 
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 >>>>>>> c92fa4e (Update build.sh to build 9.1 LTS and 10.4 LTS containers)
 =======
+=======
+>>>>>>> 2e2be37 (Update build.sh to build 9.1 LTS and 10.4 LTS containers)
 =======
 DOCKER_REPOSITORY="projectglow"
 
@@ -87,6 +95,11 @@ docker push "${DOCKER_REPOSITORY}/databricks-hail:0.2.78"
 docker push "${DOCKER_REPOSITORY}/databricks-glow:1.1.2"
 docker push "${DOCKER_REPOSITORY}/databricks-glow:9.1"
 >>>>>>> f6791fc (Fetch upstream)
+<<<<<<< HEAD
 >>>>>>> 41ae0b9 (Fetch upstream)
+=======
+=======
+>>>>>>> c92fa4e (Update build.sh to build 9.1 LTS and 10.4 LTS containers)
+>>>>>>> 2e2be37 (Update build.sh to build 9.1 LTS and 10.4 LTS containers)
 
 
