@@ -14,15 +14,23 @@ ENV DATABRICKS_RUNTIME_VERSION=9.1
 # https://cran.rstudio.com/bin/linux/ubuntu/#secure-apt
 RUN apt update -qq \
   && apt-get install --yes \
+<<<<<<< HEAD
     apt-utils \
     software-properties-common \
     apt-transport-https \
+=======
+    software-properties-common \
+>>>>>>> 6908c68 (Add 9.1 LTS Dockerfiles to Databricks tree)
     dirmngr \
     libssl-dev \
     r-base \
     r-base-dev \
   && wget -qO- https://cloud.r-project.org/bin/linux/ubuntu/marutter_pubkey.asc | sudo tee -a /etc/apt/trusted.gpg.d/cran_ubuntu_key.asc \
+<<<<<<< HEAD
   && add-apt-repository "deb [arch=amd64,i386] https://cloud.r-project.org/bin/linux/ubuntu focal-cran40/" \
+=======
+  && add-apt-repository "deb https://cloud.r-project.org/bin/linux/ubuntu focal-cran40/" \
+>>>>>>> 6908c68 (Add 9.1 LTS Dockerfiles to Databricks tree)
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
@@ -42,6 +50,7 @@ COPY Rprofile.site /usr/lib/R/etc/Rprofile.site
 
 # Rstudio installation.
 RUN apt-get update \
+<<<<<<< HEAD
  # Installation of rstudio in databricks needs /usr/bin/python and gdebi-core.
  && apt-get install -y \
     python \
@@ -54,3 +63,14 @@ RUN apt-get update \
  && gdebi rstudio-server.deb \
  && rm rstudio-server.deb \
  && rstudio-server restart || true
+=======
+ # Installation of rstudio in databricks needs /usr/bin/python.
+ && apt-get install -y python \
+ # Install gdebi-core.
+ && apt-get install -y gdebi-core \
+ # Download rstudio 1.2 package for ubuntu 18.04 and install it.
+ && apt-get install -y wget \
+ && wget https://download2.rstudio.org/server/bionic/amd64/rstudio-server-1.2.5042-amd64.deb -O rstudio-server.deb \
+ && gdebi -n rstudio-server.deb \
+ && rm rstudio-server.deb
+>>>>>>> 6908c68 (Add 9.1 LTS Dockerfiles to Databricks tree)
