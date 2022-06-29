@@ -18,6 +18,7 @@ RUN apt-get install -y \
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
     gnupg \
     tzdata
 =======
@@ -28,6 +29,8 @@ RUN apt-get install -y \
 >>>>>>> c31a33f (Rebase to upstream 2022-Feb-15)
 =======
 >>>>>>> f3a4d2a (Rebase to projectglow/glow:master)
+=======
+>>>>>>> da1067b (Add 9.1 LTS Dockerfiles to Databricks tree)
     gnupg
 =======
     gnupg \
@@ -46,7 +49,13 @@ RUN apt-get install -y \
     gnupg \
     tzdata
 >>>>>>> 656916d (Rebase to projectglow/glow:master)
+<<<<<<< HEAD
 >>>>>>> f3a4d2a (Rebase to projectglow/glow:master)
+=======
+=======
+    gnupg
+>>>>>>> 6908c68 (Add 9.1 LTS Dockerfiles to Databricks tree)
+>>>>>>> da1067b (Add 9.1 LTS Dockerfiles to Databricks tree)
 
 RUN curl -sL https://aka.ms/InstallAzureCLIDeb | bash
 
@@ -83,19 +92,26 @@ RUN apt-get update && apt-get install -y \
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 <<<<<<< HEAD
 =======
 >>>>>>> 41ae0b9 (Fetch upstream)
 =======
 >>>>>>> 6665a52 (Rebase to upstream 2022-Feb-15)
+<<<<<<< HEAD
 >>>>>>> c31a33f (Rebase to upstream 2022-Feb-15)
+=======
+=======
+>>>>>>> 6908c68 (Add 9.1 LTS Dockerfiles to Databricks tree)
+>>>>>>> da1067b (Add 9.1 LTS Dockerfiles to Databricks tree)
 # ===== Set up R genomics packages =================================================================
 
 RUN R -e "install.packages('sim1000G',dependencies=TRUE,repos='https://cran.rstudio.com')"\
  && R -e "install.packages('ukbtools',dependencies=TRUE,repos='https://cran.rstudio.com')"\
  && R -e "install.packages('qqman',dependencies=TRUE,repos='http://cran.us.r-project.org')"\
  && R -e "install.packages('bigsnpr',dependencies=TRUE,repos='http://cran.us.r-project.org')"
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 >>>>>>> 6908c68 (Add 9.1 LTS Dockerfiles to Databricks tree)
@@ -105,6 +121,8 @@ RUN R -e "install.packages('sim1000G',dependencies=TRUE,repos='https://cran.rstu
 >>>>>>> 41ae0b9 (Fetch upstream)
 =======
 =======
+>>>>>>> da1067b (Add 9.1 LTS Dockerfiles to Databricks tree)
+=======
 >>>>>>> f6791fc (Fetch upstream)
 =======
 >>>>>>> 6665a52 (Rebase to upstream 2022-Feb-15)
@@ -113,7 +131,12 @@ RUN R -e "install.packages('sim1000G',dependencies=TRUE,repos='https://cran.rstu
 =======
 =======
 >>>>>>> 656916d (Rebase to projectglow/glow:master)
+<<<<<<< HEAD
 >>>>>>> f3a4d2a (Rebase to projectglow/glow:master)
+=======
+=======
+>>>>>>> 6908c68 (Add 9.1 LTS Dockerfiles to Databricks tree)
+>>>>>>> da1067b (Add 9.1 LTS Dockerfiles to Databricks tree)
 
 # ===== Set up VEP environment =====================================================================
 
@@ -169,7 +192,12 @@ ENV PATH=${DEST_DIR}/samtools-{$SAMTOOLS_VERSION}:$PATH
 >>>>>>> 6908c68 (Add 9.1 LTS Dockerfiles to Databricks tree)
 =======
 >>>>>>> f6791fc (Fetch upstream)
+<<<<<<< HEAD
 >>>>>>> 41ae0b9 (Fetch upstream)
+=======
+=======
+>>>>>>> 6908c68 (Add 9.1 LTS Dockerfiles to Databricks tree)
+>>>>>>> da1067b (Add 9.1 LTS Dockerfiles to Databricks tree)
 
 WORKDIR /opt
 RUN wget https://github.com/samtools/htslib/releases/download/${SAMTOOLS_VERSION}/htslib-${SAMTOOLS_VERSION}.tar.bz2 && \
@@ -210,12 +238,18 @@ RUN CXX=/usr/bin/g++ && \
 >>>>>>> 6908c68 (Add 9.1 LTS Dockerfiles to Databricks tree)
 =======
 >>>>>>> f6791fc (Fetch upstream)
+<<<<<<< HEAD
 >>>>>>> 41ae0b9 (Fetch upstream)
+=======
+=======
+>>>>>>> 6908c68 (Add 9.1 LTS Dockerfiles to Databricks tree)
+>>>>>>> da1067b (Add 9.1 LTS Dockerfiles to Databricks tree)
 # ===== Set up MLR dependencies ====================================================================
 
 ENV QQMAN_VERSION=1.0.6
 RUN /databricks/python3/bin/pip install qqman==$QQMAN_VERSION
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -252,7 +286,12 @@ RUN R -e "install.packages('sim1000G',dependencies=TRUE,repos='https://cran.rstu
 =======
 =======
 >>>>>>> 656916d (Rebase to projectglow/glow:master)
+<<<<<<< HEAD
 >>>>>>> f3a4d2a (Rebase to projectglow/glow:master)
+=======
+=======
+>>>>>>> 6908c68 (Add 9.1 LTS Dockerfiles to Databricks tree)
+>>>>>>> da1067b (Add 9.1 LTS Dockerfiles to Databricks tree)
 # ===== Reset current directory ====================================================================
 
 WORKDIR /root 
