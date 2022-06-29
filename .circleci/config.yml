@@ -169,11 +169,30 @@ jobs:
             sbt core/test exit
       - run:
           name: Run docs tests
+<<<<<<< HEAD
           no_output_timeout: 120m
+=======
+          no_output_timeout: 60m
+          environment:
+>>>>>>> b6c79ff (Increase timeout for docs tests)
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             pip install pyspark==3.4.1
             sbt docs/test exit
+<<<<<<< HEAD
+=======
+      # - run:
+      #     name: Run Hail on Spark3 tests
+      #     environment:
+      #     command: |
+      #       export PATH=$HOME/conda/envs/glow/bin:$HOME/conda/bin:$PATH
+      #       export SPARK_VERSION="3.2.1"
+      #       export SCALA_VERSION="2.12.8"
+      #       export HAIL_VERSION="0.2.89"
+      #       sudo apt-get update
+      #       sudo apt-get -y install rsync
+      #       sbt installHail hail/test uninstallHail exit
+>>>>>>> b6c79ff (Increase timeout for docs tests)
       - run:
           name: Run Python tests
           no_output_timeout: 90m
