@@ -2,7 +2,7 @@ setup_xl_base: &setup_xl_base
   working_directory: ~/glow
   docker:
     - image: cimg/openjdk:8.0.322
-  resource_class: xlarge
+  resource_class: 2xlarge
 
 setup_m_base: &setup_m_base
   working_directory: ~/glow
@@ -116,7 +116,7 @@ jobs:
             sbt core/test exit
       - run:
           name: Run docs tests
-          no_output_timeout: 30m
+          no_output_timeout: 120m
           environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
@@ -133,7 +133,7 @@ jobs:
             export HAIL_VERSION="0.2.89"
             sudo apt-get update
             sudo apt-get -y install rsync
-            sbt installHail hail/test uninstallHail exit
+            sbt installHail uninstallHail exit
       - run:
           name: Run Python tests
           no_output_timeout: 90m
