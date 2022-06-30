@@ -98,7 +98,7 @@ Here is how to set it up on the Databricks web application,
 3. Sync the Glow notebooks via Repos
 
    #. Fork the `Glow github repo <https://github.com/projectglow/glow>`_.
-   #. Clone your fork to your Databricks workspace using Repos (step-by-step `guide <https://docs.databricks.com/repos/index.html#clone-a-remote-git-repository>`_).
+   #. Clone your fork to your Databricks workspace using Repos (step-by-step `guide <https://docs.databricks.com/repos/sync-remote-repo.html>`_).
    #. The notebooks are located under ``docs/source/_static``.
 
 .. image:: _static/images/glow-repo-notebooks.png
