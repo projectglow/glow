@@ -11,7 +11,9 @@ RUN /databricks/python3/bin/pip install awscli databricks-cli --no-cache-dir
 
 # ===== Set up Azure CLI =====
 
-RUN apt-get install -y \
+RUN apt-get update \
+    && apt-get -y upgrade \
+    && apt-get install -y \
     curl \
     lsb-release \
     gnupg \
@@ -74,19 +76,31 @@ RUN git checkout 10932fab1e9c113e8e5d317e1f668413390344ac && \
     perl INSTALL.pl -n -a p --PLUGINS AncestralAllele && \
     chmod +x vep
 
+# ===== Set up gatk ================================================================================
+
+ENV DEST_DIR=/opt/
+
+ENV GATK_VERSION=4.2.6.1
+
+WORKDIR /opt
+RUN wget https://github.com/broadinstitute/gatk/releases/download/${GATK_VERSION}/gatk-${GATK_VERSION}.zip --no-check-certificate && \
+    unzip gatk-${GATK_VERSION}.zip
+
+ENV PATH=${DEST_DIR}/gatk-${GATK_VERSION}:$PATH
+
 # ===== Set up samtools ============================================================================
 
 ENV SAMTOOLS_VERSION=1.15.1
 
 WORKDIR /opt
-RUN wget https://github.com/samtools/samtools/releases/download/${SAMTOOLS_VERSION}/samtools-${SAMTOOLS_VERSION}.tar.bz2 && \
+RUN wget https://github.com/samtools/samtools/releases/download/${SAMTOOLS_VERSION}/samtools-${SAMTOOLS_VERSION}.tar.bz2 --no-check-certificate && \
     tar -xjf samtools-${SAMTOOLS_VERSION}.tar.bz2
 WORKDIR samtools-${SAMTOOLS_VERSION}
 RUN ./configure && \
     make && \
     make install
 
-ENV PATH=${DEST_DIR}/samtools-{$SAMTOOLS_VERSION}:$PATH
+ENV PATH=${DEST_DIR}/samtools-${SAMTOOLS_VERSION}:$PATH
 
 
 # ===== Set up htslib ==============================================================================
@@ -96,12 +110,14 @@ ENV PATH=${DEST_DIR}/samtools-{$SAMTOOLS_VERSION}:$PATH
 # /opt/htslib-${SAMTOOLS_VERSION}/bgzip
 
 WORKDIR /opt
-RUN wget https://github.com/samtools/htslib/releases/download/${SAMTOOLS_VERSION}/htslib-${SAMTOOLS_VERSION}.tar.bz2 && \
+RUN wget https://github.com/samtools/htslib/releases/download/${SAMTOOLS_VERSION}/htslib-${SAMTOOLS_VERSION}.tar.bz2 --no-check-certificate && \
     tar -xjvf htslib-${SAMTOOLS_VERSION}.tar.bz2
 WORKDIR htslib-${SAMTOOLS_VERSION}
 RUN ./configure && \
     make && \
     make install
+
+ENV PATH=${DEST_DIR}/htslib-${SAMTOOLS_VERSION}:$PATH
 
 # ===== Set up bcftools ==============================================================================
 # to access bcftools from the shell
@@ -109,12 +125,14 @@ RUN ./configure && \
 # /opt/bcftools-${SAMTOOLS_VERSION}/bcftools
 
 WORKDIR /opt
-RUN wget https://github.com/samtools/bcftools/releases/download/${SAMTOOLS_VERSION}/bcftools-${SAMTOOLS_VERSION}.tar.bz2 && \
+RUN wget https://github.com/samtools/bcftools/releases/download/${SAMTOOLS_VERSION}/bcftools-${SAMTOOLS_VERSION}.tar.bz2 --no-check-certificate && \
     tar -xjvf bcftools-${SAMTOOLS_VERSION}.tar.bz2
 WORKDIR bcftools-${SAMTOOLS_VERSION}
 RUN ./configure && \
     make && \
     make install
+
+ENV PATH=${DEST_DIR}/bcftools-${SAMTOOLS_VERSION}:$PATH
 
 # ===== bgenix ==============================================================================
 #access begenix from the shell from,
@@ -159,9 +177,9 @@ RUN R -e "install.packages('sim1000G',dependencies=TRUE,repos='https://cran.rstu
 #/opt/plink --noweb
 
 WORKDIR /opt
-RUN wget http://zzz.bwh.harvard.edu/plink/dist/plink-1.07-x86_64.zip && \
+RUN wget http://zzz.bwh.harvard.edu/plink/dist/plink-1.07-x86_64.zip --no-check-certificate && \
     unzip plink-1.07-x86_64.zip
-RUN wget http://s3.amazonaws.com/plink1-assets/plink_linux_x86_64_20200616.zip && \
+RUN wget http://s3.amazonaws.com/plink1-assets/plink_linux_x86_64_20200616.zip --no-check-certificate && \
     unzip plink_linux_x86_64_20200616.zip
 
 # ===== Reset current directory ====================================================================

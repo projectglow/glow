@@ -41,17 +41,26 @@ ENV JAVA_OPTS="-Dspark.executor.extraClassPath=/databricks/jars/glow-spark3_2.12
 # ===== Set up liftOver (used by standard Glow examples) ===========================================
 
 RUN mkdir /opt/liftover
-RUN curl https://raw.githubusercontent.com/broadinstitute/gatk/master/scripts/funcotator/data_sources/gnomAD/b37ToHg38.over.chain --output /opt/liftover/b37ToHg38.over.chain
+RUN curl -k https://raw.githubusercontent.com/broadinstitute/gatk/master/scripts/funcotator/data_sources/gnomAD/b37ToHg38.over.chain --output /opt/liftover/b37ToHg38.over.chain
 
 # ===== Set up bedtools as desired by many Glow users ==============================================
 
+RUN apt-get update \
+  && apt-get -y upgrade \
+  && apt-get install -y \
+    python \
+    python3
+
+WORKDIR /opt
+
 ENV BEDTOOLS_VERSION=2.30.0
 ENV PATH=/databricks/conda/envs/dcs-minimal/bin/:$PATH
-RUN cd /opt && git clone --depth 1 --branch v${BEDTOOLS_VERSION} https://github.com/arq5x/bedtools2.git bedtools-${BEDTOOLS_VERSION} 
-RUN cd /opt/bedtools-${BEDTOOLS_VERSION} && make 
+RUN wget https://github.com/arq5x/bedtools2/releases/download/v${BEDTOOLS_VERSION}/bedtools-${BEDTOOLS_VERSION}.tar.gz --no-check-certificate && \
+    tar -zxvf bedtools-${BEDTOOLS_VERSION}.tar.gz && \
+    cd /opt/bedtools2 && make
 
 # Add bedtools path to the enviroment
 
-ENV PATH=/opt/bedtools-${BEDTOOLS_VERSION}:$PATH 
+ENV PATH=/opt/bedtools2/bin:$PATH
 
 WORKDIR /root/
