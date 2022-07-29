@@ -120,7 +120,6 @@ jobs:
       - run:
           name: Run docs tests
           no_output_timeout: 120m
-          environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             export SPARK_VERSION="3.2.1"
@@ -128,7 +127,6 @@ jobs:
             sbt docs/test exit
       - run:
           name: Run Hail on Spark3 tests
-          environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$HOME/conda/bin:$PATH
             export SPARK_VERSION="3.2.1"
@@ -140,7 +138,6 @@ jobs:
       - run:
           name: Run Python tests
           no_output_timeout: 90m
-          environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             export SPARK_VERSION="3.2.1"
