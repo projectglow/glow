@@ -112,7 +112,6 @@ jobs:
           key: conda-deps-v1-{{ checksum "python/environment.yml" }}
       - run:
           name: Run Scala tests
-          environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             export SPARK_VERSION="3.2.1"
