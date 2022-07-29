@@ -157,7 +157,7 @@ jobs:
           path: ~/glow/core/target/scala-2.12/test-reports
 
   all-notebook-tests:
-    <<: *setup_xl_base
+    <<: *setup_2xl_base
     steps:
       - checkout
       - restore_cache:
