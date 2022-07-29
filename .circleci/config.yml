@@ -48,7 +48,6 @@ create_docs_env: &create_docs_env
 check_clean_repo: &check_clean_repo
   run:
     name: Verify that repo is clean
-    environment:
     command: |
       if [[ -n $(git status --short) ]]; then
         echo "Working directory was not clean!"
