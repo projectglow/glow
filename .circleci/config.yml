@@ -80,7 +80,6 @@ jobs:
           key: conda-deps-v1-{{ checksum "python/environment.yml" }}-{{ checksum "docs/source/environment.yml" }}
       - run:
           name: Check docs links
-          environment:
           command: |
             export PATH=$HOME/conda/envs/glow-docs/bin:$PATH
             cd docs
