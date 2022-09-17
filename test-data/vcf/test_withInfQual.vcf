@@ -8,3 +8,9 @@ chr1	2	.	C	T	-inf	.	.	GT	./.
 chr1	3	.	C	T	Inf	.	.	GT	./.
 chr1	3	.	C	T	+Inf	.	.	GT	./.
 chr1	3	.	C	T	-Inf	.	.	GT	./.
+chr1	4	.	C	T	infinity	.	.	GT	./.
+chr1	4	.	C	T	+infinity	.	.	GT	./.
+chr1	4	.	C	T	-infinity	.	.	GT	./.
+chr1	5	.	C	T	InfInitY	.	.	GT	./.
+chr1	5	.	C	T	+iNfiniTy	.	.	GT	./.
+chr1	5	.	C	T	-inFinIty	.	.	GT	./.

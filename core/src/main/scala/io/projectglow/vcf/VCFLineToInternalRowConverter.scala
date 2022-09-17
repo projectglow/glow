@@ -397,11 +397,11 @@ class LineCtx(text: Text) {
       Double.NaN
     } else if (s == LineCtx.POS_NAN) {
       Double.NaN
-    } else if (s == LineCtx.INF) {
+    } else if (s == LineCtx.INF || s == LineCtx.INFINITY) {
       Double.PositiveInfinity
-    } else if (s == LineCtx.POS_INF) {
+    } else if (s == LineCtx.POS_INF || s == LineCtx.POS_INFINITY) {
       Double.PositiveInfinity
-    } else if (s == LineCtx.NEG_INF) {
+    } else if (s == LineCtx.NEG_INF || s == LineCtx.NEG_INFINITY) {
       Double.NegativeInfinity
     } else {
       s.toString.toDouble
@@ -537,10 +537,18 @@ class LineCtx(text: Text) {
   }
 }
 
+/**
+ * https://samtools.github.io/hts-specs/VCFv4.3.pdf
+ * Infinity/NAN values should match the following regex:
+ * ^[-+]?(INF|INFINITY|NAN)$ case insensitively
+ */
 object LineCtx {
   val INF = UTF8String.fromString("inf")
   val POS_INF = UTF8String.fromString("+inf")
   val NEG_INF = UTF8String.fromString("-inf")
+  val INFINITY = UTF8String.fromString("infinity")
+  val POS_INFINITY = UTF8String.fromString("+infinity")
+  val NEG_INFINITY = UTF8String.fromString("-infinity")
   val NAN = UTF8String.fromString("nan")
   val POS_NAN = UTF8String.fromString("+nan")
   val NEG_NAN = UTF8String.fromString("-nan")
