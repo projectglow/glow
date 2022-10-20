@@ -2,7 +2,7 @@ setup_2xl_base: &setup_2xl_base
   working_directory: ~/glow
   docker:
     - image: cimg/openjdk:8.0.322
-  resource_class: 2xlarge
+  resource_class: xlarge
 
 setup_xl_base: &setup_xl_base
   working_directory: ~/glow
@@ -116,9 +116,9 @@ jobs:
           paths:
             - /home/circleci/conda
           key: conda-deps-v1-{{ checksum "python/environment.yml" }}
-      - run: 
+      - run:
           name: Prepare CircleCI environment for dependency cache - issue #301
-          environment: 
+          environment:
           command: sudo apt-get install -y ca-certificates
       - run:
           name: Run Scala tests
