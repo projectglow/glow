@@ -1,0 +1,8 @@
+##fileformat=VCFv4.1
+##contig=<ID=chr1,length=14640000>
+##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">
+##FORMAT=<ID=GP,Number=1,Type=Float,Description="Genotype posterior probabilities in the range 0 to 1">
+#CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO	FORMAT	NA12878
+chr1	1	.	C	T	.	.	.	GT:GP	./.:Nan
+chr1	2	.	C	T	.	.	.	GT:GP	./.:+naN
+chr1	3	.	C	T	.	.	.	GT:GP	./.:-nan
