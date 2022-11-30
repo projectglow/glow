@@ -444,13 +444,13 @@ class VariantContextToInternalRowConverter(
       val value: AnyRef = dataType match {
         case StringType => obj2any(UTF8String.fromString)(obj)
         case IntegerType => obj2any[java.lang.Integer](_.toInt)(obj)
-        case DoubleType => obj2any[java.lang.Double](_.toDouble)(obj)
+        case DoubleType => obj2any[java.lang.Double](string2double)(obj)
         case BooleanType => true: java.lang.Boolean
         case ArrayType(StringType, _) => obj2array(UTF8String.fromString)(obj)
         case ArrayType(IntegerType, _) =>
           obj2array[java.lang.Integer, Int](_.toInt)(obj, Some(Int.box))
         case ArrayType(DoubleType, _) =>
-          obj2array[java.lang.Double, Double](_.toDouble)(obj, Some(Double.box))
+          obj2array[java.lang.Double, Double](string2double)(obj, Some(Double.box))
       }
 
       if (value == null) {
@@ -521,6 +521,25 @@ class VariantContextToInternalRowConverter(
       i += 1
     }
     out.toArray
+  }
+
+  /**
+   * https://samtools.github.io/hts-specs/VCFv4.3.pdf
+   * Infinity/NAN values should match the following regex:
+   * ^[-+]?(INF|INFINITY|NAN)$ case insensitively
+   */
+  private def string2double(str: String): Double = {
+    val s = str.toLowerCase
+
+    if (List("nan", "+nan", "-nan").contains(s)) {
+      Double.NaN
+    } else if (List("inf", "infinity", "+inf", "+infinity").contains(s)) {
+      Double.PositiveInfinity
+    } else if (List("-inf", "-infinity").contains(s)) {
+      Double.NegativeInfinity
+    } else {
+      s.toDouble
+    }
   }
 
   private def obj2any[T <: AnyRef: ClassTag](converter: String => T)(obj: Object): T = obj match {

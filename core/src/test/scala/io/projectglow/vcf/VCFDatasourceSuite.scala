@@ -798,10 +798,79 @@ class FastVCFDatasourceSuite extends VCFDatasourceSuite {
       quals == Seq(
         Double.NegativeInfinity,
         Double.NegativeInfinity,
+        Double.NegativeInfinity,
+        Double.NegativeInfinity,
+        Double.PositiveInfinity,
+        Double.PositiveInfinity,
+        Double.PositiveInfinity,
+        Double.PositiveInfinity,
+        Double.PositiveInfinity,
+        Double.PositiveInfinity,
+        Double.PositiveInfinity,
+        Double.PositiveInfinity
+      ))
+  }
+
+  test("Tolerate genotype inf") {
+    val sess = spark
+    import sess.implicits._
+
+    val gens = spark
+      .read
+      .format(sourceName)
+      .option("flattenInfoFields", "false")
+      .option("validationStringency", "strict")
+      .load(s"$testDataHome/vcf/test_withInfGenotype.vcf")
+
+    // Test the internal row converter with show()
+    gens.show()
+
+    val probs = gens
+      .select(
+        col("genotypes")
+          .getItem(0)
+          .getField("posteriorProbabilities"))
+      .as[Double]
+      .collect()
+      .sorted
+      .toSeq
+
+    assert(
+      probs == Seq(
+        Double.NegativeInfinity,
+        Double.NegativeInfinity,
         Double.PositiveInfinity,
         Double.PositiveInfinity,
         Double.PositiveInfinity,
         Double.PositiveInfinity))
+  }
+
+  test("Tolerate genotype nan") {
+    val sess = spark
+    import sess.implicits._
+
+    val gens = spark
+      .read
+      .format(sourceName)
+      .option("flattenInfoFields", "false")
+      .option("validationStringency", "strict")
+      .load(s"$testDataHome/vcf/test_withNanGenotype.vcf")
+
+    // Test the internal row converter with show()
+    gens.show()
+
+    val probs = gens
+      .select(
+        col("genotypes")
+          .getItem(0)
+          .getField("posteriorProbabilities"))
+      .as[Double]
+      .collect()
+      .sorted
+
+    probs.foreach { prob =>
+      assert(prob.isNaN)
+    }
   }
 
   test("read string that starts with .") {
