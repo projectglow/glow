@@ -66,4 +66,8 @@ object SparkShim extends SparkShimBase {
 
   abstract class TernaryExpression
       extends org.apache.spark.sql.catalyst.expressions.TernaryExpression
+
+  def getDateFormat(options: CSVOptions): String = options.dateFormat
+
+  def getTimestampFormat(options: CSVOptions): String = options.timestampFormat
 }

@@ -42,4 +42,8 @@ trait SparkShimBase {
   def newUnresolvedException[TreeType <: TreeNode[_]](tree: TreeType, function: String): Exception
 
   abstract class TernaryExpression
+
+  def getDateFormat(options: CSVOptions): String
+
+  def getTimestampFormat(options: CSVOptions): String
 }
