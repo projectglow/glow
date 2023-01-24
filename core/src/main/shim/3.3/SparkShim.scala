@@ -23,7 +23,6 @@ import org.apache.spark.sql.catalyst.trees.TreeNode
 
 // Spark 3.2 APIs that are not inter-version compatible
 object SparkShim extends SparkShimBase {
-
   // [SPARK-25393][SQL] Adding new function from_csv()
   // Refactors classes from [[org.apache.spark.sql.execution.datasources.csv]] to [[org.apache.spark.sql.catalyst.csv]]
   override type CSVOptions = org.apache.spark.sql.catalyst.csv.CSVOptions
@@ -62,20 +61,13 @@ object SparkShim extends SparkShimBase {
   def newUnresolvedException[TreeType <: TreeNode[_]](
       tree: TreeType,
       function: String): Exception = {
-    new UnresolvedException(tree, function)
+    new UnresolvedException(function)
   }
 
   abstract class TernaryExpression
-      extends org.apache.spark.sql.catalyst.expressions.TernaryExpression {
+      extends org.apache.spark.sql.catalyst.expressions.TernaryExpression
 
-    def first: Expression
-    def second: Expression
-    def third: Expression
-    override def children: Seq[Expression] = Seq(first, second, third)
-  }
+  def getDateFormat(options: CSVOptions): String = options.dateFormatInWrite
 
-
-  def getDateFormat(options: CSVOptions): String = options.dateFormat
-
-  def getTimestampFormat(options: CSVOptions): String = options.timestampFormat
+  def getTimestampFormat(options: CSVOptions): String = options.timestampFormatInWrite
 }

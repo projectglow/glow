@@ -26,7 +26,7 @@ import org.apache.spark.sql.catalyst.util._
 import org.apache.spark.sql.types._
 import org.apache.spark.unsafe.types.UTF8String
 
-import io.projectglow.SparkShim.{CSVOptions => ShimCSVOptions, UnivocityParser => ShimUnivocityParser, wrapUnivocityParse}
+import io.projectglow.SparkShim.{CSVOptions => ShimCSVOptions, UnivocityParser => ShimUnivocityParser, _}
 
 /**
  * Inlined version of [[UnivocityGenerator]] to handle compatibility between Spark distributions.
@@ -48,16 +48,14 @@ class SGUnivocityGenerator(schema: StructType, writer: Writer, options: ShimCSVO
     dataType match {
       case DateType =>
         (row: InternalRow, ordinal: Int) =>
-          options
-            .dateFormat
+          getDateFormat(options)
             .format(
               DateTimeUtils.toJavaDate(row.getInt(ordinal))
             )
 
       case TimestampType =>
         (row: InternalRow, ordinal: Int) =>
-          options
-            .timestampFormat
+          getTimestampFormat(options)
             .format(
               DateTimeUtils.toJavaTimestamp(row.getLong(ordinal))
             )
