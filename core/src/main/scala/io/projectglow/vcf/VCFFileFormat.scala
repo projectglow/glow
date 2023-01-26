@@ -16,6 +16,7 @@
 
 package io.projectglow.vcf
 
+import java.net.URI
 import java.io.BufferedInputStream
 
 import scala.collection.JavaConverters._
@@ -248,7 +249,7 @@ object VCFFileFormat {
    * The logic to parse the header is adapted from [[org.seqdoop.hadoop_bam.VCFRecordReader]].
    */
   def createVCFCodec(path: String, conf: Configuration): (VCFHeader, VCFCodec) = {
-    val hPath = new Path(path)
+    val hPath = new Path(new URI(path))
     val fs = hPath.getFileSystem(conf)
     WithUtils.withCloseable(fs.open(hPath)) { is =>
       val compressionCodec = new CompressionCodecFactory(conf).getCodec(hPath)
