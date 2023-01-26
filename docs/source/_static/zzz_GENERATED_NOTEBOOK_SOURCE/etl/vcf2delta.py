@@ -238,7 +238,7 @@ len(sample_filter.limit(1).select("genotypes.sampleId").collect()[0].sampleId)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC #### Using the [local file API](https://docs.databricks.com/data/databricks-file-system.html#local-file-apis), we can read VCF directly from cloud storage via the shell
+# MAGIC #### Using the [local file API](https://docs.databricks.com/dev-tools/api/latest/dbfs.html), we can read VCF directly from cloud storage via the shell
 
 # COMMAND ----------
 

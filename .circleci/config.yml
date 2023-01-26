@@ -1,8 +1,20 @@
+setup_2xl_base: &setup_2xl_base
+  working_directory: ~/glow
+  docker:
+    - image: cimg/openjdk:8.0.322
+  resource_class: xlarge
+
 setup_xl_base: &setup_xl_base
   working_directory: ~/glow
   docker:
     - image: cimg/openjdk:8.0.322
-  resource_class: 2xlarge
+  resource_class: xlarge
+
+setup_l_base: &setup_l_base
+  working_directory: ~/glow
+  docker:
+    - image: cimg/openjdk:8.0.322
+  resource_class: large
 
 setup_m_base: &setup_m_base
   working_directory: ~/glow
@@ -20,7 +32,6 @@ install_conda: &install_conda
       else
         echo "Conda already installed"
       fi
-
 create_python_env: &create_python_env
   run:
     name: Create conda environment for Python dependencies
@@ -29,7 +40,6 @@ create_python_env: &create_python_env
         export PATH=$HOME/conda/bin:$PATH
         conda env create -f python/environment.yml
       fi
-
 create_docs_env: &create_docs_env
   run:
     name: Create minimal conda environment for docs dependencies
@@ -38,11 +48,9 @@ create_docs_env: &create_docs_env
         export PATH=$HOME/conda/bin:$PATH
         conda env create -f docs/source/environment.yml
       fi
-
 check_clean_repo: &check_clean_repo
   run:
     name: Verify that repo is clean
-    environment:
     command: |
       if [[ -n $(git status --short) ]]; then
         echo "Working directory was not clean!"
@@ -51,8 +59,6 @@ check_clean_repo: &check_clean_repo
       else
         true
       fi
-
-
 version: 2.1
 orbs:
   codecov: codecov/codecov@3.2.2
@@ -75,7 +81,6 @@ jobs:
           key: conda-deps-v1-{{ checksum "python/environment.yml" }}-{{ checksum "docs/source/environment.yml" }}
       - run:
           name: Check docs links
-          environment:
           command: |
             export PATH=$HOME/conda/envs/glow-docs/bin:$PATH
             cd docs
@@ -94,7 +99,7 @@ jobs:
       - *check_clean_repo
 
   spark-3-tests:
-    <<: *setup_xl_base
+    <<: *setup_2xl_base
     steps:
       - checkout
       - restore_cache:
@@ -107,8 +112,11 @@ jobs:
             - /home/circleci/conda
           key: conda-deps-v1-{{ checksum "python/environment.yml" }}
       - run:
-          name: Run Scala tests
+          name: Prepare CircleCI environment for dependency cache - issue #301
           environment:
+          command: sudo apt-get install -y ca-certificates
+      - run:
+          name: Run Scala tests
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             export SPARK_VERSION="3.2.1"
@@ -117,7 +125,6 @@ jobs:
       - run:
           name: Run docs tests
           no_output_timeout: 120m
-          environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             export SPARK_VERSION="3.2.1"
@@ -125,7 +132,6 @@ jobs:
             sbt docs/test exit
       - run:
           name: Run Hail on Spark3 tests
-          environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$HOME/conda/bin:$PATH
             export SPARK_VERSION="3.2.1"
@@ -137,7 +143,6 @@ jobs:
       - run:
           name: Run Python tests
           no_output_timeout: 90m
-          environment:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             export SPARK_VERSION="3.2.1"
@@ -151,7 +156,7 @@ jobs:
           path: ~/glow/core/target/scala-2.12/test-reports
 
   all-notebook-tests:
-    <<: *setup_m_base
+    <<: *setup_2xl_base
     steps:
       - checkout
       - restore_cache:
@@ -183,7 +188,6 @@ jobs:
               python docs/dev/run-nb-test.py --cli-profile docs-ci \
                                              --dockerhub_password ${PROJECTGLOW_DOCKERHUB_PASSWORD}
             fi
-
 workflows:
   version: 2
   test:

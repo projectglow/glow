@@ -41,4 +41,3 @@ Example
 
 .. notebook:: .. tertiary/parallel_bcftools_filter.html
   :title: Use Spark as a workflow orchestrator to parallelize across samples
-
