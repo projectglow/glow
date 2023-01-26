@@ -32,11 +32,7 @@ Furthermore, the pipe transformer is not designed for parallel processing of dis
    - data must be accessible locally on each Spark worker using one of these approaches,
       - data is downloaded to each node of the cluster at start-up via an initialization script
       - cloud storage is mounted on the local filesystem using an open source tool such as `goofys <https://github.com/kahing/goofys>`_ 
-<<<<<<< HEAD
-      - Databricks' `local file APIs <https://docs.databricks.com/dbfs/mounts.html#how-does-databricks-mount-cloud-object-storage>`_ automatically mounts cloud object storage to the local filesystem
-=======
       - Databricks' `local file APIs <https://docs.databricks.com/dev-tools/api/latest/dbfs.html>`_ automatically mounts cloud object storage to the local filesystem
->>>>>>> a6acc19 (Fixed broken 'local DBFS API' anchor reference to be: https://docs.databricks.com/dev-tools/api/latest/dbfs.html)
    - bioinformatics tools must be installed on each node of the cluster
       - via an initialization script or a `Glow Docker Container <https://github.com/projectglow/glow/tree/master/docker>`_
 
@@ -45,4 +41,3 @@ Example
 
 .. notebook:: .. tertiary/parallel_bcftools_filter.html
   :title: Use Spark as a workflow orchestrator to parallelize across samples
-

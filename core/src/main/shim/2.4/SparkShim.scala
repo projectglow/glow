@@ -175,4 +175,10 @@ object SparkShim extends SparkShimBase {
     def third: Expression
     override def children: Seq[Expression] = Seq(first, second, third)
   }
+
+  def getDateFormat(options: CSVOptions): String =
+    options.parameters.getOrElse("dateFormat", "yyyy-MM-dd")
+
+  def getTimestampFormat(options: CSVOptions): String =
+    options.parameters.getOrElse("timestampFormat", "yyyy-MM-dd'T'HH:mm:ss.SSSXXX")
 }

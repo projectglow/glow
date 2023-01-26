@@ -10,7 +10,7 @@ import sbt.nio.Keys._
 lazy val scala212 = "2.12.8"
 lazy val scala211 = "2.11.12"
 
-lazy val spark3 = "3.2.1"
+lazy val spark3 = "3.3.1"
 
 lazy val hailOnSpark3 = "0.2.89"
 
@@ -143,11 +143,9 @@ ThisBuild / testSparkDependencies := sparkDependencies.value.map(_ % "test")
 
 lazy val testCoreDependencies = settingKey[Seq[ModuleID]]("testCoreDependencies")
 ThisBuild / testCoreDependencies := Seq(
-  (ThisBuild / sparkVersion).value match {
-    case `spark3` => "org.scalatest" %% "scalatest" % "3.2.3" % "test"
-    case _ =>
-      throw new IllegalArgumentException(
-        "Only supported Spark versions are: " + Seq(spark3))
+  majorVersion((ThisBuild / sparkVersion).value) match {
+    case "3" => "org.scalatest" %% "scalatest" % "3.2.3" % "test"
+    case _ => throw new IllegalArgumentException("Only Spark 3 is supported")
   },
   "org.mockito" % "mockito-all" % "1.9.5" % "test",
   "org.apache.spark" %% "spark-catalyst" % sparkVersion.value % "test" classifier "tests",

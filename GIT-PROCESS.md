@@ -1,4 +1,4 @@
-# Git Contribution Process
+# Github Contribution Process
 
 Whether you're trying to contribute to the open source community or collaborating on your own projects, knowing how to properly fork and generate pull requests is essential. Unfortunately, it's quite easy to make mistakes or not know what you should do when you're initially learning the process. we know that many certainly had considerable initial trouble with it, and we've found a lot of the information on GitHub and around the internet to be rather piecemeal and incomplete - part of the process described here, another there, common hangups in a different place, and so on.
 
