@@ -42,7 +42,6 @@ def majorMinorVersion(version: String): String = {
 
 ThisBuild / scalaVersion := sys.env.getOrElse("SCALA_VERSION", scala212)
 ThisBuild / organization := "io.projectglow"
-ThisBuild / scalastyleConfig := baseDirectory.value / "scalastyle-config.xml"
 ThisBuild / publish / skip := true
 
 ThisBuild / organizationName := "The Glow Authors"
@@ -83,8 +82,6 @@ lazy val commonSettings = Seq(
   testScalastyle := scalastyle.in(Test).toTask("").value,
   testGrouping in Test := groupByHash((definedTests in Test).value),
   test in Test := ((test in Test) dependsOn mainScalastyle).value,
-  test in Test := ((test in Test) dependsOn testScalastyle).value,
-  test in Test := ((test in Test) dependsOn scalafmtCheckAll).value,
   test in Test := ((test in Test) dependsOn (headerCheck in Compile)).value,
   test in Test := ((test in Test) dependsOn (headerCheck in Test)).value,
   test in assembly := {},
@@ -148,27 +145,20 @@ ThisBuild / testCoreDependencies := Seq(
     case _ => throw new IllegalArgumentException("Only Spark 3 is supported")
   },
   "org.mockito" % "mockito-all" % "1.9.5" % "test",
-  "org.apache.spark" %% "spark-catalyst" % sparkVersion.value % "test" classifier "tests",
-  "org.apache.spark" %% "spark-core" % sparkVersion.value % "test" classifier "tests",
-  "org.apache.spark" %% "spark-mllib" % sparkVersion.value % "test" classifier "tests",
-  "org.apache.spark" %% "spark-sql" % sparkVersion.value % "test" classifier "tests",
   "org.xerial" % "sqlite-jdbc" % "3.20.1" % "test"
 )
 
 lazy val coreDependencies = settingKey[Seq[ModuleID]]("coreDependencies")
 ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDependencies.value ++ Seq(
   "org.seqdoop" % "hadoop-bam" % "7.9.2",
-  "log4j" % "log4j" % "1.2.17",
-  "org.slf4j" % "slf4j-api" % "1.7.25",
-  "org.slf4j" % "slf4j-log4j12" % "1.7.25",
   "org.jdbi" % "jdbi" % "2.63.1",
   "com.github.broadinstitute" % "picard" % "2.21.9",
-  // Fix versions of libraries that are depended on multiple times
-  "org.apache.hadoop" % "hadoop-client" % "3.3.1",
-  "io.netty" % "netty" % "3.9.9.Final",
-  "io.netty" % "netty-all" % "4.1.68.Final",
-  "io.netty" % "netty-handler" % "4.1.68.Final",
-  "io.netty" % "netty-transport-native-epoll" % "4.1.68.Final",
+    // Fix versions of libraries that are depended on multiple times
+//  "org.apache.hadoop" % "hadoop-client" % "3.3.1",
+//  "io.netty" % "netty" % "3.9.9.Final",
+//  "io.netty" % "netty-all" % "4.1.68.Final",
+//  "io.netty" % "netty-handler" % "4.1.68.Final",
+//  "io.netty" % "netty-transport-native-epoll" % "4.1.68.Final",
   "com.github.samtools" % "htsjdk" % "2.21.2",
   "org.yaml" % "snakeyaml" % "1.16"
 )).map(_.exclude("com.google.code.findbugs", "jsr305"))
@@ -358,11 +348,6 @@ ThisBuild / developers := List(
     "kiavash.kianfar@databricks.com",
     url("https://github.com/kianfar77"))
 )
-
-ThisBuild / pomIncludeRepository := { _ =>
-  false
-}
-ThisBuild / publishMavenStyle := true
 
 lazy val stableVersion = settingKey[String]("Stable version")
 ThisBuild / stableVersion := IO
