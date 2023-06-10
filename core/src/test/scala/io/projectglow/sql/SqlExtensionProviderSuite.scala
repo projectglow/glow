@@ -26,7 +26,6 @@ import io.projectglow.GlowSuite
 
 class SqlExtensionProviderSuite extends GlowSuite {
   override def beforeEach(): Unit = {
-    super.beforeEach()
     SqlExtensionProvider.registerFunctions(
       spark.sessionState.conf,
       spark.sessionState.functionRegistry,

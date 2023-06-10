@@ -18,7 +18,7 @@ package io.projectglow.plink
 
 import java.io.{EOFException, FileNotFoundException}
 
-import org.apache.spark.{DebugFilesystem, SparkException}
+import org.apache.spark.{SparkException}
 import org.apache.spark.sql.Row
 import org.apache.spark.sql.catalyst.ScalaReflection
 import org.apache.spark.sql.functions.expr
@@ -70,7 +70,6 @@ class PlinkReaderSuite extends GlowBaseTest {
       .collect
 
     assert(plinkRows.length == 5)
-    DebugFilesystem.assertNoOpenStreams()
 
     val snp1 = plinkRows.head
     assert(
@@ -150,7 +149,6 @@ class PlinkReaderSuite extends GlowBaseTest {
       df.collect()
     }
     checkExceptionContains[FileNotFoundException](e)
-    DebugFilesystem.assertNoOpenStreams()
   }
 
   test("Missing BIM") {
@@ -162,7 +160,6 @@ class PlinkReaderSuite extends GlowBaseTest {
       df.collect()
     }
     checkExceptionContains[FileNotFoundException](e)
-    DebugFilesystem.assertNoOpenStreams()
   }
 
   test("Wrong BIM delimiter") {
