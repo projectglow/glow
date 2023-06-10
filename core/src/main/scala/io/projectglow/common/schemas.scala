@@ -269,13 +269,13 @@ object VCFRow {
     .asInstanceOf[StructType]
 }
 
-private[projectglow] case class BgenGenotype(
+case class BgenGenotype(
     sampleId: Option[String],
     phased: Option[Boolean],
     ploidy: Option[Int],
     posteriorProbabilities: Seq[Double])
 
-private[projectglow] case class BgenRow(
+case class BgenRow(
     contigName: String,
     start: Long,
     end: Long,
@@ -291,9 +291,9 @@ object BgenRow {
     .asInstanceOf[StructType]
 }
 
-private[projectglow] case class PlinkGenotype(sampleId: String, calls: Seq[Int])
+case class PlinkGenotype(sampleId: String, calls: Seq[Int])
 
-private[projectglow] case class PlinkRow(
+case class PlinkRow(
     contigName: String,
     position: Double,
     start: Long,

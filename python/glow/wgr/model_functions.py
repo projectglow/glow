@@ -106,8 +106,10 @@ def parse_header_block_sample_block_label_alpha_name(
 
 
 # @typechecked -- typeguard does not support numpy array
-def assemble_block(n_rows: Int, n_cols: Int, pdf: pd.DataFrame, cov_matrix: NDArray[(Any, Any),
-                                                                                    Float],
+def assemble_block(n_rows: Int,
+                   n_cols: Int,
+                   pdf: pd.DataFrame,
+                   cov_matrix: NDArray[(Any, Any),Float],
                    row_mask: NDArray[Any]) -> NDArray[Float]:
     """
     Creates a dense n_rows by n_cols matrix from the array of either sparse or dense vectors in the Pandas DataFrame

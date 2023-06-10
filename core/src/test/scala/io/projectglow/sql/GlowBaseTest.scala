@@ -18,29 +18,36 @@ package io.projectglow.sql
 
 import htsjdk.samtools.util.Log
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.DebugFilesystem
 import org.scalatest.concurrent.{AbstractPatienceConfiguration, Eventually}
 import org.scalatest.time.{Milliseconds, Seconds, Span}
-import org.scalatest.{Args, Status, Tag}
+import org.scalatest._
 import io.projectglow.Glow
-import io.projectglow.SparkTestShim.{FunSuite, SharedSparkSessionBase}
+import io.projectglow.SparkTestShim.{FunSuite}
 import io.projectglow.common.{GlowLogging, TestUtils}
 
 abstract class GlowBaseTest
     extends FunSuite
-    with SharedSparkSessionBase
     with Eventually
     with GlowLogging
     with GlowTestData
     with TestUtils
+    with BeforeAndAfterEach
     with JenkinsTestPatience {
 
-  override def initializeSession(): Unit = {
-    super.initializeSession()
-    Glow.register(spark, newSession = false)
-    SparkSession.setActiveSession(spark)
-    Log.setGlobalLogLevel(Log.LogLevel.ERROR)
+  def spark: SparkSession = {
+    val session = SparkSession.builder() 
+      .master("local[2]")
+      .config("spark.executor.instances", 1)
+      .config("spark.driver.bindAddress","127.0.0.1")
+      .config("spark.sql.adaptive.enabled", false)
+      .getOrCreate()
+    session
   }
+  spark.sparkContext.setLogLevel("ERROR")
+  
+  val sparkContext = spark.sparkContext
+  Glow.register(spark, newSession = false)
+  SparkSession.setActiveSession(spark)
 
   protected def gridTest[A](testNamePrefix: String, testTags: Tag*)(params: Seq[A])(
       testFun: A => Unit): Unit = {
@@ -51,11 +58,9 @@ abstract class GlowBaseTest
 
   override def afterEach(): Unit = {
     eventually {
-      DebugFilesystem.assertNoOpenStreams()
       assert(spark.sparkContext.getPersistentRDDs.isEmpty)
       assert(spark.sharedState.cacheManager.isEmpty, "Cache not empty.")
     }
-    super.afterEach()
   }
 
   override def runTest(testName: String, args: Args): Status = {

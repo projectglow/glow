@@ -70,14 +70,11 @@ class SplitMultiallelicsTransformerSuite extends GlowBaseTest with GlowLogging {
   lazy val vtTestVcfMultiAllelicExpectedSplit =
     s"$testFolder/01_IN_altered_multiallelic_vtdecompose.vcf"
 
-  override def sparkConf: SparkConf = {
-    super
-      .sparkConf
-      .set(
-        "spark.hadoop.io.compression.codecs",
-        "org.seqdoop.hadoop_bam.util.BGZFCodec"
-      )
-  }
+  spark.conf
+    .set(
+      "spark.hadoop.io.compression.codecs",
+      "org.seqdoop.hadoop_bam.util.BGZFCodec"
+    )
 
   /**
    *  Tests whether the transformed VCF matches the expected VCF

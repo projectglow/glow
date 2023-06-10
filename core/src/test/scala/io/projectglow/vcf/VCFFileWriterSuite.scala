@@ -41,10 +41,8 @@ abstract class VCFFileWriterSuite(val sourceName: String) extends VCFConverterBa
   lazy val TGP = s"$testDataHome/1000genomes-phase3-1row.vcf"
   val readSourceName = "vcf"
 
-  override def sparkConf: SparkConf = {
-    // Verify that tests correctly set BGZF codecs
-    super.sparkConf.set("spark.hadoop.io.compression.codecs", "")
-  }
+  // Verify that tests correctly set BGZF codecs
+  spark.conf.set("spark.hadoop.io.compression.codecs", "")
 
   protected def createTempVcf: Path = {
     val tempDir = Files.createTempDirectory("test-vcf-dir")

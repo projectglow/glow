@@ -41,11 +41,8 @@ class VCFDatasourceSuite extends GlowBaseTest {
   lazy val stringInfoFieldsVcf = s"$testDataHome/test.chr17.vcf"
   lazy val sess = spark
 
-  override def sparkConf: SparkConf = {
-    super
-      .sparkConf
-      .set("spark.hadoop.io.compression.codecs", "org.seqdoop.hadoop_bam.util.BGZFCodec")
-  }
+  spark.conf.set("spark.hadoop.io.compression.codecs", "org.seqdoop.hadoop_bam.util.BGZFCodec")
+
 
   def makeVcfLine(strSeq: Seq[String]): String = {
     (Seq("1", "1", "id", "C", "T,GT", "1", ".") ++ strSeq).mkString("\t")
@@ -768,8 +765,7 @@ class VCFDatasourceSuite extends GlowBaseTest {
 }
 
 class FastVCFDatasourceSuite extends VCFDatasourceSuite {
-  override def sparkConf: SparkConf =
-    super.sparkConf.set(GlowConf.FAST_VCF_READER_ENABLED.key, "true")
+  spark.conf.set(GlowConf.FAST_VCF_READER_ENABLED.key, "true")
 
   test("read AD with nulls") {
     import sess.implicits._
@@ -884,37 +880,37 @@ class FastVCFDatasourceSuite extends VCFDatasourceSuite {
 
 // For testing only: schema based on CEUTrio VCF header
 private case class CEUTrioVCFRow(
-    contigName: String,
-    start: Long,
-    end: Long,
-    names: Seq[String],
-    referenceAllele: String,
-    alternateAlleles: Seq[String],
-    qual: Option[Double],
-    filters: Seq[String],
-    INFO_AC: Seq[Option[Int]],
-    INFO_AF: Seq[Option[Double]],
-    INFO_AN: Option[Int],
-    INFO_BaseQRankSum: Option[Double],
-    INFO_DP: Option[Int],
-    INFO_DS: Option[Boolean],
-    INFO_ExcessHet: Option[Double],
-    INFO_FS: Option[Double],
-    INFO_InbreedingCoeff: Option[Double],
-    INFO_MLEAC: Seq[Option[Int]],
-    INFO_MLEAF: Seq[Option[Double]],
-    INFO_MQ: Option[Double],
-    INFO_MQRankSum: Option[Double],
-    INFO_QD: Option[Double],
-    INFO_ReadPosRankSum: Option[Double],
-    INFO_SOR: Option[Double],
-    genotypes: Seq[CEUTrioGenotype])
+  contigName: String,
+  start: Long,
+  end: Long,
+  names: Seq[String],
+  referenceAllele: String,
+  alternateAlleles: Seq[String],
+  qual: Option[Double],
+  filters: Seq[String],
+  INFO_AC: Seq[Option[Int]],
+  INFO_AF: Seq[Option[Double]],
+  INFO_AN: Option[Int],
+  INFO_BaseQRankSum: Option[Double],
+  INFO_DP: Option[Int],
+  INFO_DS: Option[Boolean],
+  INFO_ExcessHet: Option[Double],
+  INFO_FS: Option[Double],
+  INFO_InbreedingCoeff: Option[Double],
+  INFO_MLEAC: Seq[Option[Int]],
+  INFO_MLEAF: Seq[Option[Double]],
+  INFO_MQ: Option[Double],
+  INFO_MQRankSum: Option[Double],
+  INFO_QD: Option[Double],
+  INFO_ReadPosRankSum: Option[Double],
+  INFO_SOR: Option[Double],
+  genotypes: Seq[CEUTrioGenotype])
 
 case class CEUTrioGenotype(
-    sampleId: Option[String],
-    phased: Option[Boolean],
-    calls: Option[Seq[Int]],
-    depth: Option[Int],
-    phredLikelihoods: Option[Seq[Int]],
-    conditionalQuality: Option[Int],
-    alleleDepths: Option[Seq[Int]])
+  sampleId: Option[String],
+  phased: Option[Boolean],
+  calls: Option[Seq[Int]],
+  depth: Option[Int],
+  phredLikelihoods: Option[Seq[Int]],
+  conditionalQuality: Option[Int],
+  alleleDepths: Option[Seq[Int]])
