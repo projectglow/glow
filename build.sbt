@@ -68,6 +68,7 @@ lazy val mainScalastyle = taskKey[Unit]("mainScalastyle")
 lazy val testScalastyle = taskKey[Unit]("testScalastyle")
 // testGrouping cannot be set globally using the `Test /` syntax since it's not a pure value
 lazy val commonSettings = Seq(
+  Test / envVars := Map("SPARK_LOCAL_IP" -> "127.0.0.1"),
   mainScalastyle := (Compile / scalastyle).toTask("").value,
   testScalastyle := (Test / scalastyle).toTask("").value,
   Test / testGrouping := groupByHash((Test / definedTests).value),

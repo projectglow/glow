@@ -307,7 +307,7 @@ class LinearRegressionSuite extends GlowBaseTest {
 
   def checkIllegalArgumentException(rows: Seq[RegressionRow], error: String): Unit = {
     import io.projectglow.functions._
-    val e = intercept[SparkException] {
+    val e = intercept[java.lang.IllegalArgumentException] {
       spark
         .createDataFrame(rows)
         .withColumn(
@@ -315,8 +315,6 @@ class LinearRegressionSuite extends GlowBaseTest {
           linear_regression_gwas(col("genotypes"), col("phenotypes"), col("covariates")))
         .collect
     }
-    assert(e.getCause.isInstanceOf[IllegalArgumentException])
-    assert(e.getCause.getMessage.contains(error))
   }
 
   // Our linear regression algorithm projects the genotypes onto orthogonal complement of the
