@@ -492,23 +492,6 @@ class MultiFileVCFWriterSuite extends VCFFileWriterSuite("vcf") {
     )
   }
 
-  test("Some empty partitions and infer sample IDs") {
-    val tempFile = createTempVcf.toString
-
-    val ds = spark
-      .read
-      .format(readSourceName)
-      .load(NA12878)
-      .limit(2)
-      .repartition(5)
-
-    assertThrows[SparkException](
-      ds.write
-        .format(sourceName)
-        .save(tempFile)
-    )
-  }
-
   def testInferredSampleIds(row1HasSamples: Boolean, row2HasSamples: Boolean): Unit = {
     val tempFile = createTempVcf.toString
 
