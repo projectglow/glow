@@ -32,17 +32,10 @@ object LinearRegressionExpr {
   private val state = new ThreadLocal[CovariateQRContext]
 
   def doLinearRegression(genotypes: Any, phenotypes: Any, covariates: Any): InternalRow = {
-
-    if (state.get() == null) {
-      // Save the QR factorization of the covariate matrix since it's the same for every row
-      state.set(CovariateQRContext.computeQR(matrixUDT.deserialize(covariates).toDense))
-      TaskContext.get().addTaskCompletionListener[Unit](_ => state.remove())
-    }
-
     LinearRegressionGwas.linearRegressionGwas(
       new DenseVector[Double](genotypes.asInstanceOf[ArrayData].toDoubleArray()),
       new DenseVector[Double](phenotypes.asInstanceOf[ArrayData].toDoubleArray()),
-      state.get()
+      CovariateQRContext.computeQR(matrixUDT.deserialize(covariates).toDense)
     )
   }
 }
