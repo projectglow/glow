@@ -31,8 +31,8 @@ import scala.util.Random
 
 class LinearRegressionSuite extends GlowBaseTest {
 
-  private lazy val sess = spark
-  private lazy val random = {
+  lazy val sess = spark
+  lazy val random = {
     val seed = System.currentTimeMillis()
     logger.info(s"Using random seed $seed")
     new Random(seed)
@@ -104,7 +104,7 @@ class LinearRegressionSuite extends GlowBaseTest {
     RegressionStats(beta, genoSE, pvalue)
   }
 
-  private def generateTestData(
+  def generateTestData(
       nSamples: Int,
       nVariants: Int,
       nRandomCovariates: Int,
@@ -130,7 +130,7 @@ class LinearRegressionSuite extends GlowBaseTest {
     TestData(genotypes, phenotypes, covariates, None)
   }
 
-  private def timeIt[T](opName: String)(f: => T): T = {
+  def timeIt[T](opName: String)(f: => T): T = {
     val start = System.nanoTime()
     val ret = f
     val end = System.nanoTime()
@@ -138,13 +138,13 @@ class LinearRegressionSuite extends GlowBaseTest {
     ret
   }
 
-  private def compareRegressionStats(s1: RegressionStats, s2: RegressionStats): Unit = {
+  def compareRegressionStats(s1: RegressionStats, s2: RegressionStats): Unit = {
     assert(s1.beta ~== s2.beta relTol 0.02)
     assert(s1.standardError ~== s2.standardError relTol 0.02)
     assert(s1.pValue ~== s2.pValue relTol 0.02)
   }
 
-  private def compareToApacheOLS(testData: TestData, useSpark: Boolean): Unit = {
+  def compareToApacheOLS(testData: TestData, useSpark: Boolean): Unit = {
     import sess.implicits._
     val apacheResults = timeIt("Apache linreg") {
       testDataToOlsBaseline(testData)
@@ -184,7 +184,7 @@ class LinearRegressionSuite extends GlowBaseTest {
   }
 
   // The cars dataset built into R
-  private val cars: TestData = {
+  val cars: TestData = {
     val s =
       """
         |   speed dist
@@ -291,15 +291,14 @@ class LinearRegressionSuite extends GlowBaseTest {
     val testData = generateTestData(30, 1, 1, true, 1)
     val testData2 = testData.copy(phenotypes = testData.phenotypes.map(_ => Random.nextDouble()))
     val rows = testDataToRows(testData) ++ testDataToRows(testData2)
-    val results = spark
+    val results = (spark
       .createDataFrame(rows)
       .withColumn("id", monotonically_increasing_id())
       .withColumn("linreg", expr("linear_regression_gwas(genotypes, phenotypes, covariates)"))
       .orderBy("id")
       .selectExpr("expand_struct(linreg)")
       .as[RegressionStats]
-      .collect()
-      .toSeq
+    ).collect
     assert(results.size == 2)
     results.zip(testDataToOlsBaseline(testData) ++ testDataToOlsBaseline(testData2)).foreach {
       case (stats1, stats2) => compareRegressionStats(stats1, stats2)
