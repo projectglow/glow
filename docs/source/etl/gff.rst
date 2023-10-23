@@ -70,7 +70,8 @@ If no user-specified schema is provided (as in the example above), the data sour
 
      |-- ID: string (nullable = true)
      |-- Name: string (nullable = true)
-     |-- Alias: string (nullable = true)
+     |-- Alias: array (nullable = true)
+     |    |-- element: string (containsNull = true)
      |-- Parent: array (nullable = true)
      |    |-- element: string (containsNull = true)
      |-- Target: string (nullable = true)
