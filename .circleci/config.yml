@@ -60,9 +60,6 @@ check_clean_repo: &check_clean_repo
         true
       fi
 version: 2.1
-orbs:
-  codecov: codecov/codecov@3.2.2
-  jq: circleci/jq@2.2.0
 jobs:
 
   check-docs:
