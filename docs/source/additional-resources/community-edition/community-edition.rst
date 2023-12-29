@@ -24,7 +24,7 @@ Databricks Community Edition.
 Step 2: Import Glow notebooks
 -----------------------------
 
-`Import <https://docs.databricks.com/notebooks/notebooks-manage.html#import-a-notebook>`_ the Glow demonstration
+`Import <https://docs.databricks.com/en/notebooks/notebook-export-import.html#import-a-notebook>`_ the Glow demonstration
 notebooks to your Databricks Community Edition workspace.
 
 .. image:: import-dbc.gif

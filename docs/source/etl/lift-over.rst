@@ -27,7 +27,7 @@ Create a liftOver cluster
 
 For both coordinate and variant liftOver, you need a chain file on every node of the cluster.
 On a Databricks cluster, an example of a
-`cluster-scoped init script <https://docs.databricks.com/clusters/init-scripts.html#cluster-scoped-init-scripts>`_
+`cluster-scoped init script <https://docs.databricks.com/en/init-scripts/cluster-scoped.html>`_
 you can use to download the required file for liftOver from the b37 to the hg38 reference assembly is as follows:
 
 .. code-block:: bash
