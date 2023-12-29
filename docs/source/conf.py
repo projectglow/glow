@@ -34,7 +34,7 @@ sys.path.append(os.path.abspath('../../python'))
 # Without this import, autodoc fails on the glow.hail module with error
 # WARNING: autodoc: failed to import module 'hail' from module 'glow'; the following exception was raised:
 # cannot import name 'AbstractStreamWriter' from 'aiohttp.abc'
-import glow.hail
+import hail
 
 
 # -- Project information -----------------------------------------------------

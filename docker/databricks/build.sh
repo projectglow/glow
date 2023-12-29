@@ -27,7 +27,7 @@ popd
 docker push "${DOCKER_HUB}/databricks-hail:${HAIL_VERSION}"
 docker push "${DOCKER_HUB}/databricks-glow:${GLOW_VERSION}"
 
-# build 10.4 LTS / Spark 3.2.1 images
+# build 10.4 LTS / Spark 3.3.1 images
 
 DOCKER_HUB="projectglow"
 DATABRICKS_RUNTIME_VERSION="10.4"

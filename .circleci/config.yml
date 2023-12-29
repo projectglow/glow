@@ -119,7 +119,7 @@ jobs:
           name: Run Scala tests
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="3.2.1"
+            export SPARK_VERSION="3.3.1"
             export SCALA_VERSION="2.12.8"
             sbt core/test exit
       - run:
@@ -127,14 +127,14 @@ jobs:
           no_output_timeout: 120m
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="3.2.1"
+            export SPARK_VERSION="3.3.1"
             export SCALA_VERSION="2.12.8"
             sbt docs/test exit
       - run:
           name: Run Hail on Spark3 tests
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$HOME/conda/bin:$PATH
-            export SPARK_VERSION="3.2.1"
+            export SPARK_VERSION="3.3.1"
             export SCALA_VERSION="2.12.8"
             export HAIL_VERSION="0.2.89"
             sudo apt-get update
@@ -145,7 +145,7 @@ jobs:
           no_output_timeout: 90m
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="3.2.1"
+            export SPARK_VERSION="3.3.1"
             export SCALA_VERSION="2.12.8"
             sbt python/test exit
       - *check_clean_repo
