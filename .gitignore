@@ -23,7 +23,7 @@ maven-repo/
 
 # Sphinx documentation
 docs/build
-docs/source
+docs/source/
 
 # Editor files
 *.swp
