@@ -24,7 +24,7 @@ dependencies:
   - yapf=0.30.0
   - pip:
     - pyspark==3.2.1
-    - databricks-cli==0.16.4 # Docs notebook source generation
+    - databricks-cli==0.17.7 # Docs notebook source generation
     - setuptools==52.0.0 # Python packaging
     - twine==2.0.0 # Pypi publishing
     - sphinx-autobuild
