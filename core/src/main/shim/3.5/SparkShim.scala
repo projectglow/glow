@@ -23,6 +23,7 @@ import org.apache.spark.sql.catalyst.trees.TreeNode
 
 // Spark 3.5 APIs that are not inter-version compatible
 object SparkShim extends SparkShimBase {
+
   // [SPARK-27328][SQL] Add 'deprecated' in ExpressionDescription for extended usage and SQL doc
   // Adds 'deprecated' argument to the ExpressionInfo constructor
   override def createExpressionInfo(
@@ -57,4 +58,11 @@ object SparkShim extends SparkShimBase {
 
   abstract class TernaryExpression
       extends org.apache.spark.sql.catalyst.expressions.TernaryExpression
+<<<<<<< HEAD
+=======
+
+  def getDateFormat(options: CSVOptions): String = options.dateFormatInWrite
+
+  def getTimestampFormat(options: CSVOptions): String = options.timestampFormatInWrite
+>>>>>>> aacbdad (clean up build)
 }
