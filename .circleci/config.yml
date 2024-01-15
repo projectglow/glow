@@ -1,25 +1,25 @@
 setup_2xl_base: &setup_2xl_base
   working_directory: ~/glow
   docker:
-    - image: cimg/openjdk:8.0.322
+    - image: cimg/openjdk:8.0.392
   resource_class: xlarge
 
 setup_xl_base: &setup_xl_base
   working_directory: ~/glow
   docker:
-    - image: cimg/openjdk:8.0.322
+    - image: cimg/openjdk:8.0.392
   resource_class: xlarge
 
 setup_l_base: &setup_l_base
   working_directory: ~/glow
   docker:
-    - image: cimg/openjdk:8.0.322
+    - image: cimg/openjdk:8.0.392
   resource_class: large
 
 setup_m_base: &setup_m_base
   working_directory: ~/glow
   docker:
-    - image: cimg/openjdk:8.0.322
+    - image: cimg/openjdk:8.0.392
   resource_class: medium+
 
 install_conda: &install_conda
@@ -27,8 +27,8 @@ install_conda: &install_conda
     name: Install conda
     command: |
       if [ ! -d "/home/circleci/conda" ]; then
-        wget https://repo.anaconda.com/miniconda/Miniconda3-py37_4.8.3-Linux-x86_64.sh
-        /bin/bash Miniconda3-py37_4.8.3-Linux-x86_64.sh -b -p $HOME/conda
+        wget https://repo.anaconda.com/miniconda/Miniconda3-py38_23.11.0-2-Linux-x86_64.sh
+        /bin/bash Miniconda3-py38_23.11.0-2-Linux-x86_64.sh -b -p $HOME/conda
       else
         echo "Conda already installed"
       fi
@@ -38,6 +38,8 @@ create_python_env: &create_python_env
     command: |
       if [ ! -d "/home/circleci/conda/envs/glow" ]; then
         export PATH=$HOME/conda/bin:$PATH
+        conda install -n base conda-libmamba-solver
+        conda config --set solver libmamba
         conda env create -f python/environment.yml
       fi
 create_docs_env: &create_docs_env
@@ -98,7 +100,7 @@ jobs:
             done
       - *check_clean_repo
 
-  spark-3-tests:
+  spark-3-4-tests:
     <<: *setup_2xl_base
     steps:
       - checkout
@@ -119,34 +121,71 @@ jobs:
           name: Run Scala tests
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="3.2.1"
-            export SCALA_VERSION="2.12.8"
+            export SPARK_VERSION="3.5.0"
+            export SCALA_VERSION="2.12.15"
+            sbt core/test exit
+#      - run:
+#          name: Run docs tests
+#          no_output_timeout: 120m
+#          command: |
+#            export PATH=$HOME/conda/envs/glow/bin:$PATH
+#            export SPARK_VERSION="3.5.0"
+#            export SCALA_VERSION="2.12.15"
+#            sbt docs/test exit
+      - run:
+          name: Run Python tests
+          no_output_timeout: 90m
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            export SPARK_VERSION="3.5.0"
+            export SCALA_VERSION="2.12.15"
+            sbt python/test exit
+      - *check_clean_repo
+      - store_artifacts:
+          path: ~/glow/unit-tests.log
+          destination: unit-tests.log
+      - store_test_results:
+          path: ~/glow/core/target/scala-2.12/test-reports
+
+  spark-3-5-tests:
+    <<: *setup_2xl_base
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - conda-deps-v1-{{ checksum "python/environment.yml" }}
+      - *install_conda
+      - *create_python_env
+      - save_cache:
+          paths:
+            - /home/circleci/conda
+          key: conda-deps-v1-{{ checksum "python/environment.yml" }}
+      - run:
+          name: Prepare CircleCI environment for dependency cache - issue #301
+          environment:
+          command: sudo apt-get install -y ca-certificates
+      - run:
+          name: Run Scala tests
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            export SPARK_VERSION="3.5.0"
+            export SCALA_VERSION="2.12.15"
             sbt core/test exit
       - run:
           name: Run docs tests
           no_output_timeout: 120m
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="3.2.1"
-            export SCALA_VERSION="2.12.8"
+            export SPARK_VERSION="3.5.0"
+            export SCALA_VERSION="2.12.15"
             sbt docs/test exit
-      - run:
-          name: Run Hail on Spark3 tests
-          command: |
-            export PATH=$HOME/conda/envs/glow/bin:$HOME/conda/bin:$PATH
-            export SPARK_VERSION="3.2.1"
-            export SCALA_VERSION="2.12.8"
-            export HAIL_VERSION="0.2.89"
-            sudo apt-get update
-            sudo apt-get -y install rsync
-            sbt installHail uninstallHail exit
       - run:
           name: Run Python tests
           no_output_timeout: 90m
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="3.2.1"
-            export SCALA_VERSION="2.12.8"
+            export SPARK_VERSION="3.5.0"
+            export SCALA_VERSION="2.12.15"
             sbt python/test exit
       - *check_clean_repo
       - store_artifacts:
@@ -193,7 +232,8 @@ workflows:
   test:
     jobs:
       - check-docs
-      - spark-3-tests
+      - spark-3-4-tests
+      - spark-3-5-tests
       - all-notebook-tests
   nightly:
     triggers:
@@ -205,5 +245,5 @@ workflows:
                 - master
     jobs:
       - check-docs
-      - spark-3-tests
+      - spark-3-5-tests
       - all-notebook-tests

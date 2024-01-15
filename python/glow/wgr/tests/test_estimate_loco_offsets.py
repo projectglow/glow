@@ -18,6 +18,7 @@ from glow.wgr.logistic_ridge_regression import *
 from glow.wgr.wgr_functions import estimate_loco_offsets
 import numpy as np
 import pandas as pd
+import pytest
 
 ridge_data_root = 'test-data/wgr/ridge-regression'
 logistic_ridge_data_root = 'test-data/wgr/logistic-regression'
@@ -64,17 +65,18 @@ def test_estimate_loco_offsets_logistic_ridge_no_intercept_no_cov(spark):
 
     group2ids = __get_sample_blocks(indexdf)
 
-    y_hat_df = estimate_loco_offsets(blockdf,
-                                     labeldf,
-                                     group2ids,
-                                     add_intercept=False,
-                                     reduction_alphas=alphas,
-                                     regression_alphas=alphas)
+    with pytest.warns(UserWarning):
+        y_hat_df = estimate_loco_offsets(blockdf,
+                                         labeldf,
+                                         group2ids,
+                                         add_intercept=False,
+                                         reduction_alphas=alphas,
+                                         regression_alphas=alphas)
 
-    stack0 = RidgeReduction(blockdf, labeldf, group2ids, add_intercept=False, alphas=alphas)
-    stack0.fit_transform()
-    regressor = LogisticRidgeRegression.from_ridge_reduction(stack0, alphas)
-    yhatdf = regressor.fit_transform_loco()
+        stack0 = RidgeReduction(blockdf, labeldf, group2ids, add_intercept=False, alphas=alphas)
+        stack0.fit_transform()
+        regressor = LogisticRidgeRegression.from_ridge_reduction(stack0, alphas)
+        yhatdf = regressor.fit_transform_loco()
 
     assert (np.allclose(y_hat_df, yhatdf))
 
@@ -87,16 +89,17 @@ def test_estimate_loco_offsets_logistic_ridge_with_intercept_no_cov(spark):
 
     group2ids = __get_sample_blocks(indexdf)
 
-    y_hat_df = estimate_loco_offsets(blockdf,
-                                     labeldf,
-                                     group2ids,
-                                     reduction_alphas=alphas,
-                                     regression_alphas=alphas)
+    with pytest.warns(UserWarning):
+        y_hat_df = estimate_loco_offsets(blockdf,
+                                         labeldf,
+                                         group2ids,
+                                         reduction_alphas=alphas,
+                                         regression_alphas=alphas)
 
-    stack0 = RidgeReduction(blockdf, labeldf, group2ids, alphas=alphas)
-    stack0.fit_transform()
-    regressor = LogisticRidgeRegression.from_ridge_reduction(stack0, alphas)
-    yhatdf = regressor.fit_transform_loco()
+        stack0 = RidgeReduction(blockdf, labeldf, group2ids, alphas=alphas)
+        stack0.fit_transform()
+        regressor = LogisticRidgeRegression.from_ridge_reduction(stack0, alphas)
+        yhatdf = regressor.fit_transform_loco()
 
     assert (np.allclose(y_hat_df, yhatdf))
 
@@ -111,19 +114,24 @@ def test_estimate_loco_offsets_logistic_ridge_no_intercept_with_cov(spark):
 
     group2ids = __get_sample_blocks(indexdf)
 
-    y_hat_df = estimate_loco_offsets(blockdf,
-                                     labeldf,
-                                     group2ids,
-                                     covdf,
-                                     add_intercept=False,
-                                     reduction_alphas=alphas,
-                                     regression_alphas=alphas)
+    with pytest.warns(UserWarning):
+        y_hat_df = estimate_loco_offsets(blockdf,
+                                         labeldf,
+                                         group2ids,
+                                         covdf,
+                                         add_intercept=False,
+                                         reduction_alphas=alphas,
+                                         regression_alphas=alphas)
 
-    stack0 = RidgeReduction(blockdf, labeldf, group2ids, covdf, add_intercept=False, alphas=alphas)
-    stack0.fit_transform()
-    regressor = LogisticRidgeRegression.from_ridge_reduction(stack0, alphas)
-    yhatdf = regressor.fit_transform_loco()
-    print(y_hat_df)
+        stack0 = RidgeReduction(blockdf,
+                                labeldf,
+                                group2ids,
+                                covdf,
+                                add_intercept=False,
+                                alphas=alphas)
+        stack0.fit_transform()
+        regressor = LogisticRidgeRegression.from_ridge_reduction(stack0, alphas)
+        yhatdf = regressor.fit_transform_loco()
 
     assert (np.allclose(y_hat_df, yhatdf))
 
@@ -138,16 +146,17 @@ def test_estimate_loco_offsets_logistic_ridge_with_intercept_with_cov(spark):
 
     group2ids = __get_sample_blocks(indexdf)
 
-    y_hat_df = estimate_loco_offsets(blockdf,
-                                     labeldf,
-                                     group2ids,
-                                     covdf,
-                                     reduction_alphas=alphas,
-                                     regression_alphas=alphas)
+    with pytest.warns(UserWarning):
+        y_hat_df = estimate_loco_offsets(blockdf,
+                                         labeldf,
+                                         group2ids,
+                                         covdf,
+                                         reduction_alphas=alphas,
+                                         regression_alphas=alphas)
 
-    stack0 = RidgeReduction(blockdf, labeldf, group2ids, covdf, alphas=alphas)
-    stack0.fit_transform()
-    regressor = LogisticRidgeRegression.from_ridge_reduction(stack0, alphas)
-    yhatdf = regressor.fit_transform_loco()
+        stack0 = RidgeReduction(blockdf, labeldf, group2ids, covdf, alphas=alphas)
+        stack0.fit_transform()
+        regressor = LogisticRidgeRegression.from_ridge_reduction(stack0, alphas)
+        yhatdf = regressor.fit_transform_loco()
 
     assert (np.allclose(y_hat_df, yhatdf))

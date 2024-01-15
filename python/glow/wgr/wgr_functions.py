@@ -16,10 +16,10 @@ from glow import glow
 import pandas as pd
 import numpy as np
 from pyspark import SparkContext
-from pyspark.sql import DataFrame, Row, SparkSession, SQLContext
-from typeguard import check_argument_types, check_return_type
+from pyspark.sql import DataFrame, Row, SparkSession
+from typeguard import typechecked
 from typing import Any, Dict, List
-from nptyping import Float, NDArray
+from nptyping import Float, NDArray, Shape
 from .ridge_reduction import RidgeReduction
 from .ridge_regression import RidgeRegression
 from .logistic_ridge_regression import LogisticRidgeRegression
@@ -33,19 +33,20 @@ def _get_contigs_from_loco_df(df: pd.DataFrame) -> pd.Series:
     return df.index.get_level_values(1).unique()
 
 
+@typechecked
 def __validate_sample_ids(sample_ids: List[str]):
     """"
     Validates that a set of sample IDs are valid (non-empty and unique).
     """
-    assert check_argument_types()
     if any(not s for s in sample_ids):
         raise Exception("Cannot have empty sample IDs.")
     if len(sample_ids) != len(set(sample_ids)):
         raise Exception("Cannot have duplicated sample IDs.")
 
 
+@typechecked
 def __get_index_map(sample_ids: List[str], sample_block_count: int,
-                    sql_ctx: SQLContext) -> Dict[str, List[str]]:
+                    spark: SparkSession) -> Dict[str, List[str]]:
     """
     Creates an index mapping from sample blocks to a list of corresponding sample IDs. Uses the same sample-blocking
     logic as the blocked GT matrix transformer.
@@ -62,18 +63,16 @@ def __get_index_map(sample_ids: List[str], sample_block_count: int,
         index mapping from sample block IDs to a list of sample IDs
     """
 
-    assert check_argument_types()
-
-    sample_id_df = sql_ctx.createDataFrame([Row(values=sample_ids)])
+    sample_id_df = spark.createDataFrame([Row(values=sample_ids)])
     make_sample_blocks_fn = SparkContext._jvm.io.projectglow.transformers.blockvariantsandsamples.VariantSampleBlockMaker.makeSampleBlocks
     output_jdf = make_sample_blocks_fn(sample_id_df._jdf, sample_block_count)
-    output_df = DataFrame(output_jdf, sql_ctx)
+    output_df = DataFrame(output_jdf, spark)
     index_map = {r.sample_block: r.values for r in output_df.collect()}
 
-    assert check_return_type(index_map)
     return index_map
 
 
+@typechecked
 def get_sample_ids(data: DataFrame) -> List[str]:
     """
     Extracts sample IDs from a variant DataFrame, such as one read from PLINK files.
@@ -92,16 +91,15 @@ def get_sample_ids(data: DataFrame) -> List[str]:
     Returns:
         list of sample ID strings
     """
-    assert check_argument_types()
     distinct_sample_id_sets = data.selectExpr("genotypes.sampleId as sampleIds").distinct()
     if distinct_sample_id_sets.count() != 1:
         raise Exception("Each row must have the same set of sample IDs.")
     sample_ids = distinct_sample_id_sets.head().sampleIds
     __validate_sample_ids(sample_ids)
-    assert check_return_type(sample_ids)
     return sample_ids
 
 
+@typechecked
 def block_variants_and_samples(variant_df: DataFrame, sample_ids: List[str],
                                variants_per_block: int,
                                sample_block_count: int) -> (DataFrame, Dict[str, List[str]]):
@@ -123,7 +121,6 @@ def block_variants_and_samples(variant_df: DataFrame, sample_ids: List[str],
     Returns:
         tuple of (blocked GT matrix, index mapping)
     """
-    assert check_argument_types()
     first_row = variant_df.selectExpr("size(values) as numValues").take(1)
     if not first_row:
         raise Exception("DataFrame has no values.")
@@ -138,13 +135,13 @@ def block_variants_and_samples(variant_df: DataFrame, sample_ids: List[str],
                                 variant_df,
                                 variants_per_block=variants_per_block,
                                 sample_block_count=sample_block_count)
-    index_map = __get_index_map(sample_ids, sample_block_count, variant_df.sql_ctx)
+    index_map = __get_index_map(sample_ids, sample_block_count, variant_df.sparkSession)
 
     output = blocked_gt, index_map
-    assert check_return_type(output)
     return output
 
 
+@typechecked
 def reshape_for_gwas(spark: SparkSession, label_df: pd.DataFrame) -> DataFrame:
     """
     Reshapes a Pandas DataFrame into a Spark DataFrame with a convenient format for Glow's GWAS
@@ -181,8 +178,6 @@ def reshape_for_gwas(spark: SparkSession, label_df: pd.DataFrame) -> DataFrame:
         the label name, the contig name if provided in the input DataFrame, and an array containing
         the label value for each sample.
     """
-
-    assert check_argument_types()
 
     if label_df.index.nlevels == 1:  # Indexed by sample id
         transposed_df = label_df.T

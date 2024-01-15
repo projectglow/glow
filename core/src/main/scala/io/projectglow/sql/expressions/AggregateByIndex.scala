@@ -16,10 +16,13 @@
 
 package io.projectglow.sql.expressions
 
-import org.apache.spark.sql.SQLUtils
+import org.apache.spark.sql.{Encoder, Encoders, SQLUtils}
 import org.apache.spark.sql.catalyst.dsl.expressions._
+import org.apache.spark.sql.catalyst.encoders.ExpressionEncoder
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.expressions.aggregate.{AggregateFunction, DeclarativeAggregate}
+import org.apache.spark.sql.connector.expressions.aggregate.UserDefinedAggregateFunc
+import org.apache.spark.sql.expressions.Aggregator
 import org.apache.spark.sql.types._
 
 /**
@@ -44,6 +47,49 @@ import org.apache.spark.sql.types._
  *   (buf1, buf2) -> named_struct('sum', buf1.sum + buf2.sum, 'count', buf1.count + buf2.count),
  *   buf -> buf.sum / buf.count)
  */
+case class Average(sum: Array[Double], var count: Long)
+object AverageByIndex extends Aggregator[Array[Double], Average, Array[Double]] {
+  def zero: Average = Average(Array.emptyDoubleArray, -0L)
+
+  def reduce(buffer: Average, datum: Array[Double]): Average = {
+    if (buffer.count == 0) {
+      Average(datum, 1L)
+    } else {
+      assert(buffer.sum.length == datum.length)
+      buffer.sum.zipWithIndex.foreach {
+        case (_, i) =>
+          buffer.sum(i) += datum(i)
+          buffer.count += 1
+      }
+      buffer
+    }
+  }
+
+  def merge(b1: Average, b2: Average): Average = {
+    if (b1.count == 0) {
+      return b2
+    } else if (b2.count == 0) {
+      return b1
+    }
+    assert(b1.sum.length == b2.sum.length)
+    b1.sum.zipWithIndex.foreach {
+      case (_, i) =>
+        b1.sum(i) += b2.sum(i)
+    }
+    b1.count += b2.count
+    b1
+  }
+
+  def finish(buffer: Average): Array[Double] = {
+    Range(0, buffer.sum.length).foreach { i =>
+      buffer.sum(i) /= buffer.count
+    }
+    buffer.sum
+  }
+
+  def bufferEncoder: Encoder[Average] = Encoders.product
+  def outputEncoder: Encoder[Array[Double]] = ExpressionEncoder()
+}
 trait AggregateByIndex extends DeclarativeAggregate with HigherOrderFunction {
 
   // Fields specific to AggregateByIndex that must be overridden by subclasses
@@ -89,12 +135,12 @@ trait AggregateByIndex extends DeclarativeAggregate with HigherOrderFunction {
    * To create bound lambda functions, we bind each of the child higher order functions,
    * extract their bound lambda functions, and then copy.
    */
-  override def bind(
+  override def bindInternal(
       f: (Expression, Seq[(DataType, Boolean)]) => LambdaFunction): AggregateByIndex = {
     withBoundExprs(
-      updateExpr.bind(f).function,
-      mergeExpr.bind(f).function,
-      evaluateExpr.bind(f).function
+      updateExpr.bind(f).functions.head,
+      mergeExpr.bind(f).functions.head,
+      evaluateExpr.bind(f).functions.head
     )
   }
 

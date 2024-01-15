@@ -470,7 +470,7 @@ class MultiFileVCFWriterSuite extends VCFFileWriterSuite("vcf") {
         .option("vcfHeader", extraHeaderStr.substring(0, extraHeaderStr.length - 10))
         .save(tempFile)
     }
-    assert(e.getCause.getMessage.contains("Unable to parse VCF header"))
+    assert(exceptionMessageIncludes(e, "Unable to parse VCF header"))
   }
 
   test("Invalid validation stringency") {
@@ -504,11 +504,21 @@ class MultiFileVCFWriterSuite extends VCFFileWriterSuite("vcf") {
       .limit(2)
       .repartition(5)
 
-    assertThrows[SparkException](
-      ds.write
-        .format(sourceName)
-        .save(tempFile)
-    )
+    ds.write
+      .format(sourceName)
+      .save(tempFile)
+
+    val rewrittenDs = spark
+      .read
+      .format(readSourceName)
+      .load(tempFile)
+    ds.sort("contigName", "start")
+      .collect
+      .zip(rewrittenDs.sort("contigName", "start").collect)
+      .foreach {
+        case (vc1, vc2) =>
+          assert(vc1.equals(vc2), s"VC1\n$vc1\nVC2\n$vc2")
+      }
   }
 
   def testInferredSampleIds(row1HasSamples: Boolean, row2HasSamples: Boolean): Unit = {
@@ -544,11 +554,11 @@ class MultiFileVCFWriterSuite extends VCFFileWriterSuite("vcf") {
         .format(sourceName)
         .save(tempFile)
     }
-    assert(e.getCause.getCause.getCause.isInstanceOf[IllegalArgumentException])
+    assert(causeIncludes[IllegalArgumentException](e))
     assert(
-      e.getCause
-        .getMessage
-        .contains("Cannot infer sample ids because they are not the same in every row"))
+      exceptionMessageIncludes(
+        e,
+        "Cannot infer sample ids because they are not the same in every row"))
   }
 
   test("Fails if inferred present sample IDs but row missing sample IDs") {
@@ -584,7 +594,7 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
         .option("vcfHeader", extraHeaderStr.substring(0, extraHeaderStr.length - 10))
         .save(tempFile)
     }
-    assert(e.getMessage.contains("Unable to parse VCF header"))
+    assert(exceptionMessageIncludes(e, "Unable to parse VCF header"))
   }
 
   test("Invalid validation stringency") {
@@ -806,7 +816,7 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
     val e = intercept[IllegalArgumentException] {
       ds1.union(ds2).write.option("vcfHeader", "infer").format(sourceName).save(tempFile)
     }
-    assert(e.getMessage.contains("Cannot mix missing and non-missing sample IDs"))
+    assert(exceptionMessageIncludes(e, "Cannot mix missing and non-missing sample IDs"))
   }
 
   test("Non-matching number of missing sample IDs") {
@@ -817,6 +827,6 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
     val e = intercept[IllegalArgumentException] {
       ds1.union(ds2).write.format(sourceName).save(createTempVcf.toString)
     }
-    assert(e.getMessage.contains("Rows contain varying number of missing samples"))
+    assert(exceptionMessageIncludes(e, "Rows contain varying number of missing samples"))
   }
 }

@@ -1,11 +1,11 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC ## Explode variant dataframe
-# MAGIC 
+# MAGIC
 # MAGIC Take a variant dataframe in a pVCF representation (one variant with all genotypes)
 # MAGIC   - genotypes for each variant represented as an array of structs
-# MAGIC 
+# MAGIC
 # MAGIC And explode it so each row contains one variant and one genotype
 
 # COMMAND ----------

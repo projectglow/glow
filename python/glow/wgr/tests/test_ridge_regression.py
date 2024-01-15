@@ -41,7 +41,7 @@ covdf_with_missing = std_covdf.copy()
 covdf_with_missing.loc['1073199471', 'cov1'] = math.nan
 
 alphas = [0.1, 1, 10]
-alphaMap = {f'alpha_{i}': a for i, a in enumerate(alphas)}
+alphaMap = {f'alpha_{i}': np.float64(a) for i, a in enumerate(alphas)}
 columnIndexer = sorted(enumerate(alphaMap.keys()), key=lambda t: t[1])
 coefOrder = [i for i, a in columnIndexer]
 
@@ -89,13 +89,12 @@ def test_map_normal_eqn(spark):
 
     sample_blocks = __get_sample_blocks(indexdf)
     map_key_pattern = ['header_block', 'sample_block']
-    map_udf = pandas_udf(
-        lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks,
-                                        covdf_empty), normal_eqn_struct, PandasUDFType.GROUPED_MAP)
+    map_udf = lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks,
+                                              covdf_empty)
 
     outdf = blockdf \
         .groupBy(map_key_pattern) \
-        .apply(map_udf) \
+        .applyInPandas(map_udf, normal_eqn_struct) \
         .filter(f'header_block = "{testBlock}" AND sample_block = {testGroup}') \
         .orderBy('sort_key') \
         .select('xtx', 'xty') \
@@ -128,18 +127,16 @@ def test_reduce_normal_eqn(spark):
     sample_blocks = __get_sample_blocks(indexdf)
     map_key_pattern = ['header_block', 'sample_block']
     reduce_key_pattern = ['header_block', 'header']
-    map_udf = pandas_udf(
-        lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks,
-                                        covdf_empty), normal_eqn_struct, PandasUDFType.GROUPED_MAP)
-    reduce_udf = pandas_udf(lambda key, pdf: reduce_normal_eqn(key, reduce_key_pattern, pdf),
-                            normal_eqn_struct, PandasUDFType.GROUPED_MAP)
+    map_udf = lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks,
+                                              covdf_empty)
+    reduce_udf = lambda key, pdf: reduce_normal_eqn(key, reduce_key_pattern, pdf)
 
     mapdf = blockdf \
         .groupBy(map_key_pattern) \
-        .apply(map_udf)
+        .applyInPandas(map_udf, normal_eqn_struct)
 
     outdf = mapdf.groupBy(reduce_key_pattern) \
-        .apply(reduce_udf) \
+        .applyInPandas(reduce_udf, normal_eqn_struct) \
         .filter(f'header_block = "{testBlock}" AND sample_block = {testGroup}') \
         .orderBy('sort_key') \
         .select('xtx', 'xty') \
@@ -174,24 +171,21 @@ def test_solve_normal_eqn(spark):
     sample_blocks = __get_sample_blocks(indexdf)
     map_key_pattern = ['header_block', 'sample_block']
     reduce_key_pattern = ['header_block', 'header']
-    map_udf = pandas_udf(
-        lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks,
-                                        covdf_empty), normal_eqn_struct, PandasUDFType.GROUPED_MAP)
-    reduce_udf = pandas_udf(lambda key, pdf: reduce_normal_eqn(key, reduce_key_pattern, pdf),
-                            normal_eqn_struct, PandasUDFType.GROUPED_MAP)
-    model_udf = pandas_udf(
-        lambda key, pdf: solve_normal_eqn(key, reduce_key_pattern, pdf, labeldf, alphaMap,
-                                          covdf_empty), model_struct, PandasUDFType.GROUPED_MAP)
+    map_udf = lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks,
+                                              covdf_empty)
+    reduce_udf = lambda key, pdf: reduce_normal_eqn(key, reduce_key_pattern, pdf)
+    model_udf = lambda key, pdf: solve_normal_eqn(key, reduce_key_pattern, pdf, labeldf, alphaMap,
+                                                  covdf_empty)
 
     reducedf = blockdf \
         .groupBy(map_key_pattern) \
-        .apply(map_udf) \
+        .applyInPandas(map_udf, normal_eqn_struct) \
         .groupBy(reduce_key_pattern) \
-        .apply(reduce_udf)
+        .applyInPandas(reduce_udf, normal_eqn_struct)
 
     columns = ['coefficients']
     rows = reducedf.groupBy(map_key_pattern) \
-        .apply(model_udf) \
+        .applyInPandas(model_udf, model_struct) \
         .filter(f'header_block = "{testBlock}" AND sample_block = {testGroup}') \
         .select(*columns) \
         .collect()
@@ -228,31 +222,26 @@ def test_apply_model(spark):
     map_key_pattern = ['header_block', 'sample_block']
     reduce_key_pattern = ['header_block', 'header']
     transform_key_pattern = ['header_block', 'sample_block']
-    map_udf = pandas_udf(
-        lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks,
-                                        covdf_empty), normal_eqn_struct, PandasUDFType.GROUPED_MAP)
-    reduce_udf = pandas_udf(lambda key, pdf: reduce_normal_eqn(key, reduce_key_pattern, pdf),
-                            normal_eqn_struct, PandasUDFType.GROUPED_MAP)
-    model_udf = pandas_udf(
-        lambda key, pdf: solve_normal_eqn(key, map_key_pattern, pdf, labeldf, alphaMap, covdf_empty),
-        model_struct, PandasUDFType.GROUPED_MAP)
-    transform_udf = pandas_udf(
-        lambda key, pdf: apply_model(key, transform_key_pattern, pdf, labeldf, sample_blocks,
-                                     alphaMap, covdf_empty), reduced_matrix_struct,
-        PandasUDFType.GROUPED_MAP)
+    map_udf = lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, labeldf, sample_blocks,
+                                              covdf_empty)
+    reduce_udf = lambda key, pdf: reduce_normal_eqn(key, reduce_key_pattern, pdf)
+    model_udf = lambda key, pdf: solve_normal_eqn(key, map_key_pattern, pdf, labeldf, alphaMap,
+                                                  covdf_empty)
+    transform_udf = lambda key, pdf: apply_model(key, transform_key_pattern, pdf, labeldf,
+                                                 sample_blocks, alphaMap, covdf_empty)
 
     modeldf = blockdf \
         .groupBy(map_key_pattern) \
-        .apply(map_udf) \
+        .applyInPandas(map_udf, normal_eqn_struct) \
         .groupBy(reduce_key_pattern) \
-        .apply(reduce_udf) \
+        .applyInPandas(reduce_udf, normal_eqn_struct) \
         .groupBy(map_key_pattern) \
-        .apply(model_udf)
+        .applyInPandas(model_udf, model_struct)
 
     columns = ['values']
     rows = blockdf.join(modeldf.drop('sort_key'), ['header_block', 'sample_block', 'header']) \
         .groupBy(transform_key_pattern) \
-        .apply(transform_udf) \
+        .applyInPandas(transform_udf, reduced_matrix_struct) \
         .filter(f'header LIKE "%{testBlock}%" AND sample_block = {testGroup}') \
         .select(*columns) \
         .collect()
@@ -413,7 +402,7 @@ def __calculate_y_hat(X_base, group2ids, testLabel, cov=covdf_empty):
 
     bestAlpha, bestr2 = sorted(zip(alphaMap.keys(), r2_mean), key=lambda t: -t[1])[0]
 
-    y_hat = pd.Series(index=std_labeldf.index)
+    y_hat = pd.Series(index=std_labeldf.index, dtype=np.float64)
     for group in groups:
         ids = group2ids[group]
         X_in = cov_X[headersToKeep].loc[ids, :].to_numpy()

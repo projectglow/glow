@@ -21,5 +21,4 @@ enabling manipulation, filtering, quality control and transformation between fil
    variant-normalization
    variant-splitter
    merge
-   hail
    utility-functions

@@ -18,7 +18,6 @@ from .model_functions import _prepare_labels_and_warn, _prepare_covariates, _che
 from nptyping import Float, NDArray
 import pandas as pd
 from pyspark.sql import DataFrame, Row
-from pyspark.sql.functions import pandas_udf, PandasUDFType
 import pyspark.sql.functions as f
 from typeguard import typechecked
 from typing import Any, Dict, List, Union
@@ -148,24 +147,18 @@ class RidgeRegression:
         reduce_key_pattern = ['header_block', 'header', 'label']
         metric = 'r2'
 
-        map_udf = pandas_udf(
-            lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, self._std_label_df, self.
-                                            sample_blocks, self._std_cov_df), normal_eqn_struct,
-            PandasUDFType.GROUPED_MAP)
-        reduce_udf = pandas_udf(lambda key, pdf: reduce_normal_eqn(key, reduce_key_pattern, pdf),
-                                normal_eqn_struct, PandasUDFType.GROUPED_MAP)
-        model_udf = pandas_udf(
-            lambda key, pdf: solve_normal_eqn(key, map_key_pattern, pdf, self._std_label_df, self.
-                                              _alphas, self._std_cov_df), model_struct,
-            PandasUDFType.GROUPED_MAP)
-        score_udf = pandas_udf(
-            lambda key, pdf: score_models(key, map_key_pattern, pdf, self._std_label_df, self.
-                                          sample_blocks, self._alphas, self._std_cov_df,
-                                          pd.DataFrame({}), metric), cv_struct,
-            PandasUDFType.GROUPED_MAP)
+        map_udf = lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, self._std_label_df,
+                                                  self.sample_blocks, self._std_cov_df)
+        reduce_udf = lambda key, pdf: reduce_normal_eqn(key, reduce_key_pattern, pdf)
+        model_udf = lambda key, pdf: solve_normal_eqn(key, map_key_pattern, pdf, self._std_label_df,
+                                                      self._alphas, self._std_cov_df)
+        score_udf = lambda key, pdf: score_models(key, map_key_pattern, pdf, self._std_label_df,
+                                                  self.sample_blocks, self._alphas, self.
+                                                  _std_cov_df, pd.DataFrame({}), metric)
 
-        self.model_df = self.reduced_block_df.groupBy(map_key_pattern).apply(map_udf).groupBy(
-            reduce_key_pattern).apply(reduce_udf).groupBy(map_key_pattern).apply(model_udf)
+        self.model_df = self.reduced_block_df.groupBy(map_key_pattern).applyInPandas(map_udf, normal_eqn_struct)\
+            .groupBy(reduce_key_pattern).applyInPandas(reduce_udf, normal_eqn_struct)\
+            .groupBy(map_key_pattern).applyInPandas(model_udf, model_struct)
 
         self.cv_df = cross_validation(self.reduced_block_df, self.model_df, score_udf,
                                       map_key_pattern, self._alphas, metric)
@@ -188,13 +181,13 @@ class RidgeRegression:
 
         transform_key_pattern = ['sample_block', 'label']
 
-        transform_udf = pandas_udf(
-            lambda key, pdf: apply_model(key, transform_key_pattern, pdf, self._std_label_df, self.
-                                         sample_blocks, self._alphas, self._std_cov_df),
-            reduced_matrix_struct, PandasUDFType.GROUPED_MAP)
+        transform_udf = lambda key, pdf: apply_model(
+            key, transform_key_pattern, pdf, self._std_label_df, self.sample_blocks, self._alphas,
+            self._std_cov_df)
 
         blocked_prediction_df = apply_model_df(self.reduced_block_df, self.model_df, self.cv_df,
-                                               transform_udf, transform_key_pattern, 'right')
+                                               transform_udf, reduced_matrix_struct,
+                                               transform_key_pattern, 'right')
 
         self.y_hat_df = flatten_prediction_df(blocked_prediction_df, self.sample_blocks,
                                               self._std_label_df)
@@ -233,7 +226,7 @@ class RidgeRegression:
             self.model_df = loco_model_df
             loco_y_hat_df = self.transform()
             loco_y_hat_df['contigName'] = chromosome
-            y_hat_df = y_hat_df.append(loco_y_hat_df)
+            y_hat_df = pd.concat([y_hat_df, loco_y_hat_df])
             self.model_df = orig_model_df
 
         self.y_hat_df = y_hat_df.set_index('contigName', append=True)

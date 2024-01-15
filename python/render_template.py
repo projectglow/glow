@@ -50,8 +50,12 @@ def scala_type(value):
 
 def python_type(value):
     if not 'type' in value:
-        return 'Union[Column, str]'
-    return PYTHON_TYPES[value['type']]
+        t = 'Union[Column, str]'
+    else:
+        t = PYTHON_TYPES[value['type']]
+    if value.get('is_optional'):
+        t += ' | None'
+    return t
 
 
 def fmt_scala_signature(value):

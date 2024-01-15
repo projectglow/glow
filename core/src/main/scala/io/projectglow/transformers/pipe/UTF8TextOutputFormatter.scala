@@ -28,14 +28,14 @@ import org.apache.spark.unsafe.types.UTF8String
 /**
  * A simple output formatter that returns each line of output as a String field.
  */
-class UTF8TextOutputFormatter() extends OutputFormatter {
+class UTF8TextOutputFormatter(ignoreHeader: Boolean) extends OutputFormatter {
 
   override def makeIterator(stream: InputStream): Iterator[Any] = {
     val schema = StructType(Seq(StructField("text", StringType)))
     val iter = IOUtils.lineIterator(stream, "UTF-8").asScala.map { s =>
       new GenericInternalRow(Array(UTF8String.fromString(s)): Array[Any])
     }
-    Iterator(schema) ++ iter
+    Iterator(schema) ++ (if (ignoreHeader) iter.drop(1) else iter)
   }
 }
 
@@ -43,6 +43,6 @@ class UTF8TextOutputFormatterFactory extends OutputFormatterFactory {
   override def name: String = "text"
 
   override def makeOutputFormatter(options: Map[String, String]): OutputFormatter = {
-    new UTF8TextOutputFormatter
+    new UTF8TextOutputFormatter(options.get("ignoreHeader").exists(_.toBoolean))
   }
 }

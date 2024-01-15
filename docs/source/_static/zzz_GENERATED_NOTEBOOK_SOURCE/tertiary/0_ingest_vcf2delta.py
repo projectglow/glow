@@ -1,8 +1,8 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC #### Ingest VCF into delta
-# MAGIC 
+# MAGIC
 # MAGIC We already have the data in delta, so this is notebook is for benchmarking purposes
 
 # COMMAND ----------

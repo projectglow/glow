@@ -33,7 +33,7 @@ display(transformed_df.drop("genotypes"))
 # DBTITLE 1,Using the Scala API
 # MAGIC %scala
 # MAGIC import io.projectglow.Glow
-# MAGIC 
+# MAGIC
 # MAGIC val df = spark.read.format("vcf").load("/databricks-datasets/genomics/1kg-vcfs/*.vcf.gz").limit(10)
 # MAGIC val transformed = Glow.transform("pipe", df, Map(
 # MAGIC            "cmd" -> Seq("grep", "-v", "#INFO"),
@@ -50,7 +50,7 @@ display(transformed_df.drop("genotypes"))
 
 # MAGIC %md
 # MAGIC #### Install bedtools across cluster
-# MAGIC 
+# MAGIC
 # MAGIC Tested using the [databricks-glow](https://hub.docker.com/r/projectglow/databricks-glow) docker container ([docs](https://docs.databricks.com/clusters/custom-containers.html))
 
 # COMMAND ----------
@@ -73,7 +73,7 @@ bed.toPandas().to_csv(bed_path, sep="\t", index=False)
 
 # MAGIC %md
 # MAGIC #### run bedtools on a VCF file with the pipe transformer
-# MAGIC 
+# MAGIC
 # MAGIC Here we are going to intersect the vcf with the bed file generated above
 
 # COMMAND ----------

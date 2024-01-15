@@ -20,7 +20,7 @@ import io.projectglow.common.{GlowLogging, SimpleInterval, VCFRow}
 import io.projectglow.sql.GlowBaseTest
 import io.projectglow.vcf.TabixIndexHelper._
 import org.apache.hadoop.fs.Path
-
+import org.apache.spark.paths.SparkPath
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.execution.datasources.PartitionedFile
 import org.apache.spark.sql.sources._
@@ -698,7 +698,8 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     val conf = sparkContext.hadoopConfiguration
     val fs = path.getFileSystem(conf)
     val fileLength = fs.getFileStatus(path).getLen
-    val partitionedFile = PartitionedFile(InternalRow.empty, oneRowGzipVcf, 0, 2)
+    val partitionedFile =
+      PartitionedFile(InternalRow.empty, SparkPath.fromPathString(oneRowGzipVcf), 0, 2)
     val interval = Some(SimpleInterval("0", 1, 2))
     assert(
       TabixIndexHelper
@@ -803,7 +804,7 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     val path = new Path(tbi)
     val conf = sparkContext.hadoopConfiguration
     val fs = path.getFileSystem(conf)
-    val partitionedFile = PartitionedFile(InternalRow.empty, tbi, 0, 2)
+    val partitionedFile = PartitionedFile(InternalRow.empty, SparkPath.fromPathString(tbi), 0, 2)
     val interval = Some(SimpleInterval("0", 1, 2))
     assert(
       TabixIndexHelper
@@ -819,27 +820,32 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     // Tabix offsets for this interval is (1005005266,1005032301) -> (15335,15335)
 
     // Partition before offset start
-    val p1 = PartitionedFile(InternalRow.empty, testMultiBlockVcf, 0, 15334)
+    val p1 =
+      PartitionedFile(InternalRow.empty, SparkPath.fromPathString(testMultiBlockVcf), 0, 15334)
     val r1 = TabixIndexHelper.getFileRangeToRead(fs, p1, conf, true, true, interval)
     assert(r1.isEmpty)
 
     // Partition overlapping with offset
-    val p2 = PartitionedFile(InternalRow.empty, testMultiBlockVcf, 15330, 1000)
+    val p2 =
+      PartitionedFile(InternalRow.empty, SparkPath.fromPathString(testMultiBlockVcf), 15330, 1000)
     val r2 = TabixIndexHelper.getFileRangeToRead(fs, p2, conf, true, true, interval)
     assert(r2 == Some(15335, 16330))
 
     // Partition starts within 0xFFFF of offset
-    val p3 = PartitionedFile(InternalRow.empty, testMultiBlockVcf, 15340, 1000)
+    val p3 =
+      PartitionedFile(InternalRow.empty, SparkPath.fromPathString(testMultiBlockVcf), 15340, 1000)
     val r3 = TabixIndexHelper.getFileRangeToRead(fs, p3, conf, true, true, interval)
     assert(r3.isEmpty)
 
     // Partition after offset
-    val p4 = PartitionedFile(InternalRow.empty, testMultiBlockVcf, 20000, 1000)
+    val p4 =
+      PartitionedFile(InternalRow.empty, SparkPath.fromPathString(testMultiBlockVcf), 20000, 1000)
     val r4 = TabixIndexHelper.getFileRangeToRead(fs, p4, conf, true, true, interval)
     assert(r4.isEmpty)
 
     // Do not exceed file start/end
-    val p5 = PartitionedFile(InternalRow.empty, testMultiBlockVcf, 15330, 65635)
+    val p5 =
+      PartitionedFile(InternalRow.empty, SparkPath.fromPathString(testMultiBlockVcf), 15330, 65635)
     val r5 = TabixIndexHelper.getFileRangeToRead(fs, p5, conf, true, true, interval)
     assert(r5 == Some(15335, 15335 + 0xFFFF))
   }
@@ -850,11 +856,12 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     val fs = path.getFileSystem(conf)
     val interval = Some(SimpleInterval("20", 1, Int.MaxValue))
 
-    val p1 = PartitionedFile(InternalRow.empty, testMultiBlockVcf, 0, 100)
+    val p1 = PartitionedFile(InternalRow.empty, SparkPath.fromPathString(testMultiBlockVcf), 0, 100)
     val r1 = TabixIndexHelper.getFileRangeToRead(fs, p1, conf, true, true, interval)
     assert(r1 == Some(0, 100))
 
-    val p2 = PartitionedFile(InternalRow.empty, testMultiBlockVcf, 100, 200)
+    val p2 =
+      PartitionedFile(InternalRow.empty, SparkPath.fromPathString(testMultiBlockVcf), 100, 200)
     val r2 = TabixIndexHelper.getFileRangeToRead(fs, p2, conf, true, true, interval)
     assert(r2.isEmpty)
   }
@@ -882,8 +889,9 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
       options = Map.empty,
       hadoopConf = spark.sessionState.newHadoopConf()
     )
-    val p1 = PartitionedFile(InternalRow.empty, testMultiBlockVcf, 0, 100)
-    val p2 = PartitionedFile(InternalRow.empty, testMultiBlockVcf, 0, 15335)
+    val p1 = PartitionedFile(InternalRow.empty, SparkPath.fromPathString(testMultiBlockVcf), 0, 100)
+    val p2 =
+      PartitionedFile(InternalRow.empty, SparkPath.fromPathString(testMultiBlockVcf), 0, 15335)
     val allRowsSize = reader(p2).size
     assert(allRowsSize == 280) // Sanity check
     assert(reader(p1).size == allRowsSize)

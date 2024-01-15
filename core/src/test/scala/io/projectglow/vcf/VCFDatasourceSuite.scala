@@ -17,7 +17,6 @@
 package io.projectglow.vcf
 
 import java.nio.file.Files
-
 import htsjdk.variant.vcf.VCFConstants
 import org.apache.commons.io.FileUtils
 import org.apache.hadoop.fs.Path
@@ -30,6 +29,7 @@ import org.apache.spark.sql.{DataFrame, Dataset, Row}
 import org.apache.spark.{SparkConf, SparkException}
 import io.projectglow.common.{GenotypeFields, VCFRow}
 import io.projectglow.sql.{GlowBaseTest, GlowConf}
+import org.apache.spark.paths.SparkPath
 
 class VCFDatasourceSuite extends GlowBaseTest {
 
@@ -508,7 +508,8 @@ class VCFDatasourceSuite extends GlowBaseTest {
 
   test("partitioned file without all of header") {
     // The real header is >7KB, so this contains a truncated header
-    val partitionedFile = PartitionedFile(InternalRow(), testVcf, 0L, 6000L)
+    val partitionedFile =
+      PartitionedFile(InternalRow(), SparkPath.fromPathString(testVcf), 0L, 6000L)
     val vcfFileFormat = new VCFFileFormat()
 
     val rowIter = vcfFileFormat.buildReader(

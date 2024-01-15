@@ -21,10 +21,12 @@ def extend_all(module):
 
 from .glow import *
 from . import glow
+
 extend_all(glow)
 
 from .functions import *
 from . import functions
+
 extend_all(functions)
 
 from .wgr import *  # For backwards compatibility. Avoid showing this import in docs.

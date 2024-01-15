@@ -17,9 +17,8 @@
 package io.projectglow.plink
 
 import scala.collection.JavaConverters._
-
 import com.google.common.io.LittleEndianDataInputStream
-import com.univocity.parsers.csv.CsvParser
+import com.univocity.parsers.csv.{CsvFormat, CsvParser, CsvParserSettings}
 import org.apache.commons.io.IOUtils
 import org.apache.hadoop.conf.Configuration
 import org.apache.hadoop.fs.{FileStatus, Path}
@@ -28,16 +27,14 @@ import org.apache.spark.TaskContext
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.codegen.GenerateMutableProjection
-import org.apache.spark.sql.catalyst.expressions.{Add, BoundReference, CreateArray, Length, Literal, MutableProjection, Subtract}
+import org.apache.spark.sql.catalyst.expressions.{Add, BoundReference, CreateArray, GenericInternalRow, Length, Literal, MutableProjection, Subtract}
 import org.apache.spark.sql.catalyst.util.FailFastMode
 import org.apache.spark.sql.execution.datasources.{FileFormat, OutputWriterFactory, PartitionedFile}
-import org.apache.spark.sql.execution.datasources.csv.{CSVUtils, UnivocityParserUtils}
+import org.apache.spark.sql.execution.datasources.csv.CSVUtils
 import org.apache.spark.sql.internal.SQLConf
 import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
 import org.apache.spark.sql.types.{StructField, StructType}
 import org.apache.spark.unsafe.types.UTF8String
-
-import io.projectglow.SparkShim.{CSVOptions, UnivocityParser}
 import io.projectglow.common.{CommonOptions, GlowLogging, VariantSchemas}
 import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
 import io.projectglow.sql.util.SerializableConfiguration
@@ -92,7 +89,7 @@ class PlinkFileFormat
     logPlinkRead(options)
 
     file => {
-      val path = new Path(file.filePath)
+      val path = file.filePath.toPath
       val hadoopFs = path.getFileSystem(serializableConf.value)
       val stream = hadoopFs.open(path)
       val littleEndianStream = new LittleEndianDataInputStream(stream)
@@ -105,7 +102,7 @@ class PlinkFileFormat
 
       // Read sample IDs from the accompanying FAM file
       val sampleIds =
-        getSampleIds(file.filePath, options, serializableConf.value)
+        getSampleIds(file.filePath.toString, options, serializableConf.value)
 
       verifyBed(littleEndianStream)
       val numSamples = sampleIds.length
@@ -118,7 +115,7 @@ class PlinkFileFormat
       // Read the relevant variant metadata from the accompanying BIM file
       val variants =
         getVariants(
-          file.filePath,
+          file.filePath.toString,
           firstVariantIdx,
           numVariants,
           options,
@@ -184,14 +181,14 @@ object PlinkFileFormat extends HlsEventRecorder {
       bedPath: String,
       options: Map[String, String],
       hadoopConf: Configuration): Array[UTF8String] = {
-    val famDelimiterOption =
+    val famDelimiterOption = {
       options.getOrElse(FAM_DELIMITER_KEY, DEFAULT_FAM_DELIMITER_VALUE)
-    val parsedOptions =
-      new CSVOptions(
-        Map(CSV_DELIMITER_KEY -> famDelimiterOption),
-        SQLConf.get.csvColumnPruning,
-        SQLConf.get.sessionLocalTimeZone
-      )
+    }
+    val format = new CsvFormat()
+    format.setDelimiter(famDelimiterOption)
+    val settings = new CsvParserSettings()
+    settings.setSkipEmptyLines(true)
+    settings.setFormat(format)
 
     val mergeFidIid = try {
       options.getOrElse(MERGE_FID_IID, "true").toBoolean
@@ -206,20 +203,18 @@ object PlinkFileFormat extends HlsEventRecorder {
     val famPath = new Path(prefixPath + FAM_FILE_EXTENSION)
     val hadoopFs = famPath.getFileSystem(hadoopConf)
     val stream = hadoopFs.open(famPath)
-    val lines = IOUtils.lineIterator(stream, "UTF-8").asScala
-    val filteredLines = CSVUtils.filterCommentAndEmpty(lines, parsedOptions)
-    val parser = new CsvParser(parsedOptions.asParserSettings)
+    val parser = new CsvParser(settings)
 
     try {
-      filteredLines.map { l =>
-        val sampleLine = parser.parseRecord(l)
+      val filteredLines = parser.parseAll(stream).asScala
+      filteredLines.map { sampleLine =>
         require(
-          sampleLine.getValues.length == 6,
+          sampleLine.length == 6,
           s"Failed while parsing FAM file $famPath: does not have 6 columns delimited by '$famDelimiterOption'"
         )
-        val individualId = sampleLine.getString(1)
+        val individualId = sampleLine(1)
         val sampleId = if (mergeFidIid) {
-          val familyId = sampleLine.getString(0)
+          val familyId = sampleLine(0)
           s"${familyId}_$individualId"
         } else {
           individualId
@@ -247,35 +242,30 @@ object PlinkFileFormat extends HlsEventRecorder {
       hadoopConf: Configuration): Array[InternalRow] = {
     val bimDelimiterOption =
       options.getOrElse(BIM_DELIMITER_KEY, DEFAULT_BIM_DELIMITER_VALUE)
-    val parsedOptions =
-      new CSVOptions(
-        Map(
-          CSV_DELIMITER_KEY -> bimDelimiterOption,
-          "mode" -> FailFastMode.name
-        ),
-        SQLConf.get.csvColumnPruning,
-        SQLConf.get.sessionLocalTimeZone
-      )
-
+    val format = new CsvFormat()
+    format.setDelimiter(bimDelimiterOption)
+    val settings = new CsvParserSettings()
+    settings.setSkipEmptyLines(true)
+    settings.setFormat(format)
+    val parser = new CsvParser(settings)
     val prefixPath = getPrefixPath(bedPath)
     val bimPath = new Path(prefixPath + BIM_FILE_EXTENSION)
     val hadoopFs = bimPath.getFileSystem(hadoopConf)
     val stream = hadoopFs.open(bimPath)
-    val lines = IOUtils.lineIterator(stream, "UTF-8").asScala
-    val filteredLines = CSVUtils
-      .filterCommentAndEmpty(lines, parsedOptions)
-      .slice(firstVariant, firstVariant + numVariants)
-    val univocityParser =
-      new UnivocityParser(bimSchema, bimSchema, parsedOptions)
 
     try {
-      val variantIterator =
-        UnivocityParserUtils.parseIterator(
-          filteredLines,
-          univocityParser,
-          bimSchema
-        )
-      variantIterator.map(_.copy).toArray
+      val variantLines =
+        parser.parseAll(stream).asScala.slice(firstVariant, firstVariant + numVariants)
+      variantLines.map { l =>
+        val row = new GenericInternalRow(bimSchema.length)
+        row.update(0, UTF8String.fromString(l(0)))
+        row.update(1, UTF8String.fromString(l(1)))
+        row.setDouble(2, l(2).toDouble)
+        row.setLong(3, l(3).toLong)
+        row.update(4, UTF8String.fromString(l(4)))
+        row.update(5, UTF8String.fromString(l(5)))
+        row
+      }.toArray
     } catch {
       case e: Exception =>
         throw new IllegalArgumentException(

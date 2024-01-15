@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC #### Run VEP with the glow pipe transformer
 
 # COMMAND ----------
@@ -29,10 +29,10 @@
 # MAGIC %sh
 # MAGIC gzip -d Homo_sapiens.GRCh38.dna.primary_assembly.fa.gz
 # MAGIC bgzip Homo_sapiens.GRCh38.dna.primary_assembly.fa
-# MAGIC 
+# MAGIC
 # MAGIC tar xfz homo_sapiens_ancestor_GRCh38.tar.gz
 # MAGIC cat homo_sapiens_ancestor_GRCh38/*.fa | bgzip -c > homo_sapiens_ancestor_GRCh38.fa.gz
-# MAGIC 
+# MAGIC
 # MAGIC tar xzf homo_sapiens_vep_100_GRCh38.tar.gz
 
 # COMMAND ----------
@@ -52,7 +52,7 @@
 
 # MAGIC %md
 # MAGIC #### prepare test data
-# MAGIC 
+# MAGIC
 # MAGIC Select only the first sample so the full genotypes array is not piped through VEP
 
 # COMMAND ----------
@@ -113,7 +113,7 @@ df.sort("contigName", "start", "end", "referenceAllele") \
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC #### parallelize with glow pipe transformer
 
 # COMMAND ----------
@@ -162,7 +162,7 @@ output_df.write. \
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC ##### check results
 
 # COMMAND ----------
@@ -211,7 +211,7 @@ except:
 
 # MAGIC %md
 # MAGIC #### Let's corrupt the input!
-# MAGIC 
+# MAGIC
 # MAGIC To test the quarantine functionality, replace `21` contigName with `21xyz`
 
 # COMMAND ----------
@@ -226,7 +226,7 @@ display(corrupted_df.groupBy("contigName").count())
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC ##### create quarantine table in variant database
 
 # COMMAND ----------

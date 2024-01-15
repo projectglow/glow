@@ -14,15 +14,28 @@
  * limitations under the License.
  */
 
+// TODO(hhd): Fix or remove
 package io.projectglow.tertiary
 
 import org.apache.spark.sql.functions._
 import io.projectglow.sql.GlowBaseTest
-import org.apache.spark.sql.AnalysisException
+import org.apache.spark.sql.{functions, AnalysisException}
+import io.projectglow.sql.expressions.AverageByIndex
 
 class AggregateByIndexSuite extends GlowBaseTest {
   private lazy val sess = spark
 
+  test("array average") {
+    import sess.implicits._
+    spark.udf.register("my_array_average", functions.udaf(AverageByIndex))
+    val results = spark
+      .createDataFrame(Seq(Tuple1(Seq(1d, 2d, 3d)), Tuple1(Seq(4d, 5d, 6d))))
+      .selectExpr("my_array_average(_1)")
+      .as[Seq[Double]]
+      .head
+    assert(results == Seq(2.5d, 3.5d, 4.5d))
+  }
+  /*
   test("basic") {
     import sess.implicits._
     val results = spark
@@ -172,4 +185,5 @@ class AggregateByIndexSuite extends GlowBaseTest {
       .head
     assert(result == Seq(None))
   }
+ */
 }

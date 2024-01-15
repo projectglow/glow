@@ -21,18 +21,8 @@ import org.apache.spark.sql.catalyst.analysis.UnresolvedException
 import org.apache.spark.sql.catalyst.expressions.ExpressionInfo
 import org.apache.spark.sql.catalyst.trees.TreeNode
 
-// Spark 3.2 APIs that are not inter-version compatible
+// Spark 3.4 APIs that are not inter-version compatible
 object SparkShim extends SparkShimBase {
-
-  // [SPARK-25393][SQL] Adding new function from_csv()
-  // Refactors classes from [[org.apache.spark.sql.execution.datasources.csv]] to [[org.apache.spark.sql.catalyst.csv]]
-  override type CSVOptions = org.apache.spark.sql.catalyst.csv.CSVOptions
-  override type UnivocityParser = org.apache.spark.sql.catalyst.csv.UnivocityParser
-
-  override def wrapUnivocityParse(parser: UnivocityParser)(input: String): Option[InternalRow] = {
-    parser.parse(input)
-  }
-
   // [SPARK-27328][SQL] Add 'deprecated' in ExpressionDescription for extended usage and SQL doc
   // Adds 'deprecated' argument to the ExpressionInfo constructor
   override def createExpressionInfo(
@@ -62,20 +52,9 @@ object SparkShim extends SparkShimBase {
   def newUnresolvedException[TreeType <: TreeNode[_]](
       tree: TreeType,
       function: String): Exception = {
-    new UnresolvedException(tree, function)
+    new UnresolvedException(function)
   }
 
   abstract class TernaryExpression
-      extends org.apache.spark.sql.catalyst.expressions.TernaryExpression {
-
-    def first: Expression
-    def second: Expression
-    def third: Expression
-    override def children: Seq[Expression] = Seq(first, second, third)
-  }
-
-
-  def getDateFormat(options: CSVOptions): String = options.dateFormat
-
-  def getTimestampFormat(options: CSVOptions): String = options.timestampFormat
+      extends org.apache.spark.sql.catalyst.expressions.TernaryExpression
 }

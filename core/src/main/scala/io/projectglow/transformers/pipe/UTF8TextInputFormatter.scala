@@ -26,13 +26,16 @@ import org.apache.spark.sql.types.StringType
 /**
  * A simple input formatter that writes each row as a string.
  */
-class UTF8TextInputFormatter()
+class UTF8TextInputFormatter(header: Option[String])
     extends InputFormatter[Option[org.apache.spark.unsafe.types.UTF8String]] {
 
   private var writer: PrintWriter = _
 
   override def init(stream: OutputStream): Unit = {
     writer = new PrintWriter(stream)
+    header.foreach { h =>
+      writer.println(h) //scalastyle:ignore
+    }
   }
 
   override def write(record: InternalRow): Unit = {
@@ -61,6 +64,6 @@ class UTF8TextInputFormatterFactory extends InputFormatterFactory {
     require(
       dataTypesEqualExceptNullability(df.schema.head.dataType, StringType),
       "Input dataframe must have one string column.")
-    new UTF8TextInputFormatter
+    new UTF8TextInputFormatter(options.get("header"))
   }
 }

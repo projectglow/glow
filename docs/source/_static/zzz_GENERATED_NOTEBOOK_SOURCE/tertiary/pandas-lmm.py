@@ -2,7 +2,7 @@
 # MAGIC %md
 # MAGIC # Using Pandas UDFs with Genomic Data
 # MAGIC [Pandas UDFs](https://databricks.com/blog/2017/10/30/introducing-vectorized-udfs-for-pyspark.html) provide a fast way to use Python libraries with Apache Spark™ DataFrames. 
-# MAGIC 
+# MAGIC
 # MAGIC In this notebook, we demonstrate how to use this functionality to apply the linear mixed model implementation from the popular [statsmodels](https://www.statsmodels.org/stable/mixed_linear.html?highlight=linear%20mixed%20model) library to a DataFrame of genomic data from the [1000 genomes project](https://www.internationalgenome.org/). The population as provided by 1000 genomes sample annotations is used as the grouping variable.
 
 # COMMAND ----------

@@ -14,10 +14,9 @@
 
 from .ridge_udfs import *
 from .model_functions import _is_binary, _prepare_covariates, _prepare_labels_and_warn, _check_model
-from nptyping import Float, NDArray
+from nptyping import Float, NDArray, Shape
 import pandas as pd
 from pyspark.sql import DataFrame, Row
-from pyspark.sql.functions import pandas_udf, PandasUDFType
 import pyspark.sql.functions as f
 from typeguard import typechecked
 from typing import Any, Dict, List, Union
@@ -124,21 +123,17 @@ class RidgeReduction:
             map_key_pattern.append('label')
             reduce_key_pattern.append('label')
 
-        map_udf = pandas_udf(
-            lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, self._std_label_df, self.
-                                            sample_blocks, self._std_cov_df), normal_eqn_struct,
-            PandasUDFType.GROUPED_MAP)
-        reduce_udf = pandas_udf(lambda key, pdf: reduce_normal_eqn(key, reduce_key_pattern, pdf),
-                                normal_eqn_struct, PandasUDFType.GROUPED_MAP)
-        model_udf = pandas_udf(
-            lambda key, pdf: solve_normal_eqn(key, map_key_pattern, pdf, self._std_label_df, self.
-                                              _alphas, self._std_cov_df), model_struct,
-            PandasUDFType.GROUPED_MAP)
+        map_udf = lambda key, pdf: map_normal_eqn(key, map_key_pattern, pdf, self._std_label_df,
+                                                  self.sample_blocks, self._std_cov_df)
+        reduce_udf = lambda key, pdf: reduce_normal_eqn(key, reduce_key_pattern, pdf)
+        model_udf = lambda key, pdf: solve_normal_eqn(key, map_key_pattern, pdf, self._std_label_df,
+                                                      self._alphas, self._std_cov_df)
 
         record_hls_event('wgrRidgeReduceFit')
 
-        self.model_df = self.block_df.groupBy(map_key_pattern).apply(map_udf).groupBy(
-            reduce_key_pattern).apply(reduce_udf).groupBy(map_key_pattern).apply(model_udf)
+        self.model_df = self.block_df.groupBy(map_key_pattern).applyInPandas(map_udf, normal_eqn_struct)\
+            .groupBy(reduce_key_pattern).applyInPandas(reduce_udf, normal_eqn_struct)\
+            .groupBy(map_key_pattern).applyInPandas(model_udf, model_struct)
 
         return self.model_df
 
@@ -163,14 +158,14 @@ class RidgeReduction:
             joined = self.block_df.drop('sort_key') \
                 .join(self.model_df, ['header_block', 'sample_block', 'header'], 'right')
 
-        transform_udf = pandas_udf(
-            lambda key, pdf: apply_model(key, transform_key_pattern, pdf, self._std_label_df, self.
-                                         sample_blocks, self._alphas, self._std_cov_df),
-            reduced_matrix_struct, PandasUDFType.GROUPED_MAP)
+        transform_udf = lambda key, pdf: apply_model(
+            key, transform_key_pattern, pdf, self._std_label_df, self.sample_blocks, self._alphas,
+            self._std_cov_df)
 
         record_hls_event('wgrRidgeReduceTransform')
 
-        self.reduced_block_df = joined.groupBy(transform_key_pattern).apply(transform_udf)
+        self.reduced_block_df = joined.groupBy(transform_key_pattern).applyInPandas(
+            transform_udf, reduced_matrix_struct)
 
         return self.reduced_block_df
 

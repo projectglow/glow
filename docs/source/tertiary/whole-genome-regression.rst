@@ -443,8 +443,8 @@ Assuming ``regression`` is initialized to ``RidgeRegression`` (for quantitative 
 
 
 .. invisible-code-block: python
-
     import math
+    import warnings
     assert math.isclose(y_hat_df.at[('HG00096', '22'),'Continuous_Trait_1'], -0.5627750538139388)
 
     # binary phenotype test
@@ -452,7 +452,9 @@ Assuming ``regression`` is initialized to ``RidgeRegression`` (for quantitative 
     reduction = RidgeReduction(block_df, label_df, sample_blocks, covariate_df)
     reduction.fit_transform()
     regression = LogisticRidgeRegression.from_ridge_reduction(reduction)
-    y_hat_df = regression.fit_transform_loco()
+    with warnings.catch_warnings():
+        warnings.simplefilter('ignore')
+        y_hat_df = regression.fit_transform_loco()
     assert math.isclose(y_hat_df.at[('HG00096', '22'),'Binary_Trait_1'], 0.0014362933881161765)
 
 
