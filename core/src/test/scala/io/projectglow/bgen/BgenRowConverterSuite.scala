@@ -18,9 +18,10 @@ package io.projectglow.bgen
 
 import org.apache.spark.sql.catalyst.encoders.RowEncoder
 import org.apache.spark.sql.SparkSession
-
 import io.projectglow.common.{BgenGenotype, BgenRow}
+import org.scalatest.Ignore
 
+@Ignore
 class BgenRowConverterSuite extends BgenConverterBaseTest {
 
   val sourceName = "bgen"

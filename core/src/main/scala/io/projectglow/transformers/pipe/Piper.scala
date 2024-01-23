@@ -164,7 +164,7 @@ private[projectglow] object Piper extends GlowLogging {
             false
         }
         quarantineInfo.foreach { quarantineInfo =>
-          val failedPartitions = data.map(_.asInstanceOf[InternalRow])
+          val failedPartitions = data.map(_.asInstanceOf[InternalRow]).toSeq
           val failedRDD = schemaInternalRowRDD.context.parallelize(failedPartitions)
           val failedDataframe =
             SQLUtils.internalCreateDataFrame(

@@ -8,9 +8,9 @@ import sbt.librarymanagement.ModuleID
 import sbt.nio.Keys._
 
 // Scala version used by DBR 13.3 LTS and 14.0
-lazy val scala212 = "2.12.15"
+lazy val scala212 = "2.13.12"
 
-lazy val spark3 = "3.5.0"
+lazy val spark3 = "4.0.0-SNAPSHOT"
 
 lazy val sparkVersion = settingKey[String]("sparkVersion")
 ThisBuild / sparkVersion := sys.env.getOrElse("SPARK_VERSION", spark3)
@@ -57,7 +57,7 @@ def groupByHash(tests: Seq[TestDefinition]): Seq[Tests.Group] = {
     .map {
       case (i, groupTests) =>
         val options = ForkOptions()
-          .withRunJVMOptions(Vector("-Dspark.ui.enabled=false", "-Xmx1024m"))
+          .withRunJVMOptions(Vector("-Dspark.ui.enabled=false", "-Dspark.testing=false", "-Xmx1024m"))
 
         Group(i.toString, groupTests, SubProcess(options))
     }
@@ -132,6 +132,7 @@ lazy val testCoreDependencies = settingKey[Seq[ModuleID]]("testCoreDependencies"
 ThisBuild / testCoreDependencies := Seq(
   majorVersion((ThisBuild / sparkVersion).value) match {
     case "3" => "org.scalatest" %% "scalatest" % "3.2.3" % "test"
+    case "4" => "org.scalatest" %% "scalatest" % "3.2.17" % "test"
     case _ => throw new IllegalArgumentException("Only Spark 3 is supported")
   },
   "org.mockito" % "mockito-all" % "1.9.5" % "test",
@@ -164,7 +165,7 @@ lazy val root = (project in file(".")).aggregate(core, python, docs)
 lazy val scalaLoggingDependency = settingKey[ModuleID]("scalaLoggingDependency")
 ThisBuild / scalaLoggingDependency := {
   (ThisBuild / scalaVersion).value match {
-    case `scala212` => "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2"
+    case `scala212` => "com.typesafe.scala-logging" %% "scala-logging" % "3.9.4"
     case _ =>
       throw new IllegalArgumentException(
         "Only supported Scala versions are: " + Seq(scala212))
@@ -182,6 +183,13 @@ lazy val core = (project in file("core"))
     Compile / packageBin / packageOptions += Package.ManifestAttributes("Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
     libraryDependencies ++= coreDependencies.value :+ scalaLoggingDependency.value,
     Compile / unmanagedSourceDirectories += baseDirectory.value / "src" / "main" / "shim" / majorMinorVersion(sparkVersion.value),
+    Compile / unmanagedSourceDirectories += {
+      val sourceDir = (Compile / sourceDirectory).value
+      CrossVersion.partialVersion(scalaVersion.value) match {
+        case Some((2, n)) if n >= 13 => sourceDir / "scala-2.13+"
+        case _ => sourceDir / "scala-2.13-"
+      }
+    },
     Test / unmanagedSourceDirectories += baseDirectory.value / "src" / "test" / "shim" / majorMinorVersion(sparkVersion.value),
     functionsTemplate := baseDirectory.value / "functions.scala.TEMPLATE",
     generatedFunctionsOutput := (Compile / scalaSource).value / "io" / "projectglow" / "functions.scala",

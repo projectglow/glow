@@ -16,14 +16,21 @@
 
 package io.projectglow
 
-import org.apache.spark.sql.AnalysisException
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.analysis.UnresolvedException
 import org.apache.spark.sql.catalyst.expressions.ExpressionInfo
 import org.apache.spark.sql.catalyst.trees.TreeNode
 
-// Spark 3.5 APIs that are not inter-version compatible
+// Spark 3.2 APIs that are not inter-version compatible
 object SparkShim extends SparkShimBase {
+  // [SPARK-25393][SQL] Adding new function from_csv()
+  // Refactors classes from [[org.apache.spark.sql.execution.datasources.csv]] to [[org.apache.spark.sql.catalyst.csv]]
+  override type CSVOptions = org.apache.spark.sql.catalyst.csv.CSVOptions
+  override type UnivocityParser = org.apache.spark.sql.catalyst.csv.UnivocityParser
+
+  override def wrapUnivocityParse(parser: UnivocityParser)(input: String): Option[InternalRow] = {
+    parser.parse(input)
+  }
 
   // [SPARK-27328][SQL] Add 'deprecated' in ExpressionDescription for extended usage and SQL doc
   // Adds 'deprecated' argument to the ExpressionInfo constructor
@@ -59,11 +66,8 @@ object SparkShim extends SparkShimBase {
 
   abstract class TernaryExpression
       extends org.apache.spark.sql.catalyst.expressions.TernaryExpression
-<<<<<<< HEAD
-=======
 
   def getDateFormat(options: CSVOptions): String = options.dateFormatInWrite
 
   def getTimestampFormat(options: CSVOptions): String = options.timestampFormatInWrite
->>>>>>> aacbdad (clean up build)
 }

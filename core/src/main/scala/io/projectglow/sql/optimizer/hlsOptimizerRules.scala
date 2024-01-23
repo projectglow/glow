@@ -30,7 +30,7 @@ import io.projectglow.sql.util.{ExpectsGenotypeFields, RewriteAfterResolution}
  */
 object ReplaceExpressionsRule extends Rule[LogicalPlan] with GlowLogging {
   override def apply(plan: LogicalPlan): LogicalPlan = {
-    plan.transformAllExpressions {
+    plan.transformExpressionsDown {
       case expr: RewriteAfterResolution =>
         expr.rewrite
       case expr =>
@@ -78,7 +78,7 @@ object ResolveExpandStructRule extends Rule[LogicalPlan] {
  * that can lose field names during physical planning.
  */
 object ResolveGenotypeFields extends Rule[LogicalPlan] {
-  override def apply(plan: LogicalPlan): LogicalPlan = plan.transformAllExpressions {
+  override def apply(plan: LogicalPlan): LogicalPlan = plan.transformExpressionsDown {
     case e: ExpectsGenotypeFields
         if !e.resolved && e.childrenResolved && e
           .checkInputDataTypes() == TypeCheckResult.TypeCheckSuccess =>

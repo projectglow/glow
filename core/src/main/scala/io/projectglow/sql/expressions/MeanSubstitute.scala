@@ -89,12 +89,12 @@ case class MeanSubstitute(array: Expression, missingValue: Expression)
 
   override def rewrite: Expression = {
     if (!array.dataType.isInstanceOf[ArrayType] || !arrayElementType.isInstanceOf[NumericType]) {
-      throw SQLUtils.newAnalysisException(
+      throw new IllegalArgumentException(
         s"Can only perform mean substitution on numeric array; provided type is ${array.dataType}.")
     }
 
     if (!missingValue.dataType.isInstanceOf[NumericType]) {
-      throw SQLUtils.newAnalysisException(
+      throw new IllegalArgumentException(
         s"Missing value must be of numeric type; provided type is ${missingValue.dataType}.")
     }
 

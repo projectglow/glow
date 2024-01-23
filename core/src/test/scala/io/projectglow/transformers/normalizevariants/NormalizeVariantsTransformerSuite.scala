@@ -121,12 +121,12 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
       case None => (Map(), false)
     }
 
-    val options: Map[String, String] = Map() ++ {
-        referenceGenome match {
-          case Some(r) => Map(REFERENCE_GENOME_PATH -> r)
-          case None => Map()
-        }
-      } ++ modeMap
+    val options: Map[String, String] = ({
+      referenceGenome match {
+        case Some(r) => Map(REFERENCE_GENOME_PATH -> r)
+        case None => Map()
+      }
+    } ++ modeMap).toMap
 
     val dfOriginal = spark
       .read

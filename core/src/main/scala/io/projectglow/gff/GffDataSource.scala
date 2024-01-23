@@ -282,7 +282,7 @@ object GffDataSource {
       .groupBy(_.toLowerCase)
       .mapValues(_.head)
       .values
-      .to[collection.immutable.Seq] // toSeq does not work
+      .toSeq
 
     spark.conf.set(columnPruningConf, originalColumnPruning)
 

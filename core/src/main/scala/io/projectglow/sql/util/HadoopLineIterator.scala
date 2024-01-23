@@ -45,7 +45,7 @@ class HadoopLineIterator(
     with Closeable
     with GlowLogging {
 
-  private val iterator = {
+  private val it = {
     val fileSplit = new FileSplit(
       new Path(new URI(path)),
       start,
@@ -67,14 +67,14 @@ class HadoopLineIterator(
   }
 
   override def hasNext: Boolean = {
-    iterator.hasNext
+    it.hasNext
   }
 
   override def next(): Text = {
-    iterator.next()
+    it.next()
   }
 
   override def close(): Unit = {
-    iterator.close()
+    it.close()
   }
 }

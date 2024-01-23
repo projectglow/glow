@@ -17,10 +17,8 @@
 package io.projectglow.sql.expressions
 
 import java.nio.ByteBuffer
-
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
-
 import io.projectglow.common.{GlowLogging, VariantSchemas}
 import io.projectglow.sql.util.{ExpectsGenotypeFields, GenotypeInfo}
 import org.apache.spark.SparkEnv
@@ -29,7 +27,8 @@ import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
 import org.apache.spark.sql.catalyst.expressions._
 import org.apache.spark.sql.catalyst.expressions.aggregate.{ImperativeAggregate, TypedImperativeAggregate}
 import org.apache.spark.sql.catalyst.util.{ArrayData, GenericArrayData}
-import org.apache.spark.sql.types._
+import org.apache.spark.sql.types
+import org.apache.spark.sql.types.{ArrayType, DataType, DoubleType, LongType, StringType, StructField, StructType}
 import org.apache.spark.unsafe.types.UTF8String
 
 /**
