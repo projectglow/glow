@@ -32,7 +32,7 @@ import io.projectglow.sql.expressions.ExpressionHelper
  */
 object functions {
   private def withExpr(expr: Expression): Column = {
-    new Column(ExpressionHelper.wrapAggregate(ExpressionHelper.rewrite(expr)))
+    new Column(ExpressionHelper.rewrite(expr))
   }
 
   private def createLambda(f: Column => Column) = {

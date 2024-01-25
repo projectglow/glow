@@ -24,18 +24,6 @@ import io.projectglow.sql.util.Rewrite
 private[projectglow] object ExpressionHelper {
 
   /**
-   * Aggregate functions must be wrapped in expressions before they can be evaluated.
-   *
-   * See documentation in [[org.apache.spark.sql.catalyst.expressions.aggregate.AggregateExpression]]
-   * and analogous code in [[org.apache.spark.sql.functions]].
-   */
-  def wrapAggregate(e: Expression): Expression = e match {
-    case agg: UnwrappedAggregateFunction => agg.asWrapped.toAggregateExpression()
-    case agg: AggregateFunction => agg.toAggregateExpression()
-    case expr => expr
-  }
-
-  /**
    * Rewrite expressions if necessary. See [[Rewrite]] for details about why and when
    * expressions are rewritten.
    */
