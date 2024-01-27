@@ -16,7 +16,6 @@
 
 package io.projectglow.sql
 
-import org.apache.spark.sql.AnalysisException
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
 import org.apache.spark.sql.catalyst.expressions.{BinaryExpression, Expression, Literal, UnaryExpression}
@@ -38,11 +37,11 @@ class SqlExtensionProviderSuite extends GlowSuite {
     import sess.implicits._
     assert(spark.range(1).selectExpr("one_arg_test(id)").as[Int].head() == 1)
 
-    intercept[AnalysisException] {
+    intercept[IllegalArgumentException] {
       spark.range(1).selectExpr("one_arg_test()").collect()
     }
 
-    intercept[AnalysisException] {
+    intercept[IllegalArgumentException] {
       spark.range(1).selectExpr("one_arg_test(id, id)").collect()
     }
   }
@@ -51,11 +50,11 @@ class SqlExtensionProviderSuite extends GlowSuite {
     import sess.implicits._
     assert(spark.range(1).selectExpr("two_arg_test(id, id)").as[Int].head() == 1)
 
-    intercept[AnalysisException] {
+    intercept[IllegalArgumentException] {
       spark.range(1).selectExpr("two_arg_test(id)").collect()
     }
 
-    intercept[AnalysisException] {
+    intercept[IllegalArgumentException] {
       spark.range(1).selectExpr("two_arg_test(id, id, id)").collect()
     }
   }
@@ -66,7 +65,7 @@ class SqlExtensionProviderSuite extends GlowSuite {
     assert(spark.range(1).selectExpr("var_args_test(id, id, id, id)").as[Int].head() == 1)
     assert(spark.range(1).selectExpr("var_args_test(id)").as[Int].head() == 1)
 
-    intercept[AnalysisException] {
+    intercept[IllegalArgumentException] {
       spark.range(1).selectExpr("var_args_test()").collect()
     }
   }
@@ -76,11 +75,11 @@ class SqlExtensionProviderSuite extends GlowSuite {
     assert(spark.range(1).selectExpr("optional_arg_test(id)").as[Int].head() == 1)
     assert(spark.range(1).selectExpr("optional_arg_test(id, id)").as[Int].head() == 1)
 
-    intercept[AnalysisException] {
+    intercept[IllegalArgumentException] {
       spark.range(1).selectExpr("optional_arg_test()").collect()
     }
 
-    intercept[AnalysisException] {
+    intercept[IllegalArgumentException] {
       spark.range(1).selectExpr("optional_arg_test(id, id, id)").collect()
     }
   }

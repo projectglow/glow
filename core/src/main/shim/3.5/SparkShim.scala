@@ -59,11 +59,4 @@ object SparkShim extends SparkShimBase {
 
   abstract class TernaryExpression
       extends org.apache.spark.sql.catalyst.expressions.TernaryExpression
-<<<<<<< HEAD
-=======
-
-  def getDateFormat(options: CSVOptions): String = options.dateFormatInWrite
-
-  def getTimestampFormat(options: CSVOptions): String = options.timestampFormatInWrite
->>>>>>> aacbdad (clean up build)
 }

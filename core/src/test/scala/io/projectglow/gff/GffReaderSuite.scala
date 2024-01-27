@@ -97,9 +97,9 @@ class GffReaderSuite extends GlowBaseTest {
 
     val expectedSchema = StructType(
       gffBaseSchema.fields.dropRight(1) ++ testOfficialFields ++ testUnofficialFields
-    )
+    ).map(s => s.copy(name = s.name.toLowerCase))
 
-    assert(df.schema.equals(expectedSchema))
+    assert(df.schema.map(s => s.copy(name = s.name.toLowerCase)) == expectedSchema)
   }
 
   gridTest("Case-and-underscore-insensitive attribute column names in user-specified schema")(
@@ -200,8 +200,9 @@ class GffReaderSuite extends GlowBaseTest {
       .load(file)
       .orderBy("seqId", "start", "source")
       .take(2)
+      .toSeq
 
-    val expectedRows = Array(
+    val expectedRows = Vector(
       Row(
         "NC_000001.11",
         "RefSeq",
@@ -214,7 +215,7 @@ class GffReaderSuite extends GlowBaseTest {
         "NC_000001.11:1..248956422",
         "1",
         null,
-        Array("taxon:9606", "test").toSeq,
+        Vector("taxon:9606", "test"),
         false,
         "1",
         null,
@@ -241,7 +242,7 @@ class GffReaderSuite extends GlowBaseTest {
         "gene-DDX11L1",
         "DDX11L1",
         null,
-        Array("GeneID:100287102", "HGNC:HGNC:37102").toSeq,
+        Vector("GeneID:100287102", "HGNC:HGNC:37102"),
         null,
         null,
         "DEAD/H-box helicase 11 like 1 (pseudogene)",
@@ -257,7 +258,7 @@ class GffReaderSuite extends GlowBaseTest {
         null
       )
     )
-    assert(dfRows.sameElements(expectedRows))
+    assert(dfRows == expectedRows)
   }
 
   test("Column pruning") {

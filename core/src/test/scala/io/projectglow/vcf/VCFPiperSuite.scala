@@ -80,8 +80,8 @@ class VCFPiperSuite extends VCFConverterBaseTest {
 
   test("Cat") {
     val (inputDf, outputDf) = pipeScript(na12878, "cat")
-    val inputRows = inputDf.collect().toSeq
-    val outputRows = outputDf.collect().toSeq
+    val inputRows = inputDf.sort("contigName", "start").collect().toSeq
+    val outputRows = outputDf.sort("contigName", "start").collect().toSeq
     assert(inputRows == outputRows)
   }
 

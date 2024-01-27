@@ -260,14 +260,13 @@ object ProcessHelper {
 class PipeIterator(
     cmd: Seq[String],
     environment: Map[String, String],
-    _input: Iterator[InternalRow],
+    input: Iterator[InternalRow],
     inputFormatter: InputFormatter[_],
     outputFormatter: OutputFormatter,
     errorPartitionData: Option[CollectionAccumulator[Any]] = None)
     extends Iterator[Any] {
   import PipeIterator.illegalStateException
 
-  private val input = _input.toSeq
   private val processHelper = new ProcessHelper(cmd, environment, writeInput, TaskContext.get)
   private val inputStream = processHelper.startProcess()
   private val baseIterator = outputFormatter.makeIterator(inputStream)
@@ -275,7 +274,10 @@ class PipeIterator(
   private def writeInput(stream: OutputStream): Unit = {
     WithUtils.withCloseable(inputFormatter) { informatter =>
       informatter.init(stream)
-      input.foreach(informatter.write)
+      input.foreach { r =>
+        informatter.write(r.copy())
+      }
+
     }
   }
 

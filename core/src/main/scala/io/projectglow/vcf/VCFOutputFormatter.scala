@@ -17,13 +17,11 @@
 package io.projectglow.vcf
 
 import java.io.InputStream
-
 import htsjdk.samtools.ValidationStringency
 import htsjdk.tribble.readers.{SynchronousLineReader, LineIteratorImpl => HtsjdkLineIteratorImpl}
 import htsjdk.variant.vcf.{VCFCodec, VCFHeader}
 import org.apache.spark.sql.catalyst.InternalRow
-import org.apache.spark.sql.catalyst.expressions.UnsafeProjection
-
+import org.apache.spark.sql.catalyst.expressions.{SafeProjection, UnsafeProjection}
 import io.projectglow.common.GlowLogging
 import io.projectglow.transformers.pipe.{OutputFormatter, OutputFormatterFactory}
 

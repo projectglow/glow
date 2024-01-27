@@ -8,12 +8,18 @@ import sbt.librarymanagement.ModuleID
 import sbt.nio.Keys._
 
 // Scala version used by DBR 13.3 LTS and 14.0
-lazy val scala212 = "2.13.12"
+lazy val scala212 = "2.12.15"
+lazy val scala213 = "2.13.12"
 
-lazy val spark3 = "4.0.0-SNAPSHOT"
+lazy val spark3 = "3.5.0"
+lazy val spark4 = "4.0.0-SNAPSHOT"
 
 lazy val sparkVersion = settingKey[String]("sparkVersion")
 ThisBuild / sparkVersion := sys.env.getOrElse("SPARK_VERSION", spark3)
+
+// Add to the Python path to test against a custom version of pyspark
+lazy val extraPythonPath = settingKey[String]("extraPythonPath")
+ThisBuild / extraPythonPath := ""
 
 def majorVersion(version: String): String = {
   StringUtils.ordinalIndexOf(version, ".", 1) match {
@@ -42,6 +48,29 @@ ThisBuild / licenses += ("Apache-2.0", new URL("https://www.apache.org/licenses/
 // but not vice versa
 Compile / compileOrder := CompileOrder.JavaThenScala
 
+// Java options passed to Scala and Python tests
+val testJavaOptions = Vector(
+  "-XX:+IgnoreUnrecognizedVMOptions",
+  "--add-opens=java.base/java.lang=ALL-UNNAMED",
+  "--add-opens=java.base/java.lang.invoke=ALL-UNNAMED",
+  "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
+  "--add-opens=java.base/java.io=ALL-UNNAMED",
+  "--add-opens=java.base/java.net=ALL-UNNAMED",
+  "--add-opens=java.base/java.nio=ALL-UNNAMED",
+  "--add-opens=java.base/java.util=ALL-UNNAMED",
+  "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED",
+  "--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED",
+  "--add-opens=java.base/jdk.internal.ref=ALL-UNNAMED",
+  "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
+  "--add-opens=java.base/sun.nio.cs=ALL-UNNAMED",
+  "--add-opens=java.base/sun.security.action=ALL-UNNAMED",
+  "--add-opens=java.base/sun.util.calendar=ALL-UNNAMED",
+  "-Djdk.reflect.useDirectMethodHandle=false",
+  "-Dio.netty.tryReflectionSetAccessible=true",
+  "-Dspark.ui.enabled=false",
+  "-Xmx1024m"
+)
+
 // Test concurrency settings
 // Tests are run serially in one or more forked JVMs. This setup is necessary because the shared
 // Spark session used by many tasks cannot be used concurrently.
@@ -57,7 +86,8 @@ def groupByHash(tests: Seq[TestDefinition]): Seq[Tests.Group] = {
     .map {
       case (i, groupTests) =>
         val options = ForkOptions()
-          .withRunJVMOptions(Vector("-Dspark.ui.enabled=false", "-Dspark.testing=false", "-Xmx1024m"))
+          .withRunJVMOptions(testJavaOptions)
+
 
         Group(i.toString, groupTests, SubProcess(options))
     }
@@ -216,22 +246,22 @@ lazy val pythonSettings = Seq(
   libraryDependencies ++= testSparkDependencies.value,
   sparkClasspath := (Test / fullClasspath).value.files.map(_.getCanonicalPath).mkString(":"),
   sparkHome := (ThisBuild / baseDirectory).value.absolutePath,
-  pythonPath := ((ThisBuild / baseDirectory).value / "python").absolutePath,
+  pythonPath := {
+    val extraPath = if (extraPythonPath.value.nonEmpty) s":${extraPythonPath.value}" else ""
+    ((ThisBuild / baseDirectory).value / "python").absolutePath + extraPath
+  },
   publish / skip := true,
   env := {
-    val baseEnv = Seq(
+    Seq(
       // Set so that Python tests can easily know the Spark version
       "SPARK_VERSION" -> sparkVersion.value,
       // Tell PySpark to use the same jars as our scala tests
       "SPARK_CLASSPATH" -> sparkClasspath.value,
       "SPARK_HOME" -> sparkHome.value,
-      "PYTHONPATH" -> pythonPath.value
+      "PYTHONPATH" -> pythonPath.value,
+      "TEST_JAVA_OPTIONS" -> testJavaOptions.mkString(" "),
+      "PYSPARK_ROW_FIELD_SORTING_ENABLED" -> "true"
     )
-    if (majorMinorVersion(sparkVersion.value) >= "3.0") {
-      baseEnv :+ "PYSPARK_ROW_FIELD_SORTING_ENABLED" -> "true"
-    } else {
-      baseEnv :+ "ARROW_PRE_0_15_IPC_FORMAT" -> "1"
-    }
   },
   pytest := {
     val args = spaceDelimited("<arg>").parsed
