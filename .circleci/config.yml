@@ -17,25 +17,25 @@ orbs:
 
 executors:
 
-  2xl_jdk8:
+  jdk8_2xl:
     working_directory: ~/glow
     docker:
       - image: cimg/openjdk:8.0.392
     resource_class: xlarge
 
-  m_jdk8:
+  jdk8_m:
     working_directory: ~/glow
     docker:
       - image: cimg/openjdk:8.0.392
     resource_class: medium+
 
-  2xl_jdk17:
+  jdk17_2xl:
     working_directory: ~/glow
     docker:
       - image: cimg/openjdk:17.0.9
     resource_class: xlarge
 
-  m_jdk17:
+  jdk17_m:
     working_directory: ~/glow
     docker:
       - image: cimg/openjdk:17.0.9
@@ -100,7 +100,7 @@ commands:
 jobs:
 
   check-docs:
-    executor: m_jdk8
+    executor: jdk8_m
     steps:
       - checkout
       - restore_cache:
@@ -136,7 +136,7 @@ jobs:
       - check_clean_repo
 
   spark-3-4-tests:
-    executor: 2xl_jdk8
+    executor: jdk8_2xl
     environment:
       SPARK_VERSION: 3.4.1
       SCALA_VERSION: 2.12.15
@@ -179,7 +179,7 @@ jobs:
           path: ~/glow/core/target/scala-2.12/test-reports
 
   spark-3-5-tests:
-    executor: 2xl_jdk8
+    executor: jdk8_2xl
     environment:
       SPARK_VERSION: 3.5.0
       SCALA_VERSION: 2.12.15
@@ -221,7 +221,7 @@ jobs:
           path: ~/glow/core/target/scala-2.12/test-reports
 
   spark-4-0-tests:
-    executor: 2xl_jdk17
+    executor: jdk17_2xl
     environment:
       SPARK_VERSION: 4.0.0-SNAPSHOT
       SCALA_VERSION: 2.13.12
