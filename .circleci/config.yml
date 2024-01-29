@@ -58,11 +58,13 @@ commands:
     parameters:
       environment_file:
         type: string
+      environment_name:
+        type: string
     steps:
       - run:
           name: Set up conda environment
           command: |
-            if [ ! -d "/home/circleci/conda/envs/glow" ]; then
+            if [ ! -d "/home/circleci/conda/envs/<< parameters.environment_name >>" ]; then
               export PATH=$HOME/conda/bin:$PATH
               conda install -n base conda-libmamba-solver
               conda config --set solver libmamba
@@ -113,6 +115,7 @@ jobs:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}-{{ checksum "docs/source/environment.yml" }}
       - install_conda
       - create_python_env:
+          environment_name: glow
           environment_file: environment.yml
       - create_docs_env:
           environment_file: environment.yml
@@ -152,6 +155,7 @@ jobs:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}
       - install_conda
       - create_python_env:
+          environment_name: glow
           environment_file: environment.yml
       - save_cache:
           paths:
@@ -195,6 +199,7 @@ jobs:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}
       - install_conda
       - create_python_env:
+          environment_name: glow
           environment_file: environment.yml
       - save_cache:
           paths:
@@ -237,6 +242,7 @@ jobs:
             - conda-deps-v1-{{ checksum "python/spark-4-environment.yml" }}
       - install_conda
       - create_python_env:
+          environment_name: glow-spark4
           environment_file: spark-4-environment.yml
       - save_cache:
           paths:
