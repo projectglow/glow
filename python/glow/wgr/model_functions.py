@@ -22,6 +22,7 @@ import numpy as np
 import pandas as pd
 import pyspark.sql.functions as f
 import scipy.optimize
+import scipy as sp
 from nptyping import Float, Int, NDArray, Shape
 from pyspark.sql import DataFrame, Row
 from pyspark.sql.types import ArrayType, IntegerType, StructType, StructField, StringType, DoubleType
@@ -289,7 +290,7 @@ def evaluate_coefficients(pdf: pd.DataFrame, alpha_values: Iterable[Float],
     diags = [
         np.concatenate([np.ones(n_cov), np.ones(XtX.shape[1] - n_cov) * a]) for a in alpha_values
     ]
-    return np.column_stack([(np.linalg.inv(XtX + np.diag(d)) @ XtY) for d in diags])
+    return np.column_stack([(sp.linalg.inv(XtX + np.diag(d)) @ XtY) for d in diags])
 
 
 @typechecked
@@ -315,7 +316,7 @@ def irls_one_step(pdf: pd.DataFrame, alpha_value: Float, n_cov: int) -> NDArray[
     beta0 = pdf['beta'].to_numpy()
     alpha_arr = np.ones(xtgx.shape[1]) * alpha_value
     dbeta = np.zeros(beta0.size)
-    dbeta[n_cov:] = np.linalg.inv(xtgx + np.diag(alpha_arr)) @ (xty + beta0[n_cov:] * alpha_arr)
+    dbeta[n_cov:] = sp.linalg.inv(xtgx + np.diag(alpha_arr)) @ (xty + beta0[n_cov:] * alpha_arr)
     return beta0 - dbeta
 
 
