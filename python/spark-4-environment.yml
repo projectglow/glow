@@ -1,4 +1,4 @@
-name: glow
+name: glow-spark4
 channels:
   - bioconda
   - conda-forge
@@ -13,7 +13,7 @@ dependencies:
   - opt_einsum>=3.2.0
   - pandas=1.5.3
   - pip=22.3.1
-  - pyarrow=8.0.1 # DBR 14.2 uses 8.0.0, but this version is not compatible with Python 3.10 in Conda
+  - pyarrow=14.0.2
   - pytest=7.4.4
   - pyyaml
   - scipy=1.10.0
@@ -24,7 +24,7 @@ dependencies:
   - typeguard
   - yapf=0.40.1
   - pip:
-    - pyspark==3.5.0
+    # Note: Spark 4 must currently be installed from source
     - databricks-cli==0.18 # Docs notebook source generation
     - setuptools==65.6.3 # Python packaging
     - twine # Pypi publishing
