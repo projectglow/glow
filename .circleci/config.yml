@@ -121,23 +121,24 @@ jobs:
           name: Run Scala tests
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="3.5.0"
+            export SPARK_VERSION="3.4.1"
             export SCALA_VERSION="2.12.15"
             sbt core/test exit
-#      - run:
-#          name: Run docs tests
-#          no_output_timeout: 120m
-#          command: |
-#            export PATH=$HOME/conda/envs/glow/bin:$PATH
-#            export SPARK_VERSION="3.5.0"
-#            export SCALA_VERSION="2.12.15"
-#            sbt docs/test exit
+      - run:
+          name: Run docs tests
+          no_output_timeout: 120m
+          command: |
+            export PATH=$HOME/conda/envs/glow/bin:$PATH
+            pip install pyspark==3.4.1/<<<
+            export SPARK_VERSION="3.4.1"
+            export SCALA_VERSION="2.12.15"
+            sbt docs/test exit
       - run:
           name: Run Python tests
           no_output_timeout: 90m
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="3.5.0"
+            export SPARK_VERSION="3.4.1"
             export SCALA_VERSION="2.12.15"
             sbt python/test exit
       - *check_clean_repo

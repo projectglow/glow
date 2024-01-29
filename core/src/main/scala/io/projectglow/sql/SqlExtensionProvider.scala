@@ -39,15 +39,12 @@ import io.projectglow.sql.optimizer.{ReplaceExpressionsRule, ResolveExpandStruct
 class GlowSQLExtensions extends (SparkSessionExtensions => Unit) {
   val resolutionRules: Seq[Rule[LogicalPlan]] =
     Seq(ResolveExpandStructRule, ResolveGenotypeFields, ReplaceExpressionsRule)
-
-  val postHocresolutionRules = Seq()
   val optimizations: Seq[Rule[LogicalPlan]] = Seq()
 
   def apply(extensions: SparkSessionExtensions): Unit = {
     resolutionRules.foreach { r =>
       extensions.injectResolutionRule(_ => r)
     }
-    postHocresolutionRules.foreach(r => extensions.injectPostHocResolutionRule(_ => r))
     optimizations.foreach(r => extensions.injectOptimizerRule(_ => r))
   }
 }

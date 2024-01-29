@@ -24,7 +24,6 @@ import org.apache.spark.sql.catalyst.trees.TreeNode
 
 // Spark 3.5 APIs that are not inter-version compatible
 object SparkShim extends SparkShimBase {
-
   // [SPARK-27328][SQL] Add 'deprecated' in ExpressionDescription for extended usage and SQL doc
   // Adds 'deprecated' argument to the ExpressionInfo constructor
   override def createExpressionInfo(

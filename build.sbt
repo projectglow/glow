@@ -9,18 +9,26 @@ import sbt.nio.Keys._
 
 // Scala version used by DBR 13.3 LTS and 14.0
 lazy val scala212 = "2.12.15"
+<<<<<<< HEAD
 lazy val scala213 = "2.13.12"
 
 lazy val spark3 = "3.5.0"
 lazy val spark4 = "4.0.0-SNAPSHOT"
+=======
+
+lazy val spark3 = "3.5.0"
+>>>>>>> master
 
 lazy val sparkVersion = settingKey[String]("sparkVersion")
 ThisBuild / sparkVersion := sys.env.getOrElse("SPARK_VERSION", spark3)
 
+<<<<<<< HEAD
 // Add to the Python path to test against a custom version of pyspark
 lazy val extraPythonPath = settingKey[String]("extraPythonPath")
 ThisBuild / extraPythonPath := ""
 
+=======
+>>>>>>> master
 def majorVersion(version: String): String = {
   StringUtils.ordinalIndexOf(version, ".", 1) match {
     case StringUtils.INDEX_NOT_FOUND => version
@@ -195,7 +203,11 @@ lazy val root = (project in file(".")).aggregate(core, python, docs)
 lazy val scalaLoggingDependency = settingKey[ModuleID]("scalaLoggingDependency")
 ThisBuild / scalaLoggingDependency := {
   (ThisBuild / scalaVersion).value match {
+<<<<<<< HEAD
     case `scala212` => "com.typesafe.scala-logging" %% "scala-logging" % "3.9.4"
+=======
+    case `scala212` => "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2"
+>>>>>>> master
     case _ =>
       throw new IllegalArgumentException(
         "Only supported Scala versions are: " + Seq(scala212))
