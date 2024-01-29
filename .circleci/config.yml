@@ -43,59 +43,64 @@ executors:
 
 commands:
   install_conda:
-    description: Install conda
-    steps:
-      - run: |
-          if [ ! -d "/home/circleci/conda" ]; then
-            wget https://repo.anaconda.com/miniconda/Miniconda3-py38_23.11.0-2-Linux-x86_64.sh
-            /bin/bash Miniconda3-py38_23.11.0-2-Linux-x86_64.sh -b -p $HOME/conda
-          else
-            echo "Conda already installed"
-          fi
-
-  create_python_env:
-    description: Setup conda environment
-    parameters:
-      environment_file:
-        type: string
-    steps:
-      - run: |
-          if [ ! -d "/home/circleci/conda/envs/glow" ]; then
-            export PATH=$HOME/conda/bin:$PATH
-            conda install -n base conda-libmamba-solver
-            conda config --set solver libmamba
-            conda env create -f python/<< parameters.environment_file >>
-          fi
-
-  create_docs_env:
-    description: Create minimal conda environment for docs dependencies
-    parameters:
-      environment_file:
-        type: string
-    steps:
-      - run: |
-          if [ ! -d "/home/circleci/conda/envs/glow-docs" ]; then
-            export PATH=$HOME/conda/bin:$PATH
-            conda env create -f docs/source/<< parameters.environment_file >>
-          fi
-
-  install_certs:
-    description: Prepare CircleCI environment for dependency cache - issue #301
     steps:
       - run:
+          name: Install conda
+          command: |
+            if [ ! -d "/home/circleci/conda" ]; then
+              wget https://repo.anaconda.com/miniconda/Miniconda3-py38_23.11.0-2-Linux-x86_64.sh
+              /bin/bash Miniconda3-py38_23.11.0-2-Linux-x86_64.sh -b -p $HOME/conda
+            else
+              echo "Conda already installed"
+            fi
+
+  create_python_env:
+    parameters:
+      environment_file:
+        type: string
+    steps:
+      - run:
+          name: Set up conda environment
+          command: |
+            if [ ! -d "/home/circleci/conda/envs/glow" ]; then
+              export PATH=$HOME/conda/bin:$PATH
+              conda install -n base conda-libmamba-solver
+              conda config --set solver libmamba
+              conda env create -f python/<< parameters.environment_file >>
+            fi
+
+  create_docs_env:
+    parameters:
+      environment_file:
+        type: string
+    steps:
+      - run:
+          name: Create minimal conda environment for docs
+          command: |
+            if [ ! -d "/home/circleci/conda/envs/glow-docs" ]; then
+              export PATH=$HOME/conda/bin:$PATH
+              conda env create -f docs/source/<< parameters.environment_file >>
+            fi
+
+  install_certs:
+    steps:
+      - run:
+          name: Install certs
           command: sudo apt-get install -y ca-certificates
 
   check_clean_repo:
     description: Verify that repo is clean
     steps:
-      - run: |
-          if [[ -n $(git status --short) ]]; then
-            echo "Working directory was not clean!"
-            git status
-            false
-          else
-            true
-          fi
+      - run:
+          name: Verify that repo is clean
+          command: |
+            if [[ -n $(git status --short) ]]; then
+              echo "Working directory was not clean!"
+              git status
+              false
+            else
+              true
+            fi
 
 jobs:
 
@@ -225,7 +230,6 @@ jobs:
     environment:
       SPARK_VERSION: 4.0.0-SNAPSHOT
       SCALA_VERSION: 2.13.12
-      EXTRA_PYTHON_PATH: $HOME/spark/python
     steps:
       - checkout
       - restore_cache:
@@ -253,12 +257,14 @@ jobs:
           no_output_timeout: 120m
           command: |
             export PATH=$HOME/conda/envs/glow-spark4/bin:$PATH
+            export EXTRA_PYTHON_PATH=$HOME/spark/python
             sbt docs/test exit
       - run:
           name: Run Python tests
           no_output_timeout: 90m
           command: |
             export PATH=$HOME/conda/envs/glow-spark4/bin:$PATH
+            export EXTRA_PYTHON_PATH=$HOME/spark/python
             sbt python/test exit
       - check_clean_repo
       - store_artifacts:
