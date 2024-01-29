@@ -265,7 +265,7 @@ jobs:
           path: ~/glow/unit-tests.log
           destination: unit-tests.log
       - store_test_results:
-          path: ~/glow/core/target/scala-2.12/test-reports
+          path: ~/glow/core/target/scala-2.13/test-reports
 
   all-notebook-tests:
     <<: *setup_2xl_base
