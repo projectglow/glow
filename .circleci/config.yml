@@ -216,7 +216,6 @@ jobs:
           no_output_timeout: 120m
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            pip uninstall pyspark
             sbt docs/test exit
       - run:
           name: Run Python tests
@@ -265,6 +264,7 @@ jobs:
           command: |
             export PATH=$HOME/conda/envs/glow-spark4/bin:$PATH
             export EXTRA_PYTHON_PATH=$HOME/spark/python
+            pip uninstall -y pyspark
             sbt docs/test exit
       - run:
           name: Run Python tests
