@@ -216,6 +216,7 @@ jobs:
           no_output_timeout: 120m
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
+            pip uninstall pyspark
             sbt docs/test exit
       - run:
           name: Run Python tests
@@ -280,7 +281,7 @@ jobs:
           path: ~/glow/core/target/scala-2.13/test-reports
 
   all-notebook-tests:
-    <<: *setup_2xl_base
+    executor: jdk8_2xl
     steps:
       - checkout
       - restore_cache:
@@ -322,7 +323,6 @@ workflows:
       - spark-3-4-tests
       - spark-3-5-tests
       - spark-4-0-tests
-      - all-notebook-tests
   nightly:
     triggers:
       - schedule:
