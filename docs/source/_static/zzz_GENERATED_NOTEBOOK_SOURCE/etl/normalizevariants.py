@@ -2,7 +2,7 @@
 # DBTITLE 1,Setup
 # MAGIC %md 
 # MAGIC To use the variant normalizer, a copy of the reference genome `.fa/.fasta` file (along with its `.fai` file) must be downloaded to each node of the cluster.
-# MAGIC 
+# MAGIC
 # MAGIC Here, we use the FUSE mount to access the reference genome at
 # MAGIC ```/dbfs/databricks-datasets/genomics/grch38/data/GRCh38_full_analysis_set_plus_decoy_hla.fa```
 

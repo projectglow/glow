@@ -15,10 +15,9 @@
 from .logistic_udfs import *
 from .ridge_reduction import RidgeReduction
 from .model_functions import _prepare_labels_and_warn, _prepare_covariates, _check_model, _check_cv, _is_binary
-from nptyping import Float, NDArray
+from nptyping import Float, NDArray, Shape
 import pandas as pd
 from pyspark.sql import DataFrame
-from pyspark.sql.functions import pandas_udf, PandasUDFType
 import pyspark.sql.functions as f
 from typeguard import typechecked
 from typing import Any, Dict, List
@@ -165,32 +164,27 @@ class LogisticRidgeRegression:
                                                       n_cov=0)
                 beta_cov_dict[label] = fit_result.x
 
-        map_udf = pandas_udf(
-            lambda key, pdf: map_irls_eqn(key, map_key_pattern, pdf, self._label_df, self.
-                                          sample_blocks, self._std_cov_df, beta_cov_dict, maskdf,
-                                          self._alphas), irls_eqn_struct, PandasUDFType.GROUPED_MAP)
+        map_udf = lambda key, pdf: map_irls_eqn(key, map_key_pattern, pdf, self._label_df, self.
+                                                sample_blocks, self._std_cov_df, beta_cov_dict,
+                                                maskdf, self._alphas)
 
-        reduce_udf = pandas_udf(lambda key, pdf: reduce_irls_eqn(key, reduce_key_pattern, pdf),
-                                irls_eqn_struct, PandasUDFType.GROUPED_MAP)
+        reduce_udf = lambda key, pdf: reduce_irls_eqn(key, reduce_key_pattern, pdf)
 
-        model_udf = pandas_udf(
-            lambda key, pdf: solve_irls_eqn(key, model_key_pattern, pdf, self._label_df, self.
-                                            _alphas, self._std_cov_df), model_struct,
-            PandasUDFType.GROUPED_MAP)
+        model_udf = lambda key, pdf: solve_irls_eqn(key, model_key_pattern, pdf, self._label_df,
+                                                    self._alphas, self._std_cov_df)
 
-        score_udf = pandas_udf(
-            lambda key, pdf: score_models(key, score_key_pattern, pdf, self._label_df, self.
-                                          sample_blocks, self._alphas, self._std_cov_df, maskdf,
-                                          metric), cv_struct, PandasUDFType.GROUPED_MAP)
+        score_udf = lambda key, pdf: score_models(key, score_key_pattern, pdf, self._label_df, self.
+                                                  sample_blocks, self._alphas, self._std_cov_df,
+                                                  maskdf, metric)
 
         self.model_df = self.reduced_block_df.drop('alpha') \
             .withColumn('alpha_name', f.explode(f.array([f.lit(n) for n in self._alphas.keys()]))) \
             .groupBy(map_key_pattern) \
-            .apply(map_udf) \
+            .applyInPandas(map_udf, irls_eqn_struct) \
             .groupBy(reduce_key_pattern) \
-            .apply(reduce_udf) \
+            .applyInPandas(reduce_udf, irls_eqn_struct) \
             .groupBy(model_key_pattern) \
-            .apply(model_udf) \
+            .applyInPandas(model_udf, model_struct) \
             .withColumn('alpha_label_coef', f.expr('struct(alphas[0] AS alpha, labels[0] AS label, coefficients[0] AS coefficient)')) \
             .withColumn('alpha_label_coef_label', f.expr('labels[0]')) \
             .groupBy('header_block', 'sample_block', 'header', 'sort_key', 'alpha_label_coef_label') \
@@ -222,23 +216,22 @@ class LogisticRidgeRegression:
 
         if response == 'linear':
             warnings.warn('Ignoring any covariates for linear response')
-            transform_udf = pandas_udf(
-                lambda key, pdf: apply_model(key, transform_key_pattern, pdf, self._label_df, self.
-                                             sample_blocks, self._alphas, pd.DataFrame({})),
-                reduced_matrix_struct, PandasUDFType.GROUPED_MAP)
+            transform_udf = lambda key, pdf: apply_model(
+                key, transform_key_pattern, pdf, self._label_df, self.sample_blocks, self._alphas,
+                pd.DataFrame({}))
+            schema = reduced_matrix_struct
             join_type = 'inner'
         elif response == 'sigmoid':
-            transform_udf = pandas_udf(
-                lambda key, pdf: apply_logistic_model(
-                    key, transform_key_pattern, pdf, self._label_df, self.sample_blocks, self.
-                    _alphas, self._std_cov_df), logistic_reduced_matrix_struct,
-                PandasUDFType.GROUPED_MAP)
+            transform_udf = lambda key, pdf: apply_logistic_model(
+                key, transform_key_pattern, pdf, self._label_df, self.sample_blocks, self._alphas,
+                self._std_cov_df)
+            schema = logistic_reduced_matrix_struct
             join_type = 'right'
         else:
             raise ValueError(f'response must be either "linear" or "sigmoid", received "{response}"')
 
         return apply_model_df(self.reduced_block_df, self.model_df, self.cv_df, transform_udf,
-                              transform_key_pattern, join_type)
+                              schema, transform_key_pattern, join_type)
 
     def transform(self, response: str = 'linear') -> pd.DataFrame:
         """

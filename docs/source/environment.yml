@@ -3,18 +3,18 @@ channels:
   - bioconda
   - conda-forge
 dependencies:
-  - python=3.7
-  - jinja2=3.0.0
-  - nptyping=1.3.0
-  - numpy>=1.17.4
+  - python=3.10.12
+  - jinja2=3.1.2
+  - nptyping=2.5.0
+  - numpy>=1.23.5
   - opt_einsum>=3.2.0
-  - pandas>=0.25.3
+  - pandas>=1.5.3
   - pip
-  - scikit-learn=0.22.1
+  - pyyaml
+  - scikit-learn=1.1.1
   - statsmodels
-  - typeguard=2.9.1
+  - typeguard=2.13.3
   - pip:
-      - hail==0.2.93
       - sphinx>=3.0.4
       - sphinx_rtd_theme
       - sphinx-autobuild

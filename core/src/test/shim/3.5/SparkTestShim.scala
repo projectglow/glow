@@ -16,7 +16,7 @@
 
 package io.projectglow
 
-// Spark 3.1 APIs that are not inter-version compatible
+// Spark 3.5 APIs that are not inter-version compatible
 object SparkTestShim extends SparkTestShimBase {
   // [SPARK-28744][SQL][TEST] rename SharedSQLContext to SharedSparkSession
   // Renames SharedSparkSession to SharedSparkSessionBase

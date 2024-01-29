@@ -1,11 +1,11 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC ##### run metadata
-# MAGIC 
+# MAGIC
 # MAGIC Warning: this will only work in Databricks
-# MAGIC 
+# MAGIC
 # MAGIC It requires the databricks-cli to be installed via pip 
-# MAGIC 
+# MAGIC
 # MAGIC (this is included in the `projectglow/databricks-glow` docker container)
 
 # COMMAND ----------

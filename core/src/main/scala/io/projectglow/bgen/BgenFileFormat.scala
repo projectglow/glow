@@ -89,7 +89,7 @@ class BgenFileFormat extends FileFormat with DataSourceRegister with Serializabl
     val serializableConf = new SerializableConfiguration(hadoopConf)
 
     file => {
-      val path = new Path(file.filePath)
+      val path = file.filePath.toPath
       val hadoopFs = path.getFileSystem(serializableConf.value)
       nextVariantIndex(hadoopFs, file, useIndex, ignoreExtension) match {
         case None =>
@@ -138,7 +138,7 @@ class BgenFileFormat extends FileFormat with DataSourceRegister with Serializabl
       useIndex: Boolean,
       ignoreExtension: Boolean): Option[Long] = {
 
-    if (!file.filePath.endsWith(BgenFileFormat.BGEN_SUFFIX) && !ignoreExtension) {
+    if (!file.filePath.toString.endsWith(BgenFileFormat.BGEN_SUFFIX) && !ignoreExtension) {
       return None
     }
 

@@ -74,7 +74,7 @@ def map_irls_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf:
         labeldf : Pandas DataFrame containing label values (i. e., the Y in the normal equation above).
         sample_index : sample_index: dict containing a mapping of sample_block ID to a list of corresponding sample IDs
         covdf : Pandas DataFrame containing covariates that should be included with every block X above (can be empty).
-        beta_cov_dict : dict of [label: str, beta: NDArray[Float]] that maps each label to the covariate parameter
+        beta_cov_dict : dict of [label: str, beta: NDArray[Any, Float]] that maps each label to the covariate parameter
             values estimated from the entire population.
         maskdf : Pandas DataFrame mirroring labeldf containing Boolean values flagging samples with missing labels as
             True and others as False.

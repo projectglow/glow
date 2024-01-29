@@ -3,20 +3,20 @@ import numpy as np
 from dataclasses import dataclass
 import scipy
 from typeguard import typechecked
-from nptyping import Float, NDArray
+from nptyping import Bool, Float, NDArray, Shape
 from scipy import stats
 
 
 @dataclass
 class LogLikelihood:
-    pi: NDArray[(Any, ), Float]  # n_samples
-    I: NDArray[(Any, Any), Float]  # Fisher information matrix
+    pi: NDArray[Shape['*'], Float]  # n_samples
+    I: NDArray[Shape['*, *'], Float]  # Fisher information matrix
     deviance: Float  # -2 * penalized log likelihood
 
 
 @dataclass
 class FirthFit:
-    beta: NDArray[(Any, ), Float]  # n_covariates for null fit, 1 for SNP fit
+    beta: NDArray[Shape['*'], Float]  # n_covariates for null fit, 1 for SNP fit
     log_likelihood: LogLikelihood
 
 
@@ -30,13 +30,13 @@ class FirthStatistics:
 
 @dataclass
 class Model:
-    X: NDArray[(Any, Any), Float]
-    y: NDArray[(Any, ), Float]
-    offset: NDArray[(Any, ), Float]
+    X: NDArray[Shape['*, *'], Float]
+    y: NDArray[Shape['*'], Float]
+    offset: NDArray[Shape['*'], Float]
 
 
 # @typechecked -- typeguard does not support numpy array
-def _calculate_log_likelihood(beta: NDArray[(Any, ), Float], model: Model) -> LogLikelihood:
+def _calculate_log_likelihood(beta: NDArray[Shape['*'], Float], model: Model) -> LogLikelihood:
 
     pi = scipy.special.expit(model.X @ beta + model.offset)
     p = pi * (1 - pi)
@@ -49,10 +49,10 @@ def _calculate_log_likelihood(beta: NDArray[(Any, ), Float], model: Model) -> Lo
     return LogLikelihood(pi, I, deviance)
 
 
-def _fit_firth(beta_init: NDArray[(Any, ), Float],
-               X: NDArray[(Any, Any), Float],
-               y: NDArray[(Any, ), Float],
-               offset: NDArray[(Any, ), Float],
+def _fit_firth(beta_init: NDArray[Shape['*'], Float],
+               X: NDArray[Shape['*, *'], Float],
+               y: NDArray[Shape['*'], Float],
+               offset: NDArray[Shape['*'], Float],
                convergence_limit: float = 1e-5,
                deviance_tolerance: float = 1e-6,
                max_iter: int = 250,
@@ -127,12 +127,12 @@ def _fit_firth(beta_init: NDArray[(Any, ), Float],
 
 # @typechecked -- typeguard does not support numpy array
 def perform_null_firth_fit(
-    y: NDArray[(Any, ), Float],
-    C: NDArray[(Any, Any), Float],
-    mask: NDArray[(Any, ), bool],
+    y: NDArray[Shape['*'], Float],
+    C: NDArray[Shape['*, *'], Float],
+    mask: NDArray[Shape['*'], Bool],
     offset: Optional[Any],  # Typeguard doesn't work with optional NDArrays
     includes_intercept: bool
-) -> NDArray[(Any, ), Float]:
+) -> NDArray[Shape['*'], Float]:
     '''
     Performs the null fit for approximate Firth in order to calculate the covariate effects to be
     used as an offset during the SNP fits.
@@ -170,9 +170,9 @@ def perform_null_firth_fit(
 
 
 # Skip typechecking for optimization
-def correct_approx_firth(x: NDArray[(Any, ), Float], y: NDArray[(Any, ), Float],
-                         firth_offset: NDArray[(Any, ), Float],
-                         mask: NDArray[(Any, ), bool]) -> Optional[FirthStatistics]:
+def correct_approx_firth(x: NDArray[Shape['*'], Float], y: NDArray[Shape['*'], Float],
+                         firth_offset: NDArray[Shape['*'], Float],
+                         mask: NDArray[Shape['*'], Bool]) -> Optional[FirthStatistics]:
     '''
     Calculate LRT statistics for a SNP using the approximate Firth method.
 

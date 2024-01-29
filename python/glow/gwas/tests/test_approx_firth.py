@@ -3,17 +3,18 @@ import functions as fx
 import glow.gwas.log_reg as lr
 import glow.gwas.approx_firth as af
 import pandas as pd
-from nptyping import Float, NDArray
+from nptyping import Float, NDArray, Shape
 import numpy as np
 import pytest
 from typing import Any
 
 
 @dataclass
+@pytest.mark.skip(reason='Not a test')
 class TestData:
-    phenotypes: NDArray[(Any, ), Float]
-    covariates: NDArray[(Any, Any), Float]
-    offset: NDArray[(Any, ), Float]
+    phenotypes: NDArray[Shape['*'], Float]
+    covariates: NDArray[Shape['*, *'], Float]
+    offset: NDArray[Shape['*'], Float]
 
 
 def _get_test_data(use_offset, use_intercept):
@@ -22,7 +23,8 @@ def _get_test_data(use_offset, use_intercept):
     phenotypes = df['case']
     covariates = df.loc[:, 'age':'dia']
     if use_intercept:
-        covariates.loc[:, 'intercept'] = 1
+        df.loc[:, 'intercept'] = 1
+        covariates = df.loc[:, ('age', 'oc', 'vic', 'vicl', 'vis', 'dia', 'intercept')]
     offset = df['offset']
     if not use_offset:
         offset = offset * 0
@@ -133,8 +135,8 @@ def compare_corrections_to_regenie(spark,
 
     correction_counts = glowgr_df.correctionSucceeded.value_counts(dropna=False).to_dict()
     if uncorrected > 0:
-        # null in Spark DataFrame converts to nan in pandas
-        assert correction_counts[np.nan] == uncorrected
+        # null in Spark DataFrame converts to None in pandas
+        assert correction_counts[None] == uncorrected
     if corrected > 0:
         assert correction_counts[True] == corrected
     assert False not in correction_counts

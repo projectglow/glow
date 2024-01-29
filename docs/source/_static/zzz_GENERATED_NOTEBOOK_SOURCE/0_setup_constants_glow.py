@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC #### Set up constants for Glow to use in GWAS workflow notebooks
 
 # COMMAND ----------

@@ -271,27 +271,6 @@ etl:
 
 quality_control:
   functions:
-    - name: aggregate_by_index
-      doc: Computes custom per-sample aggregates.
-      since: 0.3.0
-      expr_class: io.projectglow.sql.expressions.UnwrappedAggregateByIndex
-      exclude_python: true
-      args:
-        - name: arr
-          doc: array of values.
-        - name: initialValue
-          doc: the initial value
-        - name: update
-          doc: update function
-          type: lambda2
-        - name: merge
-          doc: merge function
-          type: lambda2
-        - name: evaluate
-          doc: evaluate function
-          type: lambda1
-          is_optional: true
-      returns: An array of aggregated values. The number of elements in the array is equal to the number of samples.
     - name: call_summary_stats
       doc: Computes call summary statistics for an array of genotype structs. See :ref:`variant-qc` for more details.
       since: 0.3.0

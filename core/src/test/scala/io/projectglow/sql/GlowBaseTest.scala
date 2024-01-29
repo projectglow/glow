@@ -16,7 +16,6 @@
 
 package io.projectglow.sql
 
-import htsjdk.samtools.util.Log
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.DebugFilesystem
 import org.scalatest.concurrent.{AbstractPatienceConfiguration, Eventually}
@@ -39,7 +38,6 @@ abstract class GlowBaseTest
     super.initializeSession()
     Glow.register(spark, newSession = false)
     SparkSession.setActiveSession(spark)
-    Log.setGlobalLogLevel(Log.LogLevel.ERROR)
   }
 
   protected def gridTest[A](testNamePrefix: String, testTags: Tag*)(params: Seq[A])(

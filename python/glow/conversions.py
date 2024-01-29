@@ -15,22 +15,21 @@
 import numpy as np
 from py4j.java_collections import JavaArray
 from pyspark import SparkContext
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 
+@typechecked
 def _is_numpy_double_array(object, dimensions: int) -> bool:
-    assert check_argument_types()
     output = isinstance(object, np.ndarray) and len(
         object.shape) == dimensions and object.dtype.type == np.double
-    assert check_return_type(output)
     return output
 
 
+@typechecked
 def _convert_numpy_to_java_array(np_arr: np.ndarray) -> JavaArray:
     """
     Converts a flat numpy array of doubles to a Java array of doubles.
     """
-    assert check_argument_types()
     assert len(np_arr.shape) == 1
     assert np_arr.dtype.type == np.double
 
@@ -39,7 +38,6 @@ def _convert_numpy_to_java_array(np_arr: np.ndarray) -> JavaArray:
     # Convert to big endian and serialize
     byte_arr = np.ascontiguousarray(np_arr, '>d').tobytes()
     java_arr = sc._jvm.io.projectglow.common.PythonUtils.doubleArrayFromBytes(size, byte_arr)
-    assert check_return_type(java_arr)
     return java_arr
 
 

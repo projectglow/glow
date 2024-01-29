@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC ### Simulate random binary / quantitative covariates and phenotypes
 
 # COMMAND ----------

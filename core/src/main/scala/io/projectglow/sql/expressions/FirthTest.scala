@@ -18,7 +18,7 @@ package io.projectglow.sql.expressions
 
 import breeze.linalg.{*, diag, max, qr, sum, DenseMatrix, DenseVector, MatrixSingularException}
 import breeze.numerics.{abs, log, sigmoid, sqrt}
-import com.github.fommil.netlib.LAPACK
+import dev.ludovic.netlib.lapack.LAPACK
 import org.apache.spark.ml.linalg.{DenseMatrix => SparkDenseMatrix}
 import org.apache.spark.sql.Encoders
 import org.apache.spark.sql.catalyst.InternalRow

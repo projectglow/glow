@@ -1,6 +1,6 @@
 import pandas as pd
 import numpy as np
-from nptyping import Float, NDArray, Int32
+from nptyping import Float, NDArray, Int32, Shape
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union
 from pyspark.sql import Column, DataFrame
@@ -115,7 +115,7 @@ def linear_regression(genotype_df: DataFrame,
                              and genotype input, i.e. phenotype value * number of alternate alleles
     '''
 
-    gwas_fx._check_spark_version(genotype_df.sql_ctx.sparkSession)
+    gwas_fx._check_spark_version(genotype_df.sparkSession)
 
     gwas_fx._validate_covariates_and_phenotypes(covariate_df,
                                                 phenotype_df,
@@ -168,12 +168,12 @@ class YState:
     '''
     Keeps track of state that varies per contig
     '''
-    Y: NDArray[(Any, Any), Float]
+    Y: NDArray[Shape['*, *'], Float]
     YdotY: NDArray[(Any), Float]
 
 
-def _create_YState(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame,
-                   offset_df: pd.DataFrame, Y_mask: NDArray[(Any, Any), Float], dt,
+def _create_YState(Y: NDArray[Shape['*, *'], Float], phenotype_df: pd.DataFrame,
+                   offset_df: pd.DataFrame, Y_mask: NDArray[Shape['*, *'], Float], dt,
                    contigs: Optional[List[str]]) -> Union[YState, Dict[str, YState]]:
 
     offset_type = gwas_fx._validate_offset(phenotype_df, offset_df)
@@ -188,8 +188,9 @@ def _create_YState(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame,
     }
 
 
-def _create_one_YState(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame,
-                       offset_df: pd.DataFrame, Y_mask: NDArray[(Any, Any), Float], dt) -> YState:
+def _create_one_YState(Y: NDArray[Shape['*, *'], Float], phenotype_df: pd.DataFrame,
+                       offset_df: pd.DataFrame, Y_mask: NDArray[Shape['*, *'],
+                                                                Float], dt) -> YState:
     if not offset_df.empty:
         base_Y = pd.DataFrame(Y, phenotype_df.index, phenotype_df.columns)
         # Reindex so the numpy array maintains ordering after subtracting offset
@@ -199,12 +200,14 @@ def _create_one_YState(Y: NDArray[(Any, Any), Float], phenotype_df: pd.DataFrame
 
 
 # @typechecked -- typeguard does not support numpy array
-def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
-                             Y_mask: NDArray[(Any, Any), Float], Y_scale: NDArray[(Any, ), Float],
-                             Q: NDArray[(Any, Any), Float], dof: int, phenotype_names: pd.Series,
-                             Y_for_verbose_output: Optional[NDArray[(Any, Any), Float]],
-                             verbose_output: Optional[bool],
-                             gt_indices_to_drop: Optional[NDArray[(Any, ), Int32]]) -> pd.DataFrame:
+def _linear_regression_inner(
+        genotype_pdf: pd.DataFrame, Y_state: YState, Y_mask: NDArray[Shape['*, *'], Float],
+        Y_scale: NDArray[Shape['*'],
+                         Float], Q: NDArray[Shape['*, *'],
+                                            Float], dof: int, phenotype_names: pd.Series,
+        Y_for_verbose_output: Optional[NDArray[Shape['*, *'],
+                                               Float]], verbose_output: Optional[bool],
+        gt_indices_to_drop: Optional[NDArray[Shape['*'], Int32]]) -> pd.DataFrame:
     '''
     Applies a linear regression model to a block of genotypes. We first project the covariates out of the
     genotype block and then perform single variate linear regression for each site.

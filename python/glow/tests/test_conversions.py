@@ -15,7 +15,7 @@
 from glow.conversions import OneDimensionalDoubleNumpyArrayConverter, TwoDimensionalDoubleNumpyArrayConverter
 from importlib import reload
 import numpy as np
-from py4j.protocol import Py4JJavaError
+from pyspark.errors import PySparkException
 from pyspark.ml.linalg import DenseMatrix
 from pyspark.sql.functions import lit
 from pyspark.sql.types import StringType
@@ -45,19 +45,13 @@ def test_convert_array(spark):
 def test_convert_checks_dimension(spark):
     # No support for 3-dimensional arrays
     ndarray = np.array([[[1.]]])
-    with pytest.raises(Py4JJavaError):
+    with pytest.raises(PySparkException):
         lit(ndarray)
 
 
 def test_convert_matrix_checks_type(spark):
     ndarray = np.array([[1, 2], [3, 4]])
-    with pytest.raises(AttributeError):
-        lit(ndarray)
-
-
-def test_convert_array_checks_type(spark):
-    ndarray = np.array([1, 2])
-    with pytest.raises(AttributeError):
+    with pytest.raises(PySparkException):
         lit(ndarray)
 
 

@@ -449,11 +449,11 @@ object TabixIndexHelper extends GlowLogging {
   ): Option[(Long, Long)] = {
 
     // Do not read index files
-    if (file.filePath.endsWith(VCFFileFormat.INDEX_SUFFIX)) {
+    if (file.filePath.toString.endsWith(VCFFileFormat.INDEX_SUFFIX)) {
       return None
     }
 
-    val path = new Path(file.filePath)
+    val path = file.filePath.toPath
     val indexFile = new Path(file.filePath + VCFFileFormat.INDEX_SUFFIX)
     val isGzip = VCFFileFormat.isGzip(file, conf)
 
