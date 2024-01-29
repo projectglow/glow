@@ -288,6 +288,7 @@ jobs:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}
       - install_conda
       - create_python_env:
+          environment_name: glow
           environment_file: environment.yml
       - save_cache:
           paths:
