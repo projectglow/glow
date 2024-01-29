@@ -46,12 +46,12 @@ commands:
     description: Install conda
     steps:
       - run: |
-        if [ ! -d "/home/circleci/conda" ]; then
-          wget https://repo.anaconda.com/miniconda/Miniconda3-py38_23.11.0-2-Linux-x86_64.sh
-          /bin/bash Miniconda3-py38_23.11.0-2-Linux-x86_64.sh -b -p $HOME/conda
-        else
-          echo "Conda already installed"
-        fi
+          if [ ! -d "/home/circleci/conda" ]; then
+            wget https://repo.anaconda.com/miniconda/Miniconda3-py38_23.11.0-2-Linux-x86_64.sh
+            /bin/bash Miniconda3-py38_23.11.0-2-Linux-x86_64.sh -b -p $HOME/conda
+          else
+            echo "Conda already installed"
+          fi
 
   create_python_env:
     description: Setup conda environment
@@ -60,12 +60,12 @@ commands:
         type: string
     steps:
       - run: |
-        if [ ! -d "/home/circleci/conda/envs/glow" ]; then
-          export PATH=$HOME/conda/bin:$PATH
-          conda install -n base conda-libmamba-solver
-          conda config --set solver libmamba
-          conda env create -f python/<< parameters.environment_file >>
-        fi
+          if [ ! -d "/home/circleci/conda/envs/glow" ]; then
+            export PATH=$HOME/conda/bin:$PATH
+            conda install -n base conda-libmamba-solver
+            conda config --set solver libmamba
+            conda env create -f python/<< parameters.environment_file >>
+          fi
 
   create_docs_env:
     description: Create minimal conda environment for docs dependencies
@@ -74,10 +74,10 @@ commands:
         type: string
     steps:
       - run: |
-        if [ ! -d "/home/circleci/conda/envs/glow-docs" ]; then
-          export PATH=$HOME/conda/bin:$PATH
-          conda env create -f docs/source/<< parameters.environment_file >>
-        fi
+          if [ ! -d "/home/circleci/conda/envs/glow-docs" ]; then
+            export PATH=$HOME/conda/bin:$PATH
+            conda env create -f docs/source/<< parameters.environment_file >>
+          fi
 
   install_certs:
     description: Prepare CircleCI environment for dependency cache - issue #301
@@ -89,13 +89,13 @@ commands:
     description: Verify that repo is clean
     steps:
       - run: |
-        if [[ -n $(git status --short) ]]; then
-          echo "Working directory was not clean!"
-          git status
-          false
-        else
-          true
-        fi
+          if [[ -n $(git status --short) ]]; then
+            echo "Working directory was not clean!"
+            git status
+            false
+          else
+            true
+          fi
 
 jobs:
 
