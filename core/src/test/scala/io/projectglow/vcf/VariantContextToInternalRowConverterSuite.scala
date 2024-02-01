@@ -110,7 +110,7 @@ class VariantContextToInternalRowConverterSuite extends VCFConverterBaseTest {
     val file = new File(vcf)
     val reader = new VCFFileReader(file, false)
     val htsjdkVcList = reader.iterator.toList.asScala
-    val htsjdkVcfRowList = convertToVCFRows(htsjdkVcList.map(converter.convertRow(_, false)))
+    val htsjdkVcfRowList = convertToVCFRows(htsjdkVcList.map(converter.convertRow(_, false)).toSeq)
 
     assert(sparkVcfRowList.length == htsjdkVcfRowList.length)
     sparkVcfRowList.zip(htsjdkVcfRowList).map {

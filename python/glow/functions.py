@@ -594,13 +594,13 @@ def logistic_regression_gwas(genotypes: Union[Column, str], phenotypes: Union[Co
         >>> offset = [1, 0, 1, 0, 1]
         >>> df = spark.createDataFrame([Row(genotypes=genotypes, phenotypes=phenotypes, covariates=covariates, offset=offset)])
         >>> df.select(glow.expand_struct(glow.logistic_regression_gwas('genotypes', 'phenotypes', 'covariates', 'Firth'))).collect()
-        [Row(beta=0.7418937644793101, oddsRatio=2.09990848346903, waldConfidenceInterval=[0.2509874689201784, 17.569066925598555], pValue=0.3952193664793294)]
+        [Row(beta=0.7418, oddsRatio=2.0999, waldConfidenceInterval=[0.2509, 17.5690], pValue=0.3952)]
         >>> df.select(glow.expand_struct(glow.logistic_regression_gwas('genotypes', 'phenotypes', 'covariates', 'LRT'))).collect()
-        [Row(beta=1.1658962684583645, oddsRatio=3.208797538802116, waldConfidenceInterval=[0.29709600522888285, 34.65674887513274], pValue=0.2943946848756769)]
+        [Row(beta=1.1658, oddsRatio=3.2087, waldConfidenceInterval=[0.2970, 34.6567], pValue=0.2943)]
         >>> df.select(glow.expand_struct(glow.logistic_regression_gwas('genotypes', 'phenotypes', 'covariates', 'Firth', 'offset'))).collect()
-        [Row(beta=0.8024832156793392, oddsRatio=2.231074294047771, waldConfidenceInterval=[0.2540891981649045, 19.590334974925725], pValue=0.3754070658316332)]
+        [Row(beta=0.8024, oddsRatio=2.2310, waldConfidenceInterval=[0.2540, 19.5903], pValue=0.3754)]
         >>> df.select(glow.expand_struct(glow.logistic_regression_gwas('genotypes', 'phenotypes', 'covariates', 'LRT', 'offset'))).collect()
-        [Row(beta=1.1996041727573317, oddsRatio=3.3188029900720117, waldConfidenceInterval=[0.3071189078535928, 35.863807161497334], pValue=0.2857137988674153)]
+        [Row(beta=1.1996, oddsRatio=3.3188, waldConfidenceInterval=[0.3071, 35.8638], pValue=0.2857)]
 
     Args:
         genotypes : An numeric array of genotypes

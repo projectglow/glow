@@ -4,83 +4,126 @@ setup_2xl_base: &setup_2xl_base
     - image: cimg/openjdk:8.0.392
   resource_class: xlarge
 
-setup_xl_base: &setup_xl_base
-  working_directory: ~/glow
-  docker:
-    - image: cimg/openjdk:8.0.392
-  resource_class: xlarge
-
-setup_l_base: &setup_l_base
-  working_directory: ~/glow
-  docker:
-    - image: cimg/openjdk:8.0.392
-  resource_class: large
-
 setup_m_base: &setup_m_base
   working_directory: ~/glow
   docker:
     - image: cimg/openjdk:8.0.392
   resource_class: medium+
 
-install_conda: &install_conda
-  run:
-    name: Install conda
-    command: |
-      if [ ! -d "/home/circleci/conda" ]; then
-        wget https://repo.anaconda.com/miniconda/Miniconda3-py38_23.11.0-2-Linux-x86_64.sh
-        /bin/bash Miniconda3-py38_23.11.0-2-Linux-x86_64.sh -b -p $HOME/conda
-      else
-        echo "Conda already installed"
-      fi
-create_python_env: &create_python_env
-  run:
-    name: Create conda environment for Python dependencies
-    command: |
-      if [ ! -d "/home/circleci/conda/envs/glow" ]; then
-        export PATH=$HOME/conda/bin:$PATH
-        conda install -n base conda-libmamba-solver
-        conda config --set solver libmamba
-        conda env create -f python/environment.yml
-      fi
-create_docs_env: &create_docs_env
-  run:
-    name: Create minimal conda environment for docs dependencies
-    command: |
-      if [ ! -d "/home/circleci/conda/envs/glow-docs" ]; then
-        export PATH=$HOME/conda/bin:$PATH
-        conda env create -f docs/source/environment.yml
-      fi
-check_clean_repo: &check_clean_repo
-  run:
-    name: Verify that repo is clean
-    command: |
-      if [[ -n $(git status --short) ]]; then
-        echo "Working directory was not clean!"
-        git status
-        false
-      else
-        true
-      fi
 version: 2.1
 orbs:
   codecov: codecov/codecov@3.2.2
   jq: circleci/jq@2.2.0
+
+executors:
+
+  jdk8_2xl:
+    working_directory: ~/glow
+    docker:
+      - image: cimg/openjdk:8.0.392
+    resource_class: xlarge
+
+  jdk8_m:
+    working_directory: ~/glow
+    docker:
+      - image: cimg/openjdk:8.0.392
+    resource_class: medium+
+
+  jdk17_2xl:
+    working_directory: ~/glow
+    docker:
+      - image: cimg/openjdk:17.0.9
+    resource_class: xlarge
+
+  jdk17_m:
+    working_directory: ~/glow
+    docker:
+      - image: cimg/openjdk:17.0.9
+    resource_class: medium+
+
+commands:
+  install_conda:
+    steps:
+      - run:
+          name: Install conda
+          command: |
+            if [ ! -d "/home/circleci/conda" ]; then
+              wget https://repo.anaconda.com/miniconda/Miniconda3-py38_23.11.0-2-Linux-x86_64.sh
+              /bin/bash Miniconda3-py38_23.11.0-2-Linux-x86_64.sh -b -p $HOME/conda
+            else
+              echo "Conda already installed"
+            fi
+
+  create_python_env:
+    parameters:
+      environment_file:
+        type: string
+      environment_name:
+        type: string
+    steps:
+      - run:
+          name: Set up conda environment
+          command: |
+            if [ ! -d "/home/circleci/conda/envs/<< parameters.environment_name >>" ]; then
+              export PATH=$HOME/conda/bin:$PATH
+              conda install -n base conda-libmamba-solver
+              conda config --set solver libmamba
+              conda env create -f python/<< parameters.environment_file >>
+            fi
+
+  create_docs_env:
+    parameters:
+      environment_file:
+        type: string
+    steps:
+      - run:
+          name: Create minimal conda environment for docs
+          command: |
+            if [ ! -d "/home/circleci/conda/envs/glow-docs" ]; then
+              export PATH=$HOME/conda/bin:$PATH
+              conda env create -f docs/source/<< parameters.environment_file >>
+            fi
+
+  install_certs:
+    steps:
+      - run:
+          name: Install certs
+          command: sudo apt-get install -y ca-certificates
+
+  check_clean_repo:
+    description: Verify that repo is clean
+    steps:
+      - run:
+          name: Verify that repo is clean
+          command: |
+            if [[ -n $(git status --short) ]]; then
+              echo "Working directory was not clean!"
+              git status
+              false
+            else
+              true
+            fi
+
 jobs:
 
   check-docs:
-    <<: *setup_m_base
+    executor: jdk8_m
     steps:
       - checkout
       - restore_cache:
           keys:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}-{{ checksum "docs/source/environment.yml" }}
-      - *install_conda
-      - *create_python_env
-      - *create_docs_env
+      - install_conda
+      - create_python_env:
+          environment_name: glow
+          environment_file: environment.yml
+      - create_docs_env:
+          environment_file: environment.yml
       - save_cache:
           paths:
             - /home/circleci/conda
           key: conda-deps-v1-{{ checksum "python/environment.yml" }}-{{ checksum "docs/source/environment.yml" }}
+      - install_certs
       - run:
           name: Check docs links
           command: |
@@ -98,31 +141,31 @@ jobs:
             for f in $(find docs/source/_static/notebooks -type f -name '*.html'); do
                 python docs/dev/gen-nb-src.py --html "${f}" --cli-profile docs-ci
             done
-      - *check_clean_repo
+      - check_clean_repo
 
   spark-3-4-tests:
-    <<: *setup_2xl_base
+    executor: jdk8_2xl
+    environment:
+      SPARK_VERSION: 3.4.1
+      SCALA_VERSION: 2.12.15
     steps:
       - checkout
       - restore_cache:
           keys:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}
-      - *install_conda
-      - *create_python_env
+      - install_conda
+      - create_python_env:
+          environment_name: glow
+          environment_file: environment.yml
       - save_cache:
           paths:
             - /home/circleci/conda
           key: conda-deps-v1-{{ checksum "python/environment.yml" }}
-      - run:
-          name: Prepare CircleCI environment for dependency cache - issue #301
-          environment:
-          command: sudo apt-get install -y ca-certificates
+      - install_certs
       - run:
           name: Run Scala tests
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="3.4.1"
-            export SCALA_VERSION="2.12.15"
             sbt core/test exit
       - run:
           name: Run docs tests
@@ -130,18 +173,14 @@ jobs:
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
             pip install pyspark==3.4.1
-            export SPARK_VERSION="3.4.1"
-            export SCALA_VERSION="2.12.15"
             sbt docs/test exit
       - run:
           name: Run Python tests
           no_output_timeout: 90m
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="3.4.1"
-            export SCALA_VERSION="2.12.15"
             sbt python/test exit
-      - *check_clean_repo
+      - check_clean_repo
       - store_artifacts:
           path: ~/glow/unit-tests.log
           destination: unit-tests.log
@@ -149,61 +188,109 @@ jobs:
           path: ~/glow/core/target/scala-2.12/test-reports
 
   spark-3-5-tests:
-    <<: *setup_2xl_base
+    executor: jdk8_2xl
+    environment:
+      SPARK_VERSION: 3.5.0
+      SCALA_VERSION: 2.12.15
     steps:
       - checkout
       - restore_cache:
           keys:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}
-      - *install_conda
-      - *create_python_env
+      - install_conda
+      - create_python_env:
+          environment_name: glow
+          environment_file: environment.yml
       - save_cache:
           paths:
             - /home/circleci/conda
           key: conda-deps-v1-{{ checksum "python/environment.yml" }}
-      - run:
-          name: Prepare CircleCI environment for dependency cache - issue #301
-          environment:
-          command: sudo apt-get install -y ca-certificates
+      - install_certs
       - run:
           name: Run Scala tests
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="3.5.0"
-            export SCALA_VERSION="2.12.15"
             sbt core/test exit
       - run:
           name: Run docs tests
           no_output_timeout: 120m
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="3.5.0"
-            export SCALA_VERSION="2.12.15"
             sbt docs/test exit
       - run:
           name: Run Python tests
           no_output_timeout: 90m
           command: |
             export PATH=$HOME/conda/envs/glow/bin:$PATH
-            export SPARK_VERSION="3.5.0"
-            export SCALA_VERSION="2.12.15"
             sbt python/test exit
-      - *check_clean_repo
+      - check_clean_repo
       - store_artifacts:
           path: ~/glow/unit-tests.log
           destination: unit-tests.log
       - store_test_results:
           path: ~/glow/core/target/scala-2.12/test-reports
 
+  spark-4-0-tests:
+    executor: jdk17_2xl
+    environment:
+      SPARK_VERSION: 4.0.0-SNAPSHOT
+      SCALA_VERSION: 2.13.12
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - conda-deps-v1-{{ checksum "python/spark-4-environment.yml" }}
+      - install_conda
+      - create_python_env:
+          environment_name: glow-spark4
+          environment_file: spark-4-environment.yml
+      - save_cache:
+          paths:
+            - /home/circleci/conda
+          key: conda-deps-v1-{{ checksum "python/spark-4-environment.yml" }}
+      - install_certs
+      - run:
+          name: Run Scala tests
+          command: |
+            export PATH=$HOME/conda/envs/glow-spark4/bin:$PATH
+            sbt core/test exit
+      - run:
+          name: Clone Spark (for pyspark source)
+          command: |
+            (cd $HOME && git clone https://github.com/apache/spark.git)
+      - run:
+          name: Run docs tests
+          no_output_timeout: 120m
+          command: |
+            export PATH=$HOME/conda/envs/glow-spark4/bin:$PATH
+            export EXTRA_PYTHON_PATH=$HOME/spark/python
+            pip uninstall -y pyspark
+            sbt docs/test exit
+      - run:
+          name: Run Python tests
+          no_output_timeout: 90m
+          command: |
+            export PATH=$HOME/conda/envs/glow-spark4/bin:$PATH
+            export EXTRA_PYTHON_PATH=$HOME/spark/python
+            sbt python/test exit
+      - check_clean_repo
+      - store_artifacts:
+          path: ~/glow/unit-tests.log
+          destination: unit-tests.log
+      - store_test_results:
+          path: ~/glow/core/target/scala-2.13/test-reports
+
   all-notebook-tests:
-    <<: *setup_2xl_base
+    executor: jdk8_2xl
     steps:
       - checkout
       - restore_cache:
           keys:
             - conda-deps-v1-{{ checksum "python/environment.yml" }}
-      - *install_conda
-      - *create_python_env
+      - install_conda
+      - create_python_env:
+          environment_name: glow
+          environment_file: environment.yml
       - save_cache:
           paths:
             - /home/circleci/conda
@@ -235,7 +322,8 @@ workflows:
       - check-docs
       - spark-3-4-tests
       - spark-3-5-tests
-      - all-notebook-tests
+# Disable Spark 4.0 tests until there are release artifacts
+#      - spark-4-0-tests
   nightly:
     triggers:
       - schedule:
@@ -246,5 +334,6 @@ workflows:
                 - master
     jobs:
       - check-docs
+      - spark-3-4-tests
       - spark-3-5-tests
       - all-notebook-tests

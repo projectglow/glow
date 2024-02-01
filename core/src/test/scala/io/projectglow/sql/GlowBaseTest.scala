@@ -24,10 +24,11 @@ import org.scalatest.{Args, Status, Tag}
 import io.projectglow.Glow
 import io.projectglow.SparkTestShim.{FunSuite, SharedSparkSessionBase}
 import io.projectglow.common.{GlowLogging, TestUtils}
+import org.apache.spark.sql.api.r.SQLUtilsSuite
+import org.apache.spark.sql.test.SharedSparkSession
 
 abstract class GlowBaseTest
-    extends FunSuite
-    with SharedSparkSessionBase
+    extends SharedSparkSession
     with Eventually
     with GlowLogging
     with GlowTestData

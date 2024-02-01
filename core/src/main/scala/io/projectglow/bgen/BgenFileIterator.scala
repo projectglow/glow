@@ -68,7 +68,7 @@ private[projectglow] class BgenFileIterator(
     }
   }
 
-  def hasNext(): Boolean = {
+  def hasNext: Boolean = {
     val ret = underlyingStream.getPos < maxPos
     if (!ret) {
       cleanup()

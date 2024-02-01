@@ -277,7 +277,7 @@ class VCFDatasourceSuite extends GlowBaseTest {
     val row = df.head
     assert(row.size == 5)
     assert(row.getAs[String]("sampleId") == "sample_1")
-    assert(row.getAs[Seq[Int]]("calls") == Seq(-1))
+    assert(row.getAs[collection.Seq[Int]]("calls") == Seq(-1))
     assert(row.getAs[Boolean]("phased") == false)
     assert(row.getAs[Any]("depth") == null)
     assert(row.getAs[Any]("MIN_DP") == null)
@@ -295,7 +295,7 @@ class VCFDatasourceSuite extends GlowBaseTest {
     ).selectExpr("expand_struct(genotypes[0])").head
     assert(row.size == 5)
     assert(row.getAs[String]("sampleId") == "sample_1")
-    assert(row.getAs[Seq[Int]]("calls") == Seq(-1))
+    assert(row.getAs[collection.Seq[Int]]("calls") == Seq(-1))
     assert(row.getAs[Boolean]("phased") == false)
     assert(row.getAs[Any]("depth") == null)
     assert(row.getAs[Int]("MIN_DP") == 5)

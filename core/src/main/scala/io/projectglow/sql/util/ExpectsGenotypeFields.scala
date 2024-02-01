@@ -20,8 +20,8 @@ import org.apache.spark.sql.SQLUtils
 import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
 import org.apache.spark.sql.catalyst.expressions.{Expression, Unevaluable}
 import org.apache.spark.sql.types.{ArrayType, DataType, StructField, StructType}
-
 import io.projectglow.SparkShim.newUnresolvedException
+import org.apache.commons.lang3.exception.ExceptionUtils
 
 /**
  * Stores the indices of required and optional fields within the genotype element struct after
@@ -47,7 +47,7 @@ trait ExpectsGenotypeFields extends Expression {
   }
 
   override lazy val resolved: Boolean = {
-    childrenResolved && genotypeInfo.isDefined
+    childrenResolved && genotypeInfo.isDefined && checkInputDataTypes().isSuccess
   }
 
   /**
@@ -138,6 +138,8 @@ trait Rewrite extends Expression with Unevaluable {
 trait RewriteAfterResolution extends Expression with Unevaluable {
   def rewrite: Expression
 
-  override def dataType: DataType = rewrite.dataType
-  override def nullable: Boolean = rewrite.nullable
+  override def dataType: DataType = throw newUnresolvedException(this, "datatype")
+  override def nullable: Boolean = throw newUnresolvedException(this, "nullable")
+
+  override lazy val resolved = false
 }

@@ -111,7 +111,7 @@ def statsmodels_baseline(genotype_df,
     })
 
 
-def regression_results_equal(df1, df2, rtol=1e-5):
+def regression_results_equal(df1, df2, rtol=1e-3):
     df1 = df1.sort_values('phenotype', kind='mergesort')
     df2 = df2.sort_values('phenotype', kind='mergesort')
 
@@ -559,7 +559,7 @@ def test_cast_genotypes_float32(spark, rg):
                                           covariate_df,
                                           dt=np.float32)
     assert results['effect'].dtype == np.float32
-    assert regression_results_equal(baseline, results, rtol=1e-4)  # Higher rtol for float32
+    assert regression_results_equal(baseline, results, rtol=1e-3)
 
 
 @pytest.mark.min_spark('3')

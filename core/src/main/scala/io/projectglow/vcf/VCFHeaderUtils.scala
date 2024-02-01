@@ -127,29 +127,31 @@ object VCFHeaderUtils extends GlowLogging {
       }
       schemaHeaderLines ++ nonSchemaHeaderLines
     }.keyBy(line => (line.getClass.getName, line.getID))
-      .reduceByKey {
-        case (line1: VCFCompoundHeaderLine, line2: VCFCompoundHeaderLine) =>
-          if (line1.equalsExcludingDescription(line2)) {
-            line1
-          } else {
+      .reduceByKey { (line1, line2) =>
+        (line1, line2) match {
+          case (line1: VCFCompoundHeaderLine, line2: VCFCompoundHeaderLine) =>
+            if (line1.equalsExcludingDescription(line2)) {
+              line1
+            } else {
+              throw new IllegalArgumentException(
+                s"Found incompatible compound header lines: $line1 " +
+                s"and $line2. Header lines with the same ID must have the same count and type.")
+            }
+          case (line1: VCFContigHeaderLine, line2: VCFContigHeaderLine) =>
+            if (line1
+                .getSAMSequenceRecord()
+                .getSequenceLength() == line2.getSAMSequenceRecord().getSequenceLength()) {
+              line1
+            } else {
+              throw new IllegalArgumentException(
+                s"Found incompatible contig header lines: $line1 " +
+                s"and $line2. Header lines with the same ID must have the same length.")
+            }
+          case (line1: VCFFilterHeaderLine, _: VCFFilterHeaderLine) => line1
+          case (line1, _) =>
             throw new IllegalArgumentException(
-              s"Found incompatible compound header lines: $line1 " +
-              s"and $line2. Header lines with the same ID must have the same count and type.")
-          }
-        case (line1: VCFContigHeaderLine, line2: VCFContigHeaderLine) =>
-          if (line1
-              .getSAMSequenceRecord()
-              .getSequenceLength() == line2.getSAMSequenceRecord().getSequenceLength()) {
-            line1
-          } else {
-            throw new IllegalArgumentException(
-              s"Found incompatible contig header lines: $line1 " +
-              s"and $line2. Header lines with the same ID must have the same length.")
-          }
-        case (line1: VCFFilterHeaderLine, _: VCFFilterHeaderLine) => line1
-        case (line1, _) =>
-          throw new IllegalArgumentException(
-            s"Collected unexpected header line type: ${line1.getClass.getName}")
+              s"Collected unexpected header line type: ${line1.getClass.getName}")
+        }
       }
       .values
       .collect()

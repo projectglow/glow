@@ -28,7 +28,7 @@ import htsjdk.samtools.util.{BlockCompressedInputStream, BlockCompressedStreamCo
 import htsjdk.variant.variantcontext.writer.VCFHeaderWriter
 import htsjdk.variant.vcf.{VCFCompoundHeaderLine, VCFHeader, VCFHeaderLine}
 import org.apache.spark.{SparkConf, SparkException}
-import org.apache.spark.sql.{AnalysisException, DataFrame}
+import org.apache.spark.sql.{DataFrame}
 import org.apache.spark.sql.functions.expr
 import org.apache.spark.sql.types.StructType
 
@@ -429,7 +429,7 @@ abstract class VCFFileWriterSuite(val sourceName: String) extends VCFConverterBa
     validateVCFRoundTrip(dfWithRequiredFields)
 
     requiredFields.foreach { field =>
-      intercept[AnalysisException] {
+      intercept[IllegalArgumentException] {
         // contigName, start, end, referenceAllele are required
         df.drop(field).write.format(sourceName).save(tempFile)
       }
@@ -444,7 +444,7 @@ abstract class VCFFileWriterSuite(val sourceName: String) extends VCFConverterBa
       .select("contigName", "start", "end", "referenceAllele", "alternateAlleles", "genotypes")
     validateVCFRoundTrip(df)
     val tempFile = createTempVcf.toString
-    intercept[AnalysisException] {
+    intercept[IllegalArgumentException] {
       // alternateAlleles are required if genotypes are present
       df.select("start", "end", "referenceAllele", "genotypes")
         .write

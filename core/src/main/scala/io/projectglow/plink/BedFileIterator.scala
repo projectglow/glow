@@ -45,7 +45,7 @@ class BedFileIterator(
   var blockIdx = 0
   val byteArray: Array[Byte] = new Array[Byte](blockSize)
 
-  def hasNext(): Boolean = {
+  def hasNext: Boolean = {
     val ret = blockIdx < numBlocks
     if (!ret) {
       cleanup()
