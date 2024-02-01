@@ -322,7 +322,8 @@ workflows:
       - check-docs
       - spark-3-4-tests
       - spark-3-5-tests
-      - spark-4-0-tests
+# Disable Spark 4.0 tests until there are release artifacts
+#      - spark-4-0-tests
   nightly:
     triggers:
       - schedule:

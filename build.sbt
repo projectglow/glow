@@ -68,7 +68,8 @@ val testJavaOptions = Vector(
   "-Djdk.reflect.useDirectMethodHandle=false",
   "-Dio.netty.tryReflectionSetAccessible=true",
   "-Dspark.ui.enabled=false",
-  "-Xmx1024m"
+  "-Dspark.sql.execution.arrow.pyspark.enabled=true",
+  "-Xmx1024m",
 )
 
 // Test concurrency settings

@@ -21,8 +21,6 @@ import os
 def _spark_builder():
     return SparkSession.builder \
         .master("local[2]") \
-        .config("spark.ui.enabled", "false") \
-        .config("spark.sql.execution.arrow.pyspark.enabled", "true")
 
 # sbt guarantees that this environment variable is set for python tests
 SPARK_VERSION = os.environ['SPARK_VERSION']
