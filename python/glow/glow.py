@@ -18,14 +18,15 @@ from py4j.protocol import register_input_converter
 from pyspark import SparkContext
 from pyspark.sql import DataFrame, SQLContext, SparkSession
 from typing import Any, Dict
-from typeguard import check_argument_types, check_return_type
+from typeguard import typechecked
 
 __all__ = ['register', 'transform']
 
 
+@typechecked
 def transform(operation: str,
               df: DataFrame,
-              arg_map: Dict[str, Any] = None,
+              arg_map: Dict[str, Any] | None = None,
               **kwargs: Any) -> DataFrame:
     """
     Apply a named transformation to a DataFrame of genomic data. All parameters apart from the input
@@ -48,17 +49,16 @@ def transform(operation: str,
     Returns:
         The transformed DataFrame
     """
-    assert check_argument_types()
 
     transform_fn = SparkContext._jvm.io.projectglow.Glow.transform
     args = arg_map if arg_map is not None else kwargs
     output_jdf = transform_fn(operation, df._jdf, args)
-    output_df = DataFrame(output_jdf, df.sql_ctx)
+    output_df = DataFrame(output_jdf, df.sparkSession)
 
-    assert check_return_type(output_df)
     return output_df
 
 
+@typechecked
 def register(session: SparkSession, new_session: bool = True) -> SparkSession:
     """
     Register SQL extensions and py4j converters for a Spark session.
@@ -74,7 +74,6 @@ def register(session: SparkSession, new_session: bool = True) -> SparkSession:
         >>> import glow
         >>> spark = glow.register(spark)
     """
-    assert check_argument_types()
     sc = session._sc
     return SparkSession(
         sc, session._jvm.io.projectglow.Glow.register(session._jsparkSession, new_session))

@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC #### Download 1000G variant data
 
 # COMMAND ----------
@@ -30,11 +30,11 @@ dbutils.fs.mkdirs(dbfs_home_path_str)
 
 # MAGIC %sh
 # MAGIC declare -a chroms=("21" "22")
-# MAGIC 
+# MAGIC
 # MAGIC for i in "${chroms[@]}"; do wget ftp://hgdownload.cse.ucsc.edu/gbdb/hg19/1000Genomes/phase3/ALL.chr$i.phase3_shapeit2_mvncall_integrated_v5a.20130502.genotypes.vcf.gz; done
-# MAGIC 
+# MAGIC
 # MAGIC mkdir -p $vcfs_path_local
-# MAGIC 
+# MAGIC
 # MAGIC cp ALL*.genotypes.vcf.gz $vcfs_path_local
 
 # COMMAND ----------

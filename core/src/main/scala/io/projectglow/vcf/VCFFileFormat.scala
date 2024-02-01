@@ -173,7 +173,7 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
         .getConf(GlowConf.FAST_VCF_READER_ENABLED) && !hasAttributesField && !hasOtherFields
 
     partitionedFile => {
-      val path = new Path(partitionedFile.filePath)
+      val path = partitionedFile.filePath.toPath
       val hadoopFs = path.getFileSystem(serializableConf.value)
 
       // Get the file offset=(startPos,endPos) that must be read from this partitionedFile.
@@ -200,7 +200,7 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
           // Modify the start and end of reader according to the offset provided by
           // tabixIndexHelper.filteredVariantBlockRange
           val reader = new HadoopLineIterator(
-            partitionedFile.filePath,
+            partitionedFile.filePath.toString,
             startPos,
             endPos - startPos,
             None,
@@ -303,7 +303,7 @@ object VCFFileFormat {
    * Checks whether a file is gzipped (not block gzipped).
    */
   def isGzip(split: PartitionedFile, conf: Configuration): Boolean = {
-    val path = new Path(split.filePath)
+    val path = split.filePath.toPath
     val compressionCodec = new CompressionCodecFactory(hadoopConfWithBGZ(conf)).getCodec(path)
     if (compressionCodec.isInstanceOf[BGZFEnhancedGzipCodec]) {
       !isValidBGZ(path, conf)
@@ -328,8 +328,8 @@ object VCFFileFormat {
     val missingFields = requiredFields
       .filter(f => !schema.exists(SQLUtils.structFieldsEqualExceptNullability(_, f)))
     if (missingFields.nonEmpty) {
-      throw SQLUtils
-        .newAnalysisException(s"Cannot write as VCF. Missing required fields: $requiredFields")
+      throw new IllegalArgumentException(
+        s"Cannot write as VCF. Missing required fields: $requiredFields")
     }
   }
 }
@@ -433,9 +433,8 @@ private[vcf] object SchemaDelegate {
     }
   }
 
-  private def readHeaders(
-      spark: SparkSession,
-      files: Seq[FileStatus]): (Seq[VCFInfoHeaderLine], Seq[VCFFormatHeaderLine]) = {
+  private def readHeaders(spark: SparkSession, files: Seq[FileStatus])
+      : (collection.Seq[VCFInfoHeaderLine], collection.Seq[VCFFormatHeaderLine]) = {
     val infoHeaderLines = ArrayBuffer[VCFInfoHeaderLine]()
     val formatHeaderLines = ArrayBuffer[VCFFormatHeaderLine]()
     VCFHeaderUtils

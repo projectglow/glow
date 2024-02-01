@@ -22,10 +22,19 @@ import numpy as np
 import pandas as pd
 import pyspark.sql.functions as f
 import scipy.optimize
-from nptyping import Float, Int, NDArray
+import scipy as sp
+from nptyping import Float, Int, NDArray, Shape
 from pyspark.sql import DataFrame, Row
+from pyspark.sql.types import ArrayType, IntegerType, StructType, StructField, StringType, DoubleType
 from pyspark.sql.window import Window
 from typeguard import typechecked
+
+cv_struct = StructType([
+    StructField('sample_block', StringType()),
+    StructField('label', StringType()),
+    StructField('alpha', StringType()),
+    StructField('score', DoubleType())
+])
 
 
 @typechecked
@@ -106,9 +115,9 @@ def parse_header_block_sample_block_label_alpha_name(
 
 
 # @typechecked -- typeguard does not support numpy array
-def assemble_block(n_rows: Int, n_cols: Int, pdf: pd.DataFrame, cov_matrix: NDArray[(Any, Any),
+def assemble_block(n_rows: Int, n_cols: Int, pdf: pd.DataFrame, cov_matrix: NDArray[Shape['*, *'],
                                                                                     Float],
-                   row_mask: NDArray[Any]) -> NDArray[Float]:
+                   row_mask: NDArray[Any, Any]) -> NDArray[Any, Float]:
     """
     Creates a dense n_rows by n_cols matrix from the array of either sparse or dense vectors in the Pandas DataFrame
     corresponding to a group.  This matrix represents a block.
@@ -150,8 +159,9 @@ def assemble_block(n_rows: Int, n_cols: Int, pdf: pd.DataFrame, cov_matrix: NDAr
 
 
 # @typechecked -- typeguard does not support numpy array
-def constrained_logistic_fit(X: NDArray[Float], y: NDArray[Float], alpha_arr: NDArray[Float],
-                             guess: NDArray[Float], n_cov: Int) -> scipy.optimize.OptimizeResult:
+def constrained_logistic_fit(X: NDArray[Any, Float], y: NDArray[Any, Float],
+                             alpha_arr: NDArray[Any, Float], guess: NDArray[Any, Float],
+                             n_cov: Int) -> scipy.optimize.OptimizeResult:
     """
     Fits a logistic regression model using design matrix X and binary label y, with ridge penalization specified
     by the penalty parameters in alpha_arr (with one entry per column in X).  The optimization procedure starts from
@@ -191,8 +201,10 @@ def constrained_logistic_fit(X: NDArray[Float], y: NDArray[Float], alpha_arr: ND
 
 
 # @typechecked -- typeguard does not support numpy array
-def get_irls_pieces(X: NDArray[Float], y: NDArray[Float], alpha_value: Float,
-                    beta_cov: NDArray[Float]) -> (NDArray[Float], NDArray[Float], NDArray[Float]):
+def get_irls_pieces(
+    X: NDArray[Any, Float], y: NDArray[Any, Float], alpha_value: Float,
+    beta_cov: NDArray[Any,
+                      Float]) -> (NDArray[Any, Float], NDArray[Any, Float], NDArray[Any, Float]):
     """
     Fits a logistic regression model logit(p(y|X)) ~ X*beta with L2 shrinkage C = 1/alpha, using scikit-learn.  Returns
     the vector beta, the matrix transpose(X)*diag(p(1-p))*X, and the vector transpose(X)*(y - p), which are the pieces
@@ -236,7 +248,7 @@ def get_irls_pieces(X: NDArray[Float], y: NDArray[Float], alpha_value: Float,
 
 # @typechecked -- typeguard does not support numpy array
 def slice_label_rows(labeldf: pd.DataFrame, label: str, sample_list: List[str],
-                     row_mask: NDArray[Any]) -> NDArray[Any]:
+                     row_mask: NDArray[Any, Any]) -> NDArray[Any, Any]:
     """
     Selects rows from the Pandas DataFrame of labels corresponding to the samples in a particular sample_block.
 
@@ -260,7 +272,7 @@ def slice_label_rows(labeldf: pd.DataFrame, label: str, sample_list: List[str],
 
 @typechecked
 def evaluate_coefficients(pdf: pd.DataFrame, alpha_values: Iterable[Float],
-                          n_cov: int) -> NDArray[Float]:
+                          n_cov: int) -> NDArray[Any, Float]:
     """
     Solves the system (XTX + Ia)^-1 * XtY for each of the a values in alphas.  Returns the resulting coefficients.
 
@@ -278,11 +290,11 @@ def evaluate_coefficients(pdf: pd.DataFrame, alpha_values: Iterable[Float],
     diags = [
         np.concatenate([np.ones(n_cov), np.ones(XtX.shape[1] - n_cov) * a]) for a in alpha_values
     ]
-    return np.column_stack([(np.linalg.inv(XtX + np.diag(d)) @ XtY) for d in diags])
+    return np.column_stack([(sp.linalg.inv(XtX + np.diag(d)) @ XtY) for d in diags])
 
 
 @typechecked
-def irls_one_step(pdf: pd.DataFrame, alpha_value: Float, n_cov: Int) -> NDArray[Float]:
+def irls_one_step(pdf: pd.DataFrame, alpha_value: Float, n_cov: int) -> NDArray[Any, Float]:
     """
     Performs one step of the IRLS algorithm using the components found in pdf and a value of alpha.
     Returns the resulting coefficient values.  If n_cov > 0, then the first n_cov columns from the design matrix X
@@ -304,7 +316,7 @@ def irls_one_step(pdf: pd.DataFrame, alpha_value: Float, n_cov: Int) -> NDArray[
     beta0 = pdf['beta'].to_numpy()
     alpha_arr = np.ones(xtgx.shape[1]) * alpha_value
     dbeta = np.zeros(beta0.size)
-    dbeta[n_cov:] = np.linalg.inv(xtgx + np.diag(alpha_arr)) @ (xty + beta0[n_cov:] * alpha_arr)
+    dbeta[n_cov:] = sp.linalg.inv(xtgx + np.diag(alpha_arr)) @ (xty + beta0[n_cov:] * alpha_arr)
     return beta0 - dbeta
 
 
@@ -378,7 +390,7 @@ def new_headers(header_block: str, alpha_names: Iterable[str],
 
 
 # @typechecked -- typeguard does not support numpy array
-def r_squared(XB: NDArray[Float], Y: NDArray[Float]) -> NDArray[(Any, ), Float]:
+def r_squared(XB: NDArray[Any, Float], Y: NDArray[Any, Float]) -> NDArray[Shape['*'], Float]:
     """
     Computes the coefficient of determination (R2) metric between the matrix resulting from X*B and the matrix of labels
     Y.
@@ -397,7 +409,7 @@ def r_squared(XB: NDArray[Float], Y: NDArray[Float]) -> NDArray[(Any, ), Float]:
 
 
 # @typechecked -- typeguard does not support numpy array
-def sigmoid(z: NDArray[Float]) -> NDArray[Float]:
+def sigmoid(z: NDArray[Any, Float]) -> NDArray[Any, Float]:
     """
     Computes the sigmoid function for each element in input z
 
@@ -411,7 +423,7 @@ def sigmoid(z: NDArray[Float]) -> NDArray[Float]:
 
 
 # @typechecked -- typeguard does not support numpy array
-def log_loss(p: NDArray[Float], y: NDArray[Float]) -> NDArray[Float]:
+def log_loss(p: NDArray[Any, Float], y: NDArray[Any, Float]) -> NDArray[Any, Float]:
     """
     Computes the log loss of probability values p and observed binary variable y.
 
@@ -439,7 +451,8 @@ def create_alpha_dict(alphas: List[float]) -> Dict[str, Float]:
     """
     if not all(x >= 0 for x in alphas):
         raise Exception('Alpha values must all be non-negative.')
-    return {f'alpha_{i}': a for i, a in enumerate(alphas)}
+    print()
+    return {f'alpha_{i}': np.float64(a) for i, a in enumerate(alphas)}
 
 
 @typechecked
@@ -517,7 +530,7 @@ def _is_binary(df: pd.DataFrame) -> bool:
     Args:
         df : Pandas DataFrame
     """
-    return df.isin([0, 1, None]).all(axis=None).item()
+    return df.isin([0, 1, np.nan]).all(axis=None).item()
 
 
 @typechecked
@@ -656,7 +669,7 @@ def flatten_prediction_df(blockdf: DataFrame, sample_blocks: Dict[str, Iterable[
         Pandas DataFrame containing prediction values. The shape and order match labeldf such that the
             rows are indexed by sample ID and the columns by label
     """
-    sample_block_df = blockdf.sql_ctx \
+    sample_block_df = blockdf.sparkSession \
         .createDataFrame(sample_blocks.items(), ['sample_block', 'sample_ids']) \
         .selectExpr('sample_block', 'posexplode(sample_ids) as (idx, sample_id)')
 
@@ -712,7 +725,7 @@ def cross_validation(blockdf, modeldf, score_udf, score_key_pattern, alphas, met
     Returns:
         Spark DataFrame  containing the results of the cross validation procedure.
     """
-    alpha_df = blockdf.sql_ctx \
+    alpha_df = blockdf.sparkSession \
         .createDataFrame([Row(alpha=k, alpha_value=float(v)) for k, v in alphas.items()])
     if metric == 'r2':
         window_spec = Window.partitionBy('label').orderBy(f.desc('r2_mean'), f.desc('alpha_value'))
@@ -726,7 +739,7 @@ def cross_validation(blockdf, modeldf, score_udf, score_key_pattern, alphas, met
         .join(modeldf.hint('merge'), ['header', 'sample_block'], 'right') \
         .withColumn('label', f.coalesce(f.col('label'), f.col('labels').getItem(0))) \
         .groupBy(score_key_pattern) \
-        .apply(score_udf) \
+        .applyInPandas(score_udf, cv_struct) \
         .join(alpha_df, ['alpha']) \
         .groupBy('label', 'alpha', 'alpha_value').agg(f.mean('score').alias(f'{metric}_mean')) \
         .withColumn('modelRank', f.row_number().over(window_spec)) \
@@ -734,7 +747,8 @@ def cross_validation(blockdf, modeldf, score_udf, score_key_pattern, alphas, met
         .drop('modelRank')
 
 
-def apply_model_df(blockdf, modeldf, cvdf, transform_udf, transform_key_pattern, join_type):
+def apply_model_df(blockdf, modeldf, cvdf, transform_udf, transform_schema, transform_key_pattern,
+                   join_type):
     """
     Applies a model to a reduced block matrix and returns the predictions.
 
@@ -753,5 +767,5 @@ def apply_model_df(blockdf, modeldf, cvdf, transform_udf, transform_key_pattern,
         .join(modeldf.drop('header_block').hint('merge'), ['sample_block', 'header'], join_type) \
         .withColumn('label', f.coalesce(f.col('label'), f.col('labels').getItem(0))) \
         .groupBy(transform_key_pattern) \
-        .apply(transform_udf) \
+        .applyInPandas(transform_udf, transform_schema) \
         .join(cvdf, ['label', 'alpha'], 'inner')

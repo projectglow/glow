@@ -55,13 +55,6 @@ reduced_matrix_struct = StructType([
     StructField('label', StringType())
 ])
 
-cv_struct = StructType([
-    StructField('sample_block', StringType()),
-    StructField('label', StringType()),
-    StructField('alpha', StringType()),
-    StructField('score', DoubleType())
-])
-
 
 @typechecked
 def map_normal_eqn(key: Tuple, key_pattern: List[str], pdf: pd.DataFrame, labeldf: pd.DataFrame,

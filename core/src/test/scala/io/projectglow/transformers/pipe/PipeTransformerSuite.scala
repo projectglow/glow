@@ -23,10 +23,12 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.GenericInternalRow
 import org.apache.spark.sql.types.{StringType, StructField, StructType}
 import org.apache.spark.unsafe.types.UTF8String
+import org.apache.spark.sql.Encoders.product
 
 import io.projectglow.Glow
 import io.projectglow.sql.GlowBaseTest
 
+case class Item(a: String, b: Int)
 class PipeTransformerSuite extends GlowBaseTest {
   test("cleanup") {
     sparkContext.getPersistentRDDs.values.foreach(_.unpersist(true))
@@ -100,6 +102,50 @@ class PipeTransformerSuite extends GlowBaseTest {
       new PipeTransformer().transform(df, options)
     }
     assert(e.getMessage.contains("Could not find an output formatter for fake_out"))
+  }
+
+  private val textOptions =
+    Map("inputFormatter" -> "text", "outputFormatter" -> "text", "cmd" -> """["cat"]""")
+  test("use text input formatter for csv") {
+    val input = Seq(Item("monkey", 5), Item("dog", 1))
+    val df = spark.createDataFrame(input)
+    val csv_df = df.selectExpr("to_csv(struct(a, b))")
+    val piped = new PipeTransformer().transform(csv_df, textOptions)
+    val output = piped.selectExpr("expand_struct(from_csv(text, 'a string, b int'))")
+    assert(output.as[Item](product).collect().toSeq == input)
+    Glow.transform("pipe_cleanup", df, Map.empty[String, String])
+  }
+
+  test("text input format (big file)") {
+    val na12878 = s"$testDataHome/NA12878_21_10002403.vcf"
+    val df = spark.read.text(na12878)
+    val piped = new PipeTransformer().transform(df, textOptions)
+    val input = df.sort("value").collect().toSeq
+    val output = piped.sort("text").collect.toSeq
+    assert(df.sort("value").collect().toSeq == piped.sort("text").collect().toSeq)
+    Glow.transform("pipe_cleanup", df, Map.empty[String, String])
+  }
+
+  test("use text input formatter for csv (input header)") {
+    val input = Seq(Item("monkey", 5), Item("dog", 1))
+    val df = spark.createDataFrame(input)
+    val csv_df = df.selectExpr("to_csv(struct(a, b))")
+    val options = textOptions + ("in_header" -> "banana,15")
+    val piped = new PipeTransformer().transform(csv_df.repartition(1), options)
+    val output = piped.selectExpr("expand_struct(from_csv(text, 'a string, b int'))")
+    assert(output.as[Item](product).collect().toSeq == Seq(Item("banana", 15)) ++ input)
+    Glow.transform("pipe_cleanup", df, Map.empty[String, String])
+  }
+
+  test("use text input formatter for csv (ignore output header)") {
+    val input = Seq(Item("monkey", 5), Item("dog", 1))
+    val df = spark.createDataFrame(input)
+    val csv_df = df.selectExpr("to_csv(struct(a, b))")
+    val options = textOptions + ("out_ignoreHeader" -> "true")
+    val piped = new PipeTransformer().transform(csv_df.repartition(1), options)
+    val output = piped.selectExpr("expand_struct(from_csv(text, 'a string, b int'))")
+    assert(output.as[Item](product).collect().toSeq == input.drop(1))
+    Glow.transform("pipe_cleanup", df, Map.empty[String, String])
   }
 
   test("pass command as a Seq") {

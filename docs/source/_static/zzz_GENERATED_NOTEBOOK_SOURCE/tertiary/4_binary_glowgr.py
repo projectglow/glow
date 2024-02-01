@@ -1,11 +1,11 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC ##<img src="https://databricks.com/wp-content/themes/databricks/assets/images/databricks-logo.png" alt="logo" width="240"/> + <img src="https://www.regeneron.com/Content/images/science/regenron.png" alt="logo" width="240"/>
-# MAGIC 
+# MAGIC
 # MAGIC ### <img src="https://databricks-knowledge-repo-images.s3.us-east-2.amazonaws.com/HLS/glow/project_glow_logo.png" alt="logo" width="35"/> GloWGR: whole genome regression
-# MAGIC 
+# MAGIC
 # MAGIC ### Binary phenotypes
-# MAGIC 
+# MAGIC
 # MAGIC Recommended cluster setup: 
 # MAGIC large memory optimized virtual machines
 
@@ -41,7 +41,7 @@ variant_df = spark.read.format('delta').load(variants_fraction_path)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC Extract sample IDs from a variant DataFrame with `glow.wgr.get_sample_ids`.
 
 # COMMAND ----------
@@ -54,11 +54,11 @@ len(sample_ids)
 
 # COMMAND ----------
 
-# MAGIC 
+# MAGIC
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC Create the beginning block genotype matrix and sample block ID mapping with `glow.wgr.block_variants_and_samples`.
-# MAGIC 
+# MAGIC
 # MAGIC Write the block matrix to Delta and the sample blocks a JSON file so that we can reuse them for multiple phenotype batches.
 
 # COMMAND ----------
@@ -77,7 +77,7 @@ block_df.write.format('delta').mode('overwrite').save(binary_block_matrix_path)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC #### Step 2: Run whole genome regression (WGR) to calculate expected phenotypes
 
 # COMMAND ----------
@@ -97,7 +97,7 @@ sample_blocks
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC Read simulated phenotypes and covariates data from cloud storage (S3 or ADLS) as though it were on the local filesystem via the Databricks file system (DBFS). The phenotypes and covariates should have no missing values.
 
 # COMMAND ----------
@@ -123,7 +123,7 @@ covariate_df.head(5)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC GloWGR runs best on small batches of phenotypes. Break the phenotype DataFrame into column chunks and generate
 # MAGIC leave-one-chromosome-out (LOCO) phenotype predictions for each chunk.
 

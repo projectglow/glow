@@ -1,11 +1,11 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC ##<img src="https://databricks.com/wp-content/themes/databricks/assets/images/databricks-logo.png" alt="logo" width="240"/> + <img src="https://www.regeneron.com/Content/images/science/regenron.png" alt="logo" width="240"/>
-# MAGIC 
+# MAGIC
 # MAGIC ### <img src="https://databricks-knowledge-repo-images.s3.us-east-2.amazonaws.com/HLS/glow/project_glow_logo.png" alt="logo" width="35"/> GloWGR: genome-wide association study
-# MAGIC 
+# MAGIC
 # MAGIC ### Logistic regression
-# MAGIC 
+# MAGIC
 # MAGIC This notebook shows how to use the `logistic_regression` function in Glow to perform a genome-wide association study for binary traits. We incorporate the whole genome regression predictions to control for population structure and relatedness.
 
 # COMMAND ----------
@@ -70,7 +70,7 @@ offset_df
 
 # MAGIC %md
 # MAGIC #### Step 2: Run a genome-wide association study
-# MAGIC 
+# MAGIC
 # MAGIC Note that Glow can run multiple contigs in a single command. However, for large cohorts, it's more performant to run one contig at a time.
 
 # COMMAND ----------

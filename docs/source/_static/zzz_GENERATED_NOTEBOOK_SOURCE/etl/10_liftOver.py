@@ -1,16 +1,16 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC To perform coordinate or variant liftover, you must download a chain file to each node.
-# MAGIC 
+# MAGIC
 # MAGIC For a Databricks cluster, please use the [glow docker container](https://github.com/projectglow/glow/blob/708440a8ed9fc38b74f93058f497c9d95313e9f9/docker/databricks/dbr/dbr9.1/genomics-with-glow/Dockerfile#L45-L46) with the files already included.
-# MAGIC 
+# MAGIC
 # MAGIC Use [Databricks Container Services](https://docs.databricks.com/clusters/custom-containers.html#launch-your-cluster-using-the-ui) to pull the latest version of the container from [projectglow's dockerhub](https://hub.docker.com/u/projectglow)
-# MAGIC 
+# MAGIC
 # MAGIC However, this does not include the genome builds, an example of which is avaialble on cloud storage under `/dbfs/databricks-datasets/genomics`
-# MAGIC 
+# MAGIC
 # MAGIC In this demo, we perform coordinate and variant liftover from b37 to hg38.
-# MAGIC 
+# MAGIC
 # MAGIC To perform variant liftover, you must download a reference file to each node of the cluster. Here, we use the FUSE mount to access the reference genome at
 # MAGIC ```/dbfs/databricks-datasets/genomics/grch38/data/GRCh38_full_analysis_set_plus_decoy_hla.fa```
 
@@ -50,14 +50,14 @@ input_df = (spark.read.format("vcf")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC Now apply the `lift_over_coordinates` UDF, with the parameters as follows:
 # MAGIC - chromosome (`string`)
 # MAGIC - start (`long`)
 # MAGIC - end (`long`)
 # MAGIC - CONSTANT: chain file (`string`)
 # MAGIC - OPTIONAL: minimum fraction of bases that must remap (`double`), defaults to `.95`
-# MAGIC 
+# MAGIC
 # MAGIC This creates a column with the new coordinates.
 
 # COMMAND ----------
@@ -74,7 +74,7 @@ display(changed_with_lifted_df)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC Now apply the `lift_over_variants` transformer, with the following options.
 # MAGIC - `chain_file`: `string`
 # MAGIC - `reference_file`: `string`

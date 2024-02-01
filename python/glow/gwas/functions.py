@@ -3,7 +3,7 @@ from pyspark.sql.types import StructField, StructType, FloatType, DoubleType, Ar
 from typing import Any, Callable, Dict, List, Optional, TypeVar, Union
 import numpy as np
 import pandas as pd
-from nptyping import Float, NDArray
+from nptyping import Float, NDArray, Shape
 from typeguard import typechecked
 import opt_einsum as oe
 
@@ -69,7 +69,8 @@ def _prepare_genotype_df(genotype_df, values_column, sql_type):
 
 
 # @typechecked -- typeguard does not support numpy array
-def _add_intercept(C: NDArray[(Any, Any), Float], num_samples: int) -> NDArray[(Any, Any), Float]:
+def _add_intercept(C: NDArray[Shape['*, *'], Float],
+                   num_samples: int) -> NDArray[Shape['*, *'], Float]:
     intercept = np.ones((num_samples, 1))
     return np.hstack((intercept, C)) if C.size else intercept
 
@@ -132,8 +133,8 @@ def _validate_offset(phenotype_df: pd.DataFrame, offset_df: pd.DataFrame) -> _Of
 
 
 # @typechecked -- typeguard does not support numpy array
-def _residualize_in_place(M: NDArray[(Any, Any), Float],
-                          Q: NDArray[(Any, Any), Float]) -> NDArray[(Any, Any), Float]:
+def _residualize_in_place(M: NDArray[Shape['*, *'], Float],
+                          Q: NDArray[Shape['*, *'], Float]) -> NDArray[Shape['*, *'], Float]:
     '''
     Residualize a matrix in place using an orthonormal basis. The residualized matrix
     is returned for easy chaining.

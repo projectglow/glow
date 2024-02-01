@@ -7,24 +7,19 @@ import sbt.Keys._
 import sbt.librarymanagement.ModuleID
 import sbt.nio.Keys._
 
-lazy val scala212 = "2.12.8"
-lazy val scala211 = "2.11.12"
+// Scala version used by DBR 13.3 LTS and 14.0
+lazy val scala212 = "2.12.15"
+lazy val scala213 = "2.13.12"
 
-lazy val spark3 = "3.3.1"
-
-lazy val hailOnSpark3 = "0.2.89"
+lazy val spark3 = "3.5.0"
+lazy val spark4 = "4.0.0-SNAPSHOT"
 
 lazy val sparkVersion = settingKey[String]("sparkVersion")
 ThisBuild / sparkVersion := sys.env.getOrElse("SPARK_VERSION", spark3)
 
-lazy val hailVersion = settingKey[String]("hailVersion")
-ThisBuild / hailVersion := sys.env.getOrElse("HAIL_VERSION", hailOnSpark3)
-
-// Paths containing Hail tests
-lazy val hailTestPaths = Seq("python/glow/hail/", "docs/source/etl/hail.rst")
-lazy val ignoreHailTestPathsOption = hailTestPaths.map { p =>
-  s"--ignore $p"
-}.mkString(" ")
+// Add to the Python path to test against a custom version of pyspark
+lazy val extraPythonPath = settingKey[String]("extraPythonPath")
+ThisBuild / extraPythonPath := sys.env.getOrElse("EXTRA_PYTHON_PATH", "")
 
 def majorVersion(version: String): String = {
   StringUtils.ordinalIndexOf(version, ".", 1) match {
@@ -53,6 +48,30 @@ ThisBuild / licenses += ("Apache-2.0", new URL("https://www.apache.org/licenses/
 // but not vice versa
 Compile / compileOrder := CompileOrder.JavaThenScala
 
+// Java options passed to Scala and Python tests
+val testJavaOptions = Vector(
+  "-XX:+IgnoreUnrecognizedVMOptions",
+  "--add-opens=java.base/java.lang=ALL-UNNAMED",
+  "--add-opens=java.base/java.lang.invoke=ALL-UNNAMED",
+  "--add-opens=java.base/java.lang.reflect=ALL-UNNAMED",
+  "--add-opens=java.base/java.io=ALL-UNNAMED",
+  "--add-opens=java.base/java.net=ALL-UNNAMED",
+  "--add-opens=java.base/java.nio=ALL-UNNAMED",
+  "--add-opens=java.base/java.util=ALL-UNNAMED",
+  "--add-opens=java.base/java.util.concurrent=ALL-UNNAMED",
+  "--add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED",
+  "--add-opens=java.base/jdk.internal.ref=ALL-UNNAMED",
+  "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
+  "--add-opens=java.base/sun.nio.cs=ALL-UNNAMED",
+  "--add-opens=java.base/sun.security.action=ALL-UNNAMED",
+  "--add-opens=java.base/sun.util.calendar=ALL-UNNAMED",
+  "-Djdk.reflect.useDirectMethodHandle=false",
+  "-Dio.netty.tryReflectionSetAccessible=true",
+  "-Dspark.ui.enabled=false",
+  "-Dspark.sql.execution.arrow.pyspark.enabled=true",
+  "-Xmx1024m",
+)
+
 // Test concurrency settings
 // Tests are run serially in one or more forked JVMs. This setup is necessary because the shared
 // Spark session used by many tasks cannot be used concurrently.
@@ -68,7 +87,8 @@ def groupByHash(tests: Seq[TestDefinition]): Seq[Tests.Group] = {
     .map {
       case (i, groupTests) =>
         val options = ForkOptions()
-          .withRunJVMOptions(Vector("-Dspark.ui.enabled=false", "-Xmx1024m"))
+          .withRunJVMOptions(testJavaOptions)
+
 
         Group(i.toString, groupTests, SubProcess(options))
     }
@@ -79,16 +99,16 @@ lazy val mainScalastyle = taskKey[Unit]("mainScalastyle")
 lazy val testScalastyle = taskKey[Unit]("testScalastyle")
 // testGrouping cannot be set globally using the `Test /` syntax since it's not a pure value
 lazy val commonSettings = Seq(
-  mainScalastyle := scalastyle.in(Compile).toTask("").value,
-  testScalastyle := scalastyle.in(Test).toTask("").value,
-  testGrouping in Test := groupByHash((definedTests in Test).value),
-  test in Test := ((test in Test) dependsOn mainScalastyle).value,
-  test in Test := ((test in Test) dependsOn testScalastyle).value,
-  test in Test := ((test in Test) dependsOn scalafmtCheckAll).value,
-  test in Test := ((test in Test) dependsOn (headerCheck in Compile)).value,
-  test in Test := ((test in Test) dependsOn (headerCheck in Test)).value,
-  test in assembly := {},
-  assemblyMergeStrategy in assembly := {
+  mainScalastyle := (Compile / scalastyle).toTask("").value,
+  testScalastyle := (Test / scalastyle).toTask("").value,
+  Test / testGrouping := groupByHash((Test / definedTests).value),
+  Test / test := ((Test / test) dependsOn mainScalastyle).value,
+  Test / test := ((Test / test) dependsOn testScalastyle).value,
+  Test / test := ((Test / test) dependsOn scalafmtCheckAll).value,
+  Test / test := ((Test / test) dependsOn (Compile / headerCheck)).value,
+  Test / test := ((Test / test) dependsOn (Test / headerCheck)).value,
+  assembly / test := {},
+  assembly / assemblyMergeStrategy := {
     // Assembly jar is not executable
     case p if p.toLowerCase.contains("manifest.mf") =>
       MergeStrategy.discard
@@ -110,8 +130,6 @@ lazy val functionsTemplate = settingKey[File]("functionsTemplate")
 lazy val generateFunctions = taskKey[Seq[File]]("generateFunctions")
 lazy val env = taskKey[Seq[(String, String)]]("env")
 lazy val pytest = inputKey[Unit]("pytest")
-lazy val hailtest = inputKey[Unit]("hailtest")
-
 def runCmd(args: File*): Unit = {
   args.map(_.getPath).!!
 }
@@ -145,6 +163,7 @@ lazy val testCoreDependencies = settingKey[Seq[ModuleID]]("testCoreDependencies"
 ThisBuild / testCoreDependencies := Seq(
   majorVersion((ThisBuild / sparkVersion).value) match {
     case "3" => "org.scalatest" %% "scalatest" % "3.2.3" % "test"
+    case "4" => "org.scalatest" %% "scalatest" % "3.2.17" % "test"
     case _ => throw new IllegalArgumentException("Only Spark 3 is supported")
   },
   "org.mockito" % "mockito-all" % "1.9.5" % "test",
@@ -158,9 +177,7 @@ ThisBuild / testCoreDependencies := Seq(
 lazy val coreDependencies = settingKey[Seq[ModuleID]]("coreDependencies")
 ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDependencies.value ++ Seq(
   "org.seqdoop" % "hadoop-bam" % "7.9.2",
-  "log4j" % "log4j" % "1.2.17",
-  "org.slf4j" % "slf4j-api" % "1.7.25",
-  "org.slf4j" % "slf4j-log4j12" % "1.7.25",
+  "org.slf4j" % "slf4j-api" % "2.0.10",
   "org.jdbi" % "jdbi" % "2.63.1",
   "com.github.broadinstitute" % "picard" % "2.21.9",
   // Fix versions of libraries that are depended on multiple times
@@ -170,20 +187,15 @@ ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDepe
   "io.netty" % "netty-handler" % "4.1.68.Final",
   "io.netty" % "netty-transport-native-epoll" % "4.1.68.Final",
   "com.github.samtools" % "htsjdk" % "2.21.2",
-  "org.yaml" % "snakeyaml" % "1.16"
+  "org.yaml" % "snakeyaml" % "1.16",
+  "com.univocity" % "univocity-parsers" % "2.8.4",
 )).map(_.exclude("com.google.code.findbugs", "jsr305"))
 
-lazy val root = (project in file(".")).aggregate(core, python, hail, docs)
+lazy val root = (project in file(".")).aggregate(core, python, docs)
 
 lazy val scalaLoggingDependency = settingKey[ModuleID]("scalaLoggingDependency")
 ThisBuild / scalaLoggingDependency := {
-  (ThisBuild / scalaVersion).value match {
-    case `scala211` => "com.typesafe.scala-logging" %% "scala-logging-slf4j" % "2.1.2"
-    case `scala212` => "com.typesafe.scala-logging" %% "scala-logging" % "3.7.2"
-    case _ =>
-      throw new IllegalArgumentException(
-        "Only supported Scala versions are: " + Seq(scala211, scala212))
-  }
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.9.4"
 }
 
 lazy val core = (project in file("core"))
@@ -194,13 +206,20 @@ lazy val core = (project in file("core"))
     publish / skip := false,
     // Adds the Git hash to the MANIFEST file. We set it here instead of relying on sbt-release to
     // do so.
-    packageOptions in (Compile, packageBin) += Package.ManifestAttributes("Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
+    Compile / packageBin / packageOptions += Package.ManifestAttributes("Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
     libraryDependencies ++= coreDependencies.value :+ scalaLoggingDependency.value,
     Compile / unmanagedSourceDirectories += baseDirectory.value / "src" / "main" / "shim" / majorMinorVersion(sparkVersion.value),
+    Compile / unmanagedSourceDirectories += {
+      val sourceDir = (Compile / sourceDirectory).value
+      CrossVersion.partialVersion(scalaVersion.value) match {
+        case Some((2, n)) if n >= 13 => sourceDir / "scala-2.13+"
+        case _ => sourceDir / "scala-2.13-"
+      }
+    },
     Test / unmanagedSourceDirectories += baseDirectory.value / "src" / "test" / "shim" / majorMinorVersion(sparkVersion.value),
     functionsTemplate := baseDirectory.value / "functions.scala.TEMPLATE",
     generatedFunctionsOutput := (Compile / scalaSource).value / "io" / "projectglow" / "functions.scala",
-    sourceGenerators in Compile += generateFunctions
+    Compile / sourceGenerators += generateFunctions,
   )
 
 /**
@@ -215,68 +234,36 @@ def currentGitHash(dir: File): String = {
   ).!!.trim
 }
 
-lazy val installHail = taskKey[Unit]("Install Hail")
-ThisBuild / installHail := {
-  Seq(
-    "/bin/bash",
-    "-c",
-    s"git clone -b ${hailVersion.value} https://github.com/hail-is/hail.git;" + "source $(conda info --base)/etc/profile.d/conda.sh &&" + "conda create -y --name hail &&" + "conda activate hail --stack &&" + "cd \"hail/hail\" &&" + "sed " + "\"" + s"s/^pyspark.*/pyspark==${sparkVersion.value}/" + "\"" + " python/requirements.txt | grep -v '^#' | xargs pip3 install -U &&" +
-      s"make SCALA_VERSION=${scalaVersion.value} SPARK_VERSION=${sparkVersion.value} shadowJar wheel &&" +
-      s"pip3 install build/deploy/dist/hail-${hailVersion.value}-py3-none-any.whl"
-  ) !
-}
-
-lazy val uninstallHail = taskKey[Unit]("Uninstall Hail")
-ThisBuild / uninstallHail := {
-  Seq(
-    "/bin/bash",
-    "-c",
-    "conda env remove --name hail;" + "rm -rf hail"
-  ) !
-}
-
 lazy val sparkClasspath = taskKey[String]("sparkClasspath")
 lazy val sparkHome = taskKey[String]("sparkHome")
 lazy val pythonPath = taskKey[String]("pythonPath")
 
 lazy val pythonSettings = Seq(
   libraryDependencies ++= testSparkDependencies.value,
-  sparkClasspath := (fullClasspath in Test).value.files.map(_.getCanonicalPath).mkString(":"),
+  sparkClasspath := (Test / fullClasspath).value.files.map(_.getCanonicalPath).mkString(":"),
   sparkHome := (ThisBuild / baseDirectory).value.absolutePath,
-  pythonPath := ((ThisBuild / baseDirectory).value / "python").absolutePath,
+  pythonPath := {
+    val extraPath = if (extraPythonPath.value.nonEmpty) s":${extraPythonPath.value}" else ""
+    ((ThisBuild / baseDirectory).value / "python").absolutePath + extraPath
+  },
   publish / skip := true,
   env := {
-    val baseEnv = Seq(
+    Seq(
       // Set so that Python tests can easily know the Spark version
       "SPARK_VERSION" -> sparkVersion.value,
       // Tell PySpark to use the same jars as our scala tests
       "SPARK_CLASSPATH" -> sparkClasspath.value,
       "SPARK_HOME" -> sparkHome.value,
-      "PYTHONPATH" -> pythonPath.value
+      "PYTHONPATH" -> pythonPath.value,
+      "TEST_JAVA_OPTIONS" -> testJavaOptions.mkString(" "),
+      "PYSPARK_ROW_FIELD_SORTING_ENABLED" -> "true"
     )
-    if (majorMinorVersion(sparkVersion.value) >= "3.0") {
-      baseEnv :+ "PYSPARK_ROW_FIELD_SORTING_ENABLED" -> "true"
-    } else {
-      baseEnv :+ "ARROW_PRE_0_15_IPC_FORMAT" -> "1"
-    }
   },
   pytest := {
     val args = spaceDelimited("<arg>").parsed
     val ret = Process("pytest " + args.mkString(" "), None, (env.value): _*).!
     require(ret == 0, "Python tests failed")
   },
-  hailtest := {
-    val args = spaceDelimited("<arg>").parsed
-    val ret = Process(
-      Seq(
-        "/bin/bash",
-        "-c",
-        "source $(conda info --base)/etc/profile.d/conda.sh &&" + "conda activate hail --stack &&" + "pytest " + args.mkString(" ")),
-      None,
-      (env.value): _*
-    ).!
-    require(ret == 0, "Python tests in Hail environment failed")
-  }
 )
 
 lazy val yapf = inputKey[Unit]("yapf")
@@ -304,30 +291,21 @@ lazy val python =
     .settings(
       pythonSettings,
       functionGenerationSettings,
-      test in Test := {
+      Test / test := {
         yapf.toTask(" --diff").value
-        pytest.toTask(s" --doctest-modules $ignoreHailTestPathsOption python").value
+        pytest.toTask(s" --doctest-modules python").value
       },
       generatedFunctionsOutput := baseDirectory.value / "glow" / "functions.py",
       functionsTemplate := baseDirectory.value / "glow" / "functions.py.TEMPLATE",
-      sourceGenerators in Compile += generateFunctions
+      Compile / sourceGenerators += generateFunctions
     )
     .dependsOn(core % "test->test")
-
-lazy val hail = (project in file("python/glow/hail"))
-  .settings(
-    pythonSettings,
-    test in Test := {
-      hailtest.toTask(s" --doctest-modules ${hailTestPaths.mkString(" ")}").value
-    }
-  )
-  .dependsOn(core % "test->test", python)
 
 lazy val docs = (project in file("docs"))
   .settings(
     pythonSettings,
-    test in Test := {
-      pytest.toTask(s" $ignoreHailTestPathsOption docs").value
+    Test / test := {
+      pytest.toTask(s" docs").value
     }
   )
   .dependsOn(core % "test->test", python)
@@ -372,18 +350,12 @@ ThisBuild / stableVersion := IO
 lazy val stagedRelease = (project in file("core/src/test"))
   .settings(
     commonSettings,
-    resourceDirectory in Test := baseDirectory.value / "resources",
-    scalaSource in Test := baseDirectory.value / "scala",
-    unmanagedSourceDirectories in Test += baseDirectory.value / "shim" / majorMinorVersion(
+    Test / resourceDirectory := baseDirectory.value / "resources",
+    Test / scalaSource := baseDirectory.value / "scala",
+    Test / unmanagedSourceDirectories += baseDirectory.value / "shim" / majorMinorVersion(
       sparkVersion.value),
     libraryDependencies ++= testSparkDependencies.value ++ testCoreDependencies.value :+ "io.projectglow" %% s"glow-spark${majorVersion(sparkVersion.value)}" % stableVersion.value % "test",
     resolvers := Seq(MavenCache("local-sonatype-staging", sonatypeBundleDirectory.value)),
-    org
-      .jetbrains
-      .sbt
-      .extractors
-      .SettingKeys
-      .sbtIdeaIgnoreModule := true // Do not import this SBT project into IDEA
   )
 
 import ReleaseTransformations._
@@ -396,20 +368,15 @@ updateCondaEnv := {
   "conda env update -f python/environment.yml" !
 }
 
-def crossReleaseStep(step: ReleaseStep, requiresPySpark: Boolean, requiresHail: Boolean): Seq[ReleaseStep] = {
+def crossReleaseStep(step: ReleaseStep, requiresPySpark: Boolean): Seq[ReleaseStep] = {
   val updateCondaEnvStep = releaseStepCommandAndRemaining(
     if (requiresPySpark) "updateCondaEnv" else "")
-  val installHailStep = releaseStepCommandAndRemaining(if (requiresHail) "installHail" else "")
-  val uninstallHailStep = releaseStepCommandAndRemaining(if (requiresHail) "uninstallHail" else "")
 
   Seq(
     updateCondaEnvStep,
     releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark3""""),
     releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
-    releaseStepCommandAndRemaining(s"""set ThisBuild / hailVersion := "$hailOnSpark3""""),
-    installHailStep,
     step,
-    uninstallHailStep,
     updateCondaEnvStep
   )
 }
@@ -423,17 +390,7 @@ releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,
   inquireVersions,
   runClean
- ) ++ crossReleaseStep(releaseStepCommandAndRemaining("core/test"), requiresPySpark = false, requiresHail = false) ++
-// commenting out for Spark 3.2 release until hail is on spark 3.2
-//  crossReleaseStep(releaseStepCommandAndRemaining("python/test"), requiresPySpark = true, requiresHail = false) ++
-//  crossReleaseStep(
-//    releaseStepCommandAndRemaining("docs/test"),
-//    requiresPySpark = true,
-//    requiresHail = false) ++
-//  crossReleaseStep(
-//    releaseStepCommandAndRemaining("hail/test"),
-//    requiresPySpark = true,
-//    requiresHail = true) ++
+ ) ++ crossReleaseStep(releaseStepCommandAndRemaining("core/test"), requiresPySpark = false) ++
   Seq(
     setReleaseVersion,
     updateStableVersion,
@@ -443,13 +400,11 @@ releaseProcess := Seq[ReleaseStep](
   ) ++
   crossReleaseStep(
     releaseStepCommandAndRemaining("publishSigned"),
-    requiresPySpark = false,
-    requiresHail = false) ++
+    requiresPySpark = false) ++
   sonatypeSteps ++
   crossReleaseStep(
     releaseStepCommandAndRemaining("stagedRelease/test"),
-    requiresPySpark = false,
-    requiresHail = false) ++
+    requiresPySpark = false) ++
   Seq(
     setNextVersion,
     commitNextVersion

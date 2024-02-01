@@ -39,6 +39,7 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
    * Tests normalizeVariant method for given alleles and compares with the provided expected
    * outcome
    */
+  // scalastyle:off parameter.length
   def testNormalizeVariant(
       referenceGenome: String,
       contigName: String,
@@ -53,6 +54,7 @@ class VariantNormalizerSuite extends GlowBaseTest with GlowLogging {
       expectedChanged: Boolean,
       expectedErrorMessage: Option[String]
   ): Unit = {
+    // scalastyle:on parameter.length
 
     val refGenomeIndexedFasta =
       ReferenceSequenceFileFactory.getReferenceSequenceFile(Paths.get(referenceGenome))

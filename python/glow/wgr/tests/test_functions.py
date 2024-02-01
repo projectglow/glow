@@ -77,11 +77,11 @@ def test_generate_alphas(spark):
         Row(header='chr_3_block_8_alpha_1_label_sim1')
     ])
     expected_alphas = {
-        'alpha_0': np.float(2 / 0.99),
-        'alpha_1': np.float(2 / 0.75),
-        'alpha_2': np.float(2 / 0.5),
-        'alpha_3': np.float(2 / 0.25),
-        'alpha_4': np.float(2 / 0.01)
+        'alpha_0': float(2 / 0.99),
+        'alpha_1': float(2 / 0.75),
+        'alpha_2': float(2 / 0.5),
+        'alpha_3': float(2 / 0.25),
+        'alpha_4': float(2 / 0.01)
     }
     assert generate_alphas(df) == expected_alphas
 
@@ -137,8 +137,9 @@ def test_prepare_labels_and_warn(capfd):
     assert np.allclose(_prepare_labels_and_warn(q_label_df, False, 'quantitative'), q_std_label_df)
     assert capfd.readouterr().out == messages[2]
 
-    with pytest.raises(TypeError, match='Binary label DataFrame expected!'):
-        _prepare_labels_and_warn(q_label_df, False, 'binary')
+    with pytest.warns(UserWarning):
+        with pytest.raises(TypeError, match='Binary label DataFrame expected!'):
+            _prepare_labels_and_warn(q_label_df, False, 'binary')
 
 
 def test_new_headers_one_level(spark):
@@ -249,7 +250,7 @@ def test_irls_one_step():
     X_raw, y = load_breast_cancer(return_X_y=True)
     mu, sig = X_raw.mean(axis=0), X_raw.std(axis=0)
     X = (X_raw - mu) / sig
-    alphas = [10, 30, 100, 300, 1000, 3000]
+    alphas = [np.float64(a) for a in [10, 30, 100, 300, 1000, 3000]]
     for a in alphas:
         model_skl = LogisticRegression(C=1 / a, fit_intercept=True)
         model_skl.fit(X, y)

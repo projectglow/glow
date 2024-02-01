@@ -30,7 +30,6 @@ private[projectglow] object ExpressionHelper {
    * and analogous code in [[org.apache.spark.sql.functions]].
    */
   def wrapAggregate(e: Expression): Expression = e match {
-    case agg: UnwrappedAggregateFunction => agg.asWrapped.toAggregateExpression()
     case agg: AggregateFunction => agg.toAggregateExpression()
     case expr => expr
   }

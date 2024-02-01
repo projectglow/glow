@@ -35,11 +35,9 @@ docs/build
 adam.log
 core-test-names.log
 unit-tests.log
-hail-*.log
 
 # Test artifacts
 Miniconda3*.sh
-hail/
 
 # Metadata from sbt locally
 .bsp

@@ -50,59 +50,6 @@ Computing user-defined sample QC metrics
 In addition to the built-in QC functions discussed above, Glow provides two ways to compute
 user-defined per-sample statistics.
 
-``aggregate_by_index``
-~~~~~~~~~~~~~~~~~~~~~~
-
-First, you can aggregate over each sample in a genotypes array using the ``aggregate_by_index``
-function.
-
-``aggregate_by_index(array, initial_state, update_function, merge_function, eval_function)``
-
-.. list-table::
-  :header-rows: 1
-
-  * - Name
-    - Type
-    - Description
-  * - ``array``
-    - ``array<T>``
-    - An ``array``-typed column. There are no requirements on the element datatype. This array is expected to be the same length for each row in the input DataFrame. The output of ``aggregate_by_index`` is an array with the same length as each input row.
-  * - ``initial_state``
-    - ``U``
-    - The initial aggregation state for each sample.
-  * - ``update_function``
-    - ``<U, T> -> U``
-    - A function that returns a new single sample aggregation state given the current aggregation state and a new data element.
-  * - ``merge_function``
-    - ``<U, U> -> U``
-    - A function that combines two single sample aggregation states. This function is necessary since the aggregation is computed in a distributed manner across all nodes in the cluster.
-  * - ``eval_function`` (optional)
-    - ``U -> V``
-    - A function that returns the output for a sample given that sample's aggregation state. This function is optional. If it is not specified, the aggregation state will be returned.
-
-For example, this code snippet uses ``aggregate_by_index`` to compute the mean for each array
-position:
-
-.. code-block::
-  
-  aggregate_by_index(
-    array_col,
-    (0d, 0l),
-    (state, element) -> (state.col1 + element, state.col2 + 1),
-    (state1, state2) -> (state1.col1 + state2.col1, state1.col2 + state2.col2),
-    state -> state.col1 / state.col2)
-
-.. invisible-code-block: python
-
-  import pyspark.sql.functions as fx
-  df = spark.range(1000).withColumn("array_col", fx.expr("transform(array_repeat(0, 1000), (el, idx) -> id + el + idx)"))
-  agg_expr = "aggregate_by_index(array_col, (0d, 0l), (state, el) -> (state.col1 + el, state.col2 + 1), (state1, state2) -> (state1.col1 + state2.col1, state1.col2 + state2.col2), state -> state.col1 / state.col2) as mean_by_position"
-  agged = df.selectExpr(agg_expr)
-  expected_means = agged.head().mean_by_position
-
-  assert expected_means[0] == 499.5
-  assert expected_means[-1] == 1498.5
-
 Explode and aggregate
 ~~~~~~~~~~~~~~~~~~~~~
 

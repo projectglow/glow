@@ -1,14 +1,14 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC ### Write VCF files into <img width="175px" src="https://docs.delta.io/latest/_static/delta-lake-logo.png">  
-# MAGIC 
+# MAGIC
 # MAGIC ### using Glow <img src="https://databricks-knowledge-repo-images.s3.us-east-2.amazonaws.com/HLS/glow/project_glow_logo.png" alt="logo" width="35"/> 
-# MAGIC 
+# MAGIC
 # MAGIC Delta Lake is an open-source storage layer that brings ACID transactions to Apache Spark™ and big data workloads.
-# MAGIC 
+# MAGIC
 # MAGIC Delta Lake is applied in the following use cases in genomics:
-# MAGIC 
+# MAGIC
 # MAGIC 1. joint-genotyping of population-scale cohorts
 # MAGIC   - using GATK's GenotypeGVCFs ([blog](https://databricks.com/blog/2019/06/19/accurately-building-genomic-cohorts-at-scale-with-delta-lake-and-spark-sql.html))
 # MAGIC   - or custom machine learning algorithms, for example for copy-number variants
@@ -18,7 +18,7 @@
 # MAGIC   - once volumes reach billions of genotypes
 # MAGIC   
 # MAGIC This notebook processes chromosome 22 of the 1000 Genomes project directly from cloud storage into Delta Lake, with the following steps:
-# MAGIC 
+# MAGIC
 # MAGIC   1. Read in pVCF as a Spark Data Source using Glow's VCF reader
 # MAGIC   2. Write out DataFrame as a Delta Lake
 # MAGIC   3. Query individual genotypes
@@ -73,11 +73,11 @@ display(vcf)
 
 # MAGIC %md 
 # MAGIC #### Print the VCF schema
-# MAGIC 
+# MAGIC
 # MAGIC __INFO__ fields are promoted to top level columns by default, with the prefix `INFO_`
-# MAGIC 
+# MAGIC
 # MAGIC __FILTER__ fields are nested in the `filters` array
-# MAGIC 
+# MAGIC
 # MAGIC __FORMAT__ fields are nested in the `genotypes` array
 
 # COMMAND ----------
@@ -87,7 +87,7 @@ vcf.printSchema()
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC #### split multiallelic events
 
 # COMMAND ----------
@@ -102,11 +102,11 @@ split_vcf.show()
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC #### normalize variants
-# MAGIC 
+# MAGIC
 # MAGIC This is an important quality control / sanity check when ingesting VCFs
-# MAGIC 
+# MAGIC
 # MAGIC And is always necessary after multiallelics variants are split to biallelics
 
 # COMMAND ----------
@@ -148,7 +148,7 @@ vcf.join(normalized_vcf, ["contigName", "start", "end", "referenceAllele", "alte
 
 # MAGIC %md
 # MAGIC #### Describe history of the Delta table
-# MAGIC 
+# MAGIC
 # MAGIC With Delta, you can append more data, and time travel back to previous versions of the table
 
 # COMMAND ----------
@@ -172,9 +172,9 @@ delta_vcf.count()
 
 # MAGIC %md
 # MAGIC #### Perform point query to retrieve specific genotype
-# MAGIC 
+# MAGIC
 # MAGIC get genotype for a specific sample at a specific position
-# MAGIC 
+# MAGIC
 # MAGIC for faster queries, explode the genotypes array and Z-order on contigName and position
 
 # COMMAND ----------
@@ -238,7 +238,7 @@ len(sample_filter.limit(1).select("genotypes.sampleId").collect()[0].sampleId)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC #### Using the [local file API](https://docs.databricks.com/dev-tools/api/latest/dbfs.html), we can read VCF directly from cloud storage via the shell
+# MAGIC #### Using the [local file API](https://docs.databricks.com/data/databricks-file-system.html#local-file-apis), we can read VCF directly from cloud storage via the shell
 
 # COMMAND ----------
 

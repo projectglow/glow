@@ -232,26 +232,6 @@ object functions {
   }
 
   /**
-   * Computes custom per-sample aggregates.
-   * @group quality_control
-   * @since 0.3.0
-   *
-   * @param arr array of values.
-   * @param initialValue the initial value
-   * @param update update function
-   * @param merge merge function
-   * @param evaluate evaluate function
-   * @return An array of aggregated values. The number of elements in the array is equal to the number of samples.
-   */
-  def aggregate_by_index(arr: Column, initialValue: Column, update: (Column, Column) => Column, merge: (Column, Column) => Column, evaluate: Column => Column): Column = withExpr {
-    new io.projectglow.sql.expressions.UnwrappedAggregateByIndex(arr.expr, initialValue.expr, createLambda(update), createLambda(merge), createLambda(evaluate))
-  }
-
-  def aggregate_by_index(arr: Column, initialValue: Column, update: (Column, Column) => Column, merge: (Column, Column) => Column): Column = withExpr {
-    new io.projectglow.sql.expressions.UnwrappedAggregateByIndex(arr.expr, initialValue.expr, createLambda(update), createLambda(merge))
-  }
-
-  /**
    * Computes call summary statistics for an array of genotype structs. See :ref:`variant-qc` for more details.
    * @group quality_control
    * @since 0.3.0

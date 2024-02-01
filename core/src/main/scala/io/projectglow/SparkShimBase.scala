@@ -22,11 +22,6 @@ import org.apache.spark.sql.catalyst.trees.TreeNode
 
 // Spark APIs that are not inter-version compatible
 trait SparkShimBase {
-  type CSVOptions
-  type UnivocityParser
-
-  def wrapUnivocityParse(parser: UnivocityParser)(input: String): Option[InternalRow]
-
   def createExpressionInfo(
       className: String,
       db: String,
@@ -42,8 +37,4 @@ trait SparkShimBase {
   def newUnresolvedException[TreeType <: TreeNode[_]](tree: TreeType, function: String): Exception
 
   abstract class TernaryExpression
-
-  def getDateFormat(options: CSVOptions): String
-
-  def getTimestampFormat(options: CSVOptions): String
 }

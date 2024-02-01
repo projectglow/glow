@@ -116,4 +116,25 @@ trait TestUtils {
     override def toString: String = x.toString
   }
 
+  def causeIncludes[ExceptionType](exception: Throwable): Boolean = {
+    var cause = exception.getCause
+    while (cause != null) {
+      if (cause.isInstanceOf[ExceptionType]) {
+        return true
+      }
+      cause = cause.getCause
+    }
+    false
+  }
+
+  def exceptionMessageIncludes(exception: Throwable, msg: String): Boolean = {
+    var ex = exception
+    while (ex != null) {
+      if (ex.getMessage.contains(msg)) {
+        return true
+      }
+      ex = ex.getCause
+    }
+    false
+  }
 }

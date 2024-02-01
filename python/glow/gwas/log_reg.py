@@ -6,7 +6,7 @@ from pyspark.sql import DataFrame, SparkSession
 import statsmodels.api as sm
 from dataclasses import dataclass
 from typeguard import typechecked
-from nptyping import Float, NDArray, Int32
+from nptyping import Bool, Float, NDArray, Int32, Shape
 from scipy import stats
 import opt_einsum as oe
 from . import functions as gwas_fx
@@ -33,7 +33,7 @@ def logistic_regression(genotype_df: DataFrame,
                         dt: type = np.float64,
                         intersect_samples: bool = False,
                         genotype_sample_ids: Optional[List[str]] = None) -> DataFrame:
-    '''
+    r'''
     Uses logistic regression to test for association between genotypes and one or more binary
     phenotypes. This is a distributed version of the method from regenie:
     https://www.nature.com/articles/s41588-021-00870-7
@@ -89,7 +89,7 @@ def logistic_regression(genotype_df: DataFrame,
         - ``phenotype``: The phenotype name as determined by the column names of ``phenotype_df``
     '''
 
-    spark = genotype_df.sql_ctx.sparkSession
+    spark = genotype_df.sparkSession
     gwas_fx._check_spark_version(spark)
     gwas_fx._validate_covariates_and_phenotypes(covariate_df, phenotype_df, is_binary=True)
     sql_type = gwas_fx._regression_sql_type(dt)
@@ -151,10 +151,10 @@ def logistic_regression(genotype_df: DataFrame,
 
 @dataclass
 class LogRegState:
-    inv_CtGammaC: NDArray[(Any, Any, Any), Float]  # n_phenotypes x n_covariates x n_covariates
-    gamma: NDArray[(Any, Any), Float]  # n_samples x n_phenotypes
-    Y_res: NDArray[(Any, Any), Float]  # n_samples x n_phenotypes
-    firth_offset: Optional[NDArray[(Any, Any), Float]]  # n_samples x n_phenotypes
+    inv_CtGammaC: NDArray[Shape['*, *, *'], Float]  # n_phenotypes x n_covariates x n_covariates
+    gamma: NDArray[Shape['*, *'], Float]  # n_samples x n_phenotypes
+    Y_res: NDArray[Shape['*, *'], Float]  # n_samples x n_phenotypes
+    firth_offset: Optional[NDArray[Shape['*, *'], Float]]  # n_samples x n_phenotypes
 
 
 def _logistic_null_model_predictions(y, X, mask, offset):
@@ -174,7 +174,7 @@ def _logistic_null_model_predictions(y, X, mask, offset):
     return remapped_predictions
 
 
-def _prepare_one_phenotype(C: NDArray[(Any, Any), Float], row: pd.Series, correction: str,
+def _prepare_one_phenotype(C: NDArray[Shape['*, *'], Float], row: pd.Series, correction: str,
                            includes_intercept: bool) -> pd.Series:
     '''
     Creates the broadcasted information for one (phenotype, offset) pair. The returned series
@@ -223,7 +223,7 @@ def _pdf_to_log_reg_state(pdf: pd.DataFrame, phenotypes: pd.Series, n_covar: int
 # @typechecked -- typeguard does not support numpy array
 def _create_log_reg_state(
         spark: SparkSession, phenotype_df: pd.DataFrame, offset_df: pd.DataFrame,
-        sql_type: DataType, C: NDArray[(Any, Any), Float], correction: str, add_intercept: bool,
+        sql_type: DataType, C: NDArray[Shape['*, *'], Float], correction: str, add_intercept: bool,
         contigs: Optional[List[str]]) -> Union[LogRegState, Dict[str, LogRegState]]:
     '''
     Creates the broadcasted LogRegState object (or one object per contig if LOCO offsets were provided).
@@ -275,9 +275,10 @@ def _create_log_reg_state(
     }
 
 
-def _logistic_residualize(X: NDArray[(Any, Any), Float], C: NDArray[(Any, Any), Float],
-                          Y_mask: NDArray[(Any, Any), bool], gamma: NDArray[(Any, Any), Float],
-                          inv_CtGammaC: NDArray[(Any, Any), Float]) -> NDArray[(Any, Any), Float]:
+def _logistic_residualize(
+        X: NDArray[Shape['*, *'], Float], C: NDArray[Shape['*, *'], Float],
+        Y_mask: NDArray[Shape['*, *'], Bool], gamma: NDArray[Shape['*, *'], Float],
+        inv_CtGammaC: NDArray[Shape['*, *'], Float]) -> NDArray[Shape['*, *'], Float]:
     '''
     Residualize the genotype vectors given the null model predictions.
     X_res = X - C(C.T gamma C)^-1 C.T gamma X
@@ -287,10 +288,10 @@ def _logistic_residualize(X: NDArray[(Any, Any), Float], C: NDArray[(Any, Any), 
 
 
 def _logistic_regression_inner(
-        genotype_pdf: pd.DataFrame, log_reg_state: LogRegState, C: NDArray[(Any, Any), Float],
-        Y: NDArray[(Any, Any), Float], Y_mask: NDArray[(Any, Any), bool],
-        Q: Optional[NDArray[(Any, Any), Float]], correction: str, pvalue_threshold: float,
-        phenotype_names: pd.Series, gt_indices_to_drop: Optional[NDArray[(Any, ),
+        genotype_pdf: pd.DataFrame, log_reg_state: LogRegState, C: NDArray[Shape['*, *'], Float],
+        Y: NDArray[Shape['*, *'], Float], Y_mask: NDArray[Shape['*, *'], Bool],
+        Q: Optional[NDArray[Shape['*, *'], Float]], correction: str, pvalue_threshold: float,
+        phenotype_names: pd.Series, gt_indices_to_drop: Optional[NDArray[Shape['*'],
                                                                          Int32]]) -> pd.DataFrame:
     '''
     Tests a block of genotypes for association with binary traits. We first residualize

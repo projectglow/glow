@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC ### Pipeline runs comparison
 
 # COMMAND ----------
@@ -57,7 +57,7 @@ display(benchmark_results.where((fx.col("test") == ("linear_regression")) |
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC TODO, add other steps in the pipeline
 
 # COMMAND ----------

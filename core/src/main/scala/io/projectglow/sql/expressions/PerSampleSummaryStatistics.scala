@@ -69,7 +69,7 @@ case class PerSampleSummaryStatistics(
   override def genotypesExpr: Expression = genotypes
   override def requiredGenotypeFields: Seq[StructField] = {
     if (!field.foldable || field.dataType != StringType) {
-      throw SQLUtils.newAnalysisException("Field must be foldable string")
+      throw new IllegalArgumentException("Field must be foldable string")
     }
     val fieldName = field.eval().asInstanceOf[UTF8String].toString
     if (fieldName == VariantSchemas.conditionalQualityField.name) {
@@ -77,7 +77,7 @@ case class PerSampleSummaryStatistics(
     } else if (fieldName == VariantSchemas.depthField.name) {
       Seq(VariantSchemas.depthField)
     } else {
-      throw SQLUtils.newAnalysisException("Unsupported field")
+      throw new IllegalArgumentException("Unsupported field")
     }
   }
 

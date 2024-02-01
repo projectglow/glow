@@ -104,8 +104,8 @@ object VCFWriterUtils extends GlowLogging {
   }
 }
 
-case class SampleIds(unsortedSampleIds: Seq[String]) extends SampleIdInfo {
-  val sortedSampleIds: Seq[String] = unsortedSampleIds.sorted
+case class SampleIds(unsortedSampleIds: collection.Seq[String]) extends SampleIdInfo {
+  val sortedSampleIds: Seq[String] = unsortedSampleIds.sorted.toSeq
 }
 case object InferSampleIds extends SampleIdInfo {
   def fromNumberMissing(numMissingSamples: Int): Seq[String] = {

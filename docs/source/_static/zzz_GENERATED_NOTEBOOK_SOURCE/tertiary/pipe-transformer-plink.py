@@ -1,7 +1,7 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC ### Run plink using the <img src="https://databricks-knowledge-repo-images.s3.us-east-2.amazonaws.com/HLS/glow/project_glow_logo.png" alt="logo" width="35"/> [Pipe Transformer](https://glow.readthedocs.io/en/latest/tertiary/pipe-transformer.html)
-# MAGIC 
+# MAGIC
 # MAGIC Plink and Glow are installed via the [Glow Docker Container](https://hub.docker.com/u/projectglow)
 
 # COMMAND ----------
@@ -49,7 +49,7 @@ display(vcf_df.drop("genotypes"))
 
 # MAGIC %md
 # MAGIC #### run plink on a VCF file with the pipe transformer!
-# MAGIC 
+# MAGIC
 # MAGIC Here we are going to convert the VCF to plink and calculate the allele frequency for each SNP
 
 # COMMAND ----------
@@ -122,7 +122,7 @@ display(df_bed)
 
 # MAGIC %md
 # MAGIC ##### run the pipe transformer!
-# MAGIC 
+# MAGIC
 # MAGIC Since the plink and vcf schemas are unified, you can pipe the binary ped dataframe as `'vcf'`
 
 # COMMAND ----------

@@ -1,14 +1,14 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC ###<img src="https://databricks.com/wp-content/themes/databricks/assets/images/header_logo_2x.png" alt="logo" width="150"/> 
-# MAGIC 
+# MAGIC
 # MAGIC ### Parallel bcftools filter of vcf files
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC ### Environment setup
-# MAGIC 
+# MAGIC
 # MAGIC The [Glow Docker Container](https://github.com/projectglow/glow/blob/master/docker/databricks/dbr/dbr10.4/genomics/Dockerfile) contains bcftools preinstalled
 
 # COMMAND ----------

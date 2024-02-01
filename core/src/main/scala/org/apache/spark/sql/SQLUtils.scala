@@ -68,10 +68,6 @@ object SQLUtils {
     new VectorUDT()
   }
 
-  def newAnalysisException(msg: String): AnalysisException = {
-    new AnalysisException(msg)
-  }
-
   def anyDataType: ADT = AnyDataType
 
   type ADT = AbstractDataType

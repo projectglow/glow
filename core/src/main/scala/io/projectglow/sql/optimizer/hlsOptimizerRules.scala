@@ -30,27 +30,12 @@ import io.projectglow.sql.util.{ExpectsGenotypeFields, RewriteAfterResolution}
  */
 object ReplaceExpressionsRule extends Rule[LogicalPlan] with GlowLogging {
   override def apply(plan: LogicalPlan): LogicalPlan = {
-    plan.transformAllExpressions {
-      case expr: RewriteAfterResolution =>
-        ExpressionHelper.wrapAggregate(expr.rewrite)
+    plan.transformExpressionsUp {
+      case expr: RewriteAfterResolution if expr.childrenResolved =>
+        expr.rewrite
       case expr =>
         expr
     }
-  }
-}
-
-/**
- * This rule is needed by [[AggregateByIndex]].
- *
- * Spark's analyzer only wraps AggregateFunctions in AggregateExpressions immediately after
- * resolution. Since [[AggregateByIndex]] is first resolved as a higher order function, it is
- * not correctly wrapped. Note that it's merely a coincidence that it is first resolved as a higher
- * order function.
- */
-object ResolveAggregateFunctionsRule extends Rule[LogicalPlan] {
-  override def apply(plan: LogicalPlan): LogicalPlan = plan.transformExpressions {
-    case agg: UnwrappedAggregateFunction =>
-      ExpressionHelper.wrapAggregate(agg.asWrapped)
   }
 }
 
@@ -93,7 +78,7 @@ object ResolveExpandStructRule extends Rule[LogicalPlan] {
  * that can lose field names during physical planning.
  */
 object ResolveGenotypeFields extends Rule[LogicalPlan] {
-  override def apply(plan: LogicalPlan): LogicalPlan = plan.transformAllExpressions {
+  override def apply(plan: LogicalPlan): LogicalPlan = plan.resolveExpressions {
     case e: ExpectsGenotypeFields
         if !e.resolved && e.childrenResolved && e
           .checkInputDataTypes() == TypeCheckResult.TypeCheckSuccess =>

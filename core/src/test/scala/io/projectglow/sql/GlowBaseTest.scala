@@ -16,7 +16,6 @@
 
 package io.projectglow.sql
 
-import htsjdk.samtools.util.Log
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.DebugFilesystem
 import org.scalatest.concurrent.{AbstractPatienceConfiguration, Eventually}
@@ -25,10 +24,11 @@ import org.scalatest.{Args, Status, Tag}
 import io.projectglow.Glow
 import io.projectglow.SparkTestShim.{FunSuite, SharedSparkSessionBase}
 import io.projectglow.common.{GlowLogging, TestUtils}
+import org.apache.spark.sql.api.r.SQLUtilsSuite
+import org.apache.spark.sql.test.SharedSparkSession
 
 abstract class GlowBaseTest
-    extends FunSuite
-    with SharedSparkSessionBase
+    extends SharedSparkSession
     with Eventually
     with GlowLogging
     with GlowTestData
@@ -39,7 +39,6 @@ abstract class GlowBaseTest
     super.initializeSession()
     Glow.register(spark, newSession = false)
     SparkSession.setActiveSession(spark)
-    Log.setGlobalLogLevel(Log.LogLevel.ERROR)
   }
 
   protected def gridTest[A](testNamePrefix: String, testTags: Tag*)(params: Seq[A])(
