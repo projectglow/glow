@@ -17,7 +17,7 @@
 
 Glow is an open-source toolkit to enable bioinformatics at biobank-scale and beyond.
 
-[![CircleCI](https://circleci.com/gh/projectglow/glow.svg?style=svg&circle-token=7511f70b2c810a18e88b5c537b0410e82db8617d)](https://circleci.com/gh/projectglow/glow)
+[![CircleCI](https://circleci.com/gh/projectglow/glow.svg?style=svg)](https://circleci.com/gh/projectglow/glow)
 [![Documentation
 Status](https://readthedocs.org/projects/glow/badge/?version=latest)](https://glow.readthedocs.io/en/latest/?badge=latest)
 [![Docker Hub Pulls](https://raster.shields.io/docker/pulls/projectglow/databricks-glow.svg)](https://hub.docker.com/r/projectglow/databricks-glow)

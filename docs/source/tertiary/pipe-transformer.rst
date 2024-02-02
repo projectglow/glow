@@ -14,7 +14,7 @@ The Pipe Transformer for Parallelizing Command-Line Bioinformatics Tools
 Some single-node tools take a long time to run. To accelerate them, Glow includes a
 utility called the Pipe Transformer to process Spark DataFrames with command-line tools.
 
-The tool supports ``vcf`` and ``txt`` / ``csv`` formatted Spark DataFrames as inputs. And it returns a Spark DataFrame. 
+The tool supports ``vcf`` and ``txt`` formatted Spark DataFrames as inputs. And it returns a Spark DataFrame. 
 You can specify a quarantine location for partitions of the DataFrame that error when processed by the bioinformatics tool. 
 This is analagous to how `liftOver <https://genome.ucsc.edu/cgi-bin/hgLiftOver>`_ handles failures caused by edge cases.
 
@@ -117,14 +117,14 @@ Option keys and values are always strings. You can specify option names in snake
       constructed from its stdout. The stderr stream will appear in the executor logs.
   * - ``input_formatter``
     - Converts the input DataFrame to a format that the piped program understands. Built-in
-      input formatters are ``text``, ``csv``, and ``vcf``.
+      input formatters are ``text``, and ``vcf``.
   * - ``output_formatter``
     - Converts the output of the piped program back into a DataFrame. Built-in output
-      formatters are ``text``, ``csv``, and ``vcf``.
+      formatters are ``text``, and ``vcf``.
   * - ``quarantine_table``
     - Spark SQL table to write partitions in the dataframe that throw an error.
   * - ``quarantine_flavor``
-    - File type for quarantined output. Built-in output formatters are ``csv`` and ``delta``.
+    - File type for quarantined output. Built-in output formatters are ``delta``.
   * - ``env_*``
     - Options beginning with ``env_`` are interpreted as environment variables. Like other options,
       the environment variable name is converted to lower snake case. For example,
@@ -148,15 +148,6 @@ VCF input formatter
         :ref:`sharded VCF writer <infer-vcf-samples>`.
       * The complete contents of a VCF header starting with ``##``
       * A Hadoop filesystem path to a VCF file. The header from this file is used as the VCF header for each partition.
-
-The CSV input and output formatters accept most of the same options as the CSV data source.
-You must prefix options to the input formatter with ``in_``, and options to the output formatter with ``out_``. For
-example, ``in_quote`` sets the quote character when writing the input DataFrame to the piped program.
-
-The following options are not supported:
-
- - ``path`` options are ignored
- - The ``parserLib`` option is ignored. ``univocity`` is always used as the CSV parsing library.
 
 Cleanup
 =======
