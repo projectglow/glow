@@ -117,10 +117,10 @@ Option keys and values are always strings. You can specify option names in snake
       constructed from its stdout. The stderr stream will appear in the executor logs.
   * - ``input_formatter``
     - Converts the input DataFrame to a format that the piped program understands. Built-in
-      input formatters are ``text``, and ``vcf``.
+      input formatters are ``text`` and ``vcf``.
   * - ``output_formatter``
     - Converts the output of the piped program back into a DataFrame. Built-in output
-      formatters are ``text``, and ``vcf``.
+      formatters are ``text`` and ``vcf``.
   * - ``quarantine_table``
     - Spark SQL table to write partitions in the dataframe that throw an error.
   * - ``quarantine_flavor``
@@ -131,7 +131,27 @@ Option keys and values are always strings. You can specify option names in snake
       providing the option ``env_aniMal=MONKEY`` results in an environment variable with key
       ``ani_mal`` and value ``MONKEY`` being provided to the piped program.
 
-Some of the input and output formatters take additional options.
+Text input and output formatters
+--------------------------------
+
+The text input formatter expects that the input DataFrame contains a single ``string`` typed column.
+
+.. list-table::
+  :header-rows: 1
+
+  * - Option
+    - Description
+  * - ``in_header``
+    - A ``string`` to write before the DataFrame contents for each partition.
+  * - ``out_ignore_header``
+    - If ``True``, the output formatter will ignore the first line of the command output.
+
+.. tip::
+
+  You can use the ``in_header`` and ``out_ignore_header`` options with the
+  `to_csv <https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.to_csv.html>`_
+  and `from_csv <https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.functions.from_csv.html>`_
+  in Spark to integrate with tools that read or write CSV data.
 
 VCF input formatter
 -------------------
@@ -189,9 +209,6 @@ The examples below show how to parallelize Bedtools, Plink and VEP.
 
 .. notebook:: .. tertiary/pipe-transformer.html
   :title: Pipe Transformer bedtools example notebook
-
-.. notebook:: .. tertiary/pipe-transformer-plink.html
-  :title: Pipe Transformer Plink example notebook
 
 .. notebook:: .. tertiary/pipe-transformer-vep.html
   :title: Pipe Transformer Variant Effect Predictor (VEP) example notebook
