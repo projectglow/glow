@@ -11,7 +11,6 @@ Perform population-scale statistical analyses of genetic variants.
    :maxdepth: 2
 
    pipe-transformer
-   spark-workflow-orchestrator
    pandas-udf
    whole-genome-regression
    regression-tests

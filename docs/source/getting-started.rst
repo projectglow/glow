@@ -4,7 +4,7 @@ Getting Started
 Running Locally
 ---------------
 
-Glow requires Apache Spark 3.2.1.
+Glow requires Apache Spark 3.4 or 3.5.
 
 .. tabs::
 
@@ -14,7 +14,7 @@ Glow requires Apache Spark 3.2.1.
 
         .. code-block:: sh
 
-          pip install pyspark==3.2.1
+          pip install pyspark==3.5.0
 
         or `download a specific distribution <https://spark.apache.org/downloads.html>`_.
 
@@ -77,25 +77,13 @@ Glow requires Apache Spark 3.2.1.
 Getting started on Databricks
 -----------------------------
 
-Databricks makes it simple to run Glow on Amazon Web Services (AWS), Microsoft Azure, and Google Cloud Platform (GCP). 
+Databricks makes it simple to run Glow on Amazon Web Services (AWS), Microsoft Azure, and Google Cloud Platform (GCP).
 
-To spin up a cluster with Glow, please use the `Databricks Glow docker container <https://hub.docker.com/r/projectglow/databricks-glow>`_ to manage the environment. 
-This container includes `genomics libraries <https://github.com/projectglow/glow/blob/master/docker/databricks/dbr/dbr10.4/genomics/Dockerfile>`_ that complement Glow.
-This container can be installed via Databricks container services. 
+You can install the Glow Scala and Python artifacts as `Maven and PyPI cluster libraries <https://docs.databricks.com/en/libraries/cluster-libraries.html>`_.
 
-Here is how to set it up on the Databricks web application,
+After you've set up a cluster and installed Glow, you can follow these steps to see how it works:
 
-1. Have your Databricks administrator enable container services via ``Settings -> Admin Console``
-
-.. image:: _static/images/databricks_container_services_admin_console.png 
-
-2. Go to ``Compute -> Create Cluster`` and configure the cluster as follows,
-
-.. image:: _static/images/glow_databricks_container_services_cluster_config.png 
-
-.. important:: Please use the ``projectglow/databricks-glow:<tag>`` Docker Image URL, replacing <tag> with the latest version of Glow on the Project Glow `Dockerhub page <https://hub.docker.com/r/projectglow/databricks-glow/tags>`_. Then match the version of Glow to a version of the Databricks Runtime that includes the same version of Spark. For example, Glow `v1.2.1 <https://github.com/projectglow/glow/releases/tag/v1.2.1>`_ and Databricks Runtime `10.4 Long Term Support (LTS) <https://docs.databricks.com/release-notes/runtime/releases.html>`_ are both built on ``Spark 3.2.1``. Use LTS runtimes where available, ``10.4 LTS`` will be supported until Mar 18, 2024.
-
-3. Sync the Glow notebooks via Repos
+1. Sync the Glow notebooks via Repos
 
    #. Fork the `Glow github repo <https://github.com/projectglow/glow>`_.
    #. Clone your fork to your Databricks workspace using Repos (step-by-step `guide <https://docs.databricks.com/repos/sync-remote-repo.html>`_).
@@ -103,7 +91,7 @@ Here is how to set it up on the Databricks web application,
 
 .. image:: _static/images/glow-repo-notebooks.png
 
-4. Create automated jobs
+2. Create automated jobs
 
 To build an automated Glow workflow in your Databricks workspace, please follow these steps, which :ref:`simulate data <data_simulation>` and then run the Glow :ref:`GWAS tutorial <gwas_tutorial>`
 
@@ -127,12 +115,15 @@ To build an automated Glow workflow in your Databricks workspace, please follow 
    databricks repos update --branch master --path /Repos/test/glow
 
 5. Create a workflow using jobs,
+
   - Azure GWAS tutorial
+
   .. code-block:: sh
   
      databricks jobs create --json-file docs/dev/glow-gwas-tutorial-azure.json
 
   - AWS GWAS tutorial
+
   .. code-block:: sh
   
      databricks jobs create --json-file docs/dev/glow-gwas-tutorial-aws.json
@@ -171,15 +162,16 @@ As you build out your pipelines please consider the following points,
    - Use memory-optimized virtual machines for genetic association studies.
    - The Glow Pipe Transformer supports parallelization of deep learning tools that run on GPUs.
 
-Getting started on other cloud services
----------------------------------------
 
-Glow is packaged into a Docker container based on an image from `data mechanics <https://hub.docker.com/r/datamechanics/spark>`_ that can be run locally and that also includes connectors to Azure Data Lake, Google Cloud Storage, Amazon Web Services S3, Snowflake, and `Delta Lake <https://docs.delta.io/latest/index.html>`_. This container can be installed using the ``projectglow/open-source-glow:<tag>`` Docker Image URL, replacing <tag> with the latest version of Glow.
+Customizing the Databricks environment
+--------------------------------------
 
-This container can be used or adapted to run Glow outside of Databricks (`source code <https://github.com/projectglow/glow/tree/master/docker>`_).
-And was contributed by Edoardo Giacopuzzi (``edoardo.giacopuzzi at fht.org``) from Human Technopole.
-
-Please submit a pull request to add guides for specific cloud services.
+Glow users often want to include additional resources inside the Databricks node environment.
+For instance, :ref:`variant normalization <variantnormalization>` requires a reference genome,
+:ref:`variant liftover <liftover>` requires a chain file, and the :ref:`pipe transformer <pipe-transformer>`
+can be used to integrate with command line tools. You can ensure that these resources
+are available on every node in a cluster by using `Databricks Container Services <https://docs.databricks.com/en/compute/custom-containers.html>`_
+or `init scripts <https://docs.databricks.com/en/init-scripts/index.html>`_.
 
 Notebooks embedded in the docs
 ------------------------------
