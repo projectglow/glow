@@ -329,7 +329,7 @@ class VariantUtilExprsSuite extends GlowBaseTest {
 
   test("expand struct only works on structs") {
     val df = spark.createDataFrame(Seq(Outer(Inner(1, "monkey"))))
-    val e = intercept[AnalysisException] { df.selectExpr("expand_struct(inner.two)").show() }
+    val e = intercept[IllegalArgumentException] { df.selectExpr("expand_struct(inner.two)").show() }
     assert(e.getMessage.contains("Only structs can be expanded"))
   }
 

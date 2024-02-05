@@ -34,13 +34,13 @@ class SnakeCaseMap[T](originalMap: Map[String, T]) extends Map[String, T] with S
   override def contains(k: String): Boolean =
     keySnakeCasedMap.contains(StringUtils.toSnakeCase(k))
 
-  override def +[B1 >: T](kv: (String, B1)): Map[String, B1] = {
-    new SnakeCaseMap(originalMap + kv)
+  override def updated[B1 >: T](k: String, v: B1): Map[String, B1] = {
+    new SnakeCaseMap(originalMap.updated(k, v))
   }
 
   override def iterator: Iterator[(String, T)] = keySnakeCasedMap.iterator
 
-  override def -(key: String): Map[String, T] = {
-    new SnakeCaseMap(keySnakeCasedMap.filterKeys(_ != StringUtils.toSnakeCase(key)))
+  override def removed(key: String): Map[String, T] = {
+    new SnakeCaseMap(keySnakeCasedMap.filterKeys(_ != StringUtils.toSnakeCase(key)).toMap)
   }
 }

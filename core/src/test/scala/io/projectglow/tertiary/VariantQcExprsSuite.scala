@@ -17,11 +17,9 @@
 package io.projectglow.tertiary
 
 import scala.util.Random
-
 import org.apache.spark.SparkException
 import org.apache.spark.sql.{AnalysisException, Row}
 import org.apache.spark.sql.functions._
-
 import io.projectglow.common.{GenotypeFields, VCFRow}
 import io.projectglow.sql.GlowBaseTest
 
@@ -394,7 +392,7 @@ class VariantQcExprsSuite extends GlowBaseTest {
   }
 
   test("unsupported array type") {
-    val e = intercept[AnalysisException] {
+    val e = intercept[IllegalArgumentException] {
       spark
         .createDataFrame(Seq(StringDatum(Array("hello", "world"))))
         .selectExpr("mean_substitute(strings)")
@@ -407,7 +405,7 @@ class VariantQcExprsSuite extends GlowBaseTest {
   }
 
   test("unsupported type for array arg") {
-    val e = intercept[AnalysisException] {
+    val e = intercept[IllegalArgumentException] {
       spark
         .createDataFrame(Seq(SingletonDatum(10)))
         .selectExpr("mean_substitute(number)")
@@ -419,7 +417,7 @@ class VariantQcExprsSuite extends GlowBaseTest {
   }
 
   test("unsupported missing value type") {
-    val e = intercept[AnalysisException] {
+    val e = intercept[IllegalArgumentException] {
       spark
         .createDataFrame(Seq(OptIntDatum(Array(None, Some(0), Some(1), Some(2), Some(3), Some(4)))))
         .selectExpr("mean_substitute(numbers, 'str')")

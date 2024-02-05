@@ -328,8 +328,8 @@ object VCFFileFormat {
     val missingFields = requiredFields
       .filter(f => !schema.exists(SQLUtils.structFieldsEqualExceptNullability(_, f)))
     if (missingFields.nonEmpty) {
-      throw SQLUtils
-        .newAnalysisException(s"Cannot write as VCF. Missing required fields: $requiredFields")
+      throw new IllegalArgumentException(
+        s"Cannot write as VCF. Missing required fields: $requiredFields")
     }
   }
 }
@@ -433,9 +433,8 @@ private[vcf] object SchemaDelegate {
     }
   }
 
-  private def readHeaders(
-      spark: SparkSession,
-      files: Seq[FileStatus]): (Seq[VCFInfoHeaderLine], Seq[VCFFormatHeaderLine]) = {
+  private def readHeaders(spark: SparkSession, files: Seq[FileStatus])
+      : (collection.Seq[VCFInfoHeaderLine], collection.Seq[VCFFormatHeaderLine]) = {
     val infoHeaderLines = ArrayBuffer[VCFInfoHeaderLine]()
     val formatHeaderLines = ArrayBuffer[VCFFormatHeaderLine]()
     VCFHeaderUtils

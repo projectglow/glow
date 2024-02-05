@@ -292,7 +292,7 @@ class VCFLineToInternalRowConverter(
 class LineCtx(text: Text) {
   val line = text.getBytes
   var pos = 0
-  var delimiter = '\0' // unset
+  var delimiter = '\u0000' // unset
 
   val longWrapper = new LongWrapper()
   val intWrapper = new IntWrapper()
@@ -318,7 +318,7 @@ class LineCtx(text: Text) {
     line.isEmpty || line(0) == '#'
   }
 
-  def parseString(extraStopChar1: Byte = '\0', extraStopChar2: Byte = '\0'): UTF8String = {
+  def parseString(extraStopChar1: Byte = '\u0000', extraStopChar2: Byte = '\u0000'): UTF8String = {
     var stop = pos
     while (stop < text.getLength && line(stop) != delimiter && line(stop) != '\t' && line(stop) != extraStopChar1 && line(
         stop) != extraStopChar2) {
@@ -373,8 +373,8 @@ class LineCtx(text: Text) {
   }
 
   def parseInt(
-      stopChar1: Byte = '\0',
-      stopChar2: Byte = '\0',
+      stopChar1: Byte = '\u0000',
+      stopChar2: Byte = '\u0000',
       nullValue: java.lang.Integer = null): java.lang.Integer = {
     val s = parseString(stopChar1, stopChar2)
     if (s == null) {
@@ -384,7 +384,7 @@ class LineCtx(text: Text) {
     intWrapper.value
   }
 
-  def parseDouble(stopChar: Byte = '\0'): java.lang.Double = {
+  def parseDouble(stopChar: Byte = '\u0000'): java.lang.Double = {
     val utfStr = parseString(stopChar)
     if (utfStr == null) {
       return null

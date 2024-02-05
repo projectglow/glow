@@ -83,7 +83,7 @@ class GlowBase {
       case v => mapper.writeValueAsString(v)
     }.map(identity) // output of mapValues is not serializable: https://github.com/scala/bug/issues/7005
     lookupTransformer(operationName) match {
-      case Some(transformer) => transformer.transform(df, new SnakeCaseMap(stringValuedMap))
+      case Some(transformer) => transformer.transform(df, new SnakeCaseMap(stringValuedMap.toMap))
       case None =>
         throw new IllegalArgumentException(s"No transformer with name $operationName")
     }

@@ -52,7 +52,8 @@ class VCFInputFormatter(converter: InternalRowToVariantContextConverter, sampleI
   }
 
   override def value(record: InternalRow): Option[VariantContext] = {
-    converter.convert(record)
+    val output = converter.convert(record)
+    output
   }
 
   override def close(): Unit = {

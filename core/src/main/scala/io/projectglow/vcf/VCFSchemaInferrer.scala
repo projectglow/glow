@@ -45,9 +45,9 @@ object VCFSchemaInferrer {
   def inferSchema(
       includeSampleIds: Boolean,
       flattenInfoFields: Boolean,
-      infoHeaders: Seq[VCFInfoHeaderLine],
-      formatHeaders: Seq[VCFFormatHeaderLine]): StructType = {
-    val validatedInfoHeaders = validateHeaders(infoHeaders)
+      infoHeaders: collection.Seq[VCFInfoHeaderLine],
+      formatHeaders: collection.Seq[VCFFormatHeaderLine]): StructType = {
+    val validatedInfoHeaders = validateHeaders(infoHeaders.toSeq)
     val withInfoFields = if (flattenInfoFields) {
       validatedInfoHeaders.foldLeft(VariantSchemas.vcfBaseSchema) {
         case (schema, line) =>
@@ -58,7 +58,7 @@ object VCFSchemaInferrer {
       VariantSchemas.vcfBaseSchema.add(StructField("attributes", MapType(StringType, StringType)))
     }
 
-    val genotypeStruct = inferGenotypeSchema(includeSampleIds, formatHeaders)
+    val genotypeStruct = inferGenotypeSchema(includeSampleIds, formatHeaders.toSeq)
     withInfoFields.add(StructField("genotypes", ArrayType(genotypeStruct)))
   }
 
