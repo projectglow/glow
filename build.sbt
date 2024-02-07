@@ -179,13 +179,14 @@ ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDepe
   "org.seqdoop" % "hadoop-bam" % "7.9.2",
   "org.slf4j" % "slf4j-api" % "2.0.10",
   "org.jdbi" % "jdbi" % "2.63.1",
-  "com.github.broadinstitute" % "picard" % "3.1.1",
+  "com.github.broadinstitute" % "picard" % "2.27.5",
+  "org.apache.commons" % "commons-lang3" % "3.14.0",
   // Fix versions of libraries that are depended on multiple times
   "org.apache.hadoop" % "hadoop-client" % "3.3.1",
   "io.netty" % "netty-all" % "4.1.96.Final",
   "io.netty" % "netty-handler" % "4.1.96.Final",
   "io.netty" % "netty-transport-native-epoll" % "4.1.96.Final",
-  "com.github.samtools" % "htsjdk" % "3.0.1",
+  "com.github.samtools" % "htsjdk" % "3.0.5",
   "org.yaml" % "snakeyaml" % "2.0",
   "com.univocity" % "univocity-parsers" % "2.8.4",
 )).map(_.exclude("com.google.code.findbugs", "jsr305"))
