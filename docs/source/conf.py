@@ -235,7 +235,11 @@ linkcheck_ignore = [
     r'http://www.sequenceontology.org*',
     # Captcha required
     r'https://gatk.broadinstitute.org*',
+    # Intermittently read timeouts
+    r'http://ftp.1000genomes.ebi.ac.uk*',
 ]
+
+linkcheck_timeout = 30
 
 
 # -- Autodoc options ---------------------------------------------------------
