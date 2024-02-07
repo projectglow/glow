@@ -6,4 +6,5 @@
 ##INFO=<ID=AttemptedAlleles,Number=1,Type=String,Description="The alleles of the variant in the TARGET prior to failing due to reference allele mismatching to the target reference.">
 ##INFO=<ID=AttemptedLocus,Number=1,Type=String,Description="The locus of the variant in the TARGET prior to failing due to reference allele mismatching to the target reference.">
 #CHROM	POS	ID	REF	ALT	QUAL	FILTER	INFO
+chr1	1	.	C	CCCCT,CCCT	15676.17	CannotLiftOver	.
 chr1	61	.	CA	C,CAA	724.43	CannotLiftOver	.

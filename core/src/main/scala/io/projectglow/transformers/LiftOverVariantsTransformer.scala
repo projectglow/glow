@@ -27,7 +27,7 @@ import htsjdk.samtools.reference.{ReferenceSequence, ReferenceSequenceFileFactor
 import htsjdk.samtools.util.{Interval, StringUtil}
 import htsjdk.variant.variantcontext.{Allele, Genotype, GenotypeBuilder, GenotypesContext, VariantContext, VariantContextBuilder}
 import htsjdk.variant.vcf._
-import org.apache.commons.lang.ArrayUtils
+import org.apache.commons.lang3.ArrayUtils
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.expressions.codegen.GenerateMutableProjection
 import org.apache.spark.sql.catalyst.expressions.{BoundReference, Literal, MutableProjection}

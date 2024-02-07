@@ -171,7 +171,7 @@ ThisBuild / testCoreDependencies := Seq(
   "org.apache.spark" %% "spark-core" % sparkVersion.value % "test" classifier "tests",
   "org.apache.spark" %% "spark-mllib" % sparkVersion.value % "test" classifier "tests",
   "org.apache.spark" %% "spark-sql" % sparkVersion.value % "test" classifier "tests",
-  "org.xerial" % "sqlite-jdbc" % "3.20.1" % "test"
+  "org.xerial" % "sqlite-jdbc" % "3.42.0.0" % "test"
 )
 
 lazy val coreDependencies = settingKey[Seq[ModuleID]]("coreDependencies")
@@ -179,15 +179,15 @@ ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDepe
   "org.seqdoop" % "hadoop-bam" % "7.9.2",
   "org.slf4j" % "slf4j-api" % "2.0.10",
   "org.jdbi" % "jdbi" % "2.63.1",
-  "com.github.broadinstitute" % "picard" % "2.21.9",
+  "com.github.broadinstitute" % "picard" % "2.27.5",
+  "org.apache.commons" % "commons-lang3" % "3.14.0",
   // Fix versions of libraries that are depended on multiple times
   "org.apache.hadoop" % "hadoop-client" % "3.3.1",
-  "io.netty" % "netty" % "3.9.9.Final",
-  "io.netty" % "netty-all" % "4.1.68.Final",
-  "io.netty" % "netty-handler" % "4.1.68.Final",
-  "io.netty" % "netty-transport-native-epoll" % "4.1.68.Final",
-  "com.github.samtools" % "htsjdk" % "2.21.2",
-  "org.yaml" % "snakeyaml" % "1.16",
+  "io.netty" % "netty-all" % "4.1.96.Final",
+  "io.netty" % "netty-handler" % "4.1.96.Final",
+  "io.netty" % "netty-transport-native-epoll" % "4.1.96.Final",
+  "com.github.samtools" % "htsjdk" % "3.0.5",
+  "org.yaml" % "snakeyaml" % "2.0",
   "com.univocity" % "univocity-parsers" % "2.8.4",
 )).map(_.exclude("com.google.code.findbugs", "jsr305"))
 
