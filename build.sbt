@@ -179,7 +179,7 @@ ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDepe
   "org.seqdoop" % "hadoop-bam" % "7.9.2",
   "org.slf4j" % "slf4j-api" % "2.0.10",
   "org.jdbi" % "jdbi" % "2.63.1",
-  "com.github.broadinstitute" % "picard" % "2.21.9",
+  "com.github.broadinstitute" % "picard" % "3.1.1",
   // Fix versions of libraries that are depended on multiple times
   "org.apache.hadoop" % "hadoop-client" % "3.3.1",
   "io.netty" % "netty-all" % "4.1.96.Final",
