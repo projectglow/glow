@@ -8,7 +8,7 @@ import sbt.librarymanagement.ModuleID
 import sbt.nio.Keys._
 
 // Scala version used by DBR 13.3 LTS and 14.0
-lazy val scala212 = "2.12.15"
+lazy val scala212 = "2.12.18"
 lazy val scala213 = "2.13.12"
 
 lazy val spark3 = "3.5.0"
@@ -181,12 +181,12 @@ ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDepe
   "com.github.broadinstitute" % "picard" % "2.27.5",
   "org.apache.commons" % "commons-lang3" % "3.14.0",
   // Fix versions of libraries that are depended on multiple times
-  "org.apache.hadoop" % "hadoop-client" % "3.3.1",
+  "org.apache.hadoop" % "hadoop-client" % "3.3.6",
   "io.netty" % "netty-all" % "4.1.96.Final",
   "io.netty" % "netty-handler" % "4.1.96.Final",
   "io.netty" % "netty-transport-native-epoll" % "4.1.96.Final",
   "com.github.samtools" % "htsjdk" % "3.0.5",
-  "org.yaml" % "snakeyaml" % "2.0",
+  "org.yaml" % "snakeyaml" % "2.2",
   "com.univocity" % "univocity-parsers" % "2.8.4"
 )).map(_.exclude("com.google.code.findbugs", "jsr305"))
 
@@ -194,7 +194,7 @@ lazy val root = (project in file(".")).aggregate(core, python, docs)
 
 lazy val scalaLoggingDependency = settingKey[ModuleID]("scalaLoggingDependency")
 ThisBuild / scalaLoggingDependency := {
-  "com.typesafe.scala-logging" %% "scala-logging" % "3.9.4"
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5"
 }
 
 lazy val core = (project in file("core"))
