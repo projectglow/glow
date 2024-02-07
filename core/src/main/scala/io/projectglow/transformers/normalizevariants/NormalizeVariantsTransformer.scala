@@ -166,17 +166,14 @@ object NormalizeVariantsTransformer {
     if (replaceColumns) {
 
       (0 to origFields.length - 1)
-        .foldLeft(dfNormalized)(
-          (df, i) =>
-            df.withColumn(
-              origFields(i).name,
-              when(
-                col(
-                  s"$normalizationResultFieldName.$normalizationStatusFieldName.$changedFieldName"),
-                col(s"$normalizationResultFieldName.${origFields(i).name}")
-              ).otherwise(col(origFields(i).name))
-            )
-        )
+        .foldLeft(dfNormalized)((df, i) =>
+          df.withColumn(
+            origFields(i).name,
+            when(
+              col(s"$normalizationResultFieldName.$normalizationStatusFieldName.$changedFieldName"),
+              col(s"$normalizationResultFieldName.${origFields(i).name}")
+            ).otherwise(col(origFields(i).name))
+          ))
         .withColumn(
           normalizationStatusFieldName,
           col(s"$normalizationResultFieldName.$normalizationStatusFieldName")

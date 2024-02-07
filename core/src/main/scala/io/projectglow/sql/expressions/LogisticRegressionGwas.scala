@@ -56,7 +56,8 @@ object LogisticRegressionGwas extends GlowLogging {
       "lrt" -> LikelihoodRatioTest,
       "firth" -> FirthTest
     ))
-  val zScore: Double = new NormalDistribution().inverseCumulativeProbability(.975) // Two-sided 95% confidence
+  val zScore: Double =
+    new NormalDistribution().inverseCumulativeProbability(.975) // Two-sided 95% confidence
 
   @VisibleForTesting
   private[projectglow] def newtonIterations(

@@ -103,14 +103,12 @@ class PipeTransformer extends DataFrameTransformer {
       Map(
         LOGGING_BLOB_KEY ->
         pipeToolSet
-          .foldLeft(Array[String]())(
-            (a, b: String) =>
-              if (cmd.exists(_.toLowerCase.contains(b))) {
-                a :+ b
-              } else {
-                a
-              }
-          )
+          .foldLeft(Array[String]())((a, b: String) =>
+            if (cmd.exists(_.toLowerCase.contains(b))) {
+              a :+ b
+            } else {
+              a
+            })
           .mkString(",")
       )
     }

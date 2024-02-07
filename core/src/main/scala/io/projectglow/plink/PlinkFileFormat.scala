@@ -137,9 +137,8 @@ class PlinkFileFormat
       // Join the variant metadata, sample IDs and genotype calls
       val projection = makeMutableProjection(requiredSchema)
       val rowConverter = new PlinkRowToInternalRowConverter(requiredSchema)
-      variants.toIterator.zip(bedIter).map {
-        case (variant, gtBlock) =>
-          rowConverter.convertRow(projection(variant), sampleIds, gtBlock)
+      variants.toIterator.zip(bedIter).map { case (variant, gtBlock) =>
+        rowConverter.convertRow(projection(variant), sampleIds, gtBlock)
       }
     }
   }
@@ -190,14 +189,15 @@ object PlinkFileFormat extends HlsEventRecorder {
     settings.setSkipEmptyLines(true)
     settings.setFormat(format)
 
-    val mergeFidIid = try {
-      options.getOrElse(MERGE_FID_IID, "true").toBoolean
-    } catch {
-      case _: IllegalArgumentException =>
-        throw new IllegalArgumentException(
-          s"Value for $MERGE_FID_IID must be [true, false]. Provided: ${options(MERGE_FID_IID)}"
-        )
-    }
+    val mergeFidIid =
+      try {
+        options.getOrElse(MERGE_FID_IID, "true").toBoolean
+      } catch {
+        case _: IllegalArgumentException =>
+          throw new IllegalArgumentException(
+            s"Value for $MERGE_FID_IID must be [true, false]. Provided: ${options(MERGE_FID_IID)}"
+          )
+      }
 
     val prefixPath = getPrefixPath(bedPath)
     val famPath = new Path(prefixPath + FAM_FILE_EXTENSION)

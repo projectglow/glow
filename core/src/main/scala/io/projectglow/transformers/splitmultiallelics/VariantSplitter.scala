@@ -123,17 +123,15 @@ private[projectglow] object VariantSplitter extends GlowLogging {
         field.name.startsWith(infoFieldPrefix) && field.dataType.isInstanceOf[ArrayType])
       .foldLeft(
         variantDf
-      )(
-        (df, field) =>
-          df.withColumn(
-            field.name,
-            when(
-              col(splitFromMultiAllelicField.name) &&
-              size(col(field.name)) === size(col(alternateAllelesField.name)),
-              array(expr(s"${field.name}[$splitAlleleIdxFieldName]"))
-            ).otherwise(col(field.name))
-          )
-      )
+      )((df, field) =>
+        df.withColumn(
+          field.name,
+          when(
+            col(splitFromMultiAllelicField.name) &&
+            size(col(field.name)) === size(col(alternateAllelesField.name)),
+            array(expr(s"${field.name}[$splitAlleleIdxFieldName]"))
+          ).otherwise(col(field.name))
+        ))
   }
 
   /**
@@ -155,12 +153,10 @@ private[projectglow] object VariantSplitter extends GlowLogging {
       val withExtractedFields = gSchema
         .get
         .fields
-        .foldLeft(variantDf)(
-          (df, field) =>
-            df.withColumn(
-              field.name,
-              expr(s"transform(${genotypesFieldName}, g -> g.${field.name})"))
-        )
+        .foldLeft(variantDf)((df, field) =>
+          df.withColumn(
+            field.name,
+            expr(s"transform(${genotypesFieldName}, g -> g.${field.name})")))
         .drop(genotypesFieldName)
 
       // register the udf that genotypes splitter uses
@@ -182,19 +178,18 @@ private[projectglow] object VariantSplitter extends GlowLogging {
       gSchema
         .get
         .fields
-        .foldLeft(withExtractedFields)(
-          (df, field) =>
-            field match {
-              case f
-                  if structFieldsEqualExceptNullability(genotypeLikelihoodsField, f) |
-                  structFieldsEqualExceptNullability(phredLikelihoodsField, f) |
-                  structFieldsEqualExceptNullability(posteriorProbabilitiesField, f) =>
-                // update genotypes subfields that have colex order using the udf
-                df.withColumn(
-                  f.name,
-                  when(
-                    col(splitFromMultiAllelicField.name),
-                    expr(s"""transform(${f.name}, c ->
+        .foldLeft(withExtractedFields)((df, field) =>
+          field match {
+            case f
+                if structFieldsEqualExceptNullability(genotypeLikelihoodsField, f) |
+                structFieldsEqualExceptNullability(phredLikelihoodsField, f) |
+                structFieldsEqualExceptNullability(posteriorProbabilitiesField, f) =>
+              // update genotypes subfields that have colex order using the udf
+              df.withColumn(
+                f.name,
+                when(
+                  col(splitFromMultiAllelicField.name),
+                  expr(s"""transform(${f.name}, c ->
                          |     filter(
                          |        transform(
                          |            c, (x, idx) ->
@@ -212,39 +207,38 @@ private[projectglow] object VariantSplitter extends GlowLogging {
                          |        x -> !isnull(x)
                          |      )
                          |   )""".stripMargin)
-                  ).otherwise(col(f.name))
-                )
+                ).otherwise(col(f.name))
+              )
 
-              case f if structFieldsEqualExceptNullability(callsField, f) =>
-                // update GT calls subfield
-                df.withColumn(
-                  f.name,
-                  when(
-                    col(splitFromMultiAllelicField.name),
-                    expr(
-                      s"transform(${f.name}, " +
-                      s"c -> transform(c, x -> if(x == 0, x, if(x == $splitAlleleIdxFieldName + 1, 1, -1))))"
-                    )
-                  ).otherwise(col(f.name))
-                )
+            case f if structFieldsEqualExceptNullability(callsField, f) =>
+              // update GT calls subfield
+              df.withColumn(
+                f.name,
+                when(
+                  col(splitFromMultiAllelicField.name),
+                  expr(
+                    s"transform(${f.name}, " +
+                    s"c -> transform(c, x -> if(x == 0, x, if(x == $splitAlleleIdxFieldName + 1, 1, -1))))"
+                  )
+                ).otherwise(col(f.name))
+              )
 
-              case f if f.dataType.isInstanceOf[ArrayType] =>
-                // update any ArrayType field with number of elements equal to number of alt alleles
-                df.withColumn(
-                  f.name,
-                  when(
-                    col(splitFromMultiAllelicField.name),
-                    expr(
-                      s"transform(${f.name}, c -> if(size(c) == size(${alternateAllelesField.name}) + 1," +
-                      s" array(c[0], c[$splitAlleleIdxFieldName + 1]), null))"
-                    )
-                  ).otherwise(col(f.name))
-                )
+            case f if f.dataType.isInstanceOf[ArrayType] =>
+              // update any ArrayType field with number of elements equal to number of alt alleles
+              df.withColumn(
+                f.name,
+                when(
+                  col(splitFromMultiAllelicField.name),
+                  expr(
+                    s"transform(${f.name}, c -> if(size(c) == size(${alternateAllelesField.name}) + 1," +
+                    s" array(c[0], c[$splitAlleleIdxFieldName + 1]), null))"
+                  )
+                ).otherwise(col(f.name))
+              )
 
-              case _ =>
-                df
-            }
-        )
+            case _ =>
+              df
+          })
         .withColumn(genotypesFieldName, arrays_zip(gSchema.get.fieldNames.map(col(_)): _*))
         .drop(gSchema.get.fieldNames: _*)
     }

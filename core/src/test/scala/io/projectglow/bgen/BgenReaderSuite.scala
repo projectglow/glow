@@ -70,24 +70,22 @@ class BgenReaderSuite extends GlowBaseTest {
       }
 
     assert(bgen.size == vcf.size)
-    bgen.zip(vcf).foreach {
-      case (br, vr) =>
-        assert(br.contigName == vr.contigName)
-        assert(br.start == vr.start)
-        assert(br.end == vr.end)
-        assert(br.names == vr.names)
-        assert(br.referenceAllele == vr.referenceAllele)
-        assert(br.alternateAlleles == vr.alternateAlleles)
-        assert(br.genotypes.length == vr.genotypes.length)
+    bgen.zip(vcf).foreach { case (br, vr) =>
+      assert(br.contigName == vr.contigName)
+      assert(br.start == vr.start)
+      assert(br.end == vr.end)
+      assert(br.names == vr.names)
+      assert(br.referenceAllele == vr.referenceAllele)
+      assert(br.alternateAlleles == vr.alternateAlleles)
+      assert(br.genotypes.length == vr.genotypes.length)
 
-        br.genotypes.zip(vr.genotypes).foreach {
-          case (bg, vg) =>
-            // Note: QCTools inserts a dummy "NA" sample ID if absent when exporting to VCF
-            assert(bg.sampleId == vg.sampleId || vg.sampleId.get.startsWith("NA"))
-            bg.posteriorProbabilities.indices.foreach { i =>
-              bg.posteriorProbabilities(i) == vg.posteriorProbabilities.get(i)
-            }
+      br.genotypes.zip(vr.genotypes).foreach { case (bg, vg) =>
+        // Note: QCTools inserts a dummy "NA" sample ID if absent when exporting to VCF
+        assert(bg.sampleId == vg.sampleId || vg.sampleId.get.startsWith("NA"))
+        bg.posteriorProbabilities.indices.foreach { i =>
+          bg.posteriorProbabilities(i) == vg.posteriorProbabilities.get(i)
         }
+      }
     }
   }
 

@@ -57,9 +57,8 @@ class BgenRowConverterSuite extends BgenConverterBaseTest {
       .collect
 
     assert(bgenRows.size == vcfRows.size)
-    bgenRows.zip(vcfRows).foreach {
-      case (br, vr) =>
-        checkBgenRowsEqual(br, vr, false, bitsPerProb)
+    bgenRows.zip(vcfRows).foreach { case (br, vr) =>
+      checkBgenRowsEqual(br, vr, false, bitsPerProb)
     }
   }
 

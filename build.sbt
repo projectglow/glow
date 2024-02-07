@@ -69,7 +69,7 @@ val testJavaOptions = Vector(
   "-Dio.netty.tryReflectionSetAccessible=true",
   "-Dspark.ui.enabled=false",
   "-Dspark.sql.execution.arrow.pyspark.enabled=true",
-  "-Xmx1024m",
+  "-Xmx1024m"
 )
 
 // Test concurrency settings
@@ -84,13 +84,11 @@ concurrentRestrictions in Global := Seq(
 def groupByHash(tests: Seq[TestDefinition]): Seq[Tests.Group] = {
   tests
     .groupBy(_.name.hashCode % testConcurrency)
-    .map {
-      case (i, groupTests) =>
-        val options = ForkOptions()
-          .withRunJVMOptions(testJavaOptions)
+    .map { case (i, groupTests) =>
+      val options = ForkOptions()
+        .withRunJVMOptions(testJavaOptions)
 
-
-        Group(i.toString, groupTests, SubProcess(options))
+      Group(i.toString, groupTests, SubProcess(options))
     }
     .toSeq
 }
@@ -188,7 +186,7 @@ ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDepe
   "io.netty" % "netty-transport-native-epoll" % "4.1.96.Final",
   "com.github.samtools" % "htsjdk" % "3.0.5",
   "org.yaml" % "snakeyaml" % "2.0",
-  "com.univocity" % "univocity-parsers" % "2.8.4",
+  "com.univocity" % "univocity-parsers" % "2.8.4"
 )).map(_.exclude("com.google.code.findbugs", "jsr305"))
 
 lazy val root = (project in file(".")).aggregate(core, python, docs)
@@ -206,9 +204,11 @@ lazy val core = (project in file("core"))
     publish / skip := false,
     // Adds the Git hash to the MANIFEST file. We set it here instead of relying on sbt-release to
     // do so.
-    Compile / packageBin / packageOptions += Package.ManifestAttributes("Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
+    Compile / packageBin / packageOptions += Package.ManifestAttributes(
+      "Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
     libraryDependencies ++= coreDependencies.value :+ scalaLoggingDependency.value,
-    Compile / unmanagedSourceDirectories += baseDirectory.value / "src" / "main" / "shim" / majorMinorVersion(sparkVersion.value),
+    Compile / unmanagedSourceDirectories += baseDirectory.value / "src" / "main" / "shim" / majorMinorVersion(
+      sparkVersion.value),
     Compile / unmanagedSourceDirectories += {
       val sourceDir = (Compile / sourceDirectory).value
       CrossVersion.partialVersion(scalaVersion.value) match {
@@ -216,10 +216,11 @@ lazy val core = (project in file("core"))
         case _ => sourceDir / "scala-2.13-"
       }
     },
-    Test / unmanagedSourceDirectories += baseDirectory.value / "src" / "test" / "shim" / majorMinorVersion(sparkVersion.value),
+    Test / unmanagedSourceDirectories += baseDirectory.value / "src" / "test" / "shim" / majorMinorVersion(
+      sparkVersion.value),
     functionsTemplate := baseDirectory.value / "functions.scala.TEMPLATE",
     generatedFunctionsOutput := (Compile / scalaSource).value / "io" / "projectglow" / "functions.scala",
-    Compile / sourceGenerators += generateFunctions,
+    Compile / sourceGenerators += generateFunctions
   )
 
 /**
@@ -263,7 +264,7 @@ lazy val pythonSettings = Seq(
     val args = spaceDelimited("<arg>").parsed
     val ret = Process("pytest " + args.mkString(" "), None, (env.value): _*).!
     require(ret == 0, "Python tests failed")
-  },
+  }
 )
 
 lazy val yapf = inputKey[Unit]("yapf")
@@ -354,8 +355,9 @@ lazy val stagedRelease = (project in file("core/src/test"))
     Test / scalaSource := baseDirectory.value / "scala",
     Test / unmanagedSourceDirectories += baseDirectory.value / "shim" / majorMinorVersion(
       sparkVersion.value),
-    libraryDependencies ++= testSparkDependencies.value ++ testCoreDependencies.value :+ "io.projectglow" %% s"glow-spark${majorVersion(sparkVersion.value)}" % stableVersion.value % "test",
-    resolvers := Seq(MavenCache("local-sonatype-staging", sonatypeBundleDirectory.value)),
+    libraryDependencies ++= testSparkDependencies.value ++ testCoreDependencies.value :+ "io.projectglow" %% s"glow-spark${majorVersion(
+      sparkVersion.value)}" % stableVersion.value % "test",
+    resolvers := Seq(MavenCache("local-sonatype-staging", sonatypeBundleDirectory.value))
   )
 
 import ReleaseTransformations._
@@ -390,22 +392,18 @@ releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,
   inquireVersions,
   runClean
- ) ++ crossReleaseStep(releaseStepCommandAndRemaining("core/test"), requiresPySpark = false) ++
-  Seq(
-    setReleaseVersion,
-    updateStableVersion,
-    commitReleaseVersion,
-    commitStableVersion,
-    tagRelease
-  ) ++
-  crossReleaseStep(
-    releaseStepCommandAndRemaining("publishSigned"),
-    requiresPySpark = false) ++
-  sonatypeSteps ++
-  crossReleaseStep(
-    releaseStepCommandAndRemaining("stagedRelease/test"),
-    requiresPySpark = false) ++
-  Seq(
-    setNextVersion,
-    commitNextVersion
-  )
+) ++ crossReleaseStep(releaseStepCommandAndRemaining("core/test"), requiresPySpark = false) ++
+Seq(
+  setReleaseVersion,
+  updateStableVersion,
+  commitReleaseVersion,
+  commitStableVersion,
+  tagRelease
+) ++
+crossReleaseStep(releaseStepCommandAndRemaining("publishSigned"), requiresPySpark = false) ++
+sonatypeSteps ++
+crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test"), requiresPySpark = false) ++
+Seq(
+  setNextVersion,
+  commitNextVersion
+)
