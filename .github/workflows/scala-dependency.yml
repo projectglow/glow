@@ -14,3 +14,5 @@ jobs:
       - uses: scalacenter/sbt-dependency-submission@v2
         with:
           working-directory: './'
+          modules-ignore: stagedRelease stagedRelease_2.12 stagedRelease_2.13
+          configs-ignore: scala-tool scala-doc-tool
