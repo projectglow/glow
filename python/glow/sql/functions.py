@@ -24,14 +24,61 @@ __all__ = ['left_range_join']
 @typechecked
 def left_range_join(left: DataFrame,
                     right: DataFrame,
-                    left_start: Column,
-                    right_start: Column,
-                    left_end: Column,
-                    right_end: Column,
-                    extra_join_expr: Column = None,
+                    left_start: Column | None = None,
+                    right_start: Column | None = None,
+                    left_end: Column | None = None,
+                    right_end: Column | None = None,
+                    extra_join_expr: Column | None = None,
                     bin_size: int = 5000) -> DataFrame:
-    if extra_join_expr is None:
+    """
+    Executes a left outer join accelerated by `Databricks's range join optimization <https://docs.databricks.com/en/optimizations/range-join.html>`__.
+    This function assumes half open intervals i.e., (0, 2) and (1, 2) overlap but (0, 2) and (2, 3) do not.
+
+    Args:
+        left: The first DataFrame to join. This DataFrame is expected to be larger and contain
+          a mixture of SNPs (intervals with length 1) and longer intervals.
+        right: The second DataFrame to join. It is expected to contain primarily longer intervals.
+        left_start: The interval start column in the left DataFrame. It must be specified if there is not a
+          column named ``start``.
+        left_end: The interval end column in the left DataFrame. It must be specified if there is not a
+          column named ``end``.
+        right_start: The interval start column in the right DataFrame. It must be specified if there is not a
+          column named ``start``.
+        right_end: The interval end column in the right DataFrame. It must be specified if there is not a
+          column named ``end``.
+        extra_join_expr: An expression containing additional join criteria. If a column named ``contigName``
+          exists in both the left and right DataFrames, the default value is ``left.contigName == right.contigName``
+
+    Example:
+        >>> left = spark.createDataFrame([(1, 10)], ["start", "end"])
+        >>> right = spark.createDataFrame([(2, 3)], ["start", "end"])
+        >>> df = glow.left_range_join(left, right)
+
+    Returns:
+        The joined DataFrame
+
+    """
+    unexpected_columns_error = ValueError(
+        'Explicit start and end columns must be specified if the left and right ' +
+        'DataFrames do not contain columns named start and end.')
+    if left_start is None:
+        if not 'start' in left.columns: raise unexpected_columns_error
+        else: left_start = left.start
+    if right_start is None:
+        if not 'start' in right.columns: raise unexpected_columns_error
+        else: right_start = right.start
+    if left_end is None:
+        if not 'end' in left.columns: raise unexpected_columns_error
+        else: left_end = left.end
+    if right_end is None:
+        if not 'end' in right.columns: raise unexpected_columns_error
+        else: right_end = right.end
+
+    if extra_join_expr is None and 'contigName' in left.columns and 'contigName' in right.columns:
+        extra_join_expr = left.contigName == right.contigName
+    elif extra_join_expr is None:
         extra_join_expr = lit(True)
+
     join_fn = SparkContext._jvm.io.projectglow.sql.LeftRangeJoin.join
     column_args = [
         _to_java_column(c) for c in [left_start, right_start, left_end, right_end, extra_join_expr]

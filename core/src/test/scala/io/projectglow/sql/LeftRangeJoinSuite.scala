@@ -164,7 +164,12 @@ class LeftRangeJoinSuite extends GlowBaseTest {
   test("Ranges that touch at a point should not join") {
     val left = spark.createDataFrame(Seq(Interval(0, 10)))
     val right = spark.createDataFrame(Seq(Interval(10, 20)))
+    compareToNaive(left, right)
+  }
 
+  test("Ranges that touch at a point should not join (point)") {
+    val left = spark.createDataFrame(Seq(Interval(9, 10)))
+    val right = spark.createDataFrame(Seq(Interval(10, 20)))
     compareToNaive(left, right)
   }
 
@@ -177,7 +182,13 @@ class LeftRangeJoinSuite extends GlowBaseTest {
 
   test("Identical start and end points") {
     val left = spark.createDataFrame(Seq(Interval(0, 10)))
-    val right = spark.createDataFrame(Seq(Interval(2, 5)))
+    val right = spark.createDataFrame(Seq(Interval(0, 10)))
+    compareToNaive(left, right)
+  }
+
+  test("Identical start points (point)") {
+    val left = spark.createDataFrame(Seq(Interval(0, 1)))
+    val right = spark.createDataFrame(Seq(Interval(0, 10)))
     compareToNaive(left, right)
   }
 }
