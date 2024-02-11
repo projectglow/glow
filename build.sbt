@@ -161,7 +161,7 @@ ThisBuild / testSparkDependencies := sparkDependencies.value.map(_ % "test")
 lazy val testCoreDependencies = settingKey[Seq[ModuleID]]("testCoreDependencies")
 ThisBuild / testCoreDependencies := Seq(
   majorVersion((ThisBuild / sparkVersion).value) match {
-    case "3" => "org.scalatest" %% "scalatest" % "3.2.3" % "test"
+    case "3" => "org.scalatest" %% "scalatest" % "3.2.18" % "test"
     case "4" => "org.scalatest" %% "scalatest" % "3.2.17" % "test"
     case _ => throw new IllegalArgumentException("Only Spark 3 is supported")
   },
