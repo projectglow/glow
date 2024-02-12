@@ -53,7 +53,7 @@ def left_overlap_join(left: DataFrame,
     Example:
         >>> left = spark.createDataFrame([(1, 10)], ["start", "end"])
         >>> right = spark.createDataFrame([(2, 3)], ["start", "end"])
-        >>> df = glow.left_range_join(left, right)
+        >>> df = glow.left_overlap_join(left, right)
 
     Returns:
         The joined DataFrame
