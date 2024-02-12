@@ -20,8 +20,8 @@ def test_left_join(spark):
     left = spark.createDataFrame([("a", 1, 10), ("a", 2, 3), ("a", 5, 7), ("a", 2, 5),
                                   ("b", 1, 10)], ["name", "start", "end"])
     right = spark.createDataFrame([("a", 2, 5), ("c", 2, 5)], ["name", "start", "end"])
-    joined = glow.left_range_join(left, right, left.start, right.start, left.end, right.end,
-                                  left.name == right.name)
+    joined = glow.left_overlap_join(left, right, left.start, right.start, left.end, right.end,
+                                    left.name == right.name)
     assert joined.count() == 5
     assert joined.where(right.start.isNull()).count() == 2
     assert joined.where((right.name == "c") & (right.start == 2) & (right.end == 5)).count() == 0
@@ -30,20 +30,20 @@ def test_left_join(spark):
 def test_no_extra_expr(spark):
     left = spark.createDataFrame([(1, 10)], ["start", "end"])
     right = spark.createDataFrame([(1, 10)], ["start", "end"])
-    joined = glow.left_range_join(left, right, left.start, right.start, left.end, right.end)
+    joined = glow.left_overlap_join(left, right, left.start, right.start, left.end, right.end)
     assert joined.count() == 1
 
 
 def test_bin_size(spark):
     left = spark.createDataFrame([(1, 10)], ["start", "end"])
     right = spark.createDataFrame([(1, 10)], ["start", "end"])
-    joined = glow.left_range_join(left,
-                                  right,
-                                  left.start,
-                                  right.start,
-                                  left.end,
-                                  right.end,
-                                  bin_size=1)
+    joined = glow.left_overlap_join(left,
+                                    right,
+                                    left.start,
+                                    right.start,
+                                    left.end,
+                                    right.end,
+                                    bin_size=1)
     assert joined.count() == 1
 
 
@@ -51,20 +51,33 @@ def test_default_arguments(spark):
     left = spark.createDataFrame([("a", 1, 10), ("a", 2, 3), ("a", 5, 7), ("a", 2, 5),
                                   ("b", 1, 10)], ["contigName", "start", "end"])
     right = spark.createDataFrame([("a", 2, 5), ("c", 2, 5)], ["contigName", "start", "end"])
-    joined = glow.left_range_join(left, right)
+    joined = glow.left_overlap_join(left, right)
     assert joined.count() == 5
     assert joined.where(right.start.isNull()).count() == 2
     assert joined.where((right.contigName == "c") & (right.start == 2) &
                         (right.end == 5)).count() == 0
 
 
+def test_default_arguments_no_contig(spark):
+    left = spark.createDataFrame([(1, 10)], ["start", "end"])
+    right = spark.createDataFrame([(1, 10)], ["start", "end"])
+    assert glow.left_overlap_join(left, right).count() == 1
+
+
 def test_missing_columns(spark):
-    left = spark.createDataFrame([(1, 10)], ["a", "b"])
-    right = spark.createDataFrame([(1, 10)], ["a", "b"])
-    args = {'left_start': left.a, 'right_start': right.a, 'left_end': left.b, 'right_end': right.b}
-    glow.left_range_join(left, right, **args)  # No error
+    left = spark.createDataFrame([(1, 10)], ["start", "end"])
+    right = spark.createDataFrame([(1, 10)], ["start", "end"])
+    args = {
+        'left_start': left.start,
+        'right_start': right.start,
+        'left_end': left.end,
+        'right_end': right.end
+    }
+    glow.left_overlap_join(left, right, **args)  # No error
     for k in args.keys():
         d = args.copy()
         d.pop(k)
+        l = left.drop(args[k]) if 'left' in k else left
+        r = right.drop(args[k]) if 'right' in k else right
         with pytest.raises(ValueError):
-            glow.left_range_join(left, right, **d)
+            glow.left_overlap_join(l, r, **d)

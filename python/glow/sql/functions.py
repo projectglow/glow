@@ -18,20 +18,21 @@ from pyspark.sql.column import Column, _to_java_column
 from pyspark.sql.functions import lit
 from typeguard import typechecked
 
-__all__ = ['left_range_join']
+__all__ = ['left_overlap_join']
 
 
 @typechecked
-def left_range_join(left: DataFrame,
-                    right: DataFrame,
-                    left_start: Column | None = None,
-                    right_start: Column | None = None,
-                    left_end: Column | None = None,
-                    right_end: Column | None = None,
-                    extra_join_expr: Column | None = None,
-                    bin_size: int = 5000) -> DataFrame:
+def left_overlap_join(left: DataFrame,
+                      right: DataFrame,
+                      left_start: Column | None = None,
+                      right_start: Column | None = None,
+                      left_end: Column | None = None,
+                      right_end: Column | None = None,
+                      extra_join_expr: Column | None = None,
+                      bin_size: int = 5000) -> DataFrame:
     """
-    Executes a left outer join accelerated by `Databricks's range join optimization <https://docs.databricks.com/en/optimizations/range-join.html>`__.
+    Executes a left outer join with an interval overlap condition accelerated
+    by `Databricks' range join optimization <https://docs.databricks.com/en/optimizations/range-join.html>`__.
     This function assumes half open intervals i.e., (0, 2) and (1, 2) overlap but (0, 2) and (2, 3) do not.
 
     Args:
@@ -76,10 +77,10 @@ def left_range_join(left: DataFrame,
 
     if extra_join_expr is None and 'contigName' in left.columns and 'contigName' in right.columns:
         extra_join_expr = left.contigName == right.contigName
-    elif extra_join_expr is None:
+    if extra_join_expr is None:
         extra_join_expr = lit(True)
 
-    join_fn = SparkContext._jvm.io.projectglow.sql.LeftRangeJoin.join
+    join_fn = SparkContext._jvm.io.projectglow.sql.LeftOverlapJoin.join
     column_args = [
         _to_java_column(c) for c in [left_start, right_start, left_end, right_end, extra_join_expr]
     ]

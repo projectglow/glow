@@ -19,7 +19,7 @@ package io.projectglow.sql
 import org.apache.spark.sql.{Column, DataFrame}
 import org.apache.spark.sql.functions._
 
-class LeftRangeJoinSuite extends GlowBaseTest {
+class LeftOverlapJoinSuite extends GlowBaseTest {
   case class Interval(start: Long, end: Long)
   case class StringWithInterval(name: String, start: Long, end: Long)
   private lazy val sess = spark
@@ -44,7 +44,7 @@ class LeftRangeJoinSuite extends GlowBaseTest {
     val (leftStart, rightStart) = (left("start"), right("start"))
     val (leftEnd, rightEnd) = (left("end"), right("end"))
     val glow =
-      LeftRangeJoin.join(left, right, leftStart, rightStart, leftEnd, rightEnd, extraJoinExpr)
+      LeftOverlapJoin.join(left, right, leftStart, rightStart, leftEnd, rightEnd, extraJoinExpr)
     val naive = naiveJoin(left, right, leftStart, rightStart, leftEnd, rightEnd, extraJoinExpr)
     assert(glow.count() == naive.count() && glow.except(naive).count() == 0)
   }

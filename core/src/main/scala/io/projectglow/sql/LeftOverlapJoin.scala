@@ -19,7 +19,13 @@ package io.projectglow.sql
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{Column, DataFrame}
 
-object LeftRangeJoin {
+object LeftOverlapJoin {
+
+  /**
+   * Executes a left outer join with an interval overlap condition accelerated
+   * by Databricks' range join optimization <https://docs.databricks.com/en/optimizations/range-join.html>.
+   * This function assumes half open intervals i.e., (0, 2) and (1, 2) overlap but (0, 2) and (2, 3) do not.
+   */
   def join(
       left: DataFrame,
       right: DataFrame,
