@@ -276,6 +276,3 @@ Example notebooks and blog post
   :title: GloWGR: GWAS for binary traits
 
 A detailed example and explanation of a GWAS workflow is available `here <https://databricks.com/blog/2019/09/20/engineering-population-scale-genome-wide-association-studies-with-apache-spark-delta-lake-and-mlflow.html>`_.
-
-.. notebook:: .. tertiary/gwas.html
-  :title: GWAS with MLflow instrumentation

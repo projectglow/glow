@@ -38,11 +38,6 @@ project = 'Glow'
 copyright = '2019, Glow Authors'
 author = 'Glow Authors'
 
-# The short X.Y version
-version = ''
-# The full version, including alpha/beta/rc tags
-release = ''
-
 # -- Substitutions for code blocks -------------------------------------------
 
 mvn_version_file = open('../../stable-version.txt', 'r')
@@ -50,6 +45,9 @@ mvn_version = mvn_version_file.readline()
 mvn_version_file.close()
 
 pypi_version = imp.load_source('version', '../../python/version.py').VERSION
+
+version = pypi_version
+release = version
 
 rst_prolog = f"""
 .. |mvn-version| replace:: {mvn_version}
@@ -80,8 +78,9 @@ extensions = [
     'sphinx_substitution_extensions',
     'sphinx_tabs.tabs',
     'sphinx.ext.napoleon',
-    'sphinx_autodoc_typehints',
 ]
+
+autodoc_typehints = 'both'
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -100,7 +99,7 @@ master_doc = 'index'
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = 'en'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -219,10 +218,7 @@ epub_exclude_files = ['search.html']
 
 # -- Extension configuration -------------------------------------------------
 
-# -- Options for intersphinx extension ---------------------------------------
-
-# Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {'https://docs.python.org/': None}
+intersphinx_mapping = {'Python': ('https://docs.python.org/', None)}
 
 # -- Options for todo extension ----------------------------------------------
 
@@ -239,7 +235,11 @@ linkcheck_ignore = [
     r'http://www.sequenceontology.org*',
     # Captcha required
     r'https://gatk.broadinstitute.org*',
+    # Intermittently read timeouts
+    r'http://ftp.1000genomes.ebi.ac.uk*',
 ]
+
+linkcheck_timeout = 30
 
 
 # -- Autodoc options ---------------------------------------------------------

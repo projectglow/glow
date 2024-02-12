@@ -8,7 +8,7 @@ import sbt.librarymanagement.ModuleID
 import sbt.nio.Keys._
 
 // Scala version used by DBR 13.3 LTS and 14.0
-lazy val scala212 = "2.12.15"
+lazy val scala212 = "2.12.18"
 lazy val scala213 = "2.13.12"
 
 lazy val spark3 = "3.5.0"
@@ -69,7 +69,7 @@ val testJavaOptions = Vector(
   "-Dio.netty.tryReflectionSetAccessible=true",
   "-Dspark.ui.enabled=false",
   "-Dspark.sql.execution.arrow.pyspark.enabled=true",
-  "-Xmx1024m",
+  "-Xmx1024m"
 )
 
 // Test concurrency settings
@@ -88,7 +88,6 @@ def groupByHash(tests: Seq[TestDefinition]): Seq[Tests.Group] = {
       case (i, groupTests) =>
         val options = ForkOptions()
           .withRunJVMOptions(testJavaOptions)
-
 
         Group(i.toString, groupTests, SubProcess(options))
     }
@@ -162,7 +161,7 @@ ThisBuild / testSparkDependencies := sparkDependencies.value.map(_ % "test")
 lazy val testCoreDependencies = settingKey[Seq[ModuleID]]("testCoreDependencies")
 ThisBuild / testCoreDependencies := Seq(
   majorVersion((ThisBuild / sparkVersion).value) match {
-    case "3" => "org.scalatest" %% "scalatest" % "3.2.3" % "test"
+    case "3" => "org.scalatest" %% "scalatest" % "3.2.18" % "test"
     case "4" => "org.scalatest" %% "scalatest" % "3.2.17" % "test"
     case _ => throw new IllegalArgumentException("Only Spark 3 is supported")
   },
@@ -171,31 +170,31 @@ ThisBuild / testCoreDependencies := Seq(
   "org.apache.spark" %% "spark-core" % sparkVersion.value % "test" classifier "tests",
   "org.apache.spark" %% "spark-mllib" % sparkVersion.value % "test" classifier "tests",
   "org.apache.spark" %% "spark-sql" % sparkVersion.value % "test" classifier "tests",
-  "org.xerial" % "sqlite-jdbc" % "3.20.1" % "test"
+  "org.xerial" % "sqlite-jdbc" % "3.42.0.0" % "test"
 )
 
 lazy val coreDependencies = settingKey[Seq[ModuleID]]("coreDependencies")
 ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDependencies.value ++ Seq(
-  "org.seqdoop" % "hadoop-bam" % "7.9.2",
+  "org.seqdoop" % "hadoop-bam" % "7.10.0",
   "org.slf4j" % "slf4j-api" % "2.0.10",
   "org.jdbi" % "jdbi" % "2.63.1",
-  "com.github.broadinstitute" % "picard" % "2.21.9",
+  "com.github.broadinstitute" % "picard" % "2.27.5",
+  "org.apache.commons" % "commons-lang3" % "3.14.0",
   // Fix versions of libraries that are depended on multiple times
-  "org.apache.hadoop" % "hadoop-client" % "3.3.1",
-  "io.netty" % "netty" % "3.9.9.Final",
-  "io.netty" % "netty-all" % "4.1.68.Final",
-  "io.netty" % "netty-handler" % "4.1.68.Final",
-  "io.netty" % "netty-transport-native-epoll" % "4.1.68.Final",
-  "com.github.samtools" % "htsjdk" % "2.21.2",
-  "org.yaml" % "snakeyaml" % "1.16",
-  "com.univocity" % "univocity-parsers" % "2.8.4",
+  "org.apache.hadoop" % "hadoop-client" % "3.3.6",
+  "io.netty" % "netty-all" % "4.1.96.Final",
+  "io.netty" % "netty-handler" % "4.1.96.Final",
+  "io.netty" % "netty-transport-native-epoll" % "4.1.96.Final",
+  "com.github.samtools" % "htsjdk" % "3.0.5",
+  "org.yaml" % "snakeyaml" % "2.2",
+  "com.univocity" % "univocity-parsers" % "2.8.4"
 )).map(_.exclude("com.google.code.findbugs", "jsr305"))
 
 lazy val root = (project in file(".")).aggregate(core, python, docs)
 
 lazy val scalaLoggingDependency = settingKey[ModuleID]("scalaLoggingDependency")
 ThisBuild / scalaLoggingDependency := {
-  "com.typesafe.scala-logging" %% "scala-logging" % "3.9.4"
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5"
 }
 
 lazy val core = (project in file("core"))
@@ -206,9 +205,11 @@ lazy val core = (project in file("core"))
     publish / skip := false,
     // Adds the Git hash to the MANIFEST file. We set it here instead of relying on sbt-release to
     // do so.
-    Compile / packageBin / packageOptions += Package.ManifestAttributes("Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
+    Compile / packageBin / packageOptions += Package.ManifestAttributes(
+      "Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
     libraryDependencies ++= coreDependencies.value :+ scalaLoggingDependency.value,
-    Compile / unmanagedSourceDirectories += baseDirectory.value / "src" / "main" / "shim" / majorMinorVersion(sparkVersion.value),
+    Compile / unmanagedSourceDirectories += baseDirectory.value / "src" / "main" / "shim" / majorMinorVersion(
+      sparkVersion.value),
     Compile / unmanagedSourceDirectories += {
       val sourceDir = (Compile / sourceDirectory).value
       CrossVersion.partialVersion(scalaVersion.value) match {
@@ -216,10 +217,11 @@ lazy val core = (project in file("core"))
         case _ => sourceDir / "scala-2.13-"
       }
     },
-    Test / unmanagedSourceDirectories += baseDirectory.value / "src" / "test" / "shim" / majorMinorVersion(sparkVersion.value),
+    Test / unmanagedSourceDirectories += baseDirectory.value / "src" / "test" / "shim" / majorMinorVersion(
+      sparkVersion.value),
     functionsTemplate := baseDirectory.value / "functions.scala.TEMPLATE",
     generatedFunctionsOutput := (Compile / scalaSource).value / "io" / "projectglow" / "functions.scala",
-    Compile / sourceGenerators += generateFunctions,
+    Compile / sourceGenerators += generateFunctions
   )
 
 /**
@@ -263,7 +265,7 @@ lazy val pythonSettings = Seq(
     val args = spaceDelimited("<arg>").parsed
     val ret = Process("pytest " + args.mkString(" "), None, (env.value): _*).!
     require(ret == 0, "Python tests failed")
-  },
+  }
 )
 
 lazy val yapf = inputKey[Unit]("yapf")
@@ -354,8 +356,9 @@ lazy val stagedRelease = (project in file("core/src/test"))
     Test / scalaSource := baseDirectory.value / "scala",
     Test / unmanagedSourceDirectories += baseDirectory.value / "shim" / majorMinorVersion(
       sparkVersion.value),
-    libraryDependencies ++= testSparkDependencies.value ++ testCoreDependencies.value :+ "io.projectglow" %% s"glow-spark${majorVersion(sparkVersion.value)}" % stableVersion.value % "test",
-    resolvers := Seq(MavenCache("local-sonatype-staging", sonatypeBundleDirectory.value)),
+    libraryDependencies ++= testSparkDependencies.value ++ testCoreDependencies.value :+ "io.projectglow" %% s"glow-spark${majorVersion(
+      sparkVersion.value)}" % stableVersion.value % "test",
+    resolvers := Seq(MavenCache("local-sonatype-staging", sonatypeBundleDirectory.value))
   )
 
 import ReleaseTransformations._
@@ -390,22 +393,18 @@ releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,
   inquireVersions,
   runClean
- ) ++ crossReleaseStep(releaseStepCommandAndRemaining("core/test"), requiresPySpark = false) ++
-  Seq(
-    setReleaseVersion,
-    updateStableVersion,
-    commitReleaseVersion,
-    commitStableVersion,
-    tagRelease
-  ) ++
-  crossReleaseStep(
-    releaseStepCommandAndRemaining("publishSigned"),
-    requiresPySpark = false) ++
-  sonatypeSteps ++
-  crossReleaseStep(
-    releaseStepCommandAndRemaining("stagedRelease/test"),
-    requiresPySpark = false) ++
-  Seq(
-    setNextVersion,
-    commitNextVersion
-  )
+) ++ crossReleaseStep(releaseStepCommandAndRemaining("core/test"), requiresPySpark = false) ++
+Seq(
+  setReleaseVersion,
+  updateStableVersion,
+  commitReleaseVersion,
+  commitStableVersion,
+  tagRelease
+) ++
+crossReleaseStep(releaseStepCommandAndRemaining("publishSigned"), requiresPySpark = false) ++
+sonatypeSteps ++
+crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test"), requiresPySpark = false) ++
+Seq(
+  setNextVersion,
+  commitNextVersion
+)

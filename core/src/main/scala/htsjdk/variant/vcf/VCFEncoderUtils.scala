@@ -18,10 +18,7 @@ package htsjdk.variant.vcf
 
 // Shim into package-private function VCFEncoder.formatVCFField
 object VCFEncoderUtils {
-
-  private val encoder = new VCFEncoder(new VCFHeader(), true, true)
-
   def formatVCFField(obj: AnyRef): String = {
-    encoder.formatVCFField(obj)
+    VCFEncoder.formatVCFField(obj)
   }
 }

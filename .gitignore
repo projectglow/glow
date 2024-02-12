@@ -30,6 +30,7 @@ docs/build
 *.swn
 *.iml
 .idea
+.vscode
 
 # Logs
 adam.log
