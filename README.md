@@ -23,7 +23,7 @@ Status](https://readthedocs.org/projects/glow/badge/?version=latest)](https://gl
 [![Docker Hub Pulls](https://raster.shields.io/docker/pulls/projectglow/databricks-glow.svg)](https://hub.docker.com/r/projectglow/databricks-glow)
 [![PyPi](https://img.shields.io/pypi/v/glow.py.svg)](https://pypi.org/project/glow.py/)
 [![Maven Central](https://img.shields.io/maven-central/v/io.projectglow/glow-spark3_2.12.svg)](https://mvnrepository.com/artifact/io.projectglow)
-[![Coverage Status](https://codecov.io/gh/projectglow/glow/branch/master/graph/badge.svg)](https://codecov.io/gh/projectglow/glow)
+[![Coverage Status](https://codecov.io/gh/projectglow/glow/branch/main/graph/badge.svg)](https://codecov.io/gh/projectglow/glow)
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/glow.svg)](https://anaconda.org/conda-forge/glow)
 [![DOI](https://zenodo.org/badge/212904926.svg)](https://zenodo.org/badge/latestdoi/212904926)
 

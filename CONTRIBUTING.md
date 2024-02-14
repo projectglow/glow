@@ -19,7 +19,7 @@ Code review takes place in GitHub pull requests. See [this article](https://help
 Once you open a pull request, project maintainers will review your code and respond to your pull request with any feedback they might have. The process at this point is as follows:
 
 1. An Approval is required from one of the project maintainers.
-2. Your change will be merged into the project's `master` branch
+2. Your change will be merged into the project's `main` branch
 
 ### Developer Certification of Origin (DCO)
 
