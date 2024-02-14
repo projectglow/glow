@@ -331,7 +331,7 @@ workflows:
           filters:
             branches:
               only:
-                - master
+                - main
     jobs:
       - check-docs
       - spark-3-4-tests
