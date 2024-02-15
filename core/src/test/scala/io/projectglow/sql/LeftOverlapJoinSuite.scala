@@ -19,11 +19,12 @@ package io.projectglow.sql
 import org.apache.spark.sql.{Column, DataFrame}
 import org.apache.spark.sql.functions._
 
-class LeftOverlapJoinSuite extends GlowBaseTest {
+abstract class OverlapJoinSuite extends GlowBaseTest {
   case class Interval(start: Long, end: Long)
   case class StringWithInterval(name: String, start: Long, end: Long)
-  private lazy val sess = spark
-  private def naiveJoin(
+  protected lazy val sess = spark
+  protected def isSemi: Boolean
+  protected def naiveLeftJoin(
       left: DataFrame,
       right: DataFrame,
       leftStart: Column,
@@ -34,7 +35,7 @@ class LeftOverlapJoinSuite extends GlowBaseTest {
     left.join(
       right,
       leftStart < rightEnd && rightStart < leftEnd && extraJoinExpr,
-      joinType = "left")
+      joinType = if (isSemi) "left_semi" else "left")
   }
 
   private def compareToNaive(
@@ -43,40 +44,20 @@ class LeftOverlapJoinSuite extends GlowBaseTest {
       extraJoinExpr: Column = lit(true)): Unit = {
     val (leftStart, rightStart) = (left("start"), right("start"))
     val (leftEnd, rightEnd) = (left("end"), right("end"))
-    val glow =
-      LeftOverlapJoin.join(left, right, leftStart, rightStart, leftEnd, rightEnd, extraJoinExpr)
-    val naive = naiveJoin(left, right, leftStart, rightStart, leftEnd, rightEnd, extraJoinExpr)
+    val glow = if (isSemi) {
+      LeftOverlapJoin.leftSemiJoin(
+        left,
+        right,
+        leftStart,
+        rightStart,
+        leftEnd,
+        rightEnd,
+        extraJoinExpr)
+    } else {
+      LeftOverlapJoin.leftJoin(left, right, leftStart, rightStart, leftEnd, rightEnd, extraJoinExpr)
+    }
+    val naive = naiveLeftJoin(left, right, leftStart, rightStart, leftEnd, rightEnd, extraJoinExpr)
     assert(glow.count() == naive.count() && glow.except(naive).count() == 0)
-  }
-
-  test("naive implementation") {
-    import sess.implicits._
-    val left = Seq(
-      ("a", 1, 10), // matched
-      ("a", 2, 3), // matched
-      ("a", 5, 7), // unmatched
-      ("a", 2, 5), // matched
-      ("b", 1, 10) // unmatched
-    ).toDF("name", "start", "end")
-    val right = Seq(
-      ("a", 2, 5), // matched
-      ("c", 2, 5) // unmatched
-    ).toDF("name", "start", "end")
-    val joined = naiveJoin(
-      left,
-      right,
-      left("start"),
-      right("start"),
-      left("end"),
-      right("end"),
-      left("name") === right("name"))
-    assert(joined.count() == 5) // All five left rows are present
-    assert(joined.where(right("start").isNull).count() == 2) // Unmatched left rows have no right fields
-    // Unmatched right rows are not present
-    assert(
-      joined
-        .where(right("name") === "c" && right("start") === 2 && right("end") === 5)
-        .count() == 0)
   }
 
   test("Simple long intervals") {
@@ -206,5 +187,100 @@ class LeftOverlapJoinSuite extends GlowBaseTest {
     val left = spark.createDataFrame(Seq(Interval(0, 1)))
     val right = spark.createDataFrame(Seq(Interval(0, 10)))
     compareToNaive(left, right)
+  }
+}
+
+class LeftOverlapJoinSuite extends OverlapJoinSuite {
+  override def isSemi: Boolean = false
+  test("naive implementation") {
+    import sess.implicits._
+    val left = Seq(
+      ("a", 1, 10), // matched
+      ("a", 2, 3), // matched
+      ("a", 5, 7), // unmatched
+      ("a", 2, 5), // matched
+      ("b", 1, 10) // unmatched
+    ).toDF("name", "start", "end")
+    val right = Seq(
+      ("a", 2, 5), // matched
+      ("c", 2, 5) // unmatched
+    ).toDF("name", "start", "end")
+    val joined = naiveLeftJoin(
+      left,
+      right,
+      left("start"),
+      right("start"),
+      left("end"),
+      right("end"),
+      left("name") === right("name"))
+    assert(joined.count() == 5) // All five left rows are present
+    assert(joined.where(right("start").isNull).count() == 2) // Unmatched left rows have no right fields
+    // Unmatched right rows are not present
+    assert(
+      joined
+        .where(right("name") === "c" && right("start") === 2 && right("end") === 5)
+        .count() == 0)
+  }
+
+  test("duplicate column names (prefix)") {
+    val left = spark
+      .createDataFrame(
+        Seq(
+          StringWithInterval("a", 1, 7),
+          StringWithInterval("a", 3, 10),
+          StringWithInterval("c", 2, 3)
+        ))
+      .alias("left")
+    val right = spark
+      .createDataFrame(
+        Seq(
+          StringWithInterval("a", 1, 4),
+          StringWithInterval("b", 2, 5)
+        ))
+      .alias("right")
+    val joined = LeftOverlapJoin.leftJoin(
+      left,
+      right,
+      left("start"),
+      right("start"),
+      left("end"),
+      right("end"),
+      rightPrefix = Some("right_"))
+    right.columns.foreach { c =>
+      assert(joined.columns.contains(s"right_$c"))
+    }
+    withTempDir { f =>
+      val tablePath = f.toPath.resolve("joined")
+      joined.write.parquet(tablePath.toString)
+      spark.read.parquet(tablePath.toString).collect() // Can read and write table
+    }
+  }
+}
+
+class LeftSemiOverlapJoinSuite extends OverlapJoinSuite {
+  override def isSemi: Boolean = true
+  test("naive implementation (semi)") {
+    import sess.implicits._
+    val left = Seq(
+      ("a", 1, 10), // matched
+      ("a", 2, 3), // matched
+      ("a", 5, 7), // unmatched
+      ("a", 2, 5), // matched
+      ("b", 1, 10) // unmatched
+    ).toDF("name", "start", "end")
+    val right = Seq(
+      ("a", 2, 5), // matched
+      ("c", 2, 5) // unmatched
+    ).toDF("name", "start", "end")
+    val joined = naiveLeftJoin(
+      left,
+      right,
+      left("start"),
+      right("start"),
+      left("end"),
+      right("end"),
+      left("name") === right("name"))
+    assert(
+      joined.as[(String, Int, Int)].collect().toSet == Set(("a", 1, 10), ("a", 2, 3), ("a", 2, 5)))
   }
 }

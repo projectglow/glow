@@ -21,12 +21,51 @@ import org.apache.spark.sql.{Column, DataFrame}
 
 object LeftOverlapJoin {
 
+  private def maybePrefixRightColumns(
+      table: DataFrame,
+      leftColumns: Seq[Column],
+      rightColumns: Seq[Column],
+      prefixOpt: Option[String]): DataFrame = prefixOpt match {
+    case Some(prefix) =>
+      val renamedRightCols = rightColumns.map(c => c.alias(s"${prefix}$c"))
+      table.select((leftColumns ++ renamedRightCols): _*)
+    case None => table
+  }
+
   /**
    * Executes a left outer join with an interval overlap condition accelerated
    * by Databricks' range join optimization <https://docs.databricks.com/en/optimizations/range-join.html>.
    * This function assumes half open intervals i.e., (0, 2) and (1, 2) overlap but (0, 2) and (2, 3) do not.
    */
-  def join(
+  def leftJoin(
+      left: DataFrame,
+      right: DataFrame,
+      leftStart: Column,
+      rightStart: Column,
+      leftEnd: Column,
+      rightEnd: Column,
+      extraJoinExpr: Column = lit(true),
+      rightPrefix: Option[String] = None,
+      binSize: Int = 5000): DataFrame = {
+    val rightPrepared = right.hint("range_join", binSize)
+    val rangeExpr = leftStart < rightEnd && rightStart < leftEnd
+    val leftPoints = left.where(leftEnd - leftStart === 1)
+    val leftIntervals = left.where(leftEnd - leftStart =!= 1)
+    val pointsJoined = leftPoints.join(
+      rightPrepared,
+      leftStart >= rightStart && leftStart < rightEnd && extraJoinExpr,
+      joinType = "left")
+    val longVarsInner = leftIntervals.join(rightPrepared, rangeExpr && extraJoinExpr)
+    val result = leftIntervals
+      .join(longVarsInner, leftIntervals.columns, joinType = "left")
+      .union(pointsJoined)
+    maybePrefixRightColumns(
+      result,
+      left.columns.map(left.apply),
+      rightPrepared.columns.map(rightPrepared.apply),
+      rightPrefix)
+  }
+  def leftSemiJoin(
       left: DataFrame,
       right: DataFrame,
       leftStart: Column,
@@ -35,15 +74,17 @@ object LeftOverlapJoin {
       rightEnd: Column,
       extraJoinExpr: Column = lit(true),
       binSize: Int = 5000): DataFrame = {
-    val rightHinted = right.hint("range_join", binSize)
+    val rightPrepared = right.hint("range_join", binSize)
     val rangeExpr = leftStart < rightEnd && rightStart < leftEnd
     val leftPoints = left.where(leftEnd - leftStart === 1)
     val leftIntervals = left.where(leftEnd - leftStart =!= 1)
     val pointsJoined = leftPoints.join(
-      rightHinted,
+      rightPrepared,
       leftStart >= rightStart && leftStart < rightEnd && extraJoinExpr,
-      joinType = "left")
-    val longVarsInner = leftIntervals.join(rightHinted, rangeExpr && extraJoinExpr)
-    leftIntervals.join(longVarsInner, leftIntervals.columns, joinType = "left").union(pointsJoined)
+      joinType = "left_semi")
+    val longVarsInner = leftIntervals.join(rightPrepared, rangeExpr && extraJoinExpr)
+    val longVarsLeftSemi =
+      longVarsInner.select(leftIntervals.columns.map(c => leftIntervals(c)): _*).dropDuplicates()
+    longVarsLeftSemi.union(pointsJoined)
   }
 }
