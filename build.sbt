@@ -161,7 +161,7 @@ ThisBuild / testSparkDependencies := sparkDependencies.value.map(_ % "test")
 lazy val testCoreDependencies = settingKey[Seq[ModuleID]]("testCoreDependencies")
 ThisBuild / testCoreDependencies := Seq(
   majorVersion((ThisBuild / sparkVersion).value) match {
-    case "3" => "org.scalatest" %% "scalatest" % "3.2.3" % "test"
+    case "3" => "org.scalatest" %% "scalatest" % "3.2.18" % "test"
     case "4" => "org.scalatest" %% "scalatest" % "3.2.17" % "test"
     case _ => throw new IllegalArgumentException("Only Spark 3 is supported")
   },
@@ -175,7 +175,7 @@ ThisBuild / testCoreDependencies := Seq(
 
 lazy val coreDependencies = settingKey[Seq[ModuleID]]("coreDependencies")
 ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDependencies.value ++ Seq(
-  "org.seqdoop" % "hadoop-bam" % "7.9.2",
+  "org.seqdoop" % "hadoop-bam" % "7.10.0",
   "org.slf4j" % "slf4j-api" % "2.0.10",
   "org.jdbi" % "jdbi" % "2.63.1",
   "com.github.broadinstitute" % "picard" % "2.27.5",
@@ -186,7 +186,7 @@ ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDepe
   "io.netty" % "netty-handler" % "4.1.96.Final",
   "io.netty" % "netty-transport-native-epoll" % "4.1.96.Final",
   "com.github.samtools" % "htsjdk" % "3.0.5",
-  "org.yaml" % "snakeyaml" % "2.0",
+  "org.yaml" % "snakeyaml" % "2.2",
   "com.univocity" % "univocity-parsers" % "2.8.4"
 )).map(_.exclude("com.google.code.findbugs", "jsr305"))
 

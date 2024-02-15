@@ -1,0 +1,18 @@
+name: Update Dependency Graph
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  update-graph:
+    name: Update Dependency Graph
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: scalacenter/sbt-dependency-submission@v2
+        with:
+          working-directory: './'
+          modules-ignore: stagedrelease stagedrelease_2.12 stagedrelease_2.13
+          configs-ignore: scala-tool scala-doc-tool
