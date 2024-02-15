@@ -235,6 +235,8 @@ linkcheck_ignore = [
     r'http://www.sequenceontology.org*',
     # Captcha required
     r'https://gatk.broadinstitute.org*',
+    # Flaky
+    r'genomeasia100k.org*',
 ]
 
 
