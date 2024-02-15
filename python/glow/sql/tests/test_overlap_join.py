@@ -96,6 +96,6 @@ def test_right_prefix(spark):
     right = spark.createDataFrame([("a", 2, 5, 'dog'), ("c", 2, 5, 'cat')],
                                   ["name", "start", "end", "animal"])
     joined = glow.left_overlap_join(left, right, left.start, right.start, left.end, right.end,
-                                    left.name == right.name, 'ann')
+                                    left.name == right.name, 'ann_')
     assert all([c in joined.columns for c in ['ann_name', 'ann_start', 'ann_end', 'ann_animal']])
     assert joined.count() == 5
