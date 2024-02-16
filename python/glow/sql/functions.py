@@ -135,6 +135,7 @@ def left_semi_overlap_join(left: DataFrame,
           column named ``end``.
         extra_join_expr: An expression containing additional join criteria. If a column named ``contigName``
           exists in both the left and right DataFrames, the default value is ``left.contigName == right.contigName``
+        bin_size: The bin size to use for the range join optimization
 
     Example:
         >>> left = spark.createDataFrame([(1, 10)], ["start", "end"])

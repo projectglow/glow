@@ -36,6 +36,11 @@ object LeftOverlapJoin {
    * Executes a left outer join with an interval overlap condition accelerated
    * by Databricks' range join optimization <https://docs.databricks.com/en/optimizations/range-join.html>.
    * This function assumes half open intervals i.e., (0, 2) and (1, 2) overlap but (0, 2) and (2, 3) do not.
+   *
+   * @param extraJoinExpr If provided, this expression will be included in the join criteria
+   * @param rightPrefix If provided, all columns from the right table will begin have their names prefixed with
+   *                    this value in the joined table
+   * @param binSize The bin size for the range join optimization. Consult the Databricks documentation for more info.
    */
   def leftJoin(
       left: DataFrame,
@@ -65,6 +70,15 @@ object LeftOverlapJoin {
       rightPrepared.columns.map(rightPrepared.apply),
       rightPrefix)
   }
+
+  /**
+   * Executes a left semi join with an interval overlap condition accelerated
+   * by Databricks' range join optimization <https://docs.databricks.com/en/optimizations/range-join.html>.
+   * This function assumes half open intervals i.e., (0, 2) and (1, 2) overlap but (0, 2) and (2, 3) do not.
+   *
+   * @param extraJoinExpr If provided, this expression will be included in the join criteria
+   * @param binSize The bin size for the range join optimization. Consult the Databricks documentation for more info.
+   */
   def leftSemiJoin(
       left: DataFrame,
       right: DataFrame,
