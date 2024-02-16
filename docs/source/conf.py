@@ -236,6 +236,7 @@ linkcheck_ignore = [
     # Captcha required
     r'https://gatk.broadinstitute.org*',
     # Intermittently read timeouts
+    r'https://genomeasia100k.org*',
     r'http://ftp.1000genomes.ebi.ac.uk*',
 ]
 
