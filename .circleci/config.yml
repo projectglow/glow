@@ -147,7 +147,7 @@ jobs:
     executor: jdk8_2xl
     environment:
       SPARK_VERSION: 3.4.1
-      SCALA_VERSION: 2.12.18
+      SCALA_VERSION: 2.13.12
     steps:
       - checkout
       - restore_cache:
@@ -191,7 +191,7 @@ jobs:
     executor: jdk8_2xl
     environment:
       SPARK_VERSION: 3.5.0
-      SCALA_VERSION: 2.12.18
+      SCALA_VERSION: 2.13.12
     steps:
       - checkout
       - restore_cache:
