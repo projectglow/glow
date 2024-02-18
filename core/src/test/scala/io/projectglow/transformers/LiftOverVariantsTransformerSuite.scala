@@ -92,15 +92,14 @@ class LiftOverVariantsTransformerSuite extends GlowBaseTest with VCFConverterBas
         .orderBy("contigName", "start")
         .collect()
     assert(failedRows.length == picardFailedRows.length)
-    failedRows.zip(picardFailedRows).foreach {
-      case (r1, r2) =>
-        val numFields = r1.length
-        var i = 0
-        while (i < numFields - 1) {
-          assert(r1(i) == r2(i))
-          i += 1
-        }
-        assert(r1.getString(numFields - 1).contains(r2.getString(numFields - 1)))
+    failedRows.zip(picardFailedRows).foreach { case (r1, r2) =>
+      val numFields = r1.length
+      var i = 0
+      while (i < numFields - 1) {
+        assert(r1(i) == r2(i))
+        i += 1
+      }
+      assert(r1.getString(numFields - 1).contains(r2.getString(numFields - 1)))
     }
   }
 
@@ -188,18 +187,17 @@ class LiftOverVariantsTransformerSuite extends GlowBaseTest with VCFConverterBas
     "testLiftoverBiallelicIndels.vcf",
     "testLiftoverMultiallelicIndels.vcf", // ReverseComplementedIndel
     "testLiftoverSwapRefAltVariants.vcf" // SwappedRefAlt
-  ).foreach {
-    case baseVcf =>
-      test(s"Liftover reverse strand $baseVcf") {
-        compareLiftedVcf(
-          s"$picardTestDataHome/$baseVcf",
-          s"$picardTestDataHome/lifted.$baseVcf",
-          s"$picardTestDataHome/failed.$baseVcf",
-          s"$picardTestDataHome/test.over.chain",
-          s"$picardTestDataHome/dummy.reference.fasta",
-          Some(1.0)
-        )
-      }
+  ).foreach { case baseVcf =>
+    test(s"Liftover reverse strand $baseVcf") {
+      compareLiftedVcf(
+        s"$picardTestDataHome/$baseVcf",
+        s"$picardTestDataHome/lifted.$baseVcf",
+        s"$picardTestDataHome/failed.$baseVcf",
+        s"$picardTestDataHome/test.over.chain",
+        s"$picardTestDataHome/dummy.reference.fasta",
+        Some(1.0)
+      )
+    }
   }
 
   test("Simple indels") {

@@ -118,13 +118,15 @@ class SplitMultiallelicsTransformerSuite extends GlowBaseTest with GlowLogging {
       .collect
       .zip(
         dfSplit
-          .select(dfExpectedColumns.head, dfExpectedColumns.tail: _*) // make order of columns the same
+          .select(
+            dfExpectedColumns.head,
+            dfExpectedColumns.tail: _*
+          ) // make order of columns the same
           .drop(splitFromMultiAllelicField.name)
           .collect
       )
-      .foreach {
-        case (rowExp, rowNorm) =>
-          assert(rowExp.equals(rowNorm), s"Expected\n$rowExp\nNormalized\n$rowNorm")
+      .foreach { case (rowExp, rowNorm) =>
+        assert(rowExp.equals(rowNorm), s"Expected\n$rowExp\nNormalized\n$rowNorm")
       }
   }
 

@@ -78,21 +78,26 @@ object VariantNormalizer extends GlowLogging {
     } else if (!isSNP(refAllele, altAlleles) || !isSymbolic(altAlleles)) {
 
       // Trim from right
-      var nTrimmedBasesBeforeNextPadding = 0 // stores number of bases trimmed from right before next padding
+      var nTrimmedBasesBeforeNextPadding =
+        0 // stores number of bases trimmed from right before next padding
       var firstBaseFromRightInRefAllele =
         allAlleles(0)(allAlleles(0).length - nTrimmedBasesBeforeNextPadding - 1)
 
-      while (allAlleles
+      while (
+        allAlleles
           .forall(a =>
-            a(a.length - nTrimmedBasesBeforeNextPadding - 1) == firstBaseFromRightInRefAllele)) {
+            a(a.length - nTrimmedBasesBeforeNextPadding - 1) == firstBaseFromRightInRefAllele)
+      ) {
         // Last base in all alleles are the same
 
         var padSeq = ""
         var nPadBases = 0
 
-        if (allAlleles
+        if (
+          allAlleles
             .map(_.length)
-            .min == nTrimmedBasesBeforeNextPadding + 1) {
+            .min == nTrimmedBasesBeforeNextPadding + 1
+        ) {
           // if beginning of any allele is reached, trim from right what
           // needs to be trimmed so far, and pad to the left
           if (newStart > 0) {
@@ -136,8 +141,10 @@ object VariantNormalizer extends GlowLogging {
       var firstBaseFromLeftInRefAllele = allAlleles(0)(nLeftTrimBases)
       val minAlleleLength = allAlleles.map(_.length).min
 
-      while (nLeftTrimBases < minAlleleLength - nTrimmedBasesBeforeNextPadding - 1
-        && allAlleles.forall(_(nLeftTrimBases) == firstBaseFromLeftInRefAllele)) {
+      while (
+        nLeftTrimBases < minAlleleLength - nTrimmedBasesBeforeNextPadding - 1
+        && allAlleles.forall(_(nLeftTrimBases) == firstBaseFromLeftInRefAllele)
+      ) {
 
         nLeftTrimBases += 1
 

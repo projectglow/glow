@@ -214,7 +214,9 @@ class LeftOverlapJoinSuite extends OverlapJoinSuite {
       right("end"),
       left("name") === right("name"))
     assert(joined.count() == 5) // All five left rows are present
-    assert(joined.where(right("start").isNull).count() == 2) // Unmatched left rows have no right fields
+    assert(
+      joined.where(right("start").isNull).count() == 2
+    ) // Unmatched left rows have no right fields
     // Unmatched right rows are not present
     assert(
       joined

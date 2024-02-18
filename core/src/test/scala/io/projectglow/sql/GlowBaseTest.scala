@@ -86,7 +86,6 @@ abstract class GlowBaseTest
  * Unit-test patience config to use with unit tests that use scala test's eventually and other
  * asynchronous checks. This will override the default timeout and check interval so they are
  * more likely to pass in highly loaded CI environments.
- *
  */
 trait JenkinsTestPatience extends AbstractPatienceConfiguration with Eventually {
 

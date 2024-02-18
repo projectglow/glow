@@ -66,13 +66,11 @@ object SqlExtensionProvider {
       groups
         .values()
         .asScala
-        .flatMap(
-          group =>
-            group
-              .asScala("functions")
-              .asInstanceOf[JList[JMap[String, Any]]]
-              .asScala
-        )
+        .flatMap(group =>
+          group
+            .asScala("functions")
+            .asInstanceOf[JList[JMap[String, Any]]]
+            .asScala)
     }
   }
 
@@ -107,26 +105,27 @@ object SqlExtensionProvider {
       exprs: collection.Seq[Expression]): Seq[AnyRef] = {
     args
       .zipWithIndex
-      .flatMap {
-        case (_arg: JMap[String, Any], idx: Int) =>
-          val arg = _arg.asScala
-          // If the argument is optional and doesn't have a matching input, don't add a new
-          // expression to the list of children.
-          if (arg
-              .get("is_optional")
-              .exists(_.asInstanceOf[Boolean]) && idx >= exprs.size) {
-            None
-            // If we have a var args argument, the child expressions from here on are part of
-            // the var args list.
-          } else if (arg.get("is_var_args").exists(_.asInstanceOf[Boolean])) {
-            Some(exprs.slice(idx, exprs.size))
-          } else if (idx >= exprs.size) {
-            throw parameterError(functionName, exprs.size)
-          } else if (idx == args.size - 1 && exprs.size != args.size) {
-            throw parameterError(functionName, exprs.size)
-          } else {
-            Some(exprs(idx))
-          }
+      .flatMap { case (_arg: JMap[String, Any], idx: Int) =>
+        val arg = _arg.asScala
+        // If the argument is optional and doesn't have a matching input, don't add a new
+        // expression to the list of children.
+        if (
+          arg
+            .get("is_optional")
+            .exists(_.asInstanceOf[Boolean]) && idx >= exprs.size
+        ) {
+          None
+          // If we have a var args argument, the child expressions from here on are part of
+          // the var args list.
+        } else if (arg.get("is_var_args").exists(_.asInstanceOf[Boolean])) {
+          Some(exprs.slice(idx, exprs.size))
+        } else if (idx >= exprs.size) {
+          throw parameterError(functionName, exprs.size)
+        } else if (idx == args.size - 1 && exprs.size != args.size) {
+          throw parameterError(functionName, exprs.size)
+        } else {
+          Some(exprs(idx))
+        }
       }
       .toSeq
   }

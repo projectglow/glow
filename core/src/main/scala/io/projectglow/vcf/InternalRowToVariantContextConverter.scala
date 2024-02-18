@@ -73,9 +73,11 @@ class InternalRowToVariantContextConverter(
         vcfHeader.getInfoHeaderLine(f.name.stripPrefix(infoFieldPrefix))
       if (headerLine == null) {
         raiseValidationError(s"Column ${f.name} does not have a matching VCF header line")
-      } else if (!VCFSchemaInferrer
+      } else if (
+        !VCFSchemaInferrer
           .typesForHeader(headerLine)
-          .exists(t => SQLUtils.dataTypesEqualExceptNullability(t, f.dataType))) {
+          .exists(t => SQLUtils.dataTypesEqualExceptNullability(t, f.dataType))
+      ) {
         raiseValidationError(
           s"Column ${f.name} has a VCF header line with the same ID, but " +
           s"the types are not compatible. " +
@@ -93,9 +95,11 @@ class InternalRowToVariantContextConverter(
             s"Genotype field ${f.name} does not have a matching VCF header " +
             s"line"
           )
-        } else if (!VCFSchemaInferrer
+        } else if (
+          !VCFSchemaInferrer
             .typesForHeader(headerLine)
-            .exists(t => SQLUtils.dataTypesEqualExceptNullability(t, f.dataType))) {
+            .exists(t => SQLUtils.dataTypesEqualExceptNullability(t, f.dataType))
+        ) {
           raiseValidationError(
             s"Genotype field ${f.name} has a VCF header line with the " +
             s"same ID, but the types are not compatible. " +

@@ -85,9 +85,12 @@ abstract class QuinaryExpression extends Expression {
       ev: ExprCode,
       f: (String, String, String, String, Option[String]) => String
   ): ExprCode = {
-    nullSafeCodeGen(ctx, ev, (eval1, eval2, eval3, eval4, eval5) => {
-      s"${ev.value} = ${f(eval1, eval2, eval3, eval4, eval5)};"
-    })
+    nullSafeCodeGen(
+      ctx,
+      ev,
+      (eval1, eval2, eval3, eval4, eval5) => {
+        s"${ev.value} = ${f(eval1, eval2, eval3, eval4, eval5)};"
+      })
   }
 
   /**

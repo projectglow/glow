@@ -178,8 +178,8 @@ class LinearRegressionSuite extends GlowBaseTest {
       }
     }
 
-    apacheResults.zip(ourResults).foreach {
-      case (ols, db) => compareRegressionStats(ols, db)
+    apacheResults.zip(ourResults).foreach { case (ols, db) =>
+      compareRegressionStats(ols, db)
     }
   }
 

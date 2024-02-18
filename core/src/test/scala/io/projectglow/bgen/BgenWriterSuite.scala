@@ -149,9 +149,8 @@ class BgenWriterSuite extends BgenConverterBaseTest {
       .sort("contigName", "start")
       .collect
       .zip(vcfDs.sort("contigName", "start").collect)
-      .foreach {
-        case (br, vr) =>
-          checkBgenRowsEqual(br, vr, false, bitsPerProb)
+      .foreach { case (br, vr) =>
+        checkBgenRowsEqual(br, vr, false, bitsPerProb)
       }
   }
 

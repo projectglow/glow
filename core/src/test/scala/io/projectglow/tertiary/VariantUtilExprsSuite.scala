@@ -67,14 +67,14 @@ class VariantUtilExprsSuite extends GlowBaseTest {
   case class TestCase(ref: String, alt: String, vt: VariantType)
   val bases = Seq("A", "C", "G", "T")
   val testCases = Seq(
-      TestCase("", "", VariantType.Unknown),
-      TestCase("ACG", "ATG", VariantType.Transition),
-      TestCase("AG", "ATG", VariantType.Insertion),
-      TestCase("AG", "ATCTCAG", VariantType.Insertion),
-      TestCase("ATG", "A", VariantType.Deletion),
-      TestCase("ACTGGGG", "AG", VariantType.Deletion),
-      TestCase("A", "*", VariantType.SpanningDeletion)
-    ) ++
+    TestCase("", "", VariantType.Unknown),
+    TestCase("ACG", "ATG", VariantType.Transition),
+    TestCase("AG", "ATG", VariantType.Insertion),
+    TestCase("AG", "ATCTCAG", VariantType.Insertion),
+    TestCase("ATG", "A", VariantType.Deletion),
+    TestCase("ACTGGGG", "AG", VariantType.Deletion),
+    TestCase("A", "*", VariantType.SpanningDeletion)
+  ) ++
     bases.flatMap(b1 => bases.map((b1, _))).collect {
       case (b1, b2) if b1 != b2 =>
         val sortedBases = Seq(b1, b2).sorted
@@ -85,10 +85,9 @@ class VariantUtilExprsSuite extends GlowBaseTest {
         }
     }
 
-  gridTest("variant type")(testCases) {
-    case TestCase(ref, alt, expected) =>
-      val t = VariantUtilExprs.variantType(UTF8String.fromString(ref), UTF8String.fromString(alt))
-      assert(t == expected)
+  gridTest("variant type")(testCases) { case TestCase(ref, alt, expected) =>
+    val t = VariantUtilExprs.variantType(UTF8String.fromString(ref), UTF8String.fromString(alt))
+    assert(t == expected)
   }
 
   test("add struct field has correct schema") {
@@ -105,9 +104,8 @@ class VariantUtilExprsSuite extends GlowBaseTest {
       ("string", StringType)
     )
     assert(inner.length == fields.size)
-    fields.foreach {
-      case (name, typ) =>
-        assert(inner.exists(f => f.name == name && f.dataType == typ))
+    fields.foreach { case (name, typ) =>
+      assert(inner.exists(f => f.name == name && f.dataType == typ))
     }
   }
 
@@ -282,9 +280,8 @@ class VariantUtilExprsSuite extends GlowBaseTest {
   }
 
   private def assertSeqsMatch(s1: Seq[Double], s2: Seq[Double]): Unit = {
-    s1.zip(s2).foreach {
-      case (d1, d2) =>
-        assert(d1 == d2 || (d1.isNaN && d2.isNaN))
+    s1.zip(s2).foreach { case (d1, d2) =>
+      assert(d1 == d2 || (d1.isNaN && d2.isNaN))
     }
   }
 
@@ -295,21 +292,20 @@ class VariantUtilExprsSuite extends GlowBaseTest {
     ("sparse col major", baseMatrix.toSparseColMajor),
     ("sparse row major", baseMatrix.toSparseRowMajor)
   )
-  gridTest("explode matrix")(matrices) {
-    case (_, matrix) =>
-      import sess.implicits._
-      val exploded = spark
-        .createDataFrame(Seq(Tuple1(matrix)))
-        .selectExpr("explode_matrix(_1)")
-        .as[Seq[Double]]
-        .collect()
-      val expected = Seq(
-        Seq(1, 5, 9),
-        Seq(2, 6, 10),
-        Seq(3, 7, 11),
-        Seq(4, 8, 12)
-      )
-      assert(exploded.toSeq == expected)
+  gridTest("explode matrix")(matrices) { case (_, matrix) =>
+    import sess.implicits._
+    val exploded = spark
+      .createDataFrame(Seq(Tuple1(matrix)))
+      .selectExpr("explode_matrix(_1)")
+      .as[Seq[Double]]
+      .collect()
+    val expected = Seq(
+      Seq(1, 5, 9),
+      Seq(2, 6, 10),
+      Seq(3, 7, 11),
+      Seq(4, 8, 12)
+    )
+    assert(exploded.toSeq == expected)
   }
 
   test("explode matrix (null)") {

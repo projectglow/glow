@@ -241,11 +241,13 @@ object GenotypeFields {
     "alleleDepths" -> "AD"
   )
   val reverseAliases: Map[String, String] = baseReverseAliases ++ Map(
-      "calls" -> "GT",
-      "phased" -> "GT"
-    )
+    "calls" -> "GT",
+    "phased" -> "GT"
+  )
 
-  val aliases: Map[String, Seq[String]] = baseReverseAliases.map { case (k, v) => (v, Seq(k)) } +
+  val aliases: Map[String, Seq[String]] = baseReverseAliases.map { case (k, v) =>
+    (v, Seq(k))
+  } +
     ("GT" -> Seq("phased", "calls"))
 }
 

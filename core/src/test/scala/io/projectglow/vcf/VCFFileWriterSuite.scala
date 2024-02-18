@@ -117,45 +117,40 @@ abstract class VCFFileWriterSuite(val sourceName: String) extends VCFConverterBa
     val (ds, rewrittenDs) = writeAndRereadWithDBParser(NA12878, schemaOption = schema)
     ds.collect()
     rewrittenDs.collect()
-    ds.collect.zip(rewrittenDs.collect).foreach {
-      case (vc1, vc2) =>
-        assert(vc1.equals(vc2), s"VC1\n$vc1\nVC2\n$vc2")
+    ds.collect.zip(rewrittenDs.collect).foreach { case (vc1, vc2) =>
+      assert(vc1.equals(vc2), s"VC1\n$vc1\nVC2\n$vc2")
     }
   }
 
   gridTest("Read multi-sample VCF with VCF parser")(schemaOptions) { schema =>
     val (ds, rewrittenDs) =
       writeAndRereadWithDBParser(s"$testDataHome/vcf/VCFv4.3.vcf", schemaOption = schema)
-    ds.collect.zip(rewrittenDs.collect).foreach {
-      case (vc1, vc2) =>
-        assert(vc1.equals(vc2), s"VC1\n$vc1\nVC2\n$vc2")
+    ds.collect.zip(rewrittenDs.collect).foreach { case (vc1, vc2) =>
+      assert(vc1.equals(vc2), s"VC1\n$vc1\nVC2\n$vc2")
     }
   }
 
   gridTest("Read VEP VCF with VCF parser")(schemaOptions) { schema =>
     val (ds, rewrittenDs) =
       writeAndRereadWithDBParser(s"$testDataHome/vcf/vep.vcf", schemaOption = schema)
-    ds.collect.zip(rewrittenDs.collect).foreach {
-      case (vc1, vc2) =>
-        assert(vc1.equals(vc2), s"VC1 $vc1 VC2 $vc2")
+    ds.collect.zip(rewrittenDs.collect).foreach { case (vc1, vc2) =>
+      assert(vc1.equals(vc2), s"VC1 $vc1 VC2 $vc2")
     }
   }
 
   gridTest("Read Loftee VCF with VCF parser")(schemaOptions) { schema =>
     val (ds, rewrittenDs) =
       writeAndRereadWithDBParser(s"$testDataHome/vcf/loftee.vcf", schemaOption = schema)
-    ds.collect.zip(rewrittenDs.collect).foreach {
-      case (vc1, vc2) =>
-        assert(vc1.equals(vc2), s"VC1 $vc1 VC2 $vc2")
+    ds.collect.zip(rewrittenDs.collect).foreach { case (vc1, vc2) =>
+      assert(vc1.equals(vc2), s"VC1 $vc1 VC2 $vc2")
     }
   }
 
   gridTest("Read SnpEff VCF with VCF parser")(schemaOptions) { schema =>
     val (ds, rewrittenDs) =
       writeAndRereadWithDBParser(s"$testDataHome/vcf/snpeff.vcf", schemaOption = schema)
-    ds.collect.zip(rewrittenDs.collect).foreach {
-      case (vc1, vc2) =>
-        assert(vc1.equals(vc2), s"VC1 $vc1 VC2 $vc2")
+    ds.collect.zip(rewrittenDs.collect).foreach { case (vc1, vc2) =>
+      assert(vc1.equals(vc2), s"VC1 $vc1 VC2 $vc2")
     }
   }
 
@@ -164,9 +159,8 @@ abstract class VCFFileWriterSuite(val sourceName: String) extends VCFConverterBa
       dfWithSampleIds: DataFrame): Unit = {
     val dfWithImputedSampleIds = setSampleIds(dfWithoutSampleIds, "concat('sample_', idx + 1)")
 
-    dfWithImputedSampleIds.collect.zip(dfWithSampleIds.collect).foreach {
-      case (vc1, vc2) =>
-        assert(vc1 == vc2)
+    dfWithImputedSampleIds.collect.zip(dfWithSampleIds.collect).foreach { case (vc1, vc2) =>
+      assert(vc1 == vc2)
     }
   }
 
@@ -204,8 +198,8 @@ abstract class VCFFileWriterSuite(val sourceName: String) extends VCFConverterBa
     df.sort("contigName", "start")
       .collect
       .zip(rewrittenDf.sort("contigName", "start").collect)
-      .foreach {
-        case (vc1, vc2) => assert(vc1 == vc2)
+      .foreach { case (vc1, vc2) =>
+        assert(vc1 == vc2)
       }
   }
 
@@ -224,26 +218,25 @@ abstract class VCFFileWriterSuite(val sourceName: String) extends VCFConverterBa
     )
   }
 
-  Seq(("bgzf", ".bgz"), ("gzip", ".gz")).foreach {
-    case (codecName, extension) =>
-      test(s"Output $codecName compressed file") {
-        val tempFilePath = createTempVcf
+  Seq(("bgzf", ".bgz"), ("gzip", ".gz")).foreach { case (codecName, extension) =>
+    test(s"Output $codecName compressed file") {
+      val tempFilePath = createTempVcf
 
-        val ds = spark.read.format(readSourceName).load(TGP)
-        val outpath = tempFilePath.toString + extension
-        ds.write
-          .format(sourceName)
-          .option("compression", codecName)
-          .save(outpath)
+      val ds = spark.read.format(readSourceName).load(TGP)
+      val outpath = tempFilePath.toString + extension
+      ds.write
+        .format(sourceName)
+        .option("compression", codecName)
+        .save(outpath)
 
-        val outFile = Paths.get(outpath)
-        val filesWritten = if (outFile.toFile.isDirectory) {
-          Files.list(Paths.get(outpath)).collect(Collectors.toList[Path]).asScala.map(_.toString)
-        } else {
-          Seq(outpath)
-        }
-        assert(filesWritten.exists(s => s.endsWith(extension)))
+      val outFile = Paths.get(outpath)
+      val filesWritten = if (outFile.toFile.isDirectory) {
+        Files.list(Paths.get(outpath)).collect(Collectors.toList[Path]).asScala.map(_.toString)
+      } else {
+        Seq(outpath)
       }
+      assert(filesWritten.exists(s => s.endsWith(extension)))
+    }
   }
 
   test("variant context validation settings obey stringency") {
@@ -515,9 +508,8 @@ class MultiFileVCFWriterSuite extends VCFFileWriterSuite("vcf") {
     ds.sort("contigName", "start")
       .collect
       .zip(rewrittenDs.sort("contigName", "start").collect)
-      .foreach {
-        case (vc1, vc2) =>
-          assert(vc1.equals(vc2), s"VC1\n$vc1\nVC2\n$vc2")
+      .foreach { case (vc1, vc2) =>
+        assert(vc1.equals(vc2), s"VC1\n$vc1\nVC2\n$vc2")
       }
   }
 
@@ -773,19 +765,18 @@ class SingleFileVCFWriterSuite extends VCFFileWriterSuite("bigvcf") {
       .drop("genotypes")
       .withColumnRenamed("calledGenotypes", "genotypes")
 
-    df.as[VCFRow].collect.zip(calledRereadDf.as[VCFRow].collect).foreach {
-      case (vc1, vc2) =>
-        var missingSampleIdx = 0
-        val gtsWithSampleIds = vc1.genotypes.map { gt =>
-          if (gt.sampleId.isEmpty) {
-            missingSampleIdx += 1
-            gt.copy(sampleId = Some(s"sample_$missingSampleIdx"))
-          } else {
-            gt
-          }
+    df.as[VCFRow].collect.zip(calledRereadDf.as[VCFRow].collect).foreach { case (vc1, vc2) =>
+      var missingSampleIdx = 0
+      val gtsWithSampleIds = vc1.genotypes.map { gt =>
+        if (gt.sampleId.isEmpty) {
+          missingSampleIdx += 1
+          gt.copy(sampleId = Some(s"sample_$missingSampleIdx"))
+        } else {
+          gt
         }
-        val vc1WithSampleIds = vc1.copy(genotypes = gtsWithSampleIds)
-        assert(vc1WithSampleIds.equals(vc2), s"VC1 $vc1WithSampleIds VC2 $vc2")
+      }
+      val vc1WithSampleIds = vc1.copy(genotypes = gtsWithSampleIds)
+      assert(vc1WithSampleIds.equals(vc2), s"VC1 $vc1WithSampleIds VC2 $vc2")
     }
   }
 

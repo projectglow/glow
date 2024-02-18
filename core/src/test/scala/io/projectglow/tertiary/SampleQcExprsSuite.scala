@@ -155,16 +155,15 @@ class SampleQcExprsSuite extends GlowBaseTest {
   )
   private val testCases = expressionsToTest
     .flatMap(expr => Seq((expr, true), (expr, false)))
-  gridTest("sample ids are propagated if included")(testCases) {
-    case (expr, sampleIds) =>
-      import sess.implicits._
-      val df = readVcf(na12878, sampleIds)
-        .selectExpr(expr)
-      val outputSchema = df.schema
-      assert(outputSchema.exists(_.name == VariantSchemas.sampleIdField.name) == sampleIds)
-      if (sampleIds) {
-        assert(df.select("sampleId").as[String].head == "NA12878")
-      }
+  gridTest("sample ids are propagated if included")(testCases) { case (expr, sampleIds) =>
+    import sess.implicits._
+    val df = readVcf(na12878, sampleIds)
+      .selectExpr(expr)
+    val outputSchema = df.schema
+    assert(outputSchema.exists(_.name == VariantSchemas.sampleIdField.name) == sampleIds)
+    if (sampleIds) {
+      assert(df.select("sampleId").as[String].head == "NA12878")
+    }
   }
 
   private val typeTransformations = Seq(
@@ -176,15 +175,14 @@ class SampleQcExprsSuite extends GlowBaseTest {
     ("referenceAllele", "alternateAlleles", "Reference allele must be a string"),
     ("alternateAlleles", "referenceAllele", "Alternate alleles must be an array of strings")
   )
-  gridTest("type check failures")(typeTransformations) {
-    case (colName, colExpr, error) =>
-      val e = intercept[AnalysisException] {
-        readVcf(na12878)
-          .withColumn(colName, expr(colExpr))
-          .selectExpr("sample_call_summary_stats(genotypes, referenceAllele, alternateAlleles)")
-          .collect()
-      }
-      assert(e.getMessage.contains(error))
+  gridTest("type check failures")(typeTransformations) { case (colName, colExpr, error) =>
+    val e = intercept[AnalysisException] {
+      readVcf(na12878)
+        .withColumn(colName, expr(colExpr))
+        .selectExpr("sample_call_summary_stats(genotypes, referenceAllele, alternateAlleles)")
+        .collect()
+    }
+    assert(e.getMessage.contains(error))
   }
 }
 

@@ -184,11 +184,10 @@ class InternalRowToVariantContextConverterSuite extends VCFConverterBaseTest {
     val htsjdkVcList = reader.iterator.toList.asScala
 
     assert(htsjdkVcList.length == sparkVcList.length)
-    htsjdkVcList.zip(sparkVcList).map {
-      case (htsjdkVc, sparkVc) =>
-        val htsjdkVcStr = htsjdkVc.fullyDecode(header, false).toString
-        val sparkVcStr = sparkVc.fullyDecode(header, false).toString
-        assert(htsjdkVcStr == sparkVcStr, s"\nVC1 $htsjdkVcStr\nVC2 $sparkVcStr")
+    htsjdkVcList.zip(sparkVcList).map { case (htsjdkVc, sparkVc) =>
+      val htsjdkVcStr = htsjdkVc.fullyDecode(header, false).toString
+      val sparkVcStr = sparkVc.fullyDecode(header, false).toString
+      assert(htsjdkVcStr == sparkVcStr, s"\nVC1 $htsjdkVcStr\nVC2 $sparkVcStr")
     }
 
     (sparkVcList, htsjdkVcList, reader.getFileHeader)
