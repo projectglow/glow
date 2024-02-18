@@ -306,29 +306,33 @@ class VariantContextToInternalRowConverter(
         case ArrayType(StringType, _) =>
           val strings = vc.getAttributeAsStringList(realName, "")
           val strList =
-            if (strings.size == 1 && strings
+            if (
+              strings.size == 1 && strings
                 .get(0)
-                .indexOf(VCFConstants.INFO_FIELD_ARRAY_SEPARATOR) > -1) {
+                .indexOf(VCFConstants.INFO_FIELD_ARRAY_SEPARATOR) > -1
+            ) {
               getAttributeArray(vc, realName, UTF8String.fromString)
             } else {
               makeArray(strings, UTF8String.fromString(_))
             }
           new GenericArrayData(strList)
         case ArrayType(IntegerType, _) =>
-          val intList = try {
-            vc.getAttributeAsIntList(realName, 0).asScala
-          } catch {
-            case _: NumberFormatException =>
-              getAttributeArray(vc, realName, Integer.valueOf)
-          }
+          val intList =
+            try {
+              vc.getAttributeAsIntList(realName, 0).asScala
+            } catch {
+              case _: NumberFormatException =>
+                getAttributeArray(vc, realName, Integer.valueOf)
+            }
           new GenericArrayData(intList)
         case ArrayType(DoubleType, _) =>
-          val doubleList = try {
-            vc.getAttributeAsDoubleList(realName, 0).asScala
-          } catch {
-            case _: NumberFormatException =>
-              getAttributeArray(vc, realName, VCFUtils.parseVcfDouble)
-          }
+          val doubleList =
+            try {
+              vc.getAttributeAsDoubleList(realName, 0).asScala
+            } catch {
+              case _: NumberFormatException =>
+                getAttributeArray(vc, realName, VCFUtils.parseVcfDouble)
+            }
           new GenericArrayData(doubleList)
         case a: ArrayType if a.elementType.isInstanceOf[StructType] =>
           // Annotation (eg. CSQ, ANN)
@@ -549,9 +553,9 @@ class VariantContextToInternalRowConverter(
     case other: Any => converter(parseObjectAsString(other))
   }
 
-  private def obj2array[T <: AnyRef, R <: AnyVal](converter: String => T)(
-      obj: Object,
-      primitiveConverter: Option[R => T] = None)(implicit ct: ClassTag[T]): Array[Any] =
+  private def obj2array[T <: AnyRef, R <: AnyVal](
+      converter: String => T)(obj: Object, primitiveConverter: Option[R => T] = None)(implicit
+      ct: ClassTag[T]): Array[Any] =
     obj match {
       case null => null
       case VCFConstants.MISSING_VALUE_v4 => null

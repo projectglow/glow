@@ -78,28 +78,27 @@ object BigBgenDatasource extends HlsEventRecorder {
       rawRdd
     }
 
-    inputRdd.mapPartitionsWithIndex {
-      case (idx, it) =>
-        val baos = new ByteArrayOutputStream()
+    inputRdd.mapPartitionsWithIndex { case (idx, it) =>
+      val baos = new ByteArrayOutputStream()
 
-        val writeHeader = idx == 0
-        val writer = new BgenRecordWriter(
-          baos,
-          dSchema,
-          writeHeader,
-          numVariants,
-          parsedOptions.bitsPerProb,
-          parsedOptions.maxPloidy,
-          parsedOptions.defaultPloidy,
-          parsedOptions.defaultPhasing
-        )
+      val writeHeader = idx == 0
+      val writer = new BgenRecordWriter(
+        baos,
+        dSchema,
+        writeHeader,
+        numVariants,
+        parsedOptions.bitsPerProb,
+        parsedOptions.maxPloidy,
+        parsedOptions.defaultPloidy,
+        parsedOptions.defaultPhasing
+      )
 
-        it.foreach { row =>
-          writer.write(row)
-        }
+      it.foreach { row =>
+        writer.write(row)
+      }
 
-        writer.close()
-        Iterator(baos.toByteArray)
+      writer.close()
+      Iterator(baos.toByteArray)
     }
   }
 }

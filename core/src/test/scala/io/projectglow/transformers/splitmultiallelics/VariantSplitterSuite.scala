@@ -71,9 +71,8 @@ class VariantSplitterSuite extends GlowBaseTest with GlowLogging {
         dfSplitVariants
           .select(dfSplitVariantsColumns.head, dfSplitVariantsColumns.tail: _*)
           .collect)
-      .foreach {
-        case (rowExp, rowSplit) =>
-          assert(rowExp.equals(rowSplit), s"Expected\n$rowExp\nSplit\n$rowSplit")
+      .foreach { case (rowExp, rowSplit) =>
+        assert(rowExp.equals(rowSplit), s"Expected\n$rowExp\nSplit\n$rowSplit")
       }
   }
 
@@ -116,15 +115,20 @@ class VariantSplitterSuite extends GlowBaseTest with GlowLogging {
       .map(name => if (name.contains(".")) s"`${name}`" else name)
 
     dfExpected
-      .select(dfOriginalInfoColumns.head, dfOriginalInfoColumns.tail: _*) // make order of columns the same
+      .select(
+        dfOriginalInfoColumns.head,
+        dfOriginalInfoColumns.tail: _*
+      ) // make order of columns the same
       .collect
       .zip(
         dfSplitInfo
-          .select(dfOriginalInfoColumns.head, dfOriginalInfoColumns.tail: _*) // make order of columns the same
+          .select(
+            dfOriginalInfoColumns.head,
+            dfOriginalInfoColumns.tail: _*
+          ) // make order of columns the same
           .collect)
-      .foreach {
-        case (rowExp, rowSplit) =>
-          assert(rowExp.equals(rowSplit), s"Expected\n$rowExp\nSplit\n$rowSplit")
+      .foreach { case (rowExp, rowSplit) =>
+        assert(rowExp.equals(rowSplit), s"Expected\n$rowExp\nSplit\n$rowSplit")
       }
 
     // Check if other columns after splitting are the same as original
@@ -134,15 +138,20 @@ class VariantSplitterSuite extends GlowBaseTest with GlowLogging {
       .map(name => if (name.contains(".")) s"`${name}`" else name)
 
     dfOriginal
-      .select(dfOriginalNonInfoColumns.head, dfOriginalNonInfoColumns.tail: _*) // make order of columns the same
+      .select(
+        dfOriginalNonInfoColumns.head,
+        dfOriginalNonInfoColumns.tail: _*
+      ) // make order of columns the same
       .collect
       .zip(
         dfSplitInfo
-          .select(dfOriginalNonInfoColumns.head, dfOriginalNonInfoColumns.tail: _*) // make order of columns the same
+          .select(
+            dfOriginalNonInfoColumns.head,
+            dfOriginalNonInfoColumns.tail: _*
+          ) // make order of columns the same
           .collect)
-      .foreach {
-        case (rowOrig, rowSplit) =>
-          assert(rowOrig.equals(rowSplit), s"Expected\n$rowOrig\nNormalized\n$rowSplit")
+      .foreach { case (rowOrig, rowSplit) =>
+        assert(rowOrig.equals(rowSplit), s"Expected\n$rowOrig\nNormalized\n$rowSplit")
       }
   }
 
@@ -186,9 +195,8 @@ class VariantSplitterSuite extends GlowBaseTest with GlowLogging {
         dfSplitGenotype
           .select(genotypesFieldName)
           .collect)
-      .foreach {
-        case (rowExp, rowSplit) =>
-          assert(rowExp.equals(rowSplit), s"Expected\n$rowExp\nSplit\n$rowSplit")
+      .foreach { case (rowExp, rowSplit) =>
+        assert(rowExp.equals(rowSplit), s"Expected\n$rowExp\nSplit\n$rowSplit")
       }
 
     // Check if other columns after splitting are the same as original
@@ -204,9 +212,8 @@ class VariantSplitterSuite extends GlowBaseTest with GlowLogging {
         dfSplitGenotype
           .drop(genotypesFieldName)
           .collect)
-      .foreach {
-        case (rowOrig, rowSplit) =>
-          assert(rowOrig.equals(rowSplit), s"Expected\n$rowOrig\nNormalized\n$rowSplit")
+      .foreach { case (rowOrig, rowSplit) =>
+        assert(rowOrig.equals(rowSplit), s"Expected\n$rowOrig\nNormalized\n$rowSplit")
       }
   }
 

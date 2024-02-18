@@ -49,10 +49,9 @@ object VCFSchemaInferrer {
       formatHeaders: collection.Seq[VCFFormatHeaderLine]): StructType = {
     val validatedInfoHeaders = validateHeaders(infoHeaders.toSeq)
     val withInfoFields = if (flattenInfoFields) {
-      validatedInfoHeaders.foldLeft(VariantSchemas.vcfBaseSchema) {
-        case (schema, line) =>
-          val field = getInfoFieldStruct(line)
-          schema.add(field)
+      validatedInfoHeaders.foldLeft(VariantSchemas.vcfBaseSchema) { case (schema, line) =>
+        val field = getInfoFieldStruct(line)
+        schema.add(field)
       }
     } else {
       VariantSchemas.vcfBaseSchema.add(StructField("attributes", MapType(StringType, StringType)))
@@ -79,9 +78,8 @@ object VCFSchemaInferrer {
         "Must have same number of header line struct names and types"
       )
       val metadata = metadataForLine(line)
-      names.zip(types).foreach {
-        case (n, t) =>
-          genotypeStruct = genotypeStruct.add(StructField(n, t, metadata = metadata))
+      names.zip(types).foreach { case (n, t) =>
+        genotypeStruct = genotypeStruct.add(StructField(n, t, metadata = metadata))
       }
     }
     genotypeStruct
@@ -256,13 +254,12 @@ object VCFSchemaInferrer {
   private def validateHeaders[A <: VCFCompoundHeaderLine](headers: Seq[A]): Seq[A] = {
     headers
       .groupBy(line => line.getID)
-      .map {
-        case (id, lines) =>
-          if (!lines.tail.forall(_.equalsExcludingDescription(lines.head))) {
-            // Some headers with same key but different types
-            throw new IllegalArgumentException(s"VCF headers with id $id have incompatible schemas")
-          }
-          lines.head
+      .map { case (id, lines) =>
+        if (!lines.tail.forall(_.equalsExcludingDescription(lines.head))) {
+          // Some headers with same key but different types
+          throw new IllegalArgumentException(s"VCF headers with id $id have incompatible schemas")
+        }
+        lines.head
       }
       .toSeq
   }

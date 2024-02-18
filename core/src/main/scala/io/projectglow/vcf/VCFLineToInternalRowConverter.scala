@@ -96,22 +96,21 @@ class VCFLineToInternalRowConverter(
     schema =>
       schema
         .zipWithIndex
-        .flatMap {
-          case (gf, idx) =>
-            if (SQLUtils.structFieldsEqualExceptNullability(gf, VariantSchemas.sampleIdField)) {
-              sampleIdIdx = idx
-              None
-            } else if (SQLUtils.structFieldsEqualExceptNullability(gf, VariantSchemas.callsField)) {
-              callsIdx = idx
-              None
-            } else if (SQLUtils.structFieldsEqualExceptNullability(gf, VariantSchemas.phasedField)) {
-              phasedIdx = idx
-              None
-            } else {
-              val vcfName = GenotypeFields.reverseAliases.getOrElse(gf.name, gf.name)
-              val typ = gf.dataType
-              Some((UTF8String.fromString(vcfName), (typ, idx)))
-            }
+        .flatMap { case (gf, idx) =>
+          if (SQLUtils.structFieldsEqualExceptNullability(gf, VariantSchemas.sampleIdField)) {
+            sampleIdIdx = idx
+            None
+          } else if (SQLUtils.structFieldsEqualExceptNullability(gf, VariantSchemas.callsField)) {
+            callsIdx = idx
+            None
+          } else if (SQLUtils.structFieldsEqualExceptNullability(gf, VariantSchemas.phasedField)) {
+            phasedIdx = idx
+            None
+          } else {
+            val vcfName = GenotypeFields.reverseAliases.getOrElse(gf.name, gf.name)
+            val typ = gf.dataType
+            Some((UTF8String.fromString(vcfName), (typ, idx)))
+          }
         }
         .toMap
   }
@@ -136,9 +135,8 @@ class VCFLineToInternalRowConverter(
 
     set(row, splitFromMultiIdx, false)
     // By default, FLAG fields should be false
-    flagFields.foreach {
-      case (key, (typ, idx)) =>
-        set(row, idx, false)
+    flagFields.foreach { case (key, (typ, idx)) =>
+      set(row, idx, false)
     }
 
     val ctx = new LineCtx(line)
@@ -320,8 +318,10 @@ class LineCtx(text: Text) {
 
   def parseString(extraStopChar1: Byte = '\u0000', extraStopChar2: Byte = '\u0000'): UTF8String = {
     var stop = pos
-    while (stop < text.getLength && line(stop) != delimiter && line(stop) != '\t' && line(stop) != extraStopChar1 && line(
-        stop) != extraStopChar2) {
+    while (
+      stop < text.getLength && line(stop) != delimiter && line(stop) != '\t' && line(
+        stop) != extraStopChar1 && line(stop) != extraStopChar2
+    ) {
       stop += 1
     }
 
@@ -480,10 +480,12 @@ class LineCtx(text: Text) {
       toGenericArrayData(parseIntArray())
     } else if (SQLUtils.dataTypesEqualExceptNullability(typ, ArrayType(DoubleType))) {
       toGenericArrayData(parseDoubleArray())
-    } else if (typ.isInstanceOf[ArrayType] && typ
+    } else if (
+      typ.isInstanceOf[ArrayType] && typ
         .asInstanceOf[ArrayType]
         .elementType
-        .isInstanceOf[StructType]) {
+        .isInstanceOf[StructType]
+    ) {
       val strings = parseStringArray()
       val list = new util.ArrayList[String](strings.length)
       var i = 0

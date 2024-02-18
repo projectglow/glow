@@ -113,18 +113,17 @@ class VariantContextToInternalRowConverterSuite extends VCFConverterBaseTest {
     val htsjdkVcfRowList = convertToVCFRows(htsjdkVcList.map(converter.convertRow(_, false)).toSeq)
 
     assert(sparkVcfRowList.length == htsjdkVcfRowList.length)
-    sparkVcfRowList.zip(htsjdkVcfRowList).map {
-      case (sparkVcfRow, htsjdkVcfRow) =>
+    sparkVcfRowList.zip(htsjdkVcfRowList).map { case (sparkVcfRow, htsjdkVcfRow) =>
+      assert(
+        sparkVcfRow.copy(qual = None) == htsjdkVcfRow.copy(qual = None),
+        s"\nVC1 $sparkVcfRow\nVC2 $htsjdkVcfRow"
+      )
+      if (sparkVcfRow.qual.isDefined) {
         assert(
-          sparkVcfRow.copy(qual = None) == htsjdkVcfRow.copy(qual = None),
-          s"\nVC1 $sparkVcfRow\nVC2 $htsjdkVcfRow"
+          sparkVcfRow.qual.get ~== htsjdkVcfRow.qual.get relTol 0.2,
+          s"VC1 qual ${sparkVcfRow.qual.get} VC2 qual ${htsjdkVcfRow.qual.get}"
         )
-        if (sparkVcfRow.qual.isDefined) {
-          assert(
-            sparkVcfRow.qual.get ~== htsjdkVcfRow.qual.get relTol 0.2,
-            s"VC1 qual ${sparkVcfRow.qual.get} VC2 qual ${htsjdkVcfRow.qual.get}"
-          )
-        }
+      }
     }
   }
 
@@ -349,9 +348,8 @@ class VariantContextToInternalRowConverterSuite extends VCFConverterBaseTest {
     (Array(0.2, 2.4, 4.8), "0.2,2.4,4.8")
   )
 
-  gridTest("Convert objects to strings")(objectsParsedAsStrings) {
-    case (obj, str) =>
-      val parsedObj = VariantContextToInternalRowConverter.parseObjectAsString(obj)
-      assert(parsedObj == str)
+  gridTest("Convert objects to strings")(objectsParsedAsStrings) { case (obj, str) =>
+    val parsedObj = VariantContextToInternalRowConverter.parseObjectAsString(obj)
+    assert(parsedObj == str)
   }
 }

@@ -264,8 +264,8 @@ case class HardyWeinberg(genotypes: Expression, genotypeInfo: Option[GenotypeInf
       calls => {
         s"""
          |${ev.value} = $fn($calls, ${getGenotypeInfo.size}, ${getGenotypeInfo
-             .requiredFieldIndices
-             .head});
+          .requiredFieldIndices
+          .head});
        """.stripMargin
       }
     )
@@ -315,8 +315,8 @@ case class CallStats(genotypes: Expression, genotypeInfo: Option[GenotypeInfo])
       calls => {
         s"""
          |${ev.value} = $fn($calls, ${getGenotypeInfo.size}, ${getGenotypeInfo
-             .requiredFieldIndices
-             .head});
+          .requiredFieldIndices
+          .head});
        """.stripMargin
       }
     )
@@ -361,11 +361,14 @@ case class ArrayStatsSummary(array: Expression)
   override def dataType: StructType = MomentAggState.schema
 
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    nullSafeCodeGen(ctx, ev, c => {
-      s"""
+    nullSafeCodeGen(
+      ctx,
+      ev,
+      c => {
+        s"""
          |${ev.value} = io.projectglow.sql.expressions.VariantQcExprs.arraySummaryStats($c);
        """.stripMargin
-    })
+      })
   }
 
   override def nullSafeEval(input: Any): Any = {

@@ -124,12 +124,12 @@ class VCFPiperSuite extends VCFConverterBaseTest {
     import sess.implicits._
 
     val options = baseTextOptions ++ Map(
-        "in_vcfHeader" -> "infer",
-        "cmd" -> """["printenv"]""",
-        "env_animal" -> "monkey",
-        "env_a" -> "b",
-        "env_c" -> "D",
-        "envE" -> "F")
+      "in_vcfHeader" -> "infer",
+      "cmd" -> """["printenv"]""",
+      "env_animal" -> "monkey",
+      "env_a" -> "b",
+      "env_c" -> "D",
+      "envE" -> "F")
     val df = readVcf(na12878)
     val output = Glow
       .transform("pipe", df, options)
@@ -147,9 +147,9 @@ class VCFPiperSuite extends VCFConverterBaseTest {
     assert(df.count == 4)
 
     val options = baseTextOptions ++ Map(
-        "cmd" -> """["wc", "-l"]""",
-        "inVcfHeader" -> na12878
-      )
+      "cmd" -> """["wc", "-l"]""",
+      "inVcfHeader" -> na12878
+    )
     val output = Glow.transform("pipe", df, options)
     assert(output.count() == 4)
     assert(output.rdd.getNumPartitions == 8)
