@@ -28,6 +28,7 @@ import org.apache.spark.sql.catalyst.util.{ArrayData, GenericArrayData}
 import org.apache.spark.sql.types._
 
 import io.projectglow.SparkShim.newUnresolvedException
+import scala.IterableOnce
 
 /**
  * Expands all the fields of a potentially unnamed struct.
@@ -109,7 +110,7 @@ case class ExplodeMatrix(matrixExpr: Expression)
 
   override def inputTypes = Seq(matrixUdt) // scalastyle:ignore
 
-  override def eval(input: InternalRow): TraversableOnce[InternalRow] = {
+  override def eval(input: InternalRow): IterableOnceIterableOnce[InternalRow] = {
     val matrixStruct = matrixExpr.eval(input)
     if (matrixStruct == null) {
       return Iterator.empty
