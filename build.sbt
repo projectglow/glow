@@ -176,7 +176,7 @@ lazy val coreDependencies = settingKey[Seq[ModuleID]]("coreDependencies")
 ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDependencies.value ++ Seq(
   "org.seqdoop" % "hadoop-bam" % "7.10.0",
   "org.slf4j" % "slf4j-api" % "2.0.10",
-  "org.jdbi" % "jdbi" % "2.63.1",
+  "org.jdbi" % "jdbi" % "2.78",
   "com.github.broadinstitute" % "picard" % "2.27.5",
   "org.apache.commons" % "commons-lang3" % "3.14.0",
   // Fix versions of libraries that are depended on multiple times
