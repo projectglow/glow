@@ -152,7 +152,7 @@ ThisBuild / sparkDependencies := Seq(
   "org.apache.spark" %% "spark-catalyst" % sparkVersion.value,
   "org.apache.spark" %% "spark-core" % sparkVersion.value,
   "org.apache.spark" %% "spark-mllib" % sparkVersion.value,
-  "org.apache.spark" %% "spark-sql" % sparkVersion.value
+  "org.apache.spark" %% "spark-sql" % sparkVersion.value,
 )
 
 ThisBuild / providedSparkDependencies := sparkDependencies.value.map(_ % "provided")

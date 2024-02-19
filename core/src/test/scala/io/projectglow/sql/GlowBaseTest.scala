@@ -17,7 +17,7 @@
 package io.projectglow.sql
 
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.DebugFilesystem
+import org.apache.spark.{DebugFilesystem, SparkConf}
 import org.scalatest.concurrent.{AbstractPatienceConfiguration, Eventually}
 import org.scalatest.time.{Milliseconds, Seconds, Span}
 import org.scalatest.{Args, Status, Tag}

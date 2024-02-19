@@ -43,9 +43,6 @@ class GlowBase {
   def register(spark: SparkSession, newSession: Boolean = true): SparkSession = {
     val sess = if (newSession) spark.newSession() else spark
     new GlowSQLExtensions().apply(SQLUtils.getSessionExtensions(sess))
-    SqlExtensionProvider.registerFunctions(
-      sess.sessionState.conf,
-      sess.sessionState.functionRegistry)
 
     // Decrease the parquet columnar batch size (often necessary for large cohorts)
     sess.conf.set("spark.sql.parquet.columnarReaderBatchSize", "16")

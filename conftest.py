@@ -44,10 +44,12 @@ def spark_builder():
 
 # Set up a new Spark session for each test suite
 @pytest.fixture(scope="module")
-def spark(spark_builder):
-    print("set up new spark session")
+def raw_spark(spark_builder):
+    print("Set up new Spark session")
     sess = spark_builder.getOrCreate()
-    return sess.newSession()
+    yield sess.newSession()
+    print('Stopping Spark session')
+    sess.stop()
 
 def pytest_addoption(parser):
     parser.addoption('--random-seed', action='store', type=int, help='Seed to use for random number generator')
