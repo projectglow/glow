@@ -16,8 +16,10 @@ from setuptools import setup, setuptools
 import imp
 from pathlib import Path
 
+
 def relative_file(path):
     return (Path(__file__).parent / path).as_posix()
+
 
 version = imp.load_source('version', relative_file('version.py')).VERSION
 
