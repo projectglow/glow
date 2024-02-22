@@ -130,7 +130,9 @@ object SqlExtensionProvider {
   /**
    * Register SQL functions based on a yaml function definition file.
    */
-  def registerFunctions(functionRegistry: SparkSessionExtensions, resourcePath: String = FUNCTION_YAML_PATH): Unit = {
+  def registerFunctions(
+      functionRegistry: SparkSessionExtensions,
+      resourcePath: String = FUNCTION_YAML_PATH): Unit = {
 
     loadFunctionDefinitions(resourcePath).foreach { _function =>
       val function = _function.asScala
