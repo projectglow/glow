@@ -21,9 +21,11 @@ import org.apache.spark.sql.catalyst.expressions.codegen.CodegenFallback
 import org.apache.spark.sql.catalyst.expressions.{BinaryExpression, Expression, Literal, UnaryExpression}
 import org.apache.spark.sql.types.{DataType, IntegerType}
 import io.projectglow.GlowSuite
-import org.apache.spark.sql.SQLUtils
+import org.apache.spark.sql.test.SharedSparkSession
+import org.apache.spark.sql.{SQLUtils, SparkSession}
 
-class SqlExtensionProviderSuite extends GlowSuite {
+class SqlExtensionProviderSuite extends SharedSparkSession with JenkinsTestPatience {
+  private lazy val sess = spark
   override def beforeEach(): Unit = {
     super.beforeEach()
     SqlExtensionProvider.registerFunctions(
@@ -31,9 +33,12 @@ class SqlExtensionProviderSuite extends GlowSuite {
       "test-functions.yml")
   }
 
-  private lazy val sess = spark
+
   test("one arg function") {
     import sess.implicits._
+    SqlExtensionProvider.registerFunctions(
+      SQLUtils.getSessionExtensions(spark),
+      "test-functions.yml")
     assert(spark.range(1).selectExpr("one_arg_test(id)").as[Int].head() == 1)
 
     intercept[IllegalArgumentException] {
