@@ -77,7 +77,7 @@ val testJavaOptions = Vector(
 // Spark session used by many tasks cannot be used concurrently.
 val testConcurrency = 1
 Test / fork := true
-concurrentRestrictions in Global := Seq(
+Global / concurrentRestrictions := Seq(
   Tags.limit(Tags.ForkedTestGroup, testConcurrency)
 )
 

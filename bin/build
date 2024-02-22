@@ -1,0 +1,88 @@
+#!/usr/bin/env python
+import argparse
+from pathlib import Path
+import subprocess
+import sys
+import re
+import os
+import glob
+import datetime
+from databricks.sdk import WorkspaceClient
+from databricks.sdk.service.compute import Library, LibraryFullStatusStatus, State
+
+def run_cmd(cmd):
+    try:
+        return subprocess.run(cmd, check=True, text=True, capture_output=True)
+    except subprocess.CalledProcessError as e:
+        error_str = f'Command "{" ".join(cmd)}" returned code {e.returncode}\n\nStdout:\n{e.stdout}\n\nStderr:\n{e.stderr}'
+        sys.exit(e.returncode)
+
+def uninstall_if_matches(w, cluster_id, name, lib_type):
+    libs = [l for l in w.libraries.cluster_status(cluster_id) if l.status == LibraryFullStatusStatus.INSTALLED]
+    libs = [l.library for l in libs if lib_type in l.library.as_dict() and name in l.library.as_dict()[lib_type]]
+    if len(libs) == 0:
+        return False
+    print(f'Uninstalling existing libraries {", ".join([l.as_dict()[lib_type] for l in libs])} from cluster')
+    w.libraries.uninstall(cluster_id, libs)
+    return True
+
+def main(args):
+    project_root = Path(__file__).parent.parent
+    os.chdir(project_root)
+    setup_py = 'python/setup.py'
+    
+    whl_path = None
+    if args.python:
+        out = run_cmd(['python', setup_py, 'bdist_wheel'])
+        whl_path = 'python/dist/' + re.search(r'glow\.py\S+\.whl', out.stdout).group(0)
+        print(f'Built Python wheel {Path(whl_path).resolve()}')
+    
+    jar_path = None
+    if args.scala:
+        out = run_cmd(['sbt', 'core/assembly'])
+        core_target_dir = re.search(r'core/\S+/scala-[.\d]+/', out.stdout).group(0)
+        jars = glob.glob(core_target_dir + '*assembly*.jar')
+        jar_path = max(jars, key=os.path.getctime)
+        print(f'Built Scala assembly jar {Path(jar_path).resolve()}')
+    
+    if args.install:
+        now = datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S,%f')
+        remote_fname_prefix = f'dbfs:/FileStore/glow/{now}'
+        print(f'Uploading artifacts to {remote_fname_prefix}')
+        client = WorkspaceClient()
+
+        uninstalled_lib = False
+        if jar_path is not None:
+            jar_name = jar_path.split('/')[-1]
+            uninstalled_lib = uninstall_if_matches(client, args.install, jar_name, 'jar') or uninstalled_lib
+            remote_path = f'{remote_fname_prefix}/{jar_name}'
+            with open(jar_path, 'rb') as f:
+                client.dbfs.upload(remote_path, f)
+                f.close()
+            client.libraries.install(args.install, [Library(jar=remote_path)])
+            print(f'Installed jar {remote_path}')
+
+        if whl_path is not None:
+            whl_name = whl_path.split('/')[-1]
+            uninstalled_lib = uninstall_if_matches(client, args.install, whl_name, 'whl') or uninstalled_lib
+            remote_path = f'{remote_fname_prefix}/{whl_name}'
+            with open(whl_path, 'rb') as f:
+                client.dbfs.upload(remote_path, f)
+                f.close()
+            client.libraries.install(args.install, [Library(whl=remote_path)])
+            print(f'Installed whl {remote_path}')
+
+        if uninstalled_lib and client.clusters.get(args.install).state in [State.RUNNING, State.RESIZING]:
+            print(f'Restarting cluster so new libraries will take effect')
+            client.clusters.restart(args.install)
+
+parser = argparse.ArgumentParser(description='''
+                                 A script to build Glow artifacts and install them on a Databricks cluster. This script assumes that
+                                 the local environment is already set up (conda environment, sbt and Java installation) for whichever artifacts are requested, and
+                                 if installation is requested, the cluster already exists. 
+                                 Any artifacts uploaded to DBFS are not automatically deleted. Deletion should be performed manually or with a cloud storage retention policy.''')
+parser.add_argument('--python', help='Build a Python wheel', action='store_true')
+parser.add_argument('--scala', help='Build a Scala assembly jar', action='store_true')
+parser.add_argument('--install', metavar='CLUSTER_ID', help='If provided, install built artifacts on this cluster. If currently running, the cluster will be restarted. ' + 
+                    'Databricks authentication must be provided via environment variables')
+main(parser.parse_args())
