@@ -17,12 +17,12 @@ from pyspark.sql import functions, Row
 import pytest
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="module", autouse=True)
 def spark(doctest_namespace, raw_spark):
-    glow.register(raw_spark, new_session=False)
+    spark = glow.register(raw_spark)
     doctest_namespace['Row'] = Row
     doctest_namespace['spark'] = spark
     doctest_namespace['lit'] = functions.lit
     doctest_namespace['col'] = functions.col
     doctest_namespace['glow'] = glow
-    return raw_spark
+    return spark
