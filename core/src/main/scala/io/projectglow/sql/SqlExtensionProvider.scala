@@ -17,10 +17,8 @@
 package io.projectglow.sql
 
 import java.util.{List => JList, Map => JMap}
-
 import scala.collection.JavaConverters._
-
-import org.apache.spark.sql.{SQLUtils, SparkSessionExtensions}
+import org.apache.spark.sql.{SQLUtils, SparkSessionExtensions, SparkSessionExtensionsProvider}
 import org.apache.spark.sql.catalyst.FunctionIdentifier
 import org.apache.spark.sql.catalyst.analysis.FunctionRegistry
 import org.apache.spark.sql.catalyst.expressions.Expression
@@ -28,7 +26,6 @@ import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.internal.SQLConf
 import org.yaml.snakeyaml.Yaml
-
 import io.projectglow.SparkShim._
 import io.projectglow.common.WithUtils
 import io.projectglow.sql.expressions._
@@ -36,16 +33,15 @@ import io.projectglow.sql.optimizer.{ReplaceExpressionsRule, ResolveExpandStruct
 
 // TODO(hhd): Spark 3.0 allows extensions to register functions. After Spark 3.0 is released,
 // we should move all extensions into this class.
-class GlowSQLExtensions extends (SparkSessionExtensions => Unit) {
-  val resolutionRules: Seq[Rule[LogicalPlan]] =
+class GlowSQLExtensions extends SparkSessionExtensionsProvider {
+  private val resolutionRules: Seq[Rule[LogicalPlan]] =
     Seq(ResolveExpandStructRule, ResolveGenotypeFields, ReplaceExpressionsRule)
-  val optimizations: Seq[Rule[LogicalPlan]] = Seq()
 
-  def apply(extensions: SparkSessionExtensions): Unit = {
+  override def apply(extensions: SparkSessionExtensions): Unit = {
     resolutionRules.foreach { r =>
       extensions.injectResolutionRule(_ => r)
     }
-    optimizations.foreach(r => extensions.injectOptimizerRule(_ => r))
+    SqlExtensionProvider.registerFunctions(extensions)
   }
 }
 
@@ -134,8 +130,7 @@ object SqlExtensionProvider {
    * Register SQL functions based on a yaml function definition file.
    */
   def registerFunctions(
-      conf: SQLConf,
-      functionRegistry: FunctionRegistry,
+      functionRegistry: SparkSessionExtensions,
       resourcePath: String = FUNCTION_YAML_PATH): Unit = {
 
     loadFunctionDefinitions(resourcePath).foreach { _function =>
@@ -153,7 +148,7 @@ object SqlExtensionProvider {
         "",
         function("since").asInstanceOf[String]
       )
-      functionRegistry.registerFunction(
+      functionRegistry.injectFunction(
         id,
         info,
         exprs => {
