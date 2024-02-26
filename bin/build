@@ -26,16 +26,27 @@ def uninstall_if_matches(w, cluster_id, name, lib_type):
     w.libraries.uninstall(cluster_id, libs)
     return True
 
+class ChDir(object):
+    def __init__(self, dir):
+        self.dir = dir
+        self.olddir = os.getcwd()
+     
+    def __enter__(self):
+        os.chdir(self.dir)
+ 
+    def __exit__(self, *args):
+        os.chdir(self.olddir)
+
 def main(args):
     project_root = Path(__file__).parent.parent
     os.chdir(project_root)
-    setup_py = 'python/setup.py'
     
     whl_path = None
     if args.python:
-        out = run_cmd(['python', setup_py, 'bdist_wheel'])
-        whl_path = 'python/dist/' + re.search(r'glow\.py\S+\.whl', out.stdout).group(0)
-        print(f'Built Python wheel {Path(whl_path).resolve()}')
+        with ChDir('python'):
+            out = run_cmd(['python', 'setup.py', 'bdist_wheel'])
+            whl_path = str(project_root / ('python/dist/' + re.search(r'glow\.py\S+\.whl', out.stdout).group(0)))
+            print(f'Built Python wheel {Path(whl_path).resolve()}')
     
     jar_path = None
     if args.scala:
