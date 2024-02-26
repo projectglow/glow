@@ -33,7 +33,6 @@ class SqlExtensionProviderSuite extends SharedSparkSession with JenkinsTestPatie
       "test-functions.yml")
   }
 
-
   test("one arg function") {
     import sess.implicits._
     SqlExtensionProvider.registerFunctions(
