@@ -137,5 +137,5 @@ RUN cd /opt/bedtools-${BEDTOOLS_VERSION} && make
 
 # Install Glow
 RUN mkdir /databricks/jars
-RUN curl --output-dir /databricks/jars https://github.com/projectglow/glow/releases/download/v2.0.0/glow-2.0.0.jar
-RUN curl https://github.com/projectglow/glow/releases/download/v2.0.0/glow-2.0.0-py3.whl -o glow.py-2.0.0-py3-none-any.whl && /databricks/python3/bin/pip install glow.py-2.0.0-py3-none-any.whl
+RUN wget -P /databricks/jars https://github.com/projectglow/glow/releases/download/v2.0.0/glow-spark3-assembly-2.0.0.jar
+RUN wget https://github.com/projectglow/glow/releases/download/v2.0.0/glow.py-2.0.0-py3-none-any.whl && /databricks/python3/bin/pip install glow.py-2.0.0-py3-none-any.whl
