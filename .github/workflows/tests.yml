@@ -58,7 +58,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        shell: bash
+        shell: bash -el {0}
     strategy:
       matrix:
         spark_version: [3.4.1, 3.5.0]
