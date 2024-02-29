@@ -117,6 +117,15 @@ jobs:
       - name: Docs tests
         run: sbt docs/test exit
 
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            ~/glow/core/target/scala-2.13/test-reports
+            ~/glow/unit-tests.log
+
+
   spark-4-tests:
     runs-on: ubuntu-latest
     defaults:
@@ -164,9 +173,21 @@ jobs:
 
       - name: Scala tests
         run: sbt core/test exit
+
+      - name: Uninstall PySpark
+        run: pip uninstall -y pyspark
       
       - name: Python tests
         run: EXTRA_PYTHON_PATH=$HOME/spark/python sbt python/test exit
       
       - name: Docs tests
         run: EXTRA_PYTHON_PATH=$HOME/spark/python sbt docs/test exit
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        if: success() || failure()
+        with:
+          name: test-results
+          path: |
+            ~/glow/core/target/scala-2.13/test-reports
+            ~/glow/unit-tests.log
