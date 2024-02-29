@@ -17,12 +17,13 @@
 package io.projectglow
 
 import java.util.ServiceLoader
-
 import scala.collection.JavaConverters._
 import com.fasterxml.jackson.databind.ObjectMapper
 import com.fasterxml.jackson.module.scala.DefaultScalaModule
+import htsjdk.samtools.util.Log
+import htsjdk.samtools.util.Log.LogLevel
 import org.apache.spark.sql.{DataFrame, SQLUtils, SparkSession}
-import io.projectglow.common.Named
+import io.projectglow.common.{GlowLogging, Named}
 import io.projectglow.sql.util.BGZFCodec
 import io.projectglow.sql.{GlowSQLExtensions, SqlExtensionProvider}
 import io.projectglow.transformers.util.{SnakeCaseMap, StringUtils}
@@ -35,7 +36,7 @@ import io.projectglow.vcf.VCFFileFormat
  * We should expose as little functionality as is necessary through this object and should prefer
  * generic methods with stringly-typed arguments to reduce language-specific maintenance burden.
  */
-class GlowBase {
+class GlowBase extends GlowLogging {
 
   val mapper = new ObjectMapper()
   mapper.registerModule(DefaultScalaModule)
@@ -52,6 +53,7 @@ class GlowBase {
     sess.conf.set("io.compression.codecs", compressionCodecsWithBGZ(spark))
     // Expressions that use ExpectsGenotypeFields do not support pruning
     sess.conf.set("spark.sql.optimizer.nestedSchemaPruning.enabled", "false")
+    Log.setGlobalLogLevel(LogLevel.ERROR)
     sess
   }
 
