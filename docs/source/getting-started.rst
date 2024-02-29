@@ -173,6 +173,12 @@ can be used to integrate with command line tools. You can ensure that these reso
 are available on every node in a cluster by using `Databricks Container Services <https://docs.databricks.com/en/compute/custom-containers.html>`_
 or `init scripts <https://docs.databricks.com/en/init-scripts/index.html>`_.
 
+For example, the following :download:`Dockerfile <_static/docker/Dockerfile>` based on DBR 14.3 LTS includes Glow, various bioinformatics tools, and a liftover chain file. You can modify this file to install whatever resources
+you require.
+
+.. literalinclude:: _static/docker/Dockerfile
+   :language: sh
+
 Notebooks embedded in the docs
 ------------------------------
 
