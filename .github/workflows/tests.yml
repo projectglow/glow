@@ -13,46 +13,51 @@ on:
 jobs:
   check-docs:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
 
       - name: Install Conda
-        run: |
-          if [ ! -d "$HOME/conda" ]; then
-            wget https://repo.anaconda.com/miniconda/Miniconda3-py38_23.11.0-2-Linux-x86_64.sh
-            /bin/bash Miniconda3-py38_23.11.0-2-Linux-x86_64.sh -b -p $HOME/conda
-          else
-            echo "Conda already installed"
-          fi
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          conda-solver: libmamba
+          activate-environment: glow-docs
 
-      - name: Set up Conda environment
-        run: |
-          export PATH=$HOME/conda/bin:$PATH
-          conda install -n base conda-libmamba-solver
-          conda config --set solver libmamba
-          conda env create -f python/environment.yml
-          conda env create -f docs/source/environment.yml
+      - name: Cache Conda env
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.CONDA }}/envs
+          key:
+            conda-${{ hashFiles('docs/source/environment.yml') }}-${{ env.CACHE_NUMBER }}
+        env:
+          # Increase this value to reset cache if etc/example-environment.yml has not changed
+          CACHE_NUMBER: 0
+        id: cache
+
+      - name: Update environment
+        run:
+          conda env update -n glow-docs -f docs/source/environment.yml
+        if: steps.cache.outputs.cache-hit != 'true'
 
       - name: Install Certs
         run: sudo apt-get install -y ca-certificates
 
       - name: Check docs links
-        run: |
-          export PATH=$HOME/conda/envs/glow-docs/bin:$PATH
-          cd docs
-          make linkcheck
+        run: (cd docs && make linkcheck)
 
-      - name: Configure Databricks CLI
-        run: |
-          printf "[docs-ci]\nhost = https://adb-984752964297111.11.azuredatabricks.net\ntoken = ${{ secrets.DATABRICKS_API_TOKEN }}\njobs-api-version = 2.1\n" > ~/.databrickscfg
+      # - name: Configure Databricks CLI
+      #   run: |
+      #     printf "[docs-ci]\nhost = https://adb-984752964297111.11.azuredatabricks.net\ntoken = ${{ secrets.DATABRICKS_API_TOKEN }}\njobs-api-version = 2.1\n" > ~/.databrickscfg
 
-      - name: Generate notebook source files
-        run: |
-          export PATH=$HOME/conda/envs/glow/bin:$PATH
-          for f in $(find docs/source/_static/notebooks -type f -name '*.html'); do
-              python docs/dev/gen-nb-src.py --html "${f}" --cli-profile docs-ci
-          done
+      # - name: Generate notebook source files
+      #   run: |
+      #     export PATH=$HOME/conda/envs/glow/bin:$PATH
+      #     for f in $(find docs/source/_static/notebooks -type f -name '*.html'); do
+      #         python docs/dev/gen-nb-src.py --html "${f}" --cli-profile docs-ci
+      #     done
 
   spark-tests:
     runs-on: ubuntu-latest
@@ -81,7 +86,6 @@ jobs:
       - name: Install Conda
         uses: conda-incubator/setup-miniconda@v3
         with:
-          environment-file: python/environment.yml
           conda-solver: libmamba
           activate-environment: glow
 
@@ -112,3 +116,57 @@ jobs:
       
       - name: Docs tests
         run: sbt docs/test exit
+
+  spark-4-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+    env:
+      SPARK_VERSION: 4.0.0-SNAPSHOT
+      SCALA_VERSION: 2.13.12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'adopt'
+          java-version: '8'
+          cache: 'sbt'
+          cache-dependency-path: 'build.sbt'
+
+      - name: Install Conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          conda-solver: libmamba
+          activate-environment: glow-spark4
+
+      - name: Cache Conda env
+        uses: actions/cache@v3
+        with:
+          path: ${{ env.CONDA }}/envs
+          key:
+            conda-${{ hashFiles('python/spark-4-environment.yml') }}-${{ env.CACHE_NUMBER }}
+        env:
+          # Increase this value to reset cache if etc/example-environment.yml has not changed
+          CACHE_NUMBER: 0
+        id: cache
+
+      - name: Update environment
+        run:
+          conda env update -n glow-spark4 -f python/spark-4-environment.yml
+        if: steps.cache.outputs.cache-hit != 'true'
+
+      - name: Clone Spark (for PySpark source)
+        run: (cd $HOME && git clone https://github.com/apache/spark.git)
+
+      - name: Scala tests
+        run: sbt core/test exit
+      
+      - name: Python tests
+        run: EXTRA_PYTHON_PATH=$HOME/spark/python sbt python/test exit
+      
+      - name: Docs tests
+        run: EXTRA_PYTHON_PATH=$HOME/spark/python sbt docs/test exit
