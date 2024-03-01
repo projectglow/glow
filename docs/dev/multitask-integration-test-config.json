@@ -414,10 +414,6 @@
                     "enable_elastic_disk": true,
                     "docker_image": {
                         "url": "projectglow/databricks-glow:1.2.1",
-                        "basic_auth": {
-                            "username": "projectglow",
-                            "password": "%(dockerhub_password)s"
-                        }
                     },
                     "data_security_mode": "NONE",
                     "num_workers": 2
@@ -440,10 +436,6 @@
                     "enable_elastic_disk": true,
                     "docker_image": {
                         "url": "projectglow/databricks-glow:1.2.1",
-                        "basic_auth": {
-                            "username": "projectglow",
-                            "password": "%(dockerhub_password)s"
-                        }
                     },
                     "data_security_mode": "NONE",
                     "num_workers": 0
@@ -466,10 +458,6 @@
                     "enable_elastic_disk": true,
                     "docker_image": {
                         "url": "projectglow/databricks-hail:0.2.85",
-                        "basic_auth": {
-                            "username": "projectglow",
-                            "password": "%(dockerhub_password)s"
-                        }
                     },
                     "data_security_mode": "NONE",
                     "num_workers": 2
@@ -492,10 +480,6 @@
                     "enable_elastic_disk": true,
                     "docker_image": {
                         "url": "projectglow/databricks-hail:0.2.85",
-                        "basic_auth": {
-                            "username": "projectglow",
-                            "password": "%(dockerhub_password)s"
-                        }
                     },
                     "data_security_mode": "NONE",
                     "num_workers": 2
