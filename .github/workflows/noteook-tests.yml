@@ -48,7 +48,12 @@ jobs:
 
       - name: Configure Databricks CLI
         run: |
-          printf "[docs-ci]\nhost = https://adb-984752964297111.11.azuredatabricks.net\ntoken = ${{ env.DATABRICKS_API_TOKEN }}\njobs-api-version = 2.1\n" > ~/.databrickscfg
+          cat <<EOF >$HOME/.databrickscfg
+          [docs-ci]
+          host = https://adb-984752964297111.11.azuredatabricks.net
+          token = $DATABRICKS_API_TOKEN
+          jobs-api-version = 2.1
+          EOF
 
       - name: Upload results
         uses: actions/upload-artifact@v4
