@@ -45,6 +45,14 @@ jobs:
         run: |
           printf "[docs-ci]\nhost = https://adb-984752964297111.11.azuredatabricks.net\ntoken = ${{ env.DATABRICKS_API_TOKEN }}\njobs-api-version = 2.1\n" > ~/.databrickscfg
 
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        if: success() || failure()
+        with:
+          name: databricks-cfg
+          path: |
+            ~/.databrickscfg
+
       - name: Run all notebook tests
         run: |
           python docs/dev/run-nb-test.py --cli-profile docs-ci
