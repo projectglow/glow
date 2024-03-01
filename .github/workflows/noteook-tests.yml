@@ -4,7 +4,7 @@ on:
   schedule:
     - cron: "0 0 * * *"
 # TODO(hhd): Remove this before merging
-  pull_request:
+  pull_request_target:
     branches:
       - main
 
