@@ -55,6 +55,9 @@ jobs:
           jobs-api-version = 2.1
           EOF
 
+      - name: cat cfg
+        run: cat $HOME/.databrickscfg
+
       - name: Upload results
         uses: actions/upload-artifact@v4
         if: success() || failure()
