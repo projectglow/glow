@@ -17,6 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DATABRICKS_API_TOKEN: ${{ secrets.DATABRICKS_API_TOKEN }}
+      TEST_TOKEN: monkey
     defaults:
       run:
         shell: bash -el {0}
@@ -51,7 +52,8 @@ jobs:
           cat <<EOF >$HOME/.databrickscfg
           [docs-ci]
           host = https://adb-984752964297111.11.azuredatabricks.net
-          token = $DATABRICKS_API_TOKEN
+          token = $DOES_NOT_EXIST
+          token = $TEST_TOKEN
           jobs-api-version = 2.1
           EOF
 
