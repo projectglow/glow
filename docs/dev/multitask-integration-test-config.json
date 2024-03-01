@@ -413,7 +413,7 @@
                     "node_type_id": "Standard_E4d_v4",
                     "enable_elastic_disk": true,
                     "docker_image": {
-                        "url": "projectglow/databricks-glow:1.2.1",
+                        "url": "projectglow/databricks-glow:1.2.1"
                     },
                     "data_security_mode": "NONE",
                     "num_workers": 2
@@ -435,7 +435,7 @@
                     "node_type_id": "Standard_DS3_v2",
                     "enable_elastic_disk": true,
                     "docker_image": {
-                        "url": "projectglow/databricks-glow:1.2.1",
+                        "url": "projectglow/databricks-glow:1.2.1"
                     },
                     "data_security_mode": "NONE",
                     "num_workers": 0
@@ -457,7 +457,7 @@
                     "node_type_id": "Standard_E4d_v4",
                     "enable_elastic_disk": true,
                     "docker_image": {
-                        "url": "projectglow/databricks-hail:0.2.85",
+                        "url": "projectglow/databricks-hail:0.2.85"
                     },
                     "data_security_mode": "NONE",
                     "num_workers": 2
@@ -479,7 +479,7 @@
                     "node_type_id": "Standard_E4d_v4",
                     "enable_elastic_disk": true,
                     "docker_image": {
-                        "url": "projectglow/databricks-hail:0.2.85",
+                        "url": "projectglow/databricks-hail:0.2.85"
                     },
                     "data_security_mode": "NONE",
                     "num_workers": 2
