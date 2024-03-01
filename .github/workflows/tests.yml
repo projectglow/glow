@@ -1,9 +1,9 @@
 name: Tests
 
 on:
-  # pull_request:
-  #   branches:
-      # - main
+  pull_request:
+    branches:
+      - main
   schedule:
     - cron: "0 0 * * *"
 
@@ -14,8 +14,6 @@ concurrency:
 jobs:
   check-docs:
     runs-on: ubuntu-latest
-    env:
-      DATABRICKS_API_TOKEN: ${{ secrets.DATABRICKS_API_TOKEN }}
     defaults:
       run:
         shell: bash -el {0}
@@ -51,34 +49,6 @@ jobs:
       - name: Check docs links
         run: (cd docs && make linkcheck)
 
-      - name: Configure Databricks CLI
-        run: |
-          printf "[docs-ci]\nhost = https://adb-984752964297111.11.azuredatabricks.net\ntoken = ${{ env.DATABRICKS_API_TOKEN }}\njobs-api-version = 2.1\n" > ~/.databrickscfg
-
-      - name: Upload results
-        uses: actions/upload-artifact@v4
-        if: success() || failure()
-        with:
-          name: databricks-cfg
-          path: |
-            ~/.databrickscfg
-
-      - name: Generate notebook source files
-        run: |
-          export PATH=$HOME/conda/envs/glow/bin:$PATH
-          for f in $(find docs/source/_static/notebooks -type f -name '*.html'); do
-              python docs/dev/gen-nb-src.py --html "${f}" --cli-profile docs-ci
-          done
-
-      - name: Verify that repo is clean
-        run: |
-          if [[ -n $(git status --short) ]]; then
-            echo "Working directory was not clean!"
-            git status
-            false
-          else
-            true
-          fi
 
   spark-tests:
     runs-on: ubuntu-latest

@@ -1,12 +1,9 @@
 name: Notebook-tests
 
 on:
+  workflow_dispatch:
   schedule:
     - cron: "0 0 * * *"
-# TODO(hhd): Remove this before merging
-  pull_request_target:
-    branches:
-      - main
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -55,16 +52,22 @@ jobs:
         env:
             DATABRICKS_API_TOKEN: ${{ secrets.DATABRICKS_API_TOKEN }}
 
-      - name: cat cfg
-        run: cat $HOME/.databrickscfg
+      - name: Generate notebook source files
+        run: |
+          export PATH=$HOME/conda/envs/glow/bin:$PATH
+          for f in $(find docs/source/_static/notebooks -type f -name '*.html'); do
+              python docs/dev/gen-nb-src.py --html "${f}" --cli-profile docs-ci
+          done
 
-      - name: Upload results
-        uses: actions/upload-artifact@v4
-        if: success() || failure()
-        with:
-          name: databricks-cfg
-          path: |
-            ~/.databrickscfg
+      - name: Verify that repo is clean
+        run: |
+          if [[ -n $(git status --short) ]]; then
+            echo "Working directory was not clean!"
+            git status
+            false
+          else
+            true
+          fi
 
       - name: Run all notebook tests
         run: |
