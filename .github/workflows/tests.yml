@@ -49,7 +49,7 @@ jobs:
 
       - name: Configure Databricks CLI
         run: |
-          printf "[docs-ci]\nhost = https://adb-984752964297111.11.azuredatabricks.net\ntoken = $DATABRICKS_API_TOKEN\njobs-api-version = 2.1\n" > ~/.databrickscfg
+          printf "[docs-ci]\nhost = https://adb-984752964297111.11.azuredatabricks.net\ntoken = ${{ env.DATABRICKS_API_TOKEN }}\njobs-api-version = 2.1\n" > ~/.databrickscfg
 
       - name: Generate notebook source files
         run: |

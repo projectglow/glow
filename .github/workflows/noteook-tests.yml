@@ -10,6 +10,8 @@ on:
 jobs:
   notebook-tests:
     runs-on: ubuntu-latest
+    env:
+      DATABRICKS_API_TOKEN: ${{ secrets.DATABRICKS_API_TOKEN }}
     defaults:
       run:
         shell: bash -el {0}
@@ -21,7 +23,7 @@ jobs:
         uses: conda-incubator/setup-miniconda@v3
         with:
           conda-solver: libmamba
-          activate-environment: glow-docs
+          activate-environment: glow
 
       - name: Cache Conda env
         uses: actions/cache@v3
@@ -39,6 +41,9 @@ jobs:
           conda env update -n glow -f python/environment.yml
         if: steps.cache.outputs.cache-hit != 'true'
 
+      - name: Configure Databricks CLI
+        run: |
+          printf "[docs-ci]\nhost = https://adb-984752964297111.11.azuredatabricks.net\ntoken = ${{ env.DATABRICKS_API_TOKEN }}\njobs-api-version = 2.1\n" > ~/.databrickscfg
 
       - name: Run all notebook tests
         run: |
