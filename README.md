@@ -17,7 +17,7 @@
 
 Glow is an open-source toolkit to enable bioinformatics at biobank-scale and beyond.
 
-[![CircleCI](https://circleci.com/gh/projectglow/glow.svg?style=svg)](https://circleci.com/gh/projectglow/glow)
+[![Tests](https://github.com/projectglow/glow/actions/workflows/tests.yml/badge.svg)](https://github.com/projectglow/glow/actions/workflows/tests.yml)
 [![Documentation
 Status](https://readthedocs.org/projects/glow/badge/?version=latest)](https://glow.readthedocs.io/en/latest/?badge=latest)
 [![PyPi](https://img.shields.io/pypi/v/glow.py.svg)](https://pypi.org/project/glow.py/)
