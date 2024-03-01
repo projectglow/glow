@@ -1,0 +1,74 @@
+name: Notebook-tests
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  notebook-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -el {0}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+
+      - name: Install Conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          conda-solver: libmamba
+          activate-environment: glow
+
+      - name: Cache Conda env
+        uses: actions/cache@v3
+        with:
+          path: /usr/share/miniconda/envs/glow
+          key:
+            conda-${{ hashFiles('python/environment.yml') }}-${{ env.CACHE_NUMBER }}
+        env:
+          # Increase this value to reset cache if etc/example-environment.yml has not changed
+          CACHE_NUMBER: 0
+        id: cache
+
+      - name: Update environment
+        run:
+          conda env update -n glow -f python/environment.yml
+        if: steps.cache.outputs.cache-hit != 'true'
+
+      - name: Configure Databricks CLI
+        run: |
+          cat <<EOF >$HOME/.databrickscfg
+          [docs-ci]
+          host = https://adb-984752964297111.11.azuredatabricks.net
+          token = $DATABRICKS_API_TOKEN
+          jobs-api-version = 2.1
+          EOF
+        env:
+            DATABRICKS_API_TOKEN: ${{ secrets.DATABRICKS_API_TOKEN }}
+
+      - name: Generate notebook source files
+        run: |
+          export PATH=$HOME/conda/envs/glow/bin:$PATH
+          for f in $(find docs/source/_static/notebooks -type f -name '*.html'); do
+              python docs/dev/gen-nb-src.py --html "${f}" --cli-profile docs-ci
+          done
+
+      - name: Verify that repo is clean
+        run: |
+          if [[ -n $(git status --short) ]]; then
+            echo "Working directory was not clean!"
+            git status
+            false
+          else
+            true
+          fi
+
+      - name: Run all notebook tests
+        run: |
+          python docs/dev/run-nb-test.py --cli-profile docs-ci
