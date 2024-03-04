@@ -57,8 +57,9 @@ jobs:
         shell: bash -el {0}
     strategy:
       matrix:
+
         spark_version: [3.4.1, 3.5.1]
-        scala_version: [2.12.18]
+        scala_version: [2.12.15]
     env:
       SPARK_VERSION: ${{ matrix.spark_version }}
       SCALA_VERSION: ${{ matrix.scala_version }}
@@ -72,7 +73,9 @@ jobs:
           distribution: 'adopt'
           java-version: '8'
           cache: 'sbt'
-          cache-dependency-path: 'build.sbt'
+          cache-dependency-path: |
+            build.sbt
+            plugins.sbt
 
       - name: Install Conda
         uses: conda-incubator/setup-miniconda@v3
@@ -100,7 +103,7 @@ jobs:
         run: pip install pyspark==${{ matrix.spark_version }}
 
       - name: Scala tests
-        run: sbt core/test exit
+        run: sbt compile coverage core/test core/coverageReport exit
       
       - name: Python tests
         run: sbt python/test exit
@@ -114,8 +117,24 @@ jobs:
         with:
           name: test-results
           path: |
-            ~/glow/core/target/scala-2.13/test-reports
+            ~/glow/core/target/**/test-reports
             ~/glow/unit-tests.log
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.xml, *scoverage.xml
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: unittests
+          verbose: true
+
+  # Dummy job so that required statuses don't need to change with Spark / scala matrix
+  spark-tests-success:
+    runs-on: ubuntu-latest
+    needs: spark-tests
+    steps:
+    - run: echo "Spark tests passed!"
 
 
   spark-4-tests:
@@ -137,7 +156,9 @@ jobs:
           distribution: 'adopt'
           java-version: '17'
           cache: 'sbt'
-          cache-dependency-path: 'build.sbt'
+          cache-dependency-path: |
+            build.sbt
+            plugins.sbt
 
       - name: Install Conda
         uses: conda-incubator/setup-miniconda@v3
@@ -182,5 +203,15 @@ jobs:
         with:
           name: test-results
           path: |
-            ~/glow/core/target/scala-2.13/test-reports
+            ~/glow/core/target/**/test-reports
             ~/glow/unit-tests.log
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        with:
+          files: ./coverage.xml, *scoverage.xml
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: unittests
+          verbose: true

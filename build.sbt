@@ -8,7 +8,7 @@ import sbt.librarymanagement.ModuleID
 import sbt.nio.Keys._
 
 // Scala version used by DBR 13.3 LTS and 14.0
-lazy val scala212 = "2.12.18"
+lazy val scala212 = "2.12.15"
 lazy val scala213 = "2.13.12"
 
 lazy val spark3 = "3.5.1"
@@ -47,6 +47,8 @@ ThisBuild / licenses += ("Apache-2.0", new URL("https://www.apache.org/licenses/
 // Compile Java sources before Scala sources, so Scala code can depend on Java
 // but not vice versa
 Compile / compileOrder := CompileOrder.JavaThenScala
+
+ThisBuild / coverageEnabled := true
 
 // Java options passed to Scala and Python tests
 val testJavaOptions = Vector(
@@ -294,7 +296,7 @@ lazy val python =
       functionGenerationSettings,
       Test / test := {
         yapf.toTask(" --diff").value
-        pytest.toTask(s" --doctest-modules python").value
+        pytest.toTask(s" --doctest-modules --cov=glow --cov-report xml --cov-report term python").value
       },
       generatedFunctionsOutput := baseDirectory.value / "glow" / "functions.py",
       functionsTemplate := baseDirectory.value / "glow" / "functions.py.TEMPLATE",
