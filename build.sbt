@@ -8,7 +8,7 @@ import sbt.librarymanagement.ModuleID
 import sbt.nio.Keys._
 
 // Scala version used by DBR 13.3 LTS and 14.0
-lazy val scala212 = "2.12.18"
+lazy val scala212 = "2.12.19"
 lazy val scala213 = "2.13.12"
 
 lazy val spark3 = "3.5.0"
@@ -151,7 +151,7 @@ ThisBuild / sparkDependencies := Seq(
   "org.apache.spark" %% "spark-catalyst" % sparkVersion.value,
   "org.apache.spark" %% "spark-core" % sparkVersion.value,
   "org.apache.spark" %% "spark-mllib" % sparkVersion.value,
-  "org.apache.spark" %% "spark-sql" % sparkVersion.value,
+  "org.apache.spark" %% "spark-sql" % sparkVersion.value
 )
 
 ThisBuild / providedSparkDependencies := sparkDependencies.value.map(_ % "provided")
