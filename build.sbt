@@ -48,6 +48,8 @@ ThisBuild / licenses += ("Apache-2.0", new URL("https://www.apache.org/licenses/
 // but not vice versa
 Compile / compileOrder := CompileOrder.JavaThenScala
 
+ThisBuild / coverageEnabled := true
+
 // Java options passed to Scala and Python tests
 val testJavaOptions = Vector(
   "-XX:+IgnoreUnrecognizedVMOptions",
@@ -294,7 +296,7 @@ lazy val python =
       functionGenerationSettings,
       Test / test := {
         yapf.toTask(" --diff").value
-        pytest.toTask(s" --doctest-modules python").value
+        pytest.toTask(s" --doctest-modules --cov=glow --cov-report xml --cov-report term python").value
       },
       generatedFunctionsOutput := baseDirectory.value / "glow" / "functions.py",
       functionsTemplate := baseDirectory.value / "glow" / "functions.py.TEMPLATE",

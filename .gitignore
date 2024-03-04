@@ -42,3 +42,7 @@ Miniconda3*.sh
 
 # Metadata from sbt locally
 .bsp
+
+# Python coverage results
+.coverage
+coverage.xml

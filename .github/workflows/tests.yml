@@ -100,7 +100,7 @@ jobs:
         run: pip install pyspark==${{ matrix.spark_version }}
 
       - name: Scala tests
-        run: sbt core/test exit
+        run: sbt compile coverage core/test core/coverageReport exit
       
       - name: Python tests
         run: sbt python/test exit
@@ -114,8 +114,18 @@ jobs:
         with:
           name: test-results
           path: |
-            ~/glow/core/target/scala-2.13/test-reports
+            ~/glow/core/target/**/test-reports
             ~/glow/unit-tests.log
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        with:
+          files: ./coverage.xml, *scoverage.xml
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: unittests
+          verbose: true
 
 
   spark-4-tests:
@@ -182,5 +192,15 @@ jobs:
         with:
           name: test-results
           path: |
-            ~/glow/core/target/scala-2.13/test-reports
+            ~/glow/core/target/**/test-reports
             ~/glow/unit-tests.log
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        with:
+          files: ./coverage.xml, *scoverage.xml
+          fail_ci_if_error: true
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: unittests
+          verbose: true
