@@ -130,6 +130,13 @@ jobs:
           flags: unittests
           verbose: true
 
+  # Dummy job so that required statuses don't need to change with Spark / scala matrix
+  spark-tests-success:
+    runs-on: ubuntu-latest
+    needs: spark-tests
+    steps:
+    - run: echo "Spark tests passed!"
+
 
   spark-4-tests:
     runs-on: ubuntu-latest
