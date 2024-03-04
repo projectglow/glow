@@ -72,7 +72,9 @@ jobs:
           distribution: 'adopt'
           java-version: '8'
           cache: 'sbt'
-          cache-dependency-path: 'build.sbt'
+          cache-dependency-path: |
+            build.sbt
+            plugins.sbt
 
       - name: Install Conda
         uses: conda-incubator/setup-miniconda@v3
@@ -147,7 +149,9 @@ jobs:
           distribution: 'adopt'
           java-version: '17'
           cache: 'sbt'
-          cache-dependency-path: 'build.sbt'
+          cache-dependency-path: |
+            build.sbt
+            plugins.sbt
 
       - name: Install Conda
         uses: conda-incubator/setup-miniconda@v3
