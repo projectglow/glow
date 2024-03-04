@@ -11,7 +11,7 @@ import sbt.nio.Keys._
 lazy val scala212 = "2.12.15"
 lazy val scala213 = "2.13.12"
 
-lazy val spark3 = "3.5.0"
+lazy val spark3 = "3.5.1"
 lazy val spark4 = "4.0.0-SNAPSHOT"
 
 lazy val sparkVersion = settingKey[String]("sparkVersion")
@@ -153,7 +153,7 @@ ThisBuild / sparkDependencies := Seq(
   "org.apache.spark" %% "spark-catalyst" % sparkVersion.value,
   "org.apache.spark" %% "spark-core" % sparkVersion.value,
   "org.apache.spark" %% "spark-mllib" % sparkVersion.value,
-  "org.apache.spark" %% "spark-sql" % sparkVersion.value,
+  "org.apache.spark" %% "spark-sql" % sparkVersion.value
 )
 
 ThisBuild / providedSparkDependencies := sparkDependencies.value.map(_ % "provided")
