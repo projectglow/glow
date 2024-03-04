@@ -4,8 +4,14 @@ on:
   pull_request:
     branches:
       - main
+  push:
+    branches:
+      - main
+    tags:
+      - '**'
   schedule:
     - cron: "0 0 * * *"
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -208,7 +214,6 @@ jobs:
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         with:
           files: ./coverage.xml, *scoverage.xml
           fail_ci_if_error: true
