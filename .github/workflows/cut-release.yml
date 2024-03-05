@@ -29,16 +29,24 @@ jobs:
             git config --global user.name "glow-release[bot]"
             git config --global user.email "glow-release-bot@noreply.projectglow.io"
 
-        - name: Cut release with SBT
+        - name: Update version files for release
           run: |
-           sbt 'set releaseType := "cutRelease"' 'release release-version ${{ inputs.release-version }} next-version ${{ inputs.next-version }}'
+            echo "${{ inputs.release-version }}" > stable-version.txt
+            sed -i "s/^VERSION =.*/VERSION = '${{ inputs.release-version }}'/" python/version.py
+            echo 'ThisBuild / version := "${{ inputs.release-version }}"' > version.sbt
+            git add stable-version.txt python/version.py version.sbt
+            git commit -m "Update version for release ${{ inputs.release-version }}" -s
 
-        - name: Update Python version file
-          run: |
-           sed -i "s/^VERSION =.*/VERSION = '${{ inputs.release-version }}'/" python/version.py
+        - name: Create release tag
+          run: git tag v${{ inputs.release-version }}
 
         - name: Push release tag
           run: git push origin v${{ inputs.release-version }}
+
+        - name: Update versions for next release
+          run: |
+            sed -i "s/^VERSION =.*/VERSION = '${{ inputs.next-version }}-SNAPSHOT'/" python/version.py
+            echo 'ThisBuild / version := "${{ inputs.next-version }}-SNAPSHOT"' > version.sbt
 
         - name: Open pull request for next version
           uses: peter-evans/create-pull-request@v6
@@ -47,3 +55,4 @@ jobs:
             branch: releases/${{ inputs.release-version }}
             title: Update development version to ${{ inputs.next-version }}
             body: Automatically created by the "Cut release" workflow
+            commit-message: Update development versions
