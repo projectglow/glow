@@ -391,18 +391,6 @@ def sonatypeSteps(): Seq[ReleaseStep] = Seq(
   releaseStepCommandAndRemaining("sonatypeBundleUpload")
 )
 
-val cutRelease = Seq[ReleaseStep](
-  checkSnapshotDependencies,
-  inquireVersions,
-  setReleaseVersion,
-  updateStableVersion,
-  commitReleaseVersion,
-  commitStableVersion,
-  tagRelease,
-  setNextVersion,
-  commitNextVersion
-)
-
 val doRelease = Seq[ReleaseStep](
   checkSnapshotDependencies,
   inquireVersions,
@@ -415,13 +403,4 @@ val doRelease = Seq[ReleaseStep](
 sonatypeSteps ++
 crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test"), requiresPySpark = false)
 
-lazy val releaseType = settingKey[String]("releaseType")
-ThisBuild / releaseType := "cutRelease"
-
-releaseProcess := {
-  (ThisBuild / releaseType).value match {
-    case "cutRelease" => cutRelease
-    case "doRelease" => doRelease
-    case _ => throw new RuntimeException("Invalid release type")
-  }
-}
+releaseProcess := doRelease
