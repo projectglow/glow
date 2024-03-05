@@ -31,6 +31,13 @@ object StableVersionPlugin extends AutoPlugin {
      * Commits the stable version file changes.
      */
     val commitStableVersion: ReleaseStep = commitFileStep(stableCommitMessage, stableVersionFile)
+
+    val checkRepoClean: ReleaseStep = { st: State =>
+      if ("git update-index --really-refresh".! != 0 || "git diff-index --quiet HEAD".! != 0) {
+        sys.error("Repo was not clean. Make sure the provided version matches the committed version files.")
+      }
+      st
+    }
   }
 
   import autoImport._
