@@ -39,6 +39,6 @@ jobs:
           # run: |
           #   git push origin main
           #   git push origin v${{ inputs.release-version }}
-          run: 
+          run: |
             git push origin main
             git push origin v2.0.1-test
