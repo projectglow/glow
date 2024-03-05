@@ -32,7 +32,11 @@ jobs:
         - name: Cut release with SBT
           run: "sbt 'set releaseType := \"cutRelease\"' 'release release-version ${{ inputs.release-version }} next-version ${{ inputs.next-version }}'"
 
-        - name: Push main and release tag
-          run: |
-            git push origin main
-            git push origin v${{ inputs.release-version }}
+        - name: Push release tag
+          run: git push origin v${{ inputs.release-version }}
+
+        - name: Open pull request for next version
+          uses: peter-evans/create-pull-request@v6
+          with:
+            signoff: true
+            branch: releases/${{ inputs.release-version }}
