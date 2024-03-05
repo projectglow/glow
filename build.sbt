@@ -166,7 +166,7 @@ ThisBuild / testCoreDependencies := Seq(
     case "4" => "org.scalatest" %% "scalatest" % "3.2.17" % "test"
     case _ => throw new IllegalArgumentException("Only Spark 3 is supported")
   },
-  "org.mockito" % "mockito-all" % "1.9.5" % "test",
+  "org.mockito" % "mockito-all" % "1.10.19" % "test",
   "org.apache.spark" %% "spark-catalyst" % sparkVersion.value % "test" classifier "tests",
   "org.apache.spark" %% "spark-core" % sparkVersion.value % "test" classifier "tests",
   "org.apache.spark" %% "spark-mllib" % sparkVersion.value % "test" classifier "tests",
