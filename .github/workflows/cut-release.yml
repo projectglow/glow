@@ -9,7 +9,7 @@ on:
       next-version:
         description: "Next version"
         required: true
-  pull_request:
+  pull_request_target:
 
 
 jobs:
