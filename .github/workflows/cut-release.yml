@@ -27,4 +27,7 @@ jobs:
         - name: Cut release with SBT
           run: "sbt set releaseType := \"cutRelease\" release release-version ${{ github.events.inputs.release-version }} next-version ${{ github.events.inputs.next-version }}"
 
-        - name: 
+        - name: Push main and release tag
+          run: |
+            git push origin main
+            git push origin v${{ github.events.inputs.release-version }}
