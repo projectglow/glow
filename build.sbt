@@ -366,6 +366,7 @@ import ReleaseTransformations._
 
 // Don't use sbt-release's cross facility
 releaseCrossBuild := false
+releaseVcsSignOff := true
 
 lazy val updateCondaEnv = taskKey[Unit]("Update Glow Env To Latest Version")
 updateCondaEnv := {

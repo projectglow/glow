@@ -30,7 +30,12 @@ jobs:
             git config --global user.email "glow-release-bot@noreply.projectglow.io"
 
         - name: Cut release with SBT
-          run: "sbt 'set releaseType := \"cutRelease\"' 'release release-version ${{ inputs.release-version }} next-version ${{ inputs.next-version }}'"
+          run: |
+           sbt 'set releaseType := "cutRelease"' 'release release-version ${{ inputs.release-version }} next-version ${{ inputs.next-version }}'
+
+        - name: Update Python version file
+          run: |
+           sed -i "s/^VERSION =.*/VERSION = '${{ inputs.release-version }}'/" python/version.py
 
         - name: Push release tag
           run: git push origin v${{ inputs.release-version }}
@@ -40,3 +45,5 @@ jobs:
           with:
             signoff: true
             branch: releases/${{ inputs.release-version }}
+            title: Update development version to ${{ inputs.next-version }}
+            body: Automatically created by the "Cut release" workflow
