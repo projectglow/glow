@@ -1,4 +1,4 @@
-name: Create release tag and update next version
+name: Cut release
 
 on:
   workflow_dispatch:
@@ -12,7 +12,7 @@ on:
 
 
 jobs:
-  deploy-staging:
+  cut-release:
     runs-on: ubuntu-latest
     steps:
         - name: Checkout
@@ -25,9 +25,9 @@ jobs:
             java-version: '8'
 
         - name: Cut release with SBT
-          run: "sbt 'set releaseType := \"cutRelease\"' 'release release-version ${{ github.events.inputs.release-version }} next-version ${{ github.events.inputs.next-version }}'"
+          run: "sbt 'set releaseType := \"cutRelease\"' 'release release-version ${{ inputs.release-version }} next-version ${{ inputs.next-version }}'"
 
         - name: Push main and release tag
           run: |
             git push origin main
-            git push origin v${{ github.events.inputs.release-version }}
+            git push origin v${{ inputs.release-version }}
