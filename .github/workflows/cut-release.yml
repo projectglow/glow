@@ -9,6 +9,7 @@ on:
       next-version:
         description: "Next version"
         required: true
+  pull_request:
 
 
 jobs:
@@ -23,6 +24,11 @@ jobs:
           with:
             distribution: 'adopt'
             java-version: '8'
+
+        - name: git config
+          run: |
+            git config --global user.name "glow-release[bot]"
+            git config --global user.email "glow-release-bot@noreply.projectglow.io"
 
         - name: Cut release with SBT
           run: "sbt 'set releaseType := \"cutRelease\"' 'release release-version ${{ inputs.release-version }} next-version ${{ inputs.next-version }}'"
