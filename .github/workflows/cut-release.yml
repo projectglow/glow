@@ -1,4 +1,4 @@
-name: Deploy to staging
+name: Create release tag and update next version
 
 on:
   workflow_dispatch:
