@@ -366,7 +366,6 @@ import ReleaseTransformations._
 
 // Don't use sbt-release's cross facility
 releaseCrossBuild := false
-releaseVcsSignOff := true
 
 lazy val updateCondaEnv = taskKey[Unit]("Update Glow Env To Latest Version")
 updateCondaEnv := {
@@ -391,16 +390,12 @@ def sonatypeSteps(): Seq[ReleaseStep] = Seq(
   releaseStepCommandAndRemaining("sonatypeBundleUpload")
 )
 
-val doRelease = Seq[ReleaseStep](
+releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,
   inquireVersions,
   setReleaseVersion,
-  updateStableVersion,
-  checkRepoClean,
   runClean,
   runTest,
 ) ++ crossReleaseStep(releaseStepCommandAndRemaining("publishSigned"), requiresPySpark = false) ++
 sonatypeSteps ++
 crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test"), requiresPySpark = false)
-
-releaseProcess := doRelease
