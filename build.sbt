@@ -404,6 +404,7 @@ val cutRelease = Seq[ReleaseStep](
 
 val doRelease = Seq[ReleaseStep](
   checkSnapshotDependencies,
+  inquireVersions,
   setReleaseVersion,
   updateStableVersion,
   checkRepoClean,
