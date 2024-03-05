@@ -31,9 +31,13 @@ jobs:
             git config --global user.email "glow-release-bot@noreply.projectglow.io"
 
         - name: Cut release with SBT
-          run: "sbt 'set releaseType := \"cutRelease\"' 'release release-version ${{ inputs.release-version }} next-version ${{ inputs.next-version }}'"
+          # run: "sbt 'set releaseType := \"cutRelease\"' 'release release-version ${{ inputs.release-version }} next-version ${{ inputs.next-version }}'"
+          run: "sbt 'set releaseType := \"cutRelease\"' 'release release-version 2.0.1-test next-version 2.0.0-SNAPSHOT'"
 
         - name: Push main and release tag
-          run: |
+          # run: |
+          #   git push origin main
+          #   git push origin v${{ inputs.release-version }}
+          run: 
             git push origin main
-            git push origin v${{ inputs.release-version }}
+            git push origin v2.0.1-test
