@@ -9,7 +9,7 @@ on:
       next-version:
         description: "Next version"
         required: true
-  pull_request_target:
+  pull_request:
 
 
 jobs:
@@ -40,5 +40,5 @@ jobs:
           #   git push origin main
           #   git push origin v${{ inputs.release-version }}
           run: |
-            git push origin main
+            git push origin 
             git push origin v2.0.1-test
