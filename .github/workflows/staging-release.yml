@@ -1,0 +1,14 @@
+name: Push to staging repositories
+on:
+    workflow_dispatch:
+      inputs:
+        release-version:
+            description: "Version to release. Must match the version in version files."
+            required: true
+
+
+jobs:
+    push-to-staging:
+        
+
+
