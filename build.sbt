@@ -366,6 +366,7 @@ import ReleaseTransformations._
 
 // Don't use sbt-release's cross facility
 releaseCrossBuild := false
+releaseVcsSignOff := true
 
 lazy val updateCondaEnv = taskKey[Unit]("Update Glow Env To Latest Version")
 updateCondaEnv := {
@@ -390,37 +391,12 @@ def sonatypeSteps(): Seq[ReleaseStep] = Seq(
   releaseStepCommandAndRemaining("sonatypeBundleUpload")
 )
 
-val cutRelease = Seq[ReleaseStep](
+releaseProcess := Seq[ReleaseStep](
   checkSnapshotDependencies,
   inquireVersions,
   setReleaseVersion,
-  updateStableVersion,
-  commitReleaseVersion,
-  commitStableVersion,
-  tagRelease,
-  setNextVersion,
-  commitNextVersion
-)
-
-val doRelease = Seq[ReleaseStep](
-  checkSnapshotDependencies,
-  inquireVersions,
-  setReleaseVersion,
-  updateStableVersion,
-  checkRepoClean,
   runClean,
   runTest,
 ) ++ crossReleaseStep(releaseStepCommandAndRemaining("publishSigned"), requiresPySpark = false) ++
 sonatypeSteps ++
 crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test"), requiresPySpark = false)
-
-lazy val releaseType = settingKey[String]("releaseType")
-ThisBuild / releaseType := "cutRelease"
-
-releaseProcess := {
-  (ThisBuild / releaseType).value match {
-    case "cutRelease" => cutRelease
-    case "doRelease" => doRelease
-    case _ => throw new RuntimeException("Invalid release type")
-  }
-}
