@@ -5,10 +5,48 @@ on:
         release-version:
             description: "Version to release. Must match the version in version files."
             required: true
-
+        spark-version:
+            description: "Spark version to build against"
+            default: "3.5.1"
+        scala-version:
+            description: "Scala version to use when building Glow"
+            default: "2.12.15"
+        java-version:
+            description: "Java version to use when building Glow"
+            default: "8"
 
 jobs:
     push-to-staging:
-        
+        runs-on: ubuntu-latest
+        environment: Staging
+        env:
+            SPARK_VERSION: ${{ inputs.spark-version }}
+            SCALA_VERSION: ${{ inputs.scala-version }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+    
+            - name: Set up Java
+              uses: actions/setup-java@v4
+              with:
+                distribution: 'adopt'
+                java-version: ${{ inputs.java-version }}
+
+            - name: Install Conda
+              uses: conda-incubator/setup-miniconda@v3
+              with:
+                conda-solver: libmamba
+                environment-file: python/environment.yml
+                activate-environment: glow
+
+            - name: Install correct PySpark version
+              run: pip install pyspark==${{ inputs.spark-version }}
+
+            - name: Run sbt release process
+              # The sbt release process pushes artifacts to the staging sonatype repository
+              # After running tests
+              run: sbt release release-version ${{ inputs.release-version }} next-version 42
+             
+
 
 
