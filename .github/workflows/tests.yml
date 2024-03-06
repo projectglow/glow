@@ -124,7 +124,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: success() || failure()
         with:
-          name: binaries
+          name: binaries-${{ github.job }}-${{ matrix.spark_version}}-${{ matrix.scala_version }}
           path: |
             core/target/**/glow*assembly*.jar
             python/dist/*.whl
@@ -133,7 +133,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: success() || failure()
         with:
-          name: test-results
+          name: test-results-${{ github.job }}-${{ matrix.spark_version }}-${{ matrix.scala_version}}
           path: |
             core/target/**/test-reports
             unit-tests.log
@@ -222,7 +222,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: success() || failure()
         with:
-          name: binaries
+          name: binaries-${{ github.job }}
           path: |
             core/target/**/glow*assembly*.jar
             python/dist/*.whl
@@ -231,7 +231,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: success() || failure()
         with:
-          name: test-results
+          name: test-results-${{ github.job }}
           path: |
             core/target/**/test-reports
             unit-tests.log
