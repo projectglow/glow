@@ -29,6 +29,7 @@ dependencies:
     # uninstalled before testing.
     - pyspark==3.5.1
     - databricks-cli==0.18 # Docs notebook source generation
+    - databricks-sdk
     - setuptools==65.6.3 # Python packaging
     - twine # Pypi publishing
     - sphinx
