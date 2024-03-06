@@ -40,7 +40,7 @@ jobs:
               run: pip install pyspark==${{ inputs.spark-version }}
 
             - name: Run tests
-              run: sbt clean core/checkNoSnapshotDependencies clean test
+              run: sbt clean core/checkNoSnapshotDependencies test
 
             - name: Push Scala artifacts
               run: sbt publishSigned sonatypePrepare sonatypeBundleUpload
@@ -54,9 +54,8 @@ jobs:
             - name: Push Python artifacts
               run: (cd python && twine upload --repository-url https://test.pypi.org/legacy/ dist/*)
 
-            - name: Upload artifacts
+            - name: Upload whl and assembly jar
               uses: actions/upload-artifact@v4
-              if: success() || failure()
               with:
                 name: binaries-${{ github.job }}
                 path: |
