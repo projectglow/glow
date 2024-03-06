@@ -198,6 +198,8 @@ ThisBuild / scalaLoggingDependency := {
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5"
 }
 
+lazy val checkNoSnapshotDependencies = taskKey[Unit]("checkNoSnapshotDependencies")
+
 lazy val core = (project in file("core"))
   .settings(
     commonSettings,
@@ -222,7 +224,13 @@ lazy val core = (project in file("core"))
       sparkVersion.value),
     functionsTemplate := baseDirectory.value / "functions.scala.TEMPLATE",
     generatedFunctionsOutput := (Compile / scalaSource).value / "io" / "projectglow" / "functions.scala",
-    Compile / sourceGenerators += generateFunctions
+    Compile / sourceGenerators += generateFunctions,
+    checkNoSnapshotDependencies := {
+      val snapshotDeps = (Compile / update).value.allModules.filter(_.revision.contains("SNAPSHOT"))
+      if (snapshotDeps.nonEmpty) {
+        sys.error("Found snapshot dependencies")
+      }
+    },
   )
 
 /**
@@ -362,41 +370,3 @@ lazy val stagedRelease = (project in file("core/src/test"))
     resolvers := Seq(MavenCache("local-sonatype-staging", sonatypeBundleDirectory.value))
   )
 
-import ReleaseTransformations._
-
-// Don't use sbt-release's cross facility
-releaseCrossBuild := false
-releaseVcsSignOff := true
-
-lazy val updateCondaEnv = taskKey[Unit]("Update Glow Env To Latest Version")
-updateCondaEnv := {
-  "conda env update -f python/environment.yml" !
-}
-
-def crossReleaseStep(step: ReleaseStep, requiresPySpark: Boolean): Seq[ReleaseStep] = {
-  val updateCondaEnvStep = releaseStepCommandAndRemaining(
-    if (requiresPySpark) "updateCondaEnv" else "")
-
-  Seq(
-    updateCondaEnvStep,
-    releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark3""""),
-    releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
-    step,
-    updateCondaEnvStep
-  )
-}
-
-def sonatypeSteps(): Seq[ReleaseStep] = Seq(
-  releaseStepCommandAndRemaining("sonatypePrepare"),
-  releaseStepCommandAndRemaining("sonatypeBundleUpload")
-)
-
-releaseProcess := Seq[ReleaseStep](
-  checkSnapshotDependencies,
-  inquireVersions,
-  setReleaseVersion,
-  runClean,
-  runTest,
-) ++ crossReleaseStep(releaseStepCommandAndRemaining("publishSigned"), requiresPySpark = false) ++
-sonatypeSteps ++
-crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test"), requiresPySpark = false)

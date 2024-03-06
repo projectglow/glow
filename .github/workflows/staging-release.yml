@@ -2,9 +2,6 @@ name: Push to staging repositories
 on:
     workflow_dispatch:
       inputs:
-        release-version:
-            description: "Version to release. Must match the version in version files."
-            required: true
         spark-version:
             description: "Spark version to build against"
             default: "3.5.1"
@@ -42,10 +39,30 @@ jobs:
             - name: Install correct PySpark version
               run: pip install pyspark==${{ inputs.spark-version }}
 
-            - name: Run sbt release process
-              # The sbt release process pushes artifacts to the staging sonatype repository
-              # After running tests
-              run: sbt release release-version ${{ inputs.release-version }} next-version 42
+            - name: Run tests
+              run: sbt clean core/checkNoSnapshotDependencies clean test
+
+            - name: Push Scala artifacts
+              run: sbt publishSigned sonatypePrepare sonatypeBundleUpload
+
+            - name: Test staged artifact
+              run: sbt stagedRelease/test
+
+            - name: Build wheel and assembly jar
+              run: bin/build --scala --python
+
+            - name: Push Python artifacts
+              run: (cd python && twine upload --repository-url https://test.pypi.org/legacy/ dist/*)
+
+            - name: Upload artifacts
+              uses: actions/upload-artifact@v4
+              if: success() || failure()
+              with:
+                name: binaries-${{ github.job }}
+                path: |
+                  core/target/**/glow*assembly*.jar
+                  python/dist/*.whl
+              
              
 
 
