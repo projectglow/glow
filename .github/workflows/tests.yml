@@ -117,14 +117,26 @@ jobs:
       - name: Docs tests
         run: sbt docs/test exit
 
+      - name: Build artifacts
+        run: bin/build --scala --python
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: success() || failure()
+        with:
+          name: binaries
+          path: |
+            core/target/**/glow*assembly*.jar
+            python/dist/*.whl
+
       - name: Upload results
         uses: actions/upload-artifact@v4
         if: success() || failure()
         with:
           name: test-results
           path: |
-            ~/glow/core/target/**/test-reports
-            ~/glow/unit-tests.log
+            core/target/**/test-reports
+            unit-tests.log
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
@@ -203,14 +215,26 @@ jobs:
       - name: Docs tests
         run: EXTRA_PYTHON_PATH=$HOME/spark/python sbt docs/test exit
 
+      - name: Build artifacts
+        run: bin/build --scala --python
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        if: success() || failure()
+        with:
+          name: binaries
+          path: |
+            core/target/**/glow*assembly*.jar
+            python/dist/*.whl
+
       - name: Upload results
         uses: actions/upload-artifact@v4
         if: success() || failure()
         with:
           name: test-results
           path: |
-            ~/glow/core/target/**/test-reports
-            ~/glow/unit-tests.log
+            core/target/**/test-reports
+            unit-tests.log
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v4
