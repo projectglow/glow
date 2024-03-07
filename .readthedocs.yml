@@ -15,7 +15,7 @@ formats: all
 build:
   os: "ubuntu-lts-latest"
   tools:
-    python: "3.10"
+    python: "mambaforge-22.9"
 
 # Optionally use a Conda environment file
 conda:
