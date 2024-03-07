@@ -1,5 +1,4 @@
 addSbtPlugin("com.eed3si9n" % "sbt-assembly" % "2.1.5")
-addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.11")
 addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "3.9.7")
 addSbtPlugin("com.github.sbt" % "sbt-pgp" % "2.2.1")
 addSbtPlugin("org.xerial.sbt" % "sbt-sonatype" % "3.10.0")

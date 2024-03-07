@@ -25,7 +25,7 @@ jobs:
         shell: bash -el {0}
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Install Conda
         uses: conda-incubator/setup-miniconda@v3
@@ -34,7 +34,7 @@ jobs:
           activate-environment: glow
 
       - name: Cache Conda env
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: /usr/share/miniconda/envs/glow
           key:
@@ -90,7 +90,7 @@ jobs:
           activate-environment: glow
 
       - name: Cache Conda env
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: /usr/share/miniconda/envs/glow
           key:
