@@ -162,23 +162,6 @@ As you build out your pipelines please consider the following points,
    - Use memory-optimized virtual machines for genetic association studies.
    - The Glow Pipe Transformer supports parallelization of deep learning tools that run on GPUs.
 
-
-Customizing the Databricks environment
---------------------------------------
-
-Glow users often want to include additional resources inside the Databricks node environment.
-For instance, :ref:`variant normalization <variantnormalization>` requires a reference genome,
-:ref:`variant liftover <liftover>` requires a chain file, and the :ref:`pipe transformer <pipe-transformer>`
-can be used to integrate with command line tools. You can ensure that these resources
-are available on every node in a cluster by using `Databricks Container Services <https://docs.databricks.com/en/compute/custom-containers.html>`_
-or `init scripts <https://docs.databricks.com/en/init-scripts/index.html>`_.
-
-For example, the following :download:`Dockerfile <_static/docker/Dockerfile>` based on DBR 14.3 LTS includes Glow, various bioinformatics tools, and a liftover chain file. You can modify this file to install whatever resources
-you require.
-
-.. literalinclude:: _static/docker/Dockerfile
-   :language: sh
-
 Notebooks embedded in the docs
 ------------------------------
 
