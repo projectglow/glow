@@ -143,7 +143,7 @@ To run Python unit tests from inside IntelliJ, you must:
 
 The "sbt shell" tab in IntelliJ will NOT work since it does not use the glow conda environment.
 
-To test or testOnly in remote debug mode with IntelliJ IDEA set the remote debug configuration in IntelliJ to 'Attach to remote JVM' mode and a specific port number (here the default port number 5005 is used) and then modify the definition of options in groupByHash function in build.sbt to
+To test or testOnly in remote debug mode with IntelliJ IDEA set the remote debug configuration in IntelliJ to 'Attach to remote JVM' mode and a specific port number (here the default port number 5005 is used) and then modify the `testJavaOptions` in `build.sbt` to include:
 ```
-val options = ForkOptions().withRunJVMOptions(Vector("-Xmx1024m")).withRunJVMOptions(Vector("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"))
+"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
 ```
