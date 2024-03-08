@@ -136,7 +136,7 @@ def test_spector_no_intercept():
 
 
 def test_multiple(rg):
-    n_sample = 50
+    n_sample = 250
     n_cov = 10
     n_pheno = 25
     phenotype_df = pd.DataFrame(random_phenotypes((n_sample, n_pheno), rg))
@@ -146,7 +146,7 @@ def test_multiple(rg):
 
 
 def test_multiple_missing(rg):
-    n_sample = 50
+    n_sample = 250
     n_cov = 2
     n_pheno = 31
     phenotype_df = pd.DataFrame(random_phenotypes((n_sample, n_pheno), rg))
@@ -160,7 +160,7 @@ def test_multiple_missing(rg):
 
 @pytest.mark.min_spark('3')
 def test_multiple_spark(spark, rg):
-    n_sample = 40
+    n_sample = 250
     n_cov = 5
     n_pheno = 5
     phenotype_df = pd.DataFrame(random_phenotypes((n_sample, n_pheno), rg))
@@ -180,7 +180,7 @@ def random_mask(size, missing_per_column, rg):
 
 @pytest.mark.min_spark('3')
 def test_multiple_spark_missing(spark, rg):
-    n_sample = 50
+    n_sample = 250
     n_cov = 5
     n_pheno = 5
     phenotype_df = pd.DataFrame(random_phenotypes((n_sample, n_pheno), rg))
@@ -196,7 +196,7 @@ def test_multiple_spark_missing(spark, rg):
 
 @pytest.mark.min_spark('3')
 def test_missing_and_intersect_samples_spark(spark, rg):
-    n_sample = 50
+    n_sample = 250
     n_cov = 5
     n_pheno = 5
     genotype_df = pd.DataFrame(rg.random((n_sample, 1)))
@@ -218,7 +218,7 @@ def test_missing_and_intersect_samples_spark(spark, rg):
 
 @pytest.mark.min_spark('3')
 def test_spark_no_intercept(spark, rg):
-    n_sample = 50
+    n_sample = 250
     n_cov = 5
     n_pheno = 5
     phenotype_df = pd.DataFrame(random_phenotypes((n_sample, n_pheno), rg))
@@ -238,7 +238,7 @@ def test_spark_no_intercept(spark, rg):
 
 @pytest.mark.min_spark('3')
 def test_simple_offset(spark, rg):
-    num_samples = 25
+    num_samples = 250
     num_pheno = 6
     num_geno = 10
     genotype_df = pd.DataFrame(rg.random((num_samples, num_geno)))
@@ -256,7 +256,7 @@ def test_simple_offset(spark, rg):
 
 @pytest.mark.min_spark('3')
 def test_missing_and_simple_offset_out_of_order_with_intersect(spark, rg):
-    n_sample = 50
+    n_sample = 250
     n_cov = 5
     n_pheno = 5
     num_geno = 10
@@ -282,7 +282,7 @@ def test_missing_and_simple_offset_out_of_order_with_intersect(spark, rg):
 
 @pytest.mark.min_spark('3')
 def test_multi_offset(spark, rg):
-    num_samples = 50
+    num_samples = 250
     num_pheno = 25
     num_geno = 10
     genotype_df = pd.DataFrame(rg.random((num_samples, num_geno)))
@@ -305,7 +305,7 @@ def test_multi_offset(spark, rg):
 
 @pytest.mark.min_spark('3')
 def test_multi_offset_with_intersect(spark, rg):
-    num_samples = 50
+    num_samples = 250
     num_pheno = 25
     num_geno = 10
     genotype_df = pd.DataFrame(rg.random((num_samples, num_geno)))
@@ -333,7 +333,7 @@ def test_multi_offset_with_intersect(spark, rg):
 
 @pytest.mark.min_spark('3')
 def test_cast_genotypes_float32(spark, rg):
-    num_samples = 50
+    num_samples = 250
     genotype_df = pd.DataFrame(rg.integers(0, 10, (num_samples, 10)))
     phenotype_df = pd.DataFrame(random_phenotypes((num_samples, 5), rg))
     covariate_df = pd.DataFrame(rg.random((num_samples, 5)))
@@ -349,7 +349,7 @@ def test_cast_genotypes_float32(spark, rg):
 
 @pytest.mark.min_spark('3')
 def test_multi_offset_with_missing(spark, rg):
-    num_samples = 25
+    num_samples = 250
     num_pheno = 24
     num_geno = 18
     contigs = ['chr1', 'chr2', 'chr3']
@@ -374,7 +374,7 @@ def test_multi_offset_with_missing(spark, rg):
 
 def test_error_for_old_spark(spark, rg):
     if spark.version.startswith('2'):
-        num_samples = 10
+        num_samples = 250
         genotype_df = pd.DataFrame(rg.random((num_samples, 10)))
         phenotype_df = pd.DataFrame(random_phenotypes((num_samples, 25), rg))
         with pytest.raises(AttributeError):
@@ -383,7 +383,7 @@ def test_error_for_old_spark(spark, rg):
 
 @pytest.mark.min_spark('3')
 def test_intercept_no_covariates(spark, rg):
-    num_samples = 10
+    num_samples = 250
     genotype_df = pd.DataFrame(rg.random((num_samples, 10)))
     phenotype_df = pd.DataFrame(random_phenotypes((num_samples, 2), rg))
     # No error
@@ -392,7 +392,7 @@ def test_intercept_no_covariates(spark, rg):
 
 @pytest.mark.min_spark('3')
 def test_propagate_extra_cols(spark, rg):
-    num_samples = 50
+    num_samples = 250
     genotype_df = pd.DataFrame(rg.random((num_samples, 3)))
     phenotype_df = pd.DataFrame(random_phenotypes((num_samples, 5), rg))
     covariate_df = pd.DataFrame(rg.random((num_samples, 2)))
@@ -406,7 +406,7 @@ def test_propagate_extra_cols(spark, rg):
 
 @pytest.mark.min_spark('3')
 def test_subset_contigs(spark, rg):
-    num_samples = 50
+    num_samples = 250
     num_pheno = 5
     phenotype_df = pd.DataFrame(random_phenotypes((num_samples, num_pheno), rg))
     sql_type = DoubleType()
@@ -424,7 +424,7 @@ def test_subset_contigs(spark, rg):
 
 @pytest.mark.min_spark('3')
 def test_subset_contigs_no_loco(spark, rg):
-    num_samples = 50
+    num_samples = 250
     num_pheno = 5
     genotype_df = pd.DataFrame(rg.random((num_samples, 3)))
     phenotype_df = pd.DataFrame(random_phenotypes((num_samples, num_pheno), rg))
