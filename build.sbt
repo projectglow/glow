@@ -48,8 +48,6 @@ ThisBuild / licenses += ("Apache-2.0", new URL("https://www.apache.org/licenses/
 // but not vice versa
 Compile / compileOrder := CompileOrder.JavaThenScala
 
-ThisBuild / coverageEnabled := true
-
 // Java options passed to Scala and Python tests
 val testJavaOptions = Vector(
   "-XX:+IgnoreUnrecognizedVMOptions",
