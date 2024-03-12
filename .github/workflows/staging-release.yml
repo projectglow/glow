@@ -14,6 +14,10 @@ on:
         java-version:
             description: "Java version to use when building Glow"
             default: "8"
+        push-python:
+            description: "If true, Python artifacts will be pushed to Test PyPI"
+            type: boolean
+            default: true
 
 jobs:
     push-to-staging:
@@ -77,6 +81,7 @@ jobs:
               run: bin/build --scala --python
 
             - name: Push Python artifacts
+              if: ${{ inputs.push-python }}
               run: (cd python && twine upload --repository-url https://test.pypi.org/legacy/ dist/*)
 
             - name: Upload whl and assembly jar
