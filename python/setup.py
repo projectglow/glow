@@ -42,6 +42,6 @@ setup(name='glow.py',
       license='Apache License 2.0',
       classifiers=[
           'Intended Audience :: Developers',
-          'Programming Language :: Python :: 3.7',
+          'Programming Language :: Python :: 3.10',
       ],
       url='https://projectglow.io')
