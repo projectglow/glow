@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from setuptools import setup, setuptools
+import setuptools
 import imp
 from pathlib import Path
 
@@ -23,7 +23,7 @@ def relative_file(path):
 
 version = imp.load_source('version', relative_file('version.py')).VERSION
 
-setup(name='glow.py',
+setuptools.setup(name='glow.py',
       version=version,
       packages=setuptools.find_packages(),
       install_requires=[
