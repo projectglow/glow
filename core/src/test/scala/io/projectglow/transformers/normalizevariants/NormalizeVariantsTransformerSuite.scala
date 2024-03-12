@@ -163,13 +163,15 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
       .collect
       .zip(
         dfNormalized
-          .select(dfExpectedColumns.head, dfExpectedColumns.tail: _*) // make order of columns the same
+          .select(
+            dfExpectedColumns.head,
+            dfExpectedColumns.tail: _*
+          ) // make order of columns the same
           .drop(splitFromMultiAllelicField.name, normalizationStatusFieldName)
           .collect
       )
-      .foreach {
-        case (rowExp, rowNorm) =>
-          assert(rowExp.equals(rowNorm), s"Expected\n$rowExp\nNormalized\n$rowNorm")
+      .foreach { case (rowExp, rowNorm) =>
+        assert(rowExp.equals(rowNorm), s"Expected\n$rowExp\nNormalized\n$rowNorm")
       }
   }
 
@@ -339,13 +341,15 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
       .collect
       .zip(
         dfSplit
-          .select(dfOldSplitColumns.head, dfOldSplitColumns.tail: _*) // make order of columns the same
+          .select(
+            dfOldSplitColumns.head,
+            dfOldSplitColumns.tail: _*
+          ) // make order of columns the same
           .drop(splitFromMultiAllelicField.name)
           .collect
       )
-      .foreach {
-        case (rowExp, rowNorm) =>
-          assert(rowExp.equals(rowNorm), s"Expected\n$rowExp\nNormalized\n$rowNorm")
+      .foreach { case (rowExp, rowNorm) =>
+        assert(rowExp.equals(rowNorm), s"Expected\n$rowExp\nNormalized\n$rowNorm")
       }
   }
 
@@ -426,11 +430,10 @@ class NormalizeVariantsTransformerSuite extends GlowBaseTest with GlowLogging {
       .zip(
         dfNormalizedNonReplaced.collect
       )
-      .foreach {
-        case (rowNormReplaced, rowNormNonReplaced) =>
-          assert(
-            rowNormReplaced.equals(rowNormNonReplaced),
-            s"Repalced\n$rowNormReplaced\nNon-replaced\n$rowNormNonReplaced")
+      .foreach { case (rowNormReplaced, rowNormNonReplaced) =>
+        assert(
+          rowNormReplaced.equals(rowNormNonReplaced),
+          s"Repalced\n$rowNormReplaced\nNon-replaced\n$rowNormNonReplaced")
       }
   }
 

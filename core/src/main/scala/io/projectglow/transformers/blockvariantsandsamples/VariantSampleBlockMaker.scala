@@ -35,7 +35,8 @@ private[projectglow] object VariantSampleBlockMaker extends GlowLogging {
     import df.sparkSession.implicits._
     val expectedNumValues =
       df.selectExpr("size(values) as numValues").take(1)(0).getAs[Int]("numValues")
-    val errMsg = s"At least one row has an inconsistent number of values (expected $expectedNumValues). " +
+    val errMsg =
+      s"At least one row has an inconsistent number of values (expected $expectedNumValues). " +
       "Please verify that each row contains the same number of values."
     df.filter(expr(s"isnull(assert_true_or_error(size(values) = $expectedNumValues, '$errMsg'))"))
   }
@@ -47,28 +48,26 @@ private[projectglow] object VariantSampleBlockMaker extends GlowLogging {
 
   def makeSampleBlocks(df: DataFrame, sampleBlockCount: Int): DataFrame = {
     df.withColumn(
-        "fractionalSampleBlockSize",
-        size(col(valuesField.name)) / sampleBlockCount
+      "fractionalSampleBlockSize",
+      size(col(valuesField.name)) / sampleBlockCount
+    ).withColumn(
+      sampleBlockIdField.name,
+      explode(
+        sequence(
+          lit(1),
+          lit(sampleBlockCount)
+        ).cast(ArrayType(StringType))
       )
-      .withColumn(
-        sampleBlockIdField.name,
-        explode(
-          sequence(
-            lit(1),
-            lit(sampleBlockCount)
-          ).cast(ArrayType(StringType))
-        )
-      )
-      .withColumn(
-        valuesField.name,
-        expr(
-          s"""slice(
+    ).withColumn(
+      valuesField.name,
+      expr(
+        s"""slice(
              |   ${valuesField.name},
              |   round((${sampleBlockIdField.name} - 1) * fractionalSampleBlockSize) + 1,
              |   round(${sampleBlockIdField.name} * fractionalSampleBlockSize) - round((${sampleBlockIdField.name} - 1) * fractionalSampleBlockSize)
              |)""".stripMargin
-        )
       )
+    )
   }
 
   def makeVariantAndSampleBlocks(

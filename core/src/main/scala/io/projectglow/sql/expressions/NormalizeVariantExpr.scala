@@ -50,12 +50,10 @@ object NormalizeVariantExpr {
       state.set(refGenomeIndexedFasta)
       TaskContext
         .get()
-        .addTaskCompletionListener[Unit](
-          _ => {
-            state.get().close()
-            state.remove()
-          }
-        )
+        .addTaskCompletionListener[Unit](_ => {
+          state.get().close()
+          state.remove()
+        })
     }
 
     VariantNormalizer.normalizeVariant(

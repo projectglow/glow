@@ -190,8 +190,8 @@ case class GenotypeStates(genotypes: Expression, genotypeInfo: Option[GenotypeIn
       calls => {
         s"""
          |${ev.value} = $fn($calls, ${getGenotypeInfo.size}, ${getGenotypeInfo
-             .requiredFieldIndices
-             .head});
+          .requiredFieldIndices
+          .head});
        """.stripMargin
       }
     )

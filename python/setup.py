@@ -14,8 +14,14 @@
 
 from setuptools import setup, setuptools
 import imp
+from pathlib import Path
 
-version = imp.load_source('version', 'version.py').VERSION
+
+def relative_file(path):
+    return (Path(__file__).parent / path).as_posix()
+
+
+version = imp.load_source('version', relative_file('version.py')).VERSION
 
 setup(name='glow.py',
       version=version,
@@ -31,7 +37,7 @@ setup(name='glow.py',
       ],
       author='The Glow Authors',
       description='An open-source toolkit for large-scale genomic analysis',
-      long_description=open('README.rst').read(),
+      long_description=open(relative_file('README.rst')).read(),
       long_description_content_type='text/x-rst',
       license='Apache License 2.0',
       classifiers=[

@@ -138,9 +138,8 @@ class LogisticRegressionSuite extends GlowBaseTest {
     assert(s1.oddsRatio ~== s2.oddsRatio relTol tolerance)
     assert(s1.waldConfidenceInterval.length == 2)
     assert(s2.waldConfidenceInterval.length == 2)
-    s1.waldConfidenceInterval.zip(s2.waldConfidenceInterval).foreach {
-      case (s1ci, s2ci) =>
-        assert(s1ci ~== s2ci relTol tolerance)
+    s1.waldConfidenceInterval.zip(s2.waldConfidenceInterval).foreach { case (s1ci, s2ci) =>
+      assert(s1ci ~== s2ci relTol tolerance)
     }
     assert(s1.pValue ~== s2.pValue relTol tolerance)
   }
@@ -482,7 +481,8 @@ class LogisticRegressionSuite extends GlowBaseTest {
       Seq(interceptOnlyV1Stats, interceptOnlyV2Stats)),
     TestRowsAndGoldenStats(
       "lrt",
-      testDataToRows(interceptOnlyV1.copy(offsetOption = Some(Array(0, 0, 0, 0, 0, 0)))) ++ testDataToRows(
+      testDataToRows(
+        interceptOnlyV1.copy(offsetOption = Some(Array(0, 0, 0, 0, 0, 0)))) ++ testDataToRows(
         interceptOnlyV2.copy(offsetOption = Some(Array(0, 0, 0, 0, 0, 0)))) ++ testDataToRows(
         interceptAndOffset),
       Seq(interceptOnlyV1Stats, interceptOnlyV2Stats, interceptAndOffsetStats)
@@ -493,7 +493,8 @@ class LogisticRegressionSuite extends GlowBaseTest {
       Seq(interceptOnlyV1FirthStats, interceptOnlyV2FirthStats)),
     TestRowsAndGoldenStats(
       "firth",
-      testDataToRows(interceptOnlyV1.copy(offsetOption = Some(Array(0, 0, 0, 0, 0, 0)))) ++ testDataToRows(
+      testDataToRows(
+        interceptOnlyV1.copy(offsetOption = Some(Array(0, 0, 0, 0, 0, 0)))) ++ testDataToRows(
         interceptOnlyV2.copy(offsetOption = Some(Array(0, 0, 0, 0, 0, 0)))) ++ testDataToRows(
         interceptAndOffset),
       Seq(interceptOnlyV1FirthStats, interceptOnlyV2FirthStats, interceptAndOffsetFirthStats)

@@ -33,3 +33,8 @@ from .wgr import *  # For backwards compatibility. Avoid showing this import in 
 
 from . import wgr
 from . import gwas
+
+from .sql import *
+from . import sql
+
+extend_all(sql)

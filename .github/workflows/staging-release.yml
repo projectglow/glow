@@ -1,0 +1,84 @@
+name: Push to staging repositories
+on:
+    workflow_dispatch:
+      inputs:
+        spark-version:
+            description: "Spark version to build against"
+            default: "3.5.1"
+        scala-version:
+            description: "Scala version to use when building Glow"
+            default: "2.12.15"
+        java-version:
+            description: "Java version to use when building Glow"
+            default: "8"
+
+jobs:
+    push-to-staging:
+        runs-on: ubuntu-latest
+        environment: Staging
+        env:
+            SPARK_VERSION: ${{ inputs.spark-version }}
+            SCALA_VERSION: ${{ inputs.scala-version }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+    
+            - name: Set up Java
+              uses: actions/setup-java@v4
+              with:
+                distribution: 'adopt'
+                java-version: ${{ inputs.java-version }}
+
+            - name: Install Conda
+              uses: conda-incubator/setup-miniconda@v3
+              with:
+                conda-solver: libmamba
+                environment-file: python/environment.yml
+                activate-environment: glow
+
+            - name: Import GPG Key
+              uses: crazy-max/ghaction-import-gpg@v6
+              with:
+                gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+                passphrase: ${{ secrets.GPG_PASSPHRASE }}
+
+            - name: Set Sonatype credentials
+              run: |
+                cat <<EOF >sonatype.sbt
+                credentials += Credentials("Sonatype Nexus Repository Manager",
+                    "oss.sonatype.org",
+                    "${{ secrets.SONATYPE_USERNAME }}",
+                    "${{ secrets.SONATYPE_PASSWORD }}")
+                EOF
+
+
+            - name: Install correct PySpark version
+              run: pip install pyspark==${{ inputs.spark-version }}
+
+            - name: Run tests
+              run: sbt clean core/checkNoSnapshotDependencies test
+
+            - name: Push Scala artifacts
+              run: sbt publishSigned sonatypePrepare sonatypeBundleUpload
+
+            - name: Test staged artifact
+              run: sbt stagedRelease/test
+
+            - name: Build wheel and assembly jar
+              run: bin/build --scala --python
+
+            - name: Push Python artifacts
+              run: (cd python && twine upload --repository-url https://test.pypi.org/legacy/ dist/*)
+
+            - name: Upload whl and assembly jar
+              uses: actions/upload-artifact@v4
+              with:
+                name: binaries-${{ github.job }}
+                path: |
+                  core/target/**/glow*assembly*.jar
+                  python/dist/*.whl
+              
+             
+
+
+

@@ -8,10 +8,10 @@ import sbt.librarymanagement.ModuleID
 import sbt.nio.Keys._
 
 // Scala version used by DBR 13.3 LTS and 14.0
-lazy val scala212 = "2.12.18"
+lazy val scala212 = "2.12.15"
 lazy val scala213 = "2.13.12"
 
-lazy val spark3 = "3.5.0"
+lazy val spark3 = "3.5.1"
 lazy val spark4 = "4.0.0-SNAPSHOT"
 
 lazy val sparkVersion = settingKey[String]("sparkVersion")
@@ -77,19 +77,18 @@ val testJavaOptions = Vector(
 // Spark session used by many tasks cannot be used concurrently.
 val testConcurrency = 1
 Test / fork := true
-concurrentRestrictions in Global := Seq(
+Global / concurrentRestrictions := Seq(
   Tags.limit(Tags.ForkedTestGroup, testConcurrency)
 )
 
 def groupByHash(tests: Seq[TestDefinition]): Seq[Tests.Group] = {
   tests
     .groupBy(_.name.hashCode % testConcurrency)
-    .map {
-      case (i, groupTests) =>
-        val options = ForkOptions()
-          .withRunJVMOptions(testJavaOptions)
+    .map { case (i, groupTests) =>
+      val options = ForkOptions()
+        .withRunJVMOptions(testJavaOptions)
 
-        Group(i.toString, groupTests, SubProcess(options))
+      Group(i.toString, groupTests, SubProcess(options))
     }
     .toSeq
 }
@@ -165,19 +164,19 @@ ThisBuild / testCoreDependencies := Seq(
     case "4" => "org.scalatest" %% "scalatest" % "3.2.17" % "test"
     case _ => throw new IllegalArgumentException("Only Spark 3 is supported")
   },
-  "org.mockito" % "mockito-all" % "1.9.5" % "test",
+  "org.mockito" % "mockito-all" % "1.10.19" % "test",
   "org.apache.spark" %% "spark-catalyst" % sparkVersion.value % "test" classifier "tests",
   "org.apache.spark" %% "spark-core" % sparkVersion.value % "test" classifier "tests",
   "org.apache.spark" %% "spark-mllib" % sparkVersion.value % "test" classifier "tests",
   "org.apache.spark" %% "spark-sql" % sparkVersion.value % "test" classifier "tests",
-  "org.xerial" % "sqlite-jdbc" % "3.42.0.0" % "test"
+  "org.xerial" % "sqlite-jdbc" % "3.45.1.0" % "test"
 )
 
 lazy val coreDependencies = settingKey[Seq[ModuleID]]("coreDependencies")
 ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDependencies.value ++ Seq(
   "org.seqdoop" % "hadoop-bam" % "7.10.0",
-  "org.slf4j" % "slf4j-api" % "2.0.10",
-  "org.jdbi" % "jdbi" % "2.63.1",
+  "org.slf4j" % "slf4j-api" % "2.0.12",
+  "org.jdbi" % "jdbi" % "2.78",
   "com.github.broadinstitute" % "picard" % "2.27.5",
   "org.apache.commons" % "commons-lang3" % "3.14.0",
   // Fix versions of libraries that are depended on multiple times
@@ -187,7 +186,7 @@ ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDepe
   "io.netty" % "netty-transport-native-epoll" % "4.1.96.Final",
   "com.github.samtools" % "htsjdk" % "3.0.5",
   "org.yaml" % "snakeyaml" % "2.2",
-  "com.univocity" % "univocity-parsers" % "2.8.4"
+  "com.univocity" % "univocity-parsers" % "2.9.1"
 )).map(_.exclude("com.google.code.findbugs", "jsr305"))
 
 lazy val root = (project in file(".")).aggregate(core, python, docs)
@@ -196,6 +195,8 @@ lazy val scalaLoggingDependency = settingKey[ModuleID]("scalaLoggingDependency")
 ThisBuild / scalaLoggingDependency := {
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5"
 }
+
+lazy val checkNoSnapshotDependencies = taskKey[Unit]("checkNoSnapshotDependencies")
 
 lazy val core = (project in file("core"))
   .settings(
@@ -221,7 +222,13 @@ lazy val core = (project in file("core"))
       sparkVersion.value),
     functionsTemplate := baseDirectory.value / "functions.scala.TEMPLATE",
     generatedFunctionsOutput := (Compile / scalaSource).value / "io" / "projectglow" / "functions.scala",
-    Compile / sourceGenerators += generateFunctions
+    Compile / sourceGenerators += generateFunctions,
+    checkNoSnapshotDependencies := {
+      val snapshotDeps = (Compile / update).value.allModules.filter(_.revision.contains("SNAPSHOT"))
+      if (snapshotDeps.nonEmpty) {
+        sys.error("Found snapshot dependencies")
+      }
+    },
   )
 
 /**
@@ -295,7 +302,7 @@ lazy val python =
       functionGenerationSettings,
       Test / test := {
         yapf.toTask(" --diff").value
-        pytest.toTask(s" --doctest-modules python").value
+        pytest.toTask(s" --doctest-modules --cov=glow --cov-report xml --cov-report term python").value
       },
       generatedFunctionsOutput := baseDirectory.value / "glow" / "functions.py",
       functionsTemplate := baseDirectory.value / "glow" / "functions.py.TEMPLATE",
@@ -361,50 +368,3 @@ lazy val stagedRelease = (project in file("core/src/test"))
     resolvers := Seq(MavenCache("local-sonatype-staging", sonatypeBundleDirectory.value))
   )
 
-import ReleaseTransformations._
-
-// Don't use sbt-release's cross facility
-releaseCrossBuild := false
-
-lazy val updateCondaEnv = taskKey[Unit]("Update Glow Env To Latest Version")
-updateCondaEnv := {
-  "conda env update -f python/environment.yml" !
-}
-
-def crossReleaseStep(step: ReleaseStep, requiresPySpark: Boolean): Seq[ReleaseStep] = {
-  val updateCondaEnvStep = releaseStepCommandAndRemaining(
-    if (requiresPySpark) "updateCondaEnv" else "")
-
-  Seq(
-    updateCondaEnvStep,
-    releaseStepCommandAndRemaining(s"""set ThisBuild / sparkVersion := "$spark3""""),
-    releaseStepCommandAndRemaining(s"""set ThisBuild / scalaVersion := "$scala212""""),
-    step,
-    updateCondaEnvStep
-  )
-}
-
-def sonatypeSteps(): Seq[ReleaseStep] = Seq(
-  releaseStepCommandAndRemaining("sonatypePrepare"),
-  releaseStepCommandAndRemaining("sonatypeBundleUpload")
-)
-
-releaseProcess := Seq[ReleaseStep](
-  checkSnapshotDependencies,
-  inquireVersions,
-  runClean
-) ++ crossReleaseStep(releaseStepCommandAndRemaining("core/test"), requiresPySpark = false) ++
-Seq(
-  setReleaseVersion,
-  updateStableVersion,
-  commitReleaseVersion,
-  commitStableVersion,
-  tagRelease
-) ++
-crossReleaseStep(releaseStepCommandAndRemaining("publishSigned"), requiresPySpark = false) ++
-sonatypeSteps ++
-crossReleaseStep(releaseStepCommandAndRemaining("stagedRelease/test"), requiresPySpark = false) ++
-Seq(
-  setNextVersion,
-  commitNextVersion
-)

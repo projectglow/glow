@@ -661,10 +661,9 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     val withNoFilter = dfNoFilter.orderBy("contigName", "start").as[VCFRow].collect().toSeq
 
     if (dfEmptyFilter.count() == dfNoFilter.count()) {
-      withEmptyFilter.zip(withNoFilter).foreach {
-        case (ef, nf) =>
-          assert(ef.contigName == nf.contigName)
-          assert(ef.start == nf.start)
+      withEmptyFilter.zip(withNoFilter).foreach { case (ef, nf) =>
+        assert(ef.contigName == nf.contigName)
+        assert(ef.start == nf.start)
       }
     } else {
       fail()
@@ -756,13 +755,12 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     val withNN = dfNN.orderBy("contigName", "start").as[VCFRow].collect().toSeq
 
     if (dfNN.count() == dfFT.count() && dfNN.count() == dfFN.count()) {
-      withFT.zip(withFN).zip(withNN).foreach {
-        case ((ft, fn), nn) =>
-          logger.debug(s"${ft.contigName}, ${ft.start}")
-          logger.debug(s"${fn.contigName}, ${fn.start}")
-          logger.debug(s"${nn.contigName}, ${nn.start}")
-          assert(ft.contigName == nn.contigName && fn.contigName == nn.contigName)
-          assert(ft.start == nn.start && fn.start == nn.start)
+      withFT.zip(withFN).zip(withNN).foreach { case ((ft, fn), nn) =>
+        logger.debug(s"${ft.contigName}, ${ft.start}")
+        logger.debug(s"${fn.contigName}, ${fn.start}")
+        logger.debug(s"${nn.contigName}, ${nn.start}")
+        assert(ft.contigName == nn.contigName && fn.contigName == nn.contigName)
+        assert(ft.start == nn.start && fn.start == nn.start)
       }
     } else {
       fail(
@@ -847,7 +845,7 @@ class TabixHelperSuite extends GlowBaseTest with GlowLogging {
     val p5 =
       PartitionedFile(InternalRow.empty, SparkPath.fromPathString(testMultiBlockVcf), 15330, 65635)
     val r5 = TabixIndexHelper.getFileRangeToRead(fs, p5, conf, true, true, interval)
-    assert(r5 == Some(15335, 15335 + 0xFFFF))
+    assert(r5 == Some(15335, 15335 + 0xffff))
   }
 
   test("Check if partition includes BGZF block start") {

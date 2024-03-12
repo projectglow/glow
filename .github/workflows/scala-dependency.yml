@@ -3,7 +3,7 @@ name: Update Dependency Graph
 on:
   push:
     branches:
-      - master
+      - main
 
 jobs:
   update-graph:

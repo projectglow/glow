@@ -255,8 +255,10 @@ object LiftOverVariantsTransformer extends GlowLogging {
       outputVc.getEnd - outputVc.getStart + 1)
 
     if (!refStr.equalsIgnoreCase(outputVc.getReference.getBaseString)) {
-      if (outputVc.isBiallelic && outputVc.isSNP && refStr.equalsIgnoreCase(
-          outputVc.getAlternateAllele(0).getBaseString)) {
+      if (
+        outputVc.isBiallelic && outputVc.isSNP && refStr.equalsIgnoreCase(
+          outputVc.getAlternateAllele(0).getBaseString)
+      ) {
         val swappedArrayFields =
           swapRefAlt(outputVc, infoFieldsToSwap, formatFieldsToSwap)
         return (Some(swappedArrayFields), None)
@@ -358,9 +360,8 @@ object LiftOverVariantsTransformer extends GlowLogging {
 
   def makeMutableProjection(inputSchema: StructType): MutableProjection = {
     val passThroughExpressions =
-      inputSchema.zipWithIndex.map {
-        case (f, ord) =>
-          BoundReference(ordinal = ord, f.dataType, f.nullable)
+      inputSchema.zipWithIndex.map { case (f, ord) =>
+        BoundReference(ordinal = ord, f.dataType, f.nullable)
       }
 
     GenerateMutableProjection.generate(
@@ -382,9 +383,11 @@ object LiftOverVariantsTransformer extends GlowLogging {
     val infoFields = variantSchema.flatMap { f =>
       if (f.name.startsWith(VariantSchemas.infoFieldPrefix)) {
         val name = f.name.substring(VariantSchemas.infoFieldPrefix.length)
-        if (LiftoverUtils
+        if (
+          LiftoverUtils
             .DEFAULT_TAGS_TO_DROP
-            .contains(name) || LiftoverUtils.DEFAULT_TAGS_TO_REVERSE.contains(name)) {
+            .contains(name) || LiftoverUtils.DEFAULT_TAGS_TO_REVERSE.contains(name)
+        ) {
           None
         } else {
           Some(f.copy(name = f.name.substring(VariantSchemas.infoFieldPrefix.length)))

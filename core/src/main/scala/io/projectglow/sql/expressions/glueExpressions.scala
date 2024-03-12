@@ -42,9 +42,8 @@ case class ExpandStruct(struct: Expression) extends Expression with Unevaluable 
       throw new IllegalArgumentException("Only structs can be expanded.")
     }
 
-    struct.dataType.asInstanceOf[StructType].zipWithIndex.map {
-      case (f, i) =>
-        Alias(GetStructField(struct, i), f.name)()
+    struct.dataType.asInstanceOf[StructType].zipWithIndex.map { case (f, i) =>
+      Alias(GetStructField(struct, i), f.name)()
     }
   }
 
@@ -210,12 +209,15 @@ case class VectorToArray(child: Expression) extends UnaryExpression with Implici
   override def dataType: DataType = ArrayType(DoubleType)
   override def nullSafeEval(input: Any): Any = VectorToArray.toDoubleArray(input)
   override def doGenCode(ctx: CodegenContext, ev: ExprCode): ExprCode = {
-    nullSafeCodeGen(ctx, ev, c => {
-      s"""
+    nullSafeCodeGen(
+      ctx,
+      ev,
+      c => {
+        s"""
          |${ev.value} =
          |io.projectglow.sql.expressions.VectorToArray.toDoubleArray($c);
        """.stripMargin
-    })
+      })
   }
 
   protected def withNewChildInternal(newChild: Expression): VectorToArray = {

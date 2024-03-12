@@ -21,8 +21,9 @@ import pytest
 import pandas as pd
 
 @pytest.fixture(scope="module")
-def register_glow(spark):
-    glow.register(spark, new_session=False)
+def spark(raw_spark):
+    glow.register(raw_spark, new_session=False)
+    return raw_spark
 
 @pytest.fixture(scope="session")
 def assert_rows_equal():
@@ -40,5 +41,5 @@ pytest_collect_file = Sybil(
         PythonCodeBlockParser(future_imports=['print_function']),
     ],
     pattern='*.rst',
-    fixtures=['assert_rows_equal', 'spark', 'register_glow'],
+    fixtures=['assert_rows_equal', 'spark'],
 ).pytest()

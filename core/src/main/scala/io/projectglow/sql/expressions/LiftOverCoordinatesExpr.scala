@@ -56,8 +56,11 @@ case class LiftOverCoordinatesExpr(
     this(contigName, start, end, chainFile, Literal(0.95d))
   }
 
-  private lazy val liftOver = new LiftOver(
-    new File(chainFile.eval().asInstanceOf[UTF8String].toString))
+  private lazy val liftOver = {
+    val ret = new LiftOver(new File(chainFile.eval().asInstanceOf[UTF8String].toString))
+    ret.setShouldLogFailedIntervalsBelowThreshold(false)
+    ret
+  }
 
   override def children: Seq[Expression] =
     Seq(contigName, start, end, chainFile, minMatchRatio)

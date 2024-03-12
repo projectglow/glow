@@ -29,7 +29,8 @@ import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.sources.{Filter, _}
 import io.projectglow.common.{GlowLogging, SimpleInterval, WithUtils}
 
-/** An extended Contig class used by filter parser that keeps an Option(contigName)
+/**
+ * An extended Contig class used by filter parser that keeps an Option(contigName)
  * updated under And and Or operations and provides other required functionalities
  */
 class FilterContig(contigName: String) {
@@ -77,7 +78,8 @@ class FilterContig(contigName: String) {
 
 }
 
-/** An extended 1-based Interval class used by filter parser that keeps an Option(SimpleInterval)
+/**
+ * An extended 1-based Interval class used by filter parser that keeps an Option(SimpleInterval)
  *  updated under And and Or operations and provides other required functionalities
  */
 class FilterInterval(start: Long, end: Long) {
@@ -86,11 +88,12 @@ class FilterInterval(start: Long, end: Long) {
     throw new IllegalArgumentException
   }
 
-  private var interval: Option[SimpleInterval] = try {
-    Option(SimpleInterval("", start.toInt, end.toInt))
-  } catch {
-    case e: IllegalArgumentException => None
-  }
+  private var interval: Option[SimpleInterval] =
+    try {
+      Option(SimpleInterval("", start.toInt, end.toInt))
+    } catch {
+      case e: IllegalArgumentException => None
+    }
 
   def actionAnd(other: FilterInterval): FilterInterval = {
     (interval, other.getSimpleInterval) match {
@@ -183,8 +186,10 @@ object TabixIndexHelper extends GlowLogging {
     val startInterval = new FilterInterval(1, Int.MaxValue)
     val endInterval = new FilterInterval(1, Int.MaxValue)
 
-    for (x <- filters if paramsOK && contig.isDefined && startInterval.isDefined &&
-      startInterval.isDefined) {
+    for (
+      x <- filters if paramsOK && contig.isDefined && startInterval.isDefined &&
+      startInterval.isDefined
+    ) {
       x match {
         case And(left: Filter, right: Filter) =>
           // left and right are concatenated and parsed recursively
@@ -383,7 +388,8 @@ object TabixIndexHelper extends GlowLogging {
     }
   }
 
-  /** Getting Seq of filters, returns an Option[SimpleInterval] representing contig and SQI,
+  /**
+   * Getting Seq of filters, returns an Option[SimpleInterval] representing contig and SQI,
    * and takes care of useFilterParser option.
    * @param filters
    * @return Option[SimpleInterval] indicating contig and SQI of the filtered interval;
@@ -507,7 +513,8 @@ object TabixIndexHelper extends GlowLogging {
                 val bStart = o.getStartPosition >> 16
                 val bEnd = o.getEndPosition >> 16
                 if (!fileContainsBlockStart) {
-                  fileContainsBlockStart = (file.start <= bStart) && (file.start + file.length >= bStart)
+                  fileContainsBlockStart =
+                    (file.start <= bStart) && (file.start + file.length >= bStart)
                 }
                 (Math.min(aStart, bStart), Math.max(aEnd, bEnd))
             }
@@ -515,7 +522,7 @@ object TabixIndexHelper extends GlowLogging {
             val blockRangeEnd = Math.min(file.start + file.length, maxOverBlocks)
             if (blockRangeStart <= blockRangeEnd && fileContainsBlockStart) {
               // 0xFFFF is the maximum possible length of an uncompressed bin
-              Some((blockRangeStart, Math.min(file.start + file.length, blockRangeEnd + 0xFFFF)))
+              Some((blockRangeStart, Math.min(file.start + file.length, blockRangeEnd + 0xffff)))
             } else {
               None
             }
@@ -547,9 +554,11 @@ object TabixIndexHelper extends GlowLogging {
   }
 
   def toOverlapDetector(simpleInterval: SimpleInterval): Option[OverlapDetector[SimpleInterval]] = {
-    if (!simpleInterval
+    if (
+      !simpleInterval
         .getContig
-        .isEmpty) {
+        .isEmpty
+    ) {
       Some(
         OverlapDetector.create(
           scala.collection.immutable.List[SimpleInterval](simpleInterval).asJava))
