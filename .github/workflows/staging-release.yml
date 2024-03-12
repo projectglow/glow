@@ -53,6 +53,7 @@ jobs:
             - name: Set Sonatype credentials
               run: |
                 cat <<EOF >>sonatype.sbt
+
                 credentials += Credentials("Sonatype Nexus Repository Manager",
                     "oss.sonatype.org",
                     "${{ secrets.SONATYPE_USERNAME }}",
