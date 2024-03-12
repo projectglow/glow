@@ -33,8 +33,10 @@ The requirements of this step may change over time, so it's best to check with s
 Install the Scala artifact as a Maven library. To find the repository id, check the logs from the "Push to staging repositories" job and look for a line like "Created successfully: ioprojectglow-xxxx". For example, [this run](https://github.com/projectglow/glow/actions/runs/8244738235/job/22547455645) created a repository numbered `1043`.
 
 Install the Maven library with parameters like:
-Coordinates: `io.projectglow:glow-spark${SPARK_MAJOR_VERSION}_${SCALA_MAJOR_MINOR_VERSION}:${GLOW_VERSION}
-Repository: `https://oss.sonatype.org/content/repositories/ioprojectglow-${SONATYPE_REPOSITORY_NUMBER}/`
+```
+Coordinates: io.projectglow:glow-spark${SPARK_MAJOR_VERSION}_${SCALA_MAJOR_MINOR_VERSION}:${GLOW_VERSION}
+Repository: https://oss.sonatype.org/content/repositories/ioprojectglow-${SONATYPE_REPOSITORY_NUMBER}/
+```
 
 ### Python artifact
 
