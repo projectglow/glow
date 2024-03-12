@@ -70,13 +70,15 @@ jobs:
               run: sbt clean core/checkNoSnapshotDependencies core/test python/test docs/test exit
 
             - name: Push Scala artifacts
-              run: sbt publishSigned sonatypePrepare sonatypeBundleUpload exit
+              run: sbt publishSigned sonatypePrepare sonatypeBundleUpload sonatypeClose exit
 
             - name: Test staged artifact
               run: sbt stagedRelease/test exit
 
-            - name: Build wheel and assembly jar
-              run: bin/build --scala --python
+            - name: Build whl, sdist, and assembly jar
+              run: |
+                bin/build --scala --python
+                (cd python && python setup.py sdist)
 
             - name: Publish package distributions to TestPyPI
               uses: pypa/gh-action-pypi-publish@release/v1
