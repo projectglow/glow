@@ -27,7 +27,7 @@ case class testQuinaryExpr(
     child3: Expression,
     child4: Expression,
     child5: Option[Expression])
-    extends QuinaryExpression {
+    extends QuinaryOptionalExpression {
 
   override def dataType: DataType = IntegerType
 
@@ -55,7 +55,7 @@ case class testQuinaryExpr(
       child5 = Option(newChildren(5)))
 }
 
-class QuinaryExpressionSuite extends GlowBaseTest {
+class QuinaryOptionalExpressionSuite extends GlowBaseTest {
   test("nullSafeCodeGen for un-nullable expression with Some argument") {
     val ctx = new CodegenContext
     val testExpr = testQuinaryExpr(
