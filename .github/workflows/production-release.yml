@@ -1,0 +1,76 @@
+name: Push to staging repositories
+on:
+    workflow_dispatch:
+      inputs:
+        release-tag:
+            description: "Git tag for release"
+            required: true
+        spark-version:
+            description: "Spark version to build against (only used to decide the artifact name)"
+            default: "3.5.1"
+        java-version:
+            description: "Java version to use for running sbt"
+            default: "8"
+
+jobs:
+    push-scala:
+        runs-on: ubuntu-latest
+        environment: Production
+        env:
+            SPARK_VERSION: ${{ inputs.spark-version }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                ref: refs/tags/${{ inputs.release-tag }}
+    
+            - name: Set up Java
+              uses: actions/setup-java@v4
+              with:
+                distribution: 'adopt'
+                java-version: ${{ inputs.java-version }}
+
+            - name: Set Sonatype credentials
+              run: |
+                cat <<EOF >>sonatype.sbt
+
+                credentials += Credentials("Sonatype Nexus Repository Manager",
+                    "oss.sonatype.org",
+                    "${{ secrets.SONATYPE_USERNAME }}",
+                    "${{ secrets.SONATYPE_PASSWORD }}")
+                EOF
+
+            - name: Promote Scala artifact
+              run: sbt sonatypePromote exit
+
+    push-python:
+        runs-on: ubuntu-latest
+        environment: Production
+        permissions:
+          id-token: write # Necessary to fetch a token for PyPI publishing
+        defaults:
+          run:
+            shell: bash -el {0}
+        env:
+            SPARK_VERSION: ${{ inputs.spark-version }}
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+              with:
+                ref: refs/tags/${{ inputs.release-tag }}
+    
+            - name: Install Conda
+              uses: conda-incubator/setup-miniconda@v3
+              with:
+                conda-solver: libmamba
+                environment-file: python/environment.yml
+                activate-environment: glow
+
+            - name: Build whl and sdist
+              run: (cd python && python setup.py bdist_wheel sdist)
+
+            - name: Publish package to PyPI
+              uses: pypa/gh-action-pypi-publish@release/v1
+              with:
+                packages-dir: python/dist/
+                verbose: true
