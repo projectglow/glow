@@ -64,13 +64,13 @@ jobs:
               run: pip install pyspark==${{ inputs.spark-version }}
 
             - name: Run tests
-              run: sbt clean core/checkNoSnapshotDependencies test
+              run: sbt clean core/checkNoSnapshotDependencies core/test python/test docs/test exit
 
             - name: Push Scala artifacts
-              run: sbt publishSigned sonatypePrepare sonatypeBundleUpload
+              run: sbt publishSigned sonatypePrepare sonatypeBundleUpload exit
 
             - name: Test staged artifact
-              run: sbt stagedRelease/test
+              run: sbt stagedRelease/test exit
 
             - name: Build wheel and assembly jar
               run: bin/build --scala --python
