@@ -2,6 +2,9 @@ name: Push to staging repositories
 on:
     workflow_dispatch:
       inputs:
+        release-tag:
+            description: "Git tag for release"
+            required: true
         spark-version:
             description: "Spark version to build against"
             default: "3.5.1"
@@ -22,6 +25,8 @@ jobs:
         steps:
             - name: Checkout
               uses: actions/checkout@v4
+              with:
+                ref: refs/tags/${{ inputs.release-tag }}
     
             - name: Set up Java
               uses: actions/setup-java@v4
