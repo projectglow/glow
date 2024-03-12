@@ -19,6 +19,8 @@ jobs:
     push-to-staging:
         runs-on: ubuntu-latest
         environment: Staging
+        permissions:
+          id-token: write # Necessary to fetch a token for PyPI publishing
         defaults:
           run:
             shell: bash -el {0}
@@ -76,8 +78,12 @@ jobs:
             - name: Build wheel and assembly jar
               run: bin/build --scala --python
 
-            - name: Push Python artifacts
-              run: (cd python && twine upload --repository-url https://test.pypi.org/legacy/ dist/*)
+            - name: Publish package distributions to TestPyPI
+              uses: pypa/gh-action-pypi-publish@release/v1
+              with:
+                repository-url: https://test.pypi.org/legacy/
+                packages-dir: python/dist/
+                verbose: true
 
             - name: Upload whl and assembly jar
               uses: actions/upload-artifact@v4
