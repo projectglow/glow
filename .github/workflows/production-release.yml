@@ -1,4 +1,4 @@
-name: Push to staging repositories
+name: Push to production repositories
 on:
     workflow_dispatch:
       inputs:
