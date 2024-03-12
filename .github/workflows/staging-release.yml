@@ -16,6 +16,9 @@ jobs:
     push-to-staging:
         runs-on: ubuntu-latest
         environment: Staging
+        defaults:
+          run:
+            shell: bash -el {0}
         env:
             SPARK_VERSION: ${{ inputs.spark-version }}
             SCALA_VERSION: ${{ inputs.scala-version }}
