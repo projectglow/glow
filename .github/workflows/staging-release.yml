@@ -14,6 +14,10 @@ on:
         java-version:
             description: "Java version to use when building Glow"
             default: "8"
+        push-python:
+            description: "If true, Python artifacts will be pushed to Test PyPI"
+            type: boolean
+            default: true
 
 jobs:
     push-to-staging:
@@ -82,10 +86,10 @@ jobs:
 
             - name: Publish package distributions to TestPyPI
               uses: pypa/gh-action-pypi-publish@release/v1
+              if: ${{ inputs.push-python }}
               with:
                 repository-url: https://test.pypi.org/legacy/
                 packages-dir: python/dist/
-                verbose: true
 
             - name: Upload whl and assembly jar
               uses: actions/upload-artifact@v4

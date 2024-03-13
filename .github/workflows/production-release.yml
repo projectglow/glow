@@ -11,6 +11,10 @@ on:
         java-version:
             description: "Java version to use for running sbt"
             default: "8"
+        push-python:
+            description: "If true, Python artifacts will be pushed to Test PyPI"
+            type: boolean
+            default: true
 
 jobs:
     push-scala:
@@ -71,6 +75,7 @@ jobs:
 
             - name: Publish package to PyPI
               uses: pypa/gh-action-pypi-publish@release/v1
+              if: ${{ inputs.push-python }}
               with:
                 packages-dir: python/dist/
                 verbose: true
