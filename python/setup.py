@@ -24,24 +24,24 @@ def relative_file(path):
 version = imp.load_source('version', relative_file('version.py')).VERSION
 
 setuptools.setup(name='glow.py',
-      version=version,
-      packages=setuptools.find_packages(),
-      install_requires=[
-          'nptyping>=2.5.0',
-          'numpy>=1.23.5',
-          'opt_einsum>=3.2.0',
-          'pandas>=1.5.3',
-          'scipy>=1.10.0',
-          'statsmodels>=0.13.5',
-          'typeguard>=2.13.3',
-      ],
-      author='The Glow Authors',
-      description='An open-source toolkit for large-scale genomic analysis',
-      long_description=open(relative_file('README.rst')).read(),
-      long_description_content_type='text/x-rst',
-      license='Apache License 2.0',
-      classifiers=[
-          'Intended Audience :: Developers',
-          'Programming Language :: Python :: 3.10',
-      ],
-      url='https://projectglow.io')
+                 version=version,
+                 packages=setuptools.find_packages(),
+                 install_requires=[
+                     'nptyping>=2.5.0',
+                     'numpy>=1.23.5',
+                     'opt_einsum>=3.2.0',
+                     'pandas>=1.5.3',
+                     'scipy>=1.10.0',
+                     'statsmodels>=0.13.5',
+                     'typeguard>=2.13.3',
+                 ],
+                 author='The Glow Authors',
+                 description='An open-source toolkit for large-scale genomic analysis',
+                 long_description=open(relative_file('README.rst')).read(),
+                 long_description_content_type='text/x-rst',
+                 license='Apache License 2.0',
+                 classifiers=[
+                     'Intended Audience :: Developers',
+                     'Programming Language :: Python :: 3.10',
+                 ],
+                 url='https://projectglow.io')
