@@ -66,9 +66,11 @@ object BigVCFDatasource extends HlsEventRecorder {
     val firstNonemptyPartition =
       inputRdd.mapPartitions(iter => Iterator(iter.nonEmpty)).collect.indexOf(true)
 
-    if (firstNonemptyPartition == -1 && options
+    if (
+      firstNonemptyPartition == -1 && options
         .get(VCFHeaderUtils.VCF_HEADER_KEY)
-        .forall(_ == VCFHeaderUtils.INFER_HEADER)) {
+        .forall(_ == VCFHeaderUtils.INFER_HEADER)
+    ) {
       throw new SparkException("Cannot infer header for empty VCF.")
     }
 
@@ -84,39 +86,38 @@ object BigVCFDatasource extends HlsEventRecorder {
     }
     val validationStringency = VCFOptionParser.getValidationStringency(options)
 
-    inputRdd.mapPartitionsWithIndex {
-      case (idx, it) =>
-        val conf = serializableConf.value
-        val codec = new CompressionCodecFactory(conf)
-        val baos = new ByteArrayOutputStream()
-        val path = new Path(BigFileDatasource.checkPath(options))
-        val outputStream = Option(codec.getCodec(path))
-          .map(_.createOutputStream(baos))
-          .getOrElse(baos)
+    inputRdd.mapPartitionsWithIndex { case (idx, it) =>
+      val conf = serializableConf.value
+      val codec = new CompressionCodecFactory(conf)
+      val baos = new ByteArrayOutputStream()
+      val path = new Path(BigFileDatasource.checkPath(options))
+      val outputStream = Option(codec.getCodec(path))
+        .map(_.createOutputStream(baos))
+        .getOrElse(baos)
 
-        // Write an empty GZIP block iff this is the last partition
-        GlowBGZFOutputStream.setWriteEmptyBlockOnClose(outputStream, idx == nParts - 1)
+      // Write an empty GZIP block iff this is the last partition
+      GlowBGZFOutputStream.setWriteEmptyBlockOnClose(outputStream, idx == nParts - 1)
 
-        // Write the header if this is the first nonempty partition
-        val partitionWithHeader = if (firstNonemptyPartition == -1) 0 else firstNonemptyPartition
+      // Write the header if this is the first nonempty partition
+      val partitionWithHeader = if (firstNonemptyPartition == -1) 0 else firstNonemptyPartition
 
-        val writer =
-          new VCFFileWriter(
-            path.toString,
-            headerLineSet,
-            sampleIdInfo,
-            validationStringency,
-            schema,
-            conf,
-            outputStream,
-            idx == partitionWithHeader)
+      val writer =
+        new VCFFileWriter(
+          path.toString,
+          headerLineSet,
+          sampleIdInfo,
+          validationStringency,
+          schema,
+          conf,
+          outputStream,
+          idx == partitionWithHeader)
 
-        it.foreach { row =>
-          writer.write(row)
-        }
+      it.foreach { row =>
+        writer.write(row)
+      }
 
-        writer.close()
-        Iterator(baos.toByteArray)
+      writer.close()
+      Iterator(baos.toByteArray)
     }
   }
 }

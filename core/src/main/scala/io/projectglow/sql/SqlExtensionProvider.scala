@@ -17,10 +17,8 @@
 package io.projectglow.sql
 
 import java.util.{List => JList, Map => JMap}
-
 import scala.collection.JavaConverters._
-
-import org.apache.spark.sql.{SQLUtils, SparkSessionExtensions}
+import org.apache.spark.sql.{SQLUtils, SparkSessionExtensions, SparkSessionExtensionsProvider}
 import org.apache.spark.sql.catalyst.FunctionIdentifier
 import org.apache.spark.sql.catalyst.analysis.FunctionRegistry
 import org.apache.spark.sql.catalyst.expressions.Expression
@@ -28,7 +26,6 @@ import org.apache.spark.sql.catalyst.plans.logical.LogicalPlan
 import org.apache.spark.sql.catalyst.rules.Rule
 import org.apache.spark.sql.internal.SQLConf
 import org.yaml.snakeyaml.Yaml
-
 import io.projectglow.SparkShim._
 import io.projectglow.common.WithUtils
 import io.projectglow.sql.expressions._
@@ -36,16 +33,15 @@ import io.projectglow.sql.optimizer.{ReplaceExpressionsRule, ResolveExpandStruct
 
 // TODO(hhd): Spark 3.0 allows extensions to register functions. After Spark 3.0 is released,
 // we should move all extensions into this class.
-class GlowSQLExtensions extends (SparkSessionExtensions => Unit) {
-  val resolutionRules: Seq[Rule[LogicalPlan]] =
+class GlowSQLExtensions extends SparkSessionExtensionsProvider {
+  private val resolutionRules: Seq[Rule[LogicalPlan]] =
     Seq(ResolveExpandStructRule, ResolveGenotypeFields, ReplaceExpressionsRule)
-  val optimizations: Seq[Rule[LogicalPlan]] = Seq()
 
-  def apply(extensions: SparkSessionExtensions): Unit = {
+  override def apply(extensions: SparkSessionExtensions): Unit = {
     resolutionRules.foreach { r =>
       extensions.injectResolutionRule(_ => r)
     }
-    optimizations.foreach(r => extensions.injectOptimizerRule(_ => r))
+    SqlExtensionProvider.registerFunctions(extensions)
   }
 }
 
@@ -66,13 +62,11 @@ object SqlExtensionProvider {
       groups
         .values()
         .asScala
-        .flatMap(
-          group =>
-            group
-              .asScala("functions")
-              .asInstanceOf[JList[JMap[String, Any]]]
-              .asScala
-        )
+        .flatMap(group =>
+          group
+            .asScala("functions")
+            .asInstanceOf[JList[JMap[String, Any]]]
+            .asScala)
     }
   }
 
@@ -107,26 +101,27 @@ object SqlExtensionProvider {
       exprs: collection.Seq[Expression]): Seq[AnyRef] = {
     args
       .zipWithIndex
-      .flatMap {
-        case (_arg: JMap[String, Any], idx: Int) =>
-          val arg = _arg.asScala
-          // If the argument is optional and doesn't have a matching input, don't add a new
-          // expression to the list of children.
-          if (arg
-              .get("is_optional")
-              .exists(_.asInstanceOf[Boolean]) && idx >= exprs.size) {
-            None
-            // If we have a var args argument, the child expressions from here on are part of
-            // the var args list.
-          } else if (arg.get("is_var_args").exists(_.asInstanceOf[Boolean])) {
-            Some(exprs.slice(idx, exprs.size))
-          } else if (idx >= exprs.size) {
-            throw parameterError(functionName, exprs.size)
-          } else if (idx == args.size - 1 && exprs.size != args.size) {
-            throw parameterError(functionName, exprs.size)
-          } else {
-            Some(exprs(idx))
-          }
+      .flatMap { case (_arg: JMap[String, Any], idx: Int) =>
+        val arg = _arg.asScala
+        // If the argument is optional and doesn't have a matching input, don't add a new
+        // expression to the list of children.
+        if (
+          arg
+            .get("is_optional")
+            .exists(_.asInstanceOf[Boolean]) && idx >= exprs.size
+        ) {
+          None
+          // If we have a var args argument, the child expressions from here on are part of
+          // the var args list.
+        } else if (arg.get("is_var_args").exists(_.asInstanceOf[Boolean])) {
+          Some(exprs.slice(idx, exprs.size))
+        } else if (idx >= exprs.size) {
+          throw parameterError(functionName, exprs.size)
+        } else if (idx == args.size - 1 && exprs.size != args.size) {
+          throw parameterError(functionName, exprs.size)
+        } else {
+          Some(exprs(idx))
+        }
       }
       .toSeq
   }
@@ -135,8 +130,7 @@ object SqlExtensionProvider {
    * Register SQL functions based on a yaml function definition file.
    */
   def registerFunctions(
-      conf: SQLConf,
-      functionRegistry: FunctionRegistry,
+      functionRegistry: SparkSessionExtensions,
       resourcePath: String = FUNCTION_YAML_PATH): Unit = {
 
     loadFunctionDefinitions(resourcePath).foreach { _function =>
@@ -154,7 +148,7 @@ object SqlExtensionProvider {
         "",
         function("since").asInstanceOf[String]
       )
-      functionRegistry.registerFunction(
+      functionRegistry.injectFunction(
         id,
         info,
         exprs => {

@@ -14,7 +14,6 @@ Example usage
                                   --repos-path <path on databricks workspace> \
                                   --repos-url <git repo url> \
                                   --branch <git branch> \
-                                  --dockerhub_password <Password for projectglow dockerhub account>
 
 If you add notebooks or rename them, please also edit the workflow definition json located in this directory
 
@@ -62,8 +61,7 @@ def run_cli_cmd(cli_profile, api, args):
 @click.option('--repos-path', default='/Repos/staging', help='Path in Databricks workspace for running integration test')
 @click.option('--repos-url', default='https://github.com/projectglow/glow', help='URL for your fork of glow')
 @click.option('--branch', default='main', help='Update to your branch that you are testing on')
-@click.option('--dockerhub_password', default='DEFAULT', help='Password for projectglow dockerhub account')
-def main(cli_profile, workflow_definition, repos_path, repos_url, branch, dockerhub_password):
+def main(cli_profile, workflow_definition, repos_path, repos_url, branch):
     click.echo("cli_profile = " + cli_profile)
     click.echo("workflow_definition = " + workflow_definition)
     repos_path = f'{repos_path}_{str(datetime.now().microsecond)}/'
@@ -72,7 +70,7 @@ def main(cli_profile, workflow_definition, repos_path, repos_url, branch, docker
     click.echo("branch = " + branch)
     identifier = str(uuid.uuid4())
     with open(workflow_definition, 'r') as f:
-        jobs_json = json.loads(f.read() % {"repos_path": repos_path, "dockerhub_password": dockerhub_password})
+        jobs_json = json.loads(f.read() % {"repos_path": repos_path})
 
     print(f"Importing source files from Glow repo")
     run_cli_cmd(cli_profile, 'workspace', ['mkdirs', repos_path])

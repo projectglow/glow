@@ -17,7 +17,7 @@
 package io.projectglow.sql
 
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.DebugFilesystem
+import org.apache.spark.{DebugFilesystem, SparkConf}
 import org.scalatest.concurrent.{AbstractPatienceConfiguration, Eventually}
 import org.scalatest.time.{Milliseconds, Seconds, Span}
 import org.scalatest.{Args, Status, Tag}
@@ -91,7 +91,6 @@ abstract class GlowBaseTest
  * Unit-test patience config to use with unit tests that use scala test's eventually and other
  * asynchronous checks. This will override the default timeout and check interval so they are
  * more likely to pass in highly loaded CI environments.
- *
  */
 trait JenkinsTestPatience extends AbstractPatienceConfiguration with Eventually {
 

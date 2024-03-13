@@ -19,12 +19,10 @@ package io.projectglow.transformers.pipe
 import java.lang.{IllegalStateException => ISE}
 import java.io._
 import java.util.concurrent.atomic.AtomicReference
-
 import scala.collection.JavaConverters._
 import scala.collection.mutable
 import scala.io.Source
 import scala.util.{Failure, Success, Try}
-
 import org.apache.spark.TaskContext
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
@@ -32,8 +30,8 @@ import org.apache.spark.sql.types.StructType
 import org.apache.spark.sql.{DataFrame, Row, SQLUtils, SparkSession}
 import org.apache.spark.storage.StorageLevel
 import org.apache.spark.util.CollectionAccumulator
-
 import io.projectglow.common.{GlowLogging, WithUtils}
+import org.apache.commons.lang3.exception.ExceptionUtils
 
 /**
  * Based on Spark's PipedRDD with the following modifications:
@@ -210,7 +208,7 @@ private[projectglow] class ProcessHelper(
         } catch {
           case t: Throwable => _childThreadException.set(t)
         } finally {
-          out.close()
+          Try(out.close())
         }
       }
     }

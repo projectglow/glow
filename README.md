@@ -9,19 +9,14 @@
   <br/>
   <br/>
   <a href="https://github.com/projectglow/glow/issues">Issues</a>
-  ·
-  <a href="https://groups.google.com/forum/#!forum/proj-glow">Mailing list</a>
-  ·
-	<a href="https://join.slack.com/t/proj-glow/shared_invite/enQtNzkwNDE4MzMwMTk5LTE2M2JiMjQ1ZDgyYWNkZTFiY2QyYWE0NGI2YWY3ODY3NmEwNmU5OGQzODcxMDBlYzY2YmYzOGM1YTcyYTRhYjA">Slack</a>
 </p>
 
 Glow is an open-source toolkit to enable bioinformatics at biobank-scale and beyond.
 
-[![CircleCI](https://circleci.com/gh/projectglow/glow.svg?style=svg)](https://circleci.com/gh/projectglow/glow)
+[![Tests](https://github.com/projectglow/glow/actions/workflows/tests.yml/badge.svg)](https://github.com/projectglow/glow/actions/workflows/tests.yml)
 [![Documentation
 Status](https://readthedocs.org/projects/glow/badge/?version=latest)](https://glow.readthedocs.io/en/latest/?badge=latest)
-[![Docker Hub Pulls](https://raster.shields.io/docker/pulls/projectglow/databricks-glow.svg)](https://hub.docker.com/r/projectglow/databricks-glow)
-[![PyPi](https://img.shields.io/pypi/v/glow.py.svg)](https://pypi.org/project/glow.py/)
+[![PyPI](https://img.shields.io/pypi/v/glow.py.svg)](https://pypi.org/project/glow.py/)
 [![Maven Central](https://img.shields.io/maven-central/v/io.projectglow/glow-spark3_2.12.svg)](https://mvnrepository.com/artifact/io.projectglow)
 [![Coverage Status](https://codecov.io/gh/projectglow/glow/branch/main/graph/badge.svg)](https://codecov.io/gh/projectglow/glow)
 [![Conda Version](https://img.shields.io/conda/vn/conda-forge/glow.svg)](https://anaconda.org/conda-forge/glow)
@@ -70,10 +65,20 @@ conda env update -f python/environment.yml
 Start an sbt shell using the `sbt` command.
 
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+> **FYI**: The following SBT projects are built on Spark 3.5.1/Scala 2.12.15 by default. To change the Spark version and
+=======
+<<<<<<< HEAD
+>>>>>>> projectglow-main
 > **FYI**: The following SBT projects are built on Spark 3.2.1/Scala 2.12.8 by default. To change the Spark version and
 =======
 > **FYI**: The following SBT projects are built on Spark 3.1.2/Scala 2.12.8 by default. To change the Spark version and
 >>>>>>> f6791fc (Fetch upstream)
+<<<<<<< HEAD
+=======
+>>>>>>> 343e8c7 (Fetch upstream)
+>>>>>>> projectglow-main
 Scala version, set the environment variables `SPARK_VERSION` and `SCALA_VERSION`.
 
 To compile the main code:
@@ -122,23 +127,22 @@ stagedRelease/test
 
 ## Testing code on a Databricks cluster
 
-To test your changes on a Databricks cluster, build and install Python and Scala artifacts.
+You can use the [build](https://github.com/projectglow/glow/blob/main/bin/build) script to create artifacts that you can install on a Databricks cluster.
 
-To build an uber jar (Glow + dependencies) with your changes:
+To build Python and Scala artifacts:
+```
+bin/build --scala --python
+```
 
-`sbt core/assembly`
+To build only Python (no sbt installation required):
+```
+bin/build --python
+```
 
-The uber jar will be at a path like `glow/core/target/${scala_version}/${artifact-name}-assembly-${version}-SNAPSHOT.jar`.
-
-To build a wheel with the Python code:
-
-1. Activate the Glow dev conda environment (`conda activate glow`)
-2. `cd` into the `python` directory
-3. Run `python setup.py bdist_wheel`
-
-The wheel file will be at a path like `python/dist/glow.py-${version}-py3-none-any.whl`.
-
-You can then [install these libraries on a Databricks cluster](https://docs.databricks.com/libraries/index.html).
+To install the artifacts on a Databricks cluster after building:
+```
+bin/build --python --scala --install MY_CLUSTER_ID
+```
 
 ## IntelliJ Tips
 
@@ -153,7 +157,7 @@ To run Python unit tests from inside IntelliJ, you must:
 
 The "sbt shell" tab in IntelliJ will NOT work since it does not use the glow conda environment.
 
-To test or testOnly in remote debug mode with IntelliJ IDEA set the remote debug configuration in IntelliJ to 'Attach to remote JVM' mode and a specific port number (here the default port number 5005 is used) and then modify the definition of options in groupByHash function in build.sbt to
+To test or testOnly in remote debug mode with IntelliJ IDEA set the remote debug configuration in IntelliJ to 'Attach to remote JVM' mode and a specific port number (here the default port number 5005 is used) and then modify the `testJavaOptions` in `build.sbt` to include:
 ```
-val options = ForkOptions().withRunJVMOptions(Vector("-Xmx1024m")).withRunJVMOptions(Vector("-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"))
+"-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=5005"
 ```

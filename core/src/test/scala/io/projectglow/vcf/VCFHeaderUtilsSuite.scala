@@ -66,16 +66,15 @@ class VCFHeaderUtilsSuite extends GlowBaseTest {
   private def writeVCFHeaders(contents: Seq[String], nSamples: Int = 1): Seq[String] = {
     val dir = Files.createTempDirectory(this.getClass.getSimpleName)
     val paths = contents.indices.map(idx => dir.resolve(idx.toString))
-    contents.zip(paths).foreach {
-      case (s, path) =>
-        val sampleIds = Range(0, nSamples).map(i => s"s$i").mkString("\t")
-        val fullContents =
-          s"""
+    contents.zip(paths).foreach { case (s, path) =>
+      val sampleIds = Range(0, nSamples).map(i => s"s$i").mkString("\t")
+      val fullContents =
+        s"""
            |##fileformat=VCFv4.2
            |${s.trim}
            |#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t$sampleIds
          """.stripMargin
-        FileUtils.writeStringToFile(path.toFile, StringContext.treatEscapes(fullContents.trim()))
+      FileUtils.writeStringToFile(path.toFile, StringContext.treatEscapes(fullContents.trim()))
     }
     paths.map(_.toString)
   }
@@ -102,7 +101,8 @@ class VCFHeaderUtilsSuite extends GlowBaseTest {
   }
 
   test("use literal header") {
-    val contents = vcfMetadataLines + "\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tNA12878\n"
+    val contents =
+      vcfMetadataLines + "\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\tNA12878\n"
     val header = getHeaderNoSamples(Map("vcfHeader" -> contents), None, schema)
     val parsed = VCFHeaderUtils.parseHeaderFromString(contents)
     assert(getAllLines(header).nonEmpty)

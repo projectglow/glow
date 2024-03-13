@@ -281,9 +281,8 @@ object BgenRecordWriter {
     if (a.isEmpty) {
       (default, default)
     } else {
-      a.foldLeft((a.head, a.head)) {
-        case ((min, max), e) =>
-          (math.min(min, e), math.max(max, e))
+      a.foldLeft((a.head, a.head)) { case ((min, max), e) =>
+        (math.min(min, e), math.max(max, e))
       }
     }
   }

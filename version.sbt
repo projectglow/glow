@@ -1,5 +1,13 @@
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+ThisBuild / version := "2.1.0-SNAPSHOT"
+=======
+=======
+>>>>>>> 8b41cb1 (Fetch upstream)
+<<<<<<< HEAD
+>>>>>>> projectglow-main
 ThisBuild / version := "2.0.0-SNAPSHOT"
 =======
 version in ThisBuild := "1.2.2-SNAPSHOT"
@@ -7,3 +15,7 @@ version in ThisBuild := "1.2.2-SNAPSHOT"
 =======
 version in ThisBuild := "1.1.3-SNAPSHOT"
 >>>>>>> f6791fc (Fetch upstream)
+<<<<<<< HEAD
+=======
+>>>>>>> 343e8c7 (Fetch upstream)
+>>>>>>> projectglow-main

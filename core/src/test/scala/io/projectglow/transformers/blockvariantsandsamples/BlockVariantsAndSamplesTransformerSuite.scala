@@ -116,9 +116,8 @@ class BlockVariantsAndSamplesTransformerSuite extends GlowBaseTest with GlowLogg
       .zip(
         dfBlocked.collect
       )
-      .foreach {
-        case (rowExp, rowBlocked) =>
-          assert(rowExp.equals(rowBlocked), s"Expected\n$rowExp\nBlocked\n$rowBlocked")
+      .foreach { case (rowExp, rowBlocked) =>
+        assert(rowExp.equals(rowBlocked), s"Expected\n$rowExp\nBlocked\n$rowBlocked")
       }
   }
 
@@ -148,9 +147,8 @@ class BlockVariantsAndSamplesTransformerSuite extends GlowBaseTest with GlowLogg
       .schema
 
     assert(testSchema.length == expectedSchema.length)
-    testSchema.zip(expectedSchema).foreach {
-      case (t, e) =>
-        assert(SQLUtils.structFieldsEqualExceptNullability(t, e), s"Expected\n$e\nBlocked\n$t")
+    testSchema.zip(expectedSchema).foreach { case (t, e) =>
+      assert(SQLUtils.structFieldsEqualExceptNullability(t, e), s"Expected\n$e\nBlocked\n$t")
     }
   }
 

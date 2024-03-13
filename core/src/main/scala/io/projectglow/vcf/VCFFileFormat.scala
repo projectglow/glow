@@ -169,8 +169,8 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
     // The fast VCF reader does not support parsing an `attributes` or `otherFields` map. If either of these
     // fields appear in the required schema, fall back to the htsjdk based reader
     val fastReaderEnabled = SQLConf
-        .get
-        .getConf(GlowConf.FAST_VCF_READER_ENABLED) && !hasAttributesField && !hasOtherFields
+      .get
+      .getConf(GlowConf.FAST_VCF_READER_ENABLED) && !hasAttributesField && !hasOtherFields
 
     partitionedFile => {
       val path = partitionedFile.filePath.toPath
@@ -278,9 +278,9 @@ object VCFFileFormat {
       classOf[BGZFEnhancedGzipCodec].getCanonicalName
     )
     val codecs = toReturn
-        .get("io.compression.codecs", "")
-        .split(",")
-        .filter(codec => codec.nonEmpty && !bgzCodecs.contains(codec)) ++ bgzCodecs
+      .get("io.compression.codecs", "")
+      .split(",")
+      .filter(codec => codec.nonEmpty && !bgzCodecs.contains(codec)) ++ bgzCodecs
     toReturn.set("io.compression.codecs", codecs.mkString(","))
     toReturn
   }
@@ -288,7 +288,8 @@ object VCFFileFormat {
   val idxLock = Striped.lock(100)
   val INDEX_SUFFIX = ".tbi"
 
-  /** Checks whether the file is a valid bgzipped file
+  /**
+   * Checks whether the file is a valid bgzipped file
    * Used by filteredVariantBlockRange to abandon use of tabix if the file is not bgzipped.
    */
   def isValidBGZ(path: Path, conf: Configuration): Boolean = {
@@ -377,7 +378,8 @@ private[vcf] class VCFIterator(
     retVC
   }
 
-  /** Finds next VC that satisfies the filteredInterval. As genotype data is lazily loaded, this
+  /**
+   * Finds next VC that satisfies the filteredInterval. As genotype data is lazily loaded, this
    * dramatically improves the loading when filtering.
    */
   private def findNextVC(): VariantContext = {

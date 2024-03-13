@@ -287,19 +287,20 @@ object GffDataSource {
     spark.conf.set(columnPruningConf, originalColumnPruning)
 
     val attributeFields = attributeTags
-      .map(
-        t =>
-          StructField(
-            t,
-            gffOfficialAttributeFields
-              .find(f => f.name == normalizeString(t))
-              .map(_.dataType)
-              .getOrElse(StringType)))
+      .map(t =>
+        StructField(
+          t,
+          gffOfficialAttributeFields
+            .find(f => f.name == normalizeString(t))
+            .map(_.dataType)
+            .getOrElse(StringType)))
       .sortBy(f =>
-        (gffOfficialAttributeFields.map(_.name).indexOf(normalizeString(f.name)) match {
-          case -1 => gffOfficialAttributeFields.length + 1
-          case i => i
-        }, f.name))
+        (
+          gffOfficialAttributeFields.map(_.name).indexOf(normalizeString(f.name)) match {
+            case -1 => gffOfficialAttributeFields.length + 1
+            case i => i
+          },
+          f.name))
 
     StructType(
       gffBaseSchema

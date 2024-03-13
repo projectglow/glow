@@ -103,9 +103,8 @@ trait ExpectsGenotypeFields extends Expression {
         return TypeCheckResult.TypeCheckFailure("Genotypes field must be an array of structs")
     }
 
-    val missingFields = requiredGenotypeFields.zip(requiredFieldIndices).collect {
-      case (f, -1) =>
-        f
+    val missingFields = requiredGenotypeFields.zip(requiredFieldIndices).collect { case (f, -1) =>
+      f
     }
 
     if (missingFields.isEmpty) {

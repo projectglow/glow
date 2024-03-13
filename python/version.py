@@ -14,6 +14,14 @@
 
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+VERSION = '2.1.0-SNAPSHOT'
+=======
+=======
+>>>>>>> 8b41cb1 (Fetch upstream)
+<<<<<<< HEAD
+>>>>>>> projectglow-main
 VERSION = '2.0.0'
 =======
 VERSION = '1.2.1'
@@ -21,3 +29,7 @@ VERSION = '1.2.1'
 =======
 VERSION = '1.1.2'
 >>>>>>> f6791fc (Fetch upstream)
+<<<<<<< HEAD
+=======
+>>>>>>> 343e8c7 (Fetch upstream)
+>>>>>>> projectglow-main

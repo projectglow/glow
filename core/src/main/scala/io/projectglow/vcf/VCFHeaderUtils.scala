@@ -118,8 +118,8 @@ object VCFHeaderUtils extends GlowLogging {
       getNonSchemaHeaderLines: Boolean): Seq[VCFHeaderLine] = {
     headers.flatMap { header =>
       val schemaHeaderLines = header.getInfoHeaderLines.asScala ++ header
-          .getFormatHeaderLines
-          .asScala
+        .getFormatHeaderLines
+        .asScala
       val nonSchemaHeaderLines = if (getNonSchemaHeaderLines) {
         header.getContigLines.asScala ++ header.getFilterLines.asScala
       } else {
@@ -138,9 +138,11 @@ object VCFHeaderUtils extends GlowLogging {
                 s"and $line2. Header lines with the same ID must have the same count and type.")
             }
           case (line1: VCFContigHeaderLine, line2: VCFContigHeaderLine) =>
-            if (line1
+            if (
+              line1
                 .getSAMSequenceRecord()
-                .getSequenceLength() == line2.getSAMSequenceRecord().getSequenceLength()) {
+                .getSequenceLength() == line2.getSAMSequenceRecord().getSequenceLength()
+            ) {
               line1
             } else {
               throw new IllegalArgumentException(

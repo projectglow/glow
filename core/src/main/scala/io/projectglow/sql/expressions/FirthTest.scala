@@ -68,8 +68,8 @@ object FirthTest extends LogitTest {
 
     val beta = fullFit.fitState.b(-1)
     val fisher = fitState
-        .x
-        .t * (fitState.x(::, *) *:* (fullFit.fitState.mu *:* (1d - fullFit.fitState.mu)))
+      .x
+      .t * (fitState.x(::, *) *:* (fullFit.fitState.mu *:* (1d - fullFit.fitState.mu)))
     LogisticRegressionGwas.makeStats(beta, fisher, fullFit.logLkhd, nullFit.logLkhd)
   }
 
@@ -107,7 +107,7 @@ object FirthTest extends LogitTest {
         } else if (max(abs(deltaB)) < tol && iter > 1) {
           converged = true
           logLkhd = sum(breeze.numerics.log((y *:* args.mu) + ((1d - y) *:* (1d - args.mu)))) + sum(
-              log(abs(diag(QR.r))))
+            log(abs(diag(QR.r))))
         } else {
           iter += 1
           args.b += deltaB

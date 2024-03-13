@@ -17,6 +17,13 @@ dependencies:
   - pip=22.3.1
   - pyarrow=8.0.1 # DBR 14.2 uses 8.0.0, but this version is not compatible with Python 3.10 in Conda
   - pytest=7.4.4
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+  - pytest-cov=4.1.0
+  - pygments=2.17.2
+=======
+>>>>>>> projectglow-main
 =======
   - pandas=1.2.4
   - pip=21.0.1
@@ -33,6 +40,10 @@ dependencies:
 >>>>>>> 41ae0b9 (Fetch upstream)
   - pytest
 >>>>>>> f6791fc (Fetch upstream)
+<<<<<<< HEAD
+=======
+>>>>>>> 343e8c7 (Fetch upstream)
+>>>>>>> projectglow-main
   - pyyaml
   - scipy=1.10.0
   - scikit-learn=1.1.1
@@ -42,11 +53,20 @@ dependencies:
   - pip:
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+    - pyspark==3.5.1
+=======
+=======
+>>>>>>> 8b41cb1 (Fetch upstream)
+<<<<<<< HEAD
+>>>>>>> projectglow-main
     - pyspark==3.5.0
+>>>>>>> 343e8c7 (Fetch upstream)
     - databricks-cli==0.18 # Docs notebook source generation
+    - databricks-sdk
     - setuptools==65.6.3 # Python packaging
     - twine # Pypi publishing
-    - pygments
     - sphinx
     - sphinx_rtd_theme
 =======

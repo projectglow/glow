@@ -83,9 +83,12 @@ abstract class SenaryExpression extends Expression {
       ctx: CodegenContext,
       ev: ExprCode,
       f: (String, String, String, String, String, String) => String): ExprCode = {
-    nullSafeCodeGen(ctx, ev, (eval1, eval2, eval3, eval4, eval5, eval6) => {
-      s"${ev.value} = ${f(eval1, eval2, eval3, eval4, eval5, eval6)};"
-    })
+    nullSafeCodeGen(
+      ctx,
+      ev,
+      (eval1, eval2, eval3, eval4, eval5, eval6) => {
+        s"${ev.value} = ${f(eval1, eval2, eval3, eval4, eval5, eval6)};"
+      })
   }
 
   /**
