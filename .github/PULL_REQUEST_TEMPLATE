@@ -3,9 +3,5 @@
 
 ## How is this patch tested?
 - [ ] Unit tests
-- [ ] Integration tests
-- [ ] Manual tests
 
-(Details)
-
-To run Spark 4 tests against your PR, include `[SPARK4]` in the title.
+(Describe any other testing)

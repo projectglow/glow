@@ -157,7 +157,6 @@ jobs:
 
   spark-4-tests:
     runs-on: ubuntu-latest
-    if: contains(github.event.pull_request.title, '[SPARK4]')
     defaults:
       run:
         shell: bash -el {0}
