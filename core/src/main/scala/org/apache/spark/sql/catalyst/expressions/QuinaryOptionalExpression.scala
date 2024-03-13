@@ -24,7 +24,7 @@ import org.apache.spark.sql.catalyst.expressions.codegen._
  * An expression with four inputs + 5th optional input.
  * The output is by default evaluated to null if any input is evaluated to null.
  */
-abstract class QuinaryExpression extends Expression {
+abstract class QuinaryOptionalExpression extends Expression {
 
   override def foldable: Boolean = children.forall(_.foldable)
 

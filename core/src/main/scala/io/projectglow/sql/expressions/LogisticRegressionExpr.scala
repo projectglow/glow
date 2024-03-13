@@ -22,7 +22,7 @@ import org.apache.spark.sql.SQLUtils
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.analysis.TypeCheckResult
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, ExprCode}
-import org.apache.spark.sql.catalyst.expressions.{Expression, ImplicitCastInputTypes, QuinaryExpression}
+import org.apache.spark.sql.catalyst.expressions.{Expression, ImplicitCastInputTypes, QuinaryOptionalExpression}
 import org.apache.spark.sql.catalyst.util.ArrayData
 import org.apache.spark.sql.types.{ArrayType, DataType, DoubleType, StringType}
 import org.apache.spark.unsafe.types.UTF8String
@@ -139,7 +139,7 @@ case class LogisticRegressionExpr(
     covariates: Expression,
     test: Expression,
     offsetOption: Option[Expression])
-    extends QuinaryExpression
+    extends QuinaryOptionalExpression
     with ImplicitCastInputTypes {
 
   def this(
