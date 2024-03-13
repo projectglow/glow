@@ -1,14 +1,8 @@
 # Databricks notebook source
 # MAGIC %md
-<<<<<<< HEAD
 # MAGIC
 # MAGIC #### Create database for querying
 # MAGIC
-=======
-# MAGIC 
-# MAGIC #### Create database for querying
-# MAGIC 
->>>>>>> f6791fc (Fetch upstream)
 # MAGIC use Spark SQL to create database and tables within that database for downstream querying
 
 # COMMAND ----------
@@ -55,11 +49,7 @@ spark.sql("create table variant_db.pvcf using delta location '{}'".format(output
 
 # MAGIC %md
 # MAGIC ##### optimize delta lake table for querying
-<<<<<<< HEAD
 # MAGIC
-=======
-# MAGIC 
->>>>>>> f6791fc (Fetch upstream)
 # MAGIC by optimizing file sizes and Z-ordering on `contigName` and `start`.
 
 # COMMAND ----------

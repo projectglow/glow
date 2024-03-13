@@ -11,20 +11,7 @@ big data processing and machine learning, enabling genomics workflows to scale t
    introduction
    getting-started
    tutorial
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-   benchmarks
->>>>>>> f6791fc (Fetch upstream)
-=======
    customizing/index
-=======
-<<<<<<< HEAD
-=======
-   benchmarks
->>>>>>> f6791fc (Fetch upstream)
->>>>>>> 343e8c7 (Fetch upstream)
->>>>>>> projectglow-main
    etl/index
    tertiary/index
    troubleshooting

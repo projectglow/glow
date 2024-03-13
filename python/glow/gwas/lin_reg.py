@@ -1,10 +1,6 @@
 import pandas as pd
 import numpy as np
-<<<<<<< HEAD
 from nptyping import Float, NDArray, Int32, Shape
-=======
-from nptyping import Float, NDArray, Int32
->>>>>>> f6791fc (Fetch upstream)
 from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Union
 from pyspark.sql import Column, DataFrame
@@ -204,7 +200,6 @@ def _create_one_YState(Y: NDArray[Shape['*, *'], Float], phenotype_df: pd.DataFr
 
 
 # @typechecked -- typeguard does not support numpy array
-<<<<<<< HEAD
 def _linear_regression_inner(
         genotype_pdf: pd.DataFrame, Y_state: YState, Y_mask: NDArray[Shape['*, *'], Float],
         Y_scale: NDArray[Shape['*'],
@@ -213,14 +208,6 @@ def _linear_regression_inner(
         Y_for_verbose_output: Optional[NDArray[Shape['*, *'],
                                                Float]], verbose_output: Optional[bool],
         gt_indices_to_drop: Optional[NDArray[Shape['*'], Int32]]) -> pd.DataFrame:
-=======
-def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
-                             Y_mask: NDArray[(Any, Any), Float], Y_scale: NDArray[(Any, ), Float],
-                             Q: NDArray[(Any, Any), Float], dof: int, phenotype_names: pd.Series,
-                             Y_for_verbose_output: Optional[NDArray[(Any, Any), Float]],
-                             verbose_output: Optional[bool],
-                             gt_indices_to_drop: Optional[NDArray[(Any, ), Int32]]) -> pd.DataFrame:
->>>>>>> f6791fc (Fetch upstream)
     '''
     Applies a linear regression model to a block of genotypes. We first project the covariates out of the
     genotype block and then perform single variate linear regression for each site.
@@ -241,11 +228,7 @@ def _linear_regression_inner(genotype_pdf: pd.DataFrame, Y_state: YState,
     if gt_indices_to_drop is not None and gt_indices_to_drop.size:
         X = np.delete(X, gt_indices_to_drop, axis=0)
 
-<<<<<<< HEAD
     genotype_pdf.drop(_VALUES_COLUMN_NAME, axis=1, inplace=True)
-=======
-    del genotype_pdf[_VALUES_COLUMN_NAME]
->>>>>>> f6791fc (Fetch upstream)
     num_genotypes = genotype_pdf.shape[0]
     out_df = pd.concat([genotype_pdf] * Y_state.Y.shape[1])
     if verbose_output:

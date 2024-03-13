@@ -1,15 +1,1 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
 2.0.0
-=======
-<<<<<<< HEAD
->>>>>>> projectglow-main
-1.2.1
-=======
-1.1.2
->>>>>>> f6791fc (Fetch upstream)
-<<<<<<< HEAD
-=======
->>>>>>> 343e8c7 (Fetch upstream)
->>>>>>> projectglow-main

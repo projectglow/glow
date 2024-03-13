@@ -1,10 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-<<<<<<< HEAD
 # MAGIC
-=======
-# MAGIC 
->>>>>>> f6791fc (Fetch upstream)
 # MAGIC ### Pipeline runs comparison
 
 # COMMAND ----------
@@ -61,11 +57,7 @@ display(benchmark_results.where((fx.col("test") == ("linear_regression")) |
 # COMMAND ----------
 
 # MAGIC %md
-<<<<<<< HEAD
 # MAGIC
-=======
-# MAGIC 
->>>>>>> f6791fc (Fetch upstream)
 # MAGIC TODO, add other steps in the pipeline
 
 # COMMAND ----------

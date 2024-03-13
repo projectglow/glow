@@ -1,6 +1,5 @@
 # Databricks notebook source
 # MAGIC %md
-<<<<<<< HEAD
 # MAGIC
 # MAGIC #### Convert Delta Table to VCF
 # MAGIC
@@ -8,15 +7,6 @@
 # MAGIC
 # MAGIC note: most of the job writing back to a single VCF is single threaded, 
 # MAGIC
-=======
-# MAGIC 
-# MAGIC #### Convert Delta Table to VCF
-# MAGIC 
-# MAGIC Take the delta table and write it back to VCF (for input to Hail)
-# MAGIC 
-# MAGIC note: most of the job writing back to a single VCF is single threaded, 
-# MAGIC 
->>>>>>> f6791fc (Fetch upstream)
 # MAGIC but it requires the full dataset to be read into memory on a spark cluster.
 
 # COMMAND ----------

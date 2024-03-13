@@ -1,14 +1,8 @@
 # Databricks notebook source
 # MAGIC %md
-<<<<<<< HEAD
 # MAGIC
 # MAGIC #### Ingest VCF into delta
 # MAGIC
-=======
-# MAGIC 
-# MAGIC #### Ingest VCF into delta
-# MAGIC 
->>>>>>> f6791fc (Fetch upstream)
 # MAGIC We already have the data in delta, so this is notebook is for benchmarking purposes
 
 # COMMAND ----------

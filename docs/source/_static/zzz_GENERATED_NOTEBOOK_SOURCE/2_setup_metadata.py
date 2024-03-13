@@ -1,19 +1,11 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC ##### run metadata
-<<<<<<< HEAD
 # MAGIC
 # MAGIC Warning: this will only work in Databricks
 # MAGIC
 # MAGIC It requires the databricks-cli to be installed via pip 
 # MAGIC
-=======
-# MAGIC 
-# MAGIC Warning: this will only work in Databricks
-# MAGIC 
-# MAGIC It requires the databricks-cli to be installed via pip 
-# MAGIC 
->>>>>>> f6791fc (Fetch upstream)
 # MAGIC (this is included in the `projectglow/databricks-glow` docker container)
 
 # COMMAND ----------
@@ -88,15 +80,10 @@ schema = StructType([StructField("datetime", DateType(), True),
 node_to_core_mapping = {"r5d.2xlarge": 8,
                         "r5d.4xlarge": 16, 
                         "c5d.2xlarge": 8, 
-<<<<<<< HEAD
                         "i3.xlarge": 4, 
                         "Standard_DS3_v2": 4,
                         "Standard_DS4_v2": 8,
                         "Standard_E4d_v4": 4,
-=======
-                        "Standard_DS3_v2": 4,
-                        "Standard_DS4_v2": 8,
->>>>>>> f6791fc (Fetch upstream)
                         "Standard_E8s_v3": 8,
                         "Standard_L8s_v2": 8,
                         "Standard_L64s_v2": 64
@@ -113,10 +100,7 @@ def log_metadata(datetime, n_samples, n_variants, n_covariates, n_binary_phenoty
   """
   log metadata about each step in the pipeline and append to delta lake table
   """
-<<<<<<< HEAD
   spark.sql("RESET") # resetting the runtime configurations specific to the current session is necessary to avoid `com.databricks.sql.io.FileReadException: Error while reading file`
-=======
->>>>>>> f6791fc (Fetch upstream)
   runtime = float("{:.2f}".format((end_time - start_time)))
   n_cores = lookup_cores(node_type_id, n_workers, node_to_core_mapping=node_to_core_mapping)
   l = [(datetime, n_samples, n_variants, n_covariates, n_binary_phenotypes, method, test, library, spark_version, node_type_id, n_workers, n_cores, runtime)]

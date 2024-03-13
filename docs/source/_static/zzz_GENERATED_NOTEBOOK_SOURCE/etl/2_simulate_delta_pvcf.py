@@ -1,18 +1,10 @@
 # Databricks notebook source
 # MAGIC %md
-<<<<<<< HEAD
 # MAGIC
 # MAGIC #### Simulate pVCF
 # MAGIC
 # MAGIC Uses the 1000 genomes to simulate a project-level VCF at a larger scale and write to delta lake
 # MAGIC
-=======
-# MAGIC 
-# MAGIC #### Simulate pVCF
-# MAGIC 
-# MAGIC Uses the 1000 genomes to simulate a project-level VCF at a larger scale and write to delta lake
-# MAGIC 
->>>>>>> f6791fc (Fetch upstream)
 # MAGIC - Please download 1000G data first and write to Delta Lake
 # MAGIC   - see `./data/download_1000G` (notebook in [github](https://github.com/projectglow/glow/tree/master/docs/source/_static/notebooks/etl/data/download_1000G.html))
 # MAGIC - For now we manually define functions to handle hardy-weinberg allele frequency and multiallelic variants
