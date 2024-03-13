@@ -54,3 +54,11 @@ This step is automated by a [GitHub Action](https://github.com/projectglow/glow/
 ### Conda release
 
 The Conda release is not automated. After releasing to PyPI, open a pull request against the [Glow feedstock](https://github.com/conda-forge/glow-feedstock). You can use [this pull request](https://github.com/conda-forge/glow-feedstock/pull/8) as a template. You can find the source sha256 on PyPI. The version numbers in `meta.yml` should match `python/setup.py`.
+
+## Spark 4
+
+Tests already run against the Spark 4.0 snapshot. When Spark 4.0 is actually released:
+- Update the Spark version in `built.sbt` to reference the stable release instead of the snapshot
+- Update the `tests.yml` workflow to use the Spark 4.0 PyPI package instead of installing from source
+- (optional) Consolidate Spark 4.0 into the `tests.yml` matrix instead of running as a separate job
+- Follow the release workflow for Spark 4 as well as Spark 3 (until you want to stop releasing Spark 3 packages)
