@@ -35,7 +35,9 @@ def majorMinorVersion(version: String): String = {
   }
 }
 
-ThisBuild / scalaVersion := sys.env.getOrElse("SCALA_VERSION", scala212)
+val defaultScalaVersion = Map("3" -> scala212, "4" -> scala213)
+
+ThisBuild / scalaVersion := sys.env.getOrElse("SCALA_VERSION", defaultScalaVersion(majorVersion(sparkVersion.value)))
 ThisBuild / organization := "io.projectglow"
 ThisBuild / scalastyleConfig := baseDirectory.value / "scalastyle-config.xml"
 ThisBuild / publish / skip := true
