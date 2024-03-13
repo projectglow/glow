@@ -26,11 +26,7 @@ import org.apache.spark.sql.types.StringType
 /**
  * A simple input formatter that writes each row as a string.
  */
-<<<<<<< HEAD
 class UTF8TextInputFormatter(header: Option[String])
-=======
-class UTF8TextInputFormatter()
->>>>>>> f6791fc (Fetch upstream)
     extends InputFormatter[Option[org.apache.spark.unsafe.types.UTF8String]] {
 
   private var writer: PrintWriter = _

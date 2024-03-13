@@ -1,10 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-<<<<<<< HEAD
 # MAGIC
-=======
-# MAGIC 
->>>>>>> f6791fc (Fetch upstream)
 # MAGIC #### Set up constants for Glow to use in GWAS workflow notebooks
 
 # COMMAND ----------
@@ -181,10 +177,7 @@ print("genotype simulation paths", json.dumps({
 
 # COMMAND ----------
 
-<<<<<<< HEAD
 output_delta = simulate_prefix + '_variants_pvcf.delta'
-=======
->>>>>>> f6791fc (Fetch upstream)
 output_delta_tmp = simulate_prefix + '_variants_pvcf_tmp.delta'
 output_vcf = simulate_prefix + '_variants_pvcf.vcf.bgz'
 output_vcf_small = simulate_prefix + '_variants_pvcf_test.vcf'
@@ -193,10 +186,7 @@ output_vcf_local = simulate_prefix_local + '_variants_pvcf_test.vcf'
 os.environ["output_vcf"] = output_vcf_local
 
 print("delta to vcf paths", json.dumps({
-<<<<<<< HEAD
   "output_delta": output_delta,
-=======
->>>>>>> f6791fc (Fetch upstream)
   "output_delta_tmp": output_delta_tmp,
   "output_vcf": output_vcf,
   "output_vcf_small": output_vcf_small,
@@ -207,7 +197,6 @@ print("delta to vcf paths", json.dumps({
 # COMMAND ----------
 
 # MAGIC %md
-<<<<<<< HEAD
 # MAGIC ##### liftOver
 
 # COMMAND ----------
@@ -222,8 +211,6 @@ print("delta to vcf paths", json.dumps({
 # COMMAND ----------
 
 # MAGIC %md
-=======
->>>>>>> f6791fc (Fetch upstream)
 # MAGIC ##### quality control
 
 # COMMAND ----------
@@ -324,7 +311,6 @@ print("binary phenotype paths", json.dumps({
 # COMMAND ----------
 
 # MAGIC %md
-<<<<<<< HEAD
 # MAGIC ##### Plink with pipe transformer
 
 # COMMAND ----------
@@ -339,8 +325,6 @@ dbutils.fs.mkdirs(plink_out_path)
 # COMMAND ----------
 
 # MAGIC %md
-=======
->>>>>>> f6791fc (Fetch upstream)
 # MAGIC ##### VEP annotation
 
 # COMMAND ----------

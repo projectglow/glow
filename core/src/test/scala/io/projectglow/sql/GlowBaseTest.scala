@@ -28,12 +28,7 @@ import org.apache.spark.sql.api.r.SQLUtilsSuite
 import org.apache.spark.sql.test.SharedSparkSession
 
 abstract class GlowBaseTest
-<<<<<<< HEAD
     extends SharedSparkSession
-=======
-    extends FunSuite
-    with SharedSparkSessionBase
->>>>>>> f6791fc (Fetch upstream)
     with Eventually
     with GlowLogging
     with GlowTestData
