@@ -53,7 +53,7 @@ This step is automated by a [GitHub Action](https://github.com/projectglow/glow/
 
 ### Conda release
 
-The Conda release is not automated. After releasing to PyPI, open a pull request against the [Glow feedstock](https://github.com/conda-forge/glow-feedstock) (the recipe and other files for building the Glow package in conda-forge). You can use [this pull request](https://github.com/conda-forge/glow-feedstock/pull/8) as a template. You can find the source sha256 on PyPI. The version numbers in `meta.yml` should match `python/setup.py`. Other contributors or maintainers of the feedstock, will then review these changes. The pull request will then be merged into the feedstock repository, triggering the automated build and release of the Glow conda package.
+The Conda release is not automated. After releasing to PyPI, open a pull request against the [Glow feedstock](https://github.com/conda-forge/glow-feedstock) (the recipe and other files for building the Glow package in conda-forge). You can use [this pull request](https://github.com/conda-forge/glow-feedstock/pull/8) as a template. You can find the source sha256 on PyPI. The version numbers in `meta.yml` should match `python/setup.py`. Other contributors or maintainers of the feedstock will review these changes. The pull request will then be merged into the feedstock repository, triggering the automated build and release of the Glow conda package.
 
 ## Spark 4
 
