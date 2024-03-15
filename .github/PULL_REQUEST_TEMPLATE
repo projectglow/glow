@@ -5,3 +5,5 @@
 - [ ] Unit tests
 
 (Describe any other testing)
+
+To run Spark 4.0 tests, add `[SPARK4]` to the pull request title.
