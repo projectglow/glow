@@ -37,7 +37,9 @@ def majorMinorVersion(version: String): String = {
 
 val defaultScalaVersion = Map("3" -> scala212, "4" -> scala213)
 
-ThisBuild / scalaVersion := sys.env.getOrElse("SCALA_VERSION", defaultScalaVersion(majorVersion(sparkVersion.value)))
+ThisBuild / scalaVersion := sys
+  .env
+  .getOrElse("SCALA_VERSION", defaultScalaVersion(majorVersion(sparkVersion.value)))
 ThisBuild / organization := "io.projectglow"
 ThisBuild / scalastyleConfig := baseDirectory.value / "scalastyle-config.xml"
 ThisBuild / publish / skip := true
@@ -171,7 +173,7 @@ ThisBuild / testCoreDependencies := Seq(
   "org.apache.spark" %% "spark-core" % sparkVersion.value % "test" classifier "tests",
   "org.apache.spark" %% "spark-mllib" % sparkVersion.value % "test" classifier "tests",
   "org.apache.spark" %% "spark-sql" % sparkVersion.value % "test" classifier "tests",
-  "org.xerial" % "sqlite-jdbc" % "3.45.1.0" % "test"
+  "org.xerial" % "sqlite-jdbc" % "3.45.2.0" % "test"
 )
 
 lazy val coreDependencies = settingKey[Seq[ModuleID]]("coreDependencies")
@@ -230,7 +232,7 @@ lazy val core = (project in file("core"))
       if (snapshotDeps.nonEmpty) {
         sys.error("Found snapshot dependencies")
       }
-    },
+    }
   )
 
 /**
@@ -304,7 +306,9 @@ lazy val python =
       functionGenerationSettings,
       Test / test := {
         yapf.toTask(" --diff").value
-        pytest.toTask(s" --doctest-modules --cov=glow --cov-report xml --cov-report term python").value
+        pytest
+          .toTask(s" --doctest-modules --cov=glow --cov-report xml --cov-report term python")
+          .value
       },
       generatedFunctionsOutput := baseDirectory.value / "glow" / "functions.py",
       functionsTemplate := baseDirectory.value / "glow" / "functions.py.TEMPLATE",
@@ -369,4 +373,3 @@ lazy val stagedRelease = (project in file("core/src/test"))
       sparkVersion.value)}" % stableVersion.value % "test",
     resolvers := Seq(MavenCache("local-sonatype-staging", sonatypeBundleDirectory.value))
   )
-
