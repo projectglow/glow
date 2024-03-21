@@ -154,7 +154,8 @@ class VCFHeaderUtilsSuite extends GlowBaseTest {
          |##contig=<ID=21,length=48129895>
        """.stripMargin
     val paths = writeVCFHeaders(Seq(file1, file2))
-    val lines = VCFHeaderUtils.readHeaderLines(spark, paths.map(new URI(_)), getNonSchemaHeaderLines)
+    val lines =
+      VCFHeaderUtils.readHeaderLines(spark, paths.map(new URI(_)), getNonSchemaHeaderLines)
 
     val expectedSchemaLines = Set(
       new VCFInfoHeaderLine("animal", 1, VCFHeaderLineType.String, "monkey"),
@@ -232,7 +233,11 @@ class VCFHeaderUtilsSuite extends GlowBaseTest {
          |##FORMAT=<ID=animal,Number=2,Type=String,Description="monkey">
        """.stripMargin
     val paths = writeVCFHeaders(Seq(file1, file2))
-    VCFHeaderUtils.readHeaderLines(spark, paths.map(new URI(_)), getNonSchemaHeaderLines = true) // no exception
+    VCFHeaderUtils.readHeaderLines(
+      spark,
+      paths.map(new URI(_)),
+      getNonSchemaHeaderLines = true
+    ) // no exception
   }
 
   test("does not try to read tabix indices") {

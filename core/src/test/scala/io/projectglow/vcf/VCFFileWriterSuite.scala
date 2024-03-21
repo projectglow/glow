@@ -443,16 +443,26 @@ abstract class VCFFileWriterSuite(val sourceName: String) extends VCFConverterBa
     }
   }
 
-  gridTest("Handle VCF info fields with type")(Seq(LongType, ShortType, ByteType, FloatType)) { typ =>
-    val vcf = spark.read.format("vcf").load(s"$testDataHome/1kg_sample.vcf")
-      .withColumn("INFO_AN", col("INFO_AN").cast(typ))
-    validateVCFRoundTrip(vcf)
+  gridTest("Handle VCF info fields with type")(Seq(LongType, ShortType, ByteType, FloatType)) {
+    typ =>
+      val vcf = spark
+        .read
+        .format("vcf")
+        .load(s"$testDataHome/1kg_sample.vcf")
+        .withColumn("INFO_AN", col("INFO_AN").cast(typ))
+      validateVCFRoundTrip(vcf)
   }
 
-  gridTest("Handle VCF format fields with type")(Seq(LongType, ShortType, ByteType, FloatType)) { typ =>
-    val vcf = spark.read.format("vcf").load(s"$testDataHome/1kg_sample.vcf")
-      .withColumn("genotypes.conditionalQuality", col("genotypes.conditionalQuality").cast(ArrayType(typ)))
-    validateVCFRoundTrip(vcf)
+  gridTest("Handle VCF format fields with type")(Seq(LongType, ShortType, ByteType, FloatType)) {
+    typ =>
+      val vcf = spark
+        .read
+        .format("vcf")
+        .load(s"$testDataHome/1kg_sample.vcf")
+        .withColumn(
+          "genotypes.conditionalQuality",
+          col("genotypes.conditionalQuality").cast(ArrayType(typ)))
+      validateVCFRoundTrip(vcf)
   }
 }
 

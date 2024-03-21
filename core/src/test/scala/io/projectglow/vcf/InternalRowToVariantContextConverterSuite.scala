@@ -84,7 +84,8 @@ class InternalRowToVariantContextConverterSuite extends VCFConverterBaseTest {
   test("find genotype schema") {
     val df = spark.read.format("vcf").load(NA12878)
     val dfSchema = df.schema
-    val (header, _) = VCFFileFormat.createVCFCodec(new URI(NA12878), spark.sessionState.newHadoopConf())
+    val (header, _) =
+      VCFFileFormat.createVCFCodec(new URI(NA12878), spark.sessionState.newHadoopConf())
     val actualGenotypeSchema =
       VCFSchemaInferrer.inferGenotypeSchema(true, header.getFormatHeaderLines.asScala.toSeq)
     assert(
