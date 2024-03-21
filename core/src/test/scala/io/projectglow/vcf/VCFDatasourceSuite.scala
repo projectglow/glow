@@ -881,6 +881,10 @@ class FastVCFDatasourceSuite extends VCFDatasourceSuite {
       extraHeaderLines = "##INFO=<ID=STR,Number=1,Type=String,Description=\"\"\n")
     assert(df.selectExpr("INFO_STR").as[String].head == ".monkey")
   }
+
+  test("read file with space in title") {
+    spark.read.format("vcf").load(s"$testDataHome/1kg_sample with spaces.vcf").collect()
+  }
 }
 
 // For testing only: schema based on CEUTrio VCF header
