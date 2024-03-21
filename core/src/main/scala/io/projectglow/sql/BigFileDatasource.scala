@@ -49,7 +49,7 @@ abstract class BigFileDatasource extends CreatableRelationProvider {
       data: DataFrame): BaseRelation = {
 
     val path = BigFileDatasource.checkPath(options)
-    val filesystemPath = new Path(path)
+    val filesystemPath = new Path(new URI(path))
     val hadoopConf = sqlContext.sparkSession.sessionState.newHadoopConfWithOptions(options)
     val fs = filesystemPath.getFileSystem(hadoopConf)
     val doSave = if (fs.exists(filesystemPath)) {

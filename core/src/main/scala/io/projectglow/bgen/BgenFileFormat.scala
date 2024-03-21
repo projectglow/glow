@@ -18,9 +18,7 @@ package io.projectglow.bgen
 
 import java.io.{BufferedReader, File, InputStreamReader}
 import java.nio.file.Paths
-
 import scala.collection.JavaConverters._
-
 import com.google.common.io.LittleEndianDataInputStream
 import com.google.common.util.concurrent.Striped
 import org.apache.hadoop.conf.Configuration
@@ -34,10 +32,11 @@ import org.apache.spark.sql.sources.{DataSourceRegister, Filter}
 import org.apache.spark.sql.types.StructType
 import org.skife.jdbi.v2.DBI
 import org.skife.jdbi.v2.util.LongMapper
-
 import io.projectglow.common.{BgenOptions, GlowLogging, WithUtils}
 import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
 import io.projectglow.sql.util.{ComDatabricksDataSource, SerializableConfiguration}
+
+import java.net.URI
 
 class BgenFileFormat extends FileFormat with DataSourceRegister with Serializable with GlowLogging {
 
@@ -142,7 +141,7 @@ class BgenFileFormat extends FileFormat with DataSourceRegister with Serializabl
       return None
     }
 
-    val indexFile = new Path(file.filePath + BgenFileFormat.INDEX_SUFFIX)
+    val indexFile = new Path(new URI(file.filePath + BgenFileFormat.INDEX_SUFFIX))
     if (hadoopFs.exists(indexFile) && useIndex) {
       logger.info(s"Found index file ${indexFile} for BGEN file ${file.filePath}")
       val localIdxPath = downloadIdxIfNecessary(hadoopFs, indexFile)
@@ -166,7 +165,7 @@ class BgenFileFormat extends FileFormat with DataSourceRegister with Serializabl
     val localPath = s"$localDir/${path.getName.replaceAllLiterally("/", "__")}"
     WithUtils.withLock(BgenFileFormat.idxLock.get(path)) {
       if (!new File(localPath).exists()) {
-        hadoopFs.copyToLocalFile(path, new Path("file:" + localPath))
+        hadoopFs.copyToLocalFile(path, new Path(new URI("file:" + localPath)))
       }
     }
 
@@ -209,7 +208,7 @@ object BgenFileFormat extends HlsEventRecorder {
     }
 
     val samplePath = samplePathOpt.get
-    val path = new Path(samplePath)
+    val path = new Path(new URI(samplePath))
     val hadoopFs = path.getFileSystem(hadoopConf)
     val stream = hadoopFs.open(path)
     val streamReader = new InputStreamReader(stream)

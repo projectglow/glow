@@ -32,7 +32,7 @@ object VCFSchemaInferrer {
   def getInfoFieldStruct(headerLine: VCFInfoHeaderLine): StructField = {
     StructField(
       VariantSchemas.infoFieldPrefix + headerLine.getID,
-      typesForHeader(headerLine).head,
+      defaultTypesForHeader(headerLine).head,
       metadata = metadataForLine(headerLine))
   }
 
@@ -72,7 +72,7 @@ object VCFSchemaInferrer {
     val validatedFormatHeaders = validateHeaders(formatHeaders)
     validatedFormatHeaders.foreach { line =>
       val names = GenotypeFields.aliases.getOrElse(line.getID, Seq(line.getID))
-      val types = typesForHeader(line)
+      val types = defaultTypesForHeader(line)
       require(
         names.size == types.size,
         "Must have same number of header line struct names and types"
@@ -148,7 +148,10 @@ object VCFSchemaInferrer {
     infoLines ++ formatLines
   }
 
-  def typesForHeader(line: VCFCompoundHeaderLine): Seq[DataType] = {
+  /**
+   * The SQL type(s) that VCF fields are converted to when reading
+   */
+  def defaultTypesForHeader(line: VCFCompoundHeaderLine): Seq[DataType] = {
     if (particularSchemas.contains(line.getID)) {
       return particularSchemas(line.getID)(line.getDescription)
     }
@@ -168,6 +171,29 @@ object VCFSchemaInferrer {
     }
   }
 
+  /**
+   * The SQL types that can be converted to a VCF type
+   */
+  def acceptableTypesForHeader(line: VCFCompoundHeaderLine): Seq[DataType] = {
+    if (particularSchemas.contains(line.getID)) {
+      return particularSchemas(line.getID)(line.getDescription)
+    }
+
+    val primitiveTypes = line.getType match {
+      case VCFHeaderLineType.Character => Seq(StringType)
+      case VCFHeaderLineType.String => Seq(StringType)
+      case VCFHeaderLineType.Float => Seq(FloatType, DoubleType)
+      case VCFHeaderLineType.Integer => Seq(ByteType, ShortType, IntegerType, LongType)
+      case VCFHeaderLineType.Flag => Seq(BooleanType)
+    }
+
+    if (line.isFixedCount && line.getCount <= 1) {
+      primitiveTypes
+    } else {
+      primitiveTypes.map(ArrayType(_))
+    }
+  }
+
   private def getSpecialHeaderLine(fieldName: String): Option[VCFHeaderLine] = {
     if (Set(VariantSchemas.callsField.name, VariantSchemas.phasedField.name).contains(fieldName)) {
       Some(VCFRowHeaderLines.genotype)
@@ -178,8 +204,8 @@ object VCFSchemaInferrer {
 
   private def vcfDataType(dt: DataType): VCFHeaderLineType = dt match {
     case StringType => VCFHeaderLineType.String
-    case DoubleType => VCFHeaderLineType.Float
-    case IntegerType => VCFHeaderLineType.Integer
+    case FloatType | DoubleType => VCFHeaderLineType.Float
+    case ByteType | ShortType | IntegerType | LongType => VCFHeaderLineType.Integer
     case BooleanType => VCFHeaderLineType.Flag
     case at: ArrayType if at.elementType.isInstanceOf[StructType] =>
       // Annotation (eg. CSQ, ANN)

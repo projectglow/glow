@@ -39,6 +39,8 @@ import io.projectglow.common.{CommonOptions, GlowLogging, VariantSchemas}
 import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
 import io.projectglow.sql.util.SerializableConfiguration
 
+import java.net.URI
+
 class PlinkFileFormat
     extends FileFormat
     with DataSourceRegister
@@ -200,7 +202,7 @@ object PlinkFileFormat extends HlsEventRecorder {
       }
 
     val prefixPath = getPrefixPath(bedPath)
-    val famPath = new Path(prefixPath + FAM_FILE_EXTENSION)
+    val famPath = new Path(new URI(prefixPath + FAM_FILE_EXTENSION))
     val hadoopFs = famPath.getFileSystem(hadoopConf)
     val stream = hadoopFs.open(famPath)
     val parser = new CsvParser(settings)
@@ -249,7 +251,7 @@ object PlinkFileFormat extends HlsEventRecorder {
     settings.setFormat(format)
     val parser = new CsvParser(settings)
     val prefixPath = getPrefixPath(bedPath)
-    val bimPath = new Path(prefixPath + BIM_FILE_EXTENSION)
+    val bimPath = new Path(new URI(prefixPath + BIM_FILE_EXTENSION))
     val hadoopFs = bimPath.getFileSystem(hadoopConf)
     val stream = hadoopFs.open(bimPath)
 

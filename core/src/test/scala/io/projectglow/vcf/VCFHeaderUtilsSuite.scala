@@ -18,17 +18,16 @@ package io.projectglow.vcf
 
 import java.io.FileNotFoundException
 import java.nio.file.Files
-
 import scala.collection.JavaConverters._
-
 import htsjdk.tribble.TribbleException
 import htsjdk.variant.vcf._
 import org.apache.commons.io.FileUtils
 import org.apache.hadoop.fs.{FileStatus, Path}
 import org.apache.spark.SparkException
 import org.apache.spark.sql.types.StructType
-
 import io.projectglow.sql.GlowBaseTest
+
+import java.net.URI
 
 class VCFHeaderUtilsSuite extends GlowBaseTest {
   val vcf = s"$testDataHome/NA12878_21_10002403.vcf"
@@ -155,7 +154,7 @@ class VCFHeaderUtilsSuite extends GlowBaseTest {
          |##contig=<ID=21,length=48129895>
        """.stripMargin
     val paths = writeVCFHeaders(Seq(file1, file2))
-    val lines = VCFHeaderUtils.readHeaderLines(spark, paths, getNonSchemaHeaderLines)
+    val lines = VCFHeaderUtils.readHeaderLines(spark, paths.map(new URI(_)), getNonSchemaHeaderLines)
 
     val expectedSchemaLines = Set(
       new VCFInfoHeaderLine("animal", 1, VCFHeaderLineType.String, "monkey"),
@@ -183,7 +182,7 @@ class VCFHeaderUtilsSuite extends GlowBaseTest {
   def checkLinesIncompatible(file1: String, file2: String): Unit = {
     val paths = writeVCFHeaders(Seq(file1, file2))
     val ex = intercept[SparkException](
-      VCFHeaderUtils.readHeaderLines(spark, paths, getNonSchemaHeaderLines = true))
+      VCFHeaderUtils.readHeaderLines(spark, paths.map(new URI(_)), getNonSchemaHeaderLines = true))
     assert(ex.getCause.isInstanceOf[IllegalArgumentException])
   }
 
@@ -233,7 +232,7 @@ class VCFHeaderUtilsSuite extends GlowBaseTest {
          |##FORMAT=<ID=animal,Number=2,Type=String,Description="monkey">
        """.stripMargin
     val paths = writeVCFHeaders(Seq(file1, file2))
-    VCFHeaderUtils.readHeaderLines(spark, paths, getNonSchemaHeaderLines = true) // no exception
+    VCFHeaderUtils.readHeaderLines(spark, paths.map(new URI(_)), getNonSchemaHeaderLines = true) // no exception
   }
 
   test("does not try to read tabix indices") {
@@ -241,7 +240,7 @@ class VCFHeaderUtilsSuite extends GlowBaseTest {
       VCFHeaderUtils
         .readHeaderLines(
           spark,
-          Seq(s"$testDataHome/tabix-test-vcf/NA12878_21_10002403NoTbi.vcf.gz.tbi"),
+          Seq(new URI(s"$testDataHome/tabix-test-vcf/NA12878_21_10002403NoTbi.vcf.gz.tbi")),
           getNonSchemaHeaderLines = true)
         .isEmpty)
   }
