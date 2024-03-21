@@ -27,7 +27,7 @@ import htsjdk.variant.variantcontext.writer.VCFHeaderWriter
 import htsjdk.variant.vcf.{VCFCompoundHeaderLine, VCFHeader, VCFHeaderLine}
 import org.apache.spark.{SparkConf, SparkException}
 import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.functions.{col, expr}
+import org.apache.spark.sql.functions.{col, explode, expr}
 import org.apache.spark.sql.types.{ArrayType, ByteType, FloatType, LongType, ShortType, StructType}
 import io.projectglow.common.{GenotypeFields, VCFRow, VariantSchemas, WithUtils}
 import io.projectglow.sql.GlowBaseTest
@@ -463,6 +463,34 @@ abstract class VCFFileWriterSuite(val sourceName: String) extends VCFConverterBa
           "genotypes.conditionalQuality",
           col("genotypes.conditionalQuality").cast(ArrayType(typ)))
       validateVCFRoundTrip(vcf)
+  }
+
+  test("Manually specified sample ids (subset)") {
+    val sess = spark
+    import sess.implicits._
+    val vcf = spark.read.format("vcf").load(s"$testDataHome/1kg_sample.vcf")
+    val sampleIds = "HG00096"
+    val path = createTempVcf.toString
+    vcf.write.format(sourceName).option("sampleIds", sampleIds).save(path)
+    val reread = spark.read.format("vcf").load(path)
+    val readSamples = reread.select("genotypes.sampleId").distinct().as[Seq[String]].collect()
+    assert(readSamples.length == 1)
+    assert(readSamples(0) == Seq(sampleIds))
+  }
+
+  test("Manually specified sample ids (superset)") {
+    val sess = spark
+    import sess.implicits._
+    val vcf = spark.read.format("vcf").load(s"$testDataHome/1kg_sample.vcf")
+    val dataSampleIds =
+      vcf.select(explode(col("genotypes.sampleId"))).distinct().sort().as[String].collect().toSeq
+    val sampleIds = dataSampleIds :+ "daffyduck"
+    val path = createTempVcf.toString
+    vcf.write.format(sourceName).option("sampleIds", sampleIds.mkString(",")).save(path)
+    val reread = spark.read.format("vcf").load(path)
+    val readSamples = reread.select("genotypes.sampleId").distinct().as[Seq[String]].collect()
+    assert(readSamples.length == 1)
+    assert(readSamples(0) == sampleIds)
   }
 }
 
