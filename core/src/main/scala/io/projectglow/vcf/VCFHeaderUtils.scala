@@ -34,6 +34,7 @@ import scala.util.control.NonFatal
 object VCFHeaderUtils extends GlowLogging {
 
   val VCF_HEADER_KEY = "vcfHeader"
+  val SAMPLE_IDS_KEY = "sampleIds"
   val INFER_HEADER = "infer"
 
   def parseHeaderFromString(s: String): VCFHeader = {
@@ -72,7 +73,11 @@ object VCFHeaderUtils extends GlowLogging {
       case INFER_HEADER =>
         logger.info("Inferring header for VCF writer")
         val headerLines = VCFSchemaInferrer.headerLinesFromSchema(schema).toSet
-        (headerLines, InferSampleIds)
+        val sampleIds = options.get(SAMPLE_IDS_KEY) match {
+          case Some(s) => SampleIds(s.split(","))
+          case None => InferSampleIds
+        }
+        (headerLines, sampleIds)
       case content if isCustomHeader(content) =>
         logger.info("Using provided string as VCF header")
         val header = parseHeaderFromString(content)
