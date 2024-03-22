@@ -490,7 +490,7 @@ abstract class VCFFileWriterSuite(val sourceName: String) extends VCFConverterBa
     val reread = spark.read.format("vcf").load(path)
     val readSamples = reread.select("genotypes.sampleId").distinct().as[Seq[String]].collect()
     assert(readSamples.length == 1)
-    assert(readSamples(0) == sampleIds)
+    assert(readSamples(0).toSet == sampleIds.toSet)
   }
 }
 

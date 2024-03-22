@@ -136,6 +136,9 @@ For both the single and sharded VCF writer, you can use the following options:
 |                          |        |             | ``lenient``, the row will be dropped and a warning will be logged. If ``strict``, an exception will be thrown and  |
 |                          |        |             | writing will fail.                                                                                                 |
 +--------------------------+--------+-------------+--------------------------------------------------------------------------------------------------------------------+
+| ``sampleIds``            | string | none        | Can be set to a comma-separated list of sample IDs e.g., ``SAMPLE01,SAMPLE02,...``. Only these samples will be     |
+|                          |        |             | included in the output VCF file. This option only takes effect if the ``vcfHeader`` option is set to ``infer``.    |
++--------------------------+--------+-------------+--------------------------------------------------------------------------------------------------------------------+
 
 .. _infer-vcf-samples:
 
@@ -264,5 +267,37 @@ files must be located at ``{prefix}.bim`` and ``{prefix}.fam``.
 
     The PLINK reader sets the first allele in the ``.bed`` file as the alternate allele, and the
     second allele as the reference allele.
+
+Manually defining read schema
+=============================
+
+For any of Glow's datasources, you can manually set the `read <https://spark.apache.org/docs/latest/api/python/reference/pyspark.sql/api/pyspark.sql.DataFrameReader.schema.html#pyspark.sql.DataFrameReader.schema>`_
+schema. This option can be useful if you need to read malformed VCFs that Glow cannot parse. For example, the following code block manually defines a VCF schema without any INFO
+or FORMAT fields other than the genotype calls.
+
+.. invisible-code-block: python
+
+   path = "test-data/test.chr17.vcf"
+
+.. code-block:: python
+
+   from pyspark.sql.types import *
+
+   schema = StructType([
+      StructField('contigName', StringType()),
+      StructField('start', LongType()),
+      StructField('end', LongType()),
+      StructField('names', ArrayType(StringType(),True)),
+      StructField('referenceAllele', StringType()),
+      StructField('alternateAlleles', ArrayType(StringType(),True)),
+      StructField('qual', DoubleType()),
+      StructField('filters', ArrayType(StringType(),True)),
+      StructField('splitFromMultiAllelic', BooleanType()),
+      StructField('genotypes', ArrayType(StructType([
+         StructField('calls', ArrayType(IntegerType(),True)),
+         ]))),
+      ])
+
+   spark.read.format('vcf').schema(schema).load(path).show()
 
 .. notebook:: .. etl/variant-data.html
