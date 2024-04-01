@@ -11,12 +11,33 @@ dependencies:
   - nptyping
   - numpy=1.23.5
   - opt_einsum>=3.2.0
+<<<<<<< HEAD
+<<<<<<< HEAD
   - pandas=1.5.3
   - pip=22.3.1
   - pyarrow=8.0.1 # DBR 14.2 uses 8.0.0, but this version is not compatible with Python 3.10 in Conda
   - pytest=7.4.4
+<<<<<<< HEAD
   - pytest-cov=4.1.0
   - pygments=2.17.2
+=======
+=======
+  - pandas=1.2.4
+  - pip=21.0.1
+  - pyarrow=4.0.0
+>>>>>>> 41ae0b9 (Fetch upstream)
+=======
+  - pandas=1.0.1
+  - pip
+  - pyarrow=1.0.1
+  - pyspark=3.1.2
+<<<<<<< HEAD
+=======
+>>>>>>> f6791fc (Fetch upstream)
+>>>>>>> 41ae0b9 (Fetch upstream)
+  - pytest
+>>>>>>> f6791fc (Fetch upstream)
+>>>>>>> 343e8c7 (Fetch upstream)
   - pyyaml
   - scipy=1.10.0
   - scikit-learn=1.1.1
@@ -24,15 +45,33 @@ dependencies:
   - typeguard
   - yapf=0.40.1
   - pip:
+<<<<<<< HEAD
+<<<<<<< HEAD
     - pyspark==3.5.1
+=======
+=======
+>>>>>>> 8b41cb1 (Fetch upstream)
+<<<<<<< HEAD
+    - pyspark==3.5.0
+>>>>>>> 343e8c7 (Fetch upstream)
     - databricks-cli==0.18 # Docs notebook source generation
     - databricks-sdk
     - setuptools==65.6.3 # Python packaging
     - twine # Pypi publishing
     - sphinx
     - sphinx_rtd_theme
+=======
+=======
+    - pyspark==3.2.1
+    - databricks-cli==0.16.4 # Docs notebook source generation
+=======
+>>>>>>> f6791fc (Fetch upstream)
+>>>>>>> 41ae0b9 (Fetch upstream)
+    - setuptools==52.0.0 # Python packaging
+    - twine==2.0.0 # Pypi publishing
+>>>>>>> f6791fc (Fetch upstream)
     - sphinx-autobuild
     - sphinx-prompt
     - Sphinx-Substitution-Extensions # Substitutions in code blocks
     - sphinx-tabs # Code tabs (Python/Scala)
-    - sybil # Automatic doctest
+    - sybil==3.0.0 # Automatic doctest

@@ -195,7 +195,7 @@ class VCFFileFormat extends TextBasedFileFormat with DataSourceRegister with Hls
           // In case of a partitioned file that only contains part of the header, codec.readActualHeader
           // will throw an error for a malformed header. We therefore allow the header reader to read
           // past the boundaries of the partitions; it will throw/return when done reading the header.
-          val (header, codec) = VCFFileFormat.createVCFCodec(path.toString, serializableConf.value)
+          val (header, codec) = VCFFileFormat.createVCFCodec(path.toUri, serializableConf.value)
 
           // Modify the start and end of reader according to the offset provided by
           // tabixIndexHelper.filteredVariantBlockRange
@@ -248,8 +248,8 @@ object VCFFileFormat {
    *
    * The logic to parse the header is adapted from [[org.seqdoop.hadoop_bam.VCFRecordReader]].
    */
-  def createVCFCodec(path: String, conf: Configuration): (VCFHeader, VCFCodec) = {
-    val hPath = new Path(new URI(path))
+  def createVCFCodec(path: URI, conf: Configuration): (VCFHeader, VCFCodec) = {
+    val hPath = new Path(path)
     val fs = hPath.getFileSystem(conf)
     WithUtils.withCloseable(fs.open(hPath)) { is =>
       val compressionCodec = new CompressionCodecFactory(conf).getCodec(hPath)
@@ -440,7 +440,7 @@ private[vcf] object SchemaDelegate {
     val infoHeaderLines = ArrayBuffer[VCFInfoHeaderLine]()
     val formatHeaderLines = ArrayBuffer[VCFFormatHeaderLine]()
     VCFHeaderUtils
-      .readHeaderLines(spark, files.map(_.getPath.toString), getNonSchemaHeaderLines = false)
+      .readHeaderLines(spark, files.map(_.getPath.toUri), getNonSchemaHeaderLines = false)
       .foreach {
         case i: VCFInfoHeaderLine => infoHeaderLines += i
         case f: VCFFormatHeaderLine => formatHeaderLines += f
@@ -496,7 +496,7 @@ private[projectglow] class VCFOutputWriterFactory(options: Map[String, String])
       path: String,
       dataSchema: StructType,
       context: TaskAttemptContext): OutputWriter = {
-    val outputStream = CodecStreams.createOutputStream(context, new Path(path))
+    val outputStream = CodecStreams.createOutputStream(context, new Path(new URI(path)))
     GlowBGZFOutputStream.setWriteEmptyBlockOnClose(outputStream, true)
     val (headerLineSet, sampleIdInfo) =
       VCFHeaderUtils.parseHeaderLinesAndSamples(

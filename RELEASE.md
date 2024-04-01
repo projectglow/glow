@@ -5,8 +5,13 @@
 The Glow release process is simple. We release by snapshotting the `main` branch rather than using release branches. So, the high level steps are:
 - Cut a release tag from `main`
 - Push Scala and Python artifacts to staging artifact repositories
+<<<<<<< HEAD
 - Perform any QA not covered by CI
 - Promote artifacts from staging
+=======
+- Perform any QA not covered by CI (Continuous Integration)
+- Promote artifacts from staging to production
+>>>>>>> projectglow-main
 - Create a release page on GitHub
 
 ## Cut a release tag
@@ -18,7 +23,11 @@ The tag created by the action will always begin with `v`. For example, if the in
 
 ## Push artifacts to staging
 
+<<<<<<< HEAD
 This step is automated by a [GithHub action](https://github.com/projectglow/glow/actions/workflows/staging-release.yml). The "Use workflow from" option should always be "main" to use the latest version of the workflow. Then input the Spark, Scala, and Java versions you want to build against. The job will push Scala artifacts to a Sonatype staging repository and Python artifacts to Test PyPI. Tests run before pushing and then again on the staged Scala artifact.
+=======
+This step is automated by a [GitHub action](https://github.com/projectglow/glow/actions/workflows/staging-release.yml). When configuring this action, the "Use workflow from" option should always be "main" to use the latest version of the workflow. Then input the Spark, Scala, and Java versions you want to build against. The job will push Scala artifacts to a Sonatype staging repository and Python artifacts to Test PyPI. Tests run before pushing and then again on the staged Scala artifact.
+>>>>>>> projectglow-main
 
 ### Cross building
 
@@ -26,7 +35,11 @@ To build artifacts for multiple Scala, Spark, or Java versions, just run the act
 
 ## Perform any QA not covered by CI
 
+<<<<<<< HEAD
 The requirements of this step may change over time, so it's best to check with someone from Databricks about what QA steps you should take. However, you should always try installing the staged artifacts on a Databricks cluster to make sure that everything works.
+=======
+The requirements of this step may change over time, so it's best to check with the project maintainers about QA steps to take. However, you should always try installing the staged artifacts on a Databricks cluster to make sure that everything works.
+>>>>>>> projectglow-main
 
 ### Scala artifact
 
@@ -47,6 +60,7 @@ If some of the dependencies are not in Test PyPI, you'll have to install them fr
 /databricks/python/bin/pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple glow.py==${GLOW_VERSION}
 ```
 
+<<<<<<< HEAD
 ## Promote artifacts from staging
 
 This step is automated by a [GitHub Action](https://github.com/projectglow/glow/actions/workflows/production-release.yml). The parameters are similar to the staging action, but you don't need to choose a Scala version since the artifacts are already built. The Spark version is only necessary to know the Glow artifact name. Again, for cross building, run the action multiple times and deselect the option to push Python artifacts for all but one.
@@ -54,6 +68,15 @@ This step is automated by a [GitHub Action](https://github.com/projectglow/glow/
 ### Conda release
 
 The Conda release is not automated. After releasing to PyPI, open a pull request against the [Glow feedstock](https://github.com/conda-forge/glow-feedstock). You can use [this pull request](https://github.com/conda-forge/glow-feedstock/pull/8) as a template. You can find the source sha256 on PyPI. The version numbers in `meta.yml` should match `python/setup.py`.
+=======
+## Promote artifacts from staging to production
+
+This step is automated by a [GitHub Action](https://github.com/projectglow/glow/actions/workflows/production-release.yml). The parameters are similar to the staging action, but you don't need to choose a Scala version since the artifacts are already built. The Spark version is only necessary for identifying the Glow artifact name. Again, for cross building, run the action multiple times and deselect the option to push Python artifacts for all but one run.
+
+### Conda release
+
+The Conda release is not automated. After releasing to PyPI, open a pull request against the [Glow feedstock](https://github.com/conda-forge/glow-feedstock) (the recipe and other files for building the Glow package in conda-forge). You can use [this pull request](https://github.com/conda-forge/glow-feedstock/pull/8) as a template. You can find the source sha256 on PyPI. The version numbers in `meta.yml` should match `python/setup.py`. Other contributors or maintainers of the feedstock will review these changes. The pull request will then be merged into the feedstock repository, triggering the automated build and release of the Glow conda package.
+>>>>>>> projectglow-main
 
 ## Spark 4
 

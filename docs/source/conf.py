@@ -241,6 +241,7 @@ linkcheck_ignore = [
 ]
 
 linkcheck_timeout = 30
+linkcheck_retries = 5
 
 
 # -- Autodoc options ---------------------------------------------------------

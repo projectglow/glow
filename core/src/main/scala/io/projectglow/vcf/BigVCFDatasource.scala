@@ -17,7 +17,6 @@
 package io.projectglow.vcf
 
 import java.io.ByteArrayOutputStream
-
 import org.apache.hadoop.fs.Path
 import org.apache.hadoop.io.compress.CompressionCodecFactory
 import org.apache.spark.rdd.RDD
@@ -25,10 +24,11 @@ import org.apache.spark.SparkException
 import org.apache.spark.sql.{DataFrame, SQLUtils}
 import org.apache.spark.sql.sources.DataSourceRegister
 import org.seqdoop.hadoop_bam.util.GlowBGZFOutputStream
-
 import io.projectglow.common.logging.{HlsEventRecorder, HlsTagValues}
 import io.projectglow.sql.BigFileDatasource
 import io.projectglow.sql.util.{ComDatabricksDataSource, SerializableConfiguration}
+
+import java.net.URI
 
 class BigVCFDatasource extends BigFileDatasource with DataSourceRegister {
 
@@ -90,7 +90,7 @@ object BigVCFDatasource extends HlsEventRecorder {
       val conf = serializableConf.value
       val codec = new CompressionCodecFactory(conf)
       val baos = new ByteArrayOutputStream()
-      val path = new Path(BigFileDatasource.checkPath(options))
+      val path = new Path(new URI(BigFileDatasource.checkPath(options)))
       val outputStream = Option(codec.getCodec(path))
         .map(_.createOutputStream(baos))
         .getOrElse(baos)

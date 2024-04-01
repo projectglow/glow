@@ -19,16 +19,15 @@ package io.projectglow.vcf
 import java.io.File
 import java.nio.file.Files
 import java.util.{List => JList}
-
 import scala.collection.JavaConverters._
-
 import htsjdk.samtools.ValidationStringency
 import htsjdk.variant.variantcontext.GenotypeLikelihoods
 import htsjdk.variant.vcf.VCFFileReader
 import org.apache.commons.io.FileUtils
 import org.apache.spark.sql.types.{ArrayType, DataType, MapType, StringType, StructField, StructType}
-
 import io.projectglow.common.{GenotypeFields, VCFRow}
+
+import java.net.URI
 
 class InternalRowToVariantContextConverterSuite extends VCFConverterBaseTest {
   lazy val NA12878 = s"$testDataHome/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf"
@@ -85,7 +84,8 @@ class InternalRowToVariantContextConverterSuite extends VCFConverterBaseTest {
   test("find genotype schema") {
     val df = spark.read.format("vcf").load(NA12878)
     val dfSchema = df.schema
-    val (header, _) = VCFFileFormat.createVCFCodec(NA12878, spark.sessionState.newHadoopConf())
+    val (header, _) =
+      VCFFileFormat.createVCFCodec(new URI(NA12878), spark.sessionState.newHadoopConf())
     val actualGenotypeSchema =
       VCFSchemaInferrer.inferGenotypeSchema(true, header.getFormatHeaderLines.asScala.toSeq)
     assert(

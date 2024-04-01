@@ -20,9 +20,10 @@ import com.google.common.io.LittleEndianDataInputStream
 import org.apache.hadoop.fs.{FileStatus, Path}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.StructType
-
 import io.projectglow.common.{BgenOptions, CommonOptions, VariantSchemas, WithUtils}
 import io.projectglow.sql.util.SerializableConfiguration
+
+import java.net.URI
 
 /**
  * Infers the schema of a set of BGEN files from the user-provided options and the header of each
@@ -70,7 +71,7 @@ object BgenSchemaInferrer {
       .sparkContext
       .parallelize(bgenPaths)
       .map { path =>
-        val hPath = new Path(path)
+        val hPath = new Path(new URI(path))
         val hadoopFs = hPath.getFileSystem(serializableConf.value)
         WithUtils.withCloseable(hadoopFs.open(hPath)) { stream =>
           val littleEndianDataInputStream = new LittleEndianDataInputStream(stream)

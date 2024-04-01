@@ -17,7 +17,6 @@
 package io.projectglow.vcf
 
 import java.io.StringReader
-
 import com.google.common.annotations.VisibleForTesting
 import htsjdk.variant.vcf._
 import io.projectglow.common.GlowLogging
@@ -28,12 +27,14 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.types.StructType
 
+import java.net.URI
 import scala.collection.JavaConverters._
 import scala.util.control.NonFatal
 
 object VCFHeaderUtils extends GlowLogging {
 
   val VCF_HEADER_KEY = "vcfHeader"
+  val SAMPLE_IDS_KEY = "sampleIds"
   val INFER_HEADER = "infer"
 
   def parseHeaderFromString(s: String): VCFHeader = {
@@ -72,7 +73,11 @@ object VCFHeaderUtils extends GlowLogging {
       case INFER_HEADER =>
         logger.info("Inferring header for VCF writer")
         val headerLines = VCFSchemaInferrer.headerLinesFromSchema(schema).toSet
-        (headerLines, InferSampleIds)
+        val sampleIds = options.get(SAMPLE_IDS_KEY) match {
+          case Some(s) => SampleIds(s.split(","))
+          case None => InferSampleIds
+        }
+        (headerLines, sampleIds)
       case content if isCustomHeader(content) =>
         logger.info("Using provided string as VCF header")
         val header = parseHeaderFromString(content)
@@ -85,14 +90,14 @@ object VCFHeaderUtils extends GlowLogging {
     }
   }
 
-  def createHeaderRDD(spark: SparkSession, files: Seq[String]): RDD[VCFHeader] = {
+  def createHeaderRDD(spark: SparkSession, files: Seq[URI]): RDD[VCFHeader] = {
     val serializableConf = new SerializableConfiguration(spark.sessionState.newHadoopConf())
 
     spark
       .sparkContext
       .parallelize(files)
       .flatMap { path =>
-        if (path.endsWith(VCFFileFormat.INDEX_SUFFIX)) {
+        if (path.toString.endsWith(VCFFileFormat.INDEX_SUFFIX)) {
           None
         } else {
           val (header, _) = VCFFileFormat.createVCFCodec(path, serializableConf.value)
@@ -169,7 +174,7 @@ object VCFHeaderUtils extends GlowLogging {
    */
   def readHeaderLines(
       spark: SparkSession,
-      files: Seq[String],
+      files: Seq[URI],
       getNonSchemaHeaderLines: Boolean): Seq[VCFHeaderLine] = {
     getUniqueHeaderLines(createHeaderRDD(spark, files), getNonSchemaHeaderLines)
   }

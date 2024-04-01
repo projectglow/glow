@@ -22,6 +22,16 @@ Even if you solve the problem, there's a good chance someone else will encounter
    
    Please raise issues!
 
+<<<<<<< HEAD
+=======
+-----------------------------
+Join the monthly office hours
+-----------------------------
+
+Monthly office hours provide an opportunity keep up to date with new developments with Glow.
+Please send an email to glow [dot] contributors [at] gmail.com to join.
+
+>>>>>>> f6791fc (Fetch upstream)
 --------------------------
 Contribute to the codebase
 --------------------------
@@ -34,7 +44,11 @@ It's easy to get started.
    
    Please sign off all commits! 
 
+<<<<<<< HEAD
    .. code-block:: sh
+=======
+   .. code-block:: bash
+>>>>>>> f6791fc (Fetch upstream)
 
       git commit -m "initial commit" --signoff 
 
@@ -52,13 +66,24 @@ Export your notebook as `html` into the relevant directory under `docs/source/_s
 
 And run this python script (swapping the html file out for your own).
 
+<<<<<<< HEAD
 .. code-block:: sh::
    
    python3 docs/dev/gen-nb-src.py --html docs/source/_static/notebooks/tertiary/pipe-transformer-vep.html
 
+<<<<<<< HEAD
 The Glow workflow is tested in a nightly integration test in Databricks.
 If you add notebooks or rename them, please also edit the workflow definition json located in `docs/dev/ <https://github.com/projectglow/glow/blob/main/docs/dev>`_.
 
+=======
+<<<<<<< HEAD
+.. code-block:: bash::
+   
+   python3 docs/dev/gen-nb-src.py --html docs/source/_static/notebooks/tertiary/pipe-transformer-vep.html
+
+=======
+>>>>>>> 41ae0b9 (Fetch upstream)
+>>>>>>> f6791fc (Fetch upstream)
 .. _improve-documentation:
 
 2. Improve the documentation
@@ -87,27 +112,89 @@ To build the docs locally,
 
 first create the conda environment:
 
+<<<<<<< HEAD
 .. code-block:: sh
 
+<<<<<<< HEAD
    cd docs
+=======
+<<<<<<< HEAD
+.. code-block:: bash 
+
+=======
+>>>>>>> 41ae0b9 (Fetch upstream)
+>>>>>>> f6791fc (Fetch upstream)
    conda env create -f source/environment.yml
 
 activate the glow docs conda environment:
 
+<<<<<<< HEAD
 .. code-block:: sh
+=======
+.. code-block:: bash 
+>>>>>>> f6791fc (Fetch upstream)
 
    conda activate glow-docs
 
 build the docs:
 
+<<<<<<< HEAD
 .. code-block:: sh
+=======
+.. code-block:: bash 
+>>>>>>> f6791fc (Fetch upstream)
 
    make livehtml
 
 connect to the local server via your browser at: `http://127.0.0.1:8000`
 
+<<<<<<< HEAD
 
+<<<<<<< HEAD
 3. Contribute new features / bug fixes
+=======
+=======
+<<<<<<< HEAD
+=======
+
+>>>>>>> f6791fc (Fetch upstream)
+>>>>>>> 41ae0b9 (Fetch upstream)
+.. _docker-environment:
+
+3. Add libraries to the glow docker environment
+===============================================
+
+Please edit glow `docker files <https://github.com/projectglow/glow/blob/master/docker/README.md>`_ to add libraries that integrate with glow.
+Only include libraries that are used directly upstream or downstream of glow, or used with the glow :ref:`pipe transformer <pipe-transformer>`.
+
+1. Setup a dockerhub account
+<<<<<<< HEAD
+2. Edit the `genomics docker file <https://github.com/projectglow/glow/blob/master/docker/databricks/dbr/dbr9.1/genomics/Dockerfile>`_ on your fork 
+=======
+<<<<<<< HEAD
+2. Edit the `genomics docker file <https://github.com/projectglow/glow/blob/master/docker/databricks/dbr/dbr10.4/genomics/Dockerfile>`_ on your fork 
+=======
+2. Edit the `genomics docker file <https://github.com/projectglow/glow/blob/master/docker/databricks/dbr/dbr9.1/genomics/Dockerfile>`_ on your fork 
+>>>>>>> f6791fc (Fetch upstream)
+>>>>>>> 41ae0b9 (Fetch upstream)
+
+  - This file contains command line tools, Python and R packages
+
+3. Build and push the container
+
+  - Use this `bash script <https://github.com/projectglow/glow/blob/master/docker/databricks/build.sh>`_ as a template
+
+4. Test the container in your environment in a notebook
+5. Once you are happy with the container and the test, open a pull request
+
+  - We will build and push the container to the official projectglow `dockerhub <https://hub.docker.com/u/projectglow>`_
+  - Point to this container in the glow nightly continuous integration test `jobs definition <https://github.com/projectglow/glow/tree/master/docs/dev>`_
+  - Once the circle-ci continuous integration test passes, we will incorporate it into the project
+
+.. _features-bug-fixes:
+
+4. Contribute new features / bug fixes
+>>>>>>> f6791fc (Fetch upstream)
 ======================================
 
 Here are example pull requests for new features or bug fixes that touch different aspects of the codebase,
@@ -116,7 +203,15 @@ Here are example pull requests for new features or bug fixes that touch differen
 - `Python functions <https://github.com/projectglow/glow/pull/416>`_
 - `Python & R notebooks <https://github.com/projectglow/glow/pull/431>`_
 - `Data schemas <https://github.com/projectglow/glow/pull/402>`_
+<<<<<<< HEAD
+=======
+- `Docker <https://github.com/projectglow/glow/pull/420>`_
+>>>>>>> f6791fc (Fetch upstream)
 - `Benchmarks <https://github.com/projectglow/glow/pull/440>`_
 
 Much of the codebase is in Scala, however we are increasingly moving to Python.
 Near-term focus is around integrating with Delta streaming and sharing.
+<<<<<<< HEAD
+=======
+In the future we will optimize code in C++.
+>>>>>>> f6791fc (Fetch upstream)

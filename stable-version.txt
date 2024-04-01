@@ -1,1 +1,13 @@
+<<<<<<< HEAD
+2.0.1
+=======
+<<<<<<< HEAD
 2.0.0
+=======
+<<<<<<< HEAD
+1.2.1
+=======
+1.1.2
+>>>>>>> f6791fc (Fetch upstream)
+>>>>>>> 343e8c7 (Fetch upstream)
+>>>>>>> 5aad312 (Fetch upstream)

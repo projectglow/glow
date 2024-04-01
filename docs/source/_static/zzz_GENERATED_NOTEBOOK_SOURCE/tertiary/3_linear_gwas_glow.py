@@ -1,9 +1,15 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC <img src="https://databricks.com/wp-content/themes/databricks/assets/images/databricks-logo.png" alt="logo" width="240"/> + <img src="https://www.regeneron.com/Content/images/science/regenron.png" alt="logo" width="240"/>
+<<<<<<< HEAD
 # MAGIC
 # MAGIC ### <img src="https://databricks-knowledge-repo-images.s3.us-east-2.amazonaws.com/HLS/glow/project_glow_logo.png" alt="logo" width="35"/> Linear regression genetic association study
 # MAGIC
+=======
+# MAGIC 
+# MAGIC ### <img src="https://databricks-knowledge-repo-images.s3.us-east-2.amazonaws.com/HLS/glow/project_glow_logo.png" alt="logo" width="35"/> Linear regression genetic association study
+# MAGIC 
+>>>>>>> f6791fc (Fetch upstream)
 # MAGIC Uses a simulated project-level VCF from chromosomes 21 and 22 of the 1000 genomes
 
 # COMMAND ----------
@@ -130,11 +136,19 @@ display(results_df.orderBy("pvalue"))
 
 # MAGIC %md
 # MAGIC #### Confounded!
+<<<<<<< HEAD
 # MAGIC
 # MAGIC Looks like there's inflation in the P values. 
 # MAGIC
 # MAGIC This data has a lot of missing phenotypes, which are mean imputed. Perhaps this is causing the inflation?
 # MAGIC
+=======
+# MAGIC 
+# MAGIC Looks like there's inflation in the P values. 
+# MAGIC 
+# MAGIC This data has a lot of missing phenotypes, which are mean imputed. Perhaps this is causing the inflation?
+# MAGIC 
+>>>>>>> f6791fc (Fetch upstream)
 # MAGIC Let's go ahead and filter out the samples with missing phenotypes...
 
 # COMMAND ----------
@@ -175,7 +189,11 @@ def filter_genotypes(genotypes_df, list_sample_ids):
 
 # MAGIC %md
 # MAGIC ##### filter genotypes
+<<<<<<< HEAD
 # MAGIC
+=======
+# MAGIC 
+>>>>>>> f6791fc (Fetch upstream)
 # MAGIC based on samples with missing phenotypes
 
 # COMMAND ----------
@@ -255,7 +273,13 @@ for num, contig in enumerate(contigs):
 # COMMAND ----------
 
 # MAGIC %md
+<<<<<<< HEAD
 # MAGIC
 # MAGIC ##### Thank you for completing the tutorial!
 # MAGIC
+=======
+# MAGIC 
+# MAGIC ##### Thank you for completing the tutorial!
+# MAGIC 
+>>>>>>> f6791fc (Fetch upstream)
 # MAGIC Please explore more in the [Glow Documentation](https://glow.readthedocs.io/en/latest/)
