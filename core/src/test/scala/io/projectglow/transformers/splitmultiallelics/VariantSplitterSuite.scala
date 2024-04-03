@@ -95,7 +95,7 @@ class VariantSplitterSuite extends GlowBaseTest with GlowLogging {
       .orderBy("contigName", "start", "end")
 
     // apply splitInfoFields
-    val dfSplitInfo = splitInfoFields(dfOriginal)
+    val dfSplitInfo = splitInfoFields(dfOriginal, None)
       .orderBy("contigName", "start", "end")
 
     // read the vt decomposed version of test vcf
@@ -153,6 +153,73 @@ class VariantSplitterSuite extends GlowBaseTest with GlowLogging {
       .foreach { case (rowOrig, rowSplit) =>
         assert(rowOrig.equals(rowSplit), s"Expected\n$rowOrig\nNormalized\n$rowSplit")
       }
+  }
+
+  test("split only specified info fields") {
+    // Read the test vcf and posexplode
+    val dfOriginal = spark
+      .read
+      .format(sourceName)
+      .load(vtTestVcfMultiAllelic)
+      .withColumn(
+        splitFromMultiAllelicField.name,
+        when(size(col(alternateAllelesField.name)) > 1, lit(true)).otherwise(lit(false))
+      )
+      .select(
+        col("*"),
+        posexplode(col(alternateAllelesField.name))
+          .as(Array(splitAlleleIdxFieldName, splitAllelesFieldName))
+      )
+      .orderBy("contigName", "start", "end")
+
+    // apply splitInfoFields
+    val dfSplitInfo = splitInfoFields(dfOriginal, Some(Seq("INFO_AF")))
+      .orderBy("contigName", "start", "end")
+
+    // read the vt decomposed version of test vcf
+    val dfExpected = spark
+      .read
+      .format(sourceName)
+      .load(vtTestVcfMultiAllelicExpectedSplit)
+      .orderBy("contigName", "start", "end")
+
+    assert(dfSplitInfo.count() == dfExpected.count())
+    assert(dfSplitInfo.count() == dfOriginal.count())
+
+    // Check if Info Columns after splitting are the same as vt decompose
+    val dfOriginalInfoColumns = dfOriginal
+      .columns
+      .filter(_.startsWith(infoFieldPrefix))
+      .map(name => if (name.contains(".")) s"`${name}`" else name)
+
+    dfExpected
+      .select(
+        dfOriginalInfoColumns.head,
+        dfOriginalInfoColumns.tail: _*
+      ) // make order of columns the same
+      .collect
+      .zip(
+        dfSplitInfo
+          .select(
+            dfOriginalInfoColumns.head,
+            dfOriginalInfoColumns.tail: _*
+          ) // make order of columns the same
+          .collect)
+      .foreach { case (rowExp, rowSplit) =>
+        // Only the specified INFO_AF field should be split
+        assert(
+          rowExp.get(rowExp.fieldIndex("INFO_AF")) == rowSplit.get(rowSplit.fieldIndex("INFO_AF")))
+        val splitAC = rowExp.getAs[Seq[Int]](rowExp.fieldIndex("INFO_AC"))
+        val unsplitAC = rowSplit.getAs[Seq[Int]](rowSplit.fieldIndex("INFO_AC"))
+        assert(splitAC != unsplitAC || unsplitAC.size == 1)
+      }
+
+    // Check that INFO_AC matches original DataFrame
+    val acAfterSplitting = dfSplitInfo.groupBy("contigName", "start").agg(first("INFO_AC"))
+    val originalAc = dfOriginal.select("contigName", "start", "INFO_AC")
+    assert(originalAc.count() > 0)
+    assert(acAfterSplitting.except(originalAc).count() == 0)
+    assert(originalAc.except(acAfterSplitting).count() == 0)
   }
 
   test("test splitGenotypeFields") {
@@ -226,7 +293,7 @@ class VariantSplitterSuite extends GlowBaseTest with GlowLogging {
       try {
         refAltColexOrderIdxArray(numAlleles, ploidy, altAlleleIdx)
       } catch {
-        case _: IllegalArgumentException => succeed
+        case _: IllegalArgumentException => // Succeed
         case _: Throwable => fail()
       }
     } else {

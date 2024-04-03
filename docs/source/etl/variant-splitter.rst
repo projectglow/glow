@@ -21,7 +21,9 @@ Split Multiallelic Variants
 
     - A given multiallelic row with :math:`n` ``ALT`` alleles is split to :math:`n` biallelic rows, each with one of the ``ALT`` alleles of the original multiallelic row. The ``REF`` allele in all split rows is the same as the ``REF`` allele in the multiallelic row.
 
-    - Each ``INFO`` field is appropriately split among split rows if it has the same number of elements as number of ``ALT`` alleles, otherwise it is repeated in all split rows. The boolean ``INFO`` field ``splitFromMultiAllelic`` is added/modified to reflect whether the new row is the result of splitting a multiallelic row through this transformation or not. A new ``INFO`` field called ``OLD_MULTIALLELIC`` is added to the DataFrame, which for each split row, holds the ``CHROM:POS:REF/ALT`` of its original multiallelic row. Note that the ``INFO`` field must be flattened (as explained :ref:`here<vcf>`) in order to be split by this transformer. Unflattened ``INFO`` fields (such as those inside an ``attributes`` field) will not be split, but just repeated in whole across all split rows.
+    - If the ``split_info_fields`` option is provided, only the specified INFO columns will be split
+
+    - If the ``split_info_fields`` option is not provided, ``INFO`` columns derived from VCF fields with number ``A`` will be split
 
     - Genotype fields for each sample are treated as follows: The ``GT`` field becomes biallelic in each row, where the original ``ALT`` alleles that are not present in that row are replaced with no call. The fields with number of entries equal to number of ``REF`` + ``ALT`` alleles, are properly split into rows, where in each split row, only entries corresponding to the ``REF`` allele as well as the ``ALT`` allele present in that row are kept. The fields which follow colex order (e.g., ``GL``, ``PL``, and ``GP``) are properly split between split rows where in each row only the elements corresponding to genotypes comprising of the ``REF`` and ``ALT`` alleles in that row are listed. Other genotype fields are just repeated over the split rows.
 
@@ -42,7 +44,20 @@ Split Multiallelic Variants
         20	101	.	A	ACCA	.	PASS	VC=INDEL;AC=3;AF=0.375;AN=8;OLD_MULTIALLELIC=20:101:A/ACCA/TCGG	GT:AD:DP:GQ:PL	0/1:2,15:30:99:2407,0,533
         20	101	.	A	TCGG	.	PASS	VC=INDEL;AC=2;AF=0.25;AN=8;OLD_MULTIALLELIC=20:101:A/ACCA/TCGG	GT:AD:DP:GQ:PL	0/.:2,31:30:99:2407,697,574
 
+Options
+=======
+The ``split_multiallelics`` transformer has the following options:
 
+.. list-table::
+   :header-rows: 1
+
+   * - Option
+     - Type
+     - Possible values and description
+   * - ``split_info_fields``
+     - string
+     - A comma separated list of info columns that should be split i.e., ``INFO_AC,INFO_AF``
+   
 Usage
 =====
 

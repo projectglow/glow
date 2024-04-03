@@ -32,4 +32,12 @@ class SparkSuite extends GlowBaseTest {
   test("read file") {
     spark.read.text(s"$testDataHome/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf").count()
   }
+
+  test("print vcf schema") {
+    val schema =
+      spark.read.format("vcf").load(s"$testDataHome/CEUTrio.HiSeq.WGS.b37.NA12878.20.21.vcf").schema
+    schema.foreach { f =>
+      print(s"$f, ${f.metadata}\n")
+    }
+  }
 }

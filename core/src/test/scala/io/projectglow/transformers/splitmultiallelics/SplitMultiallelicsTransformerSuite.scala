@@ -167,4 +167,46 @@ class SplitMultiallelicsTransformerSuite extends GlowBaseTest with GlowLogging {
     )
 
   }
+
+  test("specify INFO columns to split") {
+    import org.apache.spark.sql.functions.col
+
+    val dfOriginal = spark
+      .read
+      .format(sourceName)
+      .options(Map(CommonOptions.INCLUDE_SAMPLE_IDS -> false.toString))
+      .load(vtTestVcfMultiAllelic)
+
+    val dfExpected = spark
+      .read
+      .format(sourceName)
+      .options(Map(CommonOptions.INCLUDE_SAMPLE_IDS -> false.toString))
+      .load(vtTestVcfMultiAllelicExpectedSplit)
+      .orderBy(contigNameField.name, startField.name, endField.name)
+      .drop(splitFromMultiAllelicField.name)
+
+    val dfSplitAllInfoFields = Glow
+      .transform(
+        SPLITTER_TRANSFORMER_NAME,
+        dfOriginal,
+        Map("split_info_fields" -> "INFO_AC,INFO_AF")
+      )
+      .select(dfExpected.columns.map(c => col(s"`$c`")): _*)
+      .orderBy(contigNameField.name, startField.name, endField.name)
+
+    val dfSplitOnlyAC = Glow
+      .transform(
+        SPLITTER_TRANSFORMER_NAME,
+        dfOriginal,
+        Map("split_info_fields" -> "INFO_AC")
+      )
+      .select(dfExpected.columns.map(c => col(s"`$c`")): _*)
+      .orderBy(contigNameField.name, startField.name, endField.name)
+
+    assert(dfSplitAllInfoFields.count() == dfExpected.count())
+    assert(dfSplitOnlyAC.count() == dfExpected.count())
+    assert(dfSplitAllInfoFields.except(dfExpected).count() == 0)
+    assert(dfSplitOnlyAC.except(dfExpected).count() > 0)
+    assert(dfSplitOnlyAC.drop("INFO_AF").except(dfExpected.drop("INFO_AF")).count() == 0)
+  }
 }
