@@ -126,6 +126,7 @@ private[projectglow] object VariantSplitter extends GlowLogging {
       .schema
       .filter(field =>
         field.name.startsWith(infoFieldPrefix) && field.dataType.isInstanceOf[ArrayType] &&
+        field.metadata.contains(VCFSchemaInferrer.VCF_HEADER_COUNT_KEY) &&
         field.metadata.getString(VCFSchemaInferrer.VCF_HEADER_COUNT_KEY) == VCFHeaderLineCount
           .A
           .toString)
