@@ -34,11 +34,13 @@ class SplitMultiallelicsTransformer extends DataFrameTransformer with HlsUsageLo
 
     // TODO: Log splitter usage
 
-    VariantSplitter.splitVariants(df)
+    val infoFieldsToSplit = options.get(SPLIT_INFO_FIELDS).map(_.split(',').map(_.trim()).toSeq)
+    VariantSplitter.splitVariants(df, infoFieldsToSplit)
 
   }
 }
 
 object SplitMultiallelicsTransformer {
+  val SPLIT_INFO_FIELDS = "split_info_fields"
   val SPLITTER_TRANSFORMER_NAME = "split_multiallelics"
 }

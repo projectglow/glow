@@ -17,9 +17,10 @@
 package io.projectglow.transformers.splitmultiallelics
 
 import com.google.common.annotations.VisibleForTesting
+import htsjdk.variant.vcf.VCFHeaderLineCount
 import io.projectglow.common.GlowLogging
 import io.projectglow.common.VariantSchemas._
-import io.projectglow.vcf.InternalRowToVariantContextConverter
+import io.projectglow.vcf.{InternalRowToVariantContextConverter, VCFSchemaInferrer}
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 import org.apache.spark.sql.functions._
@@ -65,7 +66,9 @@ private[projectglow] object VariantSplitter extends GlowLogging {
    * @param variantDf
    * @return dataframe of split variants
    */
-  def splitVariants(variantDf: DataFrame): DataFrame = {
+  def splitVariants(
+      variantDf: DataFrame,
+      infoFieldsToSplit: Option[Seq[String]] = None): DataFrame = {
 
     if (variantDf.schema.fieldNames.contains("attributes")) {
       // TODO: Unflattened INFO field splitting
@@ -100,7 +103,7 @@ private[projectglow] object VariantSplitter extends GlowLogging {
       )
 
     // Split INFO fields
-    val dfAfterInfoSplit = splitInfoFields(dfAfterAltAlleleSplit)
+    val dfAfterInfoSplit = splitInfoFields(dfAfterAltAlleleSplit, infoFieldsToSplit)
 
     // split genotypes fields, update alternateAlleles field, and drop the columns resulting from posexplode
     splitGenotypeFields(dfAfterInfoSplit)
@@ -116,22 +119,29 @@ private[projectglow] object VariantSplitter extends GlowLogging {
    * @return dataframe with split info fields
    */
   @VisibleForTesting
-  private[splitmultiallelics] def splitInfoFields(variantDf: DataFrame): DataFrame = {
-    variantDf
+  private[splitmultiallelics] def splitInfoFields(
+      variantDf: DataFrame,
+      infoFieldsToSplit: Option[Seq[String]]): DataFrame = {
+    val splittableFields = variantDf
       .schema
       .filter(field =>
-        field.name.startsWith(infoFieldPrefix) && field.dataType.isInstanceOf[ArrayType])
-      .foldLeft(
-        variantDf
-      )((df, field) =>
-        df.withColumn(
-          field.name,
-          when(
-            col(splitFromMultiAllelicField.name) &&
-            size(col(field.name)) === size(col(alternateAllelesField.name)),
-            array(expr(s"${field.name}[$splitAlleleIdxFieldName]"))
-          ).otherwise(col(field.name))
-        ))
+        field.name.startsWith(infoFieldPrefix) && field.dataType.isInstanceOf[ArrayType] &&
+        field.metadata.contains(VCFSchemaInferrer.VCF_HEADER_COUNT_KEY) &&
+        field.metadata.getString(VCFSchemaInferrer.VCF_HEADER_COUNT_KEY) == VCFHeaderLineCount
+          .A
+          .toString)
+      .map(_.name)
+
+    val fieldsToSplit = infoFieldsToSplit.getOrElse(splittableFields)
+
+    val columns = fieldsToSplit.map(field =>
+      field ->
+      when(
+        col(splitFromMultiAllelicField.name) &&
+        size(col(field)) === size(col(alternateAllelesField.name)),
+        array(expr(s"${field}[$splitAlleleIdxFieldName]"))
+      ).otherwise(col(field)))
+    variantDf.withColumns(columns.toMap)
   }
 
   /**
@@ -150,14 +160,13 @@ private[projectglow] object VariantSplitter extends GlowLogging {
       variantDf
     } else {
       // pull out genotypes subfields as new columns
-      val withExtractedFields = gSchema
+      val extractedFields = gSchema
         .get
         .fields
-        .foldLeft(variantDf)((df, field) =>
-          df.withColumn(
-            field.name,
-            expr(s"transform(${genotypesFieldName}, g -> g.${field.name})")))
-        .drop(genotypesFieldName)
+        .map(field =>
+          field.name ->
+          expr(s"transform(${genotypesFieldName}, g -> g.${field.name})"))
+      val withExtractedFields = variantDf.withColumns(extractedFields.toMap)
 
       // register the udf that genotypes splitter uses
       withExtractedFields
@@ -175,70 +184,60 @@ private[projectglow] object VariantSplitter extends GlowLogging {
       // WholestageCodegen is off for spark sql. Therefore, it is recommended to set "spark.sql.codegen.wholeStage" conf
       // to off when using this splitter.
 
-      gSchema
+      val updatedColumns = gSchema
         .get
         .fields
-        .foldLeft(withExtractedFields)((df, field) =>
-          field match {
-            case f
-                if structFieldsEqualExceptNullability(genotypeLikelihoodsField, f) |
-                structFieldsEqualExceptNullability(phredLikelihoodsField, f) |
-                structFieldsEqualExceptNullability(posteriorProbabilitiesField, f) =>
-              // update genotypes subfields that have colex order using the udf
-              df.withColumn(
-                f.name,
-                when(
-                  col(splitFromMultiAllelicField.name),
-                  expr(s"""transform(${f.name}, c ->
-                         |     filter(
-                         |        transform(
-                         |            c, (x, idx) ->
-                         |              if (
-                         |                  array_contains(
-                         |                      likelihoodSplitUdf(
-                         |                            size(${alternateAllelesField.name}) + 1,
-                         |                            size(${callsField.name}[0]),
-                         |                            $splitAlleleIdxFieldName + 1
-                         |                      ),
-                         |                      idx
-                         |                  ), x, null
-                         |              )
-                         |        ),
-                         |        x -> !isnull(x)
-                         |      )
-                         |   )""".stripMargin)
-                ).otherwise(col(f.name))
-              )
+        .collect {
+          case f
+              if structFieldsEqualExceptNullability(genotypeLikelihoodsField, f) |
+              structFieldsEqualExceptNullability(phredLikelihoodsField, f) |
+              structFieldsEqualExceptNullability(posteriorProbabilitiesField, f) =>
+            // update genotypes subfields that have colex order using the udf
+            f.name -> when(
+              col(splitFromMultiAllelicField.name),
+              expr(s"""transform(${f.name}, c ->
+                   |     filter(
+                   |        transform(
+                   |            c, (x, idx) ->
+                   |              if (
+                   |                  array_contains(
+                   |                      likelihoodSplitUdf(
+                   |                            size(${alternateAllelesField.name}) + 1,
+                   |                            size(${callsField.name}[0]),
+                   |                            $splitAlleleIdxFieldName + 1
+                   |                      ),
+                   |                      idx
+                   |                  ), x, null
+                   |              )
+                   |        ),
+                   |        x -> !isnull(x)
+                   |      )
+                   |   )""".stripMargin)
+            ).otherwise(col(f.name))
 
-            case f if structFieldsEqualExceptNullability(callsField, f) =>
-              // update GT calls subfield
-              df.withColumn(
-                f.name,
-                when(
-                  col(splitFromMultiAllelicField.name),
-                  expr(
-                    s"transform(${f.name}, " +
-                    s"c -> transform(c, x -> if(x == 0, x, if(x == $splitAlleleIdxFieldName + 1, 1, -1))))"
-                  )
-                ).otherwise(col(f.name))
+          case f if structFieldsEqualExceptNullability(callsField, f) =>
+            // update GT calls subfield
+            f.name -> when(
+              col(splitFromMultiAllelicField.name),
+              expr(
+                s"transform(${f.name}, " +
+                s"c -> transform(c, x -> if(x == 0, x, if(x == $splitAlleleIdxFieldName + 1, 1, -1))))"
               )
+            ).otherwise(col(f.name))
 
-            case f if f.dataType.isInstanceOf[ArrayType] =>
-              // update any ArrayType field with number of elements equal to number of alt alleles
-              df.withColumn(
-                f.name,
-                when(
-                  col(splitFromMultiAllelicField.name),
-                  expr(
-                    s"transform(${f.name}, c -> if(size(c) == size(${alternateAllelesField.name}) + 1," +
-                    s" array(c[0], c[$splitAlleleIdxFieldName + 1]), null))"
-                  )
-                ).otherwise(col(f.name))
+          case f if f.dataType.isInstanceOf[ArrayType] =>
+            // update any ArrayType field with number of elements equal to number of alt alleles
+            f.name -> when(
+              col(splitFromMultiAllelicField.name),
+              expr(
+                s"transform(${f.name}, c -> if(size(c) == size(${alternateAllelesField.name}) + 1," +
+                s" array(c[0], c[$splitAlleleIdxFieldName + 1]), null))"
               )
+            ).otherwise(col(f.name))
+        }
 
-            case _ =>
-              df
-          })
+      withExtractedFields
+        .withColumns(updatedColumns.toMap)
         .withColumn(genotypesFieldName, arrays_zip(gSchema.get.fieldNames.map(col(_)): _*))
         .drop(gSchema.get.fieldNames: _*)
     }
