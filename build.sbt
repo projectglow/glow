@@ -111,7 +111,6 @@ lazy val commonSettings = Seq(
   Test / test := ((Test / test) dependsOn (Test / headerCheck)).value,
   assembly / test := {},
   assembly / assemblyMergeStrategy := {
-    // Assembly jar is not executable
     case p if p.toLowerCase.contains("manifest.mf") =>
       MergeStrategy.discard
     case _ =>
