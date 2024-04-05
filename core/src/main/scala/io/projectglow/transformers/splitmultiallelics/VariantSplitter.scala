@@ -92,7 +92,7 @@ private[projectglow] object VariantSplitter extends GlowLogging {
             lit(":"),
             col(startField.name) + 1,
             lit(":"),
-            concat_ws("/", col(refAlleleField.name), col(alternateAllelesField.name))
+            array_join(array_prepend(col(alternateAllelesField.name), col(refAlleleField.name)), "/")
           )
         ).otherwise(lit(null))
       )
