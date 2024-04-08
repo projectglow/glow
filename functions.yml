@@ -490,6 +490,7 @@ gwas_functions:
 private:
   functions:
     - name: comb
+      doc: Compute binomial coefficient
       since: 2.1.0
       expr_class: io.projectglow.sql.expressions.Comb
       args:
