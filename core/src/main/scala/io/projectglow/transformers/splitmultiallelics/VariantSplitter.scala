@@ -168,8 +168,9 @@ private[projectglow] object VariantSplitter extends GlowLogging {
         .fields
         .map(field =>
           field.name ->
-            when(col(splitFromMultiAllelicField.name),
-          expr(s"transform(${genotypesFieldName}, g -> g.${field.name})")).otherwise(array()))
+          when(
+            col(splitFromMultiAllelicField.name),
+            expr(s"transform(${genotypesFieldName}, g -> g.${field.name})")).otherwise(array()))
       val withExtractedFields = variantDf.withColumns(extractedFields.toMap)
 
       // update pulled-out genotypes columns, zip them back together as the new genotypes column,
@@ -188,7 +189,7 @@ private[projectglow] object VariantSplitter extends GlowLogging {
               structFieldsEqualExceptNullability(posteriorProbabilitiesField, f) =>
             // update genotypes subfields that have colex order using the udf
             f.name ->
-              expr(s"""transform(${f.name}, c ->
+            expr(s"""transform(${f.name}, c ->
                    |     filter(
                    |        transform(
                    |            c, (x, idx) ->
@@ -208,23 +209,27 @@ private[projectglow] object VariantSplitter extends GlowLogging {
           case f if structFieldsEqualExceptNullability(callsField, f) =>
             // update GT calls subfield
             f.name ->
-              expr(
-                s"transform(${f.name}, " +
-                s"c -> transform(c, x -> if(x == 0, x, if(x == $splitAlleleIdxFieldName + 1, 1, -1))))"
-              )
+            expr(
+              s"transform(${f.name}, " +
+              s"c -> transform(c, x -> if(x == 0, x, if(x == $splitAlleleIdxFieldName + 1, 1, -1))))"
+            )
 
           case f if f.dataType.isInstanceOf[ArrayType] =>
             // update any ArrayType field with number of elements equal to number of alt alleles
             f.name ->
-              expr(
-                s"transform(${f.name}, c -> if(size(c) == size(${alternateAllelesField.name}) + 1," +
-                s" array(c[0], c[$splitAlleleIdxFieldName + 1]), null))"
-              )
+            expr(
+              s"transform(${f.name}, c -> if(size(c) == size(${alternateAllelesField.name}) + 1," +
+              s" array(c[0], c[$splitAlleleIdxFieldName + 1]), null))"
+            )
         }
 
       withExtractedFields
         .withColumns(updatedColumns.toMap)
-        .withColumn(genotypesFieldName, when(col(splitFromMultiAllelicField.name), arrays_zip(gSchema.get.fieldNames.map(col(_)): _*)).otherwise(col(genotypesFieldName)))
+        .withColumn(
+          genotypesFieldName,
+          when(
+            col(splitFromMultiAllelicField.name),
+            arrays_zip(gSchema.get.fieldNames.map(col(_)): _*)).otherwise(col(genotypesFieldName)))
         .drop(gSchema.get.fieldNames: _*)
     }
   }
