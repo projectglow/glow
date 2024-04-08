@@ -21,6 +21,7 @@ import htsjdk.variant.vcf.VCFHeaderLineCount
 import io.projectglow.common.GlowLogging
 import io.projectglow.common.VariantSchemas._
 import io.projectglow.vcf.{InternalRowToVariantContextConverter, VCFSchemaInferrer}
+import org.apache.commons.math3.util.CombinatoricsUtils
 import org.apache.spark.sql.DataFrame
 import org.apache.spark.sql.SQLUtils.structFieldsEqualExceptNullability
 import org.apache.spark.sql.functions._
@@ -93,7 +94,7 @@ private[projectglow] object VariantSplitter extends GlowLogging {
             col(startField.name) + 1,
             lit(":"),
             array_join(
-              array_prepend(col(alternateAllelesField.name), col(refAlleleField.name)),
+              concat(array(col(refAlleleField.name)), col(alternateAllelesField.name)),
               "/")
           )
         ).otherwise(lit(null))
@@ -170,16 +171,6 @@ private[projectglow] object VariantSplitter extends GlowLogging {
           expr(s"transform(${genotypesFieldName}, g -> g.${field.name})"))
       val withExtractedFields = variantDf.withColumns(extractedFields.toMap)
 
-      // register the udf that genotypes splitter uses
-      withExtractedFields
-        .sqlContext
-        .udf
-        .register(
-          "likelihoodSplitUdf",
-          (numAlleles: Int, ploidy: Int, alleleIdx: Int) =>
-            refAltColexOrderIdxArray(numAlleles, ploidy, alleleIdx)
-        )
-
       // update pulled-out genotypes columns, zip them back together as the new genotypes column,
       // and drop the pulled-out columns
       // Note: In performance tests, it was seen that nested transform sql functions used below work twice faster if
@@ -203,10 +194,8 @@ private[projectglow] object VariantSplitter extends GlowLogging {
                    |            c, (x, idx) ->
                    |              if (
                    |                  array_contains(
-                   |                      likelihoodSplitUdf(
-                   |                            size(${alternateAllelesField.name}) + 1,
-                   |                            size(${callsField.name}[0]),
-                   |                            $splitAlleleIdxFieldName + 1
+                   |                      transform(array_repeat(0, size(${callsField.name}[0]) + 1), (el, i) ->
+                   |                        comb(size(${callsField.name}[0]) + $splitAlleleIdxFieldName + 1, size(${callsField.name}[0])) - comb(size(${callsField.name}[0]) + $splitAlleleIdxFieldName + 1 - i, size(${callsField.name}[0]) - i)
                    |                      ),
                    |                      idx
                    |                  ), x, null
@@ -244,61 +233,6 @@ private[projectglow] object VariantSplitter extends GlowLogging {
         .drop(gSchema.get.fieldNames: _*)
     }
 
-  }
-
-  /**
-   * Given the total number of (ref and alt) alleles (numAlleles), ploidy, and the index an alt allele of interest
-   * (altAlleleIdx), generates an array of indices of genotypes that only include the ref allele and/or that alt allele
-   * of interest in the colex ordering of all possible genotypes. The function is general and correctly calculates
-   * the index array for any given set of values for its arguments.
-   *
-   * Example:
-   * Assume numAlleles = 3 (say A,B,C), ploidy = 2, and altAlleleIdx = 2 (i.e., C)
-   * Therefore, colex ordering of all possible genotypes is: AA, AB, BB, AC, BC, CC
-   * and for example refAltColexOrderIdxArray(3, 2, 2) = Array(0, 3, 5)
-   *
-   * @param numAlleles   : total number of alleles (ref and alt)
-   * @param ploidy       : ploidy
-   * @param altAlleleIdx : index of alt allele of interest
-   * @return array of indices of genotypes that only include the ref allele and alt allele
-   *         of interest in the colex ordering of all possible genotypes.
-   */
-  @VisibleForTesting
-  private[splitmultiallelics] def refAltColexOrderIdxArray(
-      numAlleles: Int,
-      ploidy: Int,
-      altAlleleIdx: Int): Array[Int] = {
-
-    if (ploidy < 1) {
-      throw new IllegalArgumentException("Ploidy must be at least 1.")
-    }
-    if (numAlleles < 2) {
-      throw new IllegalArgumentException(
-        "Number of alleles must be at least 2 (one REF and at least one ALT).")
-    }
-    if (altAlleleIdx > numAlleles - 1 || altAlleleIdx < 1) {
-      throw new IllegalArgumentException(
-        "Alternate allele index must be at least 1 and at most one less than number of alleles.")
-    }
-
-    val idxArray = new Array[Int](ploidy + 1)
-
-    // generate vector of elements at positions p+1,p,...,2 on the altAlleleIdx'th diagonal of Pascal's triangle
-    idxArray(0) = 0
-    var i = 1
-    idxArray(ploidy) = altAlleleIdx
-    while (i < ploidy) {
-      idxArray(ploidy - i) = idxArray(ploidy - i + 1) * (i + altAlleleIdx) / (i + 1)
-      i += 1
-    }
-
-    // calculate the cumulative vector
-    i = 1
-    while (i <= ploidy) {
-      idxArray(i) = idxArray(i) + idxArray(i - 1)
-      i += 1
-    }
-    idxArray
   }
 
   @VisibleForTesting

@@ -484,3 +484,16 @@ gwas_functions:
         - name: genotypes
           doc: An array of genotype structs with ``calls`` field
       returns: An array of integers containing the number of alternate alleles in each call array
+
+
+private:
+  functions:
+    - name: Comb
+      doc: Compute binomial coefficient
+      since: 2.1.0
+      expr_class: io.projectglow.sql.expressions.Comb
+      args:
+        - name: n
+          doc: n
+        - name: k
+          doc: k
