@@ -484,3 +484,17 @@ gwas_functions:
         - name: genotypes
           doc: An array of genotype structs with ``calls`` field
       returns: An array of integers containing the number of alternate alleles in each call array
+
+# These functions are intended to only be called from Glow code. They are available in SQL but not in the Scala
+# or Python APIs.
+private:
+  functions:
+    - name: comb
+      doc: Compute binomial coefficient
+      since: 2.1.0
+      expr_class: io.projectglow.sql.expressions.Comb
+      args:
+        - name: n
+          doc: n
+        - name: k
+          doc: k

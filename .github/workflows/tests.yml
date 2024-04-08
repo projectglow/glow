@@ -218,6 +218,9 @@ jobs:
       - name: Build artifacts
         run: bin/build --scala --python
 
+      - name: Test assembly jar
+        run: java -cp core/target/**/glow*assembly*.jar io.projectglow.TestAssemblyJar
+
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         if: success() || failure()

@@ -151,5 +151,6 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     function_groups = yaml.load(open(FUNCTIONS_YAML), Loader=yaml.SafeLoader)
+    del function_groups['private']
     groups_to_render = prepare_definitions(function_groups)
     render_template(args.template_path, args.output_path, groups=groups_to_render)
