@@ -22,7 +22,7 @@ import org.apache.spark.sql.SQLUtils
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.catalyst.analysis.UnresolvedExtractValue
 import org.apache.spark.sql.catalyst.expressions.codegen.{CodegenContext, CodegenFallback, ExprCode}
-import org.apache.spark.sql.catalyst.expressions.{Add, Alias, BinaryExpression, CaseWhen, Cast, CreateNamedStruct, Divide, EqualTo, Exp, ExpectsInputTypes, Expression, Factorial, Generator, GenericInternalRow, GetStructField, If, ImplicitCastInputTypes, LessThan, Literal, Log, Multiply, NamedExpression, Pi, Round, Subtract, UnaryExpression, Unevaluable}
+import org.apache.spark.sql.catalyst.expressions.{Add, Alias, ArraySort, BinaryExpression, CaseWhen, Cast, Ceil, CreateNamedStruct, Divide, EqualTo, Exp, ExpectsInputTypes, Expression, Factorial, Floor, Generator, GenericInternalRow, GetArrayItem, GetStructField, Greatest, If, ImplicitCastInputTypes, Least, LessThan, Literal, Log, Multiply, NamedExpression, Pi, Round, Size, Subtract, UnaryExpression, Unevaluable}
 import org.apache.spark.sql.catalyst.util.{ArrayData, GenericArrayData}
 import org.apache.spark.sql.types._
 import io.projectglow.SparkShim.newUnresolvedException
@@ -314,5 +314,28 @@ case class LogFactorial(n: Expression) extends RewriteAfterResolution {
   override def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): Expression = {
     copy(n = newChildren(0))
   }
+}
 
+case class ArrayQuantile(arr: Expression, probability: Expression, isSorted: Expression)
+    extends RewriteAfterResolution {
+
+  def this(arr: Expression, probability: Expression) = this(arr, probability, Literal(false))
+  override def children: Seq[Expression] = Seq(arr, probability, isSorted)
+
+  private def getQuantile(arr: Expression): Expression = {
+    val trueIndex = Add(Multiply(probability, Subtract(Size(arr), Literal(1))), Literal(1))
+    val roundedIdx = Cast(trueIndex, IntegerType)
+    val below = GetArrayItem(arr, Greatest(Seq(Literal(0), Subtract(roundedIdx, Literal(1)))))
+    val above = GetArrayItem(arr, Least(Seq(Subtract(Size(arr), Literal(1)), roundedIdx)))
+    val frac = Subtract(trueIndex, roundedIdx)
+    Add(Multiply(frac, above), Multiply(Subtract(Literal(1), frac), below))
+  }
+
+  override def rewrite: Expression = {
+    If(isSorted, getQuantile(arr), getQuantile(new ArraySort(arr)))
+  }
+
+  override def withNewChildrenInternal(newChildren: IndexedSeq[Expression]): Expression = {
+    copy(arr = newChildren(0), probability = newChildren(1), isSorted = newChildren(2))
+  }
 }

@@ -547,6 +547,34 @@ def sample_gq_summary_stats(genotypes: Union[Column, str]) -> Column:
     output = Column(sc()._jvm.io.projectglow.functions.sample_gq_summary_stats(_to_java_column(genotypes)))
     return output
 
+
+__all__.append('array_quantile')
+@typechecked
+def array_quantile(arr: Union[Column, str], quantile: float, is_sorted: Union[Column, str] | None = None) -> Column:
+    """
+    Array quantile
+
+    Added in version 2.1.0.
+
+    Examples:
+        >>> df = spark.createDataFrame([Row(arr=[1, 2, 3, 4, 5])])
+        >>> df.select(glow.array_quantile(df.arr, 0.7).alias('p70')).collect()
+        [Row(p70=3.8)]
+
+    Args:
+        arr : An array of numeric values
+        quantile : The desired quantile
+        is_sorted : If true, the input array is assumed to already be sorted
+
+    Returns:
+        
+    """
+    if is_sorted is None:
+        output = Column(sc()._jvm.io.projectglow.functions.array_quantile(_to_java_column(arr), quantile))
+    else:
+        output = Column(sc()._jvm.io.projectglow.functions.array_quantile(_to_java_column(arr), quantile, _to_java_column(is_sorted)))
+    return output
+
 ########### gwas_functions
 
 __all__.append('linear_regression_gwas')
