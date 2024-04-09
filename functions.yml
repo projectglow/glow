@@ -406,6 +406,20 @@ quality_control:
           type: str
       returns: Null if true, or throws an exception if not true
 
+    - name: array_quantile
+      doc: Array quantile
+      since: 2.1.0
+      expr_class: io.projectglow.sql.expressions.ArrayQuantile
+      args:
+        - name: arr
+          doc: An array of numeric values
+        - name: quantile
+          doc: The desired quantile
+          type: double
+        - name: is_sorted
+          doc: If true, the input array is assumed to already be sorted
+          is_optional: true
+
 
 gwas_functions:
   functions:
