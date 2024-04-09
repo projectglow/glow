@@ -558,7 +558,8 @@ def array_quantile(arr: Union[Column, str], quantile: float, is_sorted: Union[Co
 
     Examples:
         >>> df = spark.createDataFrame([Row(arr=[1, 2, 3, 4, 5])])
-        >>> df.select(glow.array_quantile(df.arr, 0.5))
+        >>> df.select(glow.array_quantile(df.arr, 0.7).alias('p70')).collect()
+        [Row(p70=3.8)]
 
     Args:
         arr : An array of numeric values
