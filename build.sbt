@@ -184,9 +184,9 @@ ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDepe
   "org.apache.commons" % "commons-lang3" % "3.14.0",
   // Fix versions of libraries that are depended on multiple times
   "org.apache.hadoop" % "hadoop-client" % "3.3.6",
-  "io.netty" % "netty-all" % "4.1.96.Final",
-  "io.netty" % "netty-handler" % "4.1.96.Final",
-  "io.netty" % "netty-transport-native-epoll" % "4.1.96.Final",
+  "io.netty" % "netty-all" % "4.1.109.Final",
+  "io.netty" % "netty-handler" % "4.1.109.Final",
+  "io.netty" % "netty-transport-native-epoll" % "4.1.109.Final",
   "com.github.samtools" % "htsjdk" % "3.0.5",
   "org.yaml" % "snakeyaml" % "2.2",
   "com.univocity" % "univocity-parsers" % "2.9.1"
