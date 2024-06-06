@@ -19,19 +19,16 @@ package io.projectglow.vcf
 import java.io.{BufferedInputStream, File}
 import java.nio.file.{Files, Path, Paths}
 import java.util.stream.Collectors
-
 import scala.collection.JavaConverters._
-
 import com.google.common.io.ByteStreams
 import htsjdk.samtools.ValidationStringency
 import htsjdk.samtools.util.{BlockCompressedInputStream, BlockCompressedStreamConstants}
 import htsjdk.variant.variantcontext.writer.VCFHeaderWriter
 import htsjdk.variant.vcf.{VCFCompoundHeaderLine, VCFHeader, VCFHeaderLine}
 import org.apache.spark.{SparkConf, SparkException}
-import org.apache.spark.sql.{DataFrame}
-import org.apache.spark.sql.functions.expr
-import org.apache.spark.sql.types.StructType
-
+import org.apache.spark.sql.DataFrame
+import org.apache.spark.sql.functions.{col, explode, expr}
+import org.apache.spark.sql.types.{ArrayType, ByteType, FloatType, LongType, ShortType, StructType}
 import io.projectglow.common.{GenotypeFields, VCFRow, VariantSchemas, WithUtils}
 import io.projectglow.sql.GlowBaseTest
 
@@ -399,7 +396,7 @@ abstract class VCFFileWriterSuite(val sourceName: String) extends VCFConverterBa
     df.write.format(sourceName).option("validationStringency", "strict").save(tempFile)
     val fields = df.schema.map(_.name)
     val rereadDf = spark.read.format("vcf").load(tempFile).select(fields.head, fields.tail: _*)
-    assert(df.except(rereadDf).isEmpty)
+    assert(df.count() == rereadDf.count() && df.except(rereadDf).isEmpty)
   }
 
   test("write succeeds if optional fields are dropped") {
@@ -444,6 +441,56 @@ abstract class VCFFileWriterSuite(val sourceName: String) extends VCFConverterBa
         .format(sourceName)
         .save(tempFile)
     }
+  }
+
+  gridTest("Handle VCF info fields with type")(Seq(LongType, ShortType, ByteType, FloatType)) {
+    typ =>
+      val vcf = spark
+        .read
+        .format("vcf")
+        .load(s"$testDataHome/1kg_sample.vcf")
+        .withColumn("INFO_AN", col("INFO_AN").cast(typ))
+      validateVCFRoundTrip(vcf)
+  }
+
+  gridTest("Handle VCF format fields with type")(Seq(LongType, ShortType, ByteType, FloatType)) {
+    typ =>
+      val vcf = spark
+        .read
+        .format("vcf")
+        .load(s"$testDataHome/1kg_sample.vcf")
+        .withColumn(
+          "genotypes.conditionalQuality",
+          col("genotypes.conditionalQuality").cast(ArrayType(typ)))
+      validateVCFRoundTrip(vcf)
+  }
+
+  test("Manually specified sample ids (subset)") {
+    val sess = spark
+    import sess.implicits._
+    val vcf = spark.read.format("vcf").load(s"$testDataHome/1kg_sample.vcf")
+    val sampleIds = "HG00096"
+    val path = createTempVcf.toString
+    vcf.write.format(sourceName).option("sampleIds", sampleIds).save(path)
+    val reread = spark.read.format("vcf").load(path)
+    val readSamples = reread.select("genotypes.sampleId").distinct().as[Seq[String]].collect()
+    assert(readSamples.length == 1)
+    assert(readSamples(0) == Seq(sampleIds))
+  }
+
+  test("Manually specified sample ids (superset)") {
+    val sess = spark
+    import sess.implicits._
+    val vcf = spark.read.format("vcf").load(s"$testDataHome/1kg_sample.vcf")
+    val dataSampleIds =
+      vcf.select(explode(col("genotypes.sampleId"))).distinct().sort().as[String].collect().toSeq
+    val sampleIds = dataSampleIds :+ "daffyduck"
+    val path = createTempVcf.toString
+    vcf.write.format(sourceName).option("sampleIds", sampleIds.mkString(",")).save(path)
+    val reread = spark.read.format("vcf").load(path)
+    val readSamples = reread.select("genotypes.sampleId").distinct().as[Seq[String]].collect()
+    assert(readSamples.length == 1)
+    assert(readSamples(0).toSet == sampleIds.toSet)
   }
 }
 

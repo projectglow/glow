@@ -37,7 +37,9 @@ def majorMinorVersion(version: String): String = {
 
 val defaultScalaVersion = Map("3" -> scala212, "4" -> scala213)
 
-ThisBuild / scalaVersion := sys.env.getOrElse("SCALA_VERSION", defaultScalaVersion(majorVersion(sparkVersion.value)))
+ThisBuild / scalaVersion := sys
+  .env
+  .getOrElse("SCALA_VERSION", defaultScalaVersion(majorVersion(sparkVersion.value)))
 ThisBuild / organization := "io.projectglow"
 ThisBuild / scalastyleConfig := baseDirectory.value / "scalastyle-config.xml"
 ThisBuild / publish / skip := true
@@ -109,7 +111,6 @@ lazy val commonSettings = Seq(
   Test / test := ((Test / test) dependsOn (Test / headerCheck)).value,
   assembly / test := {},
   assembly / assemblyMergeStrategy := {
-    // Assembly jar is not executable
     case p if p.toLowerCase.contains("manifest.mf") =>
       MergeStrategy.discard
     case _ =>
@@ -171,13 +172,13 @@ ThisBuild / testCoreDependencies := Seq(
   "org.apache.spark" %% "spark-core" % sparkVersion.value % "test" classifier "tests",
   "org.apache.spark" %% "spark-mllib" % sparkVersion.value % "test" classifier "tests",
   "org.apache.spark" %% "spark-sql" % sparkVersion.value % "test" classifier "tests",
-  "org.xerial" % "sqlite-jdbc" % "3.45.1.0" % "test"
+  "org.xerial" % "sqlite-jdbc" % "3.45.3.0" % "test"
 )
 
 lazy val coreDependencies = settingKey[Seq[ModuleID]]("coreDependencies")
 ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDependencies.value ++ Seq(
   "org.seqdoop" % "hadoop-bam" % "7.10.0",
-  "org.slf4j" % "slf4j-api" % "2.0.12",
+  "org.slf4j" % "slf4j-api" % "2.0.13",
   "org.jdbi" % "jdbi" % "2.78",
   "com.github.broadinstitute" % "picard" % "2.27.5",
   "org.apache.commons" % "commons-lang3" % "3.14.0",
@@ -230,7 +231,7 @@ lazy val core = (project in file("core"))
       if (snapshotDeps.nonEmpty) {
         sys.error("Found snapshot dependencies")
       }
-    },
+    }
   )
 
 /**
@@ -304,7 +305,9 @@ lazy val python =
       functionGenerationSettings,
       Test / test := {
         yapf.toTask(" --diff").value
-        pytest.toTask(s" --doctest-modules --cov=glow --cov-report xml --cov-report term python").value
+        pytest
+          .toTask(s" --doctest-modules --cov=glow --cov-report xml --cov-report term python")
+          .value
       },
       generatedFunctionsOutput := baseDirectory.value / "glow" / "functions.py",
       functionsTemplate := baseDirectory.value / "glow" / "functions.py.TEMPLATE",
@@ -369,4 +372,3 @@ lazy val stagedRelease = (project in file("core/src/test"))
       sparkVersion.value)}" % stableVersion.value % "test",
     resolvers := Seq(MavenCache("local-sonatype-staging", sonatypeBundleDirectory.value))
   )
-

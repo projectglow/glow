@@ -16,6 +16,7 @@
 
 package io.projectglow.tertiary
 
+import com.google.common.math.Quantiles
 import org.apache.spark.ml.linalg.{DenseMatrix, DenseVector, SparseVector, Vector}
 import org.apache.spark.sql.{AnalysisException, DataFrame, Row}
 import org.apache.spark.sql.functions._
@@ -24,6 +25,13 @@ import org.apache.spark.unsafe.types.UTF8String
 import io.projectglow.sql.GlowBaseTest
 import io.projectglow.sql.expressions.{VariantType, VariantUtilExprs}
 import io.projectglow.functions._
+import org.apache.commons.math3.stat.descriptive.rank.Percentile
+import org.apache.commons.math3.stat.descriptive.rank.Percentile.EstimationType
+import org.apache.commons.math3.stat.ranking.NaNStrategy
+import org.apache.commons.math3.util.{KthSelector, MedianOf3PivotingStrategy}
+import org.scalactic.TolerantNumerics
+
+import scala.util.Random
 
 class VariantUtilExprsSuite extends GlowBaseTest {
   case class SimpleGenotypeFields(calls: Seq[Int])
@@ -333,6 +341,78 @@ class VariantUtilExprsSuite extends GlowBaseTest {
     import sess.implicits._
     val df = spark.createDataFrame(Seq(Outer(Inner(1, "two"))))
     assert(df.select(expand_struct(col("inner"))).as[Inner].head == Inner(1, "two"))
+  }
+
+  case class QuantileTest(
+      arr: Seq[Double],
+      p25: Double,
+      p50: Double,
+      p75: Double,
+      p90: Double,
+      p99: Double)
+  test("quantiles") {
+    def checkDf(df: DataFrame): Unit = {
+      val rows = df.collect()
+      rows.foreach { row =>
+        row.getAs[Double]("p25") ~== row.getAs[Double]("glow_25") relTol 0.02
+        row.getAs[Double]("p50") ~== row.getAs[Double]("glow_50") relTol 0.02
+        row.getAs[Double]("p75") ~== row.getAs[Double]("glow_75") relTol 0.02
+        row.getAs[Double]("p90") ~== row.getAs[Double]("glow_90") relTol 0.02
+        row.getAs[Double]("p99") ~== row.getAs[Double]("glow_99") relTol 0.02
+      }
+    }
+    val cases = Range(0, 50).map { n =>
+      val numbers = Range(0, (Random.nextDouble() * 1000).toInt).map(_ => Random.nextDouble())
+      val evaluator = new Percentile(1).withEstimationType(EstimationType.R_7)
+      val golden = Seq(25, 50, 75, 90, 99).map { d =>
+        evaluator.setQuantile(d)
+        d -> evaluator.evaluate(numbers.toArray)
+      }.toMap
+
+      QuantileTest(numbers, golden(25), golden(50), golden(75), golden(90), golden(99))
+
+    }
+
+    val df = spark.createDataFrame(cases)
+
+    // Unsorted
+    val glowUnsortedQuantiles = df.withColumns(
+      Map(
+        "glow_25" -> expr("array_quantile(arr, 0.25)"),
+        "glow_50" -> expr("array_quantile(arr, 0.50)"),
+        "glow_75" -> expr("array_quantile(arr, 0.75)"),
+        "glow_90" -> expr("array_quantile(arr, 0.90)"),
+        "glow_99" -> expr("array_quantile(arr, 0.99)")
+      ))
+    checkDf(glowUnsortedQuantiles)
+
+    val sortedDf = df
+      .withColumn("sorted_arr", expr("array_sort(arr)"))
+      .withColumns(Map(
+        "glow_25" -> expr("array_quantile(sorted_arr, 0.25, true)"),
+        "glow_50" -> expr("array_quantile(sorted_arr, 0.50, true)"),
+        "glow_75" -> expr("array_quantile(sorted_arr, 0.75, true)"),
+        "glow_90" -> expr("array_quantile(sorted_arr, 0.90, true)"),
+        "glow_99" -> expr("array_quantile(sorted_arr, 0.99, true)")
+      ))
+    checkDf(sortedDf)
+  }
+
+  test("quantiles respects sorted argument") {
+    val df = spark.createDataFrame(Seq(Tuple1(Seq(4, 3, 2, 1)))).withColumnRenamed("_1", "arr")
+    assert(df.selectExpr("array_quantile(arr, 1, true)").first().get(0) == 1)
+    assert(df.selectExpr("array_quantile(arr, 1, false)").first().get(0) == 4)
+  }
+
+  test("quantiles 0 length array") {
+    val df = spark.createDataFrame(Seq(Tuple1(Seq()))).withColumnRenamed("_1", "arr")
+    assert(df.selectExpr("array_quantile(arr, 1, true)").first().get(0) == null)
+  }
+
+  test("quantiles 1 length array") {
+    val df = spark.createDataFrame(Seq(Tuple1(Seq(5)))).withColumnRenamed("_1", "arr")
+    assert(df.selectExpr("cast(array_quantile(arr, 1, true) as int)").first().get(0) == 5)
+    assert(df.selectExpr("cast(array_quantile(arr, 0.001, true) as int)").first().get(0) == 5)
   }
 }
 

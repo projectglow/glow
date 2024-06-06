@@ -20,6 +20,7 @@ import io.projectglow.common.GlowLogging
 import io.projectglow.common.VariantSchemas._
 import io.projectglow.sql.GlowBaseTest
 import io.projectglow.transformers.splitmultiallelics.VariantSplitter._
+import org.apache.commons.math3.util.CombinatoricsUtils
 import org.apache.spark.sql.functions._
 
 class VariantSplitterSuite extends GlowBaseTest with GlowLogging {
@@ -95,7 +96,7 @@ class VariantSplitterSuite extends GlowBaseTest with GlowLogging {
       .orderBy("contigName", "start", "end")
 
     // apply splitInfoFields
-    val dfSplitInfo = splitInfoFields(dfOriginal)
+    val dfSplitInfo = splitInfoFields(dfOriginal, None)
       .orderBy("contigName", "start", "end")
 
     // read the vt decomposed version of test vcf
@@ -153,6 +154,73 @@ class VariantSplitterSuite extends GlowBaseTest with GlowLogging {
       .foreach { case (rowOrig, rowSplit) =>
         assert(rowOrig.equals(rowSplit), s"Expected\n$rowOrig\nNormalized\n$rowSplit")
       }
+  }
+
+  test("split only specified info fields") {
+    // Read the test vcf and posexplode
+    val dfOriginal = spark
+      .read
+      .format(sourceName)
+      .load(vtTestVcfMultiAllelic)
+      .withColumn(
+        splitFromMultiAllelicField.name,
+        when(size(col(alternateAllelesField.name)) > 1, lit(true)).otherwise(lit(false))
+      )
+      .select(
+        col("*"),
+        posexplode(col(alternateAllelesField.name))
+          .as(Array(splitAlleleIdxFieldName, splitAllelesFieldName))
+      )
+      .orderBy("contigName", "start", "end")
+
+    // apply splitInfoFields
+    val dfSplitInfo = splitInfoFields(dfOriginal, Some(Seq("INFO_AF")))
+      .orderBy("contigName", "start", "end")
+
+    // read the vt decomposed version of test vcf
+    val dfExpected = spark
+      .read
+      .format(sourceName)
+      .load(vtTestVcfMultiAllelicExpectedSplit)
+      .orderBy("contigName", "start", "end")
+
+    assert(dfSplitInfo.count() == dfExpected.count())
+    assert(dfSplitInfo.count() == dfOriginal.count())
+
+    // Check if Info Columns after splitting are the same as vt decompose
+    val dfOriginalInfoColumns = dfOriginal
+      .columns
+      .filter(_.startsWith(infoFieldPrefix))
+      .map(name => if (name.contains(".")) s"`${name}`" else name)
+
+    dfExpected
+      .select(
+        dfOriginalInfoColumns.head,
+        dfOriginalInfoColumns.tail: _*
+      ) // make order of columns the same
+      .collect
+      .zip(
+        dfSplitInfo
+          .select(
+            dfOriginalInfoColumns.head,
+            dfOriginalInfoColumns.tail: _*
+          ) // make order of columns the same
+          .collect)
+      .foreach { case (rowExp, rowSplit) =>
+        // Only the specified INFO_AF field should be split
+        assert(
+          rowExp.get(rowExp.fieldIndex("INFO_AF")) == rowSplit.get(rowSplit.fieldIndex("INFO_AF")))
+        val splitAC = rowExp.getAs[Seq[Int]](rowExp.fieldIndex("INFO_AC"))
+        val unsplitAC = rowSplit.getAs[Seq[Int]](rowSplit.fieldIndex("INFO_AC"))
+        assert(splitAC != unsplitAC || unsplitAC.size == 1)
+      }
+
+    // Check that INFO_AC matches original DataFrame
+    val acAfterSplitting = dfSplitInfo.groupBy("contigName", "start").agg(first("INFO_AC"))
+    val originalAc = dfOriginal.select("contigName", "start", "INFO_AC")
+    assert(originalAc.count() > 0)
+    assert(acAfterSplitting.except(originalAc).count() == 0)
+    assert(originalAc.except(acAfterSplitting).count() == 0)
   }
 
   test("test splitGenotypeFields") {
@@ -217,76 +285,73 @@ class VariantSplitterSuite extends GlowBaseTest with GlowLogging {
       }
   }
 
-  def testRefAltColexOrderIdxArray(
-      numAlleles: Int,
-      ploidy: Int,
-      altAlleleIdx: Int,
-      expected: Array[Int]): Unit = {
-    if (numAlleles < 2 || ploidy < 1 || altAlleleIdx < 1 || altAlleleIdx > numAlleles - 1) {
-      try {
-        refAltColexOrderIdxArray(numAlleles, ploidy, altAlleleIdx)
-      } catch {
-        case _: IllegalArgumentException => succeed
-        case _: Throwable => fail()
-      }
-    } else {
-      assert(refAltColexOrderIdxArray(numAlleles, ploidy, altAlleleIdx) === expected)
-    }
-  }
-
+  case class ColexOrderTestCase(ploidy: Int, altAlleleIdx: Int, truth: Array[Int])
   test("test refAltColexOrderIdxArray") {
-    // exception cases
-    testRefAltColexOrderIdxArray(1, 2, 1, Array())
-    testRefAltColexOrderIdxArray(2, 0, 1, Array())
-    testRefAltColexOrderIdxArray(2, 2, 0, Array())
-    testRefAltColexOrderIdxArray(2, 2, 2, Array())
-
-    // valid cases
-    testRefAltColexOrderIdxArray(2, 1, 1, Array(0, 1))
-    testRefAltColexOrderIdxArray(3, 1, 1, Array(0, 1))
-    testRefAltColexOrderIdxArray(4, 1, 1, Array(0, 1))
-    testRefAltColexOrderIdxArray(3, 1, 2, Array(0, 2))
-    testRefAltColexOrderIdxArray(4, 1, 2, Array(0, 2))
-    testRefAltColexOrderIdxArray(4, 1, 3, Array(0, 3))
-    testRefAltColexOrderIdxArray(5, 1, 4, Array(0, 4))
-
-    testRefAltColexOrderIdxArray(2, 2, 1, Array(0, 1, 2))
-    testRefAltColexOrderIdxArray(3, 2, 1, Array(0, 1, 2))
-    testRefAltColexOrderIdxArray(4, 2, 1, Array(0, 1, 2))
-    testRefAltColexOrderIdxArray(3, 2, 2, Array(0, 3, 5))
-    testRefAltColexOrderIdxArray(4, 2, 2, Array(0, 3, 5))
-    testRefAltColexOrderIdxArray(4, 2, 3, Array(0, 6, 9))
-    testRefAltColexOrderIdxArray(5, 2, 4, Array(0, 10, 14))
-    testRefAltColexOrderIdxArray(6, 2, 5, Array(0, 15, 20))
-    testRefAltColexOrderIdxArray(7, 2, 6, Array(0, 21, 27))
-    testRefAltColexOrderIdxArray(8, 2, 7, Array(0, 28, 35))
-    testRefAltColexOrderIdxArray(9, 2, 8, Array(0, 36, 44))
-    testRefAltColexOrderIdxArray(10, 2, 9, Array(0, 45, 54))
-    testRefAltColexOrderIdxArray(11, 2, 10, Array(0, 55, 65))
-
-    testRefAltColexOrderIdxArray(2, 3, 1, Array(0, 1, 2, 3))
-    testRefAltColexOrderIdxArray(3, 3, 1, Array(0, 1, 2, 3))
-    testRefAltColexOrderIdxArray(4, 3, 1, Array(0, 1, 2, 3))
-    testRefAltColexOrderIdxArray(3, 3, 2, Array(0, 4, 7, 9))
-    testRefAltColexOrderIdxArray(4, 3, 2, Array(0, 4, 7, 9))
-    testRefAltColexOrderIdxArray(4, 3, 3, Array(0, 10, 16, 19))
-    testRefAltColexOrderIdxArray(5, 3, 4, Array(0, 20, 30, 34))
-
-    testRefAltColexOrderIdxArray(2, 4, 1, Array(0, 1, 2, 3, 4))
-    testRefAltColexOrderIdxArray(3, 4, 1, Array(0, 1, 2, 3, 4))
-    testRefAltColexOrderIdxArray(4, 4, 1, Array(0, 1, 2, 3, 4))
-    testRefAltColexOrderIdxArray(3, 4, 2, Array(0, 5, 9, 12, 14))
-    testRefAltColexOrderIdxArray(4, 4, 2, Array(0, 5, 9, 12, 14))
-    testRefAltColexOrderIdxArray(4, 4, 3, Array(0, 15, 25, 31, 34))
-    testRefAltColexOrderIdxArray(5, 4, 4, Array(0, 35, 55, 65, 69))
-    testRefAltColexOrderIdxArray(6, 4, 4, Array(0, 35, 55, 65, 69))
-    testRefAltColexOrderIdxArray(6, 4, 5, Array(0, 70, 105, 120, 125))
-
-    testRefAltColexOrderIdxArray(6, 5, 1, Array(0, 1, 2, 3, 4, 5))
-    testRefAltColexOrderIdxArray(6, 5, 2, Array(0, 6, 11, 15, 18, 20))
-    testRefAltColexOrderIdxArray(6, 5, 3, Array(0, 21, 36, 46, 52, 55))
-    testRefAltColexOrderIdxArray(6, 5, 4, Array(0, 56, 91, 111, 121, 125))
-    testRefAltColexOrderIdxArray(6, 5, 5, Array(0, 126, 196, 231, 246, 251))
+    val cases = Seq(
+      ColexOrderTestCase(1, 1, Array(0, 1)),
+      ColexOrderTestCase(1, 1, Array(0, 1)),
+      ColexOrderTestCase(1, 1, Array(0, 1)),
+      ColexOrderTestCase(1, 2, Array(0, 2)),
+      ColexOrderTestCase(1, 2, Array(0, 2)),
+      ColexOrderTestCase(1, 3, Array(0, 3)),
+      ColexOrderTestCase(1, 4, Array(0, 4)),
+      ColexOrderTestCase(2, 1, Array(0, 1, 2)),
+      ColexOrderTestCase(2, 1, Array(0, 1, 2)),
+      ColexOrderTestCase(2, 1, Array(0, 1, 2)),
+      ColexOrderTestCase(2, 2, Array(0, 3, 5)),
+      ColexOrderTestCase(2, 2, Array(0, 3, 5)),
+      ColexOrderTestCase(2, 3, Array(0, 6, 9)),
+      ColexOrderTestCase(2, 4, Array(0, 10, 14)),
+      ColexOrderTestCase(2, 5, Array(0, 15, 20)),
+      ColexOrderTestCase(2, 6, Array(0, 21, 27)),
+      ColexOrderTestCase(2, 7, Array(0, 28, 35)),
+      ColexOrderTestCase(2, 8, Array(0, 36, 44)),
+      ColexOrderTestCase(2, 9, Array(0, 45, 54)),
+      ColexOrderTestCase(2, 10, Array(0, 55, 65)),
+      ColexOrderTestCase(3, 1, Array(0, 1, 2, 3)),
+      ColexOrderTestCase(3, 1, Array(0, 1, 2, 3)),
+      ColexOrderTestCase(3, 1, Array(0, 1, 2, 3)),
+      ColexOrderTestCase(3, 2, Array(0, 4, 7, 9)),
+      ColexOrderTestCase(3, 2, Array(0, 4, 7, 9)),
+      ColexOrderTestCase(3, 3, Array(0, 10, 16, 19)),
+      ColexOrderTestCase(3, 4, Array(0, 20, 30, 34)),
+      ColexOrderTestCase(4, 1, Array(0, 1, 2, 3, 4)),
+      ColexOrderTestCase(4, 1, Array(0, 1, 2, 3, 4)),
+      ColexOrderTestCase(4, 1, Array(0, 1, 2, 3, 4)),
+      ColexOrderTestCase(4, 2, Array(0, 5, 9, 12, 14)),
+      ColexOrderTestCase(4, 2, Array(0, 5, 9, 12, 14)),
+      ColexOrderTestCase(4, 3, Array(0, 15, 25, 31, 34)),
+      ColexOrderTestCase(4, 4, Array(0, 35, 55, 65, 69)),
+      ColexOrderTestCase(4, 4, Array(0, 35, 55, 65, 69)),
+      ColexOrderTestCase(4, 5, Array(0, 70, 105, 120, 125)),
+      ColexOrderTestCase(5, 1, Array(0, 1, 2, 3, 4, 5)),
+      ColexOrderTestCase(5, 2, Array(0, 6, 11, 15, 18, 20)),
+      ColexOrderTestCase(5, 3, Array(0, 21, 36, 46, 52, 55)),
+      ColexOrderTestCase(5, 4, Array(0, 56, 91, 111, 121, 125)),
+      ColexOrderTestCase(5, 5, Array(0, 126, 196, 231, 246, 251))
+    )
+    val df = spark
+      .createDataFrame(cases)
+      .withColumn(
+        "glow",
+        expr(
+          "transform(array_repeat(0, ploidy + 1), (el, i) -> comb(ploidy + altAlleleIdx, ploidy) - comb(ploidy + altAlleleIdx - i, ploidy - i))")
+      )
+      .where("glow != truth")
+    assert(df.count() == 0)
   }
 
+  case class BinomialTestCase(n: Int, k: Int, coeff: Long)
+  test("binomial coefficient function") {
+    val cases = Range(0, 45).flatMap { n =>
+      Range.inclusive(0, n).map { k =>
+        BinomialTestCase(n, k, CombinatoricsUtils.binomialCoefficient(n, k))
+      }
+    }
+    val df = spark
+      .createDataFrame(cases)
+      .withColumn("glow", expr("comb(n, k)"))
+      .where("glow != coeff")
+    assert(df.count() == 0)
+  }
 }

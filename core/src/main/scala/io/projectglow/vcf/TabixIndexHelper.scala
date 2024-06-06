@@ -18,7 +18,6 @@ package io.projectglow.vcf
 
 import java.io.File
 import java.nio.file.Paths
-
 import scala.collection.JavaConverters._
 import com.google.common.annotations.VisibleForTesting
 import htsjdk.samtools.util.OverlapDetector
@@ -28,6 +27,8 @@ import org.apache.hadoop.fs.{FileSystem, Path}
 import org.apache.spark.sql.execution.datasources._
 import org.apache.spark.sql.sources.{Filter, _}
 import io.projectglow.common.{GlowLogging, SimpleInterval, WithUtils}
+
+import java.net.URI
 
 /**
  * An extended Contig class used by filter parser that keeps an Option(contigName)
@@ -460,7 +461,7 @@ object TabixIndexHelper extends GlowLogging {
     }
 
     val path = file.filePath.toPath
-    val indexFile = new Path(file.filePath + VCFFileFormat.INDEX_SUFFIX)
+    val indexFile = new Path(new URI(file.filePath + VCFFileFormat.INDEX_SUFFIX))
     val isGzip = VCFFileFormat.isGzip(file, conf)
 
     filteredSimpleInterval match {
@@ -545,7 +546,7 @@ object TabixIndexHelper extends GlowLogging {
     val localPath = s"$localDir/${path.getName.replaceAllLiterally("/", "__")}"
     WithUtils.withLock(VCFFileFormat.idxLock.get(path)) {
       if (!new File(localPath).exists()) {
-        val myPath = new Path(localPath)
+        val myPath = new Path(new URI(localPath))
         hadoopFs.copyToLocalFile(path, myPath)
       }
     }

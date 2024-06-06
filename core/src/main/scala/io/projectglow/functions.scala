@@ -318,6 +318,24 @@ object functions {
   }
 
   /**
+   * Array quantile
+   * @group quality_control
+   * @since 2.1.0
+   *
+   * @param arr An array of numeric values
+   * @param quantile The desired quantile
+   * @param is_sorted If true, the input array is assumed to already be sorted
+   * @return 
+   */
+  def array_quantile(arr: Column, quantile: Double, is_sorted: Column): Column = withExpr {
+    new io.projectglow.sql.expressions.ArrayQuantile(arr.expr, Literal(quantile), is_sorted.expr)
+  }
+
+  def array_quantile(arr: Column, quantile: Double): Column = withExpr {
+    new io.projectglow.sql.expressions.ArrayQuantile(arr.expr, Literal(quantile))
+  }
+
+  /**
    * Performs a linear regression association test optimized for performance in a GWAS setting. See :ref:`linear-regression` for details.
    * @group gwas_functions
    * @since 0.3.0

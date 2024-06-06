@@ -75,7 +75,7 @@ class InternalRowToVariantContextConverter(
         raiseValidationError(s"Column ${f.name} does not have a matching VCF header line")
       } else if (
         !VCFSchemaInferrer
-          .typesForHeader(headerLine)
+          .acceptableTypesForHeader(headerLine)
           .exists(t => SQLUtils.dataTypesEqualExceptNullability(t, f.dataType))
       ) {
         raiseValidationError(
@@ -97,7 +97,7 @@ class InternalRowToVariantContextConverter(
           )
         } else if (
           !VCFSchemaInferrer
-            .typesForHeader(headerLine)
+            .acceptableTypesForHeader(headerLine)
             .exists(t => SQLUtils.dataTypesEqualExceptNullability(t, f.dataType))
         ) {
           raiseValidationError(

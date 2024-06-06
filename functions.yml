@@ -406,6 +406,25 @@ quality_control:
           type: str
       returns: Null if true, or throws an exception if not true
 
+    - name: array_quantile
+      doc: Array quantile
+      since: 2.1.0
+      expr_class: io.projectglow.sql.expressions.ArrayQuantile
+      args:
+        - name: arr
+          doc: An array of numeric values
+        - name: quantile
+          doc: The desired quantile
+          type: double
+        - name: is_sorted
+          doc: If true, the input array is assumed to already be sorted
+          is_optional: true
+      examples:
+        python: |
+          >>> df = spark.createDataFrame([Row(arr=[1, 2, 3, 4, 5])])
+          >>> df.select(glow.array_quantile(df.arr, 0.7).alias('p70')).collect()
+          [Row(p70=3.8)]
+
 
 gwas_functions:
   functions:
@@ -484,3 +503,17 @@ gwas_functions:
         - name: genotypes
           doc: An array of genotype structs with ``calls`` field
       returns: An array of integers containing the number of alternate alleles in each call array
+
+# These functions are intended to only be called from Glow code. They are available in SQL but not in the Scala
+# or Python APIs.
+private:
+  functions:
+    - name: comb
+      doc: Compute binomial coefficient
+      since: 2.1.0
+      expr_class: io.projectglow.sql.expressions.Comb
+      args:
+        - name: n
+          doc: n
+        - name: k
+          doc: k
