@@ -172,7 +172,7 @@ ThisBuild / testCoreDependencies := Seq(
   "org.apache.spark" %% "spark-core" % sparkVersion.value % "test" classifier "tests",
   "org.apache.spark" %% "spark-mllib" % sparkVersion.value % "test" classifier "tests",
   "org.apache.spark" %% "spark-sql" % sparkVersion.value % "test" classifier "tests",
-  "org.xerial" % "sqlite-jdbc" % "3.45.3.0" % "test"
+  "org.xerial" % "sqlite-jdbc" % "3.46.0.0" % "test"
 )
 
 lazy val coreDependencies = settingKey[Seq[ModuleID]]("coreDependencies")
