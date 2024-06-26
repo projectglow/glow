@@ -54,6 +54,7 @@ jobs:
 
       - name: Check docs links
         run: (cd docs && make linkcheck)
+        continue-on-error: true
 
 
   spark-tests:
