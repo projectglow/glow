@@ -64,7 +64,7 @@ conda env update -f python/environment.yml
 
 Start an sbt shell using the `sbt` command.
 
-> **FYI**: The following SBT projects are built on Spark 3.5.1/Scala 2.12.15 by default. To change the Spark version and
+> **FYI**: The following SBT projects are built on Spark 3.5.1/Scala 2.12.19 by default. To change the Spark version and
 Scala version, set the environment variables `SPARK_VERSION` and `SCALA_VERSION`.
 
 To compile the main code:
