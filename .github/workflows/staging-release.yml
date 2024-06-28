@@ -10,7 +10,7 @@ on:
             default: "3.5.1"
         scala-version:
             description: "Scala version to use when building Glow"
-            default: "2.12.15"
+            default: "2.12.19"
         java-version:
             description: "Java version to use when building Glow"
             default: "8"
