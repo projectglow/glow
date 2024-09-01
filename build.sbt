@@ -188,7 +188,7 @@ ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDepe
   "io.netty" % "netty-handler" % "4.1.96.Final",
   "io.netty" % "netty-transport-native-epoll" % "4.1.96.Final",
   "com.github.samtools" % "htsjdk" % "3.0.5",
-  "org.yaml" % "snakeyaml" % "2.2",
+  "org.yaml" % "snakeyaml" % "2.3",
   "com.univocity" % "univocity-parsers" % "2.9.1"
 )).map(_.exclude("com.google.code.findbugs", "jsr305"))
 
