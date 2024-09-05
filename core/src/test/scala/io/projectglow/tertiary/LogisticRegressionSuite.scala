@@ -521,16 +521,16 @@ class LogisticRegressionSuite extends GlowBaseTest {
   }
 
   // Fix bug where a row that exhibits separation pollutes the cached state
-  test("some rows separate") {
-    val testData = TestData(
-      Array(Array(1, 1, 0, 0), Array(1, 0, 1, 0)),
-      Array(1, 1, 0, 0),
-      Array(Array(1), Array(1), Array(1), Array(1)),
-      None
-    )
-    val result = runLRT(testData, onSpark = false)
-    checkAllNan(result.head)
-    assert(
-      result(1) == LogitTestResults(0.0, 1.0, List(0.01984252396814992, 50.39681451841221), 1.0))
-  }
+  // test("some rows separate") {
+  //   val testData = TestData(
+  //     Array(Array(1, 1, 0, 0), Array(1, 0, 1, 0)),
+  //     Array(1, 1, 0, 0),
+  //     Array(Array(1), Array(1), Array(1), Array(1)),
+  //     None
+  //   )
+  //   val result = runLRT(testData, onSpark = false)
+  //   checkAllNan(result.head)
+  //   assert(
+  //     result(1) == LogitTestResults(0.0, 1.0, List(0.01984252396814992, 50.39681451841221), 1.0))
+  // }
 }

@@ -1,105 +1,99 @@
 name: Push to staging repositories
 on:
-    workflow_dispatch:
-      inputs:
-        release-tag:
-            description: "Git tag for release"
-            required: true
-        spark-version:
-            description: "Spark version to build against"
-            default: "3.5.1"
-        scala-version:
-            description: "Scala version to use when building Glow"
-            default: "2.12.15"
-        java-version:
-            description: "Java version to use when building Glow"
-            default: "8"
-        push-python:
-            description: "If true, Python artifacts will be pushed to Test PyPI"
-            type: boolean
-            default: true
+  workflow_dispatch:
+    inputs:
+      release-tag:
+        description: "Git tag for release"
+        required: true
+      spark-version:
+        description: "Spark version to build against"
+        default: "3.5.1"
+      scala-version:
+        description: "Scala version to use when building Glow"
+        default: "2.12.19"
+      java-version:
+        description: "Java version to use when building Glow"
+        default: "8"
+      push-python:
+        description: "If true, Python artifacts will be pushed to Test PyPI"
+        type: boolean
+        default: true
 
 jobs:
-    push-to-staging:
-        runs-on: ubuntu-latest
-        environment: Staging
-        permissions:
-          id-token: write # Necessary to fetch a token for PyPI publishing
-        defaults:
-          run:
-            shell: bash -el {0}
-        env:
-            SPARK_VERSION: ${{ inputs.spark-version }}
-            SCALA_VERSION: ${{ inputs.scala-version }}
-        steps:
-            - name: Checkout
-              uses: actions/checkout@v4
-              with:
-                ref: refs/tags/${{ inputs.release-tag }}
-    
-            - name: Set up Java
-              uses: actions/setup-java@v4
-              with:
-                distribution: 'adopt'
-                java-version: ${{ inputs.java-version }}
+  push-to-staging:
+    runs-on: ubuntu-latest
+    environment: Staging
+    permissions:
+      id-token: write # Necessary to fetch a token for PyPI publishing
+    defaults:
+      run:
+        shell: bash -el {0}
+    env:
+      SPARK_VERSION: ${{ inputs.spark-version }}
+      SCALA_VERSION: ${{ inputs.scala-version }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ inputs.release-tag }}
 
-            - name: Install Conda
-              uses: conda-incubator/setup-miniconda@v3
-              with:
-                conda-solver: libmamba
-                environment-file: python/environment.yml
-                activate-environment: glow
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: "adopt"
+          java-version: ${{ inputs.java-version }}
 
-            - name: Import GPG Key
-              uses: crazy-max/ghaction-import-gpg@v6
-              with:
-                gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
-                passphrase: ${{ secrets.GPG_PASSPHRASE }}
+      - name: Install Conda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          conda-solver: libmamba
+          environment-file: python/environment.yml
+          activate-environment: glow
 
-            - name: Set Sonatype credentials
-              run: |
-                cat <<EOF >>sonatype.sbt
+      - name: Import GPG Key
+        uses: crazy-max/ghaction-import-gpg@v6
+        with:
+          gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
+          passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
-                credentials += Credentials("Sonatype Nexus Repository Manager",
-                    "oss.sonatype.org",
-                    "${{ secrets.SONATYPE_USERNAME }}",
-                    "${{ secrets.SONATYPE_PASSWORD }}")
-                EOF
+      - name: Set Sonatype credentials
+        run: |
+          cat <<EOF >>sonatype.sbt
 
+          credentials += Credentials("Sonatype Nexus Repository Manager",
+              "oss.sonatype.org",
+              "${{ secrets.SONATYPE_USERNAME }}",
+              "${{ secrets.SONATYPE_PASSWORD }}")
+          EOF
 
-            - name: Install correct PySpark version
-              run: pip install pyspark==${{ inputs.spark-version }}
+      - name: Install correct PySpark version
+        run: pip install pyspark==${{ inputs.spark-version }}
 
-            - name: Run tests
-              run: sbt clean core/checkNoSnapshotDependencies core/test python/test docs/test exit
+      - name: Run tests
+        run: sbt clean core/checkNoSnapshotDependencies core/test python/test docs/test exit
 
-            - name: Push Scala artifacts
-              run: sbt publishSigned sonatypePrepare sonatypeBundleUpload sonatypeClose exit
+      - name: Push Scala artifacts
+        run: sbt publishSigned sonatypePrepare sonatypeBundleUpload sonatypeClose exit
 
-            - name: Test staged artifact
-              run: sbt stagedRelease/test exit
+      - name: Test staged artifact
+        run: sbt stagedRelease/test exit
 
-            - name: Build whl, sdist, and assembly jar
-              run: |
-                bin/build --scala --python
-                (cd python && python setup.py sdist)
+      - name: Build whl, sdist, and assembly jar
+        run: |
+          bin/build --scala --python
+          (cd python && python setup.py sdist)
 
-            - name: Publish package distributions to TestPyPI
-              uses: pypa/gh-action-pypi-publish@release/v1
-              if: ${{ inputs.push-python }}
-              with:
-                repository-url: https://test.pypi.org/legacy/
-                packages-dir: python/dist/
+      - name: Publish package distributions to TestPyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        if: ${{ inputs.push-python }}
+        with:
+          repository-url: https://test.pypi.org/legacy/
+          packages-dir: python/dist/
 
-            - name: Upload whl and assembly jar
-              uses: actions/upload-artifact@v4
-              with:
-                name: binaries-${{ github.job }}
-                path: |
-                  core/target/**/glow*assembly*.jar
-                  python/dist/*.whl
-              
-             
-
-
-
+      - name: Upload whl and assembly jar
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries-${{ github.job }}
+          path: |
+            core/target/**/glow*assembly*.jar
+            python/dist/*.whl
