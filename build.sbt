@@ -9,7 +9,7 @@ import sbt.nio.Keys._
 
 // Scala version used by DBR 13.3 LTS and 14.0
 lazy val scala212 = "2.12.19"
-lazy val scala213 = "2.13.12"
+lazy val scala213 = "2.13.14"
 
 lazy val spark3 = "3.5.1"
 lazy val spark4 = "4.0.0-SNAPSHOT"
@@ -172,13 +172,13 @@ ThisBuild / testCoreDependencies := Seq(
   "org.apache.spark" %% "spark-core" % sparkVersion.value % "test" classifier "tests",
   "org.apache.spark" %% "spark-mllib" % sparkVersion.value % "test" classifier "tests",
   "org.apache.spark" %% "spark-sql" % sparkVersion.value % "test" classifier "tests",
-  "org.xerial" % "sqlite-jdbc" % "3.45.3.0" % "test"
+  "org.xerial" % "sqlite-jdbc" % "3.45.2.0" % "test"
 )
 
 lazy val coreDependencies = settingKey[Seq[ModuleID]]("coreDependencies")
 ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDependencies.value ++ Seq(
   "org.seqdoop" % "hadoop-bam" % "7.10.0",
-  "org.slf4j" % "slf4j-api" % "2.0.13",
+  "org.slf4j" % "slf4j-api" % "2.0.12",
   "org.jdbi" % "jdbi" % "2.78",
   "com.github.broadinstitute" % "picard" % "2.27.5",
   "org.apache.commons" % "commons-lang3" % "3.14.0",
