@@ -27,7 +27,7 @@ dependencies:
     # Note: Spark 4 must currently be installed from source
     # We only install pyspark to pull in all the dependencies. It should be
     # uninstalled before testing.
-    - pyspark==3.5.1
+    - pyspark==3.5.2
     - databricks-cli==0.18 # Docs notebook source generation
     - databricks-sdk
     - setuptools==65.6.3 # Python packaging

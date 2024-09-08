@@ -24,7 +24,7 @@ dependencies:
   - typeguard
   - yapf=0.40.1
   - pip:
-    - pyspark==3.5.1
+    - pyspark==3.5.2
     - databricks-cli==0.18 # Docs notebook source generation
     - databricks-sdk
     - setuptools==65.6.3 # Python packaging
