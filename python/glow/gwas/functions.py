@@ -79,7 +79,7 @@ def _einsum(subscripts: str, *operands: NDArray) -> NDArray:
     '''
     A wrapper around np.einsum to ensure uniform options.
     '''
-    return oe.contract(subscripts, *operands, casting='no', optimize='dp', memory_limit='max_input')
+    return oe.contract(subscripts, *operands, optimize='dp', memory_limit='max_input')
 
 
 def _have_same_elements(idx1: pd.Index, idx2: pd.Index) -> bool:
