@@ -8,8 +8,12 @@ import os
 import glob
 import datetime
 from databricks.sdk import WorkspaceClient
-from databricks.sdk.service.compute import Library, LibraryFullStatusStatus, State
+from databricks.sdk.service.compute import Library, LibraryInstallStatus, State
+from databricks.sdk.service.workspace import ImportFormat
+import io
 
+##TODO: change remote paths to volumes
+ 
 def run_cmd(cmd):
     try:
         return subprocess.run(cmd, check=True, text=True, capture_output=True)
@@ -18,7 +22,7 @@ def run_cmd(cmd):
         sys.exit(e.returncode)
 
 def uninstall_if_matches(w, cluster_id, name, lib_type):
-    libs = [l for l in w.libraries.cluster_status(cluster_id) if l.status == LibraryFullStatusStatus.INSTALLED]
+    libs = [l for l in w.libraries.cluster_status(cluster_id) if l.status == LibraryInstallStatus.INSTALLED]
     libs = [l.library for l in libs if lib_type in l.library.as_dict() and name in l.library.as_dict()[lib_type]]
     if len(libs) == 0:
         return False
@@ -57,16 +61,19 @@ def main(args):
         print(f'Built Scala assembly jar {Path(jar_path).resolve()}')
     
     if args.install:
-        now = datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S,%f')
-        remote_fname_prefix = f'dbfs:/FileStore/glow/{now}'
-        print(f'Uploading artifacts to {remote_fname_prefix}')
         client = WorkspaceClient()
+        current_user=client.current_user.me().user_name
+        now = datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S,%f')
+        whl_remote_fname_prefix=f'/Workspace/Users/{current_user}/'
+        jar_remote_fname_prefix = f'dbfs:/FileStore/glow/{now}'
+        
 
         uninstalled_lib = False
         if jar_path is not None:
             jar_name = jar_path.split('/')[-1]
             uninstalled_lib = uninstall_if_matches(client, args.install, jar_name, 'jar') or uninstalled_lib
-            remote_path = f'{remote_fname_prefix}/{jar_name}'
+            remote_path = f'{jar_remote_fname_prefix}/{jar_name}'
+            print(f'Uploading jar artifacts to {remote_path}')
             with open(jar_path, 'rb') as f:
                 client.dbfs.upload(remote_path, f)
                 f.close()
@@ -76,10 +83,19 @@ def main(args):
         if whl_path is not None:
             whl_name = whl_path.split('/')[-1]
             uninstalled_lib = uninstall_if_matches(client, args.install, whl_name, 'whl') or uninstalled_lib
-            remote_path = f'{remote_fname_prefix}/{whl_name}'
-            with open(whl_path, 'rb') as f:
-                client.dbfs.upload(remote_path, f)
-                f.close()
+            remote_path = f'{whl_remote_fname_prefix}/{whl_name}'
+            print(f'Uploading whl artifacts to {remote_path}')
+            with open(whl_path, "rb") as file:
+                file_content = file.read()
+
+            # Upload the file to the workspace
+            client.workspace.upload(
+                path=remote_path,
+                content=io.BytesIO(file_content),
+                overwrite=True,
+                format=ImportFormat.AUTO
+            )
+
             client.libraries.install(args.install, [Library(whl=remote_path)])
             print(f'Installed whl {remote_path}')
 
