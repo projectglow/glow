@@ -11,7 +11,7 @@ import sbt.nio.Keys._
 lazy val scala212 = "2.12.19"
 lazy val scala213 = "2.13.14"
 
-lazy val spark3 = "3.5.1"
+lazy val spark3 = "3.5.4"
 lazy val spark4 = "4.0.0-SNAPSHOT"
 
 lazy val sparkVersion = settingKey[String]("sparkVersion")
