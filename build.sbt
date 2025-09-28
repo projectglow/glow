@@ -181,7 +181,7 @@ ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDepe
   "org.slf4j" % "slf4j-api" % "2.0.12",
   "org.jdbi" % "jdbi" % "2.78",
   "com.github.broadinstitute" % "picard" % "2.27.5",
-  "org.apache.commons" % "commons-lang3" % "3.14.0",
+  "org.apache.commons" % "commons-lang3" % "3.19.0",
   // Fix versions of libraries that are depended on multiple times
   "org.apache.hadoop" % "hadoop-client" % "3.3.6",
   "io.netty" % "netty-all" % "4.1.96.Final",
