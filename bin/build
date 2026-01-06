@@ -8,7 +8,7 @@ import os
 import glob
 import datetime
 from databricks.sdk import WorkspaceClient
-from databricks.sdk.service.compute import Library, LibraryFullStatusStatus, State
+from databricks.sdk.service.compute import Library, LibraryInstallStatus, State
 
 def run_cmd(cmd):
     try:
@@ -18,7 +18,7 @@ def run_cmd(cmd):
         sys.exit(e.returncode)
 
 def uninstall_if_matches(w, cluster_id, name, lib_type):
-    libs = [l for l in w.libraries.cluster_status(cluster_id) if l.status == LibraryFullStatusStatus.INSTALLED]
+    libs = [l for l in w.libraries.cluster_status(cluster_id) if l.status == LibraryInstallStatus.INSTALLED]
     libs = [l.library for l in libs if lib_type in l.library.as_dict() and name in l.library.as_dict()[lib_type]]
     if len(libs) == 0:
         return False
