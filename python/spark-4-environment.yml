@@ -38,4 +38,4 @@ dependencies:
     - sphinx-prompt
     - Sphinx-Substitution-Extensions # Substitutions in code blocks
     - sphinx-tabs # Code tabs (Python/Scala)
-    - sybil # Automatic doctest
+    - sybil>=6.0.0 # Automatic doctest - version 6.0+ required for pytest 7.4+ compatibility
