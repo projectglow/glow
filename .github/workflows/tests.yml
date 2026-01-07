@@ -40,7 +40,7 @@ jobs:
           key: conda-${{ hashFiles('python/environment.yml') }}-${{ env.CACHE_NUMBER }}
         env:
           # Increase this value to reset cache if etc/example-environment.yml has not changed
-          CACHE_NUMBER: 0
+          CACHE_NUMBER: 1
         id: cache
 
       - name: Update environment
@@ -101,7 +101,7 @@ jobs:
           key: conda-${{ hashFiles('python/environment.yml') }}-${{ env.CACHE_NUMBER }}
         env:
           # Increase this value to reset cache if etc/example-environment.yml has not changed
-          CACHE_NUMBER: 0
+          CACHE_NUMBER: 1
         id: cache
 
       - name: Update environment
@@ -201,7 +201,7 @@ jobs:
           key: conda-${{ hashFiles('python/spark-4-environment.yml') }}-${{ env.CACHE_NUMBER }}
         env:
           # Increase this value to reset cache if etc/example-environment.yml has not changed
-          CACHE_NUMBER: 0
+          CACHE_NUMBER: 1
         id: cache
 
       - name: Update environment
