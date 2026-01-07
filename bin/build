@@ -7,6 +7,7 @@ import re
 import os
 import glob
 import datetime
+import io
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.compute import Library, LibraryInstallStatus, State
 
@@ -58,30 +59,69 @@ def main(args):
     
     if args.install:
         now = datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S,%f')
-        remote_fname_prefix = f'dbfs:/FileStore/glow/{now}'
-        print(f'Uploading artifacts to {remote_fname_prefix}')
         client = WorkspaceClient()
+        
+        # Determine if using Volume or DBFS
+        upload_to = args.upload_to if args.upload_to else f'dbfs:/FileStore/glow/{now}'
+        is_volume = upload_to.startswith('/Volumes/')
+        
+        if is_volume:
+            # For volumes: /Volumes/catalog/schema/volume/path
+            remote_fname_prefix = f'{upload_to}/{now}'
+            print(f'Uploading artifacts to Unity Catalog volume: {remote_fname_prefix}')
+        else:
+            # For DBFS: dbfs:/path or /path
+            if not upload_to.startswith('dbfs:/'):
+                upload_to = f'dbfs:{upload_to}' if upload_to.startswith('/') else f'dbfs:/{upload_to}'
+            remote_fname_prefix = f'{upload_to}/{now}' if not upload_to.endswith(now) else upload_to
+            print(f'Uploading artifacts to DBFS: {remote_fname_prefix}')
 
         uninstalled_lib = False
         if jar_path is not None:
             jar_name = jar_path.split('/')[-1]
             uninstalled_lib = uninstall_if_matches(client, args.install, jar_name, 'jar') or uninstalled_lib
-            remote_path = f'{remote_fname_prefix}/{jar_name}'
-            with open(jar_path, 'rb') as f:
-                client.dbfs.upload(remote_path, f)
-                f.close()
-            client.libraries.install(args.install, [Library(jar=remote_path)])
-            print(f'Installed jar {remote_path}')
+            
+            if is_volume:
+                # Upload to volume using files API
+                volume_path = f'{remote_fname_prefix}/{jar_name}'
+                with open(jar_path, 'rb') as f:
+                    file_bytes = f.read()
+                    binary_data = io.BytesIO(file_bytes)
+                    client.files.upload(volume_path, binary_data, overwrite=True)
+                # Libraries need dbfs:/Volumes/ format
+                install_path = f'dbfs:{volume_path}'
+            else:
+                # Upload to DBFS
+                remote_path = f'{remote_fname_prefix}/{jar_name}'
+                with open(jar_path, 'rb') as f:
+                    client.dbfs.upload(remote_path, f)
+                install_path = remote_path
+                
+            client.libraries.install(args.install, [Library(jar=install_path)])
+            print(f'Installed jar from {install_path} ')
 
         if whl_path is not None:
             whl_name = whl_path.split('/')[-1]
             uninstalled_lib = uninstall_if_matches(client, args.install, whl_name, 'whl') or uninstalled_lib
-            remote_path = f'{remote_fname_prefix}/{whl_name}'
-            with open(whl_path, 'rb') as f:
-                client.dbfs.upload(remote_path, f)
-                f.close()
-            client.libraries.install(args.install, [Library(whl=remote_path)])
-            print(f'Installed whl {remote_path}')
+            
+            if is_volume:
+                # Upload to volume using files API
+                volume_path = f'{remote_fname_prefix}/{whl_name}'
+                with open(whl_path, 'rb') as f:
+                    file_bytes = f.read()
+                    binary_data = io.BytesIO(file_bytes)
+                    client.files.upload(volume_path, binary_data, overwrite=True)
+                # Libraries need dbfs:/Volumes/ format
+                install_path = f'dbfs:{volume_path}'
+            else:
+                # Upload to DBFS
+                remote_path = f'{remote_fname_prefix}/{whl_name}'
+                with open(whl_path, 'rb') as f:
+                    client.dbfs.upload(remote_path, f)
+                install_path = remote_path
+                
+            client.libraries.install(args.install, [Library(whl=install_path)])
+            print(f'Installed whl from {install_path}')
 
         if uninstalled_lib and client.clusters.get(args.install).state in [State.RUNNING, State.RESIZING]:
             print(f'Restarting cluster so new libraries will take effect')
@@ -91,9 +131,12 @@ parser = argparse.ArgumentParser(description='''
                                  A script to build Glow artifacts and install them on a Databricks cluster. This script assumes that
                                  the local environment is already set up (conda environment, sbt and Java installation) for whichever artifacts are requested, and
                                  if installation is requested, the cluster already exists. 
-                                 Any artifacts uploaded to DBFS are not automatically deleted. Deletion should be performed manually or with a cloud storage retention policy.''')
+                                 Any artifacts uploaded to DBFS or volumes are not automatically deleted. Deletion should be performed manually or with a cloud storage retention policy.''')
 parser.add_argument('--python', help='Build a Python wheel', action='store_true')
 parser.add_argument('--scala', help='Build a Scala assembly jar', action='store_true')
 parser.add_argument('--install', metavar='CLUSTER_ID', help='If provided, install built artifacts on this cluster. If currently running, the cluster will be restarted. ' + 
                     'Databricks authentication must be provided via environment variables')
+parser.add_argument('--upload-to', metavar='PATH', help='Upload artifacts to this location. ' +
+                    'Can be a Unity Catalog volume path (e.g., /Volumes/catalog/schema/volume) or a DBFS path (e.g., dbfs:/path or /path). ' +
+                    'Defaults to dbfs:/FileStore/glow/<timestamp> if not specified')
 main(parser.parse_args())
