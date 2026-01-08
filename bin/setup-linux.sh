@@ -2,14 +2,24 @@
 # Glow Build Environment Setup Script for Linux
 # This script checks for required dependencies and installs them if missing
 
-set -e  # Exit on error
+# Exit on error, but not during initial setup/detection
+set +e  # Don't exit on error initially
 
-# Colors for output
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+# Colors for output (disable if not in a terminal)
+if [ -t 1 ]; then
+    RED='\033[0;31m'
+    GREEN='\033[0;32m'
+    YELLOW='\033[1;33m'
+    BLUE='\033[0;34m'
+    NC='\033[0m' # No Color
+else
+    # No colors if not in terminal (e.g., Databricks notebook)
+    RED=''
+    GREEN=''
+    YELLOW=''
+    BLUE=''
+    NC=''
+fi
 
 # Logging functions
 log_info() {
@@ -28,19 +38,36 @@ log_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Check if running as root
-if [ "$EUID" -eq 0 ]; then 
+# Detect if running on Databricks
+IS_DATABRICKS=false
+if [ -n "$DATABRICKS_RUNTIME_VERSION" ] || [ -d "/databricks" ]; then
+    IS_DATABRICKS=true
+    log_info "Detected Databricks environment"
+fi
+
+# Check if running as root (skip check on Databricks)
+if [ "$EUID" -eq 0 ] && [ "$IS_DATABRICKS" = false ]; then 
     log_error "Please do not run this script as root"
     exit 1
 fi
 
+# On Databricks, we may not have sudo, so create an alias
+if [ "$IS_DATABRICKS" = true ]; then
+    # Check if we already have root privileges
+    if [ "$EUID" -eq 0 ]; then
+        # Already root, sudo is not needed
+        sudo() { "$@"; }
+    elif ! command -v sudo >/dev/null 2>&1; then
+        log_warn "sudo not available on Databricks, some installations may fail"
+        sudo() { "$@"; }
+    fi
+fi
+
 # Determine Linux distribution
+DISTRO="unknown"
 if [ -f /etc/os-release ]; then
-    . /etc/os-release
-    DISTRO=$ID
-else
-    log_error "Cannot determine Linux distribution"
-    exit 1
+    . /etc/os-release 2>/dev/null || true
+    DISTRO=${ID:-unknown}
 fi
 
 log_info "Detected distribution: $DISTRO"
@@ -81,19 +108,25 @@ check_java() {
 install_java() {
     log_info "Installing Java 8..."
     
+    if [ "$DISTRO" = "unknown" ]; then
+        log_error "Cannot install Java: Unknown distribution"
+        log_info "Please install Java 8 manually"
+        return 1
+    fi
+    
     case $DISTRO in
         ubuntu|debian)
-            sudo apt-get update
-            sudo apt-get install -y openjdk-8-jdk
+            sudo apt-get update || { log_error "apt-get update failed"; return 1; }
+            sudo apt-get install -y openjdk-8-jdk || { log_error "Java installation failed"; return 1; }
             ;;
         centos|rhel|fedora)
-            sudo yum install -y java-1.8.0-openjdk-devel
+            sudo yum install -y java-1.8.0-openjdk-devel || { log_error "Java installation failed"; return 1; }
             ;;
         arch|manjaro)
-            sudo pacman -S --noconfirm jdk8-openjdk
+            sudo pacman -S --noconfirm jdk8-openjdk || { log_error "Java installation failed"; return 1; }
             ;;
         *)
-            log_error "Unsupported distribution for automatic Java installation"
+            log_error "Unsupported distribution for automatic Java installation: $DISTRO"
             log_info "Please install Java 8 manually from: https://adoptium.net/"
             return 1
             ;;
@@ -119,27 +152,33 @@ check_sbt() {
 install_sbt() {
     log_info "Installing sbt..."
     
+    if [ "$DISTRO" = "unknown" ]; then
+        log_error "Cannot install sbt: Unknown distribution"
+        log_info "Please install sbt manually from: https://www.scala-sbt.org/download.html"
+        return 1
+    fi
+    
     case $DISTRO in
         ubuntu|debian)
             # Add sbt repository
-            echo "deb https://repo.scala-sbt.org/scalasbt/debian all main" | sudo tee /etc/apt/sources.list.d/sbt.list
-            echo "deb https://repo.scala-sbt.org/scalasbt/debian /" | sudo tee /etc/apt/sources.list.d/sbt_old.list
-            curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x2EE0EA64E40A89B84B2DF73499E82A75642AC823" | sudo apt-key add
-            sudo apt-get update
-            sudo apt-get install -y sbt
+            echo "deb https://repo.scala-sbt.org/scalasbt/debian all main" | sudo tee /etc/apt/sources.list.d/sbt.list || true
+            echo "deb https://repo.scala-sbt.org/scalasbt/debian /" | sudo tee /etc/apt/sources.list.d/sbt_old.list || true
+            curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x2EE0EA64E40A89B84B2DF73499E82A75642AC823" | sudo apt-key add - || true
+            sudo apt-get update || { log_error "apt-get update failed"; return 1; }
+            sudo apt-get install -y sbt || { log_error "sbt installation failed"; return 1; }
             ;;
         centos|rhel|fedora)
             # Remove old sbt repo if exists
             sudo rm -f /etc/yum.repos.d/sbt-rpm.repo
             # Add sbt repository
-            curl -fsSL https://www.scala-sbt.org/sbt-rpm.repo | sudo tee /etc/yum.repos.d/sbt-rpm.repo
-            sudo yum install -y sbt
+            curl -fsSL https://www.scala-sbt.org/sbt-rpm.repo | sudo tee /etc/yum.repos.d/sbt-rpm.repo || true
+            sudo yum install -y sbt || { log_error "sbt installation failed"; return 1; }
             ;;
         arch|manjaro)
-            sudo pacman -S --noconfirm sbt
+            sudo pacman -S --noconfirm sbt || { log_error "sbt installation failed"; return 1; }
             ;;
         *)
-            log_error "Unsupported distribution for automatic sbt installation"
+            log_error "Unsupported distribution for automatic sbt installation: $DISTRO"
             log_info "Please install sbt manually from: https://www.scala-sbt.org/download.html"
             return 1
             ;;
@@ -165,19 +204,24 @@ check_git() {
 install_git() {
     log_info "Installing Git..."
     
+    if [ "$DISTRO" = "unknown" ]; then
+        log_error "Cannot install Git: Unknown distribution"
+        return 1
+    fi
+    
     case $DISTRO in
         ubuntu|debian)
-            sudo apt-get update
-            sudo apt-get install -y git
+            sudo apt-get update || { log_error "apt-get update failed"; return 1; }
+            sudo apt-get install -y git || { log_error "Git installation failed"; return 1; }
             ;;
         centos|rhel|fedora)
-            sudo yum install -y git
+            sudo yum install -y git || { log_error "Git installation failed"; return 1; }
             ;;
         arch|manjaro)
-            sudo pacman -S --noconfirm git
+            sudo pacman -S --noconfirm git || { log_error "Git installation failed"; return 1; }
             ;;
         *)
-            log_error "Unsupported distribution for automatic Git installation"
+            log_error "Unsupported distribution for automatic Git installation: $DISTRO"
             return 1
             ;;
     esac
@@ -201,6 +245,13 @@ check_conda() {
 
 install_conda() {
     log_info "Installing Miniconda..."
+    
+    # On Databricks, conda is usually already installed
+    if [ "$IS_DATABRICKS" = true ]; then
+        log_warn "Running on Databricks - conda should already be available"
+        log_info "If conda is not found, Databricks clusters come with conda pre-installed at /databricks/python3"
+        return 0
+    fi
     
     # Determine architecture
     ARCH=$(uname -m)
@@ -238,12 +289,28 @@ setup_glow_environment() {
     log_info "Setting up Glow conda environment..."
     
     # Initialize conda for this script
+    if [ "$IS_DATABRICKS" = true ]; then
+        # On Databricks, try multiple conda locations
+        if [ -f "/databricks/python3/bin/conda" ]; then
+            export PATH="/databricks/python3/bin:$PATH"
+        fi
+    fi
+    
+    local conda_initialized=false
     if [ -f "$HOME/miniconda3/etc/profile.d/conda.sh" ]; then
-        . "$HOME/miniconda3/etc/profile.d/conda.sh"
+        . "$HOME/miniconda3/etc/profile.d/conda.sh" && conda_initialized=true
     elif [ -f "$HOME/anaconda3/etc/profile.d/conda.sh" ]; then
-        . "$HOME/anaconda3/etc/profile.d/conda.sh"
-    else
+        . "$HOME/anaconda3/etc/profile.d/conda.sh" && conda_initialized=true
+    elif [ -f "/databricks/python3/etc/profile.d/conda.sh" ]; then
+        . "/databricks/python3/etc/profile.d/conda.sh" && conda_initialized=true
+    fi
+    
+    if [ "$conda_initialized" = false ]; then
         log_error "Cannot find conda initialization script"
+        log_info "Tried:"
+        log_info "  - $HOME/miniconda3/etc/profile.d/conda.sh"
+        log_info "  - $HOME/anaconda3/etc/profile.d/conda.sh"
+        log_info "  - /databricks/python3/etc/profile.d/conda.sh"
         return 1
     fi
     
@@ -258,12 +325,18 @@ setup_glow_environment() {
     fi
     
     # Check if glow environment exists
-    if conda env list | grep -q "^glow "; then
+    if conda env list 2>/dev/null | grep -q "^glow "; then
         log_info "Glow environment already exists. Updating..."
-        conda env update -n glow -f "$ENV_FILE" --prune
+        conda env update -n glow -f "$ENV_FILE" --prune || {
+            log_error "Failed to update glow environment"
+            return 1
+        }
     else
         log_info "Creating Glow environment..."
-        conda env create -f "$ENV_FILE"
+        conda env create -f "$ENV_FILE" || {
+            log_error "Failed to create glow environment"
+            return 1
+        }
     fi
     
     log_success "Glow conda environment is ready"
@@ -325,14 +398,25 @@ main() {
     log_info "========================================"
     echo ""
     
+    if [ "$IS_DATABRICKS" = true ]; then
+        log_info "Databricks environment detected"
+        log_info "Note: Some components may already be installed on Databricks clusters"
+        echo ""
+    fi
+    
     # Check and install Java
     if ! check_java; then
-        read -p "Install Java 8? (y/n) " -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            install_java
+        if [ "$IS_DATABRICKS" = true ]; then
+            log_warn "Java not found. On Databricks, Java should be pre-installed."
+            log_info "Check cluster configuration or use a runtime with Java 8+"
         else
-            log_warn "Skipping Java installation"
+            read -p "Install Java 8? (y/n) " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                install_java
+            else
+                log_warn "Skipping Java installation"
+            fi
         fi
     fi
     
@@ -360,17 +444,22 @@ main() {
     
     # Check and install Conda
     if ! check_conda; then
-        read -p "Install Miniconda? (y/n) " -n 1 -r
-        echo
-        if [[ $REPLY =~ ^[Yy]$ ]]; then
-            install_conda
+        if [ "$IS_DATABRICKS" = true ]; then
+            log_warn "Conda not detected, but Databricks has conda at /databricks/python3"
+            log_info "Skipping conda installation"
         else
-            log_warn "Skipping Conda installation"
+            read -p "Install Miniconda? (y/n) " -n 1 -r
+            echo
+            if [[ $REPLY =~ ^[Yy]$ ]]; then
+                install_conda
+            else
+                log_warn "Skipping Conda installation"
+            fi
         fi
     fi
     
     # Setup Glow environment
-    if check_conda; then
+    if check_conda || [ "$IS_DATABRICKS" = true ]; then
         read -p "Setup Glow conda environment? (y/n) " -n 1 -r
         echo
         if [[ $REPLY =~ ^[Yy]$ ]]; then
