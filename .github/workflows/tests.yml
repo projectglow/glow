@@ -122,7 +122,7 @@ jobs:
       #   run: sbt docs/test exit
 
       - name: Build artifacts
-        run: bin/build --scala --python
+        run: databricks/build --scala --python
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -226,7 +226,7 @@ jobs:
       #   run: EXTRA_PYTHON_PATH=$HOME/spark/python sbt docs/test exit
 
       - name: Build artifacts
-        run: bin/build --scala --python
+        run: databricks/build --scala --python
 
       - name: Test assembly jar
         run: java -cp core/target/**/glow*assembly*.jar io.projectglow.TestAssemblyJar
