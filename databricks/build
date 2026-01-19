@@ -44,12 +44,18 @@ def validate_cluster(client, cluster_id):
     
     # Check runtime version (16.4.x-scala2.12)
     runtime = cluster.spark_version
+    if runtime is None:
+        print(f"Error: Cluster runtime version is not available. Cluster may be in an invalid state.")
+        sys.exit(1)
     if not runtime.startswith('16.4.') or 'scala2.12' not in runtime:
         print(f"Error: Cluster must use runtime 16.4.x-scala2.12, found: {runtime}")
         sys.exit(1)
     
     # Check data security mode (SINGLE_USER)
     security_mode = cluster.data_security_mode
+    if security_mode is None:
+        print(f"Error: Cluster data security mode is not available. Cluster may be in an invalid state.")
+        sys.exit(1)
     if security_mode.value != 'SINGLE_USER':
         print(f"Error: Cluster must have data_security_mode set to SINGLE_USER, found: {security_mode.value}")
         sys.exit(1)
