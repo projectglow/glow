@@ -58,44 +58,39 @@ def main(args):
         print(f'Built Scala assembly jar {Path(jar_path).resolve()}')
     
     if args.install:
+        # Validate that upload-to is provided
+        if not args.upload_to:
+            print("Error: --upload-to is required when --install is specified")
+            sys.exit(1)
+        
+        # Strip trailing slash from upload path
+        upload_to = args.upload_to.rstrip('/')
+        
+        # Validate that upload path is a Volume path
+        if not upload_to.startswith('/Volumes/'):
+            print("Error: --upload-to must be a Unity Catalog volume path (e.g., /Volumes/catalog/schema/volume)")
+            sys.exit(1)
+        
         now = datetime.datetime.now().strftime('%d-%m-%Y_%H:%M:%S,%f')
         client = WorkspaceClient()
         
-        # Determine if using Volume or DBFS
-        upload_to = args.upload_to if args.upload_to else f'dbfs:/FileStore/glow/{now}'
-        is_volume = upload_to.startswith('/Volumes/')
-        
-        if is_volume:
-            # For volumes: /Volumes/catalog/schema/volume/path
-            remote_fname_prefix = f'{upload_to}/{now}'
-            print(f'Uploading artifacts to Unity Catalog volume: {remote_fname_prefix}')
-        else:
-            # For DBFS: dbfs:/path or /path
-            if not upload_to.startswith('dbfs:/'):
-                upload_to = f'dbfs:{upload_to}' if upload_to.startswith('/') else f'dbfs:/{upload_to}'
-            remote_fname_prefix = f'{upload_to}/{now}' if not upload_to.endswith(now) else upload_to
-            print(f'Uploading artifacts to DBFS: {remote_fname_prefix}')
+        # For volumes: /Volumes/catalog/schema/volume/path
+        remote_fname_prefix = f'{upload_to}/{now}'
+        print(f'Uploading artifacts to Unity Catalog volume: {remote_fname_prefix}')
 
         uninstalled_lib = False
         if jar_path is not None:
             jar_name = jar_path.split('/')[-1]
             uninstalled_lib = uninstall_if_matches(client, args.install, jar_name, 'jar') or uninstalled_lib
             
-            if is_volume:
-                # Upload to volume using files API
-                volume_path = f'{remote_fname_prefix}/{jar_name}'
-                with open(jar_path, 'rb') as f:
-                    file_bytes = f.read()
-                    binary_data = io.BytesIO(file_bytes)
-                    client.files.upload(volume_path, binary_data, overwrite=True)
-                # Libraries need dbfs:/Volumes/ format
-                install_path = f'dbfs:{volume_path}'
-            else:
-                # Upload to DBFS
-                remote_path = f'{remote_fname_prefix}/{jar_name}'
-                with open(jar_path, 'rb') as f:
-                    client.dbfs.upload(remote_path, f)
-                install_path = remote_path
+            # Upload to volume using files API
+            volume_path = f'{remote_fname_prefix}/{jar_name}'
+            with open(jar_path, 'rb') as f:
+                file_bytes = f.read()
+                binary_data = io.BytesIO(file_bytes)
+                client.files.upload(volume_path, binary_data, overwrite=True)
+            # Libraries need dbfs:/Volumes/ format
+            install_path = f'dbfs:{volume_path}'
                 
             client.libraries.install(args.install, [Library(jar=install_path)])
             print(f'Installed jar from {install_path} ')
@@ -104,21 +99,14 @@ def main(args):
             whl_name = whl_path.split('/')[-1]
             uninstalled_lib = uninstall_if_matches(client, args.install, whl_name, 'whl') or uninstalled_lib
             
-            if is_volume:
-                # Upload to volume using files API
-                volume_path = f'{remote_fname_prefix}/{whl_name}'
-                with open(whl_path, 'rb') as f:
-                    file_bytes = f.read()
-                    binary_data = io.BytesIO(file_bytes)
-                    client.files.upload(volume_path, binary_data, overwrite=True)
-                # Libraries need dbfs:/Volumes/ format
-                install_path = f'dbfs:{volume_path}'
-            else:
-                # Upload to DBFS
-                remote_path = f'{remote_fname_prefix}/{whl_name}'
-                with open(whl_path, 'rb') as f:
-                    client.dbfs.upload(remote_path, f)
-                install_path = remote_path
+            # Upload to volume using files API
+            volume_path = f'{remote_fname_prefix}/{whl_name}'
+            with open(whl_path, 'rb') as f:
+                file_bytes = f.read()
+                binary_data = io.BytesIO(file_bytes)
+                client.files.upload(volume_path, binary_data, overwrite=True)
+            # Libraries need dbfs:/Volumes/ format
+            install_path = f'dbfs:{volume_path}'
                 
             client.libraries.install(args.install, [Library(whl=install_path)])
             print(f'Installed whl from {install_path}')
@@ -131,12 +119,11 @@ parser = argparse.ArgumentParser(description='''
                                  A script to build Glow artifacts and install them on a Databricks cluster. This script assumes that
                                  the local environment is already set up (conda environment, sbt and Java installation) for whichever artifacts are requested, and
                                  if installation is requested, the cluster already exists. 
-                                 Any artifacts uploaded to DBFS or volumes are not automatically deleted. Deletion should be performed manually or with a cloud storage retention policy.''')
+                                 Any artifacts uploaded to volumes are not automatically deleted. Deletion should be performed manually or with a cloud storage retention policy.''')
 parser.add_argument('--python', help='Build a Python wheel', action='store_true')
 parser.add_argument('--scala', help='Build a Scala assembly jar', action='store_true')
 parser.add_argument('--install', metavar='CLUSTER_ID', help='If provided, install built artifacts on this cluster. If currently running, the cluster will be restarted. ' + 
-                    'Databricks authentication must be provided via environment variables')
-parser.add_argument('--upload-to', metavar='PATH', help='Upload artifacts to this location. ' +
-                    'Can be a Unity Catalog volume path (e.g., /Volumes/catalog/schema/volume) or a DBFS path (e.g., dbfs:/path or /path). ' +
-                    'Defaults to dbfs:/FileStore/glow/<timestamp> if not specified')
+                    'Requires --upload-to to be specified. Databricks authentication must be provided via environment variables')
+parser.add_argument('--upload-to', metavar='VOLUME_PATH', help='Upload artifacts to this Unity Catalog volume path (required when --install is specified). ' +
+                    'Must be a volume path in the format /Volumes/catalog/schema/volume. Trailing slashes will be stripped.')
 main(parser.parse_args())
