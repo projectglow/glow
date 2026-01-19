@@ -113,22 +113,29 @@ stagedRelease/test
 
 ## Testing code on a Databricks cluster
 
-You can use the [build](https://github.com/projectglow/glow/blob/main/bin/build) script to create artifacts that you can install on a Databricks cluster.
+You can use the [build](https://github.com/projectglow/glow/blob/main/databricks/build) script to create artifacts that you can install on a Databricks cluster.
 
 To build Python and Scala artifacts:
 ```
-bin/build --scala --python
+databricks/build --scala --python
 ```
 
 To build only Python (no sbt installation required):
 ```
-bin/build --python
+databricks/build --python
 ```
 
-To install the artifacts on a Databricks cluster after building:
+To install the artifacts on a Databricks cluster after building (requires Unity Catalog volume path):
 ```
-bin/build --python --scala --install MY_CLUSTER_ID
+databricks/build --python --scala --install MY_CLUSTER_ID --upload-to /Volumes/catalog/schema/volume
 ```
+
+The `--upload-to` option:
+- **Required** when using `--install`
+- Must be a Unity Catalog volume path (e.g., `/Volumes/catalog/schema/volume`)
+- Trailing slashes are automatically stripped
+
+> **Note:** Unity Catalog volumes are required for better governance and lifecycle management of artifacts.
 
 ## IntelliJ Tips
 
