@@ -189,7 +189,9 @@ ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDepe
   "io.netty" % "netty-transport-native-epoll" % "4.1.96.Final",
   "com.github.samtools" % "htsjdk" % "3.0.5",
   "org.yaml" % "snakeyaml" % "2.2",
-  "com.univocity" % "univocity-parsers" % "2.9.1"
+  "com.univocity" % "univocity-parsers" % "2.9.1",
+  // Fix CVE: Upgrade Avro to 1.11.4+ to fix Arbitrary Code Execution vulnerability
+  "org.apache.avro" % "avro" % "1.11.4"
 )).map(_.exclude("com.google.code.findbugs", "jsr305"))
 
 lazy val root = (project in file(".")).aggregate(core, python, docs)
