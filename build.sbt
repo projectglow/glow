@@ -187,7 +187,7 @@ ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDepe
   "io.netty" % "netty-all" % "4.1.96.Final",
   "io.netty" % "netty-handler" % "4.1.96.Final",
   "io.netty" % "netty-transport-native-epoll" % "4.1.96.Final",
-  "com.github.samtools" % "htsjdk" % "3.0.5",
+  "com.github.samtools" % "htsjdk" % "4.3.0",
   "org.yaml" % "snakeyaml" % "2.2",
   "com.univocity" % "univocity-parsers" % "2.9.1",
   // Fix CVE: Upgrade Avro to 1.11.4+ to fix Arbitrary Code Execution vulnerability
