@@ -198,7 +198,7 @@ lazy val root = (project in file(".")).aggregate(core, python, docs)
 
 lazy val scalaLoggingDependency = settingKey[ModuleID]("scalaLoggingDependency")
 ThisBuild / scalaLoggingDependency := {
-  "com.typesafe.scala-logging" %% "scala-logging" % "3.9.5"
+  "com.typesafe.scala-logging" %% "scala-logging" % "3.9.6"
 }
 
 lazy val checkNoSnapshotDependencies = taskKey[Unit]("checkNoSnapshotDependencies")
