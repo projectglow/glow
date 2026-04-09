@@ -12,7 +12,7 @@ lazy val scala212 = "2.12.19"
 lazy val scala213 = "2.13.14"
 
 lazy val spark3 = "3.5.1"
-lazy val spark4 = "4.0.0-SNAPSHOT"
+lazy val spark4 = "4.1.0"
 
 lazy val sparkVersion = settingKey[String]("sparkVersion")
 ThisBuild / sparkVersion := sys.env.getOrElse("SPARK_VERSION", spark3)
@@ -32,6 +32,15 @@ def majorMinorVersion(version: String): String = {
   StringUtils.ordinalIndexOf(version, ".", 2) match {
     case StringUtils.INDEX_NOT_FOUND => version
     case i => version.take(i)
+  }
+}
+
+// For shim directory resolution: Spark 3.x uses major.minor (3.4, 3.5),
+// Spark 4+ uses major only (4) since one shim covers all 4.x
+def shimVersion(version: String): String = {
+  majorVersion(version) match {
+    case "3" => majorMinorVersion(version)
+    case _ => majorVersion(version)
   }
 }
 
@@ -117,8 +126,15 @@ lazy val commonSettings = Seq(
       // Be permissive for other files
       MergeStrategy.first
   },
-  scalacOptions += "-target:jvm-1.8",
-  resolvers += "Apache Snapshots" at "https://repository.apache.org/snapshots/"
+  scalacOptions ++= {
+    if (majorVersion(sparkVersion.value) == "3") Seq("-target:jvm-1.8")
+    else Seq("-release", "17")
+  },
+  resolvers ++= {
+    if (sparkVersion.value.contains("SNAPSHOT"))
+      Seq("Apache Snapshots" at "https://repository.apache.org/snapshots/")
+    else Seq.empty
+  },
 )
 
 lazy val functionsYml = settingKey[File]("functionsYml")
@@ -165,7 +181,7 @@ ThisBuild / testCoreDependencies := Seq(
   majorVersion((ThisBuild / sparkVersion).value) match {
     case "3" => "org.scalatest" %% "scalatest" % "3.2.18" % "test"
     case "4" => "org.scalatest" %% "scalatest" % "3.2.17" % "test"
-    case _ => throw new IllegalArgumentException("Only Spark 3 is supported")
+    case _ => throw new IllegalArgumentException("Only Spark 3 and 4 are supported")
   },
   "org.mockito" % "mockito-all" % "1.10.19" % "test",
   "org.apache.spark" %% "spark-catalyst" % sparkVersion.value % "test" classifier "tests",
@@ -214,7 +230,7 @@ lazy val core = (project in file("core"))
     Compile / packageBin / packageOptions += Package.ManifestAttributes(
       "Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
     libraryDependencies ++= coreDependencies.value :+ scalaLoggingDependency.value,
-    Compile / unmanagedSourceDirectories += baseDirectory.value / "src" / "main" / "shim" / majorMinorVersion(
+    Compile / unmanagedSourceDirectories += baseDirectory.value / "src" / "main" / "shim" / shimVersion(
       sparkVersion.value),
     Compile / unmanagedSourceDirectories += {
       val sourceDir = (Compile / sourceDirectory).value
@@ -223,7 +239,7 @@ lazy val core = (project in file("core"))
         case _ => sourceDir / "scala-2.13-"
       }
     },
-    Test / unmanagedSourceDirectories += baseDirectory.value / "src" / "test" / "shim" / majorMinorVersion(
+    Test / unmanagedSourceDirectories += baseDirectory.value / "src" / "test" / "shim" / shimVersion(
       sparkVersion.value),
     functionsTemplate := baseDirectory.value / "functions.scala.TEMPLATE",
     generatedFunctionsOutput := (Compile / scalaSource).value / "io" / "projectglow" / "functions.scala",
@@ -368,7 +384,7 @@ lazy val stagedRelease = (project in file("core/src/test"))
     commonSettings,
     Test / resourceDirectory := baseDirectory.value / "resources",
     Test / scalaSource := baseDirectory.value / "scala",
-    Test / unmanagedSourceDirectories += baseDirectory.value / "shim" / majorMinorVersion(
+    Test / unmanagedSourceDirectories += baseDirectory.value / "shim" / shimVersion(
       sparkVersion.value),
     libraryDependencies ++= testSparkDependencies.value ++ testCoreDependencies.value :+ "io.projectglow" %% s"glow-spark${majorVersion(
       sparkVersion.value)}" % stableVersion.value % "test",
