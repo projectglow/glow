@@ -154,18 +154,17 @@ jobs:
   # Dummy job so that required statuses don't need to change with Spark / scala matrix
   spark-tests-success:
     runs-on: ubuntu-latest
-    needs: spark-tests
+    needs: [spark-tests, spark-4-tests]
     steps:
       - run: echo "Spark tests passed!"
 
   spark-4-tests:
     runs-on: ubuntu-latest
-    if: contains(github.event.pull_request.title, '[SPARK4]')
     defaults:
       run:
         shell: bash -el {0}
     env:
-      SPARK_VERSION: 4.0.0-SNAPSHOT
+      SPARK_VERSION: 4.1.0
       SCALA_VERSION: 2.13.14
     steps:
       - name: Checkout
@@ -209,17 +208,14 @@ jobs:
         run: conda env update -n glow-spark4 -f python/spark-4-environment.yml
         if: steps.cache.outputs.cache-hit != 'true'
 
-      - name: Clone Spark (for PySpark source)
-        run: (cd $HOME && git clone https://github.com/apache/spark.git)
+      - name: Install PySpark
+        run: pip install pyspark==4.1.0
 
       - name: Scala tests
         run: sbt core/test exit
 
-      - name: Uninstall PySpark
-        run: pip uninstall -y pyspark
-
       - name: Python tests
-        run: EXTRA_PYTHON_PATH=$HOME/spark/python sbt python/test exit
+        run: sbt python/test exit
 
       # Temporarily disabled due to sybil/pytest compatibility issues
       # - name: Docs tests

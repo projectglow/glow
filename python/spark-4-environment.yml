@@ -9,11 +9,11 @@ dependencies:
   - jinja2=3.1.2
   - jupyterlab
   - nptyping
-  - numpy=1.23.5
+  - numpy>=1.23.5
   - opt_einsum>=3.2.0
-  - pandas=1.5.3
+  - pandas>=2.2.0
   - pip=22.3.1
-  - pyarrow=14.0.2
+  - pyarrow>=15.0.0
   - pytest=7.4.4
   - pytest-cov=4.1.0
   - pyyaml
@@ -24,10 +24,7 @@ dependencies:
   - typeguard
   - yapf=0.40.1
   - pip:
-    # Note: Spark 4 must currently be installed from source
-    # We only install pyspark to pull in all the dependencies. It should be
-    # uninstalled before testing.
-    - pyspark==3.5.1
+    - pyspark==4.1.0
     - databricks-cli==0.18 # Docs notebook source generation
     - databricks-sdk
     - setuptools==65.6.3 # Python packaging
