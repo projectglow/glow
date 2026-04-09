@@ -192,23 +192,31 @@ ThisBuild / testCoreDependencies := Seq(
 )
 
 lazy val coreDependencies = settingKey[Seq[ModuleID]]("coreDependencies")
-ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDependencies.value ++ Seq(
-  "org.seqdoop" % "hadoop-bam" % "7.10.0",
-  "org.slf4j" % "slf4j-api" % "2.0.12",
-  "org.jdbi" % "jdbi" % "2.78",
-  "com.github.broadinstitute" % "picard" % "2.27.5",
-  "org.apache.commons" % "commons-lang3" % "3.14.0",
-  // Fix versions of libraries that are depended on multiple times
-  "org.apache.hadoop" % "hadoop-client" % "3.3.6",
-  "io.netty" % "netty-all" % "4.1.96.Final",
-  "io.netty" % "netty-handler" % "4.1.96.Final",
-  "io.netty" % "netty-transport-native-epoll" % "4.1.96.Final",
-  "com.github.samtools" % "htsjdk" % "3.0.5",
-  "org.yaml" % "snakeyaml" % "2.2",
-  "com.univocity" % "univocity-parsers" % "2.9.1",
-  // Fix CVE: Upgrade Avro to 1.11.4+ to fix Arbitrary Code Execution vulnerability
-  "org.apache.avro" % "avro" % "1.11.4"
-)).map(_.exclude("com.google.code.findbugs", "jsr305"))
+ThisBuild / coreDependencies := {
+  val sparkMajor = majorVersion(sparkVersion.value)
+
+  // Dependency versions that differ between Spark 3 and 4
+  val hadoopVersion = if (sparkMajor == "3") "3.3.6" else "3.4.2"
+  val nettyVersion = if (sparkMajor == "3") "4.1.96.Final" else "4.2.7.Final"
+  val avroVersion = if (sparkMajor == "3") "1.11.4" else "1.12.0"
+
+  (providedSparkDependencies.value ++ testCoreDependencies.value ++ Seq(
+    "org.seqdoop" % "hadoop-bam" % "7.10.0",
+    "org.slf4j" % "slf4j-api" % "2.0.12",
+    "org.jdbi" % "jdbi" % "2.78",
+    "com.github.broadinstitute" % "picard" % "2.27.5",
+    "org.apache.commons" % "commons-lang3" % "3.14.0",
+    // Fix versions of libraries that are depended on multiple times
+    "org.apache.hadoop" % "hadoop-client" % hadoopVersion,
+    "io.netty" % "netty-all" % nettyVersion,
+    "io.netty" % "netty-handler" % nettyVersion,
+    "io.netty" % "netty-transport-native-epoll" % nettyVersion,
+    "com.github.samtools" % "htsjdk" % "3.0.5",
+    "org.yaml" % "snakeyaml" % "2.2",
+    "com.univocity" % "univocity-parsers" % "2.9.1",
+    "org.apache.avro" % "avro" % avroVersion
+  )).map(_.exclude("com.google.code.findbugs", "jsr305"))
+}
 
 lazy val root = (project in file(".")).aggregate(core, python, docs)
 
