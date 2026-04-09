@@ -6,10 +6,10 @@ on:
             description: "Git tag for release"
             required: true
         spark-version:
-            description: "Spark version to build against (only used to decide the artifact name)"
+            description: "Spark version (3.5.1 for Spark 3 release, 4.1.0 for Spark 4 release)"
             default: "3.5.1"
         java-version:
-            description: "Java version to use for running sbt"
+            description: "Java version (8 for Spark 3, 17 for Spark 4)"
             default: "8"
         push-python:
             description: "If true, Python artifacts will be pushed to Test PyPI"
