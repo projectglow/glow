@@ -52,7 +52,7 @@ object SQLUtils {
       schema: StructType,
       isStreaming: Boolean): DataFrame = {
 
-    sess.internalCreateDataFrame(catalystRows, schema, isStreaming)
+    SQLUtilsShim.internalCreateDataFrame(sess, catalystRows, schema, isStreaming)
   }
 
   /** Visibility shim to set the task context */
@@ -73,7 +73,7 @@ object SQLUtils {
   type ADT = AbstractDataType
 
   def getSessionExtensions(session: SparkSession): SparkSessionExtensions = {
-    session.extensions
+    SQLUtilsShim.getSessionExtensions(session)
   }
 
   // Used to create an empty RDD with 1 partition to be compatible with our partition-based functionality
