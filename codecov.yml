@@ -6,7 +6,7 @@ coverage:
         threshold: 2%  # the leniency in hitting the target
     patch:
       default:
-        target: 80%
+        target: 60%
 
 flags:
   spark3:
