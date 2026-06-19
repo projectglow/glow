@@ -146,6 +146,8 @@ jobs:
         uses: codecov/codecov-action@v4
         with:
           files: ./coverage.xml, *scoverage.xml
+          # Intentionally non-fatal: forks lack the CODECOV_TOKEN secret, so a failed
+          # upload should not fail CI. Coverage still uploads on upstream where the token exists.
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: spark3
@@ -246,6 +248,8 @@ jobs:
         uses: codecov/codecov-action@v4
         with:
           files: ./coverage.xml, *scoverage.xml
+          # Intentionally non-fatal: forks lack the CODECOV_TOKEN secret, so a failed
+          # upload should not fail CI. Coverage still uploads on upstream where the token exists.
           fail_ci_if_error: false
           token: ${{ secrets.CODECOV_TOKEN }}
           flags: spark4

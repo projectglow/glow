@@ -13,6 +13,7 @@ dependencies:
   - opt_einsum>=3.2.0
   - pandas=2.2.0
   - pip=22.3.1
+  # PySpark 4.1.0 requires pyarrow >= 15.0.0 (require_minimum_pyarrow_version); pin to that floor.
   - pyarrow=15.0.0
   - pytest=7.4.4
   - pytest-cov=4.1.0

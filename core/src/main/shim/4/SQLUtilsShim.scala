@@ -43,9 +43,20 @@ private[sql] object SQLUtilsShim {
     session.asInstanceOf[ClassicSparkSession].extensions
   }
 
+  // Supported-node contract for columnToExpr:
+  //
+  // In Spark 4, a Column wraps a `ColumnNode` rather than a Catalyst `Expression`.
+  // Glow only constructs Columns from the node types below, so those are the only
+  // ones this method translates back to Expressions:
+  //   - ExpressionColumnNode  -> the wrapped Expression (the inverse of exprToColumn)
+  //   - UnresolvedAttribute   -> catalyst UnresolvedAttribute (col("name") / df("name"))
+  //   - Literal               -> catalyst Literal (lit(value))
+  // Any other node type throws IllegalArgumentException by design: glow expression
+  // builders are expected to pass only the nodes above, so an unsupported node
+  // indicates a new call site that must be handled here explicitly rather than
+  // silently producing a wrong Expression. See SQLUtilsShimSuite for coverage of
+  // each supported node type and the failure case.
   def columnToExpr(col: Column): Expression = {
-    // In Spark 4, Column wraps a ColumnNode, not an Expression directly.
-    // Convert known ColumnNode types to their Catalyst Expression equivalents.
     col.node match {
       case ecn: ExpressionColumnNode => ecn.expression
       case ua: UnresolvedAttributeNode =>

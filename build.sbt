@@ -201,7 +201,12 @@ lazy val coreDependencies = settingKey[Seq[ModuleID]]("coreDependencies")
 ThisBuild / coreDependencies := {
   val sparkMajor = majorVersion(sparkVersion.value)
 
-  // Dependency versions that differ between Spark 3 and 4
+  // Dependency versions that differ between Spark 3 and 4. These are pinned to
+  // match exactly what each Spark line declares in its parent POM, so glow runs
+  // against the same ABI Spark itself was compiled against (avoids NoSuchMethod
+  // style runtime breaks). Verified against the Spark POMs:
+  //   - Spark 4.1.0: netty.version = 4.2.7.Final (Spark 4.0.0 used 4.1.118; 4.1 bumped to the 4.2 line)
+  //   - Spark 3.5.1: netty 4.1.96.Final
   val hadoopVersion = if (sparkMajor == "3") "3.3.6" else "3.4.2"
   val nettyVersion = if (sparkMajor == "3") "4.1.96.Final" else "4.2.7.Final"
   val avroVersion = if (sparkMajor == "3") "1.11.4" else "1.12.0"

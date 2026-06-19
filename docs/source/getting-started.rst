@@ -4,7 +4,11 @@ Getting Started
 Running Locally
 ---------------
 
-Glow requires Apache Spark 3.4 or 3.5.
+Glow requires Apache Spark 3.4, 3.5, or 4.1.
+
+- On Spark 3.x, use the Scala 2.12 artifact ``io.projectglow:glow-spark3_2.12``.
+- On Spark 4.1 (Scala 2.13, Java 17), use ``io.projectglow:glow-spark4_2.13``. Please read
+  :ref:`spark4-known-limitations` before running on Spark 4.
 
 .. tabs::
 
@@ -72,6 +76,39 @@ Glow requires Apache Spark 3.4 or 3.5.
           import io.projectglow.Glow
           val sess = Glow.register(spark)
           val df = sess.read.format("vcf").load(path)
+
+
+.. _spark4-known-limitations:
+
+Known limitations on Spark 4
+----------------------------
+
+Spark 4 enables ANSI SQL mode by default (``spark.sql.ansi.enabled=true``), whereas Spark 3
+defaulted it to ``false``. Under ANSI mode, operations such as numeric casts that overflow,
+out-of-range array indexing, and division by zero **raise an error** instead of returning
+``null``.
+
+A small number of Glow expressions currently rely on the non-ANSI (return-``null``) behavior and
+will throw under Spark 4's default configuration:
+
+- ``hardy_weinberg`` / the ``comb`` helper (combinatorial term) — casts a ``Double`` to ``Long``
+  that can overflow for large cohort or allele counts.
+- ``array_quantile`` — casts a quantile index to ``Int`` (can be ``NaN``/``Infinity``) and indexes
+  into the input array (can be out of bounds for empty arrays).
+
+Both live in ``core/src/main/scala/io/projectglow/sql/expressions/glueExpressions.scala``.
+
+Until these expressions are rewritten to be ANSI-safe (using ``try_cast`` / ``try_element_at`` /
+``try_divide`` or explicit guards — tracked in
+`projectglow/glow#808 <https://github.com/projectglow/glow/issues/808>`_), if you hit an
+``ANSI``-related error on Spark 4 you can opt back into Spark 3 semantics for the affected query
+by setting:
+
+.. code-block:: python
+
+   spark.conf.set("spark.sql.ansi.enabled", "false")
+
+All other Glow functionality has been validated on Spark 4.1 with ANSI mode at its default.
 
 
 Getting started on Databricks
