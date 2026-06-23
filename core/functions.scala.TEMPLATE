@@ -17,6 +17,7 @@
 package io.projectglow
 
 import org.apache.spark.sql.Column
+import org.apache.spark.sql.SQLUtils
 import org.apache.spark.sql.catalyst.expressions.{Expression, LambdaFunction, Literal, UnresolvedNamedLambdaVariable}
 
 import io.projectglow.sql.expressions.ExpressionHelper
@@ -32,19 +33,19 @@ import io.projectglow.sql.expressions.ExpressionHelper
  */
 object functions {
   private def withExpr(expr: Expression): Column = {
-    new Column(ExpressionHelper.wrapAggregate(ExpressionHelper.rewrite(expr)))
+    SQLUtils.exprToColumn(ExpressionHelper.wrapAggregate(ExpressionHelper.rewrite(expr)))
   }
 
   private def createLambda(f: Column => Column) = {
     val x = UnresolvedNamedLambdaVariable(Seq("x"))
-    val function = f(new Column(x)).expr
+    val function = SQLUtils.columnToExpr(f(SQLUtils.exprToColumn(x)))
     LambdaFunction(function, Seq(x))
   }
 
   private def createLambda(f: (Column, Column) => Column) = {
     val x = UnresolvedNamedLambdaVariable(Seq("x"))
     val y = UnresolvedNamedLambdaVariable(Seq("y"))
-    val function = f(new Column(x), new Column(y)).expr
+    val function = SQLUtils.columnToExpr(f(SQLUtils.exprToColumn(x), SQLUtils.exprToColumn(y)))
     LambdaFunction(function, Seq(x, y))
   }
   {% for group_name, group in groups.items() %}

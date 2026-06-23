@@ -9,10 +9,10 @@ import sbt.nio.Keys._
 
 // Scala version used by DBR 13.3 LTS and 14.0
 lazy val scala212 = "2.12.19"
-lazy val scala213 = "2.13.14"
+lazy val scala213 = "2.13.15"
 
 lazy val spark3 = "3.5.1"
-lazy val spark4 = "4.0.0-SNAPSHOT"
+lazy val spark4 = "4.1.0"
 
 lazy val sparkVersion = settingKey[String]("sparkVersion")
 ThisBuild / sparkVersion := sys.env.getOrElse("SPARK_VERSION", spark3)
@@ -32,6 +32,15 @@ def majorMinorVersion(version: String): String = {
   StringUtils.ordinalIndexOf(version, ".", 2) match {
     case StringUtils.INDEX_NOT_FOUND => version
     case i => version.take(i)
+  }
+}
+
+// For shim directory resolution: Spark 3.x uses major.minor (3.4, 3.5),
+// Spark 4+ uses major only (4) since one shim covers all 4.x
+def shimVersion(version: String): String = {
+  majorVersion(version) match {
+    case "3" => majorMinorVersion(version)
+    case _ => majorVersion(version)
   }
 }
 
@@ -113,12 +122,25 @@ lazy val commonSettings = Seq(
   assembly / assemblyMergeStrategy := {
     case p if p.toLowerCase.contains("manifest.mf") =>
       MergeStrategy.discard
+    case p if p.toLowerCase.endsWith(".sf") || p.toLowerCase.endsWith(".dsa") || p.toLowerCase.endsWith(".rsa") =>
+      MergeStrategy.discard
+    case p if p.startsWith("com/fasterxml/jackson/") =>
+      MergeStrategy.discard
+    case "META-INF/services/java.net.spi.InetAddressResolverProvider" =>
+      MergeStrategy.discard
     case _ =>
       // Be permissive for other files
       MergeStrategy.first
   },
-  scalacOptions += "-target:jvm-1.8",
-  resolvers += "Apache Snapshots" at "https://repository.apache.org/snapshots/"
+  scalacOptions ++= {
+    if (majorVersion(sparkVersion.value) == "3") Seq("-target:jvm-1.8")
+    else Seq("-release", "17")
+  },
+  resolvers ++= {
+    if (sparkVersion.value.contains("SNAPSHOT"))
+      Seq("Apache Snapshots" at "https://repository.apache.org/snapshots/")
+    else Seq.empty
+  },
 )
 
 lazy val functionsYml = settingKey[File]("functionsYml")
@@ -165,7 +187,7 @@ ThisBuild / testCoreDependencies := Seq(
   majorVersion((ThisBuild / sparkVersion).value) match {
     case "3" => "org.scalatest" %% "scalatest" % "3.2.18" % "test"
     case "4" => "org.scalatest" %% "scalatest" % "3.2.17" % "test"
-    case _ => throw new IllegalArgumentException("Only Spark 3 is supported")
+    case _ => throw new IllegalArgumentException("Only Spark 3 and 4 are supported")
   },
   "org.mockito" % "mockito-all" % "1.10.19" % "test",
   "org.apache.spark" %% "spark-catalyst" % sparkVersion.value % "test" classifier "tests",
@@ -176,23 +198,36 @@ ThisBuild / testCoreDependencies := Seq(
 )
 
 lazy val coreDependencies = settingKey[Seq[ModuleID]]("coreDependencies")
-ThisBuild / coreDependencies := (providedSparkDependencies.value ++ testCoreDependencies.value ++ Seq(
-  "org.seqdoop" % "hadoop-bam" % "7.10.0",
-  "org.slf4j" % "slf4j-api" % "2.0.12",
-  "org.jdbi" % "jdbi" % "2.78",
-  "com.github.broadinstitute" % "picard" % "2.27.5",
-  "org.apache.commons" % "commons-lang3" % "3.14.0",
-  // Fix versions of libraries that are depended on multiple times
-  "org.apache.hadoop" % "hadoop-client" % "3.3.6",
-  "io.netty" % "netty-all" % "4.1.96.Final",
-  "io.netty" % "netty-handler" % "4.1.96.Final",
-  "io.netty" % "netty-transport-native-epoll" % "4.1.96.Final",
-  "com.github.samtools" % "htsjdk" % "3.0.5",
-  "org.yaml" % "snakeyaml" % "2.2",
-  "com.univocity" % "univocity-parsers" % "2.9.1",
-  // Fix CVE: Upgrade Avro to 1.11.4+ to fix Arbitrary Code Execution vulnerability
-  "org.apache.avro" % "avro" % "1.11.4"
-)).map(_.exclude("com.google.code.findbugs", "jsr305"))
+ThisBuild / coreDependencies := {
+  val sparkMajor = majorVersion(sparkVersion.value)
+
+  // Dependency versions that differ between Spark 3 and 4. These are pinned to
+  // match exactly what each Spark line declares in its parent POM, so glow runs
+  // against the same ABI Spark itself was compiled against (avoids NoSuchMethod
+  // style runtime breaks). Verified against the Spark POMs:
+  //   - Spark 4.1.0: netty.version = 4.2.7.Final (Spark 4.0.0 used 4.1.118; 4.1 bumped to the 4.2 line)
+  //   - Spark 3.5.1: netty 4.1.96.Final
+  val hadoopVersion = if (sparkMajor == "3") "3.3.6" else "3.4.2"
+  val nettyVersion = if (sparkMajor == "3") "4.1.96.Final" else "4.2.7.Final"
+  val avroVersion = if (sparkMajor == "3") "1.11.4" else "1.12.0"
+
+  (providedSparkDependencies.value ++ testCoreDependencies.value ++ Seq(
+    "org.seqdoop" % "hadoop-bam" % "7.10.0",
+    "org.slf4j" % "slf4j-api" % "2.0.12",
+    "org.jdbi" % "jdbi" % "2.78",
+    "com.github.broadinstitute" % "picard" % "2.27.5",
+    "org.apache.commons" % "commons-lang3" % "3.14.0",
+    // Fix versions of libraries that are depended on multiple times
+    "org.apache.hadoop" % "hadoop-client" % hadoopVersion,
+    "io.netty" % "netty-all" % nettyVersion,
+    "io.netty" % "netty-handler" % nettyVersion,
+    "io.netty" % "netty-transport-native-epoll" % nettyVersion,
+    "com.github.samtools" % "htsjdk" % "3.0.5",
+    "org.yaml" % "snakeyaml" % "2.2",
+    "com.univocity" % "univocity-parsers" % "2.9.1",
+    "org.apache.avro" % "avro" % avroVersion
+  )).map(_.exclude("com.google.code.findbugs", "jsr305"))
+}
 
 lazy val root = (project in file(".")).aggregate(core, python, docs)
 
@@ -214,7 +249,7 @@ lazy val core = (project in file("core"))
     Compile / packageBin / packageOptions += Package.ManifestAttributes(
       "Git-Release-Hash" -> currentGitHash(baseDirectory.value)),
     libraryDependencies ++= coreDependencies.value :+ scalaLoggingDependency.value,
-    Compile / unmanagedSourceDirectories += baseDirectory.value / "src" / "main" / "shim" / majorMinorVersion(
+    Compile / unmanagedSourceDirectories += baseDirectory.value / "src" / "main" / "shim" / shimVersion(
       sparkVersion.value),
     Compile / unmanagedSourceDirectories += {
       val sourceDir = (Compile / sourceDirectory).value
@@ -223,7 +258,7 @@ lazy val core = (project in file("core"))
         case _ => sourceDir / "scala-2.13-"
       }
     },
-    Test / unmanagedSourceDirectories += baseDirectory.value / "src" / "test" / "shim" / majorMinorVersion(
+    Test / unmanagedSourceDirectories += baseDirectory.value / "src" / "test" / "shim" / shimVersion(
       sparkVersion.value),
     functionsTemplate := baseDirectory.value / "functions.scala.TEMPLATE",
     generatedFunctionsOutput := (Compile / scalaSource).value / "io" / "projectglow" / "functions.scala",
@@ -368,7 +403,7 @@ lazy val stagedRelease = (project in file("core/src/test"))
     commonSettings,
     Test / resourceDirectory := baseDirectory.value / "resources",
     Test / scalaSource := baseDirectory.value / "scala",
-    Test / unmanagedSourceDirectories += baseDirectory.value / "shim" / majorMinorVersion(
+    Test / unmanagedSourceDirectories += baseDirectory.value / "shim" / shimVersion(
       sparkVersion.value),
     libraryDependencies ++= testSparkDependencies.value ++ testCoreDependencies.value :+ "io.projectglow" %% s"glow-spark${majorVersion(
       sparkVersion.value)}" % stableVersion.value % "test",

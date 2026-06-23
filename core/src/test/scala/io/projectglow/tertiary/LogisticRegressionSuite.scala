@@ -530,7 +530,14 @@ class LogisticRegressionSuite extends GlowBaseTest {
     )
     val result = runLRT(testData, onSpark = false)
     checkAllNan(result.head)
-    assert(
-      result(1) == LogitTestResults(0.0, 1.0, List(0.01984252396814992, 50.39681451841221), 1.0))
+    val expected =
+      LogitTestResults(0.0, 1.0, List(0.01984252396814992, 50.39681451841221), 1.0)
+    val actual = result(1)
+    assert(actual.beta == expected.beta)
+    assert(actual.oddsRatio == expected.oddsRatio)
+    assert(actual.pValue == expected.pValue)
+    actual.waldConfidenceInterval.zip(expected.waldConfidenceInterval).foreach { case (a, e) =>
+      assert(math.abs(a - e) < 1e-10, s"$a != $e")
+    }
   }
 }

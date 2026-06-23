@@ -66,11 +66,11 @@ def fmt_scala_signature(value):
 
 def fmt_scala_call(value):
     if value.get('is_var_args') and not 'type' in value:
-        return f'{value["name"]}.map(_.expr)'
+        return f'{value["name"]}.map(SQLUtils.columnToExpr(_))'
     if value.get('is_var_args'):
         return f'{value["name"]}.map(Literal(_))'
     if not 'type' in value:  # no type means column
-        return value['name'] + '.expr'
+        return f'SQLUtils.columnToExpr({value["name"]})'
     if value['type'] in ['lambda1', 'lambda2']:
         return f'createLambda({value["name"]})'
     return f"Literal({value['name']})"

@@ -20,9 +20,17 @@ import org.apache.spark.TaskContext
 import org.apache.spark.ml.linalg.{MatrixUDT, VectorUDT}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.catalyst.expressions.Expression
 import org.apache.spark.sql.types._
 
 object SQLUtils {
+
+  /** Extract the Catalyst Expression from a Column. Needed because Column.expr is private[sql] in Spark 4. */
+  def columnToExpr(col: Column): Expression = SQLUtilsShim.columnToExpr(col)
+
+  /** Create a Column from a Catalyst Expression. Needed because Column(Expression) constructor was removed in Spark 4. */
+  def exprToColumn(expr: Expression): Column = SQLUtilsShim.exprToColumn(expr)
+
   def verifyHasFields(schema: StructType, fields: Seq[StructField]): Unit = {
     fields.foreach { field =>
       val candidateFields = schema.fields.filter(_.name == field.name)
@@ -52,7 +60,7 @@ object SQLUtils {
       schema: StructType,
       isStreaming: Boolean): DataFrame = {
 
-    sess.internalCreateDataFrame(catalystRows, schema, isStreaming)
+    SQLUtilsShim.internalCreateDataFrame(sess, catalystRows, schema, isStreaming)
   }
 
   /** Visibility shim to set the task context */
@@ -73,7 +81,7 @@ object SQLUtils {
   type ADT = AbstractDataType
 
   def getSessionExtensions(session: SparkSession): SparkSessionExtensions = {
-    session.extensions
+    SQLUtilsShim.getSessionExtensions(session)
   }
 
   // Used to create an empty RDD with 1 partition to be compatible with our partition-based functionality

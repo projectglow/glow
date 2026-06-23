@@ -290,7 +290,7 @@ class LogisticRidgeRegression:
             self.model_df = loco_model_df
             loco_y_hat_df = self.transform(response)
             loco_y_hat_df['contigName'] = chromosome
-            y_hat_df = y_hat_df.append(loco_y_hat_df)
+            y_hat_df = pd.concat([y_hat_df, loco_y_hat_df])
             self.model_df = orig_model_df
 
         self.y_hat_df = y_hat_df.set_index('contigName', append=True)

@@ -14,7 +14,11 @@
 
 from pyspark import SparkContext
 from pyspark.sql import DataFrame
-from pyspark.sql.column import Column, _to_java_column
+from pyspark.sql.column import Column
+try:
+    from pyspark.sql.column import _to_java_column
+except ImportError:
+    from pyspark.sql.classic.column import _to_java_column
 from pyspark.sql.functions import lit
 from typeguard import typechecked
 

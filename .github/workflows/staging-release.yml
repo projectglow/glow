@@ -6,13 +6,13 @@ on:
         description: "Git tag for release"
         required: true
       spark-version:
-        description: "Spark version to build against"
+        description: "Spark version to build against. Use 3.5.1 for Spark 3 release, 4.1.0 for Spark 4 release."
         default: "3.5.1"
       scala-version:
-        description: "Scala version to use when building Glow"
+        description: "Scala version. Use 2.12.19 for Spark 3, 2.13.14 for Spark 4."
         default: "2.12.19"
       java-version:
-        description: "Java version to use when building Glow"
+        description: "Java version. Use 8 for Spark 3, 17 for Spark 4."
         default: "8"
       push-python:
         description: "If true, Python artifacts will be pushed to Test PyPI"

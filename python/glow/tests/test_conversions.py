@@ -15,6 +15,7 @@
 from glow.conversions import OneDimensionalDoubleNumpyArrayConverter, TwoDimensionalDoubleNumpyArrayConverter
 from importlib import reload
 import numpy as np
+import os
 from pyspark.errors import PySparkException
 from pyspark.ml.linalg import DenseMatrix
 from pyspark.sql.functions import lit
@@ -42,6 +43,8 @@ def test_convert_array(spark):
     assert (output_rows[1].array == expected_array)
 
 
+@pytest.mark.skipif(int(os.environ.get('SPARK_VERSION', '3.5.1').split('.')[0]) >= 4,
+                    reason='Spark 4+ silently accepts 3D arrays')
 def test_convert_checks_dimension(spark):
     # No support for 3-dimensional arrays
     ndarray = np.array([[[1.]]])
@@ -49,6 +52,8 @@ def test_convert_checks_dimension(spark):
         lit(ndarray)
 
 
+@pytest.mark.skipif(int(os.environ.get('SPARK_VERSION', '3.5.1').split('.')[0]) >= 4,
+                    reason='Spark 4+ silently accepts integer matrices')
 def test_convert_matrix_checks_type(spark):
     ndarray = np.array([[1, 2], [3, 4]])
     with pytest.raises(PySparkException):

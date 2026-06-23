@@ -210,8 +210,8 @@ class VariantSplitterSuite extends GlowBaseTest with GlowLogging {
         // Only the specified INFO_AF field should be split
         assert(
           rowExp.get(rowExp.fieldIndex("INFO_AF")) == rowSplit.get(rowSplit.fieldIndex("INFO_AF")))
-        val splitAC = rowExp.getAs[Seq[Int]](rowExp.fieldIndex("INFO_AC"))
-        val unsplitAC = rowSplit.getAs[Seq[Int]](rowSplit.fieldIndex("INFO_AC"))
+        val splitAC = rowExp.getSeq[Int](rowExp.fieldIndex("INFO_AC"))
+        val unsplitAC = rowSplit.getSeq[Int](rowSplit.fieldIndex("INFO_AC"))
         assert(splitAC != unsplitAC || unsplitAC.size == 1)
       }
 

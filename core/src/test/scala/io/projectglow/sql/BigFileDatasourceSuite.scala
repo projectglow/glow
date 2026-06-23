@@ -98,7 +98,7 @@ class DummyBigFileDatasource extends BigFileDatasource {
   override def serializeDataFrame(
       options: Map[String, String],
       data: DataFrame): RDD[Array[Byte]] = {
-    data.sqlContext.sparkContext.parallelize(Seq(Array(0, 1, 2).map(_.toByte)))
+    data.sparkSession.sparkContext.parallelize(Seq(Array(0, 1, 2).map(_.toByte)))
   }
 }
 

@@ -4,3 +4,12 @@ coverage:
       default:
         target: 93%    # the required coverage value
         threshold: 2%  # the leniency in hitting the target
+    patch:
+      default:
+        target: 60%
+
+flags:
+  spark3:
+    carryforward: true
+  spark4:
+    carryforward: true

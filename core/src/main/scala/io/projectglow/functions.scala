@@ -17,6 +17,7 @@
 package io.projectglow
 
 import org.apache.spark.sql.Column
+import org.apache.spark.sql.SQLUtils
 import org.apache.spark.sql.catalyst.expressions.{Expression, LambdaFunction, Literal, UnresolvedNamedLambdaVariable}
 
 import io.projectglow.sql.expressions.ExpressionHelper
@@ -33,19 +34,19 @@ import io.projectglow.sql.expressions.ExpressionHelper
  */
 object functions {
   private def withExpr(expr: Expression): Column = {
-    new Column(ExpressionHelper.wrapAggregate(ExpressionHelper.rewrite(expr)))
+    SQLUtils.exprToColumn(ExpressionHelper.wrapAggregate(ExpressionHelper.rewrite(expr)))
   }
 
   private def createLambda(f: Column => Column) = {
     val x = UnresolvedNamedLambdaVariable(Seq("x"))
-    val function = f(new Column(x)).expr
+    val function = SQLUtils.columnToExpr(f(SQLUtils.exprToColumn(x)))
     LambdaFunction(function, Seq(x))
   }
 
   private def createLambda(f: (Column, Column) => Column) = {
     val x = UnresolvedNamedLambdaVariable(Seq("x"))
     val y = UnresolvedNamedLambdaVariable(Seq("y"))
-    val function = f(new Column(x), new Column(y)).expr
+    val function = SQLUtils.columnToExpr(f(SQLUtils.exprToColumn(x), SQLUtils.exprToColumn(y)))
     LambdaFunction(function, Seq(x, y))
   }
 
@@ -59,7 +60,7 @@ object functions {
    * @return A struct consisting of the input struct and the added fields
    */
   def add_struct_fields(struct: Column, fields: Column*): Column = withExpr {
-    new io.projectglow.sql.expressions.AddStructFields(struct.expr, fields.map(_.expr))
+    new io.projectglow.sql.expressions.AddStructFields(SQLUtils.columnToExpr(struct), fields.map(SQLUtils.columnToExpr(_)))
   }
 
   /**
@@ -71,7 +72,7 @@ object functions {
    * @return A struct containing double ``mean``, ``stdDev``, ``min``, and ``max`` fields
    */
   def array_summary_stats(arr: Column): Column = withExpr {
-    new io.projectglow.sql.expressions.ArrayStatsSummary(arr.expr)
+    new io.projectglow.sql.expressions.ArrayStatsSummary(SQLUtils.columnToExpr(arr))
   }
 
   /**
@@ -83,7 +84,7 @@ object functions {
    * @return A ``spark.ml`` ``DenseVector``
    */
   def array_to_dense_vector(arr: Column): Column = withExpr {
-    new io.projectglow.sql.expressions.ArrayToDenseVector(arr.expr)
+    new io.projectglow.sql.expressions.ArrayToDenseVector(SQLUtils.columnToExpr(arr))
   }
 
   /**
@@ -95,7 +96,7 @@ object functions {
    * @return A ``spark.ml`` ``SparseVector``
    */
   def array_to_sparse_vector(arr: Column): Column = withExpr {
-    new io.projectglow.sql.expressions.ArrayToSparseVector(arr.expr)
+    new io.projectglow.sql.expressions.ArrayToSparseVector(SQLUtils.columnToExpr(arr))
   }
 
   /**
@@ -107,7 +108,7 @@ object functions {
    * @return Columns corresponding to fields of the input struct
    */
   def expand_struct(struct: Column): Column = withExpr {
-    new io.projectglow.sql.expressions.ExpandStruct(struct.expr)
+    new io.projectglow.sql.expressions.ExpandStruct(SQLUtils.columnToExpr(struct))
   }
 
   /**
@@ -119,7 +120,7 @@ object functions {
    * @return An array column in which each row is a row of the input matrix
    */
   def explode_matrix(matrix: Column): Column = withExpr {
-    new io.projectglow.sql.expressions.ExplodeMatrix(matrix.expr)
+    new io.projectglow.sql.expressions.ExplodeMatrix(SQLUtils.columnToExpr(matrix))
   }
 
   /**
@@ -132,7 +133,7 @@ object functions {
    * @return A struct containing only the indicated fields
    */
   def subset_struct(struct: Column, fields: String*): Column = withExpr {
-    new io.projectglow.sql.expressions.SubsetStruct(struct.expr, fields.map(Literal(_)))
+    new io.projectglow.sql.expressions.SubsetStruct(SQLUtils.columnToExpr(struct), fields.map(Literal(_)))
   }
 
   /**
@@ -144,7 +145,7 @@ object functions {
    * @return An array of doubles
    */
   def vector_to_array(vector: Column): Column = withExpr {
-    new io.projectglow.sql.expressions.VectorToArray(vector.expr)
+    new io.projectglow.sql.expressions.VectorToArray(SQLUtils.columnToExpr(vector))
   }
 
   /**
@@ -159,11 +160,11 @@ object functions {
    * @return An array of hard calls
    */
   def hard_calls(probabilities: Column, numAlts: Column, phased: Column, threshold: Double): Column = withExpr {
-    new io.projectglow.sql.expressions.HardCalls(probabilities.expr, numAlts.expr, phased.expr, Literal(threshold))
+    new io.projectglow.sql.expressions.HardCalls(SQLUtils.columnToExpr(probabilities), SQLUtils.columnToExpr(numAlts), SQLUtils.columnToExpr(phased), Literal(threshold))
   }
 
   def hard_calls(probabilities: Column, numAlts: Column, phased: Column): Column = withExpr {
-    new io.projectglow.sql.expressions.HardCalls(probabilities.expr, numAlts.expr, phased.expr)
+    new io.projectglow.sql.expressions.HardCalls(SQLUtils.columnToExpr(probabilities), SQLUtils.columnToExpr(numAlts), SQLUtils.columnToExpr(phased))
   }
 
   /**
@@ -179,11 +180,11 @@ object functions {
    * @return A struct containing ``contigName``, ``start``, and ``end`` fields after liftover
    */
   def lift_over_coordinates(contigName: Column, start: Column, end: Column, chainFile: String, minMatchRatio: Double): Column = withExpr {
-    new io.projectglow.sql.expressions.LiftOverCoordinatesExpr(contigName.expr, start.expr, end.expr, Literal(chainFile), Literal(minMatchRatio))
+    new io.projectglow.sql.expressions.LiftOverCoordinatesExpr(SQLUtils.columnToExpr(contigName), SQLUtils.columnToExpr(start), SQLUtils.columnToExpr(end), Literal(chainFile), Literal(minMatchRatio))
   }
 
   def lift_over_coordinates(contigName: Column, start: Column, end: Column, chainFile: String): Column = withExpr {
-    new io.projectglow.sql.expressions.LiftOverCoordinatesExpr(contigName.expr, start.expr, end.expr, Literal(chainFile))
+    new io.projectglow.sql.expressions.LiftOverCoordinatesExpr(SQLUtils.columnToExpr(contigName), SQLUtils.columnToExpr(start), SQLUtils.columnToExpr(end), Literal(chainFile))
   }
 
   /**
@@ -211,7 +212,7 @@ object functions {
    * @return A struct as explained above
    */
   def normalize_variant(contigName: Column, start: Column, end: Column, refAllele: Column, altAlleles: Column, refGenomePathString: String): Column = withExpr {
-    new io.projectglow.sql.expressions.NormalizeVariantExpr(contigName.expr, start.expr, end.expr, refAllele.expr, altAlleles.expr, Literal(refGenomePathString))
+    new io.projectglow.sql.expressions.NormalizeVariantExpr(SQLUtils.columnToExpr(contigName), SQLUtils.columnToExpr(start), SQLUtils.columnToExpr(end), SQLUtils.columnToExpr(refAllele), SQLUtils.columnToExpr(altAlleles), Literal(refGenomePathString))
   }
 
   /**
@@ -224,11 +225,11 @@ object functions {
    * @return A numeric array with substituted missing values
    */
   def mean_substitute(array: Column, missingValue: Column): Column = withExpr {
-    new io.projectglow.sql.expressions.MeanSubstitute(array.expr, missingValue.expr)
+    new io.projectglow.sql.expressions.MeanSubstitute(SQLUtils.columnToExpr(array), SQLUtils.columnToExpr(missingValue))
   }
 
   def mean_substitute(array: Column): Column = withExpr {
-    new io.projectglow.sql.expressions.MeanSubstitute(array.expr)
+    new io.projectglow.sql.expressions.MeanSubstitute(SQLUtils.columnToExpr(array))
   }
 
   /**
@@ -240,7 +241,7 @@ object functions {
    * @return A struct containing ``callRate``, ``nCalled``, ``nUncalled``, ``nHet``, ``nHomozygous``, ``nNonRef``, ``nAllelesCalled``, ``alleleCounts``, ``alleleFrequencies`` fields. See :ref:`variant-qc`.
    */
   def call_summary_stats(genotypes: Column): Column = withExpr {
-    new io.projectglow.sql.expressions.CallStats(genotypes.expr)
+    new io.projectglow.sql.expressions.CallStats(SQLUtils.columnToExpr(genotypes))
   }
 
   /**
@@ -252,7 +253,7 @@ object functions {
    * @return A struct containing ``mean``, ``stdDev``, ``min``, and ``max`` of genotype depths
    */
   def dp_summary_stats(genotypes: Column): Column = withExpr {
-    new io.projectglow.sql.expressions.DpSummaryStats(genotypes.expr)
+    new io.projectglow.sql.expressions.DpSummaryStats(SQLUtils.columnToExpr(genotypes))
   }
 
   /**
@@ -264,7 +265,7 @@ object functions {
    * @return A struct containing two fields, ``hetFreqHwe`` (the expected heterozygous frequency according to Hardy-Weinberg equilibrium) and ``pValueHwe`` (the associated p-value)
    */
   def hardy_weinberg(genotypes: Column): Column = withExpr {
-    new io.projectglow.sql.expressions.HardyWeinberg(genotypes.expr)
+    new io.projectglow.sql.expressions.HardyWeinberg(SQLUtils.columnToExpr(genotypes))
   }
 
   /**
@@ -276,7 +277,7 @@ object functions {
    * @return A struct containing ``mean``, ``stdDev``, ``min``, and ``max`` of genotype qualities
    */
   def gq_summary_stats(genotypes: Column): Column = withExpr {
-    new io.projectglow.sql.expressions.GqSummaryStats(genotypes.expr)
+    new io.projectglow.sql.expressions.GqSummaryStats(SQLUtils.columnToExpr(genotypes))
   }
 
   /**
@@ -290,7 +291,7 @@ object functions {
    * @return A struct containing ``sampleId``, ``callRate``, ``nCalled``, ``nUncalled``, ``nHomRef``, ``nHet``, ``nHomVar``, ``nSnp``, ``nInsertion``, ``nDeletion``, ``nTransition``, ``nTransversion``, ``nSpanningDeletion``, ``rTiTv``, ``rInsertionDeletion``, ``rHetHomVar`` fields. See :ref:`sample-qc`.
    */
   def sample_call_summary_stats(genotypes: Column, refAllele: Column, alternateAlleles: Column): Column = withExpr {
-    new io.projectglow.sql.expressions.CallSummaryStats(genotypes.expr, refAllele.expr, alternateAlleles.expr)
+    new io.projectglow.sql.expressions.CallSummaryStats(SQLUtils.columnToExpr(genotypes), SQLUtils.columnToExpr(refAllele), SQLUtils.columnToExpr(alternateAlleles))
   }
 
   /**
@@ -302,7 +303,7 @@ object functions {
    * @return An array of structs where each struct contains ``mean``, ``stDev``, ``min``, and ``max`` of the genotype depths for a sample. If ``sampleId`` is present in a genotype, it will be propagated to the resulting struct as an extra field.
    */
   def sample_dp_summary_stats(genotypes: Column): Column = withExpr {
-    new io.projectglow.sql.expressions.SampleDpSummaryStatistics(genotypes.expr)
+    new io.projectglow.sql.expressions.SampleDpSummaryStatistics(SQLUtils.columnToExpr(genotypes))
   }
 
   /**
@@ -314,7 +315,7 @@ object functions {
    * @return An array of structs where each struct contains ``mean``, ``stDev``, ``min``, and ``max`` of the genotype qualities for a sample. If ``sampleId`` is present in a genotype, it will be propagated to the resulting struct as an extra field.
    */
   def sample_gq_summary_stats(genotypes: Column): Column = withExpr {
-    new io.projectglow.sql.expressions.SampleGqSummaryStatistics(genotypes.expr)
+    new io.projectglow.sql.expressions.SampleGqSummaryStatistics(SQLUtils.columnToExpr(genotypes))
   }
 
   /**
@@ -328,11 +329,11 @@ object functions {
    * @return 
    */
   def array_quantile(arr: Column, quantile: Double, is_sorted: Column): Column = withExpr {
-    new io.projectglow.sql.expressions.ArrayQuantile(arr.expr, Literal(quantile), is_sorted.expr)
+    new io.projectglow.sql.expressions.ArrayQuantile(SQLUtils.columnToExpr(arr), Literal(quantile), SQLUtils.columnToExpr(is_sorted))
   }
 
   def array_quantile(arr: Column, quantile: Double): Column = withExpr {
-    new io.projectglow.sql.expressions.ArrayQuantile(arr.expr, Literal(quantile))
+    new io.projectglow.sql.expressions.ArrayQuantile(SQLUtils.columnToExpr(arr), Literal(quantile))
   }
 
   /**
@@ -346,7 +347,7 @@ object functions {
    * @return A struct containing ``beta``, ``standardError``, and ``pValue`` fields. See :ref:`linear-regression`.
    */
   def linear_regression_gwas(genotypes: Column, phenotypes: Column, covariates: Column): Column = withExpr {
-    new io.projectglow.sql.expressions.LinearRegressionExpr(genotypes.expr, phenotypes.expr, covariates.expr)
+    new io.projectglow.sql.expressions.LinearRegressionExpr(SQLUtils.columnToExpr(genotypes), SQLUtils.columnToExpr(phenotypes), SQLUtils.columnToExpr(covariates))
   }
 
   /**
@@ -362,11 +363,11 @@ object functions {
    * @return A struct containing ``beta``, ``oddsRatio``, ``waldConfidenceInterval``, and ``pValue`` fields. See :ref:`logistic-regression`.
    */
   def logistic_regression_gwas(genotypes: Column, phenotypes: Column, covariates: Column, test: String, offset: Column): Column = withExpr {
-    new io.projectglow.sql.expressions.LogisticRegressionExpr(genotypes.expr, phenotypes.expr, covariates.expr, Literal(test), offset.expr)
+    new io.projectglow.sql.expressions.LogisticRegressionExpr(SQLUtils.columnToExpr(genotypes), SQLUtils.columnToExpr(phenotypes), SQLUtils.columnToExpr(covariates), Literal(test), SQLUtils.columnToExpr(offset))
   }
 
   def logistic_regression_gwas(genotypes: Column, phenotypes: Column, covariates: Column, test: String): Column = withExpr {
-    new io.projectglow.sql.expressions.LogisticRegressionExpr(genotypes.expr, phenotypes.expr, covariates.expr, Literal(test))
+    new io.projectglow.sql.expressions.LogisticRegressionExpr(SQLUtils.columnToExpr(genotypes), SQLUtils.columnToExpr(phenotypes), SQLUtils.columnToExpr(covariates), Literal(test))
   }
 
   /**
@@ -378,6 +379,6 @@ object functions {
    * @return An array of integers containing the number of alternate alleles in each call array
    */
   def genotype_states(genotypes: Column): Column = withExpr {
-    new io.projectglow.sql.expressions.GenotypeStates(genotypes.expr)
+    new io.projectglow.sql.expressions.GenotypeStates(SQLUtils.columnToExpr(genotypes))
   }
 }

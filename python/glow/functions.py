@@ -17,7 +17,11 @@
 # Note that this file is generated from the definitions in functions.yml.
 
 from pyspark import SparkContext
-from pyspark.sql.column import Column, _to_java_column, _to_seq
+from pyspark.sql.column import Column
+try:
+    from pyspark.sql.column import _to_java_column, _to_seq
+except ImportError:
+    from pyspark.sql.classic.column import _to_java_column, _to_seq
 from typeguard import typechecked
 from typing import Union
 

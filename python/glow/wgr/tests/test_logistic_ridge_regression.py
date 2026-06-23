@@ -71,8 +71,8 @@ def test_map_irls_eqn(spark):
         f'sample_block = "{test_sample_block}" AND label = "{test_label}" AND alpha_name = "{test_alpha}"'
     ).toPandas()
     xtgx_glow = np.row_stack(outdf['xtgx'])
-    xty_glow = outdf['xty'].ravel()
-    beta_glow = outdf['beta'].ravel()
+    xty_glow = outdf['xty'].to_numpy()
+    beta_glow = outdf['beta'].to_numpy()
 
     assert (np.allclose(np.array(test_values['xtgx']), xtgx_glow) and
             np.allclose(np.array(test_values['xty']), xty_glow) and
@@ -108,8 +108,8 @@ def test_reduce_irls_eqn(spark):
         .toPandas()
 
     xtgx_glow = np.row_stack(outdf['xtgx'])
-    xty_glow = outdf['xty'].ravel()
-    beta_glow = outdf['beta'].ravel()
+    xty_glow = outdf['xty'].to_numpy()
+    beta_glow = outdf['beta'].to_numpy()
 
     assert (np.allclose(np.array(test_values['xtgx']), xtgx_glow) and
             np.allclose(np.array(test_values['xty']), xty_glow) and

@@ -13,7 +13,7 @@
 # limitations under the License.
 
 import setuptools
-import imp
+import importlib.util
 from pathlib import Path
 
 
@@ -21,7 +21,10 @@ def relative_file(path):
     return (Path(__file__).parent / path).as_posix()
 
 
-version = imp.load_source('version', relative_file('version.py')).VERSION
+spec = importlib.util.spec_from_file_location('version', relative_file('version.py'))
+version_module = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(version_module)
+version = version_module.VERSION
 
 setuptools.setup(name='glow.py',
                  version=version,

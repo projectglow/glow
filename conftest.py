@@ -32,9 +32,9 @@ SPARK3_PLUS_FILES = [
     'docs/source/tertiary/regression-tests.rst'
 ]
 
-def pytest_ignore_collect(path):
+def pytest_ignore_collect(collection_path):
     major_version = SPARK_VERSION.split('.')[0]
-    if int(major_version) < 3 and any([str(path).endswith(p) for p in SPARK3_PLUS_FILES]):
+    if int(major_version) < 3 and any([str(collection_path).endswith(p) for p in SPARK3_PLUS_FILES]):
         return True
 
 
