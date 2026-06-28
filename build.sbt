@@ -122,7 +122,10 @@ lazy val commonSettings = Seq(
   assembly / assemblyMergeStrategy := {
     case p if p.toLowerCase.contains("manifest.mf") =>
       MergeStrategy.discard
-    case p if p.toLowerCase.endsWith(".sf") || p.toLowerCase.endsWith(".dsa") || p.toLowerCase.endsWith(".rsa") =>
+    case p
+        if p.toLowerCase.endsWith(".sf") || p.toLowerCase.endsWith(".dsa") || p
+          .toLowerCase
+          .endsWith(".rsa") =>
       MergeStrategy.discard
     case p if p.startsWith("com/fasterxml/jackson/") =>
       MergeStrategy.discard
@@ -140,7 +143,7 @@ lazy val commonSettings = Seq(
     if (sparkVersion.value.contains("SNAPSHOT"))
       Seq("Apache Snapshots" at "https://repository.apache.org/snapshots/")
     else Seq.empty
-  },
+  }
 )
 
 lazy val functionsYml = settingKey[File]("functionsYml")
@@ -223,7 +226,7 @@ ThisBuild / coreDependencies := {
     "io.netty" % "netty-handler" % nettyVersion,
     "io.netty" % "netty-transport-native-epoll" % nettyVersion,
     "com.github.samtools" % "htsjdk" % "3.0.5",
-    "org.yaml" % "snakeyaml" % "2.2",
+    "org.yaml" % "snakeyaml" % "2.6",
     "com.univocity" % "univocity-parsers" % "2.9.1",
     "org.apache.avro" % "avro" % avroVersion
   )).map(_.exclude("com.google.code.findbugs", "jsr305"))
