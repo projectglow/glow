@@ -122,7 +122,10 @@ lazy val commonSettings = Seq(
   assembly / assemblyMergeStrategy := {
     case p if p.toLowerCase.contains("manifest.mf") =>
       MergeStrategy.discard
-    case p if p.toLowerCase.endsWith(".sf") || p.toLowerCase.endsWith(".dsa") || p.toLowerCase.endsWith(".rsa") =>
+    case p
+        if p.toLowerCase.endsWith(".sf") || p.toLowerCase.endsWith(".dsa") || p
+          .toLowerCase
+          .endsWith(".rsa") =>
       MergeStrategy.discard
     case p if p.startsWith("com/fasterxml/jackson/") =>
       MergeStrategy.discard
@@ -140,7 +143,7 @@ lazy val commonSettings = Seq(
     if (sparkVersion.value.contains("SNAPSHOT"))
       Seq("Apache Snapshots" at "https://repository.apache.org/snapshots/")
     else Seq.empty
-  },
+  }
 )
 
 lazy val functionsYml = settingKey[File]("functionsYml")
@@ -209,7 +212,7 @@ ThisBuild / coreDependencies := {
   //   - Spark 3.5.1: netty 4.1.96.Final
   val hadoopVersion = if (sparkMajor == "3") "3.3.6" else "3.4.2"
   val nettyVersion = if (sparkMajor == "3") "4.1.96.Final" else "4.2.7.Final"
-  val avroVersion = if (sparkMajor == "3") "1.11.4" else "1.12.0"
+  val avroVersion = if (sparkMajor == "3") "1.11.5" else "1.12.0"
 
   (providedSparkDependencies.value ++ testCoreDependencies.value ++ Seq(
     "org.seqdoop" % "hadoop-bam" % "7.10.0",
