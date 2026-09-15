@@ -39,7 +39,7 @@ jobs:
                 cat <<EOF >>sonatype.sbt
 
                 credentials += Credentials("Sonatype Nexus Repository Manager",
-                    "oss.sonatype.org",
+                    "ossrh-staging-api.central.sonatype.com",
                     "${{ secrets.SONATYPE_USERNAME }}",
                     "${{ secrets.SONATYPE_PASSWORD }}")
                 EOF
