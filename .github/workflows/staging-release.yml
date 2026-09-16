@@ -70,7 +70,7 @@ jobs:
           cat <<EOF >>sonatype.sbt
 
           credentials += Credentials("Sonatype Nexus Repository Manager",
-              "ossrh-staging-api.central.sonatype.com",
+              "central.sonatype.com",
               "${{ secrets.SONATYPE_USERNAME }}",
               "${{ secrets.SONATYPE_PASSWORD }}")
           EOF
@@ -85,7 +85,7 @@ jobs:
         run: sbt clean core/checkNoSnapshotDependencies exit
 
       - name: Push Scala artifacts
-        run: sbt publishSigned sonatypePrepare sonatypeBundleUpload sonatypeClose exit
+        run: sbt publishSigned sonatypeCentralRelease exit
 
       - name: Test staged artifact
         run: sbt stagedRelease/test exit
