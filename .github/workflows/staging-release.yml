@@ -1,4 +1,4 @@
-name: Push to staging repositories
+name: Release to Maven Central
 on:
   workflow_dispatch:
     inputs:
@@ -70,7 +70,7 @@ jobs:
           cat <<EOF >>sonatype.sbt
 
           credentials += Credentials("Sonatype Nexus Repository Manager",
-              "ossrh-staging-api.central.sonatype.com",
+              "central.sonatype.com",
               "${{ secrets.SONATYPE_USERNAME }}",
               "${{ secrets.SONATYPE_PASSWORD }}")
           EOF
@@ -84,8 +84,8 @@ jobs:
         # only run the release-specific check that no SNAPSHOT dependencies leak into a release.
         run: sbt clean core/checkNoSnapshotDependencies exit
 
-      - name: Push Scala artifacts
-        run: sbt publishSigned sonatypePrepare sonatypeBundleUpload sonatypeClose exit
+      - name: Publish Scala artifacts to Maven Central
+        run: sbt publishSigned sonatypeCentralRelease exit
 
       - name: Test staged artifact
         run: sbt stagedRelease/test exit

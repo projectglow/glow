@@ -393,12 +393,12 @@ ThisBuild / pomIncludeRepository := { _ =>
 }
 ThisBuild / publishMavenStyle := true
 
-// Publish to the Sonatype Central Portal via its OSSRH Staging API compatibility
-// endpoint (the legacy oss.sonatype.org host was retired in 2025). This keeps the
-// existing sonatypeBundleUpload/sonatypeClose/sonatypePromote staging flow working.
-// NOTE: staging-release.yml and production-release.yml set Credentials for this same
-// host. sbt-sonatype matches credentials by host, so these must be kept in sync.
-ThisBuild / sonatypeCredentialHost := "ossrh-staging-api.central.sonatype.com"
+// Publish to the Sonatype Central Portal (the legacy oss.sonatype.org host was retired
+// in 2025). Setting the credential host to central.sonatype.com routes sbt-sonatype to
+// the Portal publishing API (publishSigned + sonatypeCentralRelease), not the legacy
+// Nexus staging endpoints, which the Central Portal no longer supports.
+// NOTE: staging-release.yml sets Credentials for this same host — keep them in sync.
+ThisBuild / sonatypeCredentialHost := "central.sonatype.com"
 
 lazy val stableVersion = settingKey[String]("Stable version")
 ThisBuild / stableVersion := IO
