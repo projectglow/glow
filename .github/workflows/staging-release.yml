@@ -78,8 +78,11 @@ jobs:
       - name: Install correct PySpark version
         run: pip install pyspark==${{ inputs.spark-version }}
 
-      - name: Run tests
-        run: sbt clean core/checkNoSnapshotDependencies core/test python/test docs/test exit
+      - name: Check for snapshot dependencies
+        # Unit tests already run in CI (tests.yml) against this commit for both Spark 3 and
+        # Spark 4, and the staged artifact is re-tested below (stagedRelease/test). Here we
+        # only run the release-specific check that no SNAPSHOT dependencies leak into a release.
+        run: sbt clean core/checkNoSnapshotDependencies exit
 
       - name: Push Scala artifacts
         run: sbt publishSigned sonatypePrepare sonatypeBundleUpload sonatypeClose exit
