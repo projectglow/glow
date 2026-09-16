@@ -55,8 +55,9 @@ jobs:
         uses: conda-incubator/setup-miniconda@v3
         with:
           conda-solver: libmamba
-          environment-file: python/environment.yml
-          activate-environment: glow
+          # Spark 4 needs its own env (pandas >= 2.2.0 for pyspark 4.1); Spark 3 uses the default.
+          environment-file: ${{ startsWith(inputs.spark-version, '4') && 'python/spark-4-environment.yml' || 'python/environment.yml' }}
+          activate-environment: ${{ startsWith(inputs.spark-version, '4') && 'glow-spark4' || 'glow' }}
 
       - name: Import GPG Key
         uses: crazy-max/ghaction-import-gpg@v6
