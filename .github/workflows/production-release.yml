@@ -38,7 +38,12 @@ jobs:
                 activate-environment: glow
 
             - name: Build whl and sdist
-              run: (cd python && python setup.py bdist_wheel sdist)
+              # Upgrade setuptools/wheel so the artifacts use PyPI's required normalized
+              # project name ('glow_py'); the pinned setuptools 65.6.3 emits 'glow.py-...',
+              # which PyPI now rejects (400: filename should contain 'glow_py', not 'glow.py').
+              run: |
+                pip install --upgrade setuptools wheel
+                (cd python && python setup.py bdist_wheel sdist)
 
             - name: Publish package to PyPI
               uses: pypa/gh-action-pypi-publish@release/v1
