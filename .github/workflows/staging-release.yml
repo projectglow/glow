@@ -102,8 +102,8 @@ jobs:
 
       - name: Build whl, sdist, and assembly jar
         run: |
-          bin/build --scala --python
-          (cd python && python setup.py sdist)
+          sbt core/assembly
+          (cd python && python setup.py bdist_wheel sdist)
 
       - name: Publish package distributions to TestPyPI
         uses: pypa/gh-action-pypi-publish@release/v1
