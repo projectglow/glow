@@ -1,5 +1,16 @@
 # Releasing Glow
 
+> **Release workflows & environments.** The release runs via two GitHub Actions workflows, each publishing to one target. The GitHub *environment* names are legacy and do **not** match the targets — this mapping is what matters:
+>
+> | Workflow (Actions tab) | File | GitHub environment | Publishes to |
+> |---|---|---|---|
+> | **Publish to Maven Central** | `staging-release.yml` | **`Staging`** | Maven Central (Scala artifacts, via the Sonatype Central Portal) |
+> | **Publish to PyPI** | `production-release.yml` | **`Production`** | PyPI (the `glow.py` package) |
+>
+> In short: **environment `Staging` = Maven Central**, **environment `Production` = PyPI**. The Sonatype token + GPG key live in `Staging`; PyPI uses OIDC trusted publishing in `Production`.
+>
+> _Note: the sections below still describe the older OSSRH `staging → promote` flow and are pending an update._
+
 ## High level workflow
 
 The Glow release process is simple. We release by snapshotting the `main` branch rather than using release branches. So, the high level steps are:
