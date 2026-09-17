@@ -16,7 +16,7 @@ on:
 jobs:
     publish:
         runs-on: ubuntu-latest
-        environment: Production
+        environment: Production # NOTE: this environment = PYPI publishing (OIDC trusted publishing). The name is legacy; see RELEASE.md.
         permissions:
           id-token: write # Necessary to fetch a token for PyPI publishing
         defaults:

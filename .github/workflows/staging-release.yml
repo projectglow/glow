@@ -18,7 +18,7 @@ on:
 jobs:
   publish:
     runs-on: ubuntu-latest
-    environment: Staging
+    environment: Staging # NOTE: this environment = MAVEN CENTRAL publishing (holds the Sonatype token + GPG key). The name is legacy; see RELEASE.md.
     env:
       SPARK_VERSION: ${{ inputs.spark-version }}
       SCALA_VERSION: ${{ inputs.scala-version }}
