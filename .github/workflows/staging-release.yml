@@ -65,6 +65,16 @@ jobs:
           gpg_private_key: ${{ secrets.GPG_PRIVATE_KEY }}
           passphrase: ${{ secrets.GPG_PASSPHRASE }}
 
+      - name: Publish GPG public key to keyserver
+        # Maven Central validates artifact signatures against public keyservers, so the
+        # signing key's public half must be discoverable there. --send-keys publishes only
+        # the public key (no passphrase needed); it is idempotent, so safe to run each release.
+        run: |
+          KEYID=$(gpg --list-secret-keys --keyid-format=long --with-colons | awk -F: '/^sec:/{print $5; exit}')
+          echo "Publishing public key $KEYID to keyservers"
+          gpg --keyserver keyserver.ubuntu.com --send-keys "$KEYID"
+          gpg --keyserver keys.openpgp.org --send-keys "$KEYID" || true
+
       - name: Set Sonatype credentials
         run: |
           cat <<EOF >>sonatype.sbt
