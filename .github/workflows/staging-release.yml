@@ -1,4 +1,4 @@
-name: Release to Maven Central
+name: Publish to Maven Central
 on:
   workflow_dispatch:
     inputs:
@@ -9,25 +9,16 @@ on:
         description: "Spark version to build against. Use 3.5.1 for Spark 3 release, 4.1.0 for Spark 4 release."
         default: "3.5.1"
       scala-version:
-        description: "Scala version. Use 2.12.19 for Spark 3, 2.13.14 for Spark 4."
+        description: "Scala version. Use 2.12.19 for Spark 3, 2.13.15 for Spark 4."
         default: "2.12.19"
       java-version:
         description: "Java version. Use 8 for Spark 3, 17 for Spark 4."
         default: "8"
-      push-python:
-        description: "If true, Python artifacts will be pushed to Test PyPI"
-        type: boolean
-        default: true
 
 jobs:
-  push-to-staging:
+  publish:
     runs-on: ubuntu-latest
     environment: Staging
-    permissions:
-      id-token: write # Necessary to fetch a token for PyPI publishing
-    defaults:
-      run:
-        shell: bash -el {0}
     env:
       SPARK_VERSION: ${{ inputs.spark-version }}
       SCALA_VERSION: ${{ inputs.scala-version }}
@@ -50,14 +41,6 @@ jobs:
           curl -sL "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x2EE0EA64E40A89B84B2DF73499E82A75642AC823" | sudo apt-key add -
           sudo apt-get update
           sudo apt-get install -y sbt
-
-      - name: Install Conda
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          conda-solver: libmamba
-          # Spark 4 needs its own env (pandas >= 2.2.0 for pyspark 4.1); Spark 3 uses the default.
-          environment-file: ${{ startsWith(inputs.spark-version, '4') && 'python/spark-4-environment.yml' || 'python/environment.yml' }}
-          activate-environment: ${{ startsWith(inputs.spark-version, '4') && 'glow-spark4' || 'glow' }}
 
       - name: Import GPG Key
         uses: crazy-max/ghaction-import-gpg@v6
@@ -85,13 +68,9 @@ jobs:
               "${{ secrets.SONATYPE_PASSWORD }}")
           EOF
 
-      - name: Install correct PySpark version
-        run: pip install pyspark==${{ inputs.spark-version }}
-
       - name: Check for snapshot dependencies
-        # Unit tests already run in CI (tests.yml) against this commit for both Spark 3 and
-        # Spark 4, and the staged artifact is re-tested below (stagedRelease/test). Here we
-        # only run the release-specific check that no SNAPSHOT dependencies leak into a release.
+        # Unit tests already run in CI (tests.yml) against this commit; here we only run the
+        # release-specific check that no SNAPSHOT dependencies leak into a release.
         run: sbt clean core/checkNoSnapshotDependencies exit
 
       - name: Publish Scala artifacts to Maven Central
@@ -100,22 +79,11 @@ jobs:
       - name: Test staged artifact
         run: sbt stagedRelease/test exit
 
-      - name: Build whl, sdist, and assembly jar
-        run: |
-          bin/build --scala --python
-          (cd python && python setup.py sdist)
+      - name: Build assembly jar
+        run: sbt core/assembly
 
-      - name: Publish package distributions to TestPyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        if: ${{ inputs.push-python }}
-        with:
-          repository-url: https://test.pypi.org/legacy/
-          packages-dir: python/dist/
-
-      - name: Upload whl and assembly jar
+      - name: Upload assembly jar
         uses: actions/upload-artifact@v4
         with:
-          name: binaries-${{ github.job }}
-          path: |
-            core/target/**/glow*assembly*.jar
-            python/dist/*.whl
+          name: assembly-jar
+          path: core/target/**/glow*assembly*.jar
