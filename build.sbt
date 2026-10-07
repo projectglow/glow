@@ -11,7 +11,7 @@ import sbt.nio.Keys._
 lazy val scala212 = "2.12.19"
 lazy val scala213 = "2.13.15"
 
-lazy val spark3 = "3.5.1"
+lazy val spark3 = "3.5.8"
 lazy val spark4 = "4.1.0"
 
 lazy val sparkVersion = settingKey[String]("sparkVersion")
@@ -122,7 +122,10 @@ lazy val commonSettings = Seq(
   assembly / assemblyMergeStrategy := {
     case p if p.toLowerCase.contains("manifest.mf") =>
       MergeStrategy.discard
-    case p if p.toLowerCase.endsWith(".sf") || p.toLowerCase.endsWith(".dsa") || p.toLowerCase.endsWith(".rsa") =>
+    case p
+        if p.toLowerCase.endsWith(".sf") || p.toLowerCase.endsWith(".dsa") || p
+          .toLowerCase
+          .endsWith(".rsa") =>
       MergeStrategy.discard
     case p if p.startsWith("com/fasterxml/jackson/") =>
       MergeStrategy.discard
@@ -140,7 +143,7 @@ lazy val commonSettings = Seq(
     if (sparkVersion.value.contains("SNAPSHOT"))
       Seq("Apache Snapshots" at "https://repository.apache.org/snapshots/")
     else Seq.empty
-  },
+  }
 )
 
 lazy val functionsYml = settingKey[File]("functionsYml")
@@ -206,7 +209,7 @@ ThisBuild / coreDependencies := {
   // against the same ABI Spark itself was compiled against (avoids NoSuchMethod
   // style runtime breaks). Verified against the Spark POMs:
   //   - Spark 4.1.0: netty.version = 4.2.7.Final (Spark 4.0.0 used 4.1.118; 4.1 bumped to the 4.2 line)
-  //   - Spark 3.5.1: netty 4.1.96.Final
+  //   - Spark 3.5.8: netty 4.1.96.Final
   val hadoopVersion = if (sparkMajor == "3") "3.3.6" else "3.4.2"
   val nettyVersion = if (sparkMajor == "3") "4.1.96.Final" else "4.2.7.Final"
   val avroVersion = if (sparkMajor == "3") "1.11.4" else "1.12.0"

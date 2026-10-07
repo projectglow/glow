@@ -6,7 +6,7 @@ on:
             description: "Git tag for release"
             required: true
         spark-version:
-            description: "Spark version (3.5.1 for Spark 3 release, 4.1.0 for Spark 4 release)"
+            description: "Spark version (3.5.8 for Spark 3 release, 4.1.0 for Spark 4 release)"
             default: "3.5.1"
         push-python:
             description: "If true, the Python package will be published to PyPI"
