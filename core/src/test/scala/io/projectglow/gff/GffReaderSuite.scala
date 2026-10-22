@@ -314,6 +314,21 @@ class GffReaderSuite extends GlowBaseTest {
     assert(df.count() == df.rdd.count())
   }
 
+  // Spark 4 enables ANSI mode by default. Filtering fasta lines must not implicitly cast
+  // string columns such as source to the score column's DoubleType.
+  test("Read gff with ANSI mode enabled") {
+    withSparkConf(Map("spark.sql.ansi.enabled" -> "true")) {
+      val df = spark
+        .read
+        .format(sourceName)
+        .load(testGff3)
+      assert(df.count() == 20)
+      assert(df.count() == df.rdd.count())
+      assert(
+        df.where("source = 'RefSeq'").select("type").collect() sameElements Array(Row("region")))
+    }
+  }
+
   test("Read gff glob") {
     val df = spark
       .read

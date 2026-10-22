@@ -339,12 +339,10 @@ object GffDataSource {
   }
 
   def filterFastaLines(df: DataFrame): DataFrame = {
+    // Null checks are combined with OR rather than coalesce, which would coerce the mixed-type
+    // columns to a common type and, under ANSI mode, fail casting string columns to double.
     df.where(
-      !isnull(
-        coalesce(
-          gffBaseSchema.fieldNames.drop(1).map(col(_)): _*
-        )
-      )
+      gffBaseSchema.fieldNames.drop(1).map(col(_).isNotNull).reduce(_ || _)
     )
   }
 
